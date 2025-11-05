@@ -4,7 +4,6 @@ import { EventTargetingRule, TraceTargetingRule, EventTargetingCollectionConfig,
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
 import Paginator from '@/app/components/paginator'
-import { useState, useEffect } from 'react'
 
 const getFilterDisplayText = (type: EventTargetingRuleType, filter: string): string => {
     switch (type) {
@@ -46,45 +45,30 @@ type RuleFilter = EventTargetingRule | TraceTargetingRule
 interface RulesTableProps {
     rules: RuleFilter[]
     onRuleClick: (rule: RuleFilter) => void
+    prevEnabled: boolean
+    nextEnabled: boolean
+    onNext: () => void
+    onPrev: () => void
+    showPaginator: boolean
 }
 
-const paginationLimit = 5
-
-export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
-    const [paginationOffset, setPaginationOffset] = useState(0)
-
-    useEffect(() => {
-        setPaginationOffset(0)
-    }, [rules])
-
+export default function RulesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: RulesTableProps) {
     if (rules.length === 0) {
         return null
     }
-
-    const handleNextPage = () => {
-        setPaginationOffset(paginationOffset + paginationLimit)
-    }
-
-    const handlePrevPage = () => {
-        setPaginationOffset(Math.max(0, paginationOffset - paginationLimit))
-    }
-
-    const prevEnabled = paginationOffset > 0
-    const nextEnabled = paginationOffset + paginationLimit < rules.length
-    const paginatedRules = rules.slice(paginationOffset, paginationOffset + paginationLimit)
 
     return (
         <>
             <div className="py-6" />
             <div className="w-full flex items-center justify-between">
                 <p className="font-display text-gray-500">Overrides</p>
-                {rules.length > paginationLimit && (
+                {showPaginator && (
                     <Paginator
                         prevEnabled={prevEnabled}
                         nextEnabled={nextEnabled}
                         displayText=""
-                        onNext={handleNextPage}
-                        onPrev={handlePrevPage}
+                        onNext={onNext}
+                        onPrev={onPrev}
                     />
                 )}
             </div>
@@ -98,7 +82,7 @@ export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {paginatedRules.map((dataFilter, idx) => (
+                    {rules.map((dataFilter, idx) => (
                         <TableRow
                             key={`${idx}-${dataFilter.id}`}
                             className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"

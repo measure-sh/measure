@@ -18,8 +18,12 @@ interface PageState {
     filters: typeof defaultFilters
     eventTargetingRules: EventTargetingResponse
     traceTargetingRules: TraceTargetingResponse
+    eventPaginationOffset: number
+    tracePaginationOffset: number
     defaultRuleEditState: DefaultRuleEditState | null
 }
+
+const paginationLimit = 5
 
 const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
@@ -44,6 +48,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         eventTargetingRules: emptyEventTargetingResponse,
         traceTargetingRules: emptyTraceTargetingResponse,
         defaultRuleEditState: null,
+        eventPaginationOffset: 0,
+        tracePaginationOffset: 0,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -62,8 +68,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         })
 
         const [eventResult, traceResult] = await Promise.all([
-            fetchEventTargetingRulesFromServer(pageState.filters.app!.id),
-            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id)
+            fetchEventTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.eventPaginationOffset),
+            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.tracePaginationOffset)
         ])
 
         if (eventResult.status === EventTargetingApiStatus.Error || traceResult.status === TraceTargetingApiStatus.Error) {
@@ -96,8 +102,26 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 filters: updatedFilters,
                 eventTargetingRules: emptyEventTargetingResponse,
                 traceTargetingRules: emptyTraceTargetingResponse,
+                eventPaginationOffset: 0,
+                tracePaginationOffset: 0,
             })
         }
+    }
+
+    const handleEventNextPage = () => {
+        updatePageState({ eventPaginationOffset: pageState.eventPaginationOffset + paginationLimit })
+    }
+
+    const handleEventPrevPage = () => {
+        updatePageState({ eventPaginationOffset: Math.max(0, pageState.eventPaginationOffset - paginationLimit) })
+    }
+
+    const handleTraceNextPage = () => {
+        updatePageState({ tracePaginationOffset: pageState.tracePaginationOffset + paginationLimit })
+    }
+
+    const handleTracePrevPage = () => {
+        updatePageState({ tracePaginationOffset: Math.max(0, pageState.tracePaginationOffset - paginationLimit) })
     }
 
     useEffect(() => {
@@ -110,7 +134,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
         // TODO: Re-enable API call when ready
         // getDataFilters()
-    }, [pageState.filters])
+    }, [pageState.filters, pageState.eventPaginationOffset, pageState.tracePaginationOffset])
 
     const isLoading = () => {
         return pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading ||
@@ -246,7 +270,15 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <RulesTable rules={eventsOverideRules} onRuleClick={handleEditFilter} />
+                        <RulesTable
+                            rules={eventsOverideRules}
+                            onRuleClick={handleEditFilter}
+                            prevEnabled={pageState.eventTargetingRules.meta.previous}
+                            nextEnabled={pageState.eventTargetingRules.meta.next}
+                            onNext={handleEventNextPage}
+                            onPrev={handleEventPrevPage}
+                            showPaginator={eventsOverideRules.length > 0}
+                        />
                     </div>
 
                     <div className="py-12" />
@@ -275,7 +307,15 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <RulesTable rules={traceOverrideRules} onRuleClick={handleEditFilter} />
+                        <RulesTable
+                            rules={traceOverrideRules}
+                            onRuleClick={handleEditFilter}
+                            prevEnabled={pageState.traceTargetingRules.meta.previous}
+                            nextEnabled={pageState.traceTargetingRules.meta.next}
+                            onNext={handleTraceNextPage}
+                            onPrev={handleTracePrevPage}
+                            showPaginator={traceOverrideRules.length > 0}
+                        />
                     </div>
                 </div>}
 
