@@ -18,7 +18,6 @@ export default function EventTraceRuleBuilder({
     onPrimaryAction,
     children
 }: EventTraceRuleBuilderProps) {
-    // Derive title based on type and mode
     const getTitle = () => {
         const typeLabel = type === 'event' ? 'Event' : 'Trace'
         if (mode === 'create') {
@@ -27,7 +26,6 @@ export default function EventTraceRuleBuilder({
         return `Edit ${typeLabel} Rule`
     }
 
-    // Derive primary action label based on mode
     const getPrimaryActionLabel = () => {
         return mode === 'create' ? 'Create Rule' : 'Save Changes'
     }
