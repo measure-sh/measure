@@ -259,8 +259,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <LoadingBar />
                     </div>
 
-                    {/* Global Filters Section */}
-                    {globalFilters.length > 0 && (
+                    {/* Global Filters Section - Hidden during edit mode */}
+                    {pageState.editingFilterType === null && globalFilters.length > 0 && (
                         <div className="flex flex-col gap-3 w-full">
                             {globalFilters.map((dataFilter, idx) => (
                                 <Card
@@ -295,58 +295,60 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                     <div className="py-8" />
 
-                    {/* Override Filters Section */}
-                    {overrideFilters.length === 0 ? (
-                        <div className="w-full py-12 text-center">
-                            <p className="text-gray-500 text-sm">
-                                Click "Create Filter" to override the global filter settings for any event or trace
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="w-full">
-                            <div className="mb-4">
-                                <p className="font-display text-2xl">Filters</p>
-                                <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
+                    {/* Override Filters Section - Hidden during edit mode */}
+                    {pageState.editingFilterType === null && (
+                        overrideFilters.length === 0 ? (
+                            <div className="w-full py-12 text-center">
+                                <p className="text-gray-500 text-sm">
+                                    Click "Create Filter" to override the global filter settings for any event or trace
+                                </p>
                             </div>
+                        ) : (
+                            <div className="w-full">
+                                <div className="mb-4">
+                                    <p className="font-display text-2xl">Filters</p>
+                                    <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
+                                </div>
 
-                            <div className="py-2" />
+                                <div className="py-2" />
 
-                            <div>
+                                <div>
 
-                            <Table className="font-display">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[52%]">Filter</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated At</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated By</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {overrideFilters.map((dataFilter, idx) => (
-                                        <TableRow
-                                            key={`${idx}-${dataFilter.id}`}
-                                            className="font-body"
-                                        >
-                                            <TableCell className="w-[60%] p-4">
-                                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{dataFilter.updated_by}</p>
-                                            </TableCell>
+                                <Table className="font-display">
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[52%]">Filter</TableHead>
+                                            <TableHead className="w-[24%] text-center">Updated At</TableHead>
+                                            <TableHead className="w-[24%] text-center">Updated By</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {overrideFilters.map((dataFilter, idx) => (
+                                            <TableRow
+                                                key={`${idx}-${dataFilter.id}`}
+                                                className="font-body"
+                                            >
+                                                <TableCell className="w-[60%] p-4">
+                                                    <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
+                                                    <div className='py-1' />
+                                                    <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
+                                                    <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
+                                                </TableCell>
+                                                <TableCell className="w-[20%] text-center p-4">
+                                                    <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
+                                                    <div className='py-1' />
+                                                    <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
+                                                </TableCell>
+                                                <TableCell className="w-[20%] text-center p-4">
+                                                    <p className='truncate select-none'>{dataFilter.updated_by}</p>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                </div>
                             </div>
-                        </div>
+                        )
                     )}
                 </div>}
 
