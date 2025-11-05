@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
+import { Card, CardContent, CardFooter } from '@/app/components/card'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
@@ -125,6 +126,14 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const globalFilters = pageState.dataFilters.results.filter(df => isGlobalFilter(df.type))
     const overrideFilters = pageState.dataFilters.results.filter(df => !isGlobalFilter(df.type))
 
+    const handleCancel = () => {
+        updatePageState({ editingFilterType: null })
+    }
+
+    const handleCreateFilter = () => {
+        updatePageState({ editingFilterType: null })
+    }
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
 
@@ -135,7 +144,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
+                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading || pageState.editingFilterType !== null}
                         >
                             <Plus /> Create Filter
                         </Button>
@@ -176,6 +185,36 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 freeTextPlaceholder={""}
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
+
+            {/* Filter creation card */}
+            {pageState.editingFilterType && (
+                <>
+                    <Card className="w-full">
+                        <CardContent className="pt-6">
+                            <div className="mb-6">
+                            </div>
+                        </CardContent>
+
+                        <CardFooter className="flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={handleCancel}
+                                className="font-display"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleCreateFilter}
+                                className="font-display border border-black"
+                            >
+                                Create Filter
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                    <div className="py-12" />
+                </>
+            )}
 
             {/* Error state for data filters fetch */}
             {pageState.filters.ready
