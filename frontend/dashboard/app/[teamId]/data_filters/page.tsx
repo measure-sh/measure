@@ -27,6 +27,13 @@ interface PageState {
         collectionMode: DataFilterCollectionConfig['mode']
         sampleRate?: number
     } | null
+    editingFilter: {
+        id: string
+        type: DataFilterType
+        filter: string
+        collectionMode: DataFilterCollectionConfig['mode']
+        sampleRate?: number
+    } | null
 }
 
 const isGlobalFilter = (type: DataFilterType): boolean => {
@@ -78,6 +85,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         dataFilters: emptyDataFiltersResponse,
         editingFilterType: null,
         editingGlobalFilter: null,
+        editingFilter: null,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -164,6 +172,27 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         updatePageState({ editingGlobalFilter: null })
     }
 
+    const handleEditFilter = (dataFilter: typeof overrideFilters[0]) => {
+        updatePageState({
+            editingFilter: {
+                id: dataFilter.id,
+                type: dataFilter.type,
+                filter: dataFilter.filter,
+                collectionMode: dataFilter.collection_config.mode,
+                sampleRate: dataFilter.collection_config.mode === 'sample_rate' ? dataFilter.collection_config.sample_rate : undefined
+            }
+        })
+    }
+
+    const handleSaveFilter = () => {
+        // TODO: Implement save logic
+        updatePageState({ editingFilter: null })
+    }
+
+    const handleCancelFilter = () => {
+        updatePageState({ editingFilter: null })
+    }
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
 
@@ -174,7 +203,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading || pageState.editingFilterType !== null}
+                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading || pageState.editingFilterType !== null || pageState.editingFilter !== null}
                         >
                             <Plus /> Create Filter
                         </Button>
@@ -216,8 +245,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
-            {/* Filter creation card */}
-            {pageState.editingFilterType && (
+            {/* Filter creation/edit card */}
+            {(pageState.editingFilterType || pageState.editingFilter) && (
                 <>
                     <Card className="w-full">
                         <CardContent className="pt-6">
@@ -228,17 +257,17 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <CardFooter className="flex justify-end gap-3">
                             <Button
                                 variant="outline"
-                                onClick={handleCancel}
+                                onClick={pageState.editingFilter ? handleCancelFilter : handleCancel}
                                 className="font-display"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 variant="outline"
-                                onClick={handleCreateFilter}
+                                onClick={pageState.editingFilter ? handleSaveFilter : handleCreateFilter}
                                 className="font-display border border-black"
                             >
-                                Create Filter
+                                {pageState.editingFilter ? 'Save Changes' : 'Create Filter'}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -260,7 +289,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                     </div>
 
                     {/* Global Filters Section - Hidden during edit mode */}
-                    {pageState.editingFilterType === null && globalFilters.length > 0 && (
+                    {pageState.editingFilterType === null && pageState.editingFilter === null && globalFilters.length > 0 && (
                         <div className="flex flex-col gap-3 w-full">
                             {globalFilters.map((dataFilter, idx) => (
                                 <Card
@@ -296,7 +325,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                     <div className="py-8" />
 
                     {/* Override Filters Section - Hidden during edit mode */}
-                    {pageState.editingFilterType === null && (
+                    {pageState.editingFilterType === null && pageState.editingFilter === null && (
                         overrideFilters.length === 0 ? (
                             <div className="w-full py-12 text-center">
                                 <p className="text-gray-500 text-sm">
@@ -326,7 +355,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                         {overrideFilters.map((dataFilter, idx) => (
                                             <TableRow
                                                 key={`${idx}-${dataFilter.id}`}
-                                                className="font-body"
+                                                className="font-body cursor-pointer hover:bg-gray-50"
+                                                onClick={() => handleEditFilter(dataFilter)}
                                             >
                                                 <TableCell className="w-[60%] p-4">
                                                     <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
