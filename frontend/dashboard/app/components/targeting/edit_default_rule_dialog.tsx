@@ -15,7 +15,7 @@ interface EditDefaultRuleDialogProps {
     initialCollectionMode: CollectionMode
     initialSampleRate?: number
     onClose: () => void
-    onSuccess: () => void
+    onSuccess: (collectionMode: CollectionMode, sampleRate?: number) => void
     onError: (error: string) => void
 }
 
@@ -56,7 +56,7 @@ export default function EditDefaultRuleDialog({
             await new Promise(resolve => setTimeout(resolve, 500))
 
             // For now, always succeed
-            onSuccess()
+            onSuccess(collectionMode, collectionMode === 'sample_rate' ? sampleRate : undefined)
             onClose()
         } catch (error) {
             onError(error instanceof Error ? error.message : 'Failed to update rule')

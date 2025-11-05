@@ -61,7 +61,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         })
     }
 
-    const getDataFilters = async () => {
+    const getAllDataFilters = async () => {
         updatePageState({
             eventTargetingApiStatus: EventTargetingApiStatus.Loading,
             traceTargetingApiStatus: TraceTargetingApiStatus.Loading
@@ -163,7 +163,38 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
     }
 
-    const handleDefaultRuleUpdateSuccess = () => {
+    const handleDefaultRuleUpdateSuccess = (collectionMode: 'sample_rate' | 'timeline_only' | 'disable', sampleRate?: number) => {
+        // Update local state based on which rule was edited
+        if (pageState.editingDefaultRule === 'event') {
+            const updatedEventRules = {
+                ...pageState.eventTargetingRules,
+                result: {
+                    ...pageState.eventTargetingRules.result,
+                    default: {
+                        ...pageState.eventTargetingRules.result.default,
+                        collection_config: collectionMode === 'sample_rate'
+                            ? { mode: collectionMode as const, sample_rate: sampleRate! }
+                            : { mode: collectionMode as const }
+                    }
+                }
+            }
+            updatePageState({ eventTargetingRules: updatedEventRules })
+        } else if (pageState.editingDefaultRule === 'trace') {
+            const updatedTraceRules = {
+                ...pageState.traceTargetingRules,
+                result: {
+                    ...pageState.traceTargetingRules.result,
+                    default: {
+                        ...pageState.traceTargetingRules.result.default,
+                        collection_config: collectionMode === 'sample_rate'
+                            ? { mode: collectionMode as const, sample_rate: sampleRate! }
+                            : { mode: collectionMode as const }
+                    }
+                }
+            }
+            updatePageState({ traceTargetingRules: updatedTraceRules })
+        }
+
         toastPositive('Rule updated successfully')
     }
 
