@@ -235,7 +235,11 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             <Plus /> Create Rule
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                        align="end"
+                        className='select-none'
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
                         <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/event/create`)}>
                             Event Rule
                         </DropdownMenuItem>
@@ -243,7 +247,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             Trace Rule
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/session/create`)}>
-                            Session Rule
+                            Session Timeline Rule
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

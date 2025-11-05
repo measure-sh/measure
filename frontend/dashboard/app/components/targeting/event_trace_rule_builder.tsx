@@ -116,15 +116,15 @@ export default function EventTraceRuleBuilder({
 
             {/* Error state */}
             {hasError && (
-                <div className="w-full">
-                    <p className="text-lg font-display text-red-600">
+                <div className="w-full flex flex-col items-center">
+                    <p className="text-normal font-body">
                         Error loading rule data. Please try again or go back.
                     </p>
                     <div className="py-4" />
                     <Button
                         variant="outline"
                         onClick={onCancel}
-                        className="font-display"
+                        className="font-display border border-black select-none"
                     >
                         Go Back
                     </Button>
