@@ -1,29 +1,29 @@
 "use client"
 
-import { DataFiltersApiStatus, DataFiltersResponse, emptyDataFiltersResponse, fetchDataFiltersFromServer, FilterSource } from '@/app/api/api_calls'
+import { DataRulesApiStatus, DataRulesResponse, emptyDataFiltersResponse, fetchDataFiltersFromServer, FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import { DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
+import { DataRuleCollectionConfig, DataRuleType } from '@/app/api/api_calls'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
-import EditDefaultRuleDialog, { DefaultRuleState } from '@/app/components/data/edit_default_rule_dialog'
-import RulesTable from '@/app/components/data/rule_overrides_table'
+import EditDefaultRuleDialog, { DefaultRuleState } from '@/app/components/data_rule/edit_default_rule_dialog'
+import RulesTable from '@/app/components/data_rule/rule_overrides_table'
 
 interface PageState {
-    dataFiltersApiStatus: DataFiltersApiStatus
+    dataFiltersApiStatus: DataRulesApiStatus
     filters: typeof defaultFilters
-    dataFilters: DataFiltersResponse
+    dataFilters: DataRulesResponse
     defaultRuleEditState: DefaultRuleState | null
 }
 
-const isDefaultRule = (type: DataFilterType): boolean => {
+const isDefaultRule = (type: DataRuleType): boolean => {
     return type === 'all_events' || type === 'all_traces'
 }
 
-const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: DataRuleCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
@@ -40,7 +40,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const router = useRouter()
 
     const initialState: PageState = {
-        dataFiltersApiStatus: DataFiltersApiStatus.Success,
+        dataFiltersApiStatus: DataRulesApiStatus.Success,
         filters: defaultFilters,
         dataFilters: emptyDataFiltersResponse,
         defaultRuleEditState: null,
@@ -56,20 +56,20 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     }
 
     const getDataFilters = async () => {
-        updatePageState({ dataFiltersApiStatus: DataFiltersApiStatus.Loading })
+        updatePageState({ dataFiltersApiStatus: DataRulesApiStatus.Loading })
 
         const result = await fetchDataFiltersFromServer(pageState.filters.app!.id)
 
         switch (result.status) {
-            case DataFiltersApiStatus.Error:
-                updatePageState({ dataFiltersApiStatus: DataFiltersApiStatus.Error })
+            case DataRulesApiStatus.Error:
+                updatePageState({ dataFiltersApiStatus: DataRulesApiStatus.Error })
                 break
-            case DataFiltersApiStatus.NoFilters:
-                updatePageState({ dataFiltersApiStatus: DataFiltersApiStatus.NoFilters })
+            case DataRulesApiStatus.NoFilters:
+                updatePageState({ dataFiltersApiStatus: DataRulesApiStatus.NoFilters })
                 break
-            case DataFiltersApiStatus.Success:
+            case DataRulesApiStatus.Success:
                 updatePageState({
-                    dataFiltersApiStatus: DataFiltersApiStatus.Success,
+                    dataFiltersApiStatus: DataRulesApiStatus.Success,
                     dataFilters: result.data
                 })
                 break
@@ -138,7 +138,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
+                            disabled={pageState.dataFiltersApiStatus === DataRulesApiStatus.Loading}
                         >
                             <Plus /> Create Rule
                         </Button>
@@ -183,14 +183,14 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
             {/* Error state for data rules fetch */}
             {pageState.filters.ready
-                && pageState.dataFiltersApiStatus === DataFiltersApiStatus.Error
+                && pageState.dataFiltersApiStatus === DataRulesApiStatus.Error
                 && <p className="text-lg font-display">Error fetching data filters, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main data rules UI */}
             {pageState.filters.ready
-                && (pageState.dataFiltersApiStatus === DataFiltersApiStatus.Success || pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading) &&
+                && (pageState.dataFiltersApiStatus === DataRulesApiStatus.Success || pageState.dataFiltersApiStatus === DataRulesApiStatus.Loading) &&
                 <div className="flex flex-col items-start w-full">
-                    <div className={`py-1 w-full ${pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${pageState.dataFiltersApiStatus === DataRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
 

@@ -1,14 +1,14 @@
 "use client"
 
-import { DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
+import { DataRuleCollectionConfig, DataRuleType } from '@/app/api/api_calls'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
 import { Button } from '@/app/components/button'
-import SamplingRateInput from '@/app/components/data/sampling_rate_input'
+import SamplingRateInput from '@/app/components/data_rule/sampling_rate_input'
 
 export interface DefaultRuleState {
     id: string
-    type: DataFilterType
-    collectionMode: DataFilterCollectionConfig['mode']
+    type: DataRuleType
+    collectionMode: DataRuleCollectionConfig['mode']
     sampleRate?: number
 }
 

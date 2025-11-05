@@ -353,7 +353,7 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
-export enum DataFiltersApiStatus {
+export enum DataRulesApiStatus {
   Loading,
   Success,
   Error,
@@ -1031,36 +1031,36 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export type DataFiltersResponse = {
+export type DataRulesResponse = {
   meta: {
     next: false,
     previous: false,
   },
-  results: DataFilter[],
+  results: DataRule[],
 }
 
-export type DataFilterType = "event" | "trace" | "all_events" | "all_traces";
+export type DataRuleType = "event" | "trace" | "all_events" | "all_traces";
 
-export type DataFilterCollectionConfig =
+export type DataRuleCollectionConfig =
   | { mode: 'sample_rate'; sample_rate: number }
   | { mode: 'timeline_only' }
   | { mode: 'disable' };
 
-export type DataFilterAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
+export type DataRuleAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
 
-export type DataFilter = {
+export type DataRule = {
   id: string,
-  type: DataFilterType,
+  type: DataRuleType,
   rule: string,
-  collection_config: DataFilterCollectionConfig,
-  attachment_config: DataFilterAttachmentConfig,
+  collection_config: DataRuleCollectionConfig,
+  attachment_config: DataRuleAttachmentConfig,
   created_at: string,
   created_by: string,
   updated_at: string,
   updated_by: string,
 }
 
-export const emptyDataFiltersResponse: DataFiltersResponse = {
+export const emptyDataFiltersResponse: DataRulesResponse = {
   meta: {
     next: false,
     previous: false,
@@ -1142,116 +1142,6 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
       created_by: "user3@example.com",
       updated_at: "2024-03-05T13:45:00Z",
       updated_by: "user3@example.com",
-    },
-    {
-      id: "df-006",
-      type: "trace",
-      rule: "trace.name == 'database_query' && trace.duration > 1000",
-      collection_config: { mode: 'sample_rate', sample_rate: 0.75 },
-      attachment_config: 'none',
-      created_at: "2024-03-10T09:20:00Z",
-      created_by: "developer@example.com",
-      updated_at: "2024-03-15T14:30:00Z",
-      updated_by: "developer@example.com",
-    },
-    {
-      id: "df-007",
-      type: "event",
-      rule: "event.type == 'navigation' && event.screen == 'profile'",
-      collection_config: { mode: 'timeline_only' },
-      attachment_config: 'layout_snapshot',
-      created_at: "2024-03-12T11:15:00Z",
-      created_by: "user1@example.com",
-      updated_at: "2024-03-12T11:15:00Z",
-      updated_by: "user1@example.com",
-    },
-    {
-      id: "df-008",
-      type: "trace",
-      rule: "trace.name == 'api_call' && trace.http.method == 'POST'",
-      collection_config: { mode: 'sample_rate', sample_rate: 0.3 },
-      attachment_config: 'none',
-      created_at: "2024-03-14T16:40:00Z",
-      created_by: "qa@example.com",
-      updated_at: "2024-03-20T10:25:00Z",
-      updated_by: "lead@example.com",
-    },
-    {
-      id: "df-009",
-      type: "event",
-      rule: "event.type == 'error' && event.severity == 'high'",
-      collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
-      attachment_config: 'screenshot',
-      created_at: "2024-03-18T08:30:00Z",
-      created_by: "admin@example.com",
-      updated_at: "2024-03-18T08:30:00Z",
-      updated_by: "admin@example.com",
-    },
-    {
-      id: "df-010",
-      type: "trace",
-      rule: "trace.name == 'image_upload' && trace.file_size > 5000000",
-      collection_config: { mode: 'disable' },
-      attachment_config: 'none',
-      created_at: "2024-03-22T14:55:00Z",
-      created_by: "developer@example.com",
-      updated_at: "2024-03-25T09:10:00Z",
-      updated_by: "admin@example.com",
-    },
-    {
-      id: "df-011",
-      type: "event",
-      rule: "event.type == 'payment' && event.amount > 100",
-      collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
-      attachment_config: 'screenshot',
-      created_at: "2024-03-26T10:20:00Z",
-      created_by: "user2@example.com",
-      updated_at: "2024-03-26T10:20:00Z",
-      updated_by: "user2@example.com",
-    },
-    {
-      id: "df-012",
-      type: "trace",
-      rule: "trace.name == 'video_processing' && trace.duration > 3000",
-      collection_config: { mode: 'timeline_only' },
-      attachment_config: 'layout_snapshot',
-      created_at: "2024-03-28T15:45:00Z",
-      created_by: "qa@example.com",
-      updated_at: "2024-03-28T15:45:00Z",
-      updated_by: "qa@example.com",
-    },
-    {
-      id: "df-013",
-      type: "event",
-      rule: "event.type == 'search' && event.query_length > 50",
-      collection_config: { mode: 'sample_rate', sample_rate: 0.5 },
-      attachment_config: 'none',
-      created_at: "2024-04-01T12:00:00Z",
-      created_by: "user3@example.com",
-      updated_at: "2024-04-05T14:20:00Z",
-      updated_by: "lead@example.com",
-    },
-    {
-      id: "df-014",
-      type: "trace",
-      rule: "trace.name == 'cache_miss' && trace.status == 'ok'",
-      collection_config: { mode: 'sample_rate', sample_rate: 0.1 },
-      attachment_config: 'none',
-      created_at: "2024-04-03T09:30:00Z",
-      created_by: "developer@example.com",
-      updated_at: "2024-04-03T09:30:00Z",
-      updated_by: "developer@example.com",
-    },
-    {
-      id: "df-015",
-      type: "event",
-      rule: "event.type == 'form_submit' && event.field_count > 10",
-      collection_config: { mode: 'sample_rate', sample_rate: 0.8 },
-      attachment_config: 'layout_snapshot',
-      created_at: "2024-04-07T11:40:00Z",
-      created_by: "user1@example.com",
-      updated_at: "2024-04-10T16:15:00Z",
-      updated_by: "admin@example.com",
     },
   ],
 }
@@ -2604,17 +2494,17 @@ export const fetchDataFiltersFromServer = async (
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: DataFiltersApiStatus.Error, data: null }
+      return { status: DataRulesApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data.results === null) {
-      return { status: DataFiltersApiStatus.NoFilters, data: null }
+      return { status: DataRulesApiStatus.NoFilters, data: null }
     } else {
-      return { status: DataFiltersApiStatus.Success, data: data }
+      return { status: DataRulesApiStatus.Success, data: data }
     }
   } catch {
-    return { status: DataFiltersApiStatus.Cancelled, data: null }
+    return { status: DataRulesApiStatus.Cancelled, data: null }
   }
 }
