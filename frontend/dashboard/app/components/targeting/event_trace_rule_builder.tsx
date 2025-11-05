@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter } from '@/app/components/card'
 interface EventTraceRuleBuilderProps {
     type: 'event' | 'trace'
     mode: 'create' | 'edit'
+    ruleId?: string
     onCancel: () => void
     onPrimaryAction: () => void
     children?: React.ReactNode
@@ -14,6 +15,7 @@ interface EventTraceRuleBuilderProps {
 export default function EventTraceRuleBuilder({
     type,
     mode,
+    ruleId,
     onCancel,
     onPrimaryAction,
     children
