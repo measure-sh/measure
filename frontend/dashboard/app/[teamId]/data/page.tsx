@@ -9,8 +9,9 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
-import EditDefaultRuleDialog, { DefaultRuleState as DefaultRuleEditState } from '@/app/components/targeting/edit_default_rule_dialog'
+import EditDefaultRuleDialog from '@/app/components/targeting/edit_default_rule_dialog'
 import RulesTable from '@/app/components/targeting/rule_overrides_table'
+import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 
 interface PageState {
     eventTargetingApiStatus: EventTargetingApiStatus
@@ -20,7 +21,7 @@ interface PageState {
     traceTargetingRules: TraceTargetingResponse
     eventPaginationOffset: number
     tracePaginationOffset: number
-    defaultRuleEditState: DefaultRuleEditState | null
+    editingDefaultRule: 'event' | 'trace' | null
 }
 
 const paginationLimit = 5
@@ -47,9 +48,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         filters: defaultFilters,
         eventTargetingRules: emptyEventTargetingResponse,
         traceTargetingRules: emptyTraceTargetingResponse,
-        defaultRuleEditState: null,
         eventPaginationOffset: 0,
         tracePaginationOffset: 0,
+        editingDefaultRule: null,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -159,28 +160,16 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const traceDefaultRule = pageState.traceTargetingRules.result.default;
     const traceOverrideRules = pageState.traceTargetingRules.result.overrides;
 
-    const handleEditFilter = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0]) => {
-        const filterType = dataFilter.type === 'event' ? 'event' : 'trace'
+    const handleEditFilter = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0], filterType: 'event' | 'trace') => {
         router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
     }
 
-    const handleEditDefaultRule = (dataFilter: typeof eventsDefaultRule | typeof traceDefaultRule) => {
-        updatePageState({
-            defaultRuleEditState: {
-                id: dataFilter.id,
-                type: dataFilter.type,
-                collectionMode: dataFilter.collection_config.mode,
-                sampleRate: dataFilter.collection_config.mode === 'sample_rate' ? dataFilter.collection_config.sample_rate : undefined
-            }
-        })
+    const handleDefaultRuleUpdateSuccess = () => {
+        toastPositive('Rule updated successfully')
     }
 
-    const handleSaveDefaultRule = () => {
-        updatePageState({ defaultRuleEditState: null })
-    }
-
-    const handleCancelDefaultRule = () => {
-        updatePageState({ defaultRuleEditState: null })
+    const handleDefaultRuleUpdateError = (error: string) => {
+        toastNegative('Failed to update rule', error)
     }
 
     return (
@@ -256,7 +245,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             <p className="font-display text-gray-500">Default Rule</p>
                             {eventsDefaultRule && (
                                 <button
-                                    onClick={() => handleEditDefaultRule(eventsDefaultRule)}
+                                    onClick={() => updatePageState({ editingDefaultRule: 'event' })}
                                     className="p-1 hover:bg-yellow-200 rounded"
                                 >
                                     <Pencil className="w-4 h-4 text-gray-600" />
@@ -272,7 +261,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                         <RulesTable
                             rules={eventsOverideRules}
-                            onRuleClick={handleEditFilter}
+                            onRuleClick={(rule) => handleEditFilter(rule, 'event')}
                             prevEnabled={pageState.eventTargetingRules.meta.previous}
                             nextEnabled={pageState.eventTargetingRules.meta.next}
                             onNext={handleEventNextPage}
@@ -293,7 +282,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             <p className="font-display text-gray-500">Default Rule</p>
                             {traceDefaultRule && (
                                 <button
-                                    onClick={() => handleEditDefaultRule(traceDefaultRule)}
+                                    onClick={() => updatePageState({ editingDefaultRule: 'trace' })}
                                     className="p-1 hover:bg-yellow-200 rounded"
                                 >
                                     <Pencil className="w-4 h-4 text-gray-600" />
@@ -309,7 +298,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                         <RulesTable
                             rules={traceOverrideRules}
-                            onRuleClick={handleEditFilter}
+                            onRuleClick={(rule) => handleEditFilter(rule, 'trace')}
                             prevEnabled={pageState.traceTargetingRules.meta.previous}
                             nextEnabled={pageState.traceTargetingRules.meta.next}
                             onNext={handleTraceNextPage}
@@ -320,13 +309,31 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 </div>}
 
             {/* Default Rule Edit Dialog */}
-            <EditDefaultRuleDialog
-                isOpen={pageState.defaultRuleEditState !== null}
-                defaultRule={pageState.defaultRuleEditState}
-                onClose={handleCancelDefaultRule}
-                onSave={handleSaveDefaultRule}
-                onUpdate={(updatedRule) => updatePageState({ defaultRuleEditState: updatedRule })}
-            />
+            {pageState.editingDefaultRule && (
+                <EditDefaultRuleDialog
+                    isOpen={true}
+                    onClose={() => updatePageState({ editingDefaultRule: null })}
+                    onSuccess={handleDefaultRuleUpdateSuccess}
+                    onError={handleDefaultRuleUpdateError}
+                    ruleType={pageState.editingDefaultRule}
+                    ruleId={
+                        pageState.editingDefaultRule === 'event'
+                            ? eventsDefaultRule.id
+                            : traceDefaultRule.id
+                    }
+                    appId={pageState.filters.app!.id}
+                    initialCollectionMode={
+                        pageState.editingDefaultRule === 'event'
+                            ? eventsDefaultRule.collection_config.mode
+                            : traceDefaultRule.collection_config.mode
+                    }
+                    initialSampleRate={
+                        pageState.editingDefaultRule === 'event'
+                            ? (eventsDefaultRule.collection_config.mode === 'sample_rate' ? eventsDefaultRule.collection_config.sample_rate : undefined)
+                            : (traceDefaultRule.collection_config.mode === 'sample_rate' ? traceDefaultRule.collection_config.sample_rate : undefined)
+                    }
+                />
+            )}
         </div>
     )
 }

@@ -1049,8 +1049,6 @@ export type EventTargetingResponse = {
   },
 };
 
-export type EventTargetingRuleType = 'all_events' | 'all_traces' | 'event' | 'trace';
-
 export type EventTargetingCollectionConfig =
   | { mode: 'sample_rate'; sample_rate: number }
   | { mode: 'timeline_only' }
@@ -1060,7 +1058,6 @@ export type EventTargetingAttachmentConfig = 'layout_snapshot' | 'screenshot' | 
 
 export type EventTargetingRule = {
   id: string,
-  type: EventTargetingRuleType,
   rule: string,
   collection_config: EventTargetingCollectionConfig,
   attachment_config: EventTargetingAttachmentConfig,
@@ -1088,7 +1085,6 @@ export type TraceTargetingCollectionConfig =
 
 export type TraceTargetingRule = {
   id: string,
-  type: EventTargetingRuleType,
   rule: string,
   collection_config: TraceTargetingCollectionConfig,
   created_at: string,
@@ -1105,7 +1101,6 @@ export const emptyEventTargetingResponse: EventTargetingResponse = {
   result: {
     default: {
       id: "df-global-001",
-      type: 'all_events',
       rule: 'event_type == "*"',
       collection_config: { mode: 'timeline_only' },
       attachment_config: 'none',
@@ -1117,7 +1112,6 @@ export const emptyEventTargetingResponse: EventTargetingResponse = {
     overrides: [
       {
         id: "df-001",
-        type: 'event',
         rule: "event.type == 'click' && event.target == 'checkout_button'",
         collection_config: { mode: 'sample_rate', sample_rate: 0.5 },
         attachment_config: 'screenshot',
@@ -1128,7 +1122,6 @@ export const emptyEventTargetingResponse: EventTargetingResponse = {
       },
       {
         id: "df-003",
-        type: 'event',
         rule: "event.name == 'app_background' && session.is_crash == true",
         collection_config: { mode: 'disable' },
         attachment_config: 'none',
@@ -1139,7 +1132,6 @@ export const emptyEventTargetingResponse: EventTargetingResponse = {
       },
       {
         id: "df-005",
-        type: 'event',
         rule: "event.type == 'gesture' && device.manufacturer == 'Samsung'",
         collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
         attachment_config: 'screenshot',
@@ -1160,7 +1152,6 @@ export const emptyTraceTargetingResponse: TraceTargetingResponse = {
   result: {
     default: {
       id: "df-global-traces-001",
-      type: 'all_traces',
       rule: 'trace_type == "*"',
       collection_config: { mode: 'timeline_only' },
       created_at: "2024-01-01T00:00:00Z",
