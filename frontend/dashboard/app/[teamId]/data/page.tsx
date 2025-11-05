@@ -1,29 +1,29 @@
 "use client"
 
-import { DataRulesApiStatus, DataRulesResponse, emptyDataFiltersResponse, fetchDataFiltersFromServer, FilterSource } from '@/app/api/api_calls'
+import { DataTargetingRulesApiStatus, DataTargetingRulesResponse, emptyDataFiltersResponse, fetchDataTargetingRulesFromServer, FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import { DataRuleCollectionConfig, DataRuleType } from '@/app/api/api_calls'
+import { DataTargetingCollectionConfig, DataTargetingRuleType } from '@/app/api/api_calls'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
-import EditDefaultRuleDialog, { DefaultRuleState as DefaultRuleEditState } from '@/app/components/data_rule/edit_default_rule_dialog'
-import RulesTable from '@/app/components/data_rule/rule_overrides_table'
+import EditDefaultRuleDialog, { DefaultRuleState as DefaultRuleEditState } from '@/app/components/targeting/edit_default_rule_dialog'
+import RulesTable from '@/app/components/targeting/rule_overrides_table'
 
 interface PageState {
-    dataRulesApiStatus: DataRulesApiStatus
+    dataTargetingRulesApiStatus: DataTargetingRulesApiStatus
     filters: typeof defaultFilters
-    dataRules: DataRulesResponse
+    dataTargetingRules: DataTargetingRulesResponse
     defaultRuleEditState: DefaultRuleEditState | null
 }
 
-const isDefaultRule = (type: DataRuleType): boolean => {
+const isDefaultRule = (type: DataTargetingRuleType): boolean => {
     return type === 'all_events' || type === 'all_traces'
 }
 
-const getCollectionConfigDisplay = (collectionConfig: DataRuleCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: DataTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
@@ -40,9 +40,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const router = useRouter()
 
     const initialState: PageState = {
-        dataRulesApiStatus: DataRulesApiStatus.Success,
+        dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Success,
         filters: defaultFilters,
-        dataRules: emptyDataFiltersResponse,
+        dataTargetingRules: emptyDataFiltersResponse,
         defaultRuleEditState: null,
     }
 
@@ -56,21 +56,21 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     }
 
     const getDataFilters = async () => {
-        updatePageState({ dataRulesApiStatus: DataRulesApiStatus.Loading })
+        updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Loading })
 
-        const result = await fetchDataFiltersFromServer(pageState.filters.app!.id)
+        const result = await fetchDataTargetingRulesFromServer(pageState.filters.app!.id)
 
         switch (result.status) {
-            case DataRulesApiStatus.Error:
-                updatePageState({ dataRulesApiStatus: DataRulesApiStatus.Error })
+            case DataTargetingRulesApiStatus.Error:
+                updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Error })
                 break
-            case DataRulesApiStatus.NoFilters:
-                updatePageState({ dataRulesApiStatus: DataRulesApiStatus.NoFilters })
+            case DataTargetingRulesApiStatus.NoFilters:
+                updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.NoFilters })
                 break
-            case DataRulesApiStatus.Success:
+            case DataTargetingRulesApiStatus.Success:
                 updatePageState({
-                    dataRulesApiStatus: DataRulesApiStatus.Success,
-                    dataRules: result.data
+                    dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Success,
+                    dataTargetingRules: result.data
                 })
                 break
         }
@@ -81,7 +81,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
-                dataRules: emptyDataFiltersResponse,
+                dataTargetingRules: emptyDataFiltersResponse,
             })
         }
     }
@@ -98,10 +98,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         // getDataFilters()
     }, [pageState.filters])
 
-    const defaultRules = pageState.dataRules.results.filter(df => isDefaultRule(df.type))
+    const defaultRules = pageState.dataTargetingRules.results.filter(df => isDefaultRule(df.type))
     const allEventsFilter = defaultRules.find(df => df.type === 'all_events')
     const allTracesFilter = defaultRules.find(df => df.type === 'all_traces')
-    const overrideFilters = pageState.dataRules.results.filter(df => !isDefaultRule(df.type))
+    const overrideFilters = pageState.dataTargetingRules.results.filter(df => !isDefaultRule(df.type))
     const eventFilters = overrideFilters.filter(df => df.type === 'event')
     const traceFilters = overrideFilters.filter(df => df.type === 'trace')
 
@@ -138,7 +138,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataRulesApiStatus === DataRulesApiStatus.Loading}
+                            disabled={pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading}
                         >
                             <Plus /> Create Rule
                         </Button>
@@ -183,14 +183,14 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
             {/* Error state for data rules fetch */}
             {pageState.filters.ready
-                && pageState.dataRulesApiStatus === DataRulesApiStatus.Error
+                && pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Error
                 && <p className="text-lg font-display">Error fetching data filters, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main data rules UI */}
             {pageState.filters.ready
-                && (pageState.dataRulesApiStatus === DataRulesApiStatus.Success || pageState.dataRulesApiStatus === DataRulesApiStatus.Loading) &&
+                && (pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Success || pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading) &&
                 <div className="flex flex-col items-start w-full">
-                    <div className={`py-1 w-full ${pageState.dataRulesApiStatus === DataRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
 

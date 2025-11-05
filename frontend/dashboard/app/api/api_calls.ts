@@ -353,7 +353,7 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
-export enum DataRulesApiStatus {
+export enum DataTargetingRulesApiStatus {
   Loading,
   Success,
   Error,
@@ -1031,7 +1031,7 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export type DataRulesResponse = {
+export type DataTargetingRulesResponse = {
   meta: {
     next: false,
     previous: false,
@@ -1039,28 +1039,28 @@ export type DataRulesResponse = {
   results: DataRule[],
 }
 
-export type DataRuleType = "event" | "trace" | "all_events" | "all_traces";
+export type DataTargetingRuleType = "event" | "trace" | "all_events" | "all_traces";
 
-export type DataRuleCollectionConfig =
+export type DataTargetingCollectionConfig =
   | { mode: 'sample_rate'; sample_rate: number }
   | { mode: 'timeline_only' }
   | { mode: 'disable' };
 
-export type DataRuleAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
+export type DataTargetingAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
 
 export type DataRule = {
   id: string,
-  type: DataRuleType,
+  type: DataTargetingRuleType,
   rule: string,
-  collection_config: DataRuleCollectionConfig,
-  attachment_config: DataRuleAttachmentConfig,
+  collection_config: DataTargetingCollectionConfig,
+  attachment_config: DataTargetingAttachmentConfig,
   created_at: string,
   created_by: string,
   updated_at: string,
   updated_by: string,
 }
 
-export const emptyDataFiltersResponse: DataRulesResponse = {
+export const emptyDataFiltersResponse: DataTargetingRulesResponse = {
   meta: {
     next: false,
     previous: false,
@@ -2481,11 +2481,11 @@ export const fetchAlertsOverviewFromServer = async (
   }
 }
 
-export const fetchDataFiltersFromServer = async (
+export const fetchDataTargetingRulesFromServer = async (
   appId: String,
   type?: string,
 ) => {
-  let url = `/api/apps/${appId}/dataFilters`
+  let url = `/api/apps/${appId}/dataTargetingRules`
   if (type) {
     url += `?type=${type}`
   }
@@ -2494,17 +2494,17 @@ export const fetchDataFiltersFromServer = async (
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: DataRulesApiStatus.Error, data: null }
+      return { status: DataTargetingRulesApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data.results === null) {
-      return { status: DataRulesApiStatus.NoFilters, data: null }
+      return { status: DataTargetingRulesApiStatus.NoFilters, data: null }
     } else {
-      return { status: DataRulesApiStatus.Success, data: data }
+      return { status: DataTargetingRulesApiStatus.Success, data: data }
     }
   } catch {
-    return { status: DataRulesApiStatus.Cancelled, data: null }
+    return { status: DataTargetingRulesApiStatus.Cancelled, data: null }
   }
 }

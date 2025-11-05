@@ -1,12 +1,12 @@
 "use client"
 
-import { DataRulesResponse, DataRuleCollectionConfig, DataRuleAttachmentConfig, DataRuleType } from '@/app/api/api_calls'
+import { DataTargetingRulesResponse, DataTargetingCollectionConfig, DataTargetingAttachmentConfig, DataTargetingRuleType } from '@/app/api/api_calls'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
 import Paginator from '@/app/components/paginator'
 import { useState, useEffect } from 'react'
 
-const getFilterDisplayText = (type: DataRuleType, filter: string): string => {
+const getFilterDisplayText = (type: DataTargetingRuleType, filter: string): string => {
     switch (type) {
         case 'all_events':
             return 'All Events'
@@ -17,7 +17,7 @@ const getFilterDisplayText = (type: DataRuleType, filter: string): string => {
     }
 }
 
-const getCollectionConfigDisplay = (collectionConfig: DataRuleCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: DataTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
@@ -30,7 +30,7 @@ const getCollectionConfigDisplay = (collectionConfig: DataRuleCollectionConfig):
     }
 }
 
-const getAttachmentConfigDisplay = (attachmentConfig: DataRuleAttachmentConfig): string => {
+const getAttachmentConfigDisplay = (attachmentConfig: DataTargetingAttachmentConfig): string => {
     if (attachmentConfig === 'none') {
         return ''
     } else if (attachmentConfig === 'layout_snapshot') {
@@ -41,7 +41,7 @@ const getAttachmentConfigDisplay = (attachmentConfig: DataRuleAttachmentConfig):
     return attachmentConfig
 }
 
-type RuleFilter = DataRulesResponse['results'][0]
+type RuleFilter = DataTargetingRulesResponse['results'][0]
 
 interface RulesTableProps {
     rules: RuleFilter[]
