@@ -146,6 +146,13 @@ export enum ExceptionsDetailsApiStatus {
   Cancelled,
 }
 
+export enum ExceptionGroupCommonPathApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum ExceptionsDetailsPlotApiStatus {
   Loading,
   Success,
@@ -1681,6 +1688,34 @@ export const fetchExceptionsDetailsFromServer = async (
     return { status: ExceptionsDetailsApiStatus.Success, data: data }
   } catch {
     return { status: ExceptionsDetailsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchExceptionGroupCommonPathFromServer = async (
+  type: ExceptionsType,
+  appId: string,
+  groupId: string
+) => {
+  var url = ""
+  if (type === ExceptionsType.Crash) {
+    url = `/api/apps/${appId}/crashGroups/${groupId}/path`
+  } else {
+    url = `/api/apps/${appId}/anrGroups/${groupId}/path`
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    console.log("Fetching exception group common path from:", url)
+
+    if (!res.ok) {
+      return { status: ExceptionGroupCommonPathApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: ExceptionGroupCommonPathApiStatus.Success, data: data }
+  } catch {
+    return { status: ExceptionGroupCommonPathApiStatus.Cancelled, data: null }
   }
 }
 

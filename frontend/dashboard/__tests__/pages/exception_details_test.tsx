@@ -184,6 +184,14 @@ jest.mock('@/app/components/exceptions_distribution_plot', () => ({
     ),
 }))
 
+// Mock ExceptionGroupCommonPath component
+jest.mock('@/app/components/exception_group_common_path', () => ({
+    __esModule: true,
+    default: (props: any) => (
+        <div data-testid="exception-group-common-path-mock">ExceptionGroupCommonPath Rendered</div>
+    ),
+}))
+
 // Updated Paginator mock renders Next and Prev buttons
 jest.mock('@/app/components/paginator', () => ({
     __esModule: true,
