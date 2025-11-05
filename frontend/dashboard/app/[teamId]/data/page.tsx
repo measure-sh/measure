@@ -11,9 +11,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
-import { Card, CardContent } from '@/app/components/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
 import SamplingRateInput from '@/app/components/data_filters/sampling_rate_input'
 
 interface PageState {
@@ -46,7 +45,7 @@ const getFilterDisplayText = (type: DataFilterType, filter: string): string => {
 const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
-            return `Collect at ${collectionConfig.sample_rate}% sample rate`
+            return `Collect all at ${collectionConfig.sample_rate}% sample rate`
         case 'timeline_only':
             return 'Collect with session timeline only'
         case 'disable':
@@ -131,10 +130,18 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     }, [pageState.filters])
 
     const globalFilters = pageState.dataFilters.results.filter(df => isGlobalFilter(df.type))
+    const allEventsFilter = globalFilters.find(df => df.type === 'all_events')
+    const allTracesFilter = globalFilters.find(df => df.type === 'all_traces')
     const overrideFilters = pageState.dataFilters.results.filter(df => !isGlobalFilter(df.type))
+    const eventFilters = overrideFilters.filter(df => df.type === 'event')
+    const traceFilters = overrideFilters.filter(df => df.type === 'trace')
 
-    const handleEditGlobalFilter = (dataFilter: typeof globalFilters[0], e: React.MouseEvent) => {
-        e.stopPropagation()
+    const handleEditFilter = (dataFilter: typeof overrideFilters[0]) => {
+        const filterType = dataFilter.type === 'event' ? 'event' : 'trace'
+        router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
+    }
+
+    const handleEditGlobalFilter = (dataFilter: typeof globalFilters[0]) => {
         updatePageState({
             editingGlobalFilter: {
                 id: dataFilter.id,
@@ -154,16 +161,11 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         updatePageState({ editingGlobalFilter: null })
     }
 
-    const handleEditFilter = (dataFilter: typeof overrideFilters[0]) => {
-        const filterType = dataFilter.type === 'event' ? 'event' : 'trace'
-        router.push(`/${params.teamId}/data_filters/${filterType}/${dataFilter.id}/edit`)
-    }
-
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
 
             <div className="flex flex-row items-center gap-2 justify-between w-full">
-                <p className="font-display text-4xl max-w-6xl text-center">Data Filters</p>
+                <p className="font-display text-4xl max-w-6xl text-center">Data Control</p>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -171,15 +173,15 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             className="font-display border border-black select-none"
                             disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
                         >
-                            <Plus /> Create Filter
+                            <Plus /> Create Rule
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data_filters/event/create`)}>
-                            Event Filter
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/event/create`)}>
+                            Event Rule
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data_filters/trace/create`)}>
-                            Trace Filter
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/trace/create`)}>
+                            Trace Rule
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -224,98 +226,141 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <LoadingBar />
                     </div>
 
-                    {/* Global Filters Section */}
-                    {globalFilters.length > 0 && (
-                        <div className="flex flex-col gap-3 w-full">
-                            {globalFilters.map((dataFilter, idx) => (
-                                <Card
-                                    key={`${idx}-${dataFilter.id}`}
-                                    className={`w-full ${dataFilter.type === 'all_events' ? 'bg-blue-100' : 'bg-purple-100'}`}
+                    {/* Event Filters Section */}
+                    <div className="w-full">
+                        <p className="font-display text-2xl">Event Rules</p>
+                        <div className="py-4" />
+
+                        {/* Default Event Filter */}
+                        <div className="flex items-center gap-2">
+                            <p className="font-display text-gray-500">Default Rule</p>
+                            {allEventsFilter && (
+                                <button
+                                    onClick={() => handleEditGlobalFilter(allEventsFilter)}
+                                    className="p-1 hover:bg-yellow-200 rounded"
                                 >
-                                    <CardContent className="p-4">
-                                        <div className="flex flex-row items-center justify-between">
-                                            <div className="flex-1">
-                                                <p className='select-none text-base font-display mb-1'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
-                                                <p className='text-xs text-gray-700 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}{getAttachmentConfigDisplay(dataFilter.attachment_config) && ` • ${getAttachmentConfigDisplay(dataFilter.attachment_config)}`}</p>
-                                            </div>
-                                            <div className="flex items-center gap-4 ml-6">
-                                                <div className="flex items-center gap-4 text-xs text-gray-600">
-                                                    <span className='select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)} at {formatDateToHumanReadableTime(dataFilter.updated_at)}</span>
-                                                    <span className='select-none'>•</span>
-                                                    <span className='select-none'>{dataFilter.updated_by}</span>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => handleEditGlobalFilter(dataFilter, e)}
-                                                    className="p-2 hover:bg-gray-200 rounded"
-                                                >
-                                                    <Pencil className="w-4 h-4 text-gray-600" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                    <Pencil className="w-4 h-4 text-gray-600" />
+                                </button>
+                            )}
                         </div>
-                    )}
-
-                    <div className="py-8" />
-
-                    {/* Override Filters Section */}
-                    {(
-                        overrideFilters.length === 0 ? (
-                            <div className="w-full py-12 text-center">
-                                <p className="text-gray-500 text-sm">
-                                    Click "Create Filter" to override the global filter settings for any event or trace
-                                </p>
+                        <div className="py-2" />
+                        {allEventsFilter && (
+                            <div className="text-sm font-body text-gray-700">
+                                {getCollectionConfigDisplay(allEventsFilter.collection_config)}
                             </div>
-                        ) : (
-                            <div className="w-full">
-                                <div className="mb-4">
-                                    <p className="font-display text-2xl">Filters</p>
-                                    <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
-                                </div>
+                        )}
 
+                        {eventFilters.length > 0 && (
+                            <>
+                                <div className="py-6" />
+                                {/* Event Overrides */}
+                                <p className="font-display text-gray-500">Overrides</p>
                                 <div className="py-2" />
-
-                                <div>
-
                                 <Table className="font-display">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[52%]">Filter</TableHead>
-                                            <TableHead className="w-[24%] text-center">Updated At</TableHead>
-                                            <TableHead className="w-[24%] text-center">Updated By</TableHead>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[52%]">Rule</TableHead>
+                                        <TableHead className="w-[24%] text-center">Updated At</TableHead>
+                                        <TableHead className="w-[24%] text-center">Updated By</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {eventFilters.map((dataFilter, idx) => (
+                                        <TableRow
+                                            key={`${idx}-${dataFilter.id}`}
+                                            className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                            onClick={() => handleEditFilter(dataFilter)}
+                                        >
+                                            <TableCell className="w-[60%] p-4">
+                                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
+                                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
+                                            </TableCell>
+                                            <TableCell className="w-[20%] text-center p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
+                                            </TableCell>
+                                            <TableCell className="w-[20%] text-center p-4">
+                                                <p className='truncate select-none'>{dataFilter.updated_by}</p>
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {overrideFilters.map((dataFilter, idx) => (
-                                            <TableRow
-                                                key={`${idx}-${dataFilter.id}`}
-                                                className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                                onClick={() => handleEditFilter(dataFilter)}
-                                            >
-                                                <TableCell className="w-[60%] p-4">
-                                                    <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
-                                                    <div className='py-1' />
-                                                    <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
-                                                    <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
-                                                </TableCell>
-                                                <TableCell className="w-[20%] text-center p-4">
-                                                    <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
-                                                    <div className='py-1' />
-                                                    <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
-                                                </TableCell>
-                                                <TableCell className="w-[20%] text-center p-4">
-                                                    <p className='truncate select-none'>{dataFilter.updated_by}</p>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
+                                    ))}
+                                </TableBody>
                                 </Table>
-                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="py-14" />
+
+                    {/* Trace Filters Section */}
+                    <div className="w-full">
+                        <p className="font-display text-2xl">Trace Rules</p>
+                        <div className="py-4" />
+
+                        {/* Default Trace Filter */}
+                        <div className="flex items-center gap-2">
+                            <p className="font-display text-gray-500">Default Rule</p>
+                            {allTracesFilter && (
+                                <button
+                                    onClick={() => handleEditGlobalFilter(allTracesFilter)}
+                                    className="p-1 hover:bg-yellow-200 rounded"
+                                >
+                                    <Pencil className="w-4 h-4 text-gray-600" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="py-2" />
+                        {allTracesFilter && (
+                            <div className="text-sm font-body text-gray-700">
+                                {getCollectionConfigDisplay(allTracesFilter.collection_config)}
                             </div>
-                        )
-                    )}
+                        )}
+
+                        {traceFilters.length > 0 && (
+                            <>
+                                <div className="py-6" />
+                                {/* Trace Overrides */}
+                                <p className="font-display text-gray-500">Overrides</p>
+                                <div className="py-2" />
+                                <Table className="font-display">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[52%]">Rule</TableHead>
+                                        <TableHead className="w-[24%] text-center">Updated At</TableHead>
+                                        <TableHead className="w-[24%] text-center">Updated By</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {traceFilters.map((dataFilter, idx) => (
+                                        <TableRow
+                                            key={`${idx}-${dataFilter.id}`}
+                                            className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                            onClick={() => handleEditFilter(dataFilter)}
+                                        >
+                                            <TableCell className="w-[60%] p-4">
+                                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
+                                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
+                                            </TableCell>
+                                            <TableCell className="w-[20%] text-center p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
+                                            </TableCell>
+                                            <TableCell className="w-[20%] text-center p-4">
+                                                <p className='truncate select-none'>{dataFilter.updated_by}</p>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                                </Table>
+                            </>
+                        )}
+                    </div>
                 </div>}
 
             {/* Global Filter Edit Dialog */}
@@ -323,7 +368,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 <DialogContent className="font-display">
                     <DialogHeader>
                         <DialogTitle className="font-display text-2xl">
-                            Edit {pageState.editingGlobalFilter?.type === 'all_events' ? 'Events' : 'Traces'} Filter
+                            Edit Default {pageState.editingGlobalFilter?.type === 'all_events' ? 'Events' : 'Traces'} Rule
                         </DialogTitle>
                     </DialogHeader>
 
@@ -387,7 +432,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                 })}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
                             />
-                            <span className="text-sm font-body">Collect no {pageState.editingGlobalFilter?.type === 'all_events' ? 'events' : 'traces'}</span>
+                            <span className="text-sm font-body">Collect no {pageState.editingGlobalFilter?.type === 'all_events' ? 'events' : 'traces'} by default</span>
                         </label>
                     </div>
 

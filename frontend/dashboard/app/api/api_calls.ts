@@ -1099,50 +1099,50 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
       updated_at: "2024-02-20T14:45:00Z",
       updated_by: "user2@example.com",
     },
-    // {
-    //   id: "df-002",
-    //   type: "trace",
-    //   filter: "trace.duration > 5000 && trace.status == 'error'",
-    //   collection_config: { mode: 'timeline_only' },
-    //   attachment_config: 'layout_snapshot',
-    //   created_at: "2024-01-20T08:15:00Z",
-    //   created_by: "admin@example.com",
-    //   updated_at: "2024-01-20T08:15:00Z",
-    //   updated_by: "admin@example.com",
-    // },
-    // {
-    //   id: "df-003",
-    //   type: "event",
-    //   filter: "event.name == 'app_background' && session.is_crash == true",
-    //   collection_config: { mode: 'disable' },
-    //   attachment_config: null,
-    //   created_at: "2024-02-01T12:00:00Z",
-    //   created_by: "developer@example.com",
-    //   updated_at: "2024-03-10T09:30:00Z",
-    //   updated_by: "lead@example.com",
-    // },
-    // {
-    //   id: "df-004",
-    //   type: "trace",
-    //   filter: "trace.name == 'network_request' && trace.http.status_code >= 400",
-    //   collection_config: { mode: 'sample_rate', sample_rate: 0.25 },
-    //   attachment_config: 'none',
-    //   created_at: "2024-02-10T16:20:00Z",
-    //   created_by: "qa@example.com",
-    //   updated_at: "2024-02-28T11:15:00Z",
-    //   updated_by: "qa@example.com",
-    // },
-    // {
-    //   id: "df-005",
-    //   type: "event",
-    //   filter: "event.type == 'gesture' && device.manufacturer == 'Samsung'",
-    //   collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
-    //   attachment_config: 'screenshot',
-    //   created_at: "2024-03-05T13:45:00Z",
-    //   created_by: "user3@example.com",
-    //   updated_at: "2024-03-05T13:45:00Z",
-    //   updated_by: "user3@example.com",
-    // },
+    {
+      id: "df-002",
+      type: "trace",
+      filter: "trace.duration > 5000 && trace.status == 'error'",
+      collection_config: { mode: 'timeline_only' },
+      attachment_config: 'layout_snapshot',
+      created_at: "2024-01-20T08:15:00Z",
+      created_by: "admin@example.com",
+      updated_at: "2024-01-20T08:15:00Z",
+      updated_by: "admin@example.com",
+    },
+    {
+      id: "df-003",
+      type: "event",
+      filter: "event.name == 'app_background' && session.is_crash == true",
+      collection_config: { mode: 'disable' },
+      attachment_config: null,
+      created_at: "2024-02-01T12:00:00Z",
+      created_by: "developer@example.com",
+      updated_at: "2024-03-10T09:30:00Z",
+      updated_by: "lead@example.com",
+    },
+    {
+      id: "df-004",
+      type: "trace",
+      filter: "trace.name == 'network_request' && trace.http.status_code >= 400",
+      collection_config: { mode: 'sample_rate', sample_rate: 0.25 },
+      attachment_config: 'none',
+      created_at: "2024-02-10T16:20:00Z",
+      created_by: "qa@example.com",
+      updated_at: "2024-02-28T11:15:00Z",
+      updated_by: "qa@example.com",
+    },
+    {
+      id: "df-005",
+      type: "event",
+      filter: "event.type == 'gesture' && device.manufacturer == 'Samsung'",
+      collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
+      attachment_config: 'screenshot',
+      created_at: "2024-03-05T13:45:00Z",
+      created_by: "user3@example.com",
+      updated_at: "2024-03-05T13:45:00Z",
+      updated_by: "user3@example.com",
+    },
   ],
 }
 
@@ -2483,8 +2483,12 @@ export const fetchAlertsOverviewFromServer = async (
 
 export const fetchDataFiltersFromServer = async (
   appId: String,
+  type?: string,
 ) => {
-  const url = `/api/apps/${appId}/data_filters`
+  let url = `/api/apps/${appId}/dataFilters`
+  if (type) {
+    url += `?type=${type}`
+  }
 
   try {
     const res = await measureAuth.fetchMeasure(url)

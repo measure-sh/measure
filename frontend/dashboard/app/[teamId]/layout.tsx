@@ -92,8 +92,8 @@ const initNavData = {
       title: "Settings",
       items: [
         {
-          title: "Data Filters",
-          url: "data_filters",
+          title: "Data",
+          url: "data",
           isActive: false,
           external: false,
         },
