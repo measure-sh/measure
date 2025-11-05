@@ -1051,7 +1051,7 @@ export type DataFilterAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'non
 export type DataFilter = {
   id: string,
   type: DataFilterType,
-  filter: string,
+  rule: string,
   collection_config: DataFilterCollectionConfig,
   attachment_config: DataFilterAttachmentConfig | null,
   created_at: string,
@@ -1069,7 +1069,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-global-001",
       type: "all_events",
-      filter: 'event_type == "*"',
+      rule: 'event_type == "*"',
       collection_config: { mode: 'timeline_only'},
       attachment_config: 'none',
       created_at: "2024-01-01T00:00:00Z",
@@ -1080,7 +1080,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-global-002",
       type: "all_traces",
-      filter: 'span.name == "*"',
+      rule: 'span.name == "*"',
       collection_config: { mode: 'sample_rate', sample_rate: 1 },
       attachment_config: 'none',
       created_at: "2024-01-01T00:00:00Z",
@@ -1091,7 +1091,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-001",
       type: "event",
-      filter: "event.type == 'click' && event.target == 'checkout_button'",
+      rule: "event.type == 'click' && event.target == 'checkout_button'",
       collection_config: { mode: 'sample_rate', sample_rate: 0.5 },
       attachment_config: 'screenshot',
       created_at: "2024-01-15T10:30:00Z",
@@ -1102,7 +1102,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-002",
       type: "trace",
-      filter: "trace.duration > 5000 && trace.status == 'error'",
+      rule: "trace.duration > 5000 && trace.status == 'error'",
       collection_config: { mode: 'timeline_only' },
       attachment_config: 'layout_snapshot',
       created_at: "2024-01-20T08:15:00Z",
@@ -1113,7 +1113,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-003",
       type: "event",
-      filter: "event.name == 'app_background' && session.is_crash == true",
+      rule: "event.name == 'app_background' && session.is_crash == true",
       collection_config: { mode: 'disable' },
       attachment_config: null,
       created_at: "2024-02-01T12:00:00Z",
@@ -1124,7 +1124,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-004",
       type: "trace",
-      filter: "trace.name == 'network_request' && trace.http.status_code >= 400",
+      rule: "trace.name == 'network_request' && trace.http.status_code >= 400",
       collection_config: { mode: 'sample_rate', sample_rate: 0.25 },
       attachment_config: 'none',
       created_at: "2024-02-10T16:20:00Z",
@@ -1135,7 +1135,7 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     {
       id: "df-005",
       type: "event",
-      filter: "event.type == 'gesture' && device.manufacturer == 'Samsung'",
+      rule: "event.type == 'gesture' && device.manufacturer == 'Samsung'",
       collection_config: { mode: 'sample_rate', sample_rate: 1.0 },
       attachment_config: 'screenshot',
       created_at: "2024-03-05T13:45:00Z",

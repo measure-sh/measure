@@ -3,16 +3,14 @@
 import { DataFiltersApiStatus, DataFiltersResponse, emptyDataFiltersResponse, fetchDataFiltersFromServer, FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
-
-import { DataFilterAttachmentConfig, DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import EditDefaultRuleDialog, { DefaultRuleState } from '@/app/components/data/edit_default_rule_dialog'
+import RulesTable from '@/app/components/data/rule_overrides_table'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
@@ -23,17 +21,6 @@ interface PageState {
 
 const isDefaultRule = (type: DataFilterType): boolean => {
     return type === 'all_events' || type === 'all_traces'
-}
-
-const getFilterDisplayText = (type: DataFilterType, filter: string): string => {
-    switch (type) {
-        case 'all_events':
-            return 'All Events'
-        case 'all_traces':
-            return 'All Traces'
-        default:
-            return filter
-    }
 }
 
 const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig): string => {
@@ -47,17 +34,6 @@ const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig
         default:
             return 'Unknown'
     }
-}
-
-const getAttachmentConfigDisplay = (attachmentConfig: DataFilterAttachmentConfig | null): string => {
-    if (!attachmentConfig || attachmentConfig === 'none') {
-        return ''
-    } else if (attachmentConfig === 'layout_snapshot') {
-        return 'With layout snapshot'
-    } else if (attachmentConfig === 'screenshot') {
-        return 'With screenshot'
-    }
-    return attachmentConfig
 }
 
 export default function DataFilters({ params }: { params: { teamId: string } }) {
@@ -242,47 +218,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        {eventFilters.length > 0 && (
-                            <>
-                                <div className="py-6" />
-                                {/* Event Overrides */}
-                                <p className="font-display text-gray-500">Overrides</p>
-                                <div className="py-2" />
-                                <Table className="font-display">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[52%]">Rule</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated At</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated By</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {eventFilters.map((dataFilter, idx) => (
-                                        <TableRow
-                                            key={`${idx}-${dataFilter.id}`}
-                                            className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                            onClick={() => handleEditFilter(dataFilter)}
-                                        >
-                                            <TableCell className="w-[60%] p-4">
-                                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{dataFilter.updated_by}</p>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                                </Table>
-                            </>
-                        )}
+                        <RulesTable rules={eventFilters} onRuleClick={handleEditFilter} />
                     </div>
 
                     <div className="py-12" />
@@ -311,47 +247,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        {traceFilters.length > 0 && (
-                            <>
-                                <div className="py-6" />
-                                {/* Trace Overrides */}
-                                <p className="font-display text-gray-500">Overrides</p>
-                                <div className="py-2" />
-                                <Table className="font-display">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[52%]">Rule</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated At</TableHead>
-                                        <TableHead className="w-[24%] text-center">Updated By</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {traceFilters.map((dataFilter, idx) => (
-                                        <TableRow
-                                            key={`${idx}-${dataFilter.id}`}
-                                            className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                            onClick={() => handleEditFilter(dataFilter)}
-                                        >
-                                            <TableCell className="w-[60%] p-4">
-                                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.filter)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
-                                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
-                                                <div className='py-1' />
-                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(dataFilter.updated_at)}</p>
-                                            </TableCell>
-                                            <TableCell className="w-[20%] text-center p-4">
-                                                <p className='truncate select-none'>{dataFilter.updated_by}</p>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                                </Table>
-                            </>
-                        )}
+                        <RulesTable rules={traceFilters} onRuleClick={handleEditFilter} />
                     </div>
                 </div>}
 
