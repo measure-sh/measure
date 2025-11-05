@@ -1039,6 +1039,15 @@ export type DataFiltersResponse = {
   results: DataFilter[],
 }
 
+export type DataFilterType = "event" | "trace" | "all_events" | "all_traces";
+
+export type DataFilterCollectionConfig =
+  | { mode: 'sample_rate'; sample_rate: number }
+  | { mode: 'timeline_only' }
+  | { mode: 'disable' };
+
+export type DataFilterAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
+
 export type DataFilter = {
   id: string,
   type: DataFilterType,
@@ -1050,14 +1059,6 @@ export type DataFilter = {
   updated_at: string,
   updated_by: string,
 }
-
-export type DataFilterType = "event" | "trace" | "all_events" | "all_traces";
-export type DataFilterCollectionConfig =
-  | { mode: 'sample_rate'; sample_rate: number }
-  | { mode: 'timeline_only' }
-  | { mode: 'disable' };
-
-export type DataFilterAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
 
 export const emptyDataFiltersResponse: DataFiltersResponse = {
   meta: {

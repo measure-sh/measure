@@ -11,26 +11,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
-import { Card, CardContent, CardFooter } from '@/app/components/card'
+import { Card, CardContent } from '@/app/components/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import SamplingRateInput from '@/app/components/data_filters/sampling_rate_input'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
     filters: typeof defaultFilters
     dataFilters: DataFiltersResponse
-    editingFilterType: 'event' | 'trace' | null
     editingGlobalFilter: {
         id: string
         type: DataFilterType
-        collectionMode: DataFilterCollectionConfig['mode']
-        sampleRate?: number
-    } | null
-    editingFilter: {
-        id: string
-        type: DataFilterType
-        filter: string
         collectionMode: DataFilterCollectionConfig['mode']
         sampleRate?: number
     } | null
@@ -83,9 +75,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         dataFiltersApiStatus: DataFiltersApiStatus.Success,
         filters: defaultFilters,
         dataFilters: emptyDataFiltersResponse,
-        editingFilterType: null,
         editingGlobalFilter: null,
-        editingFilter: null,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -143,14 +133,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const globalFilters = pageState.dataFilters.results.filter(df => isGlobalFilter(df.type))
     const overrideFilters = pageState.dataFilters.results.filter(df => !isGlobalFilter(df.type))
 
-    const handleCancel = () => {
-        updatePageState({ editingFilterType: null })
-    }
-
-    const handleCreateFilter = () => {
-        updatePageState({ editingFilterType: null })
-    }
-
     const handleEditGlobalFilter = (dataFilter: typeof globalFilters[0], e: React.MouseEvent) => {
         e.stopPropagation()
         updatePageState({
@@ -173,24 +155,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     }
 
     const handleEditFilter = (dataFilter: typeof overrideFilters[0]) => {
-        updatePageState({
-            editingFilter: {
-                id: dataFilter.id,
-                type: dataFilter.type,
-                filter: dataFilter.filter,
-                collectionMode: dataFilter.collection_config.mode,
-                sampleRate: dataFilter.collection_config.mode === 'sample_rate' ? dataFilter.collection_config.sample_rate : undefined
-            }
-        })
-    }
-
-    const handleSaveFilter = () => {
-        // TODO: Implement save logic
-        updatePageState({ editingFilter: null })
-    }
-
-    const handleCancelFilter = () => {
-        updatePageState({ editingFilter: null })
+        const filterType = dataFilter.type === 'event' ? 'event' : 'trace'
+        router.push(`/${params.teamId}/data_filters/${filterType}/${dataFilter.id}/edit`)
     }
 
     return (
@@ -203,16 +169,16 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading || pageState.editingFilterType !== null || pageState.editingFilter !== null}
+                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
                         >
                             <Plus /> Create Filter
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => updatePageState({ editingFilterType: 'event' })}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data_filters/event/create`)}>
                             Event Filter
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updatePageState({ editingFilterType: 'trace' })}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data_filters/trace/create`)}>
                             Trace Filter
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -245,36 +211,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
-            {/* Filter creation/edit card */}
-            {(pageState.editingFilterType || pageState.editingFilter) && (
-                <>
-                    <Card className="w-full">
-                        <CardContent className="pt-6">
-                            <div className="mb-6">
-                            </div>
-                        </CardContent>
-
-                        <CardFooter className="flex justify-end gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={pageState.editingFilter ? handleCancelFilter : handleCancel}
-                                className="font-display"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={pageState.editingFilter ? handleSaveFilter : handleCreateFilter}
-                                className="font-display border border-black"
-                            >
-                                {pageState.editingFilter ? 'Save Changes' : 'Create Filter'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                    <div className="py-12" />
-                </>
-            )}
-
             {/* Error state for data filters fetch */}
             {pageState.filters.ready
                 && pageState.dataFiltersApiStatus === DataFiltersApiStatus.Error
@@ -288,8 +224,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <LoadingBar />
                     </div>
 
-                    {/* Global Filters Section - Hidden during edit mode */}
-                    {pageState.editingFilterType === null && pageState.editingFilter === null && globalFilters.length > 0 && (
+                    {/* Global Filters Section */}
+                    {globalFilters.length > 0 && (
                         <div className="flex flex-col gap-3 w-full">
                             {globalFilters.map((dataFilter, idx) => (
                                 <Card
@@ -324,8 +260,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                     <div className="py-8" />
 
-                    {/* Override Filters Section - Hidden during edit mode */}
-                    {pageState.editingFilterType === null && pageState.editingFilter === null && (
+                    {/* Override Filters Section */}
+                    {(
                         overrideFilters.length === 0 ? (
                             <div className="w-full py-12 text-center">
                                 <p className="text-gray-500 text-sm">
@@ -355,7 +291,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                         {overrideFilters.map((dataFilter, idx) => (
                                             <TableRow
                                                 key={`${idx}-${dataFilter.id}`}
-                                                className="font-body cursor-pointer hover:bg-gray-50"
+                                                className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
                                                 onClick={() => handleEditFilter(dataFilter)}
                                             >
                                                 <TableCell className="w-[60%] p-4">
