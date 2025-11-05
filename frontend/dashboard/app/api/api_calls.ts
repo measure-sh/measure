@@ -1051,7 +1051,7 @@ export type DataFilter = {
   updated_by: string,
 }
 
-export type DataFilterType = "event" | "trace"
+export type DataFilterType = "event" | "trace" | "all_events" | "all_traces";
 export type DataFilterCollectionConfig =
   | { mode: 'sample_rate'; sample_rate: number }
   | { mode: 'timeline_only' }
@@ -1065,6 +1065,28 @@ export const emptyDataFiltersResponse: DataFiltersResponse = {
     previous: false,
   },
   results: [
+    {
+      id: "df-global-001",
+      type: "all_events",
+      filter: 'event_type == "*"',
+      collection_config: { mode: 'timeline_only'},
+      attachment_config: 'none',
+      created_at: "2024-01-01T00:00:00Z",
+      created_by: "system@example.com",
+      updated_at: "2024-01-01T00:00:00Z",
+      updated_by: "system@example.com",
+    },
+    {
+      id: "df-global-002",
+      type: "all_traces",
+      filter: 'span.name == "*"',
+      collection_config: { mode: 'sample_rate', sample_rate: 1 },
+      attachment_config: 'none',
+      created_at: "2024-01-01T00:00:00Z",
+      created_by: "system@example.com",
+      updated_at: "2024-01-01T00:00:00Z",
+      updated_by: "system@example.com",
+    },
     {
       id: "df-001",
       type: "event",
