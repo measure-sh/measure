@@ -40,11 +40,11 @@ const getAttachmentConfigDisplay = (attachmentConfig?: EventTargetingAttachmentC
     return attachmentConfig
 }
 
-type RuleFilter = EventTargetingRule | TraceTargetingRule
+type Rule = EventTargetingRule | TraceTargetingRule
 
 interface RulesTableProps {
-    rules: RuleFilter[]
-    onRuleClick: (rule: RuleFilter) => void
+    rules: Rule[]
+    onRuleClick: (rule: Rule) => void
     prevEnabled: boolean
     nextEnabled: boolean
     onNext: () => void
@@ -52,7 +52,7 @@ interface RulesTableProps {
     showPaginator: boolean
 }
 
-export default function RulesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: RulesTableProps) {
+export default function RulesOverridesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: RulesTableProps) {
     if (rules.length === 0) {
         return null
     }

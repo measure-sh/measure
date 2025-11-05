@@ -8,12 +8,12 @@ export default function EditTraceFilter({ params }: { params: { teamId: string, 
     const router = useRouter()
 
     const handleCancel = () => {
-        router.push(`/${params.teamId}/data_filters`)
+        router.push(`/${params.teamId}/data`)
     }
 
     const handleSave = () => {
         // TODO: Implement save logic
-        router.push(`/${params.teamId}/data_filters`)
+        router.push(`/${params.teamId}/data`)
     }
 
     return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig } from '@/app/api/api_calls'
+import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig, SessionTargetingResponse, emptySessionTargetingResponse, fetchSessionTargetingRulesFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import { useRouter } from 'next/navigation'
@@ -9,7 +9,8 @@ import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import EditDefaultRuleDialog from '@/app/components/targeting/edit_default_rule_dialog'
-import RulesTable from '@/app/components/targeting/rule_overrides_table'
+import RulesOverridesTable from '@/app/components/targeting/rule_overrides_table'
+import SessionTargetingTable from '@/app/components/targeting/session_targeting_table'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 
 interface PageState {
@@ -18,8 +19,10 @@ interface PageState {
     filters: typeof defaultFilters
     eventTargetingRules: EventTargetingResponse
     traceTargetingRules: TraceTargetingResponse
+    sessionTargetingRules: SessionTargetingResponse
     eventPaginationOffset: number
     tracePaginationOffset: number
+    sessionPaginationOffset: number
     editingDefaultRule: 'event' | 'trace' | null
 }
 
@@ -47,8 +50,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         filters: defaultFilters,
         eventTargetingRules: emptyEventTargetingResponse,
         traceTargetingRules: emptyTraceTargetingResponse,
+        sessionTargetingRules: emptySessionTargetingResponse,
         eventPaginationOffset: 0,
         tracePaginationOffset: 0,
+        sessionPaginationOffset: 0,
         editingDefaultRule: null,
     }
 
@@ -67,9 +72,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
             traceTargetingApiStatus: TraceTargetingApiStatus.Loading
         })
 
-        const [eventResult, traceResult] = await Promise.all([
+        const [eventResult, traceResult, sessionResult] = await Promise.all([
             fetchEventTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.eventPaginationOffset),
-            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.tracePaginationOffset)
+            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.tracePaginationOffset),
+            fetchSessionTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.sessionPaginationOffset)
         ])
 
         if (eventResult.status === EventTargetingApiStatus.Error || traceResult.status === TraceTargetingApiStatus.Error) {
@@ -91,7 +97,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
             eventTargetingApiStatus: eventStatus,
             traceTargetingApiStatus: traceStatus,
             eventTargetingRules: eventResult.data || emptyEventTargetingResponse,
-            traceTargetingRules: traceResult.data || emptyTraceTargetingResponse
+            traceTargetingRules: traceResult.data || emptyTraceTargetingResponse,
+            sessionTargetingRules: sessionResult.data || emptySessionTargetingResponse
         })
     }
 
@@ -124,6 +131,14 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         updatePageState({ tracePaginationOffset: Math.max(0, pageState.tracePaginationOffset - paginationLimit) })
     }
 
+    const handleSessionNextPage = () => {
+        updatePageState({ sessionPaginationOffset: pageState.sessionPaginationOffset + paginationLimit })
+    }
+
+    const handleSessionPrevPage = () => {
+        updatePageState({ sessionPaginationOffset: Math.max(0, pageState.sessionPaginationOffset - paginationLimit) })
+    }
+
     useEffect(() => {
         if (!pageState.filters.ready) {
             return
@@ -134,7 +149,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
         // TODO: Re-enable API call when ready
         // getDataFilters()
-    }, [pageState.filters, pageState.eventPaginationOffset, pageState.tracePaginationOffset])
+    }, [pageState.filters, pageState.eventPaginationOffset, pageState.tracePaginationOffset, pageState.sessionPaginationOffset])
 
     const isLoading = () => {
         return pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading ||
@@ -158,13 +173,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const eventsOverideRules = pageState.eventTargetingRules.result.overrides;
     const traceDefaultRule = pageState.traceTargetingRules.result.default;
     const traceOverrideRules = pageState.traceTargetingRules.result.overrides;
+    const sessionTargetingRules = pageState.sessionTargetingRules.results;
 
-    const handleEditFilter = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0], filterType: 'event' | 'trace') => {
+    const handleEditRule = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0] | typeof sessionTargetingRules[0], filterType: 'event' | 'trace' | 'session') => {
         router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
     }
 
     const handleDefaultRuleUpdateSuccess = (collectionMode: 'sample_rate' | 'timeline_only' | 'disable', sampleRate?: number) => {
-        // Update local state based on which rule was edited
         if (pageState.editingDefaultRule === 'event') {
             const updatedEventRules = {
                 ...pageState.eventTargetingRules,
@@ -173,8 +188,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                     default: {
                         ...pageState.eventTargetingRules.result.default,
                         collection_config: collectionMode === 'sample_rate'
-                            ? { mode: collectionMode as const, sample_rate: sampleRate! }
-                            : { mode: collectionMode as const }
+                            ? { mode: 'sample_rate' as const, sample_rate: sampleRate! }
+                            : collectionMode === 'timeline_only'
+                                ? { mode: 'timeline_only' as const }
+                                : { mode: 'disable' as const }
                     }
                 }
             }
@@ -187,8 +204,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                     default: {
                         ...pageState.traceTargetingRules.result.default,
                         collection_config: collectionMode === 'sample_rate'
-                            ? { mode: collectionMode as const, sample_rate: sampleRate! }
-                            : { mode: collectionMode as const }
+                            ? { mode: 'sample_rate' as const, sample_rate: sampleRate! }
+                            : collectionMode === 'timeline_only'
+                                ? { mode: 'timeline_only' as const }
+                                : { mode: 'disable' as const }
                     }
                 }
             }
@@ -222,6 +241,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/trace/create`)}>
                             Trace Rule
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/session/create`)}>
+                            Session Rule
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -289,9 +311,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <RulesTable
+                        <RulesOverridesTable
                             rules={eventsOverideRules}
-                            onRuleClick={(rule) => handleEditFilter(rule, 'event')}
+                            onRuleClick={(rule) => handleEditRule(rule, 'event')}
                             prevEnabled={pageState.eventTargetingRules.meta.previous}
                             nextEnabled={pageState.eventTargetingRules.meta.next}
                             onNext={handleEventNextPage}
@@ -326,14 +348,33 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <RulesTable
+                        <RulesOverridesTable
                             rules={traceOverrideRules}
-                            onRuleClick={(rule) => handleEditFilter(rule, 'trace')}
+                            onRuleClick={(rule) => handleEditRule(rule, 'trace')}
                             prevEnabled={pageState.traceTargetingRules.meta.previous}
                             nextEnabled={pageState.traceTargetingRules.meta.next}
                             onNext={handleTraceNextPage}
                             onPrev={handleTracePrevPage}
                             showPaginator={traceOverrideRules.length > 0}
+                        />
+                    </div>
+
+                    <div className="py-12" />
+
+                    {/* Session Timeline Rules Section */}
+                    <div className="w-full">
+                        <p className="font-display text-2xl">Session Timeline Rules</p>
+
+                        <div className="py-4" />
+
+                        <SessionTargetingTable
+                            rules={sessionTargetingRules}
+                            onRuleClick={(rule) => handleEditRule(rule, 'session')}
+                            prevEnabled={pageState.sessionTargetingRules.meta.previous}
+                            nextEnabled={pageState.sessionTargetingRules.meta.next}
+                            onNext={handleSessionNextPage}
+                            onPrev={handleSessionPrevPage}
+                            showPaginator={sessionTargetingRules.length > 0}
                         />
                     </div>
                 </div>}

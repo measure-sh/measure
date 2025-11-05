@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
 
-export default function EditEventFilter({ params }: { params: { teamId: string, filterId: string } }) {
+export default function EditSessionFilter({ params }: { params: { teamId: string, ruleId: string } }) {
     const router = useRouter()
 
     const handleCancel = () => {
@@ -18,7 +18,7 @@ export default function EditEventFilter({ params }: { params: { teamId: string, 
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Edit Event Filter</p>
+            <p className="font-display text-4xl max-w-6xl text-center">Edit Session Filter</p>
             <div className="py-4" />
 
             <Card className="w-full">

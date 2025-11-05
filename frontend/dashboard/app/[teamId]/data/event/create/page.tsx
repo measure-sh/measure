@@ -8,12 +8,12 @@ export default function CreateEventFilter({ params }: { params: { teamId: string
     const router = useRouter()
 
     const handleCancel = () => {
-        router.push(`/${params.teamId}/data_filters`)
+        router.push(`/${params.teamId}/data`)
     }
 
     const handleCreate = () => {
         // TODO: Implement create logic
-        router.push(`/${params.teamId}/data_filters`)
+        router.push(`/${params.teamId}/data`)
     }
 
     return (
