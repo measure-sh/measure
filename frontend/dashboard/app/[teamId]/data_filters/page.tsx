@@ -296,21 +296,21 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                     <div className="py-8" />
 
                     {/* Override Filters Section */}
-                    <div className="w-full">
-                        <div className="mb-4">
-                            <p className="font-display text-2xl">Filters</p>
-                            <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
+                    {overrideFilters.length === 0 ? (
+                        <div className="w-full py-12 text-center">
+                            <p className="text-gray-500 text-sm">
+                                Click "Create Filter" to override the global filter settings for any event or trace
+                            </p>
                         </div>
-
-                        <div className="py-2" />
-
-                        {overrideFilters.length === 0 ? (
-                            <div className="w-full py-12 text-center">
-                                <p className="text-gray-500 text-sm">
-                                    Click "Create Filter" to override the global filter settings for any event or trace
-                                </p>
+                    ) : (
+                        <div className="w-full">
+                            <div className="mb-4">
+                                <p className="font-display text-2xl">Filters</p>
+                                <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
                             </div>
-                        ) : (
+
+                            <div className="py-2" />
+
                             <div>
 
                             <Table className="font-display">
@@ -346,8 +346,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                 </TableBody>
                             </Table>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>}
 
             {/* Global Filter Edit Dialog */}
