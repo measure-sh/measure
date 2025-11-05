@@ -9,7 +9,7 @@ const getSamplingRateDisplay = (samplingRate: number): string => {
     return `${samplingRate}% sampling rate`
 }
 
-interface SessionTargetingTableProps {
+interface SessionTargetingRulesTableProps {
     rules: SessionTargetingRule[]
     onRuleClick: (rule: SessionTargetingRule) => void
     prevEnabled: boolean
@@ -19,7 +19,7 @@ interface SessionTargetingTableProps {
     showPaginator: boolean
 }
 
-export default function SessionTargetingTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: SessionTargetingTableProps) {
+export default function SessionTargetingRulesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: SessionTargetingRulesTableProps) {
     if (rules.length === 0) {
         return null
     }
