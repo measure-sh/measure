@@ -11,11 +11,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
 import { Plus } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
     filters: typeof defaultFilters
     dataFilters: DataFiltersResponse
+    editingFilterType: 'event' | 'trace' | null
 }
 
 const isGlobalFilter = (type: DataFilterType): boolean => {
@@ -65,6 +67,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         dataFiltersApiStatus: DataFiltersApiStatus.Success,
         filters: defaultFilters,
         dataFilters: emptyDataFiltersResponse,
+        editingFilterType: null,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -127,14 +130,25 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
             <div className="flex flex-row items-center gap-2 justify-between w-full">
                 <p className="font-display text-4xl max-w-6xl text-center">Data Filters</p>
-                <Button
-                    variant="outline"
-                    className="font-display border border-black select-none"
-                    disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
-                    onClick={() => console.log('New data filter')}
-                >
-                    <Plus /> Create Filter
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="outline"
+                            className="font-display border border-black select-none"
+                            disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
+                        >
+                            <Plus /> Create Filter
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => updatePageState({ editingFilterType: 'event' })}>
+                            Event Filter
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updatePageState({ editingFilterType: 'trace' })}>
+                            Trace Filter
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <div className="py-4" />
 
