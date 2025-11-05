@@ -353,6 +353,15 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum DataFiltersApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoFilters,
+  Cancelled,
+}
+
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1021,6 +1030,34 @@ export const emptyAlertsOverviewResponse = {
     updated_at: string
   }[],
 }
+
+export type DataFiltersResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: DataFilter[],
+}
+
+export type DataFilter = {
+  id: string,
+  type: DataFilterType,
+  rule: string,
+  collection_config: DataFilterCollectionConfig,
+  attachment_config: DataFilterAttachmentConfig | null,
+  created_at: string,
+  created_by: string,
+  updated_at: string,
+  updated_by: string,
+}
+
+export type DataFilterType = "event" | "trace"
+export type DataFilterCollectionConfig =
+  | { mode: 'sample_rate'; sample_rate: number }
+  | { mode: 'timeline_only' }
+  | { mode: 'disable' };
+
+export type DataFilterAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
 
 export class AppVersion {
   name: string
@@ -2354,5 +2391,29 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchDataFiltersFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/data_filters`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: DataFiltersApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null) {
+      return { status: DataFiltersApiStatus.NoFilters, data: null }
+    } else {
+      return { status: DataFiltersApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: DataFiltersApiStatus.Cancelled, data: null }
   }
 }
