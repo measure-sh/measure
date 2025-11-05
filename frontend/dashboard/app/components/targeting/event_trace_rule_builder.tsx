@@ -2,10 +2,21 @@
 
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
+import { useEffect, useState } from 'react'
+import {
+    EventTargetingRuleApiStatus,
+    TraceTargetingRuleApiStatus,
+    EventTargetingRule,
+    TraceTargetingRule,
+    fetchEventTargetingRuleFromServer,
+    fetchTraceTargetingRuleFromServer
+} from '@/app/api/api_calls'
+import LoadingBar from '@/app/components/loading_bar'
 
 interface EventTraceRuleBuilderProps {
     type: 'event' | 'trace'
     mode: 'create' | 'edit'
+    appId: string
     ruleId?: string
     onCancel: () => void
     onPrimaryAction: () => void
@@ -15,11 +26,65 @@ interface EventTraceRuleBuilderProps {
 export default function EventTraceRuleBuilder({
     type,
     mode,
+    appId,
     ruleId,
     onCancel,
     onPrimaryAction,
     children
 }: EventTraceRuleBuilderProps) {
+    const [apiStatus, setApiStatus] = useState<EventTargetingRuleApiStatus | TraceTargetingRuleApiStatus>(
+        mode === 'create'
+            ? EventTargetingRuleApiStatus.Success
+            : EventTargetingRuleApiStatus.Loading
+    )
+    const [ruleData, setRuleData] = useState<EventTargetingRule | TraceTargetingRule | null>(null)
+
+    useEffect(() => {
+        if (mode === 'edit' && ruleId) {
+            fetchRuleData()
+        }
+    }, [mode, ruleId, appId])
+
+    const fetchEventRuleData = async () => {
+        if (!ruleId) return
+
+        setApiStatus(EventTargetingRuleApiStatus.Loading)
+
+        const result = await fetchEventTargetingRuleFromServer(appId, ruleId)
+
+        if (result.status === EventTargetingRuleApiStatus.Error) {
+            setApiStatus(EventTargetingRuleApiStatus.Error)
+            return
+        }
+
+        setRuleData(result.data)
+        setApiStatus(EventTargetingRuleApiStatus.Success)
+    }
+
+    const fetchTraceRuleData = async () => {
+        if (!ruleId) return
+
+        setApiStatus(TraceTargetingRuleApiStatus.Loading)
+
+        const result = await fetchTraceTargetingRuleFromServer(appId, ruleId)
+
+        if (result.status === TraceTargetingRuleApiStatus.Error) {
+            setApiStatus(TraceTargetingRuleApiStatus.Error)
+            return
+        }
+
+        setRuleData(result.data)
+        setApiStatus(TraceTargetingRuleApiStatus.Success)
+    }
+
+    const fetchRuleData = async () => {
+        if (type === 'event') {
+            await fetchEventRuleData()
+        } else {
+            await fetchTraceRuleData()
+        }
+    }
+
     const getTitle = () => {
         const typeLabel = type === 'event' ? 'Event' : 'Trace'
         if (mode === 'create') {
@@ -32,35 +97,67 @@ export default function EventTraceRuleBuilder({
         return mode === 'create' ? 'Create Rule' : 'Save Changes'
     }
 
+    const isLoading = apiStatus === EventTargetingRuleApiStatus.Loading ||
+                      apiStatus === TraceTargetingRuleApiStatus.Loading
+    const hasError = apiStatus === EventTargetingRuleApiStatus.Error ||
+                     apiStatus === TraceTargetingRuleApiStatus.Error
+    const isReady = apiStatus === EventTargetingRuleApiStatus.Success ||
+                    apiStatus === TraceTargetingRuleApiStatus.Success
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">{getTitle()}</p>
             <div className="py-4" />
 
-            <Card className="w-full">
-                <CardContent className="pt-6">
-                    <div className="mb-6">
-                        {children}
-                    </div>
-                </CardContent>
+            {/* Loading indicator */}
+            <div className={`py-1 w-full ${isLoading ? 'visible' : 'invisible'}`}>
+                <LoadingBar />
+            </div>
 
-                <CardFooter className="flex justify-end gap-3">
+            {/* Error state */}
+            {hasError && (
+                <div className="w-full">
+                    <p className="text-lg font-display text-red-600">
+                        Error loading rule data. Please try again or go back.
+                    </p>
+                    <div className="py-4" />
                     <Button
                         variant="outline"
                         onClick={onCancel}
                         className="font-display"
                     >
-                        Cancel
+                        Go Back
                     </Button>
-                    <Button
-                        variant="outline"
-                        onClick={onPrimaryAction}
-                        className="font-display border border-black"
-                    >
-                        {getPrimaryActionLabel()}
-                    </Button>
-                </CardFooter>
-            </Card>
+                </div>
+            )}
+
+            {/* Main content */}
+            {isReady && (
+                <Card className="w-full">
+                    <CardContent className="pt-6">
+                        <div className="mb-6">
+                            {children}
+                        </div>
+                    </CardContent>
+
+                    <CardFooter className="flex justify-end gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={onCancel}
+                            className="font-display"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={onPrimaryAction}
+                            className="font-display border border-black"
+                        >
+                            {getPrimaryActionLabel()}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            )}
         </div>
     )
 }

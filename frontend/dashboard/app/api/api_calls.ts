@@ -377,6 +377,27 @@ export enum SessionTargetingApiStatus {
   Cancelled,
 }
 
+export enum EventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum TraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2621,5 +2642,62 @@ export const fetchSessionTargetingRulesFromServer = async (
     }
   } catch {
     return { status: SessionTargetingApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchEventTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: EventTargetingRuleApiStatus.Error, data: null }
+    }
+    
+    const data = await res.json()
+    return { status: EventTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: EventTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTraceTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+  
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    
+    if (!res.ok) {
+      return { status: TraceTargetingRuleApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: TraceTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: TraceTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+  
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SessionTargetingRuleApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingRuleApiStatus.Cancelled, data: null }
   }
 }

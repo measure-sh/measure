@@ -176,7 +176,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const sessionTargetingRules = pageState.sessionTargetingRules.results;
 
     const handleEditRule = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0] | typeof sessionTargetingRules[0], filterType: 'event' | 'trace' | 'session') => {
-        router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
+        router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/${filterType}/${dataFilter.id}/edit`)
     }
 
     const handleDefaultRuleUpdateSuccess = (collectionMode: 'sample_rate' | 'timeline_only' | 'disable', sampleRate?: number) => {
@@ -236,13 +236,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/event/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/event/create`)}>
                             Event Rule
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/trace/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/trace/create`)}>
                             Trace Rule
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/session/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/session/create`)}>
                             Session Rule
                         </DropdownMenuItem>
                     </DropdownMenuContent>

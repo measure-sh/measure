@@ -4,21 +4,21 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
 
-export default function CreateSessionFilter({ params }: { params: { teamId: string } }) {
+export default function EditSessionFilter({ params }: { params: { teamId: string, appId: string, ruleId: string } }) {
     const router = useRouter()
 
     const handleCancel = () => {
-        router.push(`/${params.teamId}/data`)
+        router.back()
     }
 
-    const handleCreate = () => {
-        // TODO: Implement create logic
-        router.push(`/${params.teamId}/data`)
+    const handleSave = () => {
+        // TODO: Implement save logic
+        router.back()
     }
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Create Session Filter</p>
+            <p className="font-display text-4xl max-w-6xl text-center">Edit Session Filter</p>
             <div className="py-4" />
 
             <Card className="w-full">
@@ -38,10 +38,10 @@ export default function CreateSessionFilter({ params }: { params: { teamId: stri
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={handleCreate}
+                        onClick={handleSave}
                         className="font-display border border-black"
                     >
-                        Create Filter
+                        Save Changes
                     </Button>
                 </CardFooter>
             </Card>
