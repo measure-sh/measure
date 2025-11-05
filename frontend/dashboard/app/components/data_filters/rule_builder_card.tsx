@@ -3,10 +3,6 @@
 import { useState } from "react"
 import { Card, CardContent, CardFooter } from "@/app/components/card"
 import { Button } from "@/app/components/button"
-import { Input } from "@/app/components/input"
-import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
-import { Plus } from "lucide-react"
-import RuleBuilderAttributeRow from "@/app/components/session_targeting/rule_builder_attribute_row"
 
 interface RuleBuilderCardProps {
     type: 'event' | 'trace' | 'session_attr'
@@ -33,7 +29,7 @@ const operators = ["equals", "not equals", "contains", "greater than", "less tha
 
 // Operator types mapping for different attribute types
 const operatorTypesMapping = {
-    string: ['eq', 'neq', 'contains', 'ncontains'],
+    string: ['eq', 'neq', 'contains'],
     number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
     int64: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
     float64: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
@@ -111,7 +107,6 @@ export default function RuleBuilderCard({ type, onCancel, onSave, initialData }:
     return (
         <Card className="w-full">
             <CardContent className="pt-6">
-                <div className="mb-6">
             </CardContent>
 
             <CardFooter className="flex justify-end gap-3">

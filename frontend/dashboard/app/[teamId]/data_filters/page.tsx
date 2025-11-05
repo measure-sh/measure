@@ -14,6 +14,7 @@ import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
+import SamplingRateInput from '@/app/components/data_filters/sampling_rate_input'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
@@ -264,7 +265,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             {globalFilters.map((dataFilter, idx) => (
                                 <Card
                                     key={`${idx}-${dataFilter.id}`}
-                                    className={`w-full group relative ${dataFilter.type === 'all_events' ? 'bg-blue-100' : 'bg-purple-100'}`}
+                                    className={`w-full ${dataFilter.type === 'all_events' ? 'bg-blue-100' : 'bg-purple-100'}`}
                                 >
                                     <CardContent className="p-4">
                                         <div className="flex flex-row items-center justify-between">
@@ -280,7 +281,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                                 </div>
                                                 <button
                                                     onClick={(e) => handleEditGlobalFilter(dataFilter, e)}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-gray-200 rounded"
+                                                    className="p-2 hover:bg-gray-200 rounded"
                                                 >
                                                     <Pencil className="w-4 h-4 text-gray-600" />
                                                 </button>
@@ -294,15 +295,23 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                     <div className="py-8" />
 
-                    {/* Override Filters Table */}
-                    {overrideFilters.length > 0 && (
-                        <div className="w-full">
-                            <div className="mb-4">
-                                <p className="font-display text-2xl">Custom Filters</p>
-                                <p className="text-sm text-gray-600 mt-1">Filters for specific events and traces that override global settings</p>
-                            </div>
+                    {/* Override Filters Section */}
+                    <div className="w-full">
+                        <div className="mb-4">
+                            <p className="font-display text-2xl">Filters</p>
+                            <p className="text-sm text-gray-600 mt-1">Add filters for events and traces that override global settings</p>
+                        </div>
 
-                            <div className="py-2" />
+                        <div className="py-2" />
+
+                        {overrideFilters.length === 0 ? (
+                            <div className="w-full py-12 text-center">
+                                <p className="text-gray-500 text-sm">
+                                    Click "Create Filter" to override the global filter settings for any event or trace
+                                </p>
+                            </div>
+                        ) : (
+                            <div>
 
                             <Table className="font-display">
                                 <TableHeader>
@@ -336,88 +345,82 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
                 </div>}
 
             {/* Global Filter Edit Dialog */}
             <Dialog open={pageState.editingGlobalFilter !== null} onOpenChange={(open) => !open && handleCancelGlobalFilter()}>
                 <DialogContent className="font-display">
                     <DialogHeader>
-                        <DialogTitle>
-                            Edit {pageState.editingGlobalFilter?.type === 'all_events' ? 'All Events' : 'All Traces'} Filter
+                        <DialogTitle className="font-display text-2xl">
+                            Edit {pageState.editingGlobalFilter?.type === 'all_events' ? 'Events' : 'Traces'} Filter
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Collection Mode</label>
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="sample_rate"
-                                        checked={pageState.editingGlobalFilter?.collectionMode === 'sample_rate'}
-                                        onChange={(e) => updatePageState({
-                                            editingGlobalFilter: pageState.editingGlobalFilter ? {
-                                                ...pageState.editingGlobalFilter,
-                                                collectionMode: 'sample_rate',
-                                                sampleRate: pageState.editingGlobalFilter.sampleRate || 100
-                                            } : null
-                                        })}
-                                    />
-                                    <span className="text-sm">Sample Rate</span>
-                                </label>
-                                {pageState.editingGlobalFilter?.collectionMode === 'sample_rate' && (
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={pageState.editingGlobalFilter.sampleRate || 100}
-                                        onChange={(e) => updatePageState({
-                                            editingGlobalFilter: pageState.editingGlobalFilter ? {
-                                                ...pageState.editingGlobalFilter,
-                                                sampleRate: parseInt(e.target.value)
-                                            } : null
-                                        })}
-                                        className="ml-6 w-24 px-2 py-1 border rounded text-sm"
-                                    />
-                                )}
+                    <div className="space-y-3 py-4">
+                        <label className="flex items-center gap-3 cursor-pointer h-10">
+                            <input
+                                type="radio"
+                                name="collectionMode"
+                                value="sample_rate"
+                                checked={pageState.editingGlobalFilter?.collectionMode === 'sample_rate'}
+                                onChange={(e) => updatePageState({
+                                    editingGlobalFilter: pageState.editingGlobalFilter ? {
+                                        ...pageState.editingGlobalFilter,
+                                        collectionMode: 'sample_rate',
+                                        sampleRate: pageState.editingGlobalFilter.sampleRate || 100
+                                    } : null
+                                })}
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                            />
+                            <SamplingRateInput
+                                value={pageState.editingGlobalFilter?.sampleRate || 100}
+                                onChange={(value) => updatePageState({
+                                    editingGlobalFilter: pageState.editingGlobalFilter ? {
+                                        ...pageState.editingGlobalFilter,
+                                        collectionMode: 'sample_rate',
+                                        sampleRate: value
+                                    } : null
+                                })}
+                                disabled={pageState.editingGlobalFilter?.collectionMode !== 'sample_rate'}
+                            />
+                        </label>
 
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="timeline_only"
-                                        checked={pageState.editingGlobalFilter?.collectionMode === 'timeline_only'}
-                                        onChange={(e) => updatePageState({
-                                            editingGlobalFilter: pageState.editingGlobalFilter ? {
-                                                ...pageState.editingGlobalFilter,
-                                                collectionMode: 'timeline_only'
-                                            } : null
-                                        })}
-                                    />
-                                    <span className="text-sm">Timeline Only</span>
-                                </label>
+                        <label className="flex items-center gap-3 cursor-pointer h-10">
+                            <input
+                                type="radio"
+                                name="collectionMode"
+                                value="timeline_only"
+                                checked={pageState.editingGlobalFilter?.collectionMode === 'timeline_only'}
+                                onChange={(e) => updatePageState({
+                                    editingGlobalFilter: pageState.editingGlobalFilter ? {
+                                        ...pageState.editingGlobalFilter,
+                                        collectionMode: 'timeline_only'
+                                    } : null
+                                })}
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                            />
+                            <span className="text-sm font-body">Collect with session timeline only</span>
+                        </label>
 
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="disable"
-                                        checked={pageState.editingGlobalFilter?.collectionMode === 'disable'}
-                                        onChange={(e) => updatePageState({
-                                            editingGlobalFilter: pageState.editingGlobalFilter ? {
-                                                ...pageState.editingGlobalFilter,
-                                                collectionMode: 'disable'
-                                            } : null
-                                        })}
-                                    />
-                                    <span className="text-sm">Disable</span>
-                                </label>
-                            </div>
-                        </div>
+                        <label className="flex items-center gap-3 cursor-pointer h-10">
+                            <input
+                                type="radio"
+                                name="collectionMode"
+                                value="disable"
+                                checked={pageState.editingGlobalFilter?.collectionMode === 'disable'}
+                                onChange={(e) => updatePageState({
+                                    editingGlobalFilter: pageState.editingGlobalFilter ? {
+                                        ...pageState.editingGlobalFilter,
+                                        collectionMode: 'disable'
+                                    } : null
+                                })}
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                            />
+                            <span className="text-sm font-body">Collect no {pageState.editingGlobalFilter?.type === 'all_events' ? 'events' : 'traces'}</span>
+                        </label>
                     </div>
 
                     <DialogFooter>
