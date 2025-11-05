@@ -11,7 +11,8 @@ import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
 import { buttonVariants } from './button'
 import CopyAiContext from './copy_ai_context'
-import ExceptionspDetailsPlot from './exceptions_details_plot'
+import ExceptionGroupCommonPath from './exception_group_common_path'
+import ExceptionsDetailsPlot from './exceptions_details_plot'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
 import LoadingSpinner from './loading_spinner'
@@ -169,7 +170,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       {pageState.filters.ready &&
         <div className='w-full'>
           <div className="flex flex-col md:flex-row w-full">
-            <ExceptionspDetailsPlot
+            <ExceptionsDetailsPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
               filters={pageState.filters} />
@@ -179,6 +180,13 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               exceptionsGroupId={exceptionsGroupId}
               filters={pageState.filters} />
           </div>
+
+          <div className="py-8" />
+          <ExceptionGroupCommonPath
+            type={exceptionsType}
+            groupId={exceptionsGroupId}
+            appId={pageState.filters.app!.id} />
+          <div className="py-12" />
 
           {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error &&
             <p className="font-body text-sm">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
