@@ -1,9 +1,8 @@
 "use client"
 
-import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource } from '@/app/api/api_calls'
+import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import { EventTargetingCollectionConfig } from '@/app/api/api_calls'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
@@ -26,7 +25,7 @@ interface PageState {
 
 const paginationLimit = 5
 
-const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig | TraceTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
