@@ -1127,7 +1127,24 @@ export const emptyEventTargetingResponse: EventTargetingResponse = {
       updated_at: "2024-01-01T00:00:00Z",
       updated_by: "system@example.com",
     },
-    overrides: []
+    overrides: [
+      {
+        id: "df-events-001",
+        rule: 'event.event_type == "crash"',
+        collection_config: { mode: 'sample_rate', sample_rate: 5 },
+        attachment_config: 'screenshot',
+        updated_at: "2024-01-01T00:00:00Z",
+        updated_by: "system@example.com",
+      },
+      {
+        id: "df-events-002",
+        rule: 'event.event_type == "anr"',
+        collection_config: { mode: 'disable' },
+        attachment_config: 'none',
+        updated_at: "2024-01-01T00:00:00Z",
+        updated_by: "system@example.com",
+      }
+    ]
   },
 }
 
@@ -1144,7 +1161,22 @@ export const emptyTraceTargetingResponse: TraceTargetingResponse = {
       updated_at: "2024-01-01T00:00:00Z",
       updated_by: "system@example.com",
     },
-    overrides: []
+    overrides: [
+      {
+        id: "df-traces-001",
+        rule: 'trace.trace_name == "root"',
+        collection_config: { mode: 'sample_rate', sample_rate: 10 },
+        updated_at: "2024-01-01T00:00:00Z",
+        updated_by: "system@example.com",
+      },
+      {
+        id: "df-traces-002",
+        rule: 'trace.trace_name == "activity.onCreate"',
+        collection_config: { mode: 'disable' },
+        updated_at: "2024-01-01T00:00:00Z",
+        updated_by: "system@example.com",
+      }
+    ]
   },
 }
 
@@ -1156,7 +1188,6 @@ export const emptySessionTargetingResponse: SessionTargetingResponse = {
   results: [
     {
       id: "df-sessions-001",
-      rule: "Default Session Targeting Rule",
       rule: 'event.event_type == "exception"',
       sampling_rate: 0,
       updated_at: "2024-01-01T00:00:00Z",
