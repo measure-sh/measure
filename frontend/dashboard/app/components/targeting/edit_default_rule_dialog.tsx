@@ -1,14 +1,14 @@
 "use client"
 
-import { DataTargetingCollectionConfig, DataTargetingRuleType } from '@/app/api/api_calls'
+import { EventTargetingCollectionConfig, EventTargetingRuleType } from '@/app/api/api_calls'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/app/components/dialog'
 import { Button } from '@/app/components/button'
 import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 
 export interface DefaultRuleState {
     id: string
-    type: DataTargetingRuleType
-    collectionMode: DataTargetingCollectionConfig['mode']
+    type: EventTargetingRuleType
+    collectionMode: EventTargetingCollectionConfig['mode']
     sampleRate?: number
 }
 

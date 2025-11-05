@@ -1,9 +1,9 @@
 "use client"
 
-import { DataTargetingRulesApiStatus, DataTargetingRulesResponse, emptyDataFiltersResponse, fetchDataTargetingRulesFromServer, FilterSource } from '@/app/api/api_calls'
+import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import { DataTargetingCollectionConfig, DataTargetingRuleType } from '@/app/api/api_calls'
+import { EventTargetingCollectionConfig } from '@/app/api/api_calls'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/app/components/button'
@@ -13,17 +13,15 @@ import EditDefaultRuleDialog, { DefaultRuleState as DefaultRuleEditState } from 
 import RulesTable from '@/app/components/targeting/rule_overrides_table'
 
 interface PageState {
-    dataTargetingRulesApiStatus: DataTargetingRulesApiStatus
+    eventTargetingApiStatus: EventTargetingApiStatus
+    traceTargetingApiStatus: TraceTargetingApiStatus
     filters: typeof defaultFilters
-    dataTargetingRules: DataTargetingRulesResponse
+    eventTargetingRules: EventTargetingResponse
+    traceTargetingRules: TraceTargetingResponse
     defaultRuleEditState: DefaultRuleEditState | null
 }
 
-const isDefaultRule = (type: DataTargetingRuleType): boolean => {
-    return type === 'all_events' || type === 'all_traces'
-}
-
-const getCollectionConfigDisplay = (collectionConfig: DataTargetingCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
@@ -40,9 +38,11 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const router = useRouter()
 
     const initialState: PageState = {
-        dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Success,
+        eventTargetingApiStatus: EventTargetingApiStatus.Success,
+        traceTargetingApiStatus: TraceTargetingApiStatus.Success,
         filters: defaultFilters,
-        dataTargetingRules: emptyDataFiltersResponse,
+        eventTargetingRules: emptyEventTargetingResponse,
+        traceTargetingRules: emptyTraceTargetingResponse,
         defaultRuleEditState: null,
     }
 
@@ -56,24 +56,37 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     }
 
     const getDataFilters = async () => {
-        updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Loading })
+        updatePageState({
+            eventTargetingApiStatus: EventTargetingApiStatus.Loading,
+            traceTargetingApiStatus: TraceTargetingApiStatus.Loading
+        })
 
-        const result = await fetchDataTargetingRulesFromServer(pageState.filters.app!.id)
+        const [eventResult, traceResult] = await Promise.all([
+            fetchEventTargetingRulesFromServer(pageState.filters.app!.id),
+            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id)
+        ])
 
-        switch (result.status) {
-            case DataTargetingRulesApiStatus.Error:
-                updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Error })
-                break
-            case DataTargetingRulesApiStatus.NoFilters:
-                updatePageState({ dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.NoFilters })
-                break
-            case DataTargetingRulesApiStatus.Success:
-                updatePageState({
-                    dataTargetingRulesApiStatus: DataTargetingRulesApiStatus.Success,
-                    dataTargetingRules: result.data
-                })
-                break
+        if (eventResult.status === EventTargetingApiStatus.Error || traceResult.status === TraceTargetingApiStatus.Error) {
+            updatePageState({
+                eventTargetingApiStatus: EventTargetingApiStatus.Error,
+                traceTargetingApiStatus: TraceTargetingApiStatus.Error
+            })
+            return
         }
+
+        const eventStatus = eventResult.status === EventTargetingApiStatus.NoData
+            ? EventTargetingApiStatus.NoData
+            : EventTargetingApiStatus.Success
+        const traceStatus = traceResult.status === TraceTargetingApiStatus.NoData
+            ? TraceTargetingApiStatus.NoData
+            : TraceTargetingApiStatus.Success
+
+        updatePageState({
+            eventTargetingApiStatus: eventStatus,
+            traceTargetingApiStatus: traceStatus,
+            eventTargetingRules: eventResult.data || emptyEventTargetingResponse,
+            traceTargetingRules: traceResult.data || emptyTraceTargetingResponse
+        })
     }
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
@@ -81,7 +94,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
-                dataTargetingRules: emptyDataFiltersResponse,
+                eventTargetingRules: emptyEventTargetingResponse,
+                traceTargetingRules: emptyTraceTargetingResponse,
             })
         }
     }
@@ -98,19 +112,35 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         // getDataFilters()
     }, [pageState.filters])
 
-    const defaultRules = pageState.dataTargetingRules.results.filter(df => isDefaultRule(df.type))
-    const allEventsFilter = defaultRules.find(df => df.type === 'all_events')
-    const allTracesFilter = defaultRules.find(df => df.type === 'all_traces')
-    const overrideFilters = pageState.dataTargetingRules.results.filter(df => !isDefaultRule(df.type))
-    const eventFilters = overrideFilters.filter(df => df.type === 'event')
-    const traceFilters = overrideFilters.filter(df => df.type === 'trace')
+    const isLoading = () => {
+        return pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading ||
+            pageState.traceTargetingApiStatus === TraceTargetingApiStatus.Loading
+    }
 
-    const handleEditFilter = (dataFilter: typeof overrideFilters[0]) => {
+    const hasError = () => {
+        return pageState.eventTargetingApiStatus === EventTargetingApiStatus.Error ||
+            pageState.traceTargetingApiStatus === TraceTargetingApiStatus.Error
+    }
+
+    const canShowContent = () => {
+        const eventReady = pageState.eventTargetingApiStatus === EventTargetingApiStatus.Success ||
+            pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading
+        const traceReady = pageState.traceTargetingApiStatus === TraceTargetingApiStatus.Success ||
+            pageState.traceTargetingApiStatus === TraceTargetingApiStatus.Loading
+        return pageState.filters.ready && eventReady && traceReady
+    }
+
+    const eventsDefaultRule = pageState.eventTargetingRules.result.default;
+    const eventsOverideRules = pageState.eventTargetingRules.result.overrides;
+    const traceDefaultRule = pageState.traceTargetingRules.result.default;
+    const traceOverrideRules = pageState.traceTargetingRules.result.overrides;
+
+    const handleEditFilter = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0]) => {
         const filterType = dataFilter.type === 'event' ? 'event' : 'trace'
         router.push(`/${params.teamId}/data/${filterType}/${dataFilter.id}/edit`)
     }
 
-    const handleEditDefaultRule = (dataFilter: typeof defaultRules[0]) => {
+    const handleEditDefaultRule = (dataFilter: typeof eventsDefaultRule | typeof traceDefaultRule) => {
         updatePageState({
             defaultRuleEditState: {
                 id: dataFilter.id,
@@ -138,7 +168,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading}
+                            disabled={pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading}
                         >
                             <Plus /> Create Rule
                         </Button>
@@ -182,15 +212,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
             <div className="py-2" />
 
             {/* Error state for data rules fetch */}
-            {pageState.filters.ready
-                && pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Error
-                && <p className="text-lg font-display">Error fetching data filters, please change filters, refresh page or select a different app to try again</p>}
+            {pageState.filters.ready && hasError() &&
+                <p className="text-lg font-display">Error fetching data filters, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main data rules UI */}
-            {pageState.filters.ready
-                && (pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Success || pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading) &&
+            {canShowContent() &&
                 <div className="flex flex-col items-start w-full">
-                    <div className={`py-1 w-full ${pageState.dataTargetingRulesApiStatus === DataTargetingRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${isLoading() ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
 
@@ -202,9 +230,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         {/* Default Event Rule */}
                         <div className="flex items-center gap-2">
                             <p className="font-display text-gray-500">Default Rule</p>
-                            {allEventsFilter && (
+                            {eventsDefaultRule && (
                                 <button
-                                    onClick={() => handleEditDefaultRule(allEventsFilter)}
+                                    onClick={() => handleEditDefaultRule(eventsDefaultRule)}
                                     className="p-1 hover:bg-yellow-200 rounded"
                                 >
                                     <Pencil className="w-4 h-4 text-gray-600" />
@@ -212,13 +240,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             )}
                         </div>
                         <div className="py-2" />
-                        {allEventsFilter && (
+                        {eventsDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(allEventsFilter.collection_config)}
+                                {getCollectionConfigDisplay(eventsDefaultRule.collection_config)}
                             </div>
                         )}
 
-                        <RulesTable rules={eventFilters} onRuleClick={handleEditFilter} />
+                        <RulesTable rules={eventsOverideRules} onRuleClick={handleEditFilter} />
                     </div>
 
                     <div className="py-12" />
@@ -231,9 +259,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         {/* Default Trace Rule */}
                         <div className="flex items-center gap-2">
                             <p className="font-display text-gray-500">Default Rule</p>
-                            {allTracesFilter && (
+                            {traceDefaultRule && (
                                 <button
-                                    onClick={() => handleEditDefaultRule(allTracesFilter)}
+                                    onClick={() => handleEditDefaultRule(traceDefaultRule)}
                                     className="p-1 hover:bg-yellow-200 rounded"
                                 >
                                     <Pencil className="w-4 h-4 text-gray-600" />
@@ -241,13 +269,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             )}
                         </div>
                         <div className="py-2" />
-                        {allTracesFilter && (
+                        {traceDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(allTracesFilter.collection_config)}
+                                {getCollectionConfigDisplay(traceDefaultRule.collection_config)}
                             </div>
                         )}
 
-                        <RulesTable rules={traceFilters} onRuleClick={handleEditFilter} />
+                        <RulesTable rules={traceOverrideRules} onRuleClick={handleEditFilter} />
                     </div>
                 </div>}
 

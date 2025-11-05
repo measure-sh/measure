@@ -1,12 +1,12 @@
 "use client"
 
-import { DataTargetingRulesResponse, DataTargetingCollectionConfig, DataTargetingAttachmentConfig, DataTargetingRuleType } from '@/app/api/api_calls'
+import { EventTargetingRule, TraceTargetingRule, EventTargetingCollectionConfig, EventTargetingAttachmentConfig, EventTargetingRuleType } from '@/app/api/api_calls'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
 import Paginator from '@/app/components/paginator'
 import { useState, useEffect } from 'react'
 
-const getFilterDisplayText = (type: DataTargetingRuleType, filter: string): string => {
+const getFilterDisplayText = (type: EventTargetingRuleType, filter: string): string => {
     switch (type) {
         case 'all_events':
             return 'All Events'
@@ -17,7 +17,7 @@ const getFilterDisplayText = (type: DataTargetingRuleType, filter: string): stri
     }
 }
 
-const getCollectionConfigDisplay = (collectionConfig: DataTargetingCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
         case 'sample_rate':
             return `Collect all at ${collectionConfig.sample_rate}% sample rate`
@@ -30,8 +30,8 @@ const getCollectionConfigDisplay = (collectionConfig: DataTargetingCollectionCon
     }
 }
 
-const getAttachmentConfigDisplay = (attachmentConfig: DataTargetingAttachmentConfig): string => {
-    if (attachmentConfig === 'none') {
+const getAttachmentConfigDisplay = (attachmentConfig?: EventTargetingAttachmentConfig): string => {
+    if (!attachmentConfig || attachmentConfig === 'none') {
         return ''
     } else if (attachmentConfig === 'layout_snapshot') {
         return 'With layout snapshot'
@@ -41,7 +41,7 @@ const getAttachmentConfigDisplay = (attachmentConfig: DataTargetingAttachmentCon
     return attachmentConfig
 }
 
-type RuleFilter = DataTargetingRulesResponse['results'][0]
+type RuleFilter = EventTargetingRule | TraceTargetingRule
 
 interface RulesTableProps {
     rules: RuleFilter[]
@@ -108,7 +108,7 @@ export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
                                 <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.rule)}</p>
                                 <div className='py-1' />
                                 <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
-                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay(dataFilter.attachment_config)}</p>
+                                <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay('attachment_config' in dataFilter ? dataFilter.attachment_config : undefined)}</p>
                             </TableCell>
                             <TableCell className="w-[20%] text-center p-4">
                                 <p className='truncate select-none'>{formatDateToHumanReadableDate(dataFilter.updated_at)}</p>
