@@ -5,10 +5,12 @@ import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/
 import LoadingBar from '@/app/components/loading_bar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
-import { DataFilter, DataFilterAttachmentConfig, DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
+import { DataFilterAttachmentConfig, DataFilterCollectionConfig, DataFilterType } from '@/app/api/api_calls'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Button } from '@/app/components/button'
+import { Plus } from 'lucide-react'
 
 interface PageState {
     dataFiltersApiStatus: DataFiltersApiStatus
@@ -16,7 +18,7 @@ interface PageState {
     dataFilters: DataFiltersResponse
 }
 
-const isGlobalRule = (type: DataFilterType): boolean => {
+const isGlobalFilter = (type: DataFilterType): boolean => {
     return type === 'all_events' || type === 'all_traces'
 }
 
@@ -46,7 +48,7 @@ const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig
 
 const getAttachmentConfigDisplay = (attachmentConfig: DataFilterAttachmentConfig | null): string => {
     if (!attachmentConfig || attachmentConfig === 'none') {
-        return 'With no attachments'
+        return ''
     } else if (attachmentConfig === 'layout_snapshot') {
         return 'With layout snapshot'
     } else if (attachmentConfig === 'screenshot') {
@@ -117,12 +119,23 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         // getDataFilters()
     }, [pageState.filters])
 
-    const globalRules = pageState.dataFilters.results.filter(df => isGlobalRule(df.type))
-    const overrideRules = pageState.dataFilters.results.filter(df => !isGlobalRule(df.type))
+    const globalFilters = pageState.dataFilters.results.filter(df => isGlobalFilter(df.type))
+    const overrideFilters = pageState.dataFilters.results.filter(df => !isGlobalFilter(df.type))
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Data Filters</p>
+
+            <div className="flex flex-row items-center gap-2 justify-between w-full">
+                <p className="font-display text-4xl max-w-6xl text-center">Data Filters</p>
+                <Button
+                    variant="outline"
+                    className="font-display border border-black select-none"
+                    disabled={pageState.dataFiltersApiStatus === DataFiltersApiStatus.Loading}
+                    onClick={() => console.log('New data filter')}
+                >
+                    <Plus /> Create Filter
+                </Button>
+            </div>
             <div className="py-4" />
 
             <Filters
@@ -163,10 +176,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <LoadingBar />
                     </div>
 
-                    {/* Global Rules Section */}
-                    {globalRules.length > 0 && (
+                    {/* Global Filters Section */}
+                    {globalFilters.length > 0 && (
                         <div className="w-full">
-                            <p className="font-display text-2xl">Default Filters</p>
+                            <p className="font-display text-2xl">Global Filters</p>
 
                             <div className="py-4" />
 
@@ -179,7 +192,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {globalRules.map((dataFilter, idx) => (
+                                    {globalFilters.map((dataFilter, idx) => (
                                         <TableRow
                                             key={`${idx}-${dataFilter.id}`}
                                             className="font-body"
@@ -206,13 +219,13 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                     <div className="py-8" />
 
-                    {/* Override Rules Table */}
-                    {overrideRules.length > 0 && (
+                    {/* Override Filters Table */}
+                    {overrideFilters.length > 0 && (
                         <div className="w-full">
                             <p className="font-display text-2xl">Overrides</p>
 
                             <div className="py-4" />
-                            
+
                             <Table className="font-display">
                                 <TableHeader>
                                     <TableRow>
@@ -222,7 +235,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {overrideRules.map((dataFilter, idx) => (
+                                    {overrideFilters.map((dataFilter, idx) => (
                                         <TableRow
                                             key={`${idx}-${dataFilter.id}`}
                                             className="font-body"
