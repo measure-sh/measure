@@ -36,6 +36,14 @@ type PageState = {
     configData: EventTargetingConfigResponse | TraceTargetingConfigResponse | null
     ruleApiStatus: EventTargetingRuleApiStatus | TraceTargetingRuleApiStatus
     configApiStatus: EventTargetingConfigApiStatus | TraceTargetingConfigApiStatus
+    initialRuleState: string | null
+    currentRuleState: string | null
+}
+
+type FormState = {
+    collectionMode: 'sample_rate' | 'timeline_only' | 'disable'
+    sampleRate: number
+    attachmentMode: 'layout_snapshot' | 'screenshot' | 'none'
 }
 
 export default function EventTraceRuleBuilder({
@@ -50,7 +58,15 @@ export default function EventTraceRuleBuilder({
         ruleData: null,
         configData: null,
         ruleApiStatus: EventTargetingRuleApiStatus.Loading,
-        configApiStatus: EventTargetingConfigApiStatus.Loading
+        configApiStatus: EventTargetingConfigApiStatus.Loading,
+        initialRuleState: null,
+        currentRuleState: null
+    })
+
+    const [formState, setFormState] = useState<FormState>({
+        collectionMode: 'sample_rate',
+        sampleRate: 100,
+        attachmentMode: 'none'
     })
 
     useEffect(() => {
@@ -92,11 +108,20 @@ export default function EventTraceRuleBuilder({
                 ruleData = emptyEventTargetingRule
             }
 
+            const initialFormState = {
+                collectionMode: 'sample_rate' as const,
+                sampleRate: 100,
+                attachmentMode: 'none' as const
+            }
+            setFormState(initialFormState)
+            const initialState = JSON.stringify(initialFormState)
             setPageState({
                 ruleData,
                 configData: emptyEventTargetingConfigResponse,
                 ruleApiStatus,
-                configApiStatus: EventTargetingConfigApiStatus.Success
+                configApiStatus: EventTargetingConfigApiStatus.Success,
+                initialRuleState: initialState,
+                currentRuleState: initialState
             })
         } else {
             // const configResult = await fetchTraceTargetingConfigFromServer(appId)
@@ -126,11 +151,20 @@ export default function EventTraceRuleBuilder({
                 ruleData = emptyTraceTargetingRule
             }
 
+            const initialFormState = {
+                collectionMode: 'sample_rate' as const,
+                sampleRate: 100,
+                attachmentMode: 'none' as const
+            }
+            setFormState(initialFormState)
+            const initialState = JSON.stringify(initialFormState)
             setPageState({
                 ruleData,
                 configData: emptyTraceTargetingConfigResponse,
                 ruleApiStatus,
-                configApiStatus: TraceTargetingConfigApiStatus.Success
+                configApiStatus: TraceTargetingConfigApiStatus.Success,
+                initialRuleState: initialState,
+                currentRuleState: initialState
             })
         }
     }
@@ -168,6 +202,20 @@ export default function EventTraceRuleBuilder({
                 pageState.configApiStatus === TraceTargetingConfigApiStatus.Success)
     }
 
+    const hasChanges = () => {
+        if (mode === 'create') return true
+        return pageState.initialRuleState !== pageState.currentRuleState
+    }
+
+    const updateFormState = (updates: Partial<FormState>) => {
+        const newFormState = { ...formState, ...updates }
+        setFormState(newFormState)
+        setPageState(prev => ({
+            ...prev,
+            currentRuleState: JSON.stringify(newFormState)
+        }))
+    }
+
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -199,8 +247,122 @@ export default function EventTraceRuleBuilder({
             {/* Main content */}
             {isReady() && (
                 <div className="w-full flex flex-col">
-                    {/* Reserved space for content */}
+                    {/* When section */}
                     <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="font-display text-lg">When</span>
+                            <div className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50">
+                                <code className="text-sm font-mono">
+                                    {mode === 'edit' && pageState.ruleData
+                                        ? pageState.ruleData.rule
+                                        : 'event_type == "click"'}
+                                </code>
+                            </div>
+                        </div>
+                        <button className="text-sm font-body text-gray-600 flex items-center gap-2 ml-14">
+                            + Filter by attribute
+                        </button>
+                    </div>
+
+                    {/* Then section */}
+                    <div className="mb-6">
+                        <p className="font-display text-lg mb-4">Then</p>
+
+                        {/* Collection config */}
+                        <div className="mb-4">
+                            <p className="font-body text-sm text-gray-500 mb-3">Collection</p>
+                            <div className="space-y-3 ml-4">
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="sample_rate"
+                                        checked={formState.collectionMode === 'sample_rate'}
+                                        onChange={() => updateFormState({ collectionMode: 'sample_rate' })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                    />
+                                    <span className="text-sm font-body">Collect at sampling rate</span>
+                                    <input
+                                        type="number"
+                                        value={formState.sampleRate}
+                                        onChange={(e) => updateFormState({ sampleRate: parseFloat(e.target.value) || 0 })}
+                                        min="0"
+                                        max="100"
+                                        step="0.000001"
+                                        className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body"
+                                    />
+                                    <span className="text-sm font-body">%</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="timeline_only"
+                                        checked={formState.collectionMode === 'timeline_only'}
+                                        onChange={() => updateFormState({ collectionMode: 'timeline_only' })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                    />
+                                    <span className="text-sm font-body">Collect with timeline only</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="disable"
+                                        checked={formState.collectionMode === 'disable'}
+                                        onChange={() => updateFormState({ collectionMode: 'disable' })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                    />
+                                    <span className="text-sm font-body">Never collect</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Attachments (only for events) */}
+                        {type === 'event' && (
+                            <div className="mb-4">
+                                <p className="font-body text-sm text-gray-500 mb-3">Attachments</p>
+                                <div className="space-y-3 ml-4">
+                                    <label className="flex items-center gap-3 cursor-pointer h-10">
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="layout_snapshot"
+                                            checked={formState.attachmentMode === 'layout_snapshot'}
+                                            onChange={() => updateFormState({ attachmentMode: 'layout_snapshot' })}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                        />
+                                        <span className="text-sm font-body">Take layout snapshot</span>
+                                    </label>
+
+                                    <label className="flex items-center gap-3 cursor-pointer h-10">
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="screenshot"
+                                            checked={formState.attachmentMode === 'screenshot'}
+                                            onChange={() => updateFormState({ attachmentMode: 'screenshot' })}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                        />
+                                        <span className="text-sm font-body">Take screenshot</span>
+                                    </label>
+
+                                    <label className="flex items-center gap-3 cursor-pointer h-10">
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="none"
+                                            checked={formState.attachmentMode === 'none'}
+                                            onChange={() => updateFormState({ attachmentMode: 'none' })}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
+                                        />
+                                        <span className="text-sm font-body">No attachments</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Action buttons */}
@@ -216,6 +378,7 @@ export default function EventTraceRuleBuilder({
                             variant="outline"
                             onClick={onPrimaryAction}
                             className="font-display border border-black"
+                            disabled={!hasChanges()}
                         >
                             {getPrimaryActionLabel()}
                         </Button>
