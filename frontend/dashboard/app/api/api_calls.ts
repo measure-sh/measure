@@ -398,6 +398,27 @@ export enum SessionTargetingRuleApiStatus {
   Cancelled,
 }
 
+export enum EventTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum TraceTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1134,6 +1155,49 @@ export type SessionTargetingRule = {
   updated_by: string,
 }
 
+export type EventTargetingConfig = {
+  type: string;
+  attrs: AttributeTargetingConfig[] | null;
+  has_ud_attrs: boolean;
+}
+
+export type TraceTargetingConfig = {
+  name: string;
+  attrs: AttributeTargetingConfig[] | null;
+  has_ud_attrs: boolean;
+}
+
+export type AttributeTargetingConfig = {
+  key: string;
+  type: string;
+  hint?: string;
+}
+
+export type TargetingOperatorConfig = {
+  bool: string[];
+  float64: string[];
+  int64: string[];
+  string: string[];
+}
+
+export type EventTargetingConfigResponse = {
+  result: {
+    events: EventTargetingConfig[];
+    event_ud_attrs: AttributeTargetingConfig[];
+    session_attrs: AttributeTargetingConfig[];
+    operator_types: TargetingOperatorConfig;
+  };
+}
+
+export type TraceTargetingConfigResponse = {
+  result: {
+    traces: TraceTargetingConfig[];
+    trace_ud_attrs: AttributeTargetingConfig[];
+    session_attrs: AttributeTargetingConfig[];
+    operator_types: TargetingOperatorConfig;
+  };
+}
+
 export const emptyEventTargetingResponse: EventTargetingResponse = {
   meta: {
     next: false,
@@ -1234,6 +1298,60 @@ export const emptyTraceTargetingRule: TraceTargetingRule = {
   updated_by: "system@example.com",
 }
 
+export const emptyEventTargetingConfigResponse: EventTargetingConfigResponse = {
+  result: {
+    events: [
+      {
+        type: "exception",
+        attrs: [
+          { key: "handled", type: "bool", hint: "True for handled exceptions, false for crashes" },
+        ],
+        has_ud_attrs: true,
+      },
+    ],
+    event_ud_attrs: [
+      { key: "feature_flag", type: "string", hint: "Feature flag associated with the event" },
+    ],
+    session_attrs: [
+      { key: "user_id", type: "string", hint: "Identifier for the user" },
+    ],
+    operator_types: {
+      bool: ["==", "!="],
+      float64: ["==", "!=", "<", "<=", ">", ">="],
+      int64: ["==", "!=", "<", "<=", ">", ">="],
+      string: ["==", "!=", "contains", "starts_with", "ends_with"],
+    },
+  },
+}
+
+export const emptyTraceTargetingConfigResponse: TraceTargetingConfigResponse = {
+  result: {
+    traces: [
+      {
+        name: "root",
+        attrs: null,
+        has_ud_attrs: false,
+      },
+      {
+        name: "activity.onCreate",
+        attrs: null,
+        has_ud_attrs: false,
+      },
+    ],
+    trace_ud_attrs: [
+      { key: "feature_flag", type: "string", hint: "Feature flag associated with the trace" },
+    ],
+    session_attrs: [
+      { key: "user_id", type: "string", hint: "Identifier for the user" },
+    ],
+    operator_types: {
+      bool: ["==", "!="],
+      float64: ["==", "!=", "<", "<=", ">", ">="],
+      int64: ["==", "!=", "<", "<=", ">", ">="],
+      string: ["==", "!=", "contains", "starts_with", "ends_with"],
+    },
+  },
+}
 export class AppVersion {
   name: string
   code: string
@@ -2716,5 +2834,56 @@ export const fetchSessionTargetingRuleFromServer = async (
     return { status: SessionTargetingRuleApiStatus.Success, data: data }
   } catch {
     return { status: SessionTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchEventTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/events/config`
+  
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: EventTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: EventTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: EventTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTraceTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/traces/config`
+  
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: TraceTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: TraceTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: TraceTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/sessions/config`
+  
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SessionTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SessionTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingConfigApiStatus.Cancelled, data: null }
   }
 }
