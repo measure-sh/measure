@@ -35,6 +35,8 @@ interface EventTraceRuleBuilderProps {
 type PageState = {
     ruleData: EventTargetingRule | TraceTargetingRule | null
     configData: EventTargetingConfigResponse | TraceTargetingConfigResponse | null
+    ruleApiStatus: EventTargetingRuleApiStatus | TraceTargetingRuleApiStatus
+    configApiStatus: EventTargetingConfigApiStatus | TraceTargetingConfigApiStatus
 }
 
 export default function EventTraceRuleBuilder({
@@ -45,12 +47,11 @@ export default function EventTraceRuleBuilder({
     onCancel,
     onPrimaryAction,
 }: EventTraceRuleBuilderProps) {
-    const [apiStatus, setApiStatus] = useState<EventTargetingRuleApiStatus | TraceTargetingRuleApiStatus>(
-        EventTargetingRuleApiStatus.Loading
-    )
     const [pageState, setPageState] = useState<PageState>({
         ruleData: null,
-        configData: null
+        configData: null,
+        ruleApiStatus: EventTargetingRuleApiStatus.Loading,
+        configApiStatus: EventTargetingConfigApiStatus.Loading
     })
 
     useEffect(() => {
@@ -58,23 +59,36 @@ export default function EventTraceRuleBuilder({
     }, [mode, ruleId, appId, type])
 
     const fetchPageData = async () => {
-        setApiStatus(EventTargetingRuleApiStatus.Loading)
+        setPageState(prev => ({
+            ...prev,
+            ruleApiStatus: EventTargetingRuleApiStatus.Loading,
+            configApiStatus: EventTargetingConfigApiStatus.Loading
+        }))
 
         if (type === 'event') {
             // TEMPORARY: Using dummy response instead of actual API call
             // const configResult = await fetchEventTargetingConfigFromServer(appId)
             // if (configResult.status === EventTargetingConfigApiStatus.Error) {
-            //     setApiStatus(EventTargetingRuleApiStatus.Error)
+            //     setPageState(prev => ({
+            //         ...prev,
+            //         configApiStatus: EventTargetingConfigApiStatus.Error
+            //     }))
             //     return
             // }
 
             // Fetch rule data if in edit mode
             let ruleData = null
+            let ruleApiStatus = EventTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
                 // TEMPORARY: Using dummy response instead of actual API call
                 // const ruleResult = await fetchEventTargetingRuleFromServer(appId, ruleId)
                 // if (ruleResult.status === EventTargetingRuleApiStatus.Error) {
-                //     setApiStatus(EventTargetingRuleApiStatus.Error)
+                //     setPageState(prev => ({
+                //         ...prev,
+                //         ruleApiStatus: EventTargetingRuleApiStatus.Error,
+                //         configApiStatus: EventTargetingConfigApiStatus.Success,
+                //         configData: configResult.data
+                //     }))
                 //     return
                 // }
                 // ruleData = ruleResult.data
@@ -83,24 +97,34 @@ export default function EventTraceRuleBuilder({
 
             setPageState({
                 ruleData,
-                configData: emptyEventTargetingConfigResponse
+                configData: emptyEventTargetingConfigResponse,
+                ruleApiStatus,
+                configApiStatus: EventTargetingConfigApiStatus.Success
             })
-            setApiStatus(EventTargetingRuleApiStatus.Success)
         } else {
             // TEMPORARY: Using dummy response instead of actual API call
             // const configResult = await fetchTraceTargetingConfigFromServer(appId)
             // if (configResult.status === TraceTargetingConfigApiStatus.Error) {
-            //     setApiStatus(TraceTargetingRuleApiStatus.Error)
+            //     setPageState(prev => ({
+            //         ...prev,
+            //         configApiStatus: TraceTargetingConfigApiStatus.Error
+            //     }))
             //     return
             // }
 
             // Fetch rule data if in edit mode
             let ruleData = null
+            let ruleApiStatus = TraceTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
                 // TEMPORARY: Using dummy response instead of actual API call
                 // const ruleResult = await fetchTraceTargetingRuleFromServer(appId, ruleId)
                 // if (ruleResult.status === TraceTargetingRuleApiStatus.Error) {
-                //     setApiStatus(TraceTargetingRuleApiStatus.Error)
+                //     setPageState(prev => ({
+                //         ...prev,
+                //         ruleApiStatus: TraceTargetingRuleApiStatus.Error,
+                //         configApiStatus: TraceTargetingConfigApiStatus.Success,
+                //         configData: configResult.data
+                //     }))
                 //     return
                 // }
                 // ruleData = ruleResult.data
@@ -109,9 +133,10 @@ export default function EventTraceRuleBuilder({
 
             setPageState({
                 ruleData,
-                configData: emptyTraceTargetingConfigResponse
+                configData: emptyTraceTargetingConfigResponse,
+                ruleApiStatus,
+                configApiStatus: TraceTargetingConfigApiStatus.Success
             })
-            setApiStatus(TraceTargetingRuleApiStatus.Success)
         }
     }
 
@@ -127,12 +152,26 @@ export default function EventTraceRuleBuilder({
         return mode === 'create' ? 'Create Rule' : 'Save Changes'
     }
 
-    const isLoading = apiStatus === EventTargetingRuleApiStatus.Loading ||
-                      apiStatus === TraceTargetingRuleApiStatus.Loading
-    const hasError = apiStatus === EventTargetingRuleApiStatus.Error ||
-                     apiStatus === TraceTargetingRuleApiStatus.Error
-    const isReady = apiStatus === EventTargetingRuleApiStatus.Success ||
-                    apiStatus === TraceTargetingRuleApiStatus.Success
+    const isLoading = () => {
+        return pageState.ruleApiStatus === EventTargetingRuleApiStatus.Loading ||
+               pageState.ruleApiStatus === TraceTargetingRuleApiStatus.Loading ||
+               pageState.configApiStatus === EventTargetingConfigApiStatus.Loading ||
+               pageState.configApiStatus === TraceTargetingConfigApiStatus.Loading
+    }
+
+    const hasError = () => {
+        return pageState.ruleApiStatus === EventTargetingRuleApiStatus.Error ||
+               pageState.ruleApiStatus === TraceTargetingRuleApiStatus.Error ||
+               pageState.configApiStatus === EventTargetingConfigApiStatus.Error ||
+               pageState.configApiStatus === TraceTargetingConfigApiStatus.Error
+    }
+
+    const isReady = () => {
+        return (pageState.ruleApiStatus === EventTargetingRuleApiStatus.Success ||
+                pageState.ruleApiStatus === TraceTargetingRuleApiStatus.Success) &&
+               (pageState.configApiStatus === EventTargetingConfigApiStatus.Success ||
+                pageState.configApiStatus === TraceTargetingConfigApiStatus.Success)
+    }
 
 
     return (
@@ -141,12 +180,12 @@ export default function EventTraceRuleBuilder({
             <div className="py-4" />
 
             {/* Loading indicator */}
-            <div className={`py-1 w-full ${isLoading ? 'visible' : 'invisible'}`}>
+            <div className={`py-1 w-full ${isLoading() ? 'visible' : 'invisible'}`}>
                 <LoadingBar />
             </div>
 
             {/* Error state */}
-            {hasError && (
+            {hasError() && (
                 <div className="w-full flex flex-col items-center">
                     <p className="text-normal font-body">
                         Error loading rule. Please try again or go back.
@@ -163,7 +202,7 @@ export default function EventTraceRuleBuilder({
             )}
 
             {/* Main content */}
-            {isReady && (
+            {isReady() && (
                 <Card className="w-full">
                     <CardContent className="pt-6">
                         <div className="mb-6">
