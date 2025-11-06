@@ -319,11 +319,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <EventTraceTargetingRulesTable
                             rules={eventsOverideRules}
                             onRuleClick={(rule) => handleEditRule(rule, 'event')}
-                            prevEnabled={pageState.eventTargetingRules.meta.previous}
-                            nextEnabled={pageState.eventTargetingRules.meta.next}
-                            onNext={handleEventNextPage}
-                            onPrev={handleEventPrevPage}
-                            showPaginator={eventsOverideRules.length > 0}
                         />
                     </div>
 
@@ -356,11 +351,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <EventTraceTargetingRulesTable
                             rules={traceOverrideRules}
                             onRuleClick={(rule) => handleEditRule(rule, 'trace')}
-                            prevEnabled={pageState.traceTargetingRules.meta.previous}
-                            nextEnabled={pageState.traceTargetingRules.meta.next}
-                            onNext={handleTraceNextPage}
-                            onPrev={handleTracePrevPage}
-                            showPaginator={traceOverrideRules.length > 0}
                         />
                     </div>
 
@@ -375,11 +365,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <SessionTargetingRulesTable
                             rules={sessionTargetingRules}
                             onRuleClick={(rule) => handleEditRule(rule, 'session')}
-                            prevEnabled={pageState.sessionTargetingRules.meta.previous}
-                            nextEnabled={pageState.sessionTargetingRules.meta.next}
-                            onNext={handleSessionNextPage}
-                            onPrev={handleSessionPrevPage}
-                            showPaginator={sessionTargetingRules.length > 0}
                         />
                     </div>
                 </div>}

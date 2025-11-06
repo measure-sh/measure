@@ -71,7 +71,7 @@ export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
                         </TableHeader>
                     </Table>
                 </div>
-                <div className="max-h-[400px] overflow-y-auto scrollbar-hide hover:scrollbar-default focus-within:scrollbar-default">
+                <div className="max-h-[400px] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 focus-within:[&::-webkit-scrollbar-thumb]:bg-gray-300">
                     <Table className="font-display">
                         <TableBody>
                             {rules.map((dataFilter, idx) => (
