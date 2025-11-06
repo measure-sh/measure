@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/app/components/button'
 import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 import { useState, useEffect } from 'react'
+import { DialogDescription } from '@radix-ui/react-dialog'
 
 type CollectionMode = 'sample_rate' | 'timeline_only' | 'disable'
 
@@ -74,15 +75,12 @@ export default function EditDefaultRuleDialog({
             <DialogContent className="font-display">
                 <DialogHeader>
                     <DialogTitle className="font-display text-2xl">
-                        Edit Default {displayName} Rule
+                        Modify Default {displayName} Rule
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    {/* Collection Config Section */}
                     <div className="space-y-3">
-                        <p className="font-display text-sm font-medium">Collection Config</p>
-
                         <label className="flex items-center gap-3 cursor-pointer h-10">
                             <input
                                 type="radio"
