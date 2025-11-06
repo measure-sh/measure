@@ -22,7 +22,6 @@ interface EventTraceRuleBuilderProps {
     ruleId?: string
     onCancel: () => void
     onPrimaryAction: () => void
-    children?: React.ReactNode
 }
 
 export default function EventTraceRuleBuilder({
@@ -32,7 +31,6 @@ export default function EventTraceRuleBuilder({
     ruleId,
     onCancel,
     onPrimaryAction,
-    children
 }: EventTraceRuleBuilderProps) {
     const [apiStatus, setApiStatus] = useState<EventTargetingRuleApiStatus | TraceTargetingRuleApiStatus>(
         mode === 'create'
@@ -110,6 +108,7 @@ export default function EventTraceRuleBuilder({
     const isReady = apiStatus === EventTargetingRuleApiStatus.Success ||
                     apiStatus === TraceTargetingRuleApiStatus.Success
 
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">{getTitle()}</p>
@@ -142,7 +141,6 @@ export default function EventTraceRuleBuilder({
                 <Card className="w-full">
                     <CardContent className="pt-6">
                         <div className="mb-6">
-                            {children}
                         </div>
                     </CardContent>
 
