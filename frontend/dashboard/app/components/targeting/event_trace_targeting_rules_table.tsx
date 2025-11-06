@@ -58,7 +58,7 @@ export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
                     </TooltipContent>
                 </Tooltip>
             </div>
-            <div className="py-4" />
+            <div className="py-2" />
             <div className="overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table className="font-display">

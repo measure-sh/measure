@@ -28,14 +28,15 @@ interface PageState {
 
 const paginationLimit = 5
 
-const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig | TraceTargetingCollectionConfig): string => {
+const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig | TraceTargetingCollectionConfig, type: 'event' | 'trace'): string => {
+    const typeName = type === 'event' ? 'events' : 'traces'
     switch (collectionConfig.mode) {
         case 'sample_rate':
-            return `Collect all at ${collectionConfig.sample_rate}% sample rate`
+            return `Collect all ${typeName} at ${collectionConfig.sample_rate}% sample rate`
         case 'timeline_only':
-            return 'Collect with session timeline only'
+            return `Collect ${typeName} with session timeline only`
         case 'disable':
-            return 'Do not collect'
+            return `Collect no ${typeName} by default`
         default:
             return 'Unknown'
     }
@@ -311,7 +312,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <div className="py-2" />
                         {eventsDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(eventsDefaultRule.collection_config)}
+                                {getCollectionConfigDisplay(eventsDefaultRule.collection_config, 'event')}
                             </div>
                         )}
 
@@ -348,7 +349,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <div className="py-2" />
                         {traceDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(traceDefaultRule.collection_config)}
+                                {getCollectionConfigDisplay(traceDefaultRule.collection_config, 'trace')}
                             </div>
                         )}
 

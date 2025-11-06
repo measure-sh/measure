@@ -72,7 +72,7 @@ export default function EditDefaultRuleDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="font-display">
+            <DialogContent className="font-display max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="font-display text-2xl">
                         Modify Default {displayName} Behaviour
@@ -95,6 +95,7 @@ export default function EditDefaultRuleDialog({
                                 value={sampleRate}
                                 onChange={setSampleRate}
                                 disabled={collectionMode !== 'sample_rate' || isSaving}
+                                type={displayNameLower as 'events' | 'traces'}
                             />
                         </label>
 
@@ -108,7 +109,7 @@ export default function EditDefaultRuleDialog({
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
-                            <span className="text-sm font-body">Collect with session timeline only</span>
+                            <span className="text-sm font-body">Collect {displayNameLower} with session timeline only</span>
                         </label>
 
                         <label className="flex items-center gap-3 cursor-pointer h-10">

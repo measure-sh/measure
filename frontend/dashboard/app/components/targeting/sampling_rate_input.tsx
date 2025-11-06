@@ -4,6 +4,7 @@ interface SamplingRateInputProps {
     value: number
     onChange: (value: number) => void
     disabled?: boolean
+    type?: 'events' | 'traces'
 }
 
 const formatSamplingRate = (value: string): string => {
@@ -15,7 +16,7 @@ const formatSamplingRate = (value: string): string => {
     return formattedValue.toString()
 }
 
-export default function SamplingRateInput({ value, onChange, disabled = false }: SamplingRateInputProps) {
+export default function SamplingRateInput({ value, onChange, disabled = false, type = 'events' }: SamplingRateInputProps) {
     const [inputValue, setInputValue] = useState(value.toString())
 
     // Sync with prop value when it changes externally
@@ -41,20 +42,22 @@ export default function SamplingRateInput({ value, onChange, disabled = false }:
     }
 
     return (
-        <div className="flex items-center gap-3">
-            <span className="text-sm font-body">Collect at</span>
-            <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.000001"
-                value={inputValue}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                disabled={disabled}
-                className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <span className="text-sm font-body">% sampling rate</span>
+        <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-body whitespace-nowrap">Collect all {type} at</span>
+            <div className="flex items-center gap-2">
+                <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.000001"
+                    value={inputValue}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
+                    className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm font-body whitespace-nowrap">% sampling rate</span>
+            </div>
         </div>
     )
 }
