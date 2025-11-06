@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/app/components/button'
-import { Card, CardContent, CardFooter } from '@/app/components/card'
 
 export default function CreateSessionTimelineRule({ params }: { params: { teamId: string, appId: string } }) {
     const router = useRouter()
@@ -21,14 +20,14 @@ export default function CreateSessionTimelineRule({ params }: { params: { teamId
             <p className="font-display text-4xl max-w-6xl text-center">Create Session Timeline Rule</p>
             <div className="py-4" />
 
-            <Card className="w-full">
-                <CardContent className="pt-6">
-                    <div className="mb-6">
-                        {/* TODO: Add form fields */}
-                    </div>
-                </CardContent>
+            <div className="w-full flex flex-col">
+                {/* Reserved space for content */}
+                <div className="mb-6">
+                    {/* TODO: Add form fields */}
+                </div>
 
-                <CardFooter className="flex justify-end gap-3">
+                {/* Action buttons */}
+                <div className="flex justify-end gap-3">
                     <Button
                         variant="outline"
                         onClick={handleCancel}
@@ -43,8 +42,8 @@ export default function CreateSessionTimelineRule({ params }: { params: { teamId
                     >
                         Create Filter
                     </Button>
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

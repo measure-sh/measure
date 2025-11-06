@@ -92,12 +92,6 @@ const initNavData = {
       title: "Settings",
       items: [
         {
-          title: "Data",
-          url: "data",
-          isActive: false,
-          external: false,
-        },
-        {
           title: "Apps",
           url: "apps",
           isActive: false,
@@ -106,6 +100,12 @@ const initNavData = {
         {
           title: "Team",
           url: "team",
+          isActive: false,
+          external: false,
+        },
+        {
+          title: "Data",
+          url: "data",
           isActive: false,
           external: false,
         },

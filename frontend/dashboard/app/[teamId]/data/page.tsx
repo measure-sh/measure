@@ -9,7 +9,7 @@ import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import EditDefaultRuleDialog from '@/app/components/targeting/edit_default_rule_dialog'
-import EventTraceTargetingRulesTable from '@/app/components/targeting/event_tracce_targeting_rules_table'
+import EventTraceTargetingRulesTable from '@/app/components/targeting/event_trace_targeting_rules_table'
 import SessionTargetingRulesTable from '@/app/components/targeting/session_targeting_rules_table'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 

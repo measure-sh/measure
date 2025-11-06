@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from '@/app/components/button'
-import { Card, CardContent, CardFooter } from '@/app/components/card'
 import { useEffect, useState } from 'react'
 import {
     EventTargetingRuleApiStatus,
@@ -199,13 +198,13 @@ export default function EventTraceRuleBuilder({
 
             {/* Main content */}
             {isReady() && (
-                <Card className="w-full">
-                    <CardContent className="pt-6">
-                        <div className="mb-6">
-                        </div>
-                    </CardContent>
+                <div className="w-full flex flex-col">
+                    {/* Reserved space for content */}
+                    <div className="mb-6">
+                    </div>
 
-                    <CardFooter className="flex justify-end gap-3">
+                    {/* Action buttons */}
+                    <div className="flex justify-end gap-3">
                         <Button
                             variant="outline"
                             onClick={onCancel}
@@ -220,8 +219,8 @@ export default function EventTraceRuleBuilder({
                         >
                             {getPrimaryActionLabel()}
                         </Button>
-                    </CardFooter>
-                </Card>
+                    </div>
+                </div>
             )}
         </div>
     )
