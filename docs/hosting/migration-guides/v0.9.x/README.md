@@ -50,12 +50,13 @@ cd self-host
 sudo ./config.sh --production --ensure
 ```
 
-## 5. Run database synchronization script
+## 5. Run database synchronization & migration scripts
 
 Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
 
 ```sh
 sudo ./migrations/v0.9.x-sync-databases.sh
+sudo ./migrations/v0.9.x-data-backfills.sh
 ```
 
 ## 6. Start Measure services
