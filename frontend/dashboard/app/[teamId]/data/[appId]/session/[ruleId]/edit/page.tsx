@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
 
-export default function EditSessionFilter({ params }: { params: { teamId: string, appId: string, ruleId: string } }) {
+export default function EditSessionTimelineRule({ params }: { params: { teamId: string, appId: string, ruleId: string } }) {
     const router = useRouter()
 
     const handleCancel = () => {

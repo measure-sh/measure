@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import EventTraceRuleBuilder from '@/app/components/targeting/event_trace_rule_builder'
 
-export default function EditTraceFilter({ params }: { params: { teamId: string, appId: string, ruleId: string } }) {
+export default function EditTraceRule({ params }: { params: { teamId: string, appId: string, ruleId: string } }) {
     const router = useRouter()
 
     const handleCancel = () => {

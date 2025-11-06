@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
 
-export default function CreateSessionFilter({ params }: { params: { teamId: string, appId: string } }) {
+export default function CreateSessionTimelineRule({ params }: { params: { teamId: string, appId: string } }) {
     const router = useRouter()
 
     const handleCancel = () => {
@@ -18,7 +18,7 @@ export default function CreateSessionFilter({ params }: { params: { teamId: stri
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Create Session Filter</p>
+            <p className="font-display text-4xl max-w-6xl text-center">Create Session Timeline Rule</p>
             <div className="py-4" />
 
             <Card className="w-full">

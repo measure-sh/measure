@@ -94,7 +94,7 @@ export default function EventTraceRuleBuilder({
     const getTitle = () => {
         const typeLabel = type === 'event' ? 'Event' : 'Trace'
         if (mode === 'create') {
-            return `Create ${typeLabel} Filter`
+            return `Create ${typeLabel} Rule`
         }
         return `Edit ${typeLabel} Rule`
     }
