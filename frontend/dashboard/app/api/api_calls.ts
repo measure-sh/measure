@@ -1184,14 +1184,14 @@ export const emptyTraceTargetingResponse: TraceTargetingResponse = {
     },
     overrides: [
       {
-        id: "df-traces-001",
+        id: "df-001",
         rule: 'trace.trace_name == "root"',
         collection_config: { mode: 'sample_rate', sample_rate: 10 },
         updated_at: "2024-01-01T00:00:00Z",
         updated_by: "system@example.com",
       },
       {
-        id: "df-traces-002",
+        id: "df-002",
         rule: 'trace.trace_name == "activity.onCreate"',
         collection_config: { mode: 'disable' },
         updated_at: "2024-01-01T00:00:00Z",
@@ -1227,7 +1227,7 @@ export const emptyEventTargetingRule: EventTargetingRule = {
 }
 
 export const emptyTraceTargetingRule: TraceTargetingRule = {
-  id: "df-traces-001",
+  id: "df-001",
   rule: 'trace.trace_name == "root"',
   collection_config: { mode: 'sample_rate', sample_rate: 10 },
   updated_at: "2024-01-01T00:00:00Z",
