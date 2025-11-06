@@ -298,7 +298,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                         {/* Default Event Rule */}
                         <div className="flex items-center gap-2">
-                            <p className="font-display text-gray-500">Default Rule</p>
+                            <p className="font-display text-gray-500">Default Behaviour</p>
                             {eventsDefaultRule && (
                                 <button
                                     onClick={() => updatePageState({ editingDefaultRule: 'event' })}
@@ -335,7 +335,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                         {/* Default Trace Rule */}
                         <div className="flex items-center gap-2">
-                            <p className="font-display text-gray-500">Default Rule</p>
+                            <p className="font-display text-gray-500">Default Behaviour</p>
                             {traceDefaultRule && (
                                 <button
                                     onClick={() => updatePageState({ editingDefaultRule: 'trace' })}

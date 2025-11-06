@@ -75,7 +75,7 @@ export default function EditDefaultRuleDialog({
             <DialogContent className="font-display">
                 <DialogHeader>
                     <DialogTitle className="font-display text-2xl">
-                        Modify Default {displayName} Rule
+                        Modify Default {displayName} Behaviour
                     </DialogTitle>
                 </DialogHeader>
 
