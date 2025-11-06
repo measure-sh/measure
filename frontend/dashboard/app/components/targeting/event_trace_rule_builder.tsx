@@ -66,7 +66,6 @@ export default function EventTraceRuleBuilder({
         }))
 
         if (type === 'event') {
-            // TEMPORARY: Using dummy response instead of actual API call
             // const configResult = await fetchEventTargetingConfigFromServer(appId)
             // if (configResult.status === EventTargetingConfigApiStatus.Error) {
             //     setPageState(prev => ({
@@ -80,7 +79,6 @@ export default function EventTraceRuleBuilder({
             let ruleData = null
             let ruleApiStatus = EventTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
-                // TEMPORARY: Using dummy response instead of actual API call
                 // const ruleResult = await fetchEventTargetingRuleFromServer(appId, ruleId)
                 // if (ruleResult.status === EventTargetingRuleApiStatus.Error) {
                 //     setPageState(prev => ({
@@ -102,7 +100,6 @@ export default function EventTraceRuleBuilder({
                 configApiStatus: EventTargetingConfigApiStatus.Success
             })
         } else {
-            // TEMPORARY: Using dummy response instead of actual API call
             // const configResult = await fetchTraceTargetingConfigFromServer(appId)
             // if (configResult.status === TraceTargetingConfigApiStatus.Error) {
             //     setPageState(prev => ({
@@ -116,7 +113,6 @@ export default function EventTraceRuleBuilder({
             let ruleData = null
             let ruleApiStatus = TraceTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
-                // TEMPORARY: Using dummy response instead of actual API call
                 // const ruleResult = await fetchTraceTargetingRuleFromServer(appId, ruleId)
                 // if (ruleResult.status === TraceTargetingRuleApiStatus.Error) {
                 //     setPageState(prev => ({
