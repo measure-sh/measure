@@ -186,7 +186,7 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmEventReqs(ctx, &tx); err != nil {
+	if err = j.rmIngestedBatches(ctx); err != nil {
 		return
 	}
 
@@ -246,6 +246,8 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	fmt.Printf("\n")
+
 	return
 }
 
@@ -294,7 +296,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
 	fmt.Println("removing all app resources")
-	_, err = tx.Exec(ctx, "truncate table build_mappings, build_sizes, event_reqs, short_filters")
+	_, err = tx.Exec(ctx, "truncate table build_mappings, build_sizes, short_filters")
 	if err != nil {
 		return
 	}
@@ -332,6 +334,10 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = chconn.Exec(ctx, "truncate table ingestion_metrics;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table ingested_batches;"); err != nil {
 		return
 	}
 
@@ -572,16 +578,35 @@ func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
 	return
 }
 
-// rmEventReqs removes event requests for
-// apps in config.
-func (j *janitor) rmEventReqs(ctx context.Context, tx *pgx.Tx) (err error) {
-	placeholders, args := parameterize(j.appIds)
-	deleteEventReqs := fmt.Sprintf("delete from event_reqs where app_id in (%s);", placeholders)
+// rmIngestedBatches removes ingestion batch metadata for apps
+// in config.
+func (j *janitor) rmIngestedBatches(ctx context.Context) (err error) {
+	deleteIngestionDedups := `delete from ingested_batches where app_id = toUUID(@app_id)`
 
-	fmt.Println("removing event requests")
-	_, err = (*tx).Exec(ctx, deleteEventReqs, args...)
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
 	if err != nil {
 		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing ingestion batches")
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteIngestionDedups, namedAppId); err != nil {
+			return err
+		}
 	}
 
 	return

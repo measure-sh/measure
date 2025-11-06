@@ -1,6 +1,7 @@
 package group
 
 import (
+	"backend/api/ambient"
 	"backend/api/chrono"
 	"backend/api/event"
 	"backend/api/filter"
@@ -75,8 +76,14 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 
 // Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
 	stmt := sqlf.
 		InsertInto("unhandled_exception_groups").
+		Set("team_id", teamId).
 		Set("app_id", e.AppID).
 		Set("id", e.ID).
 		Set("type", e.Type).
@@ -113,8 +120,14 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 
 // Insert inserts a new ANRGroup into the database.
 func (a *ANRGroup) Insert(ctx context.Context) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
 	stmt := sqlf.
 		InsertInto("anr_groups").
+		Set("team_id", teamId).
 		Set("app_id", a.AppID).
 		Set("id", a.ID).
 		Set("type", a.Type).

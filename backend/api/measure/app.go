@@ -1991,6 +1991,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
+		Select("team_id").
 		Select("onboarded").
 		Select("unique_identifier").
 		Select("os_name").
@@ -2004,7 +2005,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app = &App{}
 	}
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &app.TeamId, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {

@@ -495,6 +495,7 @@ func UpdateBugReportStatusById(ctx context.Context, bugReportId string, status u
 	query := fmt.Sprintf(`
     INSERT INTO bug_reports
     SELECT
+    	team_id,
         event_id,
         app_id,
         session_id,

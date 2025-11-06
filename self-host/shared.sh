@@ -5,6 +5,43 @@
 # not contain any statements.
 
 # ------------------------------------------------------------------------------
+# has_command checks if command is available
+# ------------------------------------------------------------------------------
+has_command() {
+  if command -v "$1" &>/dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# check_base_dir checks if the script is run from the `self-host` directory
+# ------------------------------------------------------------------------------
+check_base_dir() {
+  local base_dir
+  base_dir=$(basename "$(pwd)")
+  if [[ "$base_dir" != "self-host" ]]; then
+    echo "Error: This script must be run from the 'self-host' directory."
+    exit 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# set_docker_compose sets docker-compose command
+# ------------------------------------------------------------------------------
+set_docker_compose() {
+  if has_command docker-compose; then
+    DOCKER_COMPOSE="docker-compose"
+  elif docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+  else
+    echo "Neither 'docker compose' nor 'docker-compose' is available" >&2
+    exit 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # get_env_variable gets the .env variable value for key
 # ------------------------------------------------------------------------------
 get_env_variable() {
