@@ -19,6 +19,14 @@ set -e
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../shared.sh"
 
+# Start the postgres service
+start_postgres_service() {
+  $DOCKER_COMPOSE \
+    --file compose.yml \
+    --file compose.prod.yml \
+    up --wait -d postgres
+}
+
 # Start the clickhouse service
 start_clickhouse_service() {
   $DOCKER_COMPOSE \
@@ -27,14 +35,21 @@ start_clickhouse_service() {
     up --wait -d clickhouse
 }
 
+# Optimize entire clickhouse database for robust
+# ingest deduplication.
+#
+# Migrate table engine of `events` and `spans` root tables
+# to ReplacingMergeTree
 optimize_clickhouse_database() {
   echo "Optimizing clickhouse database..."
   echo "This might take a while depending on volume of data."
+  echo
 
   local admin_user
   local admin_password
   local dbname
   local ch_version
+  local exists
 
   admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
@@ -48,6 +63,29 @@ optimize_clickhouse_database() {
     --query "SELECT version()")
 
   echo "ClickHouse version: $ch_version"
+
+  printf "Checking pre-requisites for optimization..."
+  exists=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "exists table events_rmt;")
+
+  if [[ $exists == "0" ]]; then
+    echo "\`events_rmt\` table does not exists. please run DDL migrations first."
+    return 1
+  fi
+
+  exists=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "exists table spans_rmt;")
+
+  if [[ $exists == "0" ]]; then
+    echo "\`spans_rmt\` table does not exists. please run DDL migrations first."
+    return 1
+  fi
 
   # backfill events
   echo "Backfilling events..."
@@ -123,8 +161,194 @@ optimize_clickhouse_database() {
 
     echo
     echo "Optimization complete!"
+    echo
 }
 
+# Backfill non-existent or null team_id
+# across ClickHouse database to each app's
+# team_id.
+backfill_team_ids() {
+  local pg_admin_user
+  local pg_admin_password
+  local pg_dbname
+
+  local ch_admin_user
+  local ch_admin_password
+  local ch_dbname
+
+  pg_admin_user=$(get_env_variable POSTGRES_USER)
+  pg_admin_password=$(get_env_variable POSTGRES_PASSWORD)
+  pg_dbname=measure
+
+  ch_admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
+  ch_admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
+  ch_dbname=measure
+
+  declare -A apps_teams
+
+  local apps_output
+
+  apps_output=$($DOCKER_COMPOSE exec -T -e PGPASSWORD="${pg_admin_password}" postgres psql -U "${pg_admin_user}" -d "${pg_dbname}" -A -F ',' -t -c "SELECT id, team_id FROM measure.apps;" 2>&1)
+
+  while IFS=',' read -r id team_id; do
+    # trim whitespace
+    id="${id##+([[:space:]]}" id="${id%%+([[:space:]])}"
+    team_id="${team_id##+([[:space:]])}" team_id="${team_id%%+([[:space:]]}"
+
+    # skip empty lines
+    [[ -z "$id" || -z "$team_id" ]] && continue
+
+    apps_teams["$id"]="$team_id"
+  done <<< "$apps_output"
+
+  echo "app_id --> team_id dictionary loaded with ${#apps_teams[@]} entries"
+
+  local zero_uuid="00000000-0000-0000-0000-000000000000"
+  local update_str="update team_id = case"
+  local in_str=""
+
+  for id in "${!apps_teams[@]}"; do
+    update_str+=" when app_id = toUUID('$id') then toUUID('${apps_teams[$id]}')"
+    in_str+="${in_str:+, }toUUID('$id')"
+  done
+
+  update_str+=" else team_id end where team_id = toUUID('$zero_uuid') and app_id in ($in_str)"
+
+  if ! ch_events_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table events ${update_str};" 2>&1); then
+    echo "Failed to update events table: ${ch_events_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for events table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table spans ${update_str};" 2>&1); then
+    echo "Failed to update spans table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for spans table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table anr_groups ${update_str};" 2>&1); then
+    echo "Failed to update anr_groups table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for anr_groups table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table unhandled_exception_groups ${update_str};" 2>&1); then
+    echo "Failed to update unhandled_exception_groups table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for unhandled_exception_groups table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table app_filters ${update_str};" 2>&1); then
+    echo "Failed to update app_filters table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for app_filters table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table app_metrics ${update_str};" 2>&1); then
+    echo "Failed to update app_metrics table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for app_metrics table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table bug_reports ${update_str};" 2>&1); then
+    echo "Failed to update bug_reports table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for bug_reports table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table sessions ${update_str};" 2>&1); then
+    echo "Failed to update sessions table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for sessions table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table span_filters ${update_str};" 2>&1); then
+    echo "Failed to update span_filters table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for span_filters table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table span_metrics ${update_str};" 2>&1); then
+    echo "Failed to update span_metrics table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for span_metrics table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table span_user_def_attrs ${update_str};" 2>&1); then
+    echo "Failed to update span_user_def_attrs table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for span_user_def_attrs table"
+
+  if ! ch_spans_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${ch_admin_user}" \
+    --password "${ch_admin_password}" \
+    --database "${ch_dbname}" \
+    --query "alter table user_def_attrs ${update_str};" 2>&1); then
+    echo "Failed to update user_def_attrs table: ${ch_spans_output}"
+    return 1
+  fi
+
+  echo "Backfill complete for user_def_attrs table"
+}
+
+# rollback_events rolls back changes made to
+# events table.
 rollback_events() {
   local admin_user
   local admin_password
@@ -143,6 +367,8 @@ rollback_events() {
     echo
 }
 
+# rollback_spans rolls back changes made to
+# spans table.
 rollback_spans() {
   local admin_user
   local admin_password
@@ -156,20 +382,22 @@ rollback_spans() {
     --user "${admin_user}" \
     --password "${admin_password}" \
     --database "${dbname}" \
-    --query "rename table spans to span_rmt, spans_old to spans;"
+    --query "rename table spans to spans_rmt, spans_old to spans;"
 
     echo
 }
 
+# rollback rolls back changes made to
+# root tables.
 rollback() {
   echo "Rolling back changes..."
   rollback_events
   rollback_spans
 }
 
-
 # kick things off
 check_base_dir
 set_docker_compose
 optimize_clickhouse_database
+backfill_team_ids
 # rollback
