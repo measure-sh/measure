@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
+
 ### :bug: Bug fixes
 
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
