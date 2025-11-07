@@ -15,10 +15,6 @@ import {
     fetchTraceTargetingRuleFromServer,
     fetchEventTargetingConfigFromServer,
     fetchTraceTargetingConfigFromServer,
-    emptyEventTargetingRule,
-    emptyTraceTargetingRule,
-    emptyEventTargetingConfigResponse,
-    emptyTraceTargetingConfigResponse
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
 
@@ -81,31 +77,30 @@ export default function EventTraceRuleBuilder({
         }))
 
         if (type === 'event') {
-            // const configResult = await fetchEventTargetingConfigFromServer(appId)
-            // if (configResult.status === EventTargetingConfigApiStatus.Error) {
-            //     setPageState(prev => ({
-            //         ...prev,
-            //         configApiStatus: EventTargetingConfigApiStatus.Error
-            //     }))
-            //     return
-            // }
+            const configResult = await fetchEventTargetingConfigFromServer(appId)
+            if (configResult.status === EventTargetingConfigApiStatus.Error) {
+                setPageState(prev => ({
+                    ...prev,
+                    configApiStatus: EventTargetingConfigApiStatus.Error
+                }))
+                return
+            }
 
             // Fetch rule data if in edit mode
             let ruleData = null
             let ruleApiStatus = EventTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
-                // const ruleResult = await fetchEventTargetingRuleFromServer(appId, ruleId)
-                // if (ruleResult.status === EventTargetingRuleApiStatus.Error) {
-                //     setPageState(prev => ({
-                //         ...prev,
-                //         ruleApiStatus: EventTargetingRuleApiStatus.Error,
-                //         configApiStatus: EventTargetingConfigApiStatus.Success,
-                //         configData: configResult.data
-                //     }))
-                //     return
-                // }
-                // ruleData = ruleResult.data
-                ruleData = emptyEventTargetingRule
+                const ruleResult = await fetchEventTargetingRuleFromServer(appId, ruleId)
+                if (ruleResult.status === EventTargetingRuleApiStatus.Error) {
+                    setPageState(prev => ({
+                        ...prev,
+                        ruleApiStatus: EventTargetingRuleApiStatus.Error,
+                        configApiStatus: EventTargetingConfigApiStatus.Success,
+                        configData: configResult.data
+                    }))
+                    return
+                }
+                ruleData = ruleResult.data
             }
 
             const initialFormState = {
@@ -117,38 +112,37 @@ export default function EventTraceRuleBuilder({
             const initialState = JSON.stringify(initialFormState)
             setPageState({
                 ruleData,
-                configData: emptyEventTargetingConfigResponse,
+                configData: configResult.data,
                 ruleApiStatus,
                 configApiStatus: EventTargetingConfigApiStatus.Success,
                 initialRuleState: initialState,
                 currentRuleState: initialState
             })
         } else {
-            // const configResult = await fetchTraceTargetingConfigFromServer(appId)
-            // if (configResult.status === TraceTargetingConfigApiStatus.Error) {
-            //     setPageState(prev => ({
-            //         ...prev,
-            //         configApiStatus: TraceTargetingConfigApiStatus.Error
-            //     }))
-            //     return
-            // }
+            const configResult = await fetchTraceTargetingConfigFromServer(appId)
+            if (configResult.status === TraceTargetingConfigApiStatus.Error) {
+                setPageState(prev => ({
+                    ...prev,
+                    configApiStatus: TraceTargetingConfigApiStatus.Error
+                }))
+                return
+            }
 
             // Fetch rule data if in edit mode
             let ruleData = null
             let ruleApiStatus = TraceTargetingRuleApiStatus.Success
             if (mode === 'edit' && ruleId) {
-                // const ruleResult = await fetchTraceTargetingRuleFromServer(appId, ruleId)
-                // if (ruleResult.status === TraceTargetingRuleApiStatus.Error) {
-                //     setPageState(prev => ({
-                //         ...prev,
-                //         ruleApiStatus: TraceTargetingRuleApiStatus.Error,
-                //         configApiStatus: TraceTargetingConfigApiStatus.Success,
-                //         configData: configResult.data
-                //     }))
-                //     return
-                // }
-                // ruleData = ruleResult.data
-                ruleData = emptyTraceTargetingRule
+                const ruleResult = await fetchTraceTargetingRuleFromServer(appId, ruleId)
+                if (ruleResult.status === TraceTargetingRuleApiStatus.Error) {
+                    setPageState(prev => ({
+                        ...prev,
+                        ruleApiStatus: TraceTargetingRuleApiStatus.Error,
+                        configApiStatus: TraceTargetingConfigApiStatus.Success,
+                        configData: configResult.data
+                    }))
+                    return
+                }
+                ruleData = ruleResult.data
             }
 
             const initialFormState = {
@@ -160,7 +154,7 @@ export default function EventTraceRuleBuilder({
             const initialState = JSON.stringify(initialFormState)
             setPageState({
                 ruleData,
-                configData: emptyTraceTargetingConfigResponse,
+                configData: ruleData,
                 ruleApiStatus,
                 configApiStatus: TraceTargetingConfigApiStatus.Success,
                 initialRuleState: initialState,

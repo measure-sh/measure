@@ -1,6 +1,6 @@
 "use client"
 
-import { EventTargetingApiStatus, EventTargetingResponse, emptyEventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig, SessionTargetingResponse, emptySessionTargetingResponse, fetchSessionTargetingRulesFromServer } from '@/app/api/api_calls'
+import { EventTargetingApiStatus, EventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig, SessionTargetingResponse, emptySessionTargetingResponse, fetchSessionTargetingRulesFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import { useRouter } from 'next/navigation'
@@ -17,9 +17,9 @@ interface PageState {
     eventTargetingApiStatus: EventTargetingApiStatus
     traceTargetingApiStatus: TraceTargetingApiStatus
     filters: typeof defaultFilters
-    eventTargetingRules: EventTargetingResponse
-    traceTargetingRules: TraceTargetingResponse
-    sessionTargetingRules: SessionTargetingResponse
+    eventTargetingRules: EventTargetingResponse | null
+    traceTargetingRules: TraceTargetingResponse | null
+    sessionTargetingRules: SessionTargetingResponse | null
     editingDefaultRule: 'event' | 'trace' | null
 }
 
@@ -46,9 +46,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         eventTargetingApiStatus: EventTargetingApiStatus.Success,
         traceTargetingApiStatus: TraceTargetingApiStatus.Success,
         filters: defaultFilters,
-        eventTargetingRules: emptyEventTargetingResponse,
-        traceTargetingRules: emptyTraceTargetingResponse,
-        sessionTargetingRules: emptySessionTargetingResponse,
+        eventTargetingRules: null,
+        traceTargetingRules: null,
+        sessionTargetingRules: null,
         editingDefaultRule: null,
     }
 
@@ -61,7 +61,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         })
     }
 
-    const getAllDataFilters = async () => {
+    const loadAllRules = async () => {
         updatePageState({
             eventTargetingApiStatus: EventTargetingApiStatus.Loading,
             traceTargetingApiStatus: TraceTargetingApiStatus.Loading
@@ -91,9 +91,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         updatePageState({
             eventTargetingApiStatus: eventStatus,
             traceTargetingApiStatus: traceStatus,
-            eventTargetingRules: eventResult.data || emptyEventTargetingResponse,
-            traceTargetingRules: traceResult.data || emptyTraceTargetingResponse,
-            sessionTargetingRules: sessionResult.data || emptySessionTargetingResponse
+            eventTargetingRules: eventResult.data,
+            traceTargetingRules: traceResult.data,
+            sessionTargetingRules: sessionResult.data,
         })
     }
 
@@ -102,8 +102,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
-                eventTargetingRules: emptyEventTargetingResponse,
-                traceTargetingRules: emptyTraceTargetingResponse,
+                eventTargetingRules: null,
+                traceTargetingRules: null,
             })
         }
     }
@@ -116,8 +116,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         // update url
         router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
 
-        // TODO: Re-enable API call when ready
-        // getDataFilters()
+        loadAllRules()
     }, [pageState.filters])
 
     const isLoading = () => {
@@ -138,18 +137,18 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         return pageState.filters.ready && eventReady && traceReady
     }
 
-    const eventsDefaultRule = pageState.eventTargetingRules.result.default;
-    const eventsOverideRules = pageState.eventTargetingRules.result.overrides;
-    const traceDefaultRule = pageState.traceTargetingRules.result.default;
-    const traceOverrideRules = pageState.traceTargetingRules.result.overrides;
-    const sessionTargetingRules = pageState.sessionTargetingRules.results;
+    const eventsDefaultRule = pageState.eventTargetingRules?.result.default;
+    const eventsOverideRules = pageState.eventTargetingRules?.result.overrides ?? [];
+    const traceDefaultRule = pageState.traceTargetingRules?.result.default;
+    const traceOverrideRules = pageState.traceTargetingRules?.result.overrides ?? [];
+    const sessionTargetingRules = pageState.sessionTargetingRules?.results ?? [];
 
     const handleEditRule = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0] | typeof sessionTargetingRules[0], filterType: 'event' | 'trace' | 'session') => {
         router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/${filterType}/${dataFilter.id}/edit`)
     }
 
     const handleDefaultRuleUpdateSuccess = (collectionMode: 'sample_rate' | 'timeline_only' | 'disable', sampleRate?: number) => {
-        if (pageState.editingDefaultRule === 'event') {
+        if (pageState.editingDefaultRule === 'event' && pageState.eventTargetingRules) {
             const updatedEventRules = {
                 ...pageState.eventTargetingRules,
                 result: {
@@ -165,7 +164,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 }
             }
             updatePageState({ eventTargetingRules: updatedEventRules })
-        } else if (pageState.editingDefaultRule === 'trace') {
+        } else if (pageState.editingDefaultRule === 'trace' && pageState.traceTargetingRules) {
             const updatedTraceRules = {
                 ...pageState.traceTargetingRules,
                 result: {
@@ -199,7 +198,10 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="font-display border border-black select-none"
-                            disabled={pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading}
+                            disabled={
+                                pageState.eventTargetingApiStatus !== EventTargetingApiStatus.Success ||
+                                pageState.traceTargetingApiStatus !== TraceTargetingApiStatus.Success
+                            }
                         >
                             <Plus /> Create Rule
                         </Button>
@@ -338,7 +340,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 </div>}
 
             {/* Default Rule Edit Dialog */}
-            {pageState.editingDefaultRule && (
+            {pageState.editingDefaultRule && eventsDefaultRule && traceDefaultRule && (
                 <EditDefaultRuleDialog
                     isOpen={true}
                     onClose={() => updatePageState({ editingDefaultRule: null })}

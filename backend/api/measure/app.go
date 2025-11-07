@@ -6506,15 +6506,16 @@ func GetEventTargetingRules(c *gin.Context) {
 		return
 	}
 
-	msg := "event targeting rules request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+	// TODO: review how to handle validation for targeting rules
+	// msg := "event targeting rules request validation failed"
+	// if err := af.Validate(); err != nil {
+	// 	fmt.Println(msg, err)
+	// 	c.JSON(http.StatusBadRequest, gin.H{
+	// 		"error":   msg,
+	// 		"details": err.Error(),
+	// 	})
+	// 	return
+	// }
 
 	app := App{
 		ID: &id,
@@ -6606,15 +6607,16 @@ func GetTraceTargetingRules(c *gin.Context) {
 		return
 	}
 
-	msg := "trace targeting rules request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+	// TODO: review how to handle validation for targeting rules
+	// msg := "trace targeting rules request validation failed"
+	// if err := af.Validate(); err != nil {
+	// 	fmt.Println(msg, err)
+	// 	c.JSON(http.StatusBadRequest, gin.H{
+	// 		"error":   msg,
+	// 		"details": err.Error(),
+	// 	})
+	// 	return
+	// }
 
 	app := App{
 		ID: &id,
@@ -6706,15 +6708,16 @@ func GetSessionTargetingRules(c *gin.Context) {
 		return
 	}
 
-	msg := "session targeting rules request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+	// TODO: review how to handle validation for targeting rules
+	// msg := "session targeting rules request validation failed"
+	// if err := af.Validate(); err != nil {
+	// 	fmt.Println(msg, err)
+	// 	c.JSON(http.StatusBadRequest, gin.H{
+	// 		"error":   msg,
+	// 		"details": err.Error(),
+	// 	})
+	// 	return
+	// }
 
 	app := App{
 		ID: &id,
