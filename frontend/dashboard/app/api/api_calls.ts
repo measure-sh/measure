@@ -2806,15 +2806,8 @@ export const fetchAlertsOverviewFromServer = async (
 
 export const fetchEventTargetingRulesFromServer = async (
   appId: String,
-  limit: number,
-  offset: number,
 ) => {
-  let url = `/api/apps/${appId}/targetingRules/events`
-
-  const searchParams = new URLSearchParams()
-  searchParams.append("limit", String(limit))
-  searchParams.append("offset", String(offset))
-  url += `?${searchParams.toString()}`
+  const url = `/api/apps/${appId}/targetingRules/events`
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2837,15 +2830,8 @@ export const fetchEventTargetingRulesFromServer = async (
 
 export const fetchTraceTargetingRulesFromServer = async (
   appId: String,
-  limit: number,
-  offset: number,
 ) => {
-  let url = `/api/apps/${appId}/targetingRules/traces`
-
-  const searchParams = new URLSearchParams()
-  searchParams.append("limit", String(limit))
-  searchParams.append("offset", String(offset))
-  url += `?${searchParams.toString()}`
+  const url = `/api/apps/${appId}/targetingRules/traces`
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2868,15 +2854,8 @@ export const fetchTraceTargetingRulesFromServer = async (
 
 export const fetchSessionTargetingRulesFromServer = async (
   appId: String,
-  limit: number,
-  offset: number,
 ) => {
-  let url = `/api/apps/${appId}/targetingRules/sessions`
-
-  const searchParams = new URLSearchParams()
-  searchParams.append("limit", String(limit))
-  searchParams.append("offset", String(offset))
-  url += `?${searchParams.toString()}`
+  const url = `/api/apps/${appId}/targetingRules/sessions`
 
   try {
     const res = await measureAuth.fetchMeasure(url)

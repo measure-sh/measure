@@ -20,9 +20,6 @@ interface PageState {
     eventTargetingRules: EventTargetingResponse
     traceTargetingRules: TraceTargetingResponse
     sessionTargetingRules: SessionTargetingResponse
-    eventPaginationOffset: number
-    tracePaginationOffset: number
-    sessionPaginationOffset: number
     editingDefaultRule: 'event' | 'trace' | null
 }
 
@@ -52,9 +49,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         eventTargetingRules: emptyEventTargetingResponse,
         traceTargetingRules: emptyTraceTargetingResponse,
         sessionTargetingRules: emptySessionTargetingResponse,
-        eventPaginationOffset: 0,
-        tracePaginationOffset: 0,
-        sessionPaginationOffset: 0,
         editingDefaultRule: null,
     }
 
@@ -74,9 +68,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         })
 
         const [eventResult, traceResult, sessionResult] = await Promise.all([
-            fetchEventTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.eventPaginationOffset),
-            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.tracePaginationOffset),
-            fetchSessionTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.sessionPaginationOffset)
+            fetchEventTargetingRulesFromServer(pageState.filters.app!.id),
+            fetchTraceTargetingRulesFromServer(pageState.filters.app!.id),
+            fetchSessionTargetingRulesFromServer(pageState.filters.app!.id)
         ])
 
         if (eventResult.status === EventTargetingApiStatus.Error || traceResult.status === TraceTargetingApiStatus.Error) {
@@ -110,34 +104,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                 filters: updatedFilters,
                 eventTargetingRules: emptyEventTargetingResponse,
                 traceTargetingRules: emptyTraceTargetingResponse,
-                eventPaginationOffset: 0,
-                tracePaginationOffset: 0,
             })
         }
-    }
-
-    const handleEventNextPage = () => {
-        updatePageState({ eventPaginationOffset: pageState.eventPaginationOffset + paginationLimit })
-    }
-
-    const handleEventPrevPage = () => {
-        updatePageState({ eventPaginationOffset: Math.max(0, pageState.eventPaginationOffset - paginationLimit) })
-    }
-
-    const handleTraceNextPage = () => {
-        updatePageState({ tracePaginationOffset: pageState.tracePaginationOffset + paginationLimit })
-    }
-
-    const handleTracePrevPage = () => {
-        updatePageState({ tracePaginationOffset: Math.max(0, pageState.tracePaginationOffset - paginationLimit) })
-    }
-
-    const handleSessionNextPage = () => {
-        updatePageState({ sessionPaginationOffset: pageState.sessionPaginationOffset + paginationLimit })
-    }
-
-    const handleSessionPrevPage = () => {
-        updatePageState({ sessionPaginationOffset: Math.max(0, pageState.sessionPaginationOffset - paginationLimit) })
     }
 
     useEffect(() => {
@@ -150,7 +118,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
         // TODO: Re-enable API call when ready
         // getDataFilters()
-    }, [pageState.filters, pageState.eventPaginationOffset, pageState.tracePaginationOffset, pageState.sessionPaginationOffset])
+    }, [pageState.filters])
 
     const isLoading = () => {
         return pageState.eventTargetingApiStatus === EventTargetingApiStatus.Loading ||
