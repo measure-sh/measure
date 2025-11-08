@@ -124,6 +124,25 @@ type SessionTargetingConfig struct {
 	OperatorTypes     OperatorTypes `json:"operator_types"`
 }
 
+type EventTargetingRulePayload struct {
+	Condition          string  `json:"condition"`
+	CollectionMode     string  `json:"collection_mode"`
+	TakeScreenshot     bool    `json:"take_screenshot"`
+	TakeLayoutSnapshot bool    `json:"take_layout_snapshot"`
+	SamplingRate       float32 `json:"sampling_rate"`
+}
+
+type TraceTargetingRulePayload struct {
+	Condition      string  `json:"condition"`
+	CollectionMode string  `json:"collection_mode"`
+	SamplingRate   float32 `json:"sampling_rate"`
+}
+
+type SessionTargetingRulePayload struct {
+	Condition    string  `json:"condition"`
+	SamplingRate float32 `json:"sampling_rate"`
+}
+
 // GetEventTargetingRules provides all
 // event targeting rules.
 func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (rules []EventTargetingRule, err error) {
@@ -500,6 +519,218 @@ func GetSessionTargetingConfig(ctx context.Context, appId uuid.UUID, osName stri
 		SessionAttrs:      newSessionConfig(osName),
 		OperatorTypes:     newOperatorTypes(),
 	}, nil
+}
+
+func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId uuid.UUID, payload EventTargetingRulePayload, createdBy string) (ruleId uuid.UUID, err error) {
+	now := time.Now()
+	createdByUUID, err := uuid.Parse(createdBy)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
+	}
+
+	stmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules").
+		Set("team_id", teamId).
+		Set("app_id", appId).
+		Set("condition", payload.Condition).
+		Set("collection_mode", payload.CollectionMode).
+		Set("take_screenshot", payload.TakeScreenshot).
+		Set("take_layout_snapshot", payload.TakeLayoutSnapshot).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("created_at", now).
+		Set("created_by", createdByUUID).
+		Set("updated_at", now).
+		Set("updated_by", createdByUUID).
+		Returning("id")
+
+	defer stmt.Close()
+
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	if err := row.Scan(&ruleId); err != nil {
+		return uuid.Nil, err
+	}
+	return ruleId, nil
+}
+
+func UpdateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string, payload EventTargetingRulePayload, updatedBy string) error {
+	updatedByUUID, err := uuid.Parse(updatedBy)
+	if err != nil {
+		return fmt.Errorf("invalid updatedBy UUID: %w", err)
+	}
+
+	stmt := sqlf.PostgreSQL.Update("event_targeting_rules").
+		Set("condition", payload.Condition).
+		Set("collection_mode", payload.CollectionMode).
+		Set("take_screenshot", payload.TakeScreenshot).
+		Set("take_layout_snapshot", payload.TakeLayoutSnapshot).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("updated_at", time.Now()).
+		Set("updated_by", updatedByUUID).
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+
+	defer stmt.Close()
+
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("event targeting rule not found")
+	}
+
+	return nil
+}
+
+func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId uuid.UUID, payload TraceTargetingRulePayload, createdBy string) (ruleId uuid.UUID, err error) {
+	now := time.Now()
+	createdByUUID, err := uuid.Parse(createdBy)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
+	}
+	stmt := sqlf.PostgreSQL.InsertInto("trace_targeting_rules").
+		Set("team_id", teamId).
+		Set("app_id", appId).
+		Set("condition", payload.Condition).
+		Set("collection_mode", payload.CollectionMode).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("created_at", now).
+		Set("created_by", createdByUUID).
+		Set("updated_at", now).
+		Set("updated_by", createdByUUID).
+		Returning("id")
+	defer stmt.Close()
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	if err := row.Scan(&ruleId); err != nil {
+		return uuid.Nil, err
+	}
+	return ruleId, nil
+}
+
+func UpdateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string, payload TraceTargetingRulePayload, updatedBy string) error {
+	updatedByUUID, err := uuid.Parse(updatedBy)
+	if err != nil {
+		return fmt.Errorf("invalid updatedBy UUID: %w", err)
+	}
+
+	stmt := sqlf.PostgreSQL.Update("trace_targeting_rules").
+		Set("condition", payload.Condition).
+		Set("collection_mode", payload.CollectionMode).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("updated_at", time.Now()).
+		Set("updated_by", updatedByUUID).
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+
+	defer stmt.Close()
+
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("trace targeting rule not found")
+	}
+
+	return nil
+}
+
+func CreateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId uuid.UUID, payload SessionTargetingRulePayload, createdBy string) (ruleId uuid.UUID, err error) {
+	now := time.Now()
+	createdByUUID, err := uuid.Parse(createdBy)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
+	}
+	stmt := sqlf.PostgreSQL.InsertInto("session_targeting_rules").
+		Set("team_id", teamId).
+		Set("app_id", appId).
+		Set("condition", payload.Condition).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("created_at", now).
+		Set("created_by", createdByUUID).
+		Set("updated_at", now).
+		Set("updated_by", createdByUUID).
+		Returning("id")
+	defer stmt.Close()
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	if err := row.Scan(&ruleId); err != nil {
+		return uuid.Nil, err
+	}
+	return ruleId, nil
+}
+
+func UpdateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string, payload SessionTargetingRulePayload, updatedBy string) error {
+	updatedByUUID, err := uuid.Parse(updatedBy)
+	if err != nil {
+		return fmt.Errorf("invalid updatedBy UUID: %w", err)
+	}
+
+	stmt := sqlf.PostgreSQL.Update("session_targeting_rules").
+		Set("condition", payload.Condition).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("updated_at", time.Now()).
+		Set("updated_by", updatedByUUID).
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+
+	defer stmt.Close()
+
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("session targeting rule not found")
+	}
+
+	return nil
+}
+
+func DeleteEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	stmt := sqlf.PostgreSQL.DeleteFrom("event_targeting_rules").
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+	defer stmt.Close()
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("event targeting rule not found")
+	}
+	return nil
+}
+
+func DeleteTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	stmt := sqlf.PostgreSQL.DeleteFrom("trace_targeting_rules").
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+	defer stmt.Close()
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("trace targeting rule not found")
+	}
+	return nil
+}
+
+func DeleteSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	stmt := sqlf.PostgreSQL.DeleteFrom("session_targeting_rules").
+		Where("app_id = ?", appId).
+		Where("id = toUUID(?)", ruleId)
+	defer stmt.Close()
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("session targeting rule not found")
+	}
+	return nil
 }
 
 // getTraceNames returns list of root span names for a given app id

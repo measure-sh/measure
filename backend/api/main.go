@@ -124,6 +124,15 @@ func main() {
 		apps.GET(":id/targetingRules/events/config", measure.GetEventTargetingRuleConfig)
 		apps.GET(":id/targetingRules/traces/config", measure.GetTraceTargetingRuleConfig)
 		apps.GET(":id/targetingRules/sessions/config", measure.GetSessionTargetingRuleConfig)
+		apps.POST(":id/targetingRules/events", measure.CreateEventTargetingRule)
+		apps.POST(":id/targetingRules/traces", measure.CreateTraceTargetingRule)
+		apps.POST(":id/targetingRules/sessions", measure.CreateSessionTargetingRule)
+		apps.PATCH(":id/targetingRules/events/:ruleId", measure.UpdateEventTargetingRule)
+		apps.PATCH(":id/targetingRules/traces/:ruleId", measure.UpdateTraceTargetingRule)
+		apps.PATCH(":id/targetingRules/sessions/:ruleId", measure.UpdateSessionTargetingRule)
+		apps.DELETE(":id/targetingRules/events/:ruleId", measure.DeleteEventTargetingRule)
+		apps.DELETE(":id/targetingRules/traces/:ruleId", measure.DeleteTraceTargetingRule)
+		apps.DELETE(":id/targetingRules/sessions/:ruleId", measure.DeleteSessionTargetingRule)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())
