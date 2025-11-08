@@ -419,6 +419,69 @@ export enum SessionTargetingConfigApiStatus {
   Cancelled,
 }
 
+export enum CreateEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1104,13 +1167,29 @@ export type EventTargetingCollectionConfig =
   | { mode: 'timeline_only' }
   | { mode: 'disable' };
 
-export type EventTargetingAttachmentConfig = 'layout_snapshot' | 'screenshot' | 'none';
+export type EventTargetingRuleRequest = {
+  rule: string,
+  collection_config: EventTargetingCollectionConfig,
+  take_screenshot: boolean,
+  take_layout_snapshot: boolean,
+}
+
+export type TraceTargetingRuleRequest = {
+  rule: string,
+  collection_config: TraceTargetingCollectionConfig,
+}
+
+export type SessionTargetingRuleRequest = {
+  rule: string,
+  sampling_rate: number,
+}
 
 export type EventTargetingRule = {
   id: string,
   rule: string,
   collection_config: EventTargetingCollectionConfig,
-  attachment_config: EventTargetingAttachmentConfig,
+  take_screenshot: boolean,
+  take_layout_snapshot: boolean,
   updated_at: string,
   updated_by: string,
 }
@@ -1196,278 +1275,6 @@ export type TraceTargetingConfigResponse = {
     session_attrs: AttributeTargetingConfig[];
     operator_types: TargetingOperatorConfig;
   };
-}
-
-export const emptyEventTargetingResponse: EventTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  result: {
-    default: {
-      id: "df-global-001",
-      rule: 'event_type == "*"',
-      collection_config: { mode: 'timeline_only' },
-      attachment_config: 'none',
-      updated_at: "2024-01-01T00:00:00Z",
-      updated_by: "system@example.com",
-    },
-    overrides: [
-      {
-        id: "df-events-001",
-        rule: 'event.event_type == "crash"',
-        collection_config: { mode: 'sample_rate', sample_rate: 5 },
-        attachment_config: 'screenshot',
-        updated_at: "2024-01-01T00:00:00Z",
-        updated_by: "system@example.com",
-      },
-      {
-        id: "df-events-002",
-        rule: 'event.event_type == "anr"',
-        collection_config: { mode: 'disable' },
-        attachment_config: 'none',
-        updated_at: "2024-01-01T00:00:00Z",
-        updated_by: "system@example.com",
-      },
-      {
-        id: "df-events-003",
-        rule: 'event.event_type == "click" && session.app_version == "1.2.0"',
-        collection_config: { mode: 'sample_rate', sample_rate: 25 },
-        attachment_config: 'layout_snapshot',
-        updated_at: "2024-01-02T10:30:00Z",
-        updated_by: "user@example.com",
-      },
-      {
-        id: "df-events-004",
-        rule: 'event.event_type == "navigation" && session.user_id == "test_user"',
-        collection_config: { mode: 'sample_rate', sample_rate: 100 },
-        attachment_config: 'none',
-        updated_at: "2024-01-03T14:15:00Z",
-        updated_by: "admin@example.com",
-      },
-      {
-        id: "df-events-005",
-        rule: 'event.event_type == "custom_event" && event.handled == true',
-        collection_config: { mode: 'timeline_only' },
-        attachment_config: 'screenshot',
-        updated_at: "2024-01-04T09:45:00Z",
-        updated_by: "developer@example.com",
-      },
-      {
-        id: "df-events-006",
-        rule: 'event.event_type == "lifecycle_activity"',
-        collection_config: { mode: 'sample_rate', sample_rate: 10 },
-        attachment_config: 'none',
-        updated_at: "2024-01-05T16:20:00Z",
-        updated_by: "tester@example.com",
-      },
-      {
-        id: "df-events-007",
-        rule: 'event.event_type == "network_error" && session.os_version >= "11.0"',
-        collection_config: { mode: 'sample_rate', sample_rate: 50 },
-        attachment_config: 'layout_snapshot',
-        updated_at: "2024-01-06T11:00:00Z",
-        updated_by: "qa@example.com",
-      }
-    ]
-  },
-}
-
-export const emptyTraceTargetingResponse: TraceTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  result: {
-    default: {
-      id: "df-global-traces-001",
-      rule: 'trace_type == "*"',
-      collection_config: { mode: 'timeline_only' },
-      updated_at: "2024-01-01T00:00:00Z",
-      updated_by: "system@example.com",
-    },
-    overrides: [
-      {
-        id: "df-001",
-        rule: 'trace.trace_name == "root"',
-        collection_config: { mode: 'sample_rate', sample_rate: 10 },
-        updated_at: "2024-01-01T00:00:00Z",
-        updated_by: "system@example.com",
-      },
-      {
-        id: "df-002",
-        rule: 'trace.trace_name == "activity.onCreate"',
-        collection_config: { mode: 'disable' },
-        updated_at: "2024-01-01T00:00:00Z",
-        updated_by: "system@example.com",
-      },
-      {
-        id: "df-003",
-        rule: 'trace.trace_name == "network.request" && session.app_version == "2.0.0"',
-        collection_config: { mode: 'sample_rate', sample_rate: 30 },
-        updated_at: "2024-01-02T08:45:00Z",
-        updated_by: "backend@example.com",
-      },
-      {
-        id: "df-004",
-        rule: 'trace.trace_name == "database.query"',
-        collection_config: { mode: 'sample_rate', sample_rate: 15 },
-        updated_at: "2024-01-03T13:20:00Z",
-        updated_by: "db-admin@example.com",
-      },
-      {
-        id: "df-005",
-        rule: 'trace.trace_name == "activity.onResume" && session.device_manufacturer == "Samsung"',
-        collection_config: { mode: 'timeline_only' },
-        updated_at: "2024-01-04T10:15:00Z",
-        updated_by: "mobile@example.com",
-      },
-      {
-        id: "df-006",
-        rule: 'trace.trace_name == "api.authentication"',
-        collection_config: { mode: 'sample_rate', sample_rate: 100 },
-        updated_at: "2024-01-05T15:30:00Z",
-        updated_by: "security@example.com",
-      },
-      {
-        id: "df-007",
-        rule: 'trace.trace_name == "image.processing" && trace.duration > 1000',
-        collection_config: { mode: 'sample_rate', sample_rate: 20 },
-        updated_at: "2024-01-06T09:00:00Z",
-        updated_by: "performance@example.com",
-      }
-    ]
-  },
-}
-
-export const emptySessionTargetingResponse: SessionTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  results: [
-    {
-      id: "df-sessions-001",
-      rule: 'event.event_type == "exception"',
-      sampling_rate: 0,
-      updated_at: "2024-01-01T00:00:00Z",
-      updated_by: "system@example.com",
-    },
-    {
-      id: "df-sessions-002",
-      rule: 'session.app_version == "1.5.0" && session.os_name == "android"',
-      sampling_rate: 25,
-      updated_at: "2024-01-02T11:20:00Z",
-      updated_by: "android-team@example.com",
-    },
-    {
-      id: "df-sessions-003",
-      rule: 'session.user_id == "beta_tester"',
-      sampling_rate: 100,
-      updated_at: "2024-01-03T14:45:00Z",
-      updated_by: "beta@example.com",
-    },
-    {
-      id: "df-sessions-004",
-      rule: 'session.device_manufacturer == "Google" && session.app_version >= "2.0.0"',
-      sampling_rate: 50,
-      updated_at: "2024-01-04T09:30:00Z",
-      updated_by: "qa-lead@example.com",
-    },
-    {
-      id: "df-sessions-005",
-      rule: 'session.network_type == "wifi"',
-      sampling_rate: 10,
-      updated_at: "2024-01-05T16:00:00Z",
-      updated_by: "network-team@example.com",
-    },
-    {
-      id: "df-sessions-006",
-      rule: 'session.os_version >= "12.0" && session.device_model contains "Pixel"',
-      sampling_rate: 75,
-      updated_at: "2024-01-06T10:15:00Z",
-      updated_by: "pixel-team@example.com",
-    },
-    {
-      id: "df-sessions-007",
-      rule: 'session.locale == "en-US" || session.locale == "en-GB"',
-      sampling_rate: 15,
-      updated_at: "2024-01-07T13:40:00Z",
-      updated_by: "localization@example.com",
-    },
-  ]
-}
-
-export const emptyEventTargetingRule: EventTargetingRule = {
-  id: "df-events-001",
-  rule: 'event.event_type == "crash"',
-  collection_config: { mode: 'sample_rate', sample_rate: 5 },
-  attachment_config: 'screenshot',
-  updated_at: "2024-01-01T00:00:00Z",
-  updated_by: "system@example.com",
-}
-
-export const emptyTraceTargetingRule: TraceTargetingRule = {
-  id: "df-001",
-  rule: 'trace.trace_name == "root"',
-  collection_config: { mode: 'sample_rate', sample_rate: 10 },
-  updated_at: "2024-01-01T00:00:00Z",
-  updated_by: "system@example.com",
-}
-
-export const emptyEventTargetingConfigResponse: EventTargetingConfigResponse = {
-  result: {
-    events: [
-      {
-        type: "exception",
-        attrs: [
-          { key: "handled", type: "bool", hint: "True for handled exceptions, false for crashes" },
-        ],
-        has_ud_attrs: true,
-      },
-    ],
-    event_ud_attrs: [
-      { key: "feature_flag", type: "string", hint: "Feature flag associated with the event" },
-    ],
-    session_attrs: [
-      { key: "user_id", type: "string", hint: "Identifier for the user" },
-    ],
-    operator_types: {
-      bool: ["==", "!="],
-      float64: ["==", "!=", "<", "<=", ">", ">="],
-      int64: ["==", "!=", "<", "<=", ">", ">="],
-      string: ["==", "!=", "contains", "starts_with", "ends_with"],
-    },
-  },
-}
-
-export const emptyTraceTargetingConfigResponse: TraceTargetingConfigResponse = {
-  result: {
-    traces: [
-      {
-        name: "root",
-        attrs: null,
-        has_ud_attrs: false,
-      },
-      {
-        name: "activity.onCreate",
-        attrs: null,
-        has_ud_attrs: false,
-      },
-    ],
-    trace_ud_attrs: [
-      { key: "feature_flag", type: "string", hint: "Feature flag associated with the trace" },
-    ],
-    session_attrs: [
-      { key: "user_id", type: "string", hint: "Identifier for the user" },
-    ],
-    operator_types: {
-      bool: ["==", "!="],
-      float64: ["==", "!=", "<", "<=", ">", ">="],
-      int64: ["==", "!=", "<", "<=", ">", ">="],
-      string: ["==", "!=", "contains", "starts_with", "ends_with"],
-    },
-  },
 }
 export class AppVersion {
   name: string
@@ -2888,7 +2695,7 @@ export const fetchEventTargetingRuleFromServer = async (
     if (!res.ok) {
       return { status: EventTargetingRuleApiStatus.Error, data: null }
     }
-    
+
     const data = await res.json()
     return { status: EventTargetingRuleApiStatus.Success, data: data }
   } catch {
@@ -2901,10 +2708,10 @@ export const fetchTraceTargetingRuleFromServer = async (
   ruleId: string,
 ) => {
   const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
-  
+
   try {
     const res = await measureAuth.fetchMeasure(url)
-    
+
     if (!res.ok) {
       return { status: TraceTargetingRuleApiStatus.Error, data: null }
     }
@@ -2920,7 +2727,7 @@ export const fetchSessionTargetingRuleFromServer = async (
   ruleId: string,
 ) => {
   const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
-  
+
   try {
     const res = await measureAuth.fetchMeasure(url)
     if (!res.ok) {
@@ -2937,7 +2744,7 @@ export const fetchEventTargetingConfigFromServer = async (
   appId: String,
 ) => {
   const url = `/api/apps/${appId}/targetingRules/events/config`
-  
+
   try {
     const res = await measureAuth.fetchMeasure(url)
     if (!res.ok) {
@@ -2954,7 +2761,7 @@ export const fetchTraceTargetingConfigFromServer = async (
   appId: String,
 ) => {
   const url = `/api/apps/${appId}/targetingRules/traces/config`
-  
+
   try {
     const res = await measureAuth.fetchMeasure(url)
     if (!res.ok) {
@@ -2971,7 +2778,7 @@ export const fetchSessionTargetingConfigFromServer = async (
   appId: String,
 ) => {
   const url = `/api/apps/${appId}/targetingRules/sessions/config`
-  
+
   try {
     const res = await measureAuth.fetchMeasure(url)
     if (!res.ok) {
@@ -2981,5 +2788,206 @@ export const fetchSessionTargetingConfigFromServer = async (
     return { status: SessionTargetingConfigApiStatus.Success, data: data }
   } catch {
     return { status: SessionTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const createEventTargetingRule = async (
+  appId: String,
+  ruleData: EventTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateEventTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateEventTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const createTraceTargetingRule = async (
+  appId: String,
+  ruleData: TraceTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateTraceTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateTraceTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const createSessionTargetingRule = async (
+  appId: String,
+  ruleData: SessionTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateSessionTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateSessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateSessionTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateEventTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: EventTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateEventTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateEventTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateTraceTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: TraceTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateTraceTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateTraceTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateSessionTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: SessionTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateSessionTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateSessionTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateSessionTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteEventTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteEventTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteEventTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteTraceTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteTraceTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteTraceTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteSessionTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteSessionTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteSessionTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteSessionTargetingRuleApiStatus.Cancelled }
   }
 }

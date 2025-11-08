@@ -2,6 +2,7 @@
 
 import { Button } from '@/app/components/button'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
     EventTargetingRuleApiStatus,
     TraceTargetingRuleApiStatus,
@@ -15,8 +16,17 @@ import {
     fetchTraceTargetingRuleFromServer,
     fetchEventTargetingConfigFromServer,
     fetchTraceTargetingConfigFromServer,
+    createEventTargetingRule,
+    createTraceTargetingRule,
+    updateEventTargetingRule,
+    updateTraceTargetingRule,
+    CreateEventTargetingRuleApiStatus,
+    CreateTraceTargetingRuleApiStatus,
+    UpdateEventTargetingRuleApiStatus,
+    UpdateTraceTargetingRuleApiStatus,
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
+import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 
 interface EventTraceRuleBuilderProps {
     type: 'event' | 'trace'
@@ -34,6 +44,7 @@ type PageState = {
     configApiStatus: EventTargetingConfigApiStatus | TraceTargetingConfigApiStatus
     initialRuleState: string | null
     currentRuleState: string | null
+    isSaving: boolean
 }
 
 type FormState = {
@@ -50,13 +61,15 @@ export default function EventTraceRuleBuilder({
     onCancel,
     onPrimaryAction,
 }: EventTraceRuleBuilderProps) {
+    const router = useRouter()
     const [pageState, setPageState] = useState<PageState>({
         ruleData: null,
         configData: null,
         ruleApiStatus: EventTargetingRuleApiStatus.Loading,
         configApiStatus: EventTargetingConfigApiStatus.Loading,
         initialRuleState: null,
-        currentRuleState: null
+        currentRuleState: null,
+        isSaving: false
     })
 
     const [formState, setFormState] = useState<FormState>({
@@ -210,6 +223,74 @@ export default function EventTraceRuleBuilder({
         }))
     }
 
+    const handlePrimaryAction = async () => {
+        setPageState(prev => ({ ...prev, isSaving: true }))
+
+        try {
+            // Build collection config
+            const collectionConfig = formState.collectionMode === 'sample_rate'
+                ? { mode: 'sample_rate' as const, sample_rate: formState.sampleRate }
+                : formState.collectionMode === 'timeline_only'
+                    ? { mode: 'timeline_only' as const }
+                    : { mode: 'disable' as const }
+
+            if (type === 'event') {
+                // Build event rule request
+                const ruleData = {
+                    rule: mode === 'edit' && pageState.ruleData ? pageState.ruleData.rule : 'event_type == "click"',
+                    collection_config: collectionConfig,
+                    take_screenshot: formState.attachmentMode === 'screenshot',
+                    take_layout_snapshot: formState.attachmentMode === 'layout_snapshot',
+                }
+
+                if (mode === 'create') {
+                    const result = await createEventTargetingRule(appId, ruleData)
+                    if (result.status === CreateEventTargetingRuleApiStatus.Success) {
+                        toastPositive('Event rule created successfully')
+                        onPrimaryAction()
+                    } else {
+                        toastNegative('Failed to create event rule', result.error || 'Unknown error')
+                    }
+                } else {
+                    const result = await updateEventTargetingRule(appId, ruleId!, ruleData)
+                    if (result.status === UpdateEventTargetingRuleApiStatus.Success) {
+                        toastPositive('Event rule updated successfully')
+                        onPrimaryAction()
+                    } else {
+                        toastNegative('Failed to update event rule', result.error || 'Unknown error')
+                    }
+                }
+            } else {
+                // Build trace rule request
+                const ruleData = {
+                    rule: mode === 'edit' && pageState.ruleData ? pageState.ruleData.rule : 'trace_name == "root"',
+                    collection_config: collectionConfig,
+                }
+
+                if (mode === 'create') {
+                    const result = await createTraceTargetingRule(appId, ruleData)
+                    if (result.status === CreateTraceTargetingRuleApiStatus.Success) {
+                        toastPositive('Trace rule created successfully')
+                        onPrimaryAction()
+                    } else {
+                        toastNegative('Failed to create trace rule', result.error || 'Unknown error')
+                    }
+                } else {
+                    const result = await updateTraceTargetingRule(appId, ruleId!, ruleData)
+                    if (result.status === UpdateTraceTargetingRuleApiStatus.Success) {
+                        toastPositive('Trace rule updated successfully')
+                        onPrimaryAction()
+                    } else {
+                        toastNegative('Failed to update trace rule', result.error || 'Unknown error')
+                    }
+                }
+            }
+        } catch (error) {
+            toastNegative('An error occurred', 'Please try again')
+        } finally {
+            setPageState(prev => ({ ...prev, isSaving: false }))
+        }
+    }
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -362,17 +443,21 @@ export default function EventTraceRuleBuilder({
                     {/* Action buttons */}
                     <div className="flex justify-end gap-3">
                         <Button
+                            type="button"
                             variant="outline"
                             onClick={onCancel}
                             className="font-display"
+                            disabled={pageState.isSaving}
                         >
                             Cancel
                         </Button>
                         <Button
+                            type="button"
                             variant="outline"
-                            onClick={onPrimaryAction}
+                            onClick={handlePrimaryAction}
                             className="font-display border border-black"
                             disabled={!hasChanges()}
+                            loading={pageState.isSaving}
                         >
                             {getPrimaryActionLabel()}
                         </Button>
