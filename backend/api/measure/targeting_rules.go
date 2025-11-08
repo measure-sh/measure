@@ -15,20 +15,20 @@ import (
 
 // Represents a event targting rule.
 type EventTargetingRule struct {
-	Id             uuid.UUID `json:"id"`
-	TeamId         uuid.UUID `json:"team_id"`
-	AppId          uuid.UUID `json:"app_id"`
-	Status         int       `json:"status"`
-	Condition      string    `json:"condition"`
-	CollectionMode string    `json:"collection_mode"`
-	AttachmentMode string    `json:"attachment_mode"`
-	SamplingRate   float32   `json:"sampling_rate"`
-	CreatedAt      time.Time `json:"created_at"`
-	CreatedBy      uuid.UUID `json:"-"`
-	CreatedByEmail string    `json:"created_by"`
-	UpdatedAt      time.Time `json:"updated_at"`
-	UpdatedBy      uuid.UUID `json:"-"`
-	UpdatedByEmail string    `json:"updated_by"`
+	Id                 uuid.UUID `json:"id"`
+	TeamId             uuid.UUID `json:"team_id"`
+	AppId              uuid.UUID `json:"app_id"`
+	Condition          string    `json:"condition"`
+	CollectionMode     string    `json:"collection_mode"`
+	TakeScreenshot     bool      `json:"take_screenshot"`
+	TakeLayoutSnapshot bool      `json:"take_layout_snapshot"`
+	SamplingRate       float32   `json:"sampling_rate"`
+	CreatedAt          time.Time `json:"created_at"`
+	CreatedBy          uuid.UUID `json:"-"`
+	CreatedByEmail     string    `json:"created_by"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	UpdatedBy          uuid.UUID `json:"-"`
+	UpdatedByEmail     string    `json:"updated_by"`
 }
 
 // Represents a trace targting rule.
@@ -36,7 +36,6 @@ type TraceTargetingRule struct {
 	Id             uuid.UUID `json:"id"`
 	TeamId         uuid.UUID `json:"team_id"`
 	AppId          uuid.UUID `json:"app_id"`
-	Status         int       `json:"status"`
 	Condition      string    `json:"condition"`
 	CollectionMode string    `json:"collection_mode"`
 	SamplingRate   float32   `json:"sampling_rate"`
@@ -53,7 +52,6 @@ type SessionTargetingRule struct {
 	Id             uuid.UUID `json:"id"`
 	TeamId         uuid.UUID `json:"team_id"`
 	AppId          uuid.UUID `json:"app_id"`
-	Status         int       `json:"status"`
 	SamplingRate   float32   `json:"sampling_rate"`
 	Condition      string    `json:"condition"`
 	CreatedAt      time.Time `json:"created_at"`
@@ -133,10 +131,10 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("condition").
 		Select("collection_mode").
-		Select("attachment_mode").
+		Select("take_screenshot").
+		Select("take_layout_snapshot").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
@@ -159,10 +157,10 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
-			&rule.Status,
 			&rule.Condition,
 			&rule.CollectionMode,
-			&rule.AttachmentMode,
+			&rule.TakeScreenshot,
+			&rule.TakeLayoutSnapshot,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
@@ -188,7 +186,6 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("condition").
 		Select("collection_mode").
 		Select("created_at").
@@ -213,7 +210,6 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
-			&rule.Status,
 			&rule.Condition,
 			&rule.CollectionMode,
 			&rule.CreatedAt,
@@ -241,7 +237,6 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("sampling_rate").
 		Select("condition").
 		Select("created_at").
@@ -266,7 +261,6 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
-			&rule.Status,
 			&rule.SamplingRate,
 			&rule.Condition,
 			&rule.CreatedAt,
@@ -294,10 +288,10 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("condition").
 		Select("collection_mode").
-		Select("attachment_mode").
+		Select("take_screenshot").
+		Select("take_layout_snapshot").
 		Select("sampling_rate").
 		Select("created_at").
 		Select("created_by").
@@ -315,10 +309,10 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
-		&r.Status,
 		&r.Condition,
 		&r.CollectionMode,
-		&r.AttachmentMode,
+		&r.TakeScreenshot,
+		&r.TakeLayoutSnapshot,
 		&r.SamplingRate,
 		&r.CreatedAt,
 		&r.CreatedBy,
@@ -344,7 +338,6 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("condition").
 		Select("collection_mode").
 		Select("sampling_rate").
@@ -364,7 +357,6 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
-		&r.Status,
 		&r.Condition,
 		&r.CollectionMode,
 		&r.SamplingRate,
@@ -392,7 +384,6 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("status").
 		Select("condition").
 		Select("sampling_rate").
 		Select("created_at").
@@ -411,7 +402,6 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
-		&r.Status,
 		&r.Condition,
 		&r.SamplingRate,
 		&r.CreatedAt,
