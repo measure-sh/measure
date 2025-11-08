@@ -23,8 +23,6 @@ interface PageState {
     editingDefaultRule: 'event' | 'trace' | null
 }
 
-const paginationLimit = 5
-
 const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig | TraceTargetingCollectionConfig, type: 'event' | 'trace'): string => {
     const typeName = type === 'event' ? 'events' : 'traces'
     switch (collectionConfig.mode) {
