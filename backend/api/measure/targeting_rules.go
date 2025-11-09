@@ -528,7 +528,36 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
 	}
 
+	ruleId = uuid.New()
+
+	if (appId == uuid.Nil) || (teamId == uuid.Nil) {
+		return uuid.Nil, fmt.Errorf("appId and teamId cannot be nil")
+	}
+
+	if createdByUUID == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("createdBy UUID cannot be nil")
+	}
+
+	if payload.Condition == "" {
+		return uuid.Nil, fmt.Errorf("condition cannot be empty")
+	}
+
+	if payload.CollectionMode != "session_timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
+		return uuid.Nil, fmt.Errorf("invalid collection mode: %s", payload.CollectionMode)
+	}
+
+	if payload.CollectionMode == "sampled" {
+		if payload.SamplingRate < 0 || payload.SamplingRate > 100 {
+			return uuid.Nil, fmt.Errorf("sampling rate must be between 0 and 100")
+		}
+	}
+
+	if payload.TakeScreenshot && payload.TakeLayoutSnapshot {
+		return uuid.Nil, fmt.Errorf("only one of take_screenshot and take_layout_snapshot can be true")
+	}
+
 	stmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules").
+		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
 		Set("condition", payload.Condition).
@@ -539,13 +568,12 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
 		Set("updated_at", now).
-		Set("updated_by", createdByUUID).
-		Returning("id")
+		Set("updated_by", createdByUUID)
 
 	defer stmt.Close()
 
-	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
-	if err := row.Scan(&ruleId); err != nil {
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
 		return uuid.Nil, err
 	}
 	return ruleId, nil
@@ -588,7 +616,33 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
 	}
+
+	ruleId = uuid.New()
+
+	if (appId == uuid.Nil) || (teamId == uuid.Nil) {
+		return uuid.Nil, fmt.Errorf("appId and teamId cannot be nil")
+	}
+
+	if createdByUUID == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("createdBy UUID cannot be nil")
+	}
+
+	if payload.Condition == "" {
+		return uuid.Nil, fmt.Errorf("condition cannot be empty")
+	}
+
+	if payload.CollectionMode != "session_timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
+		return uuid.Nil, fmt.Errorf("invalid collection mode: %s", payload.CollectionMode)
+	}
+
+	if payload.CollectionMode == "sampled" {
+		if payload.SamplingRate < 0 || payload.SamplingRate > 100 {
+			return uuid.Nil, fmt.Errorf("sampling rate must be between 0 and 100")
+		}
+	}
+
 	stmt := sqlf.PostgreSQL.InsertInto("trace_targeting_rules").
+		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
 		Set("condition", payload.Condition).
@@ -597,11 +651,10 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
 		Set("updated_at", now).
-		Set("updated_by", createdByUUID).
-		Returning("id")
+		Set("updated_by", createdByUUID)
 	defer stmt.Close()
-	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
-	if err := row.Scan(&ruleId); err != nil {
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
 		return uuid.Nil, err
 	}
 	return ruleId, nil
@@ -642,7 +695,23 @@ func CreateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, team
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("invalid createdBy UUID: %w", err)
 	}
+
+	ruleId = uuid.New()
+
+	if (appId == uuid.Nil) || (teamId == uuid.Nil) {
+		return uuid.Nil, fmt.Errorf("appId and teamId cannot be nil")
+	}
+
+	if createdByUUID == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("createdBy UUID cannot be nil")
+	}
+
+	if payload.Condition == "" {
+		return uuid.Nil, fmt.Errorf("condition cannot be empty")
+	}
+
 	stmt := sqlf.PostgreSQL.InsertInto("session_targeting_rules").
+		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
 		Set("condition", payload.Condition).
@@ -650,11 +719,10 @@ func CreateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, team
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
 		Set("updated_at", now).
-		Set("updated_by", createdByUUID).
-		Returning("id")
+		Set("updated_by", createdByUUID)
 	defer stmt.Close()
-	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
-	if err := row.Scan(&ruleId); err != nil {
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
 		return uuid.Nil, err
 	}
 	return ruleId, nil

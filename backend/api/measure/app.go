@@ -7261,7 +7261,7 @@ func CreateEventTargetingRule(c *gin.Context) {
 		return
 	}
 
-	ruleId, err := CreateEventTargetingRuleForApp(ctx, id, app.TeamId, payload, userId)
+	ruleId, err := CreateEventTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
 	if err != nil {
 		msg := "failed to create event targeting rule"
 		fmt.Println(msg, err)
@@ -7331,7 +7331,7 @@ func CreateTraceTargetingRule(c *gin.Context) {
 		return
 	}
 
-	ruleId, err := CreateTraceTargetingRuleForApp(ctx, id, app.TeamId, payload, userId)
+	ruleId, err := CreateTraceTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
 	if err != nil {
 		msg := "failed to create trace targeting rule"
 		fmt.Println(msg, err)
@@ -7401,7 +7401,7 @@ func CreateSessionTargetingRule(c *gin.Context) {
 		return
 	}
 
-	ruleId, err := CreateSessionTargetingRuleForApp(ctx, id, app.TeamId, payload, userId)
+	ruleId, err := CreateSessionTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
 	if err != nil {
 		msg := "failed to create session targeting rule"
 		fmt.Println(msg, err)
