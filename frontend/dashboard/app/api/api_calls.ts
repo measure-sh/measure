@@ -1151,74 +1151,62 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export type EventTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  result: {
-    default: EventTargetingRule,
-    overrides: EventTargetingRule[]
-  },
+export type CollectionMode = 'sampled' | 'timeline' | 'disabled';
+
+export type EventTargetingAttachmentConfig = 'none' | 'layout_snapshot' | 'screenshot';
+
+export type EventTargetingRulesResponse = {
+  rules: EventTargetingRule[] | null,
+  default_rule: EventTargetingRule
 };
 
-export type EventTargetingCollectionConfig =
-  | { mode: 'sample_rate'; sample_rate: number }
-  | { mode: 'timeline_only' }
-  | { mode: 'disable' };
 
 export type EventTargetingRuleRequest = {
-  rule: string,
-  collection_config: EventTargetingCollectionConfig,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
   take_screenshot: boolean,
   take_layout_snapshot: boolean,
 }
 
 export type TraceTargetingRuleRequest = {
-  rule: string,
-  collection_config: TraceTargetingCollectionConfig,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
 }
 
 export type SessionTargetingRuleRequest = {
-  rule: string,
+  condition: string,
   sampling_rate: number,
 }
 
 export type EventTargetingRule = {
   id: string,
-  rule: string,
-  collection_config: EventTargetingCollectionConfig,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
   take_screenshot: boolean,
   take_layout_snapshot: boolean,
+  attachment_config?: EventTargetingAttachmentConfig,
   updated_at: string,
   updated_by: string,
 }
 
-export type TraceTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  result: {
-    default: TraceTargetingRule,
-    overrides: TraceTargetingRule[]
-  },
+export type TraceTargetingRulesResponse = {
+  rules: TraceTargetingRule[] | null,
+  default_rule: TraceTargetingRule
 };
-
-export type TraceTargetingCollectionConfig =
-  | { mode: 'sample_rate'; sample_rate: number }
-  | { mode: 'timeline_only' }
-  | { mode: 'disable' };
 
 export type TraceTargetingRule = {
   id: string,
-  rule: string,
-  collection_config: TraceTargetingCollectionConfig,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
   updated_at: string,
   updated_by: string,
 }
 
-export type SessionTargetingResponse = {
+export type SessionTargetingRulesResponse = {
   meta: {
     next: false,
     previous: false,
@@ -1228,7 +1216,7 @@ export type SessionTargetingResponse = {
 
 export type SessionTargetingRule = {
   id: string,
-  rule: string,
+  condition: string,
   sampling_rate: number,
   updated_at: string,
   updated_by: string,
@@ -2863,7 +2851,7 @@ export const updateEventTargetingRule = async (
   ruleData: EventTargetingRuleRequest,
 ) => {
   const opts = {
-    method: "PATCH",
+    method: "PUT",
     body: JSON.stringify(ruleData),
   }
 
@@ -2887,7 +2875,7 @@ export const updateTraceTargetingRule = async (
   ruleData: TraceTargetingRuleRequest,
 ) => {
   const opts = {
-    method: "PATCH",
+    method: "PUT",
     body: JSON.stringify(ruleData),
   }
 
@@ -2911,7 +2899,7 @@ export const updateSessionTargetingRule = async (
   ruleData: SessionTargetingRuleRequest,
 ) => {
   const opts = {
-    method: "PATCH",
+    method: "PUT",
     body: JSON.stringify(ruleData),
   }
 

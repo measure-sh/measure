@@ -1,6 +1,6 @@
 "use client"
 
-import { EventTargetingApiStatus, EventTargetingResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingResponse, emptyTraceTargetingResponse, fetchTraceTargetingRulesFromServer, FilterSource, EventTargetingCollectionConfig, TraceTargetingCollectionConfig, SessionTargetingResponse, emptySessionTargetingResponse, fetchSessionTargetingRulesFromServer } from '@/app/api/api_calls'
+import { EventTargetingApiStatus, EventTargetingRulesResponse, fetchEventTargetingRulesFromServer, TraceTargetingApiStatus, TraceTargetingRulesResponse, fetchTraceTargetingRulesFromServer, FilterSource, CollectionMode, SessionTargetingRulesResponse, fetchSessionTargetingRulesFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import { useRouter } from 'next/navigation'
@@ -17,20 +17,20 @@ interface PageState {
     eventTargetingApiStatus: EventTargetingApiStatus
     traceTargetingApiStatus: TraceTargetingApiStatus
     filters: typeof defaultFilters
-    eventTargetingRules: EventTargetingResponse | null
-    traceTargetingRules: TraceTargetingResponse | null
-    sessionTargetingRules: SessionTargetingResponse | null
+    eventTargetingRules: EventTargetingRulesResponse | null
+    traceTargetingRules: TraceTargetingRulesResponse | null
+    sessionTargetingRules: SessionTargetingRulesResponse | null
     editingDefaultRule: 'event' | 'trace' | null
 }
 
-const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig | TraceTargetingCollectionConfig, type: 'event' | 'trace'): string => {
+const getCollectionConfigDisplay = (collectionMode: CollectionMode, samplingRate: number, type: 'event' | 'trace'): string => {
     const typeName = type === 'event' ? 'events' : 'traces'
-    switch (collectionConfig.mode) {
-        case 'sample_rate':
-            return `Collect all ${typeName} at ${collectionConfig.sample_rate}% sample rate`
-        case 'timeline_only':
+    switch (collectionMode) {
+        case 'sampled':
+            return `Collect all ${typeName} at ${samplingRate}% sample rate`
+        case 'timeline':
             return `Collect ${typeName} with session timeline only`
-        case 'disable':
+        case 'disabled':
             return `Collect no ${typeName} by default`
         default:
             return 'Unknown'
@@ -41,8 +41,8 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
     const router = useRouter()
 
     const initialState: PageState = {
-        eventTargetingApiStatus: EventTargetingApiStatus.Success,
-        traceTargetingApiStatus: TraceTargetingApiStatus.Success,
+        eventTargetingApiStatus: EventTargetingApiStatus.Loading,
+        traceTargetingApiStatus: TraceTargetingApiStatus.Loading,
         filters: defaultFilters,
         eventTargetingRules: null,
         traceTargetingRules: null,
@@ -135,46 +135,34 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
         return pageState.filters.ready && eventReady && traceReady
     }
 
-    const eventsDefaultRule = pageState.eventTargetingRules?.result.default;
-    const eventsOverideRules = pageState.eventTargetingRules?.result.overrides ?? [];
-    const traceDefaultRule = pageState.traceTargetingRules?.result.default;
-    const traceOverrideRules = pageState.traceTargetingRules?.result.overrides ?? [];
+    const eventsDefaultRule = pageState.eventTargetingRules?.default_rule;
+    const eventsOverideRules = pageState.eventTargetingRules?.rules ?? [];
+    const traceDefaultRule = pageState.traceTargetingRules?.default_rule;
+    const traceOverrideRules = pageState.traceTargetingRules?.rules ?? [];
     const sessionTargetingRules = pageState.sessionTargetingRules?.results ?? [];
 
     const handleEditRule = (dataFilter: typeof eventsOverideRules[0] | typeof traceOverrideRules[0] | typeof sessionTargetingRules[0], filterType: 'event' | 'trace' | 'session') => {
         router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/${filterType}/${dataFilter.id}/edit`)
     }
 
-    const handleDefaultRuleUpdateSuccess = (collectionMode: 'sample_rate' | 'timeline_only' | 'disable', sampleRate?: number) => {
+    const handleDefaultRuleUpdateSuccess = (collectionMode: 'sampled' | 'timeline' | 'disabled', samplingRate?: number) => {
         if (pageState.editingDefaultRule === 'event' && pageState.eventTargetingRules) {
             const updatedEventRules = {
                 ...pageState.eventTargetingRules,
-                result: {
-                    ...pageState.eventTargetingRules.result,
-                    default: {
-                        ...pageState.eventTargetingRules.result.default,
-                        collection_config: collectionMode === 'sample_rate'
-                            ? { mode: 'sample_rate' as const, sample_rate: sampleRate! }
-                            : collectionMode === 'timeline_only'
-                                ? { mode: 'timeline_only' as const }
-                                : { mode: 'disable' as const }
-                    }
+                default_rule: {
+                    ...pageState.eventTargetingRules.default_rule,
+                    collection_mode: collectionMode,
+                    sampling_rate: samplingRate || 0
                 }
             }
             updatePageState({ eventTargetingRules: updatedEventRules })
         } else if (pageState.editingDefaultRule === 'trace' && pageState.traceTargetingRules) {
             const updatedTraceRules = {
                 ...pageState.traceTargetingRules,
-                result: {
-                    ...pageState.traceTargetingRules.result,
-                    default: {
-                        ...pageState.traceTargetingRules.result.default,
-                        collection_config: collectionMode === 'sample_rate'
-                            ? { mode: 'sample_rate' as const, sample_rate: sampleRate! }
-                            : collectionMode === 'timeline_only'
-                                ? { mode: 'timeline_only' as const }
-                                : { mode: 'disable' as const }
-                    }
+                default_rule: {
+                    ...pageState.traceTargetingRules.default_rule,
+                    collection_mode: collectionMode,
+                    sampling_rate: samplingRate || 0
                 }
             }
             updatePageState({ traceTargetingRules: updatedTraceRules })
@@ -280,7 +268,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <div className="py-2" />
                         {eventsDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(eventsDefaultRule.collection_config, 'event')}
+                                {getCollectionConfigDisplay(eventsDefaultRule.collection_mode, eventsDefaultRule.sampling_rate, 'event')}
                             </div>
                         )}
 
@@ -312,7 +300,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         <div className="py-2" />
                         {traceDefaultRule && (
                             <div className="text-sm font-body text-gray-700">
-                                {getCollectionConfigDisplay(traceDefaultRule.collection_config, 'trace')}
+                                {getCollectionConfigDisplay(traceDefaultRule.collection_mode, traceDefaultRule.sampling_rate, 'trace')}
                             </div>
                         )}
 
@@ -351,15 +339,30 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             : traceDefaultRule.id
                     }
                     appId={pageState.filters.app!.id}
+                    condition={
+                        pageState.editingDefaultRule === 'event'
+                            ? eventsDefaultRule.condition
+                            : traceDefaultRule.condition
+                    }
+                    takeScreenshot={
+                        pageState.editingDefaultRule === 'event'
+                            ? eventsDefaultRule.take_screenshot
+                            : undefined
+                    }
+                    takeLayoutSnapshot={
+                        pageState.editingDefaultRule === 'event'
+                            ? eventsDefaultRule.take_layout_snapshot
+                            : undefined
+                    }
                     initialCollectionMode={
                         pageState.editingDefaultRule === 'event'
-                            ? eventsDefaultRule.collection_config.mode
-                            : traceDefaultRule.collection_config.mode
+                            ? eventsDefaultRule.collection_mode
+                            : traceDefaultRule.collection_mode
                     }
                     initialSampleRate={
                         pageState.editingDefaultRule === 'event'
-                            ? (eventsDefaultRule.collection_config.mode === 'sample_rate' ? eventsDefaultRule.collection_config.sample_rate : undefined)
-                            : (traceDefaultRule.collection_config.mode === 'sample_rate' ? traceDefaultRule.collection_config.sample_rate : undefined)
+                            ? eventsDefaultRule.sampling_rate
+                            : traceDefaultRule.sampling_rate
                     }
                 />
             )}

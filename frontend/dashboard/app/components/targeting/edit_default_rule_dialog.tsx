@@ -5,14 +5,18 @@ import { Button } from '@/app/components/button'
 import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 import { useState, useEffect } from 'react'
 import { DialogDescription } from '@radix-ui/react-dialog'
+import { updateEventTargetingRule, updateTraceTargetingRule, UpdateEventTargetingRuleApiStatus, UpdateTraceTargetingRuleApiStatus } from '@/app/api/api_calls'
 
-type CollectionMode = 'sample_rate' | 'timeline_only' | 'disable'
+type CollectionMode = 'sampled' | 'timeline' | 'disabled'
 
 interface EditDefaultRuleDialogProps {
     isOpen: boolean
     ruleType: 'event' | 'trace'
     ruleId: string
     appId: string
+    condition: string
+    takeScreenshot?: boolean
+    takeLayoutSnapshot?: boolean
     initialCollectionMode: CollectionMode
     initialSampleRate?: number
     onClose: () => void
@@ -28,6 +32,9 @@ export default function EditDefaultRuleDialog({
     ruleType,
     ruleId,
     appId,
+    condition,
+    takeScreenshot,
+    takeLayoutSnapshot,
     initialCollectionMode,
     initialSampleRate
 }: EditDefaultRuleDialogProps) {
@@ -46,18 +53,33 @@ export default function EditDefaultRuleDialog({
         setIsSaving(true)
 
         try {
-            // TODO: Implement actual API call
-            // const result = await updateDefaultTargetingRule(appId, ruleId, {
-            //     collection_config: collectionMode === 'sample_rate'
-            //         ? { mode: 'sample_rate', sample_rate: sampleRate }
-            //         : { mode: collectionMode }
-            // })
+            if (ruleType === 'event') {
+                const result = await updateEventTargetingRule(appId, ruleId, {
+                    condition,
+                    collection_mode: collectionMode,
+                    sampling_rate: collectionMode === 'sampled' ? sampleRate : 0,
+                    take_screenshot: takeScreenshot || false,
+                    take_layout_snapshot: takeLayoutSnapshot || false
+                })
 
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500))
+                if (result.status === UpdateEventTargetingRuleApiStatus.Error) {
+                    onError(result.error || 'Failed to update rule')
+                    return
+                }
+            } else {
+                const result = await updateTraceTargetingRule(appId, ruleId, {
+                    condition,
+                    collection_mode: collectionMode,
+                    sampling_rate: collectionMode === 'sampled' ? sampleRate : 0
+                })
 
-            // For now, always succeed
-            onSuccess(collectionMode, collectionMode === 'sample_rate' ? sampleRate : undefined)
+                if (result.status === UpdateTraceTargetingRuleApiStatus.Error) {
+                    onError(result.error || 'Failed to update rule')
+                    return
+                }
+            }
+
+            onSuccess(collectionMode, collectionMode === 'sampled' ? sampleRate : undefined)
             onClose()
         } catch (error) {
             onError(error instanceof Error ? error.message : 'Failed to update rule')
@@ -77,6 +99,9 @@ export default function EditDefaultRuleDialog({
                     <DialogTitle className="font-display text-2xl">
                         Modify Default {displayName} Behaviour
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Configure collection settings for default {displayNameLower} rule
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
@@ -85,16 +110,16 @@ export default function EditDefaultRuleDialog({
                             <input
                                 type="radio"
                                 name="collectionMode"
-                                value="sample_rate"
-                                checked={collectionMode === 'sample_rate'}
-                                onChange={() => setCollectionMode('sample_rate')}
+                                value="sampled"
+                                checked={collectionMode === 'sampled'}
+                                onChange={() => setCollectionMode('sampled')}
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             <SamplingRateInput
                                 value={sampleRate}
                                 onChange={setSampleRate}
-                                disabled={collectionMode !== 'sample_rate' || isSaving}
+                                disabled={collectionMode !== 'sampled' || isSaving}
                                 type={displayNameLower as 'events' | 'traces'}
                             />
                         </label>
@@ -103,9 +128,9 @@ export default function EditDefaultRuleDialog({
                             <input
                                 type="radio"
                                 name="collectionMode"
-                                value="timeline_only"
-                                checked={collectionMode === 'timeline_only'}
-                                onChange={() => setCollectionMode('timeline_only')}
+                                value="timeline"
+                                checked={collectionMode === 'timeline'}
+                                onChange={() => setCollectionMode('timeline')}
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
@@ -117,8 +142,8 @@ export default function EditDefaultRuleDialog({
                                 type="radio"
                                 name="collectionMode"
                                 value="disable"
-                                checked={collectionMode === 'disable'}
-                                onChange={() => setCollectionMode('disable')}
+                                checked={collectionMode === 'disabled'}
+                                onChange={() => setCollectionMode('disabled')}
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />

@@ -4623,6 +4623,15 @@ func CreateApp(c *gin.Context) {
 
 	app.APIKey = apiKey
 
+	// create default targeting rules
+	// ignore errors as app has already
+	// been created
+	err = CreateDefaultTargetingRules(c, teamId.String(), app.ID.String(), userId)
+	if err != nil {
+		msg := "failed to create session targeting rules for app"
+		fmt.Println(msg, err)
+	}
+
 	c.JSON(http.StatusCreated, app)
 }
 
@@ -6556,7 +6565,7 @@ func GetEventTargetingRules(c *gin.Context) {
 		return
 	}
 
-	rules, err := GetEventTargetingRulesWithFilter(ctx, &af)
+	response, err := GetEventTargetingRulesWithFilter(ctx, &af, team.ID)
 	if err != nil {
 		msg := "failed to get app's event targeting rules"
 		fmt.Println(msg, err)
@@ -6564,9 +6573,7 @@ func GetEventTargetingRules(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": rules,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 func GetTraceTargetingRules(c *gin.Context) {
@@ -6657,7 +6664,7 @@ func GetTraceTargetingRules(c *gin.Context) {
 		return
 	}
 
-	rules, err := GetTraceTargetingRulesWithFilter(ctx, &af)
+	response, err := GetTraceTargetingRulesWithFilter(ctx, &af, team.ID)
 	if err != nil {
 		msg := "failed to get app's trace targeting rules"
 		fmt.Println(msg, err)
@@ -6665,9 +6672,7 @@ func GetTraceTargetingRules(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": rules,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 func GetSessionTargetingRules(c *gin.Context) {
@@ -7478,7 +7483,7 @@ func UpdateEventTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func UpdateTraceTargetingRule(c *gin.Context) {
@@ -7547,7 +7552,7 @@ func UpdateTraceTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func UpdateSessionTargetingRule(c *gin.Context) {
@@ -7616,7 +7621,7 @@ func UpdateSessionTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func DeleteEventTargetingRule(c *gin.Context) {
@@ -7678,7 +7683,7 @@ func DeleteEventTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func DeleteTraceTargetingRule(c *gin.Context) {
@@ -7739,7 +7744,7 @@ func DeleteTraceTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func DeleteSessionTargetingRule(c *gin.Context) {
@@ -7800,7 +7805,7 @@ func DeleteSessionTargetingRule(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
 func DeleteSessionTargetingRules(c *gin.Context) {
@@ -7861,5 +7866,5 @@ func DeleteSessionTargetingRules(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

@@ -15,7 +15,11 @@ interface SessionTargetingRulesTableProps {
 
 export default function SessionTargetingRulesTable({ rules, onRuleClick }: SessionTargetingRulesTableProps) {
     if (rules.length === 0) {
-        return null
+        return (
+            <div className="text-sm font-body text-gray-500">
+                No session timeline rules configured
+            </div>
+        )
     }
 
     return (
@@ -41,7 +45,7 @@ export default function SessionTargetingRulesTable({ rules, onRuleClick }: Sessi
                                 onClick={() => onRuleClick(rule)}
                             >
                                 <TableCell className="w-[52%] p-4">
-                                    <p className='truncate select-none font-mono text-sm'>{rule.rule}</p>
+                                    <p className='truncate select-none font-mono text-sm'>{rule.condition}</p>
                                     <div className='py-1' />
                                     <p className='text-xs truncate text-gray-500 select-none'>{getSamplingRateDisplay(rule.sampling_rate)}</p>
                                 </TableCell>

@@ -4,6 +4,7 @@ import (
 	"backend/api/filter"
 	"backend/api/opsys"
 	"backend/api/server"
+	"backend/api/span"
 	"context"
 	"fmt"
 	"sort"
@@ -23,6 +24,7 @@ type EventTargetingRule struct {
 	TakeScreenshot     bool      `json:"take_screenshot"`
 	TakeLayoutSnapshot bool      `json:"take_layout_snapshot"`
 	SamplingRate       float32   `json:"sampling_rate"`
+	IsDefaultRule      bool      `json:"is_default_rule"`
 	CreatedAt          time.Time `json:"created_at"`
 	CreatedBy          uuid.UUID `json:"-"`
 	CreatedByEmail     string    `json:"created_by"`
@@ -39,6 +41,7 @@ type TraceTargetingRule struct {
 	Condition      string    `json:"condition"`
 	CollectionMode string    `json:"collection_mode"`
 	SamplingRate   float32   `json:"sampling_rate"`
+	IsDefaultRule  bool      `json:"is_default_rule"`
 	CreatedAt      time.Time `json:"created_at"`
 	CreatedBy      uuid.UUID `json:"-"`
 	CreatedByEmail string    `json:"created_by"`
@@ -60,6 +63,16 @@ type SessionTargetingRule struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 	UpdatedBy      uuid.UUID `json:"-"`
 	UpdatedByEmail string    `json:"updated_by"`
+}
+
+type EventTargetingRulesResponse struct {
+	Rules       []EventTargetingRule `json:"rules"`
+	DefaultRule EventTargetingRule   `json:"default_rule"`
+}
+
+type TraceTargetingRulesResponse struct {
+	Rules       []TraceTargetingRule `json:"rules"`
+	DefaultRule TraceTargetingRule   `json:"default_rule"`
 }
 
 // EventConfig part of the
@@ -130,12 +143,14 @@ type EventTargetingRulePayload struct {
 	TakeScreenshot     bool    `json:"take_screenshot"`
 	TakeLayoutSnapshot bool    `json:"take_layout_snapshot"`
 	SamplingRate       float32 `json:"sampling_rate"`
+	IsDefaultRule      bool    `json:"is_default_rule"`
 }
 
 type TraceTargetingRulePayload struct {
 	Condition      string  `json:"condition"`
 	CollectionMode string  `json:"collection_mode"`
 	SamplingRate   float32 `json:"sampling_rate"`
+	IsDefaultRule  bool    `json:"is_default_rule"`
 }
 
 type SessionTargetingRulePayload struct {
@@ -145,7 +160,7 @@ type SessionTargetingRulePayload struct {
 
 // GetEventTargetingRules provides all
 // event targeting rules.
-func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (rules []EventTargetingRule, err error) {
+func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter, teamId *uuid.UUID) (response EventTargetingRulesResponse, err error) {
 	stmt := sqlf.PostgreSQL.From("event_targeting_rules").
 		Select("id").
 		Select("team_id").
@@ -154,6 +169,8 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 		Select("collection_mode").
 		Select("take_screenshot").
 		Select("take_layout_snapshot").
+		Select("sampling_rate").
+		Select("is_default_rule").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
@@ -166,10 +183,11 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	defer rows.Close()
 
+	var allRules []EventTargetingRule
 	for rows.Next() {
 		var rule EventTargetingRule
 		if err := rows.Scan(
@@ -180,33 +198,51 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 			&rule.CollectionMode,
 			&rule.TakeScreenshot,
 			&rule.TakeLayoutSnapshot,
+			&rule.SamplingRate,
+			&rule.IsDefaultRule,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
 			&rule.UpdatedBy,
 		); err != nil {
-			return nil, err
+			return response, err
 		}
-		rules = append(rules, rule)
+		allRules = append(allRules, rule)
 	}
 
 	// Populate user emails for all rules
-	if err := populateUserEmailsForEventRules(ctx, rules); err != nil {
-		return nil, err
+	if err := populateUserEmailsForEventRules(ctx, allRules); err != nil {
+		return response, err
 	}
 
-	return rules, nil
+	// Separate default rule from regular rules
+	var rules []EventTargetingRule
+	var defaultRule EventTargetingRule
+	for _, rule := range allRules {
+		if rule.IsDefaultRule {
+			defaultRule = rule
+		} else {
+			rules = append(rules, rule)
+		}
+	}
+
+	response.Rules = rules
+	response.DefaultRule = defaultRule
+
+	return response, nil
 }
 
 // GetTraceTargetingRulesWithFilter provides all
 // trace targeting rules.
-func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (rules []TraceTargetingRule, err error) {
+func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter, teamId *uuid.UUID) (response TraceTargetingRulesResponse, err error) {
 	stmt := sqlf.PostgreSQL.From("trace_targeting_rules").
 		Select("id").
 		Select("team_id").
 		Select("app_id").
 		Select("condition").
 		Select("collection_mode").
+		Select("sampling_rate").
+		Select("is_default_rule").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
@@ -219,10 +255,11 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	defer rows.Close()
 
+	var allRules []TraceTargetingRule
 	for rows.Next() {
 		var rule TraceTargetingRule
 		if err := rows.Scan(
@@ -231,22 +268,38 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter)
 			&rule.AppId,
 			&rule.Condition,
 			&rule.CollectionMode,
+			&rule.SamplingRate,
+			&rule.IsDefaultRule,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
 			&rule.UpdatedBy,
 		); err != nil {
-			return nil, err
+			return response, err
 		}
-		rules = append(rules, rule)
+		allRules = append(allRules, rule)
 	}
 
 	// Populate user emails for all rules
-	if err := populateUserEmailsForTraceRules(ctx, rules); err != nil {
-		return nil, err
+	if err := populateUserEmailsForTraceRules(ctx, allRules); err != nil {
+		return response, err
 	}
 
-	return rules, nil
+	// Separate default rule from regular rules
+	var rules []TraceTargetingRule
+	var defaultRule TraceTargetingRule
+	for _, rule := range allRules {
+		if rule.IsDefaultRule {
+			defaultRule = rule
+		} else {
+			rules = append(rules, rule)
+		}
+	}
+
+	response.Rules = rules
+	response.DefaultRule = defaultRule
+
+	return response, nil
 }
 
 // GetSessionTargetingRulesWithFilter provides all
@@ -303,6 +356,11 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 // GetEventTargetingRuleWithFilter queries a single
 // event targeting rule by its id.
 func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId string) (rule *EventTargetingRule, err error) {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.From("event_targeting_rules").
 		Select("id").
 		Select("team_id").
@@ -312,12 +370,13 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("take_screenshot").
 		Select("take_layout_snapshot").
 		Select("sampling_rate").
+		Select("is_default_rule").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -333,6 +392,7 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.TakeScreenshot,
 		&r.TakeLayoutSnapshot,
 		&r.SamplingRate,
+		&r.IsDefaultRule,
 		&r.CreatedAt,
 		&r.CreatedBy,
 		&r.UpdatedAt,
@@ -353,6 +413,11 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 // GetTraceTargetingRuleById queries a single
 // trace targeting rule by its id.
 func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId string) (rule *TraceTargetingRule, err error) {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.From("trace_targeting_rules").
 		Select("id").
 		Select("team_id").
@@ -360,12 +425,13 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("condition").
 		Select("collection_mode").
 		Select("sampling_rate").
+		Select("is_default_rule").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -379,6 +445,7 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.Condition,
 		&r.CollectionMode,
 		&r.SamplingRate,
+		&r.IsDefaultRule,
 		&r.CreatedAt,
 		&r.CreatedBy,
 		&r.UpdatedAt,
@@ -399,6 +466,11 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 // GetSessionTargetingRuleById queries a single
 // trace targeting rule by its id.
 func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId string) (rule *SessionTargetingRule, err error) {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.From("session_targeting_rules").
 		Select("id").
 		Select("team_id").
@@ -410,7 +482,7 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 		Select("updated_at").
 		Select("updated_by").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -466,7 +538,7 @@ func GetTraceTargetingConfig(ctx context.Context, appId uuid.UUID, osName string
 		return TraceTargetingConfig{}, err
 	}
 
-	traces, err := getTraceNames(ctx, appId)
+	traces, err := span.FetchRootSpanNames(ctx, appId)
 	if err != nil {
 		return TraceTargetingConfig{}, err
 	}
@@ -499,7 +571,7 @@ func GetSessionTargetingConfig(ctx context.Context, appId uuid.UUID, osName stri
 	if err != nil {
 		return SessionTargetingConfig{}, err
 	}
-	traces, err := getTraceNames(ctx, appId)
+	traces, err := span.FetchRootSpanNames(ctx, appId)
 	if err != nil {
 		return SessionTargetingConfig{}, err
 	}
@@ -556,6 +628,16 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		return uuid.Nil, fmt.Errorf("only one of take_screenshot and take_layout_snapshot can be true")
 	}
 
+	if payload.IsDefaultRule {
+		if payload.TakeScreenshot {
+			return uuid.Nil, fmt.Errorf("take_screenshot must be false for default rule")
+		}
+
+		if payload.TakeLayoutSnapshot {
+			return uuid.Nil, fmt.Errorf("take_layout_snapshot must be false for default rule")
+		}
+	}
+
 	stmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules").
 		Set("id", ruleId).
 		Set("team_id", teamId).
@@ -580,9 +662,18 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 }
 
 func UpdateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string, payload EventTargetingRulePayload, updatedBy string) error {
+	if appId == uuid.Nil {
+		return fmt.Errorf("appId cannot be nil")
+	}
+
 	updatedByUUID, err := uuid.Parse(updatedBy)
 	if err != nil {
 		return fmt.Errorf("invalid updatedBy UUID: %w", err)
+	}
+
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
 	}
 
 	stmt := sqlf.PostgreSQL.Update("event_targeting_rules").
@@ -594,7 +685,7 @@ func UpdateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 		Set("updated_at", time.Now()).
 		Set("updated_by", updatedByUUID).
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -661,9 +752,18 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 }
 
 func UpdateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string, payload TraceTargetingRulePayload, updatedBy string) error {
+	if appId == uuid.Nil {
+		return fmt.Errorf("appId cannot be nil")
+	}
+
 	updatedByUUID, err := uuid.Parse(updatedBy)
 	if err != nil {
 		return fmt.Errorf("invalid updatedBy UUID: %w", err)
+	}
+
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
 	}
 
 	stmt := sqlf.PostgreSQL.Update("trace_targeting_rules").
@@ -673,7 +773,7 @@ func UpdateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 		Set("updated_at", time.Now()).
 		Set("updated_by", updatedByUUID).
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -734,13 +834,18 @@ func UpdateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 		return fmt.Errorf("invalid updatedBy UUID: %w", err)
 	}
 
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.Update("session_targeting_rules").
 		Set("condition", payload.Condition).
 		Set("sampling_rate", payload.SamplingRate).
 		Set("updated_at", time.Now()).
 		Set("updated_by", updatedByUUID).
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 
 	defer stmt.Close()
 
@@ -757,9 +862,14 @@ func UpdateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 }
 
 func DeleteEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.DeleteFrom("event_targeting_rules").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 	defer stmt.Close()
 	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -772,9 +882,14 @@ func DeleteEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 }
 
 func DeleteTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.DeleteFrom("trace_targeting_rules").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 	defer stmt.Close()
 	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -787,9 +902,14 @@ func DeleteTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 }
 
 func DeleteSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId string) error {
+	ruleUUID, err := uuid.Parse(ruleId)
+	if err != nil {
+		return fmt.Errorf("invalid ruleId UUID: %w", err)
+	}
+
 	stmt := sqlf.PostgreSQL.DeleteFrom("session_targeting_rules").
 		Where("app_id = ?", appId).
-		Where("id = toUUID(?)", ruleId)
+		Where("id = ?", ruleUUID)
 	defer stmt.Close()
 	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -801,40 +921,87 @@ func DeleteSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 	return nil
 }
 
-// getTraceNames returns list of root span names for a given app id
-func getTraceNames(ctx context.Context, appId uuid.UUID) (traceNames []string, err error) {
-	stmt := sqlf.
-		Select("distinct toString(span_name)").
-		From("spans").
-		Where("app_id = ?", appId).
-		Where("parent_id = ''").
-		OrderBy("start_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+func CreateDefaultTargetingRules(ctx context.Context, teamId string, appId string, createdBy string) error {
+	teamUUID, err := uuid.Parse(teamId)
 	if err != nil {
-		return
+		return fmt.Errorf("invalid teamId: %w", err)
 	}
 
-	for rows.Next() {
-		var traceName string
-
-		if err = rows.Scan(&traceName); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if err = rows.Err(); err != nil {
-			return
-		}
-
-		traceNames = append(traceNames, traceName)
+	appUUID, err := uuid.Parse(appId)
+	if err != nil {
+		return fmt.Errorf("invalid appId: %w", err)
 	}
 
-	err = rows.Err()
-	return
+	createdByUUID, err := uuid.Parse(createdBy)
+	if err != nil {
+		return fmt.Errorf("invalid createdBy UUID: %w", err)
+	}
 
+	now := time.Now()
+
+	// Create default event targeting rule
+	eventRuleId := uuid.New()
+	eventPayload := EventTargetingRulePayload{
+		Condition:          "event_type == \"*\"",
+		CollectionMode:     "timeline",
+		TakeScreenshot:     false,
+		TakeLayoutSnapshot: false,
+		SamplingRate:       0,
+		IsDefaultRule:      true,
+	}
+
+	eventStmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules").
+		Set("id", eventRuleId).
+		Set("team_id", teamUUID).
+		Set("app_id", appUUID).
+		Set("condition", eventPayload.Condition).
+		Set("collection_mode", eventPayload.CollectionMode).
+		Set("take_screenshot", eventPayload.TakeScreenshot).
+		Set("take_layout_snapshot", eventPayload.TakeLayoutSnapshot).
+		Set("sampling_rate", eventPayload.SamplingRate).
+		Set("is_default_rule", eventPayload.IsDefaultRule).
+		Set("created_at", now).
+		Set("created_by", createdByUUID).
+		Set("updated_at", now).
+		Set("updated_by", createdByUUID)
+
+	defer eventStmt.Close()
+
+	_, err = server.Server.PgPool.Exec(ctx, eventStmt.String(), eventStmt.Args()...)
+	if err != nil {
+		return fmt.Errorf("failed to create default event targeting rule: %w", err)
+	}
+
+	// Create default trace targeting rule
+	traceRuleId := uuid.New()
+	tracePayload := TraceTargetingRulePayload{
+		Condition:      "span.name == \"*\"",
+		CollectionMode: "timeline",
+		SamplingRate:   0,
+		IsDefaultRule:  true,
+	}
+
+	traceStmt := sqlf.PostgreSQL.InsertInto("trace_targeting_rules").
+		Set("id", traceRuleId).
+		Set("team_id", teamUUID).
+		Set("app_id", appUUID).
+		Set("condition", tracePayload.Condition).
+		Set("collection_mode", tracePayload.CollectionMode).
+		Set("sampling_rate", tracePayload.SamplingRate).
+		Set("is_default_rule", tracePayload.IsDefaultRule).
+		Set("created_at", now).
+		Set("created_by", createdByUUID).
+		Set("updated_at", now).
+		Set("updated_by", createdByUUID)
+
+	defer traceStmt.Close()
+
+	_, err = server.Server.PgPool.Exec(ctx, traceStmt.String(), traceStmt.Args()...)
+	if err != nil {
+		return fmt.Errorf("failed to create default trace targeting rule: %w", err)
+	}
+
+	return nil
 }
 
 func getEventUDAttrKeys(ctx context.Context, appId uuid.UUID) (attributes []AttrConfig, err error) {

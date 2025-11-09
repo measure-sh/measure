@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation'
-import EventTraceRuleBuilder from '@/app/components/targeting/event_trace_rule_builder'
+import TraceRuleBuilder from '@/app/components/targeting/trace_rule_builder'
 
 export default function CreateTraceRule({ params }: { params: { teamId: string, appId: string } }) {
     const router = useRouter()
@@ -16,8 +16,7 @@ export default function CreateTraceRule({ params }: { params: { teamId: string, 
     }
 
     return (
-        <EventTraceRuleBuilder
-            type="trace"
+        <TraceRuleBuilder
             mode="create"
             appId={params.appId}
             onCancel={handleCancel}

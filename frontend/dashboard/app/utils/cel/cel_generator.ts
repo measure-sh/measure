@@ -302,6 +302,38 @@ function wrapConditionGroups(conditionGroups: string[]): string {
 }
 
 /**
+ * Converts a single EventCondition into a CEL expression string.
+ * This is a simpler version for when you only have one event condition.
+ * Example output: '(event_type == "anr" && exception.handled == false)'
+ */
+export function eventConditionToCel(condition: EventCondition): string | null {
+  const parts = buildEventConditionParts(condition)
+
+  if (parts.length === 0) {
+    return null
+  }
+
+  const combined = combineConditionParts(parts)
+  return `(${combined})`
+}
+
+/**
+ * Converts a single TraceCondition into a CEL expression string.
+ * This is a simpler version for when you only have one trace condition.
+ * Example output: '(span_name.contains("HTTP") && trace.user_defined_attrs.is_critical == true)'
+ */
+export function traceConditionToCel(condition: TraceCondition): string | null {
+  const parts = buildTraceConditionParts(condition)
+
+  if (parts.length === 0) {
+    return null
+  }
+
+  const combined = combineConditionParts(parts)
+  return `(${combined})`
+}
+
+/**
  * Converts a structured `ParsedConditions` object into a final CEL expression string.
  * This is the main entry point for the CEL generation logic.
  */

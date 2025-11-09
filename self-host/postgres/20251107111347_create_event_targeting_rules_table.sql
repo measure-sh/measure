@@ -8,6 +8,7 @@ create table if not exists measure.event_targeting_rules (
     collection_mode text not null,
     take_screenshot boolean not null default false,
     take_layout_snapshot boolean not null default false,
+    is_default_rule boolean not null default false,
     created_at timestamptz not null default now(),
     created_by uuid not null,
     updated_at timestamptz not null default now(),
@@ -21,6 +22,7 @@ comment on column measure.event_targeting_rules.id is 'id of the rule';
 comment on column measure.event_targeting_rules.sampling_rate is 'the percentage sampling rate applied';
 comment on column measure.event_targeting_rules.condition is 'the condition represented as a CEL expression';
 comment on column measure.event_targeting_rules.collection_mode is 'the collection mode for the event (e.g., "sampled", "session_timeline", "none")';
+comment on column measure.event_targeting_rules.is_default_rule is 'whether this is the default rule';
 comment on column measure.event_targeting_rules.take_screenshot is 'whether to take a screenshot for the event';
 comment on column measure.event_targeting_rules.take_layout_snapshot is 'whether to take a layout snapshot for the event';
 comment on column measure.event_targeting_rules.created_at is 'utc timestamp at the time of rule creation';
