@@ -4,7 +4,7 @@ import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServ
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
-import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
+import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import LoadingSpinner from "@/app/components/loading_spinner"
@@ -18,7 +18,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
 
-  const [appRetentionPeriodConfirmationModalOpen, setAppRetentionPeriodConfirmationModalOpen] = useState(false)
+  const [appRetentionPeriodConfirmationDialogOpen, setAppRetentionPeriodConfirmationDialogOpen] = useState(false)
   const [fetchAppSettingsApiStatus, setFetchAppSettingsApiStatus] = useState(FetchAppSettingsApiStatus.Loading)
   const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
   const [appSettings, setAppSettings] = useState(emptyAppSettings)
@@ -26,7 +26,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
-  const [appNameConfirmationModalOpen, setAppNameConfirmationModalOpen] = useState(false)
+  const [appNameConfirmationDialogOpen, setAppNameConfirmationDialogOpen] = useState(false)
   const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init)
   const [appName, setAppName] = useState('')
 
@@ -186,22 +186,22 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       {/* Main UI*/}
       {filters.ready &&
         <div>
-          {/* Modal for confirming app name change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming app name change */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setAppNameConfirmationModalOpen(false)
+              setAppNameConfirmationDialogOpen(false)
               changeAppName()
             }}
-            onCancelAction={() => setAppNameConfirmationModalOpen(false)}
+            onCancelAction={() => setAppNameConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming app retention period change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to change the retention period for app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{updatedAppSettings.retention_period} days</span>? <br /> <br /> This change only affects new sessions, current sessions will retain their original retention period.</p>} open={appRetentionPeriodConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming app retention period change */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to change the retention period for app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{updatedAppSettings.retention_period} days</span>? <br /> <br /> This change only affects new sessions, current sessions will retain their original retention period.</p>} open={appRetentionPeriodConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setAppRetentionPeriodConfirmationModalOpen(false)
+              setAppRetentionPeriodConfirmationDialogOpen(false)
               saveAppSettings()
             }}
-            onCancelAction={() => setAppRetentionPeriodConfirmationModalOpen(false)}
+            onCancelAction={() => setAppRetentionPeriodConfirmationDialogOpen(false)}
           />
 
           <div className="font-body">
@@ -257,7 +257,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   className="m-4 font-display border border-black select-none"
                   disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
                   loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
-                  onClick={() => setAppRetentionPeriodConfirmationModalOpen(true)}>
+                  onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
                   Save
                 </Button>
               }
@@ -277,7 +277,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                 className="m-4 font-display border border-black select-none"
                 loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
-                onClick={() => setAppNameConfirmationModalOpen(true)}>
+                onClick={() => setAppNameConfirmationDialogOpen(true)}>
                 Save
               </Button>
             </div>
