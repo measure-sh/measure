@@ -494,7 +494,7 @@ export default function EventRuleBuilder({
                                         key={attr.id}
                                         attr={attr}
                                         conditionId={condition.id}
-                                        attrType="attrs"
+                                        attrType="session_attrs"
                                         attrKeys={getCombinedAttrKeys()}
                                         operatorTypesMapping={apiState.config?.operator_types}
                                         getOperatorsForType={getOperatorsForType}
