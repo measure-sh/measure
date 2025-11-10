@@ -137,6 +137,7 @@ func main() {
 		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/slack", measure.GetTeamSlack)
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
+		teams.POST(":id/slack/test", measure.SendTestSlackAlert)
 	}
 
 	slack := r.Group("/slack")

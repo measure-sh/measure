@@ -1,8 +1,9 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, UpdateTeamSlackStatusApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, updateTeamSlackStatusFromServer } from "@/app/api/api_calls"
+import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, TestSlackAlertApiStatus, UpdateTeamSlackStatusApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, sendTestSlackAlertFromServer, updateTeamSlackStatusFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
+import ConfirmationDialog from "@/app/components/confirmation_dialog"
 import CreateTeam from "@/app/components/create_team"
 import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
@@ -64,9 +65,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [fetchTeamSlackConnectUrlApiStatus, setFetchTeamSlackConnectUrlApiStatus] = useState(FetchTeamSlackConnectUrlApiStatus.Init)
   const [fetchTeamSlackStatusApiStatus, setFetchTeamSlackStatusApiStatus] = useState(FetchTeamSlackStatusApiStatus.Init)
   const [updateTeamSlackStatusApiStatus, setUpdateTeamSlackStatusApiStatus] = useState(UpdateTeamSlackStatusApiStatus.Init)
+  const [testSlackAlertApiStatus, setTestSlackAlertApiStatus] = useState(TestSlackAlertApiStatus.Init)
   const [teamSlackConnectUrl, setTeamSlackConnectUrl] = useState<string | null>(null)
   const [teamSlack, setTeamSlack] = useState<{ slack_team_name: string, is_active: boolean } | null>(null)
   const [disableSlackConfirmationModalOpen, setDisableSlackConfirmationModalOpen] = useState(false)
+  const [testSlackAlertConfirmationModalOpen, setTestSlackAlertConfirmationModalOpen] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -325,6 +328,28 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
+  const testSlackAlert = async () => {
+    setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Loading)
+
+    const result = await sendTestSlackAlertFromServer(params.teamId)
+
+    switch (result.status) {
+      case TestSlackAlertApiStatus.Error:
+        setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Error)
+        toastNegative(
+          `Error sending test Slack alerts`,
+          result.error
+        )
+        break
+      case TestSlackAlertApiStatus.Success:
+        setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Success)
+        toastPositive(
+          `Slack integration test alert sent successfully`
+        )
+        break
+    }
+  }
+
   const inviteMember = async () => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
@@ -431,6 +456,15 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               updateSlackStatus(false)
             }}
             onCancelAction={() => setDisableSlackConfirmationModalOpen(false)}
+          />
+
+          {/* Dialog for confirming test slack alert */}
+          <ConfirmationDialog body={<p className="font-body">Are you sure you want to send test alert notifications?<br /><br /> This will send test messages to all subscribed alert channels in Slack. </p>} open={testSlackAlertConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setTestSlackAlertConfirmationModalOpen(false)
+              testSlackAlert()
+            }}
+            onCancelAction={() => setTestSlackAlertConfirmationModalOpen(false)}
           />
 
           <div className="py-6" />
@@ -622,21 +656,37 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* slack connected, show switch */}
           {fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Success && fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Success && teamSlack !== null &&
-            <div className="flex flex-row w-full items-center justify-between">
-              <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
-              <Switch
-                className={"data-[state=checked]:bg-emerald-500"}
-                disabled={updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
-                checked={teamSlack.is_active}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    updateSlackStatus(true)
-                  } else {
-                    setDisableSlackConfirmationModalOpen(true)
-                  }
-                }}
-              />
-            </div>}
+            <div className="flex flex-col w-full">
+              <div className="flex flex-row w-full items-center justify-between">
+                <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
+                <Switch
+                  className={"data-[state=checked]:bg-emerald-500"}
+                  disabled={updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
+                  checked={teamSlack.is_active}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      updateSlackStatus(true)
+                    } else {
+                      setDisableSlackConfirmationModalOpen(true)
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="py-4" />
+
+              <Button
+                variant="outline"
+                className="font-display border border-black select-none w-fit"
+                disabled={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading || teamSlack.is_active === false}
+                loading={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading}
+                onClick={() => setTestSlackAlertConfirmationModalOpen(true)}
+              >
+                Send Test Alert
+              </Button>
+
+            </div>
+          }
 
           <div className="py-8" />
           <p className="font-display text-xl max-w-6xl text-center">Change team name</p>
