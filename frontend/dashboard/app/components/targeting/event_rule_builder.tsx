@@ -43,6 +43,33 @@ interface EventRuleState {
     take_screenshot: boolean
 }
 
+const createEventConditionFromConfig = (eventConfig: EventTargetingConfigResponse['events'][number]): EventCondition => {
+    const attrs = (eventConfig.attrs || []).map((attr) => ({
+        id: `${crypto.randomUUID()}`,
+        key: attr.key,
+        type: attr.type,
+        value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
+        hint: attr.hint,
+        operator: 'eq',
+    }))
+
+    return {
+        id: `${crypto.randomUUID()}`,
+        type: eventConfig.type,
+        attrs,
+        ud_attrs: [],
+        session_attrs: [],
+    }
+}
+
+const createDefaultEventCondition = (config: EventTargetingConfigResponse): EventCondition => {
+    const firstEventConfig = config.events[0]
+    if (!firstEventConfig) {
+        return { id: crypto.randomUUID(), type: '', attrs: [], ud_attrs: [], session_attrs: [] }
+    }
+    return createEventConditionFromConfig(firstEventConfig)
+}
+
 export default function EventRuleBuilder({
     mode,
     appId,
@@ -66,19 +93,54 @@ export default function EventRuleBuilder({
     const [ruleState, setRuleState] = useState<EventRuleState | null>(null)
     const [initialRuleState, setInitialRuleState] = useState<EventRuleState | null>(null)
 
-
     const convertToEventRuleState = useCallback(
-        (ruleData: EventTargetingRule | null, configData: EventTargetingConfigResponse): EventRuleState => {
+        (ruleData: EventTargetingRule | null, configData: EventTargetingConfigResponse): EventRuleState | null => { // <--- Update return type
             if (ruleData) {
+                // Edit Mode
                 const parsed = celToConditions(ruleData.condition)
-                const eventCondition = parsed.event?.conditions[0] || createDefaultEventCondition(configData)
+                const parsedCondition = parsed.event?.conditions[0]
+
+                // Fallback if parsing fails
+                if (!parsedCondition) {
+                    return null
+                }
+
+                // Find the config for the event type from the parsed condition
+                const eventConfig = configData.events.find(e => e.type === parsedCondition.type)
+
+                // If event type from rule is no longer valid, fallback
+                if (!eventConfig) {
+                    return null
+                }
+
+                // Create the condition for this event type
+                const templateCondition = createEventConditionFromConfig(eventConfig)
+
+                // Merge the parsed data
+                const mergedAttrs = templateCondition.attrs.map(templateAttr => {
+                    const parsedAttr = parsedCondition.attrs.find(pAttr => pAttr.key === templateAttr.key)
+                    if (parsedAttr) {
+                        return { ...templateAttr, id: parsedAttr.id || templateAttr.id, value: parsedAttr.value, operator: parsedAttr.operator }
+                    }
+                    return templateAttr
+                })
+
+                const finalCondition: EventCondition = {
+                    id: parsedCondition.id || templateCondition.id,
+                    type: parsedCondition.type,
+                    attrs: mergedAttrs,
+                    ud_attrs: parsedCondition.ud_attrs,
+                    session_attrs: parsedCondition.session_attrs,
+                }
+
                 return {
-                    condition: eventCondition,
+                    condition: finalCondition,
                     collectionMode: ruleData.collection_mode,
                     sampleRate: ruleData.sampling_rate,
                     take_layout_snapshot: ruleData.take_layout_snapshot,
                     take_screenshot: ruleData.take_screenshot,
                 }
+
             } else {
                 return {
                     condition: createDefaultEventCondition(configData),
@@ -89,19 +151,8 @@ export default function EventRuleBuilder({
                 }
             }
         },
-        []
+        [createEventConditionFromConfig, createDefaultEventCondition] // Add dependencies
     )
-
-    const createDefaultEventCondition = (config: EventTargetingConfigResponse): EventCondition => {
-        const firstEventConfig = config.events[0]
-        return {
-            id: `${crypto.randomUUID()}`,
-            type: firstEventConfig.type,
-            attrs: [],
-            ud_attrs: [],
-            session_attrs: [],
-        }
-    }
 
     const fetchPageData = useCallback(async () => {
         setApiState(prev => ({
@@ -141,6 +192,18 @@ export default function EventRuleBuilder({
             }
 
             const initial = convertToEventRuleState(ruleData, configResult.data)
+
+            if (!initial) {
+                // Parsing failed, set the rule status to Error
+                setApiState({
+                    ruleStatus: EventTargetingRuleApiStatus.Error,
+                    configStatus: EventTargetingConfigApiStatus.Success,
+                    ruleData: null,
+                    config: configResult.data,
+                })
+                toastNegative("Failed to load rule. Please try again later")
+                return
+            }
 
             setApiState({
                 ruleStatus: ruleApiStatus,
