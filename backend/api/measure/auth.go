@@ -74,7 +74,7 @@ func ValidateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := extractToken(c)
 
-		appId, err := DecodeAPIKey(key)
+		appId, err := DecodeAPIKey(c, key)
 		if err != nil {
 			fmt.Println("api key decode failed:", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
