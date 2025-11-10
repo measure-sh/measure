@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
+### :hammer: Misc
+
+- (**backend**): Stop Slack channel removal on `channel_not_found` by @anupcowkur in #2900
+
 ## [0.9.2] - 2025-10-30
 
 ### :bug: Bug fixes
