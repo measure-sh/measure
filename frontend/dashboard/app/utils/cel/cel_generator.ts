@@ -7,7 +7,14 @@
  * evaluation.
  */
 
-import { EventCondition, AttributeCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "./conditions"
+import {
+  EventCondition,
+  AttributeCondition,
+  TraceCondition,
+  EventConditions,
+  SessionConditions,
+  TraceConditions
+} from "./conditions"
 import { ParsedConditions } from "./cel_parser"
 
 const OPERATOR_MAPPINGS = {
@@ -47,13 +54,17 @@ function createEventTypeCondition(eventType: string): string {
  */
 function createEventAttributeCondition(
   attribute: {
-    key: string;
-    type: string;
-    value: string | boolean | number;
+    key: string
+    type: string
+    value: string | boolean | number
     operator?: string
   },
   eventType: string
-): string {
+): string | null {
+  if (attribute.value === '' || attribute.value === undefined || attribute.value === null) {
+    return null
+  }
+
   const operator = OPERATOR_MAPPINGS[attribute.operator as keyof typeof OPERATOR_MAPPINGS] || '=='
   const formattedValue = formatValueForCel(attribute.value, attribute.type)
   const fullKey = `${eventType}.${attribute.key}`
@@ -70,11 +81,15 @@ function createEventAttributeCondition(
  * Example output: 'event.user_defined_attrs.is_premium == true'
  */
 function createUserDefinedEventAttributeCondition(attribute: {
-  key: string;
-  type: string;
-  value: string | boolean | number;
+  key: string
+  type: string
+  value: string | boolean | number
   operator?: string
-}): string {
+}): string | null {
+  if (attribute.value === '' || attribute.value === undefined || attribute.value === null) {
+    return null
+  }
+
   const operator = OPERATOR_MAPPINGS[attribute.operator as keyof typeof OPERATOR_MAPPINGS] || '=='
   const formattedValue = formatValueForCel(attribute.value, attribute.type)
   const fullKey = `event.user_defined_attrs.${attribute.key}`
@@ -91,11 +106,15 @@ function createUserDefinedEventAttributeCondition(attribute: {
  * Example output: 'attribute.session_duration > 300'
  */
 function createSessionAttributeCondition(attribute: {
-  key: string;
-  type: string;
-  value: string | boolean | number;
+  key: string
+  type: string
+  value: string | boolean | number
   operator?: string
-}): string {
+}): string | null {
+  if (attribute.value === '' || attribute.value === undefined || attribute.value === null) {
+    return null
+  }
+
   const operator = OPERATOR_MAPPINGS[attribute.operator as keyof typeof OPERATOR_MAPPINGS] || '=='
   const formattedValue = formatValueForCel(attribute.value, attribute.type)
 
@@ -126,11 +145,15 @@ function createSpanNameCondition(spanName: string, operator: string): string {
  * Example output: 'trace.user_defined_attrs.is_critical == true'
  */
 function createSpanUserDefinedAttributeCondition(attribute: {
-  key: string;
-  type: string;
-  value: string | boolean | number;
+  key: string
+  type: string
+  value: string | boolean | number
   operator?: string
-}): string {
+}): string | null {
+  if (attribute.value === '' || attribute.value === undefined || attribute.value === null) {
+    return null
+  }
+
   const operator = OPERATOR_MAPPINGS[attribute.operator as keyof typeof OPERATOR_MAPPINGS] || '=='
   const formattedValue = formatValueForCel(attribute.value, attribute.type)
   const fullKey = `trace.user_defined_attrs.${attribute.key}`
@@ -154,17 +177,20 @@ function buildEventConditionParts(condition: EventCondition): string[] {
     parts.push(createEventTypeCondition(condition.type))
   }
 
-  condition.attrs?.forEach(attr =>
-    parts.push(createEventAttributeCondition(attr, condition.type))
-  )
+  condition.attrs?.forEach(attr => {
+    const expr = createEventAttributeCondition(attr, condition.type)
+    if (expr) parts.push(expr)
+  })
 
-  condition.ud_attrs?.forEach(attr =>
-    parts.push(createUserDefinedEventAttributeCondition(attr))
-  )
+  condition.ud_attrs?.forEach(attr => {
+    const expr = createUserDefinedEventAttributeCondition(attr)
+    if (expr) parts.push(expr)
+  })
 
-  condition.session_attrs?.forEach(attr =>
-    parts.push(createSessionAttributeCondition(attr))
-  )
+  condition.session_attrs?.forEach(attr => {
+    const expr = createSessionAttributeCondition(attr)
+    if (expr) parts.push(expr)
+  })
 
   return parts
 }
@@ -175,7 +201,11 @@ function buildEventConditionParts(condition: EventCondition): string[] {
  * Example output: ['attribute.session_duration > 300', 'attribute.user_country == "US"']
  */
 function buildSessionConditionParts(condition: AttributeCondition): string[] {
-  return condition.attrs?.map(createSessionAttributeCondition) || []
+  return (
+    condition.attrs
+      ?.map(createSessionAttributeCondition)
+      .filter((expr): expr is string => Boolean(expr)) || []
+  )
 }
 
 /**
@@ -190,13 +220,15 @@ function buildTraceConditionParts(condition: TraceCondition): string[] {
     parts.push(createSpanNameCondition(condition.spanName, condition.operator))
   }
 
-  condition.ud_attrs?.forEach(attr =>
-    parts.push(createSpanUserDefinedAttributeCondition(attr))
-  )
+  condition.ud_attrs?.forEach(attr => {
+    const expr = createSpanUserDefinedAttributeCondition(attr)
+    if (expr) parts.push(expr)
+  })
 
-  condition.session_attrs?.forEach(attr =>
-    parts.push(createSessionAttributeCondition(attr))
-  )
+  condition.session_attrs?.forEach(attr => {
+    const expr = createSessionAttributeCondition(attr)
+    if (expr) parts.push(expr)
+  })
 
   return parts
 }
@@ -235,8 +267,6 @@ function combineConditionsWithLogicalOperators(
 
 /**
  * High-level processor for all event conditions.
- * It builds, combines, and links all event conditions into a single CEL string.
- * Example output: '(event_type == "anr" && exception.handled == false) || (event_type == "crash")'
  */
 function processEventConditions(eventConditions: EventConditions | undefined): string | null {
   if (!eventConditions?.conditions?.length) return null
@@ -253,8 +283,6 @@ function processEventConditions(eventConditions: EventConditions | undefined): s
 
 /**
  * High-level processor for all session conditions.
- * It builds, combines, and links all session conditions into a single CEL string.
- * Example output: '(attribute.session_duration > 300) && (attribute.user_country == "US")'
  */
 function processSessionConditions(sessionConditions: SessionConditions | undefined): string | null {
   if (!sessionConditions?.conditions?.length) return null
@@ -271,7 +299,6 @@ function processSessionConditions(sessionConditions: SessionConditions | undefin
 
 /**
  * High-level processor for all trace conditions.
- * Example output: '(span_name.contains("HTTP")) || (trace.user_defined_attrs.is_critical == true)'
  */
 function processTraceConditions(traceConditions: TraceConditions | undefined): string | null {
   if (!traceConditions?.conditions?.length) return null
@@ -288,11 +315,9 @@ function processTraceConditions(traceConditions: TraceConditions | undefined): s
 
 /**
  * Wraps and joins the final event, session, and trace CEL groups with AND (`&&`).
- * Each group is individually wrapped in parentheses.
  */
 function wrapConditionGroups(conditionGroups: string[]): string {
   if (conditionGroups.length === 0) return ''
-
   if (conditionGroups.length === 1) {
     return `(${conditionGroups[0]})`
   }
@@ -303,15 +328,10 @@ function wrapConditionGroups(conditionGroups: string[]): string {
 
 /**
  * Converts a single EventCondition into a CEL expression string.
- * This is a simpler version for when you only have one event condition.
- * Example output: '(event_type == "anr" && exception.handled == false)'
  */
 export function eventConditionToCel(condition: EventCondition): string | null {
   const parts = buildEventConditionParts(condition)
-
-  if (parts.length === 0) {
-    return null
-  }
+  if (parts.length === 0) return null
 
   const combined = combineConditionParts(parts)
   return `(${combined})`
@@ -319,15 +339,10 @@ export function eventConditionToCel(condition: EventCondition): string | null {
 
 /**
  * Converts a single TraceCondition into a CEL expression string.
- * This is a simpler version for when you only have one trace condition.
- * Example output: '(span_name.contains("HTTP") && trace.user_defined_attrs.is_critical == true)'
  */
 export function traceConditionToCel(condition: TraceCondition): string | null {
   const parts = buildTraceConditionParts(condition)
-
-  if (parts.length === 0) {
-    return null
-  }
+  if (parts.length === 0) return null
 
   const combined = combineConditionParts(parts)
   return `(${combined})`
@@ -335,7 +350,6 @@ export function traceConditionToCel(condition: TraceCondition): string | null {
 
 /**
  * Converts a structured `ParsedConditions` object into a final CEL expression string.
- * This is the main entry point for the CEL generation logic.
  */
 export function conditionsToCel(parsedConditions: ParsedConditions): string | null {
   const eventCelExpression = processEventConditions(parsedConditions.event)
