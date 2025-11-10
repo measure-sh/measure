@@ -17,7 +17,6 @@ import {
     DeleteEventTargetingRuleApiStatus,
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
-import DangerConfirmationDialog from '@/app/components/danger_confirmation_dialog'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 import { EventCondition, AttributeField } from '@/app/utils/cel/conditions'
 import { celToConditions } from '@/app/utils/cel/cel_parser'
@@ -182,7 +181,7 @@ export default function EventRuleBuilder({
 
     const hasChanges = useCallback(() => {
         if (mode === 'create') return true
-        return JSON.stringify(initialRuleState) === JSON.stringify(ruleState)
+        return JSON.stringify(initialRuleState) !== JSON.stringify(ruleState)
     }, [mode, initialRuleState, ruleState])
 
 
@@ -660,6 +659,8 @@ export default function EventRuleBuilder({
             <div className="py-4" />
 
             <RuleConfigurationSection />
+
+            <div className="py-4" />
 
             {mode === 'edit' ? (
                 <div className="w-full flex justify-center">
