@@ -17,10 +17,11 @@ import {
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
-import { EventCondition } from '@/app/utils/cel/conditions'
+import { EventCondition, AttributeField } from '@/app/utils/cel/conditions'
 import { celToConditions } from '@/app/utils/cel/cel_parser'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { eventConditionToCel } from '@/app/utils/cel/cel_generator'
+import RuleBuilderAttributeRow from '@/app/components/targeting/rule_builder_attribute_row'
 
 interface EventRuleBuilderProps {
     mode: 'create' | 'edit'
@@ -191,6 +192,131 @@ export default function EventRuleBuilder({
         }))
     }
 
+    const getAvailableAttrKeys = (attrType: 'attrs' | 'ud_attrs' | 'session_attrs'): string[] => {
+        if (!pageState.configData) return []
+
+        const config = pageState.configData.result || (pageState.configData as any)
+        const currentEventType = pageState.currentRuleState?.condition.type
+
+        if (attrType === 'attrs') {
+            const eventConfig = config?.events?.find(e => e.type === currentEventType)
+            return eventConfig?.attrs?.map((attr: any) => attr.key) || []
+        } else if (attrType === 'ud_attrs') {
+            return config?.event_ud_attrs?.map((attr: any) => attr.key) || []
+        } else {
+            return config?.session_attrs?.map((attr: any) => attr.key) || []
+        }
+    }
+
+    const getCombinedAttrKeys = (): string[] => {
+        const sessionKeys = getAvailableAttrKeys('session_attrs')
+        const udKeys = getAvailableAttrKeys('ud_attrs')
+        return [...sessionKeys, ...udKeys]
+    }
+
+    const getOperatorsForType = (operatorTypesMapping: any, type: string): string[] => {
+        return operatorTypesMapping?.[type] || ['eq', 'neq']
+    }
+
+    const getAttrConfigByKey = (key: string, attrType: 'attrs' | 'ud_attrs' | 'session_attrs') => {
+        if (!pageState.configData) return null
+
+        const config = pageState.configData.result || (pageState.configData as any)
+        const currentEventType = pageState.currentRuleState?.condition.type
+
+        if (attrType === 'attrs') {
+            const eventConfig = config?.events?.find(e => e.type === currentEventType)
+            return eventConfig?.attrs?.find((attr: any) => attr.key === key)
+        } else if (attrType === 'ud_attrs') {
+            return config?.event_ud_attrs?.find((attr: any) => attr.key === key)
+        } else {
+            return config?.session_attrs?.find((attr: any) => attr.key === key)
+        }
+    }
+
+    const handleAddAttribute = (attrType: 'ud_attrs' | 'session_attrs') => {
+        if (!pageState.currentRuleState) return
+
+        const availableKeys = attrType === 'ud_attrs'
+            ? getAvailableAttrKeys('ud_attrs')
+            : getAvailableAttrKeys('session_attrs')
+
+        if (availableKeys.length === 0) return
+
+        const firstKey = availableKeys[0]
+        const attrConfig = getAttrConfigByKey(firstKey, attrType)
+
+        const newAttr: AttributeField = {
+            id: `${baseId}-${attrType}-${Date.now()}`,
+            key: firstKey,
+            type: attrConfig?.type || 'string',
+            value: attrConfig?.type === 'bool' ? false : attrConfig?.type === 'number' ? 0 : '',
+            hint: attrConfig?.hint,
+            operator: 'eq'
+        }
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: [...pageState.currentRuleState.condition[attrType], newAttr]
+        }
+
+        updateRuleState({ condition: updatedCondition })
+    }
+
+    const handleUpdateAttr = (
+        conditionId: string,
+        attrId: string,
+        field: 'key' | 'type' | 'value' | 'operator',
+        value: any,
+        attrType: 'attrs' | 'ud_attrs' | 'session_attrs'
+    ) => {
+        if (!pageState.currentRuleState) return
+
+        const attrs = pageState.currentRuleState.condition[attrType]
+        const attrIndex = attrs.findIndex(a => a.id === attrId)
+        if (attrIndex === -1) return
+
+        const updatedAttrs = [...attrs]
+        const updatedAttr = { ...updatedAttrs[attrIndex] }
+
+        if (field === 'key') {
+            // When key changes, update type and reset value
+            const attrConfig = getAttrConfigByKey(value, attrType)
+            updatedAttr.key = value
+            updatedAttr.type = attrConfig?.type || 'string'
+            updatedAttr.value = attrConfig?.type === 'bool' ? false : attrConfig?.type === 'number' ? 0 : ''
+            updatedAttr.hint = attrConfig?.hint
+        } else {
+            updatedAttr[field] = value
+        }
+
+        updatedAttrs[attrIndex] = updatedAttr
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: updatedAttrs
+        }
+
+        updateRuleState({ condition: updatedCondition })
+    }
+
+    const handleRemoveAttr = (
+        conditionId: string,
+        attrId: string,
+        attrType: 'attrs' | 'ud_attrs' | 'session_attrs'
+    ) => {
+        if (!pageState.currentRuleState) return
+
+        const updatedAttrs = pageState.currentRuleState.condition[attrType].filter(a => a.id !== attrId)
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: updatedAttrs
+        }
+
+        updateRuleState({ condition: updatedCondition })
+    }
+
     const handleEventTypeChange = (newEventType: string) => {
         if (!pageState.configData) return
 
@@ -201,7 +327,7 @@ export default function EventRuleBuilder({
         const eventConfig = config.events.find(e => e.type === newEventType)
         if (!eventConfig) return
 
-        // Create new condition with updated event type and attrs
+        // Pre-populate event attrs (rendered by default)
         const attrs = (eventConfig.attrs || []).map((attr, idx) => ({
             id: `${baseId}-attr-${idx}`,
             key: attr.key,
@@ -211,34 +337,13 @@ export default function EventRuleBuilder({
             operator: 'eq'
         }))
 
-        const ud_attrs = eventConfig.has_ud_attrs
-            ? config.event_ud_attrs.map((attr, idx) => ({
-                id: `${baseId}-ud-${idx}`,
-                key: attr.key,
-                type: attr.type,
-                value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
-                hint: attr.hint,
-                operator: 'eq'
-            }))
-            : []
-
-        const session_attrs = eventConfig.has_ud_attrs
-            ? config.session_attrs.map((attr, idx) => ({
-                id: `${baseId}-session-${idx}`,
-                key: attr.key,
-                type: attr.type,
-                value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
-                hint: attr.hint,
-                operator: 'eq'
-            }))
-            : []
-
+        // Start with empty arrays for ud_attrs and session_attrs (added on demand)
         const newCondition: EventCondition = {
             id: `${baseId}-condition`,
             type: newEventType,
             attrs,
-            ud_attrs,
-            session_attrs
+            ud_attrs: [],
+            session_attrs: []
         }
 
         updateRuleState({ condition: newCondition })
@@ -338,9 +443,115 @@ export default function EventRuleBuilder({
                             />
                             <span className="font-display text-xl">event occurs</span>
                         </div>
-                        <button className="text-sm font-body flex items-center gap-2">
-                            + Filter by attribute
-                        </button>
+
+                        {/* Event Attributes Section - Always shown if event has attrs */}
+                        {pageState.currentRuleState?.condition.attrs && pageState.currentRuleState.condition.attrs.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                {pageState.currentRuleState.condition.attrs.map(attr => (
+                                    <RuleBuilderAttributeRow
+                                        key={attr.id}
+                                        attr={attr}
+                                        conditionId={pageState.currentRuleState!.condition.id}
+                                        attrType="attrs"
+                                        attrKeys={getAvailableAttrKeys('attrs')}
+                                        operatorTypesMapping={(() => {
+                                            const config = pageState.configData?.result || (pageState.configData as any)
+                                            return config?.operator_types || {}
+                                        })()}
+                                        getOperatorsForType={getOperatorsForType}
+                                        onUpdateAttr={handleUpdateAttr}
+                                        showDeleteButton={false}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Add Filter Button - Only shown if event has ud_attrs capability */}
+                        {(() => {
+                            const config = pageState.configData?.result || (pageState.configData as any)
+                            const currentEventType = pageState.currentRuleState?.condition.type
+                            const eventConfig = config?.events?.find((e: any) => e.type === currentEventType)
+                            const hasUdAttrs = eventConfig?.has_ud_attrs
+                            const hasCombinedAttrs = pageState.currentRuleState?.condition.ud_attrs.length > 0 ||
+                                                     pageState.currentRuleState?.condition.session_attrs.length > 0
+
+                            return hasUdAttrs && !hasCombinedAttrs && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        // Add first session attr if available, otherwise first ud attr
+                                        const sessionKeys = getAvailableAttrKeys('session_attrs')
+                                        if (sessionKeys.length > 0) {
+                                            handleAddAttribute('session_attrs')
+                                        } else {
+                                            handleAddAttribute('ud_attrs')
+                                        }
+                                    }}
+                                    className="text-sm font-body px-2 py-1 h-auto -ml-2 mt-2 hover:bg-yellow-200 focus:bg-yellow-200"
+                                >
+                                    + Filter by attribute
+                                </Button>
+                            )
+                        })()}
+
+                        {/* User-Defined & Session Attributes Section */}
+                        {(pageState.currentRuleState?.condition.ud_attrs.length > 0 ||
+                          pageState.currentRuleState?.condition.session_attrs.length > 0) && (
+                            <div className="mt-3 space-y-2">
+                                {/* Render session attrs */}
+                                {pageState.currentRuleState.condition.session_attrs.map(attr => (
+                                    <RuleBuilderAttributeRow
+                                        key={attr.id}
+                                        attr={attr}
+                                        conditionId={pageState.currentRuleState!.condition.id}
+                                        attrType="session_attrs"
+                                        attrKeys={getCombinedAttrKeys()}
+                                        operatorTypesMapping={(() => {
+                                            const config = pageState.configData?.result || (pageState.configData as any)
+                                            return config?.operator_types || {}
+                                        })()}
+                                        getOperatorsForType={getOperatorsForType}
+                                        onUpdateAttr={handleUpdateAttr}
+                                        onRemoveAttr={handleRemoveAttr}
+                                        showDeleteButton={true}
+                                    />
+                                ))}
+                                {/* Render ud attrs */}
+                                {pageState.currentRuleState.condition.ud_attrs.map(attr => (
+                                    <RuleBuilderAttributeRow
+                                        key={attr.id}
+                                        attr={attr}
+                                        conditionId={pageState.currentRuleState!.condition.id}
+                                        attrType="ud_attrs"
+                                        attrKeys={getCombinedAttrKeys()}
+                                        operatorTypesMapping={(() => {
+                                            const config = pageState.configData?.result || (pageState.configData as any)
+                                            return config?.operator_types || {}
+                                        })()}
+                                        getOperatorsForType={getOperatorsForType}
+                                        onUpdateAttr={handleUpdateAttr}
+                                        onRemoveAttr={handleRemoveAttr}
+                                        showDeleteButton={true}
+                                    />
+                                ))}
+                                {/* Add more attributes button */}
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        // Add first session attr if available, otherwise first ud attr
+                                        const sessionKeys = getAvailableAttrKeys('session_attrs')
+                                        if (sessionKeys.length > 0) {
+                                            handleAddAttribute('session_attrs')
+                                        } else {
+                                            handleAddAttribute('ud_attrs')
+                                        }
+                                    }}
+                                    className="text-sm font-body px-2 py-1 h-auto -ml-2 mt-1 hover:bg-yellow-200 focus:bg-yellow-200"
+                                >
+                                    + Filter by attribute
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     <div className='py-4' />
