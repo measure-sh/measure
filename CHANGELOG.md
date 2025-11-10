@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Add test Slack alerts by @anupcowkur in #2898
 - (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
 
 ### :bug: Bug fixes
