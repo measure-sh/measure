@@ -18,6 +18,8 @@ final class URLSessionTaskInterceptor {
     private var defaultHttpHeadersBlocklist: [String]?
     private var configProvider: ConfigProvider?
     private var httpEventValidator: HttpEventValidator?
+    private var recentRequests: [String: UInt64] = [:]
+    private let dedupeWindowMs: UInt64 = 300
 
     private init() {}
 
@@ -91,14 +93,13 @@ final class URLSessionTaskInterceptor {
             }
 
             guard let response = task.response as? HTTPURLResponse else { return }
+
             let statusCode = response.statusCode
             let responseHeaders = response.allHeaderFields as? [String: String] ?? [:]
-
             let responseBody: String? = nil
 
-            let failureReason: String? = task.error?.localizedDescription
-            let failureDescription: String? = (task.error as NSError?)?.domain
-
+            let failureReason = task.error?.localizedDescription
+            let failureDescription = (task.error as NSError?)?.domain
             let startTime = taskStartTimes[task]
 
             let client = "URLSession"
@@ -118,7 +119,25 @@ final class URLSessionTaskInterceptor {
                 client: client)
 
             taskStartTimes.removeValue(forKey: task)
-            httpInterceptorCallbacks.onHttpCompletion(data: httpData)
+
+            if shouldRecordEvent(method: method, url: url, currentTime: UInt64(endTime)) {
+                httpInterceptorCallbacks.onHttpCompletion(data: httpData)
+            }
         }
+    }
+
+    private func shouldRecordEvent(method: String, url: String, currentTime: UInt64) -> Bool {
+        let key = "\(method.uppercased()) \(url)"
+        var shouldRecord = true
+
+        if let lastTime = recentRequests[key], currentTime - lastTime < dedupeWindowMs {
+            shouldRecord = false
+        } else {
+            recentRequests[key] = currentTime
+        }
+
+        recentRequests = recentRequests.filter { currentTime - $0.value < dedupeWindowMs }
+
+        return shouldRecord
     }
 }
