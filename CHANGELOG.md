@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Update last_seen for API key by @anupcowkur in #2903
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
 ### :hammer: Misc
