@@ -34,7 +34,7 @@ export class MeasureInternal {
     }
     return initializeNativeSDK(
       client,
-      config ??
+      this.measureInitializer.config ??
         new MeasureConfig(
           DefaultConfig.enableLogging,
           DefaultConfig.sessionSamplingRate,
