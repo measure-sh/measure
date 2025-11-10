@@ -21,6 +21,7 @@ import { TraceCondition } from '@/app/utils/cel/conditions'
 import { celToConditions } from '@/app/utils/cel/cel_parser'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { traceConditionToCel } from '@/app/utils/cel/cel_generator'
+import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 
 interface TraceRuleBuilderProps {
     mode: 'create' | 'edit'
@@ -345,17 +346,12 @@ export default function TraceRuleBuilder({
                                         onChange={() => updateRuleState({ collectionMode: 'sampled' })}
                                         className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
                                     />
-                                    <span className="text-sm font-body">Collect at sampling rate</span>
-                                    <input
-                                        type="number"
+                                    <SamplingRateInput
                                         value={pageState.currentRuleState?.sampleRate || 100}
-                                        onChange={(e) => updateRuleState({ sampleRate: parseFloat(e.target.value) || 0 })}
-                                        min="0"
-                                        max="100"
-                                        step="0.000001"
-                                        className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body"
+                                        onChange={(value) => updateRuleState({ sampleRate: value })}
+                                        disabled={pageState.currentRuleState?.collectionMode !== 'sampled'}
+                                        type="traces"
                                     />
-                                    <span className="text-sm font-body">%</span>
                                 </label>
 
                                 <label className="flex items-center gap-3 cursor-pointer h-10">

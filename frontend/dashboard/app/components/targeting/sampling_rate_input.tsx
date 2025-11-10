@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface SamplingRateInputProps {
     value: number
@@ -7,38 +7,25 @@ interface SamplingRateInputProps {
     type?: 'events' | 'traces'
 }
 
-const formatSamplingRate = (value: string): string => {
-    if (value === '') return ''
-    const numValue = parseFloat(value)
-    if (isNaN(numValue)) return ''
-    const clampedValue = Math.max(0, Math.min(100, numValue))
-    const formattedValue = Math.round(clampedValue * 1000000) / 1000000
-    return formattedValue.toString()
-}
-
 export default function SamplingRateInput({ value, onChange, disabled = false, type = 'events' }: SamplingRateInputProps) {
-    const [inputValue, setInputValue] = useState(value.toString())
-
-    // Sync with prop value when it changes externally
-    useEffect(() => {
-        setInputValue(value.toString())
-    }, [value])
+    const [localValue, setLocalValue] = useState<string>(value.toString())
 
     const handleBlur = () => {
-        const formatted = formatSamplingRate(inputValue)
-
-        if (formatted !== '') {
-            const numValue = parseFloat(formatted)
-            onChange(numValue)
-            setInputValue(numValue.toString())
+        const numValue = parseFloat(localValue)
+        if (isNaN(numValue) || localValue.trim() === '') {
+            // Reset to parent value if invalid
+            setLocalValue(value.toString())
         } else {
-            // Reset to current value if invalid
-            setInputValue(value.toString())
+            // Clamp and update parent
+            const clampedValue = Math.max(0, Math.min(100, numValue))
+            onChange(clampedValue)
+            setLocalValue(clampedValue.toString())
         }
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(e.target.value)
+    const handleFocus = () => {
+        // Sync with parent value when focusing
+        setLocalValue(value.toString())
     }
 
     return (
@@ -49,9 +36,10 @@ export default function SamplingRateInput({ value, onChange, disabled = false, t
                     type="number"
                     min="0"
                     max="100"
-                    step="0.000001"
-                    value={inputValue}
-                    onChange={handleChange}
+                    step="0.01"
+                    value={localValue}
+                    onChange={(e) => setLocalValue(e.target.value)}
+                    onFocus={handleFocus}
                     onBlur={handleBlur}
                     disabled={disabled}
                     className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed"
