@@ -3,9 +3,9 @@
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Button } from '@/app/components/button'
 import { X } from 'lucide-react'
-// REMOVED: import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 
-type AttrType = 'attrs' | 'ud_attrs' | 'session_attrs' // Ensure 'session_attrs' is here
+type AttrType = 'attrs' | 'ud_attrs' | 'session_attrs'
 
 const getTypeDisplayName = (type: string): string => {
     const typeMap: { [key: string]: string } = {
@@ -55,10 +55,14 @@ const RuleBuilderAttributeRow = ({
 }) => {
     const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
 
-    // REMOVED: localValue state
-    // REMOVED: useEffect
+    // Local state for value to prevent re-renders while typing
+    const [localValue, setLocalValue] = useState(attr.value)
 
-    // This function now ONLY updates the parent state
+    // Sync local value if parent updates attr.value externally
+    useEffect(() => {
+        setLocalValue(attr.value)
+    }, [attr.value])
+
     const handleValueChange = (newValue: string | boolean | number) => {
         onUpdateAttr(conditionId, attr.id, 'value', newValue, attrType)
     }
@@ -100,7 +104,6 @@ const RuleBuilderAttributeRow = ({
                         type={DropdownSelectType.SingleString}
                         title="Value"
                         items={['true', 'false']}
-                        // BIND directly to attr.value
                         initialSelected={attr.value ? 'true' : 'false'}
                         onChangeSelected={(selected) => {
                             handleValueChange((selected as string) === 'true')
@@ -123,17 +126,18 @@ const RuleBuilderAttributeRow = ({
                                     ? attr.hint
                                     : `Enter ${getTypeDisplayName(attr.type)} value`
                             }
-                            // BIND directly to attr.value
-                            value={attr.value as string | number}
-                            onChange={(e) => {
+                            value={localValue as string | number}
+                            onChange={(e) => setLocalValue(e.target.value)} // only local update
+                            onBlur={(e) => {
+                                const raw = e.target.value
                                 const value =
                                     attr.type === 'number' ||
                                     attr.type === 'int64' ||
                                     attr.type === 'float64'
-                                        ? e.target.value === ''
-                                            ? '' // Handle empty string for numbers
-                                            : Number(e.target.value)
-                                        : e.target.value
+                                        ? raw === ''
+                                            ? ''
+                                            : Number(raw)
+                                        : raw
                                 handleValueChange(value)
                             }}
                             className={`w-full border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 ${
