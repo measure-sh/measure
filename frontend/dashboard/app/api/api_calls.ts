@@ -278,6 +278,14 @@ export enum UpdateTeamSlackStatusApiStatus {
   Cancelled,
 }
 
+export enum TestSlackAlertApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionTimelineApiStatus {
   Loading,
   Success,
@@ -2137,6 +2145,30 @@ export const updateTeamSlackStatusFromServer = async (
     return { status: UpdateTeamSlackStatusApiStatus.Success }
   } catch {
     return { status: UpdateTeamSlackStatusApiStatus.Cancelled }
+  }
+}
+
+export const sendTestSlackAlertFromServer = async (
+  teamId: string,
+) => {
+  const opts = {
+    method: "POST"
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/slack/test`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: TestSlackAlertApiStatus.Error, error: data.error }
+    }
+
+    return { status: TestSlackAlertApiStatus.Success }
+  } catch {
+    return { status: TestSlackAlertApiStatus.Cancelled }
   }
 }
 

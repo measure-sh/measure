@@ -295,6 +295,11 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
+  - [POST `/teams/:id/slack/test`](#patch-teamsidslacktest)
+    - [Usage Notes](#usage-notes-54)
+    - [Authorization \& Content Type](#authorization--content-type-52)
+    - [Response Body](#response-body-55)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
 
 ## Auth
 
@@ -5506,6 +5511,7 @@ List of HTTP status codes for success and failures.
 - [**GET `/teams/:id/usage`**](#get-teamsidusage) -  Fetch data usage details for a team.
 - [**GET `/teams/:id/slack`**](#get-teamsidslack) -  Fetch Slack details for a team.
 - [**PATCH `/teams/:id/slack/status`**](#patch-teamsidslackstatus) -  Update a team's Slack integration status to active or inactive.
+- [**POST `/teams/:id/slack/test`**](#patch-teamsidslacktest) -  Send test alerts to all registered Slack channels.
 
 ### POST `/teams`
 
@@ -7036,6 +7042,73 @@ Update active or inactive status for a team's Slack integration.
   "is_active": false
 }
 ```
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/teams/:id/slack/test`
+
+Send test alerts to all registered Slack channels.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+
 
 #### Authorization & Content Type
 
