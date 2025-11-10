@@ -14,13 +14,17 @@ import {
     updateTraceTargetingRule,
     CreateTraceTargetingRuleApiStatus,
     UpdateTraceTargetingRuleApiStatus,
+    deleteTraceTargetingRule,
+    DeleteTraceTargetingRuleApiStatus,
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
+import DangerConfirmationDialog from '@/app/components/danger_confirmation_dialog'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
-import { TraceCondition } from '@/app/utils/cel/conditions'
+import { TraceCondition, AttributeField } from '@/app/utils/cel/conditions'
 import { celToConditions } from '@/app/utils/cel/cel_parser'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { traceConditionToCel } from '@/app/utils/cel/cel_generator'
+import RuleBuilderAttributeRow from '@/app/components/targeting/rule_builder_attribute_row'
 import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 
 interface TraceRuleBuilderProps {
@@ -28,12 +32,12 @@ interface TraceRuleBuilderProps {
     appId: string
     ruleId?: string
     onCancel: () => void
-    onPrimaryAction: () => void
+    onSave: () => void
 }
 
 interface TraceRuleState {
     condition: TraceCondition
-    collectionMode: 'sampled' | 'timeline' | 'disabled'
+    collectionMode: 'sampled' | 'session_timeline' | 'disabled'
     sampleRate: number
 }
 
@@ -52,9 +56,8 @@ export default function TraceRuleBuilder({
     appId,
     ruleId,
     onCancel,
-    onPrimaryAction: onSave,
+    onSave: onSave,
 }: TraceRuleBuilderProps) {
-    const router = useRouter()
     const baseId = useId()
     const [pageState, setPageState] = useState<PageState>({
         ruleData: null,
@@ -65,6 +68,8 @@ export default function TraceRuleBuilder({
         currentRuleState: null,
         isSaving: false
     })
+    const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
+    const [deleteApiStatus, setDeleteApiStatus] = useState(DeleteTraceTargetingRuleApiStatus.Init)
 
     useEffect(() => {
         fetchPageData()
@@ -129,7 +134,7 @@ export default function TraceRuleBuilder({
         } else {
             return {
                 condition: createDefaultTraceCondition(configData, idPrefix),
-                collectionMode: 'timeline',
+                collectionMode: 'session_timeline',
                 sampleRate: 0
             }
         }
@@ -143,6 +148,7 @@ export default function TraceRuleBuilder({
             id: `${idPrefix}-condition`,
             spanName: firstTraceConfig?.name || '',
             operator: 'eq',
+            attrs: [],
             ud_attrs: [],
             session_attrs: [],
         }
@@ -186,6 +192,48 @@ export default function TraceRuleBuilder({
         }))
     }
 
+    const getAvailableAttrKeys = (attrType: 'attrs' | 'ud_attrs' | 'session_attrs'): string[] => {
+        if (!pageState.configData) return []
+
+        const config = pageState.configData.result || (pageState.configData as any)
+        const currentSpanName = pageState.currentRuleState?.condition.spanName
+
+        if (attrType === 'attrs') {
+            const traceConfig = config?.trace_config?.find(t => t.name === currentSpanName)
+            return traceConfig?.attrs?.map((attr: any) => attr.key) || []
+        } else if (attrType === 'ud_attrs') {
+            return config?.trace_ud_attrs?.map((attr: any) => attr.key) || []
+        } else {
+            return config?.session_attrs?.map((attr: any) => attr.key) || []
+        }
+    }
+
+    const getCombinedAttrKeys = (): string[] => {
+        const sessionKeys = getAvailableAttrKeys('session_attrs')
+        const udKeys = getAvailableAttrKeys('ud_attrs')
+        return [...sessionKeys, ...udKeys]
+    }
+
+    const getOperatorsForType = (operatorTypesMapping: any, type: string): string[] => {
+        return operatorTypesMapping?.[type] || ['eq', 'neq']
+    }
+
+    const getAttrConfigByKey = (key: string, attrType: 'attrs' | 'ud_attrs' | 'session_attrs') => {
+        if (!pageState.configData) return null
+
+        const config = pageState.configData.result || (pageState.configData as any)
+        const currentSpanName = pageState.currentRuleState?.condition.spanName
+
+        if (attrType === 'attrs') {
+            const traceConfig = config?.trace_config?.find(t => t.name === currentSpanName)
+            return traceConfig?.attrs?.find((attr: any) => attr.key === key)
+        } else if (attrType === 'ud_attrs') {
+            return config?.trace_ud_attrs?.find((attr: any) => attr.key === key)
+        } else {
+            return config?.session_attrs?.find((attr: any) => attr.key === key)
+        }
+    }
+
     const handleSpanNameChange = (newSpanName: string) => {
         if (!pageState.configData) return
 
@@ -196,38 +244,110 @@ export default function TraceRuleBuilder({
         const traceConfig = config.trace_config.find(t => t.name === newSpanName)
         if (!traceConfig) return
 
-        // Create new condition with updated span name
-        const ud_attrs = traceConfig.has_ud_attrs
-            ? config.trace_ud_attrs.map((attr, idx) => ({
-                id: `${baseId}-ud-${idx}`,
-                key: attr.key,
-                type: attr.type,
-                value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
-                hint: attr.hint,
-                operator: 'eq'
-            }))
-            : []
+        // Pre-populate trace attrs (rendered by default)
+        const attrs = (traceConfig.attrs || []).map((attr, idx) => ({
+            id: `${baseId}-attr-${idx}`,
+            key: attr.key,
+            type: attr.type,
+            value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
+            hint: attr.hint,
+            operator: 'eq'
+        }))
 
-        const session_attrs = traceConfig.has_ud_attrs
-            ? config.session_attrs.map((attr, idx) => ({
-                id: `${baseId}-session-${idx}`,
-                key: attr.key,
-                type: attr.type,
-                value: attr.type === 'bool' ? false : attr.type === 'number' ? 0 : '',
-                hint: attr.hint,
-                operator: 'eq'
-            }))
-            : []
-
+        // Start with empty arrays for ud_attrs and session_attrs (added on demand)
         const newCondition: TraceCondition = {
             id: `${baseId}-condition`,
             spanName: newSpanName,
             operator: 'eq',
-            ud_attrs,
-            session_attrs
+            attrs,
+            ud_attrs: [],
+            session_attrs: []
         }
 
         updateRuleState({ condition: newCondition })
+    }
+
+    const handleAddAttribute = (attrType: 'ud_attrs' | 'session_attrs') => {
+        if (!pageState.currentRuleState) return
+
+        const availableKeys = attrType === 'ud_attrs'
+            ? getAvailableAttrKeys('ud_attrs')
+            : getAvailableAttrKeys('session_attrs')
+
+        if (availableKeys.length === 0) return
+
+        const firstKey = availableKeys[0]
+        const attrConfig = getAttrConfigByKey(firstKey, attrType)
+
+        const newAttr: AttributeField = {
+            id: `${baseId}-${attrType}-${Date.now()}`,
+            key: firstKey,
+            type: attrConfig?.type || 'string',
+            value: attrConfig?.type === 'bool' ? false : attrConfig?.type === 'number' ? 0 : '',
+            hint: attrConfig?.hint,
+            operator: 'eq'
+        }
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: [...pageState.currentRuleState.condition[attrType], newAttr]
+        }
+
+        updateRuleState({ condition: updatedCondition })
+    }
+
+    const handleUpdateAttr = (
+        conditionId: string,
+        attrId: string,
+        field: 'key' | 'type' | 'value' | 'operator',
+        value: any,
+        attrType: 'attrs' | 'ud_attrs' | 'session_attrs'
+    ) => {
+        if (!pageState.currentRuleState) return
+
+        const attrs = pageState.currentRuleState.condition[attrType]
+        const attrIndex = attrs.findIndex(a => a.id === attrId)
+        if (attrIndex === -1) return
+
+        const updatedAttrs = [...attrs]
+        const updatedAttr = { ...updatedAttrs[attrIndex] }
+
+        if (field === 'key') {
+            // When key changes, update type and reset value
+            const attrConfig = getAttrConfigByKey(value, attrType)
+            updatedAttr.key = value
+            updatedAttr.type = attrConfig?.type || 'string'
+            updatedAttr.value = attrConfig?.type === 'bool' ? false : attrConfig?.type === 'number' ? 0 : ''
+            updatedAttr.hint = attrConfig?.hint
+        } else {
+            updatedAttr[field] = value
+        }
+
+        updatedAttrs[attrIndex] = updatedAttr
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: updatedAttrs
+        }
+
+        updateRuleState({ condition: updatedCondition })
+    }
+
+    const handleRemoveAttr = (
+        conditionId: string,
+        attrId: string,
+        attrType: 'attrs' | 'ud_attrs' | 'session_attrs'
+    ) => {
+        if (!pageState.currentRuleState) return
+
+        const updatedAttrs = pageState.currentRuleState.condition[attrType].filter(a => a.id !== attrId)
+
+        const updatedCondition = {
+            ...pageState.currentRuleState.condition,
+            [attrType]: updatedAttrs
+        }
+
+        updateRuleState({ condition: updatedCondition })
     }
 
     const handleSaveChanges = async () => {
@@ -276,9 +396,61 @@ export default function TraceRuleBuilder({
         }
     }
 
+    const handleDeleteRule = async () => {
+        if (!ruleId) return
+
+        setDeleteApiStatus(DeleteTraceTargetingRuleApiStatus.Loading)
+
+        try {
+            const result = await deleteTraceTargetingRule(appId, ruleId)
+            if (result.status === DeleteTraceTargetingRuleApiStatus.Success) {
+                setDeleteApiStatus(DeleteTraceTargetingRuleApiStatus.Success)
+                toastPositive('Trace rule deleted successfully')
+                onSave()
+            } else {
+                setDeleteApiStatus(DeleteTraceTargetingRuleApiStatus.Error)
+                toastNegative('Failed to delete trace rule', result.error || 'Unknown error')
+            }
+        } catch (error) {
+            setDeleteApiStatus(DeleteTraceTargetingRuleApiStatus.Error)
+            toastNegative('An error occurred', 'Please try again')
+        }
+    }
+
+    const hasFilterAttributes = () => {
+        return (pageState.currentRuleState?.condition?.ud_attrs?.length ?? 0) > 0 ||
+            (pageState.currentRuleState?.condition?.session_attrs?.length ?? 0) > 0
+    }
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">{getTitle()}</p>
+            {/* Delete Confirmation Dialog */}
+            <DangerConfirmationDialog
+                body={<p className="font-body">Are you sure you want to delete this trace rule? This action cannot be undone.</p>}
+                open={deleteConfirmationModalOpen}
+                affirmativeText="Delete Rule"
+                cancelText="Cancel"
+                onAffirmativeAction={() => {
+                    setDeleteConfirmationModalOpen(false)
+                    handleDeleteRule()
+                }}
+                onCancelAction={() => setDeleteConfirmationModalOpen(false)}
+            />
+
+            <div className="flex flex-row items-center justify-between w-full">
+                <p className="font-display text-4xl max-w-6xl">{getTitle()}</p>
+                {mode === 'edit' && (
+                    <Button
+                        variant="destructive"
+                        onClick={() => setDeleteConfirmationModalOpen(true)}
+                        className="font-display"
+                        disabled={deleteApiStatus === DeleteTraceTargetingRuleApiStatus.Loading}
+                        loading={deleteApiStatus === DeleteTraceTargetingRuleApiStatus.Loading}
+                    >
+                        Delete Rule
+                    </Button>
+                )}
+            </div>
             <div className="py-4" />
 
             {/* Loading indicator */}
@@ -322,9 +494,116 @@ export default function TraceRuleBuilder({
                             />
                             <span className="font-display text-xl">span ends</span>
                         </div>
-                        <button className="text-sm font-body flex items-center gap-2">
-                            + Filter by attribute
-                        </button>
+
+                        {/* Trace Attributes Section - Always shown if trace has attrs */}
+                        {pageState.currentRuleState?.condition.attrs && pageState.currentRuleState.condition.attrs.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                {pageState.currentRuleState.condition.attrs.map(attr => (
+                                    <RuleBuilderAttributeRow
+                                        key={attr.id}
+                                        attr={attr}
+                                        conditionId={pageState.currentRuleState!.condition.id}
+                                        attrType="attrs"
+                                        attrKeys={getAvailableAttrKeys('attrs')}
+                                        operatorTypesMapping={(() => {
+                                            const config = pageState.configData?.result || (pageState.configData as any)
+                                            return config?.operator_types || {}
+                                        })()}
+                                        getOperatorsForType={getOperatorsForType}
+                                        onUpdateAttr={handleUpdateAttr}
+                                        showDeleteButton={false}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Add Filter Button - Only shown if trace has ud_attrs capability */}
+                        {(() => {
+                            const config = pageState.configData?.result || (pageState.configData as any)
+                            const currentSpanName = pageState.currentRuleState?.condition.spanName
+                            const traceConfig = config?.trace_config?.find((t: any) => t.name === currentSpanName)
+                            const hasUdAttrs = traceConfig?.has_ud_attrs
+                            const hasCombinedAttrs = hasFilterAttributes()
+
+                            return hasUdAttrs && !hasCombinedAttrs && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        // Add first session attr if available, otherwise first ud attr
+                                        const sessionKeys = getAvailableAttrKeys('session_attrs')
+                                        if (sessionKeys.length > 0) {
+                                            handleAddAttribute('session_attrs')
+                                        } else {
+                                            handleAddAttribute('ud_attrs')
+                                        }
+                                    }}
+                                    className="text-sm font-body px-2 py-1 h-auto -ml-2 mt-2 hover:bg-yellow-200 focus:bg-yellow-200"
+                                >
+                                    + Filter by attribute
+                                </Button>
+                            )
+                        })()}
+
+                        {/* User-Defined & Session Attributes Section */}
+                        {hasFilterAttributes() && (() => {
+                            const condition = pageState.currentRuleState!.condition
+                            return (
+                                <div className="mt-3 space-y-2">
+                                    {/* Render session attrs */}
+                                    {condition.session_attrs.map(attr => (
+                                        <RuleBuilderAttributeRow
+                                            key={attr.id}
+                                            attr={attr}
+                                            conditionId={condition.id}
+                                            attrType="session_attrs"
+                                            attrKeys={getCombinedAttrKeys()}
+                                            operatorTypesMapping={(() => {
+                                                const config = pageState.configData?.result || (pageState.configData as any)
+                                                return config?.operator_types || {}
+                                            })()}
+                                            getOperatorsForType={getOperatorsForType}
+                                            onUpdateAttr={handleUpdateAttr}
+                                            onRemoveAttr={handleRemoveAttr}
+                                            showDeleteButton={true}
+                                        />
+                                    ))}
+                                    {/* Render ud attrs */}
+                                    {condition.ud_attrs.map(attr => (
+                                        <RuleBuilderAttributeRow
+                                            key={attr.id}
+                                            attr={attr}
+                                            conditionId={condition.id}
+                                            attrType="ud_attrs"
+                                            attrKeys={getCombinedAttrKeys()}
+                                            operatorTypesMapping={(() => {
+                                                const config = pageState.configData?.result || (pageState.configData as any)
+                                                return config?.operator_types || {}
+                                            })()}
+                                            getOperatorsForType={getOperatorsForType}
+                                            onUpdateAttr={handleUpdateAttr}
+                                            onRemoveAttr={handleRemoveAttr}
+                                            showDeleteButton={true}
+                                        />
+                                    ))}
+                                    {/* Add more attributes button */}
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            // Add first session attr if available, otherwise first ud attr
+                                            const sessionKeys = getAvailableAttrKeys('session_attrs')
+                                            if (sessionKeys.length > 0) {
+                                                handleAddAttribute('session_attrs')
+                                            } else {
+                                                handleAddAttribute('ud_attrs')
+                                            }
+                                        }}
+                                        className="text-sm font-body px-2 py-1 h-auto -ml-2 mt-1 hover:bg-yellow-200 focus:bg-yellow-200"
+                                    >
+                                        + Filter by attribute
+                                    </Button>
+                                </div>
+                            )
+                        })()}
                     </div>
 
                     <div className='py-4' />
@@ -335,7 +614,7 @@ export default function TraceRuleBuilder({
 
                         {/* Collection config */}
                         <div className="mb-4">
-                            <p className="font-body text-sm text-gray-500 mb-3">Collection</p>
+                            <p className="font-display text-gray-500 mb-3">Collection</p>
                             <div className="space-y-3 ml-4">
                                 <label className="flex items-center gap-3 cursor-pointer h-10">
                                     <input
@@ -359,8 +638,8 @@ export default function TraceRuleBuilder({
                                         type="radio"
                                         name="collectionMode"
                                         value="timeline"
-                                        checked={pageState.currentRuleState?.collectionMode === 'timeline'}
-                                        onChange={() => updateRuleState({ collectionMode: 'timeline' })}
+                                        checked={pageState.currentRuleState?.collectionMode === 'session_timeline'}
+                                        onChange={() => updateRuleState({ collectionMode: 'session_timeline' })}
                                         className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0"
                                     />
                                     <span className="text-sm font-body">Collect with timeline only</span>

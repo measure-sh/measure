@@ -1151,7 +1151,7 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export type CollectionMode = 'sampled' | 'timeline' | 'disabled';
+export type CollectionMode = 'sampled' | 'session_timeline' | 'disabled';
 
 export type EventTargetingAttachmentConfig = 'none' | 'layout_snapshot' | 'screenshot';
 
@@ -1248,21 +1248,17 @@ export type TargetingOperatorConfig = {
 }
 
 export type EventTargetingConfigResponse = {
-  result: {
-    events: EventTargetingConfig[];
-    event_ud_attrs: AttributeTargetingConfig[];
-    session_attrs: AttributeTargetingConfig[];
-    operator_types: TargetingOperatorConfig;
-  };
+  events: EventTargetingConfig[];
+  event_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
 }
 
 export type TraceTargetingConfigResponse = {
-  result: {
-    traces: TraceTargetingConfig[];
-    trace_ud_attrs: AttributeTargetingConfig[];
-    session_attrs: AttributeTargetingConfig[];
-    operator_types: TargetingOperatorConfig;
-  };
+  traces: TraceTargetingConfig[];
+  trace_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
 }
 export class AppVersion {
   name: string

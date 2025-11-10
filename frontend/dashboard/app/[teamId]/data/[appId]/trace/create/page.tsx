@@ -11,7 +11,6 @@ export default function CreateTraceRule({ params }: { params: { teamId: string, 
     }
 
     const handleCreate = () => {
-        // TODO: Implement create logic
         router.back()
     }
 
@@ -20,7 +19,7 @@ export default function CreateTraceRule({ params }: { params: { teamId: string, 
             mode="create"
             appId={params.appId}
             onCancel={handleCancel}
-            onPrimaryAction={handleCreate}
+            onSave={handleCreate}
         />
     )
 }

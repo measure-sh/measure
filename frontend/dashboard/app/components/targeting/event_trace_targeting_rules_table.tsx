@@ -10,7 +10,7 @@ const getCollectionConfigDisplay = (collectionMode: CollectionMode, samplingRate
     switch (collectionMode) {
         case 'sampled':
             return `Collect all at ${samplingRate}% sample rate`
-        case 'timeline':
+        case 'session_timeline':
             return 'Collect with session timeline only'
         case 'disabled':
             return 'Do not collect'

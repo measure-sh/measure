@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { updateEventTargetingRule, updateTraceTargetingRule, UpdateEventTargetingRuleApiStatus, UpdateTraceTargetingRuleApiStatus } from '@/app/api/api_calls'
 
-type CollectionMode = 'sampled' | 'timeline' | 'disabled'
+type CollectionMode = 'sampled' | 'session_timeline' | 'disabled'
 
 interface EditDefaultRuleDialogProps {
     isOpen: boolean
@@ -129,8 +129,8 @@ export default function EditDefaultRuleDialog({
                                 type="radio"
                                 name="collectionMode"
                                 value="timeline"
-                                checked={collectionMode === 'timeline'}
-                                onChange={() => setCollectionMode('timeline')}
+                                checked={collectionMode === 'session_timeline'}
+                                onChange={() => setCollectionMode('session_timeline')}
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />

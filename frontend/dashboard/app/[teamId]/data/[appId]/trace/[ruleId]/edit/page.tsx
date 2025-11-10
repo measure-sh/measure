@@ -11,7 +11,6 @@ export default function EditTraceRule({ params }: { params: { teamId: string, ap
     }
 
     const handleSave = () => {
-        // TODO: Implement save logic
         router.back()
     }
 
@@ -21,7 +20,7 @@ export default function EditTraceRule({ params }: { params: { teamId: string, ap
             appId={params.appId}
             ruleId={params.ruleId}
             onCancel={handleCancel}
-            onPrimaryAction={handleSave}
+            onSave={handleSave}
         />
     )
 }

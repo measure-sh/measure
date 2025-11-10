@@ -11,7 +11,10 @@ export default function CreateEventRule({ params }: { params: { teamId: string, 
     }
 
     const handleCreate = () => {
-        // TODO: Implement create logic
+        router.back()
+    }
+
+    const handleDelete = () => {
         router.back()
     }
 
@@ -20,7 +23,8 @@ export default function CreateEventRule({ params }: { params: { teamId: string, 
             mode="create"
             appId={params.appId}
             onCancel={handleCancel}
-            onSaved={handleCreate}
+            onSave={handleCreate}
+            onDelete={handleDelete}
         />
     )
 }

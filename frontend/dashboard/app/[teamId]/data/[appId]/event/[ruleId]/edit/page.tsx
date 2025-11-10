@@ -14,13 +14,18 @@ export default function EditEventRule({ params }: { params: { teamId: string, ap
         router.back()
     }
 
+    const handleDelete = () => {
+        router.back()
+    }
+
     return (
         <EventRuleBuilder
             mode="edit"
             appId={params.appId}
             ruleId={params.ruleId}
             onCancel={handleCancel}
-            onSaved={handleSave}
+            onSave={handleSave}
+            onDelete={handleDelete}
         />
     )
 }

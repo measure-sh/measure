@@ -1110,7 +1110,7 @@ func newEventsConfig(osName string) []EventConfig {
 			HasUdAttrs: false,
 			Attrs: []AttrConfig{
 				{Key: "url", Type: "string", Hint: "Enter a HTTP URL"},
-				{Key: "status_code", Type: "int64", Hint: "Enter HTTP status code"},
+				{Key: "status_code", Type: "int64", Hint: "Enter HTTP status code 500, 200, etc."},
 			},
 		},
 	}
