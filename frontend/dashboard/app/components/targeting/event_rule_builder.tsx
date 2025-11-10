@@ -182,7 +182,7 @@ export default function EventRuleBuilder({
 
     const hasChanges = useCallback(() => {
         if (mode === 'create') return true
-        return JSON.stringify(initialRuleState) !== JSON.stringify(ruleState)
+        return JSON.stringify(initialRuleState) === JSON.stringify(ruleState)
     }, [mode, initialRuleState, ruleState])
 
 

@@ -3,9 +3,9 @@
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Button } from '@/app/components/button'
 import { X } from 'lucide-react'
-import { useState, useEffect } from 'react'
+// REMOVED: import { useState, useEffect } from 'react'
 
-type AttrType = 'attrs' | 'ud_attrs'
+type AttrType = 'attrs' | 'ud_attrs' | 'session_attrs' // Ensure 'session_attrs' is here
 
 const getTypeDisplayName = (type: string): string => {
     const typeMap: { [key: string]: string } = {
@@ -55,19 +55,11 @@ const RuleBuilderAttributeRow = ({
 }) => {
     const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
 
-    // --- local state for input value (fixes losing focus) ---
-    const [localValue, setLocalValue] = useState(attr.value)
+    // REMOVED: localValue state
+    // REMOVED: useEffect
 
-    // keep local state in sync with external value changes (e.g. resets)
-    useEffect(() => {
-        if (attr.value !== localValue) {
-            setLocalValue(attr.value)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attr.value])
-
+    // This function now ONLY updates the parent state
     const handleValueChange = (newValue: string | boolean | number) => {
-        setLocalValue(newValue)
         onUpdateAttr(conditionId, attr.id, 'value', newValue, attrType)
     }
 
@@ -108,7 +100,8 @@ const RuleBuilderAttributeRow = ({
                         type={DropdownSelectType.SingleString}
                         title="Value"
                         items={['true', 'false']}
-                        initialSelected={localValue ? 'true' : 'false'}
+                        // BIND directly to attr.value
+                        initialSelected={attr.value ? 'true' : 'false'}
                         onChangeSelected={(selected) => {
                             handleValueChange((selected as string) === 'true')
                         }}
@@ -130,14 +123,15 @@ const RuleBuilderAttributeRow = ({
                                     ? attr.hint
                                     : `Enter ${getTypeDisplayName(attr.type)} value`
                             }
-                            value={localValue as string | number}
+                            // BIND directly to attr.value
+                            value={attr.value as string | number}
                             onChange={(e) => {
                                 const value =
                                     attr.type === 'number' ||
                                     attr.type === 'int64' ||
                                     attr.type === 'float64'
                                         ? e.target.value === ''
-                                            ? ''
+                                            ? '' // Handle empty string for numbers
                                             : Number(e.target.value)
                                         : e.target.value
                                 handleValueChange(value)
