@@ -1,0 +1,1 @@
+export const underlineLinkStyle = "underline decoration-2 underline-offset-2 decoration-yellow-400 hover:decoration-yellow-600"

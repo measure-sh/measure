@@ -2,6 +2,7 @@
 
 import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { isMeasureHost } from "@/app/utils/url_utils"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -83,7 +84,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
         Measure Cloud is limited to alpha users at the moment. Please{" "}
         <Link
           target="_blank"
-          className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+          className={underlineLinkStyle}
           href="mailto:support@measure.sh"
         >
           contact us

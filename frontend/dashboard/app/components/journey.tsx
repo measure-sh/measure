@@ -8,6 +8,157 @@ import { numberToKMB } from '../utils/number_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
+const demoJourney: InputJourneyData = {
+  links: [
+    // From MainActivity (home)
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProductListActivity", value: 4200000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.SearchActivity", value: 2800000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProfileActivity", value: 1500000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.CartActivity", value: 900000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProductDetailActivity", value: 600000 },
+
+    // From ProductListActivity
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.ProductDetailActivity", value: 3200000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.CartActivity", value: 650000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.SearchActivity", value: 420000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.MainActivity", value: 380000 },
+
+    // From SearchActivity
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.ProductDetailActivity", value: 1600000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.ProductListActivity", value: 950000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.MainActivity", value: 340000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.CartActivity", value: 280000 },
+
+    // From ProductDetailActivity
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.CartActivity", value: 1800000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.ProductListActivity", value: 1200000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.MainActivity", value: 750000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.SearchActivity", value: 520000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.CheckoutActivity", value: 180000 },
+
+    // From CartActivity
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.CheckoutActivity", value: 1100000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.ProductDetailActivity", value: 850000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.ProductListActivity", value: 620000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.MainActivity", value: 410000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.SearchActivity", value: 190000 },
+
+    // From CheckoutActivity
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.PaymentActivity", value: 780000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.CartActivity", value: 320000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.ProductDetailActivity", value: 140000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.MainActivity", value: 90000 },
+
+    // From PaymentActivity
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.OrderConfirmationActivity", value: 650000 },
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.CheckoutActivity", value: 110000 },
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.CartActivity", value: 75000 },
+
+    // From OrderConfirmationActivity
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.MainActivity", value: 380000 },
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.ProductListActivity", value: 180000 },
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.OrderHistoryActivity", value: 120000 },
+
+    // From ProfileActivity
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.OrderHistoryActivity", value: 680000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.MainActivity", value: 520000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.ProductListActivity", value: 240000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.CartActivity", value: 160000 },
+
+    // From OrderHistoryActivity
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProductDetailActivity", value: 420000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.MainActivity", value: 310000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProfileActivity", value: 180000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProductListActivity", value: 150000 }
+  ],
+  nodes: [
+    {
+      id: "sh.measure.demo.MainActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProductListActivity",
+      issues: {
+        anrs: [
+          { id: "c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8", title: "kotlinx.coroutines@ProductListActivity.kt", count: 12000 }
+        ],
+        crashes: [
+          { id: "d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9", title: "java.lang.IndexOutOfBoundsException@ProductAdapter.kt", count: 28000 },
+          { id: "e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0", title: "java.lang.OutOfMemoryError@ImageLoader.kt", count: 15000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.SearchActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProductDetailActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.CartActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.CheckoutActivity",
+      issues: {
+        anrs: [
+          { id: "k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6", title: "android.app.ActivityThread@CheckoutActivity.kt", count: 18000 }
+        ],
+        crashes: [
+          { id: "l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7", title: "java.lang.IllegalStateException@CheckoutActivity.kt", count: 4000 },
+          { id: "m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8", title: "retrofit2.HttpException@CheckoutService.kt", count: 23000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.PaymentActivity",
+      issues: {
+        anrs: [],
+        crashes: [
+          { id: "o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0", title: "java.security.InvalidKeyException@PaymentProcessor.kt", count: 8000 },
+          { id: "p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1", title: "javax.net.ssl.SSLHandshakeException@PaymentGateway.kt", count: 12000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.OrderConfirmationActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProfileActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.OrderHistoryActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    }
+  ],
+  totalIssues: 120000
+}
+
 interface JourneyProps {
   teamId: string,
   bidirectional: boolean,
@@ -15,6 +166,7 @@ interface JourneyProps {
   exceptionsGroupId: string | null,
   filters: Filters,
   searchText?: string
+  demo?: boolean
 }
 
 export enum JourneyType {
@@ -191,7 +343,7 @@ function transformData(journeyType: JourneyType, input: InputJourneyData): Journ
   }
 }
 
-const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '' }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '', demo = false }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
   const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
@@ -200,6 +352,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   const [showPanel, setShowPanel] = useState(false)
 
   const getJourney = async () => {
+    if (demo) {
+      const journey = transformData(journeyType, demoJourney)
+      setJourney(journey)
+      setJourneyApiStatus(JourneyApiStatus.Success)
+      return
+    }
+
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
     const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters)
@@ -340,9 +499,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                             {/* Show clickable link if Exceptions journey type */}
                             {journeyType === JourneyType.Exceptions &&
                               <span className="font-body text-xs">
-                                <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                  {title} - {numberToKMB(count)}
-                                </Link>
+                                {demo ? (
+                                  <div className="underline decoration-yellow-200 text-white/90 cursor-pointer select-none">{title} - {numberToKMB(count)}</div>
+                                ) : (
+                                  <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                                    {title} - {numberToKMB(count)}
+                                  </Link>
+                                )}
                               </span>
                             }
                             {/* Show only title and count if crash or anr journey type */}
@@ -365,9 +528,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                             {/* Show clickable link if Exceptions journey type */}
                             {journeyType === JourneyType.Exceptions &&
                               <span className="font-body text-xs">
-                                <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                  {title} - {numberToKMB(count)}
-                                </Link>
+                                {demo ? (
+                                  <div className="underline decoration-yellow-200 text-white/90 cursor-pointer">{title} - {numberToKMB(count)}</div>
+                                ) : (
+                                  <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                                    {title} - {numberToKMB(count)}
+                                  </Link>
+                                )}
                               </span>
                             }
                             {/* Show only title and count if crash or anr journey type */}

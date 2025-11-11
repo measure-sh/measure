@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
+import { CookieBanner } from './components/cookie_banner'
 import { Toaster } from './components/toaster'
 import { PostHogProvider } from './context/posthog'
 import './globals.css'
@@ -68,6 +69,7 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${josefin_sans.variable} ${space_mono.variable}`}>
           <PostHogProvider>
+            <CookieBanner />
             {children}
           </PostHogProvider>
           <Toaster />

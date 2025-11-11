@@ -6,10 +6,26 @@ import { Badge } from './badge'
 import LoadingSpinner from './loading_spinner'
 import { Slider } from './slider'
 
+const demoExceptionGroupCommonPath = {
+  sessions_analyzed: 50,
+  steps: [
+    { description: "App moved to foreground", thread_name: "main", confidence_pct: 80.5 },
+    { description: "Activity resumed: sh.measure.demo.CheckoutActivity", thread_name: "main", confidence_pct: 80.5 },
+    { description: "HTTP GET: https://payments.demo-provider.com/demo-user-id/payment-methods", thread_name: "okhttp", confidence_pct: 100 },
+    { description: "User tapped on btn_payment_type (com.google.android.material.button.MaterialButton)", thread_name: "main", confidence_pct: 5.11 },
+    { description: "User tapped on tab_select_discount (com.google.android.material.button.MaterialButton)", thread_name: "main", confidence_pct: 53.8 },
+    { description: "User tapped on btn_order_summary (com.google.android.material.button.MaterialButton)", thread_name: "main", confidence_pct: 34.3 },
+    { description: "User tapped on btn_pay (com.google.android.material.button.MaterialButton)", thread_name: "main", confidence_pct: 100 },
+    { description: "Crash: java.lang.IllegalStateException -  Payment method must be specified", thread_name: "main", confidence_pct: 100 }
+  ]
+}
+
+
 interface ExceptionGroupCommonPathProps {
   type: ExceptionsType,
   appId: string,
   groupId: string,
+  demo?: boolean,
 }
 
 type ExceptionGroupCommonPath = {
@@ -21,12 +37,18 @@ type ExceptionGroupCommonPath = {
   }>;
 }
 
-const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ type, appId, groupId }) => {
+const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ type, appId, groupId, demo = false }) => {
   const [exceptionGroupCommonPathApiStatus, setExceptionGroupCommonPathApiStatus] = useState(ExceptionGroupCommonPathApiStatus.Loading)
   const [exceptionsGroupCommonPath, setExceptionGroupCommonPath] = useState<ExceptionGroupCommonPath>()
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80)
 
   const getExceptionGroupCommonPath = async () => {
+    if (demo) {
+      setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Success)
+      setExceptionGroupCommonPath(demoExceptionGroupCommonPath)
+      return
+    }
+
     setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Loading)
 
     const result = await fetchExceptionGroupCommonPathFromServer(type, appId, groupId)
@@ -44,7 +66,7 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ typ
 
   useEffect(() => {
     getExceptionGroupCommonPath()
-  }, [type, groupId, appId])
+  }, [type, groupId, appId, demo])
 
   // Filter steps based on confidence threshold
   const filteredSteps = useMemo(() => {

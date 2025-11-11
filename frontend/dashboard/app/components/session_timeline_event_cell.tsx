@@ -160,14 +160,14 @@ export default function SessionTimelineEventCell({
   return (
     <button className={`group w-full px-2 py-4 outline-hidden font-display hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selected ? 'bg-neutral-800 text-white' : ''} hover:text-black`}
       onClick={() => onClick(index)}>
-      <div className="flex flex-row items-center" id={`event-cell-title-${eventType}-${index}`}>
+      <div className="flex flex-col md:flex-row items-start  md:items-center" id={`event-cell-title-${eventType}-${index}`}>
         <div className={`w-2 h-2 rounded-full ${getColorFromEventType()}`} />
-        <div className="mx-1" />
-        <p className='truncate w-72 text-left'>{getTitleFromEventType()}</p>
-        <div className="mx-1" />
+        <div className="py-1 md:py-0 mx-0 md:mx-1" />
+        <p className='max-w-72 text-left text-sm md:text-base'>{getTitleFromEventType()}</p>
+        <div className="py-1 md:py-0 mx-0 md:mx-1" />
         <div className="flex grow" />
         <div className={`rounded-full border text-xs px-2 py-1 ${selected ? 'border-white' : 'border-black'} group-hover:border-black`}>{threadName}</div>
-        <div className="mx-1" />
+        <div className="py-1 md:py-0 mx-0 md:mx-1" />
         <div className={`rounded-full border text-xs px-2 py-1 text-nowrap ${selected ? 'border-white' : 'border-black'} group-hover:border-black`}>{formatDateToHumanReadableDateTime(timestamp)}</div>
       </div>
     </button>
