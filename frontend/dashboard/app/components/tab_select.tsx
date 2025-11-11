@@ -1,18 +1,30 @@
 import React from 'react'
 
+export enum TabSize {
+  Large = 'large',
+  Small = 'small',
+}
+
+export enum TabVariant {
+  Default = 'default',
+  Underline = 'underline',
+}
+
 interface TabSelectProps {
   items: string[]
   selected: string
+  size?: TabSize
+  variant?: TabVariant
   onChangeSelected?: (item: string) => void
 }
 
-const TabSelect: React.FC<TabSelectProps> = ({ items, selected, onChangeSelected }) => {
+const TabSelect: React.FC<TabSelectProps> = ({ items, selected, size = TabSize.Small, variant = TabVariant.Default, onChangeSelected }) => {
   const selectItem = (item: string) => {
     onChangeSelected?.(item)
   }
 
   return (
-    <div className="flex flex-row gap-1 p-1 rounded-lg text-xs">
+    <div className={`flex flex-row gap-1 p-1 ${variant === TabVariant.Default ? 'rounded-lg' : ''} ${size === TabSize.Large ? '' : 'text-xs'}`}>
       {items.map((item) => (
         <button
           key={item}
@@ -20,12 +32,12 @@ const TabSelect: React.FC<TabSelectProps> = ({ items, selected, onChangeSelected
           className={`
           px-4 py-2 
           font-display 
-          rounded-md 
-          transition-colors
+          ${variant === TabVariant.Default ? 'rounded-md' : ''}
+          ${variant === TabVariant.Default ? 'transition-colors' : ''}
           outline-hidden
           ${selected === item
-              ? 'bg-neutral-950 text-white'
-              : 'text-black border border-white hover:bg-yellow-200 hover:border-black focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
+              ? ` ${variant === TabVariant.Default ? 'bg-neutral-950 text-white' : 'border-b border-neutral-950 text-neutral-800'}`
+              : `text-black ${variant === TabVariant.Default ? 'border border-white hover:bg-yellow-200 hover:border-black' : 'hover:border-b hover:border-neutral-800'} focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]`
             }
         `}
         >

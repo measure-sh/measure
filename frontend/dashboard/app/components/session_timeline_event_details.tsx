@@ -13,13 +13,15 @@ type SessionTimelineEventDetailsProps = {
   appId: string
   eventType: string
   eventDetails: any
+  demo?: boolean
 }
 
 export default function SessionTimelineEventDetails({
   teamId,
   appId,
   eventType,
-  eventDetails
+  eventDetails,
+  demo = false
 }: SessionTimelineEventDetailsProps) {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
 
@@ -161,23 +163,38 @@ export default function SessionTimelineEventDetails({
   function getDetailsLinkFromEventDetails(): ReactNode {
     const linkStyle = cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display bg-neutral-800 border border-white hover:border-black rounded-md text-white hover:text-black rounded-md select-none")
     if ((eventType === "exception" && eventDetails.user_triggered === false && eventDetails.handled === false) || eventType === "anr") {
+      const label = `View ${eventType === "exception" ? 'Crash' : 'ANR'} Details`
       return (
         <div className='px-4 pt-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className={linkStyle}>View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
+          {demo ? (
+            <div className={linkStyle}>{label}</div>
+          ) : (
+            <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className={linkStyle}>{label}</Link>
+          )}
         </div>
       )
     }
     if (eventType === "trace") {
+      const label = 'View Trace Details'
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className={linkStyle}>View Trace Details</Link>
+          {demo ? (
+            <div className={linkStyle}>{label}</div>
+          ) : (
+            <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className={linkStyle}>{label}</Link>
+          )}
         </div>
       )
     }
     if (eventType === "bug_report") {
+      const label = 'View Bug Report Details'
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className={linkStyle}>View Bug Report Details</Link>
+          {demo ? (
+            <div className={linkStyle}>{label}</div>
+          ) : (
+            <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className={linkStyle}>{label}</Link>
+          )}
         </div>
       )
     }
@@ -185,7 +202,7 @@ export default function SessionTimelineEventDetails({
 
   return (
     <div
-      className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto overscroll-y-contain break-words"
+      className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto break-words"
     >
       {getJsonLayoutSnapshotsFromEventDetails()}
       {getImageLayoutSnapshotsFromEventDetails()}
