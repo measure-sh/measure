@@ -1,5 +1,7 @@
 <p align="center">
-  <a href='http://measure.sh'><img alt="measurelogo" src="https://github.com/user-attachments/assets/dce3fc10-0fbc-4070-9b14-08579ba2db9a"></a>
+  <a href='http://measure.sh'>
+    <img width="1053" height="980" alt="Measure Github Hero Image" src="https://github.com/user-attachments/assets/f6c70f58-fccd-4687-bc38-2c3d28ca2794" />
+  </a>
 </p>
 <p align="center">
   <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
@@ -7,26 +9,28 @@
   <img alt="GitHub closed issues" src="https://img.shields.io/github/issues-closed/measure-sh/measure"/>
 </p>
 
-## Measure is an open source tool to monitor mobile apps
+## Measure helps you get to the root cause
 
-- Capture Crashes and ANRs automatically
-- Monitor app health metrics such as launch times, crash rates and app sizes 
-- Get screenshots with exception reports
-- View full event timelines of sessions with auto-tracked user clicks, navigation events, http calls, cpu usage, memory usage and more for deeper context
-- Optimize performance with traces
-- Track custom events with additional business specific attributes
-- Self hosted and private. Your data stays in your servers
-
+- Capture Crashes and ANRs automatically.
+- Monitor app health metrics such as launch times, error rates and app sizes.
+- View event timelines of error sessions with auto-tracked user clicks, navigation events, http calls, cpu usage, memory usage and more for deeper debugging context.
+- Allow your users to send bug reports via SDK call or device shake.
+- Optimize performance with traces.
+- Visualize user navigations through your app.
+- Track custom events with additional business specific attributes.
+- Dynamically adjust data collection parameters without needing to roll out app updates.
+- Self-Host for full data privacy or use [Measure Cloud](https://measure.sh) for convenience.
 
 ## Table of Contents
 - [Quick start](#quick-start)
 - [Features](#features)
-  - [Session Timelines](#session-timelines)
-  - [Bug Reports](#bug-reports)
-  - [Performance Traces](#performance-traces)
-  - [User Journeys](#user-journeys)
   - [App Health](#app-health)
+  - [Session Timelines](#session-timelines)
   - [Crashes and ANRs](#crashes-and-anrs)
+  - [Performance Traces](#performance-traces)
+  - [Bug Reports](#bug-reports)
+  - [User Journeys](#user-journeys)
+  - [Adaptive Capture](#adaptive-capture)
 - [Philosophy](#philosophy)
 - [Support the project](#support-the-project)
 - [Docs](#docs)
@@ -42,58 +46,51 @@ Measure is available as a self-hosted platform that comes with a simple one line
 
 ## Features
 
-### Session Timelines
-
-Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
-
-[Session Timelines demo](https://github.com/user-attachments/assets/9e0737b6-c1b4-4724-be89-736b99d8d5f6)
-
-### Bug Reports
-
-Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.
-
-[Bug Reports demo](https://github.com/user-attachments/assets/3507fdd6-b940-47e1-81b1-c3b0259bf811)
-
-### Performance Traces
-
-Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks. 
-
-[Performance Traces demo](https://github.com/user-attachments/assets/3cd8b09a-08e5-4c12-bd71-0cd3d1ddf37b)
-
-### User Journeys
-
-Understand how users move through your app. Easily visualise screens most affected by issues.
-
-[Journey demo](https://github.com/user-attachments/assets/2e2c49b4-bf95-4bd0-84f5-8a475a3ca562)
-
 ### App Health
 
-Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you're moving in the right direction.
+Monitor important metrics to stay on top of [app health](https://measure.sh/product/app-health). Quickly see deltas to make sure you're moving in the right direction.
 
-[App Health demo](https://github.com/user-attachments/assets/2e6aa704-f170-4623-857d-ddf783b395ed)
+### Session Timelines
+
+Debug issues easily with [session timelines](https://measure.sh/product/session-timelines). Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
 ### Crashes and ANRs
 
-Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces
+Automatically track [Crashes and ANRs](https://measure.sh/product/crashes-and-anrs). Dive deeper with screenshots, filters and detailed stacktraces
 
-[Crashes and ANRs demo](https://github.com/user-attachments/assets/0a2ff565-84b9-433f-bef8-7b8ed43cbecb)
+### Performance Traces
+
+Analyze [app performance](https://measure.sh/product/performance-traces) with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.
+
+### Bug Reports
+
+Capture [bug reports](https://measure.sh/product/bug-reports) with a device shake or SDK call. Get full history of user actions leading to the bug.
+
+### User Journeys
+
+Understand how [users move](https://measure.sh/product/user-journeys) through your app. Easily visualise screens most affected by issues.
+
+### Adaptive Capture
+
+[Dynamically adjust](https://measure.sh/product/adaptive-capture) data collection parameters without needing to roll out app updates. Turn up data collection during a new release and turn it down to save on storage and costs when things are running smoothly.
 
 ## Philosophy
 
-Our mission is to build the best tool for monitoring mobile apps. 
+Our mission is to build the best tool for monitoring mobile apps in production. 
 
-Building and maintaining mobile apps in production is hard and developers need to use a variety of different tools to collect issues, measure performance and analyse user behavior without having any control over where, how and for how long their data is stored. 
+Building performant mobile apps is hard. Monitoring and debugging them in production is harder.
 
-We aim to build a tool that unifies and simplifies monitoring capabilities for mobile teams while providing full control over 
-the collection and storage of data.
+Developers need to use a variety of different tools to debug issues, measure performance and analyse user behavior which leads to critical time being wasted during production incidents. 
+
+We aim to build a tool that helps developers stop stitching context and get to the root cause while having full control over data storage via self-hosting or using our hosted [Measure Cloud](https://measure.sh).
 
 We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches.
 
-We would love for you to contribute to Measure by opening issues, sending PRs and recommending us to your friends! 
+We would love for you to contribute to Measure by opening issues, sending PRs and recommending us to your fellow developers! 
 
 ## Support the project
 
-If you want to support the project and get updates on new features and releases, please ⭐ this repo and share it with your friends!
+If you want to support the project and get updates on new features and releases, please ⭐ this repo and give us a shoutout on social media!
 
 ## Docs
 
@@ -107,7 +104,7 @@ If you want to support the project and get updates on new features and releases,
 
 ## Platforms
 
-Currently, we support Android, iOS and Flutter. React Native SDK planned for the future.
+Currently, we support Android, iOS and Flutter. React Native SDK is coming soon.
 
 ## Roadmap
 

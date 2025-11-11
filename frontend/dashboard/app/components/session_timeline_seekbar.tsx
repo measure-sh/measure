@@ -31,15 +31,15 @@ const SessionTimelineSeekBar: React.FC<SessionTimelineSeekBarProps> = ({ value, 
         max="100"
         value={value}
         onChange={handleInputChange}
-        className="relative w-full h-1 bg-gray-200 rounded-sm appearance-none focus:outline-hidden cursor-pointer"
+        className="relative w-full h-1 rounded-sm appearance-none focus:outline-hidden cursor-pointer"
         style={{
           '--thumb-width': '2px',
           '--thumb-height': '400px',
           '--thumb-margin': '20px',
-          '--thumb-color': '#262626',
-          '--track-color': '#ffffff',
-          '--track-border-color': '#262626',
-          '--progress-color': '#262626',
+          '--thumb-color': 'var(--foreground)',
+          '--track-color': 'var(--background)',
+          '--track-border-color': 'var(--border)',
+          '--progress-color': 'var(--foreground)',
           '--progress-percent': `${value}%`,
         } as CSSProperties}
       />
@@ -73,7 +73,7 @@ const SessionTimelineSeekBar: React.FC<SessionTimelineSeekBarProps> = ({ value, 
         /* Track styling */
         input[type='range']::-webkit-slider-runnable-track {
           width: 100%;
-          height: 8px;
+          height: 6px;
           background: linear-gradient(to right, 
         var(--progress-color) 0%, 
         var(--progress-color) var(--progress-percent),
@@ -86,7 +86,7 @@ const SessionTimelineSeekBar: React.FC<SessionTimelineSeekBarProps> = ({ value, 
 
         input[type='range']::-moz-range-track {
           width: 100%;
-          height: 8px;
+          height: 6px;
           background: linear-gradient(to right, 
         var(--progress-color) 0%, 
         var(--progress-color) var(--progress-percent),

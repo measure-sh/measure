@@ -222,7 +222,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex justify-between font-display border border-black w-fit min-w-[150px] select-none"
+          className="flex justify-between w-fit min-w-[150px] select-none"
         >
           <span className="truncate">{getDisplayText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -242,7 +242,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 variant="outline"
                 size="sm"
                 onClick={selectAll}
-                className="font-display text-xs flex-1"
+                className="text-xs flex-1"
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
                   if (e.key === 'Enter') {
@@ -258,7 +258,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   variant="outline"
                   size="sm"
                   onClick={selectLatestAppVersion}
-                  className="font-display text-xs flex-1"
+                  className="text-xs flex-1"
                   tabIndex={0}
                   onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
                     if (e.key === 'Enter') {
@@ -274,7 +274,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   variant="outline"
                   size="sm"
                   onClick={clearAll}
-                  className="font-display text-xs flex-1"
+                  className="text-xs flex-1"
                   tabIndex={0}
                   onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
                     if (e.key === 'Enter') {
@@ -297,7 +297,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 key={index}
                 onSelect={() => handleItemClick(item)}
                 className={cn(
-                  "flex items-center cursor-default focus-visible:ring-3 focus-visible:ring-yellow-300",
+                  "flex items-center cursor-default outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 )}
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {

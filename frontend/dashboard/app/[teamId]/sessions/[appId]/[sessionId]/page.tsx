@@ -31,7 +31,7 @@ export default function Session({ params }: { params: { teamId: string, appId: s
   }, [])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <p className="font-display text-4xl">Session: {params.sessionId}</p>
       <div className="py-2" />
 
@@ -40,14 +40,14 @@ export default function Session({ params }: { params: { teamId: string, appId: s
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Error && <p className="font-body text-sm">Error fetching session timeline, please refresh page try again</p>}
 
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Success &&
-        <div>
+        <div className="w-full">
           <p className="font-body"> User ID: {sessionTimeline.attribute.user_id !== "" ? sessionTimeline.attribute.user_id : "N/A"}</p>
           <p className="font-body"> Duration: {formatMillisToHumanReadable(sessionTimeline.duration as unknown as number)}</p>
           <p className="font-body"> Device: {sessionTimeline.attribute.device_manufacturer + sessionTimeline.attribute.device_model}</p>
           <p className="font-body"> App version: {sessionTimeline.attribute.app_version} ({sessionTimeline.attribute.app_build})</p>
           <p className="font-body"> Network type: {sessionTimeline.attribute.network_type}</p>
           <div className="py-6" />
-          <SessionTimeline teamId={params.teamId} appId={params.appId} sessionTimeline={sessionTimeline} />
+          <SessionTimeline teamId={params.teamId} appId={params.appId} sessionTimeline={sessionTimeline} demo={false} />
         </div>}
     </div>
 

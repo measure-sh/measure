@@ -1,12 +1,166 @@
 "use client"
 
 import { ResponsiveSankey } from '@nivo/sankey'
+import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
+import { underlineLinkStyle } from '../utils/shared_styles'
+import { Button } from './button'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
+
+const demoJourney: InputJourneyData = {
+  links: [
+    // From MainActivity (home)
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProductListActivity", value: 4200000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.SearchActivity", value: 2800000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProfileActivity", value: 1500000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.CartActivity", value: 900000 },
+    { source: "sh.measure.demo.MainActivity", target: "sh.measure.demo.ProductDetailActivity", value: 600000 },
+
+    // From ProductListActivity
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.ProductDetailActivity", value: 3200000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.CartActivity", value: 650000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.SearchActivity", value: 420000 },
+    { source: "sh.measure.demo.ProductListActivity", target: "sh.measure.demo.MainActivity", value: 380000 },
+
+    // From SearchActivity
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.ProductDetailActivity", value: 1600000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.ProductListActivity", value: 950000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.MainActivity", value: 340000 },
+    { source: "sh.measure.demo.SearchActivity", target: "sh.measure.demo.CartActivity", value: 280000 },
+
+    // From ProductDetailActivity
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.CartActivity", value: 1800000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.ProductListActivity", value: 1200000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.MainActivity", value: 750000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.SearchActivity", value: 520000 },
+    { source: "sh.measure.demo.ProductDetailActivity", target: "sh.measure.demo.CheckoutActivity", value: 180000 },
+
+    // From CartActivity
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.CheckoutActivity", value: 1100000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.ProductDetailActivity", value: 850000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.ProductListActivity", value: 620000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.MainActivity", value: 410000 },
+    { source: "sh.measure.demo.CartActivity", target: "sh.measure.demo.SearchActivity", value: 190000 },
+
+    // From CheckoutActivity
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.PaymentActivity", value: 780000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.CartActivity", value: 320000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.ProductDetailActivity", value: 140000 },
+    { source: "sh.measure.demo.CheckoutActivity", target: "sh.measure.demo.MainActivity", value: 90000 },
+
+    // From PaymentActivity
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.OrderConfirmationActivity", value: 650000 },
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.CheckoutActivity", value: 110000 },
+    { source: "sh.measure.demo.PaymentActivity", target: "sh.measure.demo.CartActivity", value: 75000 },
+
+    // From OrderConfirmationActivity
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.MainActivity", value: 380000 },
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.ProductListActivity", value: 180000 },
+    { source: "sh.measure.demo.OrderConfirmationActivity", target: "sh.measure.demo.OrderHistoryActivity", value: 120000 },
+
+    // From ProfileActivity
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.OrderHistoryActivity", value: 680000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.MainActivity", value: 520000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.ProductListActivity", value: 240000 },
+    { source: "sh.measure.demo.ProfileActivity", target: "sh.measure.demo.CartActivity", value: 160000 },
+
+    // From OrderHistoryActivity
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProductDetailActivity", value: 420000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.MainActivity", value: 310000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProfileActivity", value: 180000 },
+    { source: "sh.measure.demo.OrderHistoryActivity", target: "sh.measure.demo.ProductListActivity", value: 150000 }
+  ],
+  nodes: [
+    {
+      id: "sh.measure.demo.MainActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProductListActivity",
+      issues: {
+        anrs: [
+          { id: "c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8", title: "kotlinx.coroutines@ProductListActivity.kt", count: 12000 }
+        ],
+        crashes: [
+          { id: "d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9", title: "java.lang.IndexOutOfBoundsException@ProductAdapter.kt", count: 28000 },
+          { id: "e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0", title: "java.lang.OutOfMemoryError@ImageLoader.kt", count: 15000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.SearchActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProductDetailActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.CartActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.CheckoutActivity",
+      issues: {
+        anrs: [
+          { id: "k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6", title: "android.app.ActivityThread@CheckoutActivity.kt", count: 18000 }
+        ],
+        crashes: [
+          { id: "l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7", title: "java.lang.IllegalStateException@CheckoutActivity.kt", count: 4000 },
+          { id: "m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8", title: "retrofit2.HttpException@CheckoutService.kt", count: 23000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.PaymentActivity",
+      issues: {
+        anrs: [],
+        crashes: [
+          { id: "o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0", title: "java.security.InvalidKeyException@PaymentProcessor.kt", count: 8000 },
+          { id: "p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1", title: "javax.net.ssl.SSLHandshakeException@PaymentGateway.kt", count: 12000 }
+        ]
+      }
+    },
+    {
+      id: "sh.measure.demo.OrderConfirmationActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.ProfileActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    },
+    {
+      id: "sh.measure.demo.OrderHistoryActivity",
+      issues: {
+        anrs: [],
+        crashes: []
+      }
+    }
+  ],
+  totalIssues: 120000
+}
 
 interface JourneyProps {
   teamId: string,
@@ -15,6 +169,7 @@ interface JourneyProps {
   exceptionsGroupId: string | null,
   filters: Filters,
   searchText?: string
+  demo?: boolean
 }
 
 export enum JourneyType {
@@ -73,8 +228,10 @@ type JourneyData = {
 }
 
 const positiveNodeColour = 'oklch(63.7% 0.237 25.331)'
-const negativeNodeColour = 'oklch(69.6% 0.17 162.48)'
+const negativeNodeColour = 'oklch(72.3% 0.219 149.579)'
 const neutralLinkColour = `oklch(87.2% 0.01 258.338)`
+const exceptionNodeLabelColour = 'oklch(0.141 0.005 285.823)'
+const exceptionNodeLabelColourDark = 'oklch(0.985 0 0)'
 
 function getNodeColor(node: Node): string {
   const hasIssues = node.issues?.anrs?.length! > 0 || node.issues?.crashes?.length! > 0
@@ -191,8 +348,8 @@ function transformData(journeyType: JourneyType, input: InputJourneyData): Journ
   }
 }
 
-const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '' }) => {
-
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '', demo = false }) => {
+  const { theme } = useTheme()
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
   const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
 
@@ -200,6 +357,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   const [showPanel, setShowPanel] = useState(false)
 
   const getJourney = async () => {
+    if (demo) {
+      const journey = transformData(journeyType, demoJourney)
+      setJourney(journey)
+      setJourneyApiStatus(JourneyApiStatus.Success)
+      return
+    }
+
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
     const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters)
@@ -265,7 +429,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }
 
   return (
-    <div className="flex flex-col items-center justify-center text-black font-body text-sm w-full h-full overflow-hidden">
+    <div className="flex flex-col items-center justify-center font-body text-sm w-full h-full overflow-hidden">
       <div className="flex-1 flex items-center justify-center w-full h-full">
         {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
         {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
@@ -277,34 +441,40 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
               align="justify"
               sort="input"
               margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
-              colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : { scheme: 'nivo' }}
-              nodeBorderColor={'oklch(26.9% 0 0)'}
+              linkContract={30}
+              colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : theme === 'dark' ? { scheme: 'tableau10' } : { scheme: 'nivo' }}
+              nodeBorderColor={
+                {
+                  from: 'color',
+                  modifiers: [theme === "dark" ? ['brighter', 0.5] : ['darker', 0.3]]
+                }
+              }
               nodeBorderRadius={3}
               enableLinkGradient={true}
               label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
               labelPosition="inside"
               labelOrientation="horizontal"
               labelPadding={8}
-              labelTextColor={{
-                from: 'color',
-                modifiers: [
-                  [
-                    'darker',
-                    1
-                  ]
-                ]
-              }}
+              labelTextColor={
+                journeyType === JourneyType.Exceptions
+                  ? (theme === 'dark' ? exceptionNodeLabelColourDark : exceptionNodeLabelColour)
+                  : {
+                    from: 'color',
+                    modifiers: [theme === 'dark' ? ['brighter', 0.5] : ['darker', 0.7]]
+                  }
+              }
+              linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
               onClick={(nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode)}
               linkTooltip={({
                 link
               }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white break-words`}>
+                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
                   <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
                 </div>}
               nodeTooltip={({
                 node
               }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white break-words`}>
+                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
                   <p className='p-2'>{node.id}</p>
 
                   {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
@@ -324,25 +494,31 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
             />
             {/* Panel */}
             <div
-              className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-neutral-800 p-4 text-white break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
+              className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
                 }`}
             >
               {selectedNode !== undefined &&
                 <div>
-                  <button className="outline-hidden flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
+                  <Button variant="secondary" className="py-2 px-4"
+                    onClick={() => setSelectedNode(undefined)}>Close
+                  </Button>
                   <p className='mt-6 text-lg'>{selectedNode!.id}</p>
                   {selectedNode.issues?.crashes?.length! > 0 && (
                     <div>
-                      <p className="font-body text-white mt-4">Crashes:</p>
-                      <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
+                      <p className="font-body mt-4">Crashes:</p>
+                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
                         {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
                           <li key={title}>
                             {/* Show clickable link if Exceptions journey type */}
                             {journeyType === JourneyType.Exceptions &&
                               <span className="font-body text-xs">
-                                <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                  {title} - {numberToKMB(count)}
-                                </Link>
+                                {demo ? (
+                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                                ) : (
+                                  <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                    {title} - {numberToKMB(count)}
+                                  </Link>
+                                )}
                               </span>
                             }
                             {/* Show only title and count if crash or anr journey type */}
@@ -358,16 +534,20 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                   )}
                   {selectedNode.issues?.anrs?.length! > 0 && (
                     <div>
-                      <p className="font-body text-white pt-2">ANRs:</p>
-                      <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
+                      <p className="font-body pt-2">ANRs:</p>
+                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
                         {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
                           <li key={title}>
                             {/* Show clickable link if Exceptions journey type */}
                             {journeyType === JourneyType.Exceptions &&
                               <span className="font-body text-xs">
-                                <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                  {title} - {numberToKMB(count)}
-                                </Link>
+                                {demo ? (
+                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                                ) : (
+                                  <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                    {title} - {numberToKMB(count)}
+                                  </Link>
+                                )}
                               </span>
                             }
                             {/* Show only title and count if crash or anr journey type */}

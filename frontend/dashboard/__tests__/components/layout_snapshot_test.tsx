@@ -257,7 +257,7 @@ describe('LayoutSnapshot', () => {
             const elements = container.querySelectorAll('.absolute.border')
             const highlightedChild = elements[2] // root, child1, child2 (highlighted)
 
-            expect(highlightedChild).toHaveClass('border-yellow-200')
+            expect(highlightedChild).toHaveClass('border-primary')
             expect(highlightedChild).toHaveStyle({
                 backgroundImage: LayoutSnapshotStripedBgImage
             })
@@ -380,7 +380,7 @@ describe('LayoutSnapshot', () => {
             expect(elements).toHaveLength(3)
 
             const nestedChild = elements[2]
-            expect(nestedChild).toHaveClass('border-gray-400')
+            expect(nestedChild).toHaveClass('border-background/60 dark:border-foreground/50')
         })
     })
 
@@ -462,10 +462,10 @@ describe('LayoutSnapshot', () => {
         const elements = container.querySelectorAll('.absolute.border')
         const firstChild = elements[1]
 
-        expect(firstChild).toHaveClass('border-gray-400')
+        expect(firstChild).toHaveClass('border-background/60 dark:border-foreground/50')
 
         fireEvent.mouseEnter(firstChild)
-        expect(firstChild).toHaveClass('border-yellow-200')
+        expect(firstChild).toHaveClass('border-primary')
     })
 
     it('maintains highlighted styling even when hovered', async () => {
@@ -486,10 +486,10 @@ describe('LayoutSnapshot', () => {
         const elements = container.querySelectorAll('.absolute.border')
         const highlightedChild = elements[2]
 
-        expect(highlightedChild).toHaveClass('border-yellow-200')
+        expect(highlightedChild).toHaveClass('border-primary')
 
         fireEvent.mouseEnter(highlightedChild)
-        expect(highlightedChild).toHaveClass('border-yellow-200')
+        expect(highlightedChild).toHaveClass('border-primary')
     })
 
     it('handles mouse movement without crashing', async () => {

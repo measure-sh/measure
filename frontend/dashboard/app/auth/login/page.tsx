@@ -2,6 +2,7 @@
 
 import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { isMeasureHost } from "@/app/utils/url_utils"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -66,7 +67,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
   }, [session])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-background text-foreground">
       {/* a fixed max-width is best as the google sign-in button has a width constraint */}
       <div className="w-full space-y-6" style={{ width: "400px" }}>
         {loading && <p className="font-body text-center">Loading...</p>}
@@ -79,11 +80,11 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       {inviteInvalid && (
         <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link.</p>
       )}
-      {isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-gray-500">
+      {!isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-muted-foreground">
         Measure Cloud is limited to alpha users at the moment. Please{" "}
         <Link
           target="_blank"
-          className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+          className={underlineLinkStyle}
           href="mailto:support@measure.sh"
         >
           contact us

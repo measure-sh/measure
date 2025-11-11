@@ -60,7 +60,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
         <Button
           variant="outline"
           size={"lg"}
-          className="flex flex-row items-center w-full p-1 font-display border border-black select-none"
+          className="flex flex-row items-center w-full p-1 font-display"
           disabled={session === null && sessionError === null}
         >
           <div

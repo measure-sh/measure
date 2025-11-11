@@ -6,6 +6,7 @@ import { App, CreateAppApiStatus, createAppFromServer } from '../api/api_calls'
 import { toastNegative, toastPositive } from '../utils/use_toast'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
+import { Input } from './input'
 
 interface CreateAppProps {
   teamId: string,
@@ -30,10 +31,12 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess }) => {
 
     switch (result.status) {
       case CreateAppApiStatus.Error:
+        setAppName("")
         setCreateAppApiStatus(CreateAppApiStatus.Error)
         toastNegative(`Error creating app: ${result.error}`)
         break
       case CreateAppApiStatus.Success:
+        setAppName("")
         setCreateAppApiStatus(CreateAppApiStatus.Success)
         setDialogOpen(false)
         toastPositive(`App ${result.data.name} has been created`)
@@ -48,25 +51,24 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess }) => {
     <>
       <Button
         variant="outline"
-        className="font-display border border-black select-none"
         onClick={() => setDialogOpen(true)}
       >
         <Plus /> Create App
       </Button>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className='bg-background text-foreground'>
           <DialogHeader>
             <DialogTitle className="font-display">Add new app</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col w-5/6">
             <form onSubmit={createApp} className="flex flex-col">
-              <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
+              <Input id="app-name" type="string" placeholder="Enter app name" className="w-96 font-body" onChange={(event) => setAppName(event.target.value)} />
               <div className="py-2" />
               <div className='flex flex-row gap-2'>
                 <Button
                   variant="outline"
                   type="submit"
-                  className="w-fit font-display border border-black select-none"
+                  className="w-fit"
                   loading={createAppApiStatus === CreateAppApiStatus.Loading}
                   disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0}
                 >Create App
@@ -74,7 +76,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess }) => {
                 <Button
                   variant="outline"
                   type="submit"
-                  className="w-fit font-display border border-black select-none"
+                  className="w-fit"
                   onClick={() => setDialogOpen(false)}
                 >Cancel
                 </Button>

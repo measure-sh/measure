@@ -1,16 +1,49 @@
 "use client"
 
 import { ResponsiveLine } from '@nivo/line'
+import { DateTime } from 'luxon'
+import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls'
+import { numberToKMB } from '../utils/number_utils'
+import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
+const demoDataDate = DateTime.now()
+const demoData = [
+  {
+    id: "1.0.0 (100)",
+    data: [
+      { datetime: demoDataDate.toFormat('yyyy-MM-dd'), instances: 1796 },
+      { datetime: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), instances: 0 }
+    ]
+  },
+  {
+    id: "2.0.0 (200)",
+    data: [
+      { datetime: demoDataDate.toFormat('yyyy-MM-dd'), instances: 2204 },
+      { datetime: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), instances: 0 }
+    ]
+  }
+]
+
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
   exceptionsGroupId: string,
-  filters: Filters
+  filters: Filters,
+  demo?: boolean,
 }
 
 type ExceptionsDetailsPlot = {
@@ -21,11 +54,18 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters, demo = false }) => {
   const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
+  const { theme } = useTheme()
 
   const getExceptionsDetailsPlot = async () => {
+    if (demo) {
+      setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
+      setPlot(demoData.map((item: any) => ({ id: item.id, data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })) })))
+      return
+    }
+
     // Don't try to fetch plot if filters aren't ready
     if (!filters.ready) {
       return
@@ -59,10 +99,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [exceptionsType, exceptionsGroupId, filters])
+  }, [exceptionsType, exceptionsGroupId, filters, demo])
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-[32rem]">
+    <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -70,9 +110,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: 'nivo' }}
+          colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
           margin={{ top: 40, right: 60, bottom: 180, left: 50 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
@@ -100,14 +141,14 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            format: value => Number.isInteger(value) ? value : '',
+            format: value => Number.isInteger(value) ? numberToKMB(value) : '',
             legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
-            legendOffset: -40,
+            legendOffset: demo ? -45 : -40,
             legendPosition: 'middle'
           }}
           pointSize={6}
           pointBorderWidth={1.5}
-          pointColor={"rgba(255, 255, 255, 255)"}
+          pointColor={theme === 'dark' ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"}
           pointBorderColor={{
             from: 'serieColor',
             modifiers: [
@@ -124,7 +165,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>

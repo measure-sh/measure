@@ -1,6 +1,7 @@
 "use client"
 
 import { measureAuth } from "@/app/auth/measure_auth"
+import { useTheme } from "next-themes"
 import Script from "next/script"
 import { useEffect, useState } from "react"
 
@@ -23,6 +24,7 @@ export default function GoogleSignIn() {
   const [nonce, setNonce] = useState("")
   const [hashedNonce, setHashedNonce] = useState("")
   const [state, setState] = useState("")
+  const { theme, resolvedTheme } = useTheme()
 
   useEffect(() => {
     genNonce().then(({ nonce, hashedNonce }) => {
@@ -35,6 +37,10 @@ export default function GoogleSignIn() {
   }, [])
 
   const ready = nonce && hashedNonce
+
+  // Use resolvedTheme to handle 'system' theme
+  const currentTheme = resolvedTheme || theme
+  const buttonTheme = currentTheme === 'dark' ? 'filled_black' : 'outline'
 
   if (!ready) {
     return null
@@ -56,10 +62,12 @@ export default function GoogleSignIn() {
         data-use_fedcm_for_prompt="true">
       </div>
 
-      <div className="g_id_signin rounded-md"
+      <div
+        style={{ colorScheme: "light" }}
+        className="g_id_signin"
         data-type="standard"
         data-shape="rectangular"
-        data-theme="outline"
+        data-theme={buttonTheme}
         data-text="signin_with"
         data-size="large"
         data-logo_alignment="center"

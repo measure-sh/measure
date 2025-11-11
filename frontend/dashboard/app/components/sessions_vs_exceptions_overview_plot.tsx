@@ -1,14 +1,59 @@
 "use client"
 
 import { ResponsiveLine } from '@nivo/line'
+import { DateTime } from 'luxon'
+import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { SessionsVsExceptionsPlotApiStatus, fetchSessionsVsExceptionsPlotFromServer } from '../api/api_calls'
+import { numberToKMB } from '../utils/number_utils'
+import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
+const demoDataDate = DateTime.now()
+const demoPlot = [
+  {
+    id: 'Sessions',
+    data: [
+      { id: 's.1', x: demoDataDate.toFormat('yyyy-MM-dd'), y: 1720000 },
+      { id: 's.2', x: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), y: 1610000 },
+      { id: 's.3', x: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), y: 1580000 },
+      { id: 's.4', x: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), y: 1420000 },
+      { id: 's.5', x: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), y: 1350000 },
+      { id: 's.6', x: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), y: 1240000 },
+      { id: 's.7', x: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), y: 1080000 },
+    ]
+  },
+  {
+    id: 'Crashes',
+    data: [
+      { id: 'c.1', x: demoDataDate.toFormat('yyyy-MM-dd'), y: 15400 },
+      { id: 'c.2', x: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), y: 14600 },
+      { id: 'c.3', x: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), y: 14300 },
+      { id: 'c.4', x: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), y: 12800 },
+      { id: 'c.5', x: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), y: 12100 },
+      { id: 'c.6', x: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), y: 11100 },
+      { id: 'c.7', x: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), y: 9700 },
+    ]
+  },
+  {
+    id: 'ANRs',
+    data: [
+      { id: 'a.1', x: demoDataDate.toFormat('yyyy-MM-dd'), y: 5200 },
+      { id: 'a.2', x: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), y: 4800 },
+      { id: 'a.3', x: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), y: 4700 },
+      { id: 'a.4', x: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), y: 4300 },
+      { id: 'a.5', x: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), y: 4100 },
+      { id: 'a.6', x: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), y: 3700 },
+      { id: 'a.7', x: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), y: 3200 },
+    ]
+  }
+]
+
 interface SessionsVsExceptionsPlotProps {
   filters: Filters
+  demo?: boolean
 }
 
 type SessionsVsExceptionsPlot = {
@@ -20,15 +65,21 @@ type SessionsVsExceptionsPlot = {
   }[]
 }[]
 
-const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ filters }) => {
+const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ filters, demo = false }) => {
   const [sessionsVsExceptionsPlotApiStatus, setSessionsVsExceptionsPlotApiStatus] = useState(SessionsVsExceptionsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<SessionsVsExceptionsPlot>()
+  const { theme } = useTheme()
 
-  const colorMap = {
+  const colorMap = theme === 'dark' ? {
+    Sessions: 'oklch(0.6042 0.1238 244.6)',
+    Crashes: 'oklch(0.6014 0.199 26.6)',
+    ANRs: 'oklch(0.6664 0.1851 51.88)'
+  } : {
     Sessions: 'oklch(90.1% 0.058 230.902)',
     Crashes: 'oklch(80.8% 0.114 19.571)',
     ANRs: 'oklch(89.2% 0.058 10.001)'
   } as const;
+
   const labelMap = {
     Sessions: 'Sessions',
     Crashes: 'Crashes',
@@ -36,6 +87,12 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
   } as const;
 
   const getSessionsVsExceptionsPlot = async () => {
+    if (demo) {
+      setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Success)
+      setPlot(demoPlot)
+      return
+    }
+
     // Don't try to fetch plot if filters aren't ready
     if (!filters.ready) {
       return
@@ -73,6 +130,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
           colors={({ id }) => colorMap[id as keyof typeof colorMap] || '#888'}
@@ -93,19 +151,19 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            tickPadding: 20,
+            tickPadding: 16,
             format: '%b %d, %Y',
             legendPosition: 'middle',
-            tickRotation: 45
+            tickRotation: 55
           }}
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            format: value => Number.isInteger(value) ? value : '',
+            format: value => Number.isInteger(value) ? numberToKMB(value) : '',
           }}
           pointSize={6}
           pointBorderWidth={1.5}
-          pointColor={"rgba(255, 255, 255, 255)"}
+          pointColor={theme === 'dark' ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"}
           pointBorderColor={({ serieId }: { serieId: string }) => colorMap[serieId as keyof typeof colorMap] || '#888'}
           pointLabelYOffset={-12}
           useMesh={true}
@@ -116,7 +174,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
             const order = ['Sessions', 'Crashes', 'ANRs'] as const;
             const pointsById: Record<string, typeof slice.points[number]> = Object.fromEntries(slice.points.map(p => [p.serieId, p]));
             return (
-              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {order.map((key) => {
                   const point = pointsById[key];

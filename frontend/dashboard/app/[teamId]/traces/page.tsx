@@ -89,7 +89,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+        <div className="flex flex-col items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Traces</p>
             <div className="py-4" />
 
@@ -142,7 +142,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                         <LoadingBar />
                     </div>
                     <div className='py-4' />
-                    <Table className="font-display">
+                    <Table className="font-display select-none">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[60%]">Trace</TableHead>
@@ -157,7 +157,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                 return (
                                     <TableRow
                                         key={`${idx}-${span_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        className="font-body select-none"
                                         tabIndex={0}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -175,11 +175,11 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                                 style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
-                                                <p className='text-xs truncate text-gray-500 select-none'>ID: {trace_id}</p>
+                                                <p className='text-xs truncate text-muted-foreground select-none'>ID: {trace_id}</p>
                                                 <div className='py-1' />
                                                 <p className='truncate select-none'>{span_name}</p>
                                                 <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{`${app_version}(${app_build}), ${(os_name === 'android' ? 'Android API Level' : os_name === 'ios' ? 'iOS' : os_name === 'ipados' ? 'iPadOS' : os_name)} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                                                <p className='text-xs truncate text-muted-foreground select-none'>{`${app_version}(${app_build}), ${(os_name === 'android' ? 'Android API Level' : os_name === 'ios' ? 'iOS' : os_name === 'ipados' ? 'iPadOS' : os_name)} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
@@ -208,7 +208,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                                 {formatMillisToHumanReadable(duration)}
                                             </div>
                                         </TableCell>
-                                        <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>
+                                        <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600 dark:text-green-400" : status === 2 ? "text-red-600 dark:text-red-400" : ""}`}>
                                             <a
                                                 href={traceHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
