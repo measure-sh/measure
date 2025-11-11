@@ -1151,9 +1151,7 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export type CollectionMode = 'sampled' | 'session_timeline' | 'disabled';
-
-export type EventTargetingAttachmentConfig = 'none' | 'layout_snapshot' | 'screenshot';
+export type CollectionMode = 'sampled' | 'timeline' | 'disabled';
 
 export type EventTargetingRulesResponse = {
   rules: EventTargetingRule[] | null,
@@ -1162,6 +1160,7 @@ export type EventTargetingRulesResponse = {
 
 
 export type EventTargetingRuleRequest = {
+  name: string,
   condition: string,
   collection_mode: CollectionMode,
   sampling_rate: number,
@@ -1170,26 +1169,30 @@ export type EventTargetingRuleRequest = {
 }
 
 export type TraceTargetingRuleRequest = {
+  name: string,
   condition: string,
   collection_mode: CollectionMode,
   sampling_rate: number,
 }
 
 export type SessionTargetingRuleRequest = {
+  name: string,
   condition: string,
   sampling_rate: number,
 }
 
 export type EventTargetingRule = {
   id: string,
+  name: string,
   condition: string,
   collection_mode: CollectionMode,
   sampling_rate: number,
   take_screenshot: boolean,
   take_layout_snapshot: boolean,
-  attachment_config?: EventTargetingAttachmentConfig,
-  updated_at: string,
-  updated_by: string,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
 }
 
 export type TraceTargetingRulesResponse = {
@@ -1199,11 +1202,14 @@ export type TraceTargetingRulesResponse = {
 
 export type TraceTargetingRule = {
   id: string,
+  name: string,
   condition: string,
   collection_mode: CollectionMode,
   sampling_rate: number,
-  updated_at: string,
-  updated_by: string,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
 }
 
 export type SessionTargetingRulesResponse = {
@@ -1216,10 +1222,13 @@ export type SessionTargetingRulesResponse = {
 
 export type SessionTargetingRule = {
   id: string,
+  name: string,
   condition: string,
   sampling_rate: number,
-  updated_at: string,
-  updated_by: string,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
 }
 
 export type EventTargetingConfig = {
@@ -1255,7 +1264,16 @@ export type EventTargetingConfigResponse = {
 }
 
 export type TraceTargetingConfigResponse = {
-  traces: TraceTargetingConfig[];
+  trace_config: TraceTargetingConfig[];
+  trace_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
+}
+
+export type SessionTargetingConfigResponse = {
+  events: EventTargetingConfig[];
+  trace_config: TraceTargetingConfig[];
+  event_ud_attrs: AttributeTargetingConfig[];
   trace_ud_attrs: AttributeTargetingConfig[];
   session_attrs: AttributeTargetingConfig[];
   operator_types: TargetingOperatorConfig;

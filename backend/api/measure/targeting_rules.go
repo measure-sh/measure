@@ -11,58 +11,65 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
 // Represents a event targting rule.
 type EventTargetingRule struct {
-	Id                 uuid.UUID `json:"id"`
-	TeamId             uuid.UUID `json:"team_id"`
-	AppId              uuid.UUID `json:"app_id"`
-	Condition          string    `json:"condition"`
-	CollectionMode     string    `json:"collection_mode"`
-	TakeScreenshot     bool      `json:"take_screenshot"`
-	TakeLayoutSnapshot bool      `json:"take_layout_snapshot"`
-	SamplingRate       float32   `json:"sampling_rate"`
-	IsDefaultRule      bool      `json:"is_default_rule"`
-	CreatedAt          time.Time `json:"created_at"`
-	CreatedBy          uuid.UUID `json:"-"`
-	CreatedByEmail     string    `json:"created_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	UpdatedBy          uuid.UUID `json:"-"`
-	UpdatedByEmail     string    `json:"updated_by"`
+	Id                 uuid.UUID  `json:"id"`
+	TeamId             uuid.UUID  `json:"team_id"`
+	AppId              uuid.UUID  `json:"app_id"`
+	Name               string     `json:"name"`
+	Condition          string     `json:"condition"`
+	CollectionMode     string     `json:"collection_mode"`
+	TakeScreenshot     bool       `json:"take_screenshot"`
+	TakeLayoutSnapshot bool       `json:"take_layout_snapshot"`
+	SamplingRate       float32    `json:"sampling_rate"`
+	IsDefaultBehaviour bool       `json:"is_default_behaviour"`
+	CreatedAt          time.Time  `json:"created_at"`
+	CreatedBy          uuid.UUID  `json:"-"`
+	CreatedByEmail     string     `json:"created_by"`
+	UpdatedAt          *time.Time `json:"updated_at"`
+	UpdatedBy          uuid.UUID  `json:"-"`
+	UpdatedByEmail     string     `json:"updated_by"`
+	AutoCreated        bool       `json:"auto_created"`
 }
 
 // Represents a trace targting rule.
 type TraceTargetingRule struct {
-	Id             uuid.UUID `json:"id"`
-	TeamId         uuid.UUID `json:"team_id"`
-	AppId          uuid.UUID `json:"app_id"`
-	Condition      string    `json:"condition"`
-	CollectionMode string    `json:"collection_mode"`
-	SamplingRate   float32   `json:"sampling_rate"`
-	IsDefaultRule  bool      `json:"is_default_rule"`
-	CreatedAt      time.Time `json:"created_at"`
-	CreatedBy      uuid.UUID `json:"-"`
-	CreatedByEmail string    `json:"created_by"`
-	UpdatedAt      time.Time `json:"updated_at"`
-	UpdatedBy      uuid.UUID `json:"-"`
-	UpdatedByEmail string    `json:"updated_by"`
+	Id                 uuid.UUID  `json:"id"`
+	TeamId             uuid.UUID  `json:"team_id"`
+	AppId              uuid.UUID  `json:"app_id"`
+	Name               string     `json:"name"`
+	Condition          string     `json:"condition"`
+	CollectionMode     string     `json:"collection_mode"`
+	SamplingRate       float32    `json:"sampling_rate"`
+	IsDefaultBehaviour bool       `json:"is_default_behaviour"`
+	CreatedAt          time.Time  `json:"created_at"`
+	CreatedBy          uuid.UUID  `json:"-"`
+	CreatedByEmail     string     `json:"created_by"`
+	UpdatedAt          *time.Time `json:"updated_at"`
+	UpdatedBy          uuid.UUID  `json:"-"`
+	UpdatedByEmail     string     `json:"updated_by"`
+	AutoCreated        bool       `json:"auto_created"`
 }
 
 // Represents a session targting rule.
 type SessionTargetingRule struct {
-	Id             uuid.UUID `json:"id"`
-	TeamId         uuid.UUID `json:"team_id"`
-	AppId          uuid.UUID `json:"app_id"`
-	SamplingRate   float32   `json:"sampling_rate"`
-	Condition      string    `json:"condition"`
-	CreatedAt      time.Time `json:"created_at"`
-	CreatedBy      uuid.UUID `json:"-"`
-	CreatedByEmail string    `json:"created_by"`
-	UpdatedAt      time.Time `json:"updated_at"`
-	UpdatedBy      uuid.UUID `json:"-"`
-	UpdatedByEmail string    `json:"updated_by"`
+	Id             uuid.UUID  `json:"id"`
+	TeamId         uuid.UUID  `json:"team_id"`
+	AppId          uuid.UUID  `json:"app_id"`
+	Name           string     `json:"name"`
+	SamplingRate   float32    `json:"sampling_rate"`
+	Condition      string     `json:"condition"`
+	CreatedAt      time.Time  `json:"created_at"`
+	CreatedBy      uuid.UUID  `json:"-"`
+	CreatedByEmail string     `json:"created_by"`
+	UpdatedAt      *time.Time `json:"updated_at"`
+	UpdatedBy      uuid.UUID  `json:"-"`
+	UpdatedByEmail string     `json:"updated_by"`
+	AutoCreated    bool       `json:"auto_created"`
 }
 
 type EventTargetingRulesResponse struct {
@@ -138,22 +145,25 @@ type SessionTargetingConfig struct {
 }
 
 type EventTargetingRulePayload struct {
+	Name               string  `json:"name"`
 	Condition          string  `json:"condition"`
 	CollectionMode     string  `json:"collection_mode"`
 	TakeScreenshot     bool    `json:"take_screenshot"`
 	TakeLayoutSnapshot bool    `json:"take_layout_snapshot"`
 	SamplingRate       float32 `json:"sampling_rate"`
-	IsDefaultRule      bool    `json:"is_default_rule"`
+	IsDefaultBehaviour bool    `json:"is_default_behaviour"`
 }
 
 type TraceTargetingRulePayload struct {
-	Condition      string  `json:"condition"`
-	CollectionMode string  `json:"collection_mode"`
-	SamplingRate   float32 `json:"sampling_rate"`
-	IsDefaultRule  bool    `json:"is_default_rule"`
+	Name               string  `json:"name"`
+	Condition          string  `json:"condition"`
+	CollectionMode     string  `json:"collection_mode"`
+	SamplingRate       float32 `json:"sampling_rate"`
+	IsDefaultBehaviour bool    `json:"is_default_behaviour"`
 }
 
 type SessionTargetingRulePayload struct {
+	Name         string  `json:"name"`
 	Condition    string  `json:"condition"`
 	SamplingRate float32 `json:"sampling_rate"`
 }
@@ -165,16 +175,18 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("condition").
 		Select("collection_mode").
 		Select("take_screenshot").
 		Select("take_layout_snapshot").
 		Select("sampling_rate").
-		Select("is_default_rule").
+		Select("is_default_behaviour").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
 	stmt.OrderBy("updated_at DESC")
@@ -194,16 +206,18 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
+			&rule.Name,
 			&rule.Condition,
 			&rule.CollectionMode,
 			&rule.TakeScreenshot,
 			&rule.TakeLayoutSnapshot,
 			&rule.SamplingRate,
-			&rule.IsDefaultRule,
+			&rule.IsDefaultBehaviour,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
 			&rule.UpdatedBy,
+			&rule.AutoCreated,
 		); err != nil {
 			return response, err
 		}
@@ -215,11 +229,11 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		return response, err
 	}
 
-	// Separate default rule from regular rules
+	// Separate default rule from override rules
 	var rules []EventTargetingRule
 	var defaultRule EventTargetingRule
 	for _, rule := range allRules {
-		if rule.IsDefaultRule {
+		if rule.IsDefaultBehaviour {
 			defaultRule = rule
 		} else {
 			rules = append(rules, rule)
@@ -239,14 +253,16 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("condition").
 		Select("collection_mode").
 		Select("sampling_rate").
-		Select("is_default_rule").
+		Select("is_default_behaviour").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
 	stmt.OrderBy("updated_at DESC")
@@ -266,14 +282,16 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
+			&rule.Name,
 			&rule.Condition,
 			&rule.CollectionMode,
 			&rule.SamplingRate,
-			&rule.IsDefaultRule,
+			&rule.IsDefaultBehaviour,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
 			&rule.UpdatedBy,
+			&rule.AutoCreated,
 		); err != nil {
 			return response, err
 		}
@@ -285,11 +303,11 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		return response, err
 	}
 
-	// Separate default rule from regular rules
+	// Separate default rule from override rules
 	var rules []TraceTargetingRule
 	var defaultRule TraceTargetingRule
 	for _, rule := range allRules {
-		if rule.IsDefaultRule {
+		if rule.IsDefaultBehaviour {
 			defaultRule = rule
 		} else {
 			rules = append(rules, rule)
@@ -309,12 +327,14 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("sampling_rate").
 		Select("condition").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
 	stmt.OrderBy("updated_at DESC")
@@ -333,12 +353,14 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
+			&rule.Name,
 			&rule.SamplingRate,
 			&rule.Condition,
 			&rule.CreatedAt,
 			&rule.CreatedBy,
 			&rule.UpdatedAt,
 			&rule.UpdatedBy,
+			&rule.AutoCreated,
 		); err != nil {
 			return nil, err
 		}
@@ -365,16 +387,18 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("condition").
 		Select("collection_mode").
 		Select("take_screenshot").
 		Select("take_layout_snapshot").
 		Select("sampling_rate").
-		Select("is_default_rule").
+		Select("is_default_behaviour").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", appId).
 		Where("id = ?", ruleUUID)
 
@@ -387,16 +411,18 @@ func GetEventTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
+		&r.Name,
 		&r.Condition,
 		&r.CollectionMode,
 		&r.TakeScreenshot,
 		&r.TakeLayoutSnapshot,
 		&r.SamplingRate,
-		&r.IsDefaultRule,
+		&r.IsDefaultBehaviour,
 		&r.CreatedAt,
 		&r.CreatedBy,
 		&r.UpdatedAt,
 		&r.UpdatedBy,
+		&r.AutoCreated,
 	); err != nil {
 		return nil, err
 	}
@@ -422,14 +448,16 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("condition").
 		Select("collection_mode").
 		Select("sampling_rate").
-		Select("is_default_rule").
+		Select("is_default_behaviour").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", appId).
 		Where("id = ?", ruleUUID)
 
@@ -442,14 +470,16 @@ func GetTraceTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId str
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
+		&r.Name,
 		&r.Condition,
 		&r.CollectionMode,
 		&r.SamplingRate,
-		&r.IsDefaultRule,
+		&r.IsDefaultBehaviour,
 		&r.CreatedAt,
 		&r.CreatedBy,
 		&r.UpdatedAt,
 		&r.UpdatedBy,
+		&r.AutoCreated,
 	); err != nil {
 		return nil, err
 	}
@@ -475,12 +505,14 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 		Select("id").
 		Select("team_id").
 		Select("app_id").
+		Select("name").
 		Select("condition").
 		Select("sampling_rate").
 		Select("created_at").
 		Select("created_by").
 		Select("updated_at").
 		Select("updated_by").
+		Select("auto_created").
 		Where("app_id = ?", appId).
 		Where("id = ?", ruleUUID)
 
@@ -493,12 +525,14 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 		&r.Id,
 		&r.TeamId,
 		&r.AppId,
+		&r.Name,
 		&r.Condition,
 		&r.SamplingRate,
 		&r.CreatedAt,
 		&r.CreatedBy,
 		&r.UpdatedAt,
 		&r.UpdatedBy,
+		&r.AutoCreated,
 	); err != nil {
 		return nil, err
 	}
@@ -614,7 +648,7 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		return uuid.Nil, fmt.Errorf("condition cannot be empty")
 	}
 
-	if payload.CollectionMode != "session_timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
+	if payload.CollectionMode != "timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
 		return uuid.Nil, fmt.Errorf("invalid collection mode: %s", payload.CollectionMode)
 	}
 
@@ -628,7 +662,7 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		return uuid.Nil, fmt.Errorf("only one of take_screenshot and take_layout_snapshot can be true")
 	}
 
-	if payload.IsDefaultRule {
+	if payload.IsDefaultBehaviour {
 		if payload.TakeScreenshot {
 			return uuid.Nil, fmt.Errorf("take_screenshot must be false for default rule")
 		}
@@ -642,6 +676,7 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("collection_mode", payload.CollectionMode).
 		Set("take_screenshot", payload.TakeScreenshot).
@@ -649,9 +684,7 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		Set("sampling_rate", payload.SamplingRate).
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
-		Set("updated_at", now).
-		Set("updated_by", createdByUUID)
-
+		Set("auto_created", false)
 	defer stmt.Close()
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
@@ -677,6 +710,7 @@ func UpdateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 	}
 
 	stmt := sqlf.PostgreSQL.Update("event_targeting_rules").
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("collection_mode", payload.CollectionMode).
 		Set("take_screenshot", payload.TakeScreenshot).
@@ -722,7 +756,7 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		return uuid.Nil, fmt.Errorf("condition cannot be empty")
 	}
 
-	if payload.CollectionMode != "session_timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
+	if payload.CollectionMode != "timeline" && payload.CollectionMode != "disabled" && payload.CollectionMode != "sampled" {
 		return uuid.Nil, fmt.Errorf("invalid collection mode: %s", payload.CollectionMode)
 	}
 
@@ -736,13 +770,13 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("collection_mode", payload.CollectionMode).
 		Set("sampling_rate", payload.SamplingRate).
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
-		Set("updated_at", now).
-		Set("updated_by", createdByUUID)
+		Set("auto_created", false)
 	defer stmt.Close()
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -767,6 +801,7 @@ func UpdateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 	}
 
 	stmt := sqlf.PostgreSQL.Update("trace_targeting_rules").
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("collection_mode", payload.CollectionMode).
 		Set("sampling_rate", payload.SamplingRate).
@@ -814,12 +849,12 @@ func CreateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, team
 		Set("id", ruleId).
 		Set("team_id", teamId).
 		Set("app_id", appId).
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("sampling_rate", payload.SamplingRate).
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
-		Set("updated_at", now).
-		Set("updated_by", createdByUUID)
+		Set("auto_created", false)
 	defer stmt.Close()
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -840,6 +875,7 @@ func UpdateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 	}
 
 	stmt := sqlf.PostgreSQL.Update("session_targeting_rules").
+		Set("name", payload.Name).
 		Set("condition", payload.Condition).
 		Set("sampling_rate", payload.SamplingRate).
 		Set("updated_at", time.Now()).
@@ -921,15 +957,15 @@ func DeleteSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 	return nil
 }
 
-func CreateDefaultTargetingRules(ctx context.Context, teamId string, appId string, createdBy string) error {
+func CreateDefaultTargetingRules(ctx context.Context, tx pgx.Tx, teamId string, appId string, createdBy string) error {
 	teamUUID, err := uuid.Parse(teamId)
 	if err != nil {
-		return fmt.Errorf("invalid teamId: %w", err)
+		return fmt.Errorf("invalid teamId")
 	}
 
 	appUUID, err := uuid.Parse(appId)
 	if err != nil {
-		return fmt.Errorf("invalid appId: %w", err)
+		return fmt.Errorf("invalid appId")
 	}
 
 	createdByUUID, err := uuid.Parse(createdBy)
@@ -939,66 +975,169 @@ func CreateDefaultTargetingRules(ctx context.Context, teamId string, appId strin
 
 	now := time.Now()
 
-	// Create default event targeting rule
-	eventRuleId := uuid.New()
-	eventPayload := EventTargetingRulePayload{
-		Condition:          "event_type == \"*\"",
-		CollectionMode:     "timeline",
-		TakeScreenshot:     false,
-		TakeLayoutSnapshot: false,
-		SamplingRate:       0,
-		IsDefaultRule:      true,
+	// Insert all event targeting rules in one query
+	eventRules := []EventTargetingRulePayload{
+		{
+			Name:               "Collect all events",
+			Condition:          "event_type == \"*\"",
+			CollectionMode:     "timeline",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       0,
+			IsDefaultBehaviour: true,
+		},
+		{
+			Name:               "Collect all crashes",
+			Condition:          "(event_type==\"exception\" && exception.handled==false)",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     true,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       100,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect all ANRs",
+			Condition:          "(event_type==\"anr\")",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     true,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       100,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect all bug reports",
+			Condition:          "(event_type==\"bug_report\")",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       100,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect sampled cold launch events",
+			Condition:          "(event_type==\"cold_launch\")",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       1,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect sampled hot launch events",
+			Condition:          "(event_type==\"hot_launch\")",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       1,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect sampled warm launch events",
+			Condition:          "(event_type==\"warm_launch\")",
+			CollectionMode:     "sampled",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: false,
+			SamplingRate:       1,
+			IsDefaultBehaviour: false,
+		},
+		{
+			Name:               "Collect layout snapshots with clicks",
+			Condition:          "(event_type==\"gesture_click\")",
+			CollectionMode:     "timeline",
+			TakeScreenshot:     false,
+			TakeLayoutSnapshot: true,
+			SamplingRate:       0,
+			IsDefaultBehaviour: false,
+		},
 	}
 
-	eventStmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules").
-		Set("id", eventRuleId).
-		Set("team_id", teamUUID).
-		Set("app_id", appUUID).
-		Set("condition", eventPayload.Condition).
-		Set("collection_mode", eventPayload.CollectionMode).
-		Set("take_screenshot", eventPayload.TakeScreenshot).
-		Set("take_layout_snapshot", eventPayload.TakeLayoutSnapshot).
-		Set("sampling_rate", eventPayload.SamplingRate).
-		Set("is_default_rule", eventPayload.IsDefaultRule).
-		Set("created_at", now).
-		Set("created_by", createdByUUID).
-		Set("updated_at", now).
-		Set("updated_by", createdByUUID)
-
+	eventStmt := sqlf.PostgreSQL.InsertInto("event_targeting_rules")
+	for _, payload := range eventRules {
+		eventStmt.NewRow().
+			Set("id", uuid.New()).
+			Set("team_id", teamUUID).
+			Set("app_id", appUUID).
+			Set("name", payload.Name).
+			Set("condition", payload.Condition).
+			Set("collection_mode", payload.CollectionMode).
+			Set("take_screenshot", payload.TakeScreenshot).
+			Set("take_layout_snapshot", payload.TakeLayoutSnapshot).
+			Set("sampling_rate", payload.SamplingRate).
+			Set("is_default_behaviour", payload.IsDefaultBehaviour).
+			Set("created_at", now).
+			Set("created_by", createdByUUID).
+			Set("updated_at", now).
+			Set("updated_by", createdByUUID).
+			Set("auto_created", true)
+	}
 	defer eventStmt.Close()
 
-	_, err = server.Server.PgPool.Exec(ctx, eventStmt.String(), eventStmt.Args()...)
+	_, err = tx.Exec(context.Background(), eventStmt.String(), eventStmt.Args()...)
 	if err != nil {
-		return fmt.Errorf("failed to create default event targeting rule: %w", err)
+		return fmt.Errorf("failed to create event targeting rules: %w", err)
 	}
 
-	// Create default trace targeting rule
-	traceRuleId := uuid.New()
-	tracePayload := TraceTargetingRulePayload{
-		Condition:      "span.name == \"*\"",
-		CollectionMode: "timeline",
-		SamplingRate:   0,
-		IsDefaultRule:  true,
+	// Insert all session targeting rules in one query
+	sessionRules := []SessionTargetingRulePayload{
+		{
+			Name:         "Sessions with a Crash",
+			Condition:    "(event_type==\"exception\" && exception.handled==false)",
+			SamplingRate: 100,
+		},
+		{
+			Name:         "Sessions with an ANR",
+			Condition:    "(event_type==\"anr\")",
+			SamplingRate: 100,
+		},
+		{
+			Name:         "Sessions with a Bug Report",
+			Condition:    "(event_type==\"bug_report\")",
+			SamplingRate: 100,
+		},
 	}
 
+	sessionStmt := sqlf.PostgreSQL.InsertInto("session_targeting_rules")
+	for _, payload := range sessionRules {
+		sessionStmt.NewRow().
+			Set("id", uuid.New()).
+			Set("team_id", teamUUID).
+			Set("app_id", appUUID).
+			Set("name", payload.Name).
+			Set("condition", payload.Condition).
+			Set("sampling_rate", payload.SamplingRate).
+			Set("created_at", now).
+			Set("created_by", createdByUUID).
+			Set("updated_at", now).
+			Set("updated_by", createdByUUID).
+			Set("auto_created", true)
+	}
+	defer sessionStmt.Close()
+
+	_, err = tx.Exec(context.Background(), sessionStmt.String(), sessionStmt.Args()...)
+	if err != nil {
+		return fmt.Errorf("failed to create session targeting rules: %w", err)
+	}
+
+	// Insert trace targeting rule
 	traceStmt := sqlf.PostgreSQL.InsertInto("trace_targeting_rules").
-		Set("id", traceRuleId).
+		Set("id", uuid.New()).
 		Set("team_id", teamUUID).
 		Set("app_id", appUUID).
-		Set("condition", tracePayload.Condition).
-		Set("collection_mode", tracePayload.CollectionMode).
-		Set("sampling_rate", tracePayload.SamplingRate).
-		Set("is_default_rule", tracePayload.IsDefaultRule).
+		Set("name", "Collect all traces at 0.1 percent sampling rate").
+		Set("condition", "span.name == \"*\"").
+		Set("collection_mode", "sampled").
+		Set("sampling_rate", 0.1).
+		Set("is_default_behaviour", true).
 		Set("created_at", now).
 		Set("created_by", createdByUUID).
 		Set("updated_at", now).
-		Set("updated_by", createdByUUID)
-
+		Set("updated_by", createdByUUID).
+		Set("auto_created", true)
 	defer traceStmt.Close()
 
-	_, err = server.Server.PgPool.Exec(ctx, traceStmt.String(), traceStmt.Args()...)
+	_, err = tx.Exec(context.Background(), traceStmt.String(), traceStmt.Args()...)
 	if err != nil {
-		return fmt.Errorf("failed to create default trace targeting rule: %w", err)
+		return fmt.Errorf("failed to create trace targeting rule: %w", err)
 	}
 
 	return nil
@@ -1113,6 +1252,14 @@ func newEventsConfig(osName string) []EventConfig {
 				{Key: "status_code", Type: "int64", Hint: "Enter HTTP status code 500, 200, etc."},
 			},
 		},
+		{
+			Type:       "gesture_click",
+			HasUdAttrs: false,
+			Attrs: []AttrConfig{
+				{Key: "target", Type: "string", Hint: "Enter a class name like UIButtonLabel"},
+				{Key: "target_id", Type: "string", Hint: "Enter a view identifier"},
+			},
+		},
 	}
 
 	// Define platform-specific events
@@ -1183,24 +1330,21 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "app_build", Type: "string", Hint: "Enter your app's build number"},
 			{Key: "app_version", Type: "string", Hint: "Enter your app's version"},
 			{Key: "device_is_foldable", Type: "bool"},
-			{Key: "device_is_physical", Type: "bool"},
 			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
 			{Key: "device_low_power_mode", Type: "bool"},
-			{Key: "device_manufacturer", Type: "string", Hint: "E.g. Apple, Samsung, Google"},
+			{Key: "device_manufacturer", Type: "string", Hint: "E.g. Samsung, Google"},
 			{Key: "device_model", Type: "string", Hint: "E.g. Redmi Go, Pixel 4a "},
-			{Key: "device_name", Type: "string", Hint: "E.g. sunfish, tiare"},
 			{Key: "device_thermal_throttling_enabled", Type: "bool"},
 			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet"},
 			{Key: "installation_id", Type: "string", Hint: "Enter an installation ID"},
-			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
 			{Key: "os_version", Type: "string", Hint: "Enter API level like 21, 36"},
+			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
 		}
 	case opsys.AppleFamily:
 		return []AttrConfig{
 			{Key: "app_build", Type: "string", Hint: "Enter your app's build ID"},
 			{Key: "app_version", Type: "string", Hint: "Enter your app's version"},
 			{Key: "device_is_foldable", Type: "bool"},
-			{Key: "device_is_physical", Type: "bool"},
 			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
 			{Key: "device_low_power_mode", Type: "bool"},
 			{Key: "device_model", Type: "string", Hint: "E.g. iPhone 17"},
@@ -1211,7 +1355,20 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
 		}
 	default:
-		return []AttrConfig{}
+		return []AttrConfig{
+			{Key: "app_build", Type: "string", Hint: "Enter your app's build number"},
+			{Key: "app_version", Type: "string", Hint: "Enter your app's version"},
+			{Key: "device_is_foldable", Type: "bool"},
+			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
+			{Key: "device_low_power_mode", Type: "bool"},
+			{Key: "device_manufacturer", Type: "string", Hint: "E.g. Apple, Samsung, Google"},
+			{Key: "device_model", Type: "string", Hint: "E.g. iPhone 17, Pixel 9"},
+			{Key: "device_thermal_throttling_enabled", Type: "bool"},
+			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet"},
+			{Key: "installation_id", Type: "string", Hint: "Enter an installation ID"},
+			{Key: "os_version", Type: "string", Hint: "Enter API level or iOS version"},
+			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
+		}
 	}
 }
 

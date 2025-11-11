@@ -9,10 +9,8 @@
 
 import {
   EventCondition,
-  AttributeCondition,
   TraceCondition,
   EventConditions,
-  SessionConditions,
   TraceConditions
 } from "./conditions"
 import { ParsedConditions } from "./cel_parser"
@@ -196,19 +194,6 @@ function buildEventConditionParts(condition: EventCondition): string[] {
 }
 
 /**
- * Converts a single session condition object into an 
- * array of its constituent CEL parts.
- * Example output: ['attribute.session_duration > 300', 'attribute.user_country == "US"']
- */
-function buildSessionConditionParts(condition: AttributeCondition): string[] {
-  return (
-    condition.attrs
-      ?.map(createSessionAttributeCondition)
-      .filter((expr): expr is string => Boolean(expr)) || []
-  )
-}
-
-/**
  * Converts a single trace condition object into an 
  * array of its constituent CEL parts.
  * Example output: ['span_name.contains("HTTP")', 'trace.user_defined_attrs.is_critical == true']
@@ -282,22 +267,6 @@ function processEventConditions(eventConditions: EventConditions | undefined): s
 }
 
 /**
- * High-level processor for all session conditions.
- */
-function processSessionConditions(sessionConditions: SessionConditions | undefined): string | null {
-  if (!sessionConditions?.conditions?.length) return null
-
-  const conditionStrings = sessionConditions.conditions
-    .map(buildSessionConditionParts)
-    .filter(parts => parts.length > 0)
-    .map(combineConditionParts)
-
-  return conditionStrings.length > 0
-    ? combineConditionsWithLogicalOperators(conditionStrings, sessionConditions.operators || [])
-    : null
-}
-
-/**
  * High-level processor for all trace conditions.
  */
 function processTraceConditions(traceConditions: TraceConditions | undefined): string | null {
@@ -323,7 +292,9 @@ function wrapConditionGroups(conditionGroups: string[]): string {
   }
 
   const wrappedGroups = conditionGroups.map(group => `(${group})`)
-  return wrappedGroups.join(' && ')
+  const joined = wrappedGroups.join(' && ')
+  // Wrap the entire combined expression in parentheses
+  return `(${joined})`
 }
 
 /**
@@ -354,9 +325,8 @@ export function traceConditionToCel(condition: TraceCondition): string | null {
 export function conditionsToCel(parsedConditions: ParsedConditions): string | null {
   const eventCelExpression = processEventConditions(parsedConditions.event)
   const traceCelExpression = processTraceConditions(parsedConditions.trace)
-  const sessionCelExpression = processSessionConditions(parsedConditions.session)
 
-  const conditionGroups = [eventCelExpression, traceCelExpression, sessionCelExpression]
+  const conditionGroups = [eventCelExpression, traceCelExpression]
     .filter((group): group is string => Boolean(group))
 
   if (conditionGroups.length === 0) {

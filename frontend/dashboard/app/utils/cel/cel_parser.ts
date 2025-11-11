@@ -6,7 +6,7 @@
  * Syntax Tree (AST) and converts it into domain-specific condition formats.
  */
 
-import { EventConditions, SessionConditions, TraceConditions, EventCondition, AttributeCondition, TraceCondition } from './conditions'
+import { EventConditions, TraceConditions, EventCondition, TraceCondition } from './conditions'
 import { CelTokenizer, Token, TokenType, CelParseError } from './cel_tokenizer'
 
 /**
@@ -14,7 +14,6 @@ import { CelTokenizer, Token, TokenType, CelParseError } from './cel_tokenizer'
  */
 export interface ParsedConditions {
   event?: EventConditions
-  session?: SessionConditions
   trace?: TraceConditions
 }
 
@@ -61,6 +60,14 @@ interface LogicalExpression {
 type Expression = Comparison | LogicalExpression
 
 /**
+ * Context for tracking which condition type we're currently in
+ */
+interface ParsingContext {
+  currentEventCondition?: EventCondition
+  currentTraceCondition?: TraceCondition
+}
+
+/**
  * Parser for CEL expressions that builds structured condition objects
  */
 class CelParser {
@@ -70,13 +77,14 @@ class CelParser {
 
   // Condition builders for different types
   private eventConditions: EventCondition[] = []
-  private sessionConditions: AttributeCondition[] = []
   private traceConditions: TraceCondition[] = []
 
   // Operator sequences for combining conditions
   private eventOperators: ('AND' | 'OR')[] = []
-  private sessionOperators: ('AND' | 'OR')[] = []
   private traceOperators: ('AND' | 'OR')[] = []
+
+  // Track the current parsing context
+  private context: ParsingContext = {}
 
   constructor(tokens: Token[]) {
     this.tokens = tokens
@@ -106,6 +114,7 @@ class CelParser {
     this.currentPosition = 0
     this.idGenerator = 0
     this.clearConditions()
+    this.context = {}
   }
 
   /**
@@ -113,10 +122,8 @@ class CelParser {
    */
   private clearConditions(): void {
     this.eventConditions = []
-    this.sessionConditions = []
     this.traceConditions = []
     this.eventOperators = []
-    this.sessionOperators = []
     this.traceOperators = []
   }
 
@@ -291,37 +298,61 @@ class CelParser {
    */
   private processComparison(comparison: Comparison, operators: ('AND' | 'OR')[]): void {
     const category = this.categorizeFieldPath(comparison.field.segments)
+    const previousCategory = this.getCurrentCategory()
 
     switch (category) {
       case 'event':
         this.addEventCondition(comparison)
-        this.transferOperators(operators, this.eventOperators)
-        break
-      case 'session':
-        this.addSessionCondition(comparison)
-        this.transferOperators(operators, this.sessionOperators)
+        // Only transfer operators if we're continuing within the same category
+        if (previousCategory === 'event' || previousCategory === null) {
+          this.transferOperators(operators, this.eventOperators)
+        } else {
+          // Clear operators when switching categories (they connect different condition types)
+          operators.length = 0
+        }
         break
       case 'trace':
         this.addTraceCondition(comparison)
-        this.transferOperators(operators, this.traceOperators)
+        // Only transfer operators if we're continuing within the same category
+        if (previousCategory === 'trace' || previousCategory === null) {
+          this.transferOperators(operators, this.traceOperators)
+        } else {
+          // Clear operators when switching categories (they connect different condition types)
+          operators.length = 0
+        }
+        break
+      case 'session':
+        this.addSessionAttribute(comparison)
+        // Session attributes don't transfer operators, but we need to clear them
+        // to prevent them from accumulating when the next condition is processed
+        operators.length = 0
         break
     }
   }
 
   /**
+   * Gets the current category based on what type of condition we're processing
+   */
+  private getCurrentCategory(): 'event' | 'trace' | null {
+    if (this.context.currentEventCondition) return 'event'
+    if (this.context.currentTraceCondition) return 'trace'
+    return null
+  }
+
+  /**
    * Determines the category of a field based on its path segments
    */
-  private categorizeFieldPath(segments: string[]): 'event' | 'session' | 'trace' {
+  private categorizeFieldPath(segments: string[]): 'event' | 'trace' | 'session' {
     const firstSegment = segments[0]
 
     if (firstSegment === 'event_type' || firstSegment === 'event') {
       return 'event'
     }
-    if (firstSegment === 'attribute') {
-      return 'session'
-    }
     if (firstSegment === 'span_name' || firstSegment === 'trace') {
       return 'trace'
+    }
+    if (firstSegment === 'attribute') {
+      return 'session'
     }
 
     // Default to event for unknown fields
@@ -354,6 +385,10 @@ class CelParser {
       condition = this.createEventCondition(eventType)
       this.eventConditions.push(condition)
     }
+
+    // Update context to track current event condition
+    this.context.currentEventCondition = condition
+    this.context.currentTraceCondition = undefined
   }
 
   /**
@@ -387,18 +422,6 @@ class CelParser {
   }
 
   /**
-   * Adds a session condition
-   */
-  private addSessionCondition(comparison: Comparison): void {
-    const key = comparison.field.segments.join('.')
-    const condition: AttributeCondition = {
-      id: this.generateId(),
-      attrs: [this.createAttributeFromComparison(comparison, key)]
-    }
-    this.sessionConditions.push(condition)
-  }
-
-  /**
    * Adds a trace condition
    */
   private addTraceCondition(comparison: Comparison): void {
@@ -420,9 +443,13 @@ class CelParser {
       spanName: comparison.value.value as string,
       operator: comparison.operator,
       ud_attrs: [],
-      session_attrs: []
+      session_attrs: [],
     }
     this.traceConditions.push(condition)
+
+    // Update context to track current trace condition
+    this.context.currentTraceCondition = condition
+    this.context.currentEventCondition = undefined
   }
 
   /**
@@ -436,6 +463,40 @@ class CelParser {
 
     const fullPathKey = segments.join('.')
     currentCondition.ud_attrs!.push(this.createAttributeFromComparison(comparison, fullPathKey))
+  }
+
+  /**
+   * Adds a session attribute to the current event or trace condition
+   */
+  private addSessionAttribute(comparison: Comparison): void {
+    const segments = comparison.field.segments
+    const key = segments.slice(1).join('.') // Remove 'attribute' prefix
+
+    const attr = this.createAttributeFromComparison(comparison, key)
+
+    // Add to current event condition if exists
+    if (this.context.currentEventCondition) {
+      this.context.currentEventCondition.session_attrs!.push(attr)
+      return
+    }
+
+    // Add to current trace condition if exists
+    if (this.context.currentTraceCondition) {
+      this.context.currentTraceCondition.session_attrs!.push(attr)
+      return
+    }
+
+    // If no current condition exists, add to the last event or trace condition
+    const lastEventCondition = this.getLastEventCondition()
+    const lastTraceCondition = this.getLastTraceCondition()
+
+    if (lastEventCondition) {
+      lastEventCondition.session_attrs!.push(attr)
+    } else if (lastTraceCondition) {
+      lastTraceCondition.session_attrs!.push(attr)
+    } else {
+      throw new CelParseError('Session attribute found without a preceding event or trace condition', comparison.position)
+    }
   }
 
   // Helper methods for token management
@@ -542,7 +603,7 @@ class CelParser {
       type: eventType,
       attrs: [],
       ud_attrs: [],
-      session_attrs: []
+      session_attrs: [],
     }
   }
 
@@ -593,9 +654,6 @@ class CelParser {
     if (this.eventConditions.length > 0) {
       result.event = { conditions: this.eventConditions, operators: this.eventOperators }
     }
-    if (this.sessionConditions.length > 0) {
-      result.session = { conditions: this.sessionConditions, operators: this.sessionOperators }
-    }
     if (this.traceConditions.length > 0) {
       result.trace = { conditions: this.traceConditions, operators: this.traceOperators }
     }
@@ -609,7 +667,7 @@ class CelParser {
  */
 export function celToConditions(expression: string): ParsedConditions {
   if (!expression?.trim()) {
-    return { event: undefined, trace: undefined, session: undefined };
+    return { event: undefined, trace: undefined };
   }
   const tokenizer = new CelTokenizer(expression);
   const tokens = tokenizer.tokenize();

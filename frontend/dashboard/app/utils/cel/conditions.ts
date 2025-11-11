@@ -1,34 +1,31 @@
 // Shared attribute field type
-export interface AttributeField {
+export interface BaseAttributeField {
     id: string
     key: string
     type: string
     value: string | boolean | number
+    operator: string
     hint?: string
-    operator?: string
-    hasError?: boolean
-    errorMessage?: string
 }
 
+// For UI only - extends base with source
+export interface AttributeField extends BaseAttributeField {
+    source: 'fixed' | 'session' | 'ud'
+}
 export interface EventCondition {
     id: string
     type: string
-    attrs: AttributeField[]
-    ud_attrs: AttributeField[]
-    session_attrs: AttributeField[]
-}
-
-export interface AttributeCondition {
-    id: string
-    attrs: AttributeField[]
+    attrs: BaseAttributeField[]
+    ud_attrs: BaseAttributeField[]
+    session_attrs: BaseAttributeField[]
 }
 
 export interface TraceCondition {
     id: string
     spanName: string
     operator: string
-    ud_attrs: AttributeField[]
-    session_attrs: AttributeField[]
+    ud_attrs: BaseAttributeField[]
+    session_attrs: BaseAttributeField[]
 }
 
 export interface Conditions<T> {
@@ -37,5 +34,4 @@ export interface Conditions<T> {
 }
 
 export type EventConditions = Conditions<EventCondition>
-export type SessionConditions = Conditions<AttributeCondition>
 export type TraceConditions = Conditions<TraceCondition>

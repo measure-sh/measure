@@ -1115,18 +1115,11 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	return
 }
 
-func (a *App) add() (*APIKey, error) {
+func (a *App) add(tx pgx.Tx) (*APIKey, error) {
 	id := uuid.New()
 	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -1139,10 +1132,6 @@ func (a *App) add() (*APIKey, error) {
 	}
 
 	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -4612,24 +4601,38 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := app.add()
+	tx, err := server.Server.PgPool.Begin(context.Background())
+	if err != nil {
+		msg := `failed to start transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer tx.Rollback(context.Background()) // Rollback if not committed
 
+	apiKey, err := app.add(tx)
 	if err != nil {
 		msg := "failed to create app"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-
 	app.APIKey = apiKey
 
-	// create default targeting rules
-	// ignore errors as app has already
-	// been created
-	err = CreateDefaultTargetingRules(c, teamId.String(), app.ID.String(), userId)
+	err = CreateDefaultTargetingRules(c, tx, teamId.String(), app.ID.String(), userId)
 	if err != nil {
-		msg := "failed to create session targeting rules for app"
+		msg := "failed to create default targeting rules for app"
 		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		msg := "failed to commit transaction"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
 	}
 
 	c.JSON(http.StatusCreated, app)
@@ -7194,6 +7197,39 @@ func GetSessionTargetingRuleConfig(c *gin.Context) {
 		msg := `you are not authorized to access this app`
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
+	}
+
+	// Safely get OS name for the app
+	// set to opsys.Unknown if unavailable
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("os_name").
+		Where("id = ?", app.ID)
+
+	defer stmt.Close()
+
+	var osName *string
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&osName)
+	if err != nil {
+		msg := `failed to fetch app details`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if osName != nil {
+		app.OSName = *osName
+	} else {
+		app.OSName = opsys.Unknown
 	}
 
 	config, err := GetSessionTargetingConfig(ctx, id, app.OSName)

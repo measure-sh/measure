@@ -9,8 +9,7 @@ import { Button } from '@/app/components/button'
 import { Plus, Pencil } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/dropdown_menu'
 import EditDefaultRuleDialog from '@/app/components/targeting/edit_default_rule_dialog'
-import EventTraceTargetingRulesTable from '@/app/components/targeting/event_trace_targeting_rules_table'
-import SessionTargetingRulesTable from '@/app/components/targeting/session_targeting_rules_table'
+import RulesTable from '@/app/components/targeting/rules_table'
 import { toastPositive, toastNegative } from '@/app/utils/use_toast'
 
 interface PageState {
@@ -197,13 +196,16 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                         className='select-none'
                         onCloseAutoFocus={(e) => e.preventDefault()}
                     >
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/event/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/event/create`)}
+                            className="font-display">
                             Event Rule
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/trace/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/trace/create`)}
+                            className="font-display">
                             Trace Rule
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/session/create`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/${params.teamId}/data/${pageState.filters.app!.id}/session/create`)}
+                            className="font-display">
                             Session Timeline Rule
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -239,7 +241,7 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
             {/* Error state for data rules fetch */}
             {pageState.filters.ready && hasError() &&
-                <p className="text-lg font-display">Error fetching data filters, please change filters, refresh page or select a different app to try again</p>}
+                <p className="text-lg font-display">Error loading rules, please refresh page or select a different app to try again</p>}
 
             {/* Main data rules UI */}
             {canShowContent() &&
@@ -272,8 +274,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <EventTraceTargetingRulesTable
+                        <RulesTable
                             rules={eventsOverideRules}
+                            tableType='event'
                             onRuleClick={(rule) => handleEditRule(rule, 'event')}
                         />
                     </div>
@@ -304,8 +307,9 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
                             </div>
                         )}
 
-                        <EventTraceTargetingRulesTable
+                        <RulesTable
                             rules={traceOverrideRules}
+                            tableType='trace'
                             onRuleClick={(rule) => handleEditRule(rule, 'trace')}
                         />
                     </div>
@@ -318,9 +322,11 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
 
                         <div className="py-4" />
 
-                        <SessionTargetingRulesTable
+                        <RulesTable
                             rules={sessionTargetingRules}
+                            tableType='session'
                             onRuleClick={(rule) => handleEditRule(rule, 'session')}
+                            showOverridesHeader={false}
                         />
                     </div>
                 </div>}

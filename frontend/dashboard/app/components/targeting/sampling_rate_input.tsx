@@ -4,7 +4,7 @@ interface SamplingRateInputProps {
     value: number
     onChange: (value: number) => void
     disabled?: boolean
-    type?: 'events' | 'traces'
+    type?: 'events' | 'traces' | 'event' | 'trace' |'timeline'
 }
 
 export default function SamplingRateInput({ value, onChange, disabled = false, type = 'events' }: SamplingRateInputProps) {
@@ -13,10 +13,8 @@ export default function SamplingRateInput({ value, onChange, disabled = false, t
     const handleBlur = () => {
         const numValue = parseFloat(localValue)
         if (isNaN(numValue) || localValue.trim() === '') {
-            // Reset to parent value if invalid
             setLocalValue(value.toString())
         } else {
-            // Clamp and update parent
             const clampedValue = Math.max(0, Math.min(100, numValue))
             onChange(clampedValue)
             setLocalValue(clampedValue.toString())
@@ -24,13 +22,12 @@ export default function SamplingRateInput({ value, onChange, disabled = false, t
     }
 
     const handleFocus = () => {
-        // Sync with parent value when focusing
         setLocalValue(value.toString())
     }
 
     return (
         <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-body whitespace-nowrap">Collect all {type} at</span>
+            <span className="text-sm font-body whitespace-nowrap">Collect {type} at</span>
             <div className="flex items-center gap-2">
                 <input
                     type="number"

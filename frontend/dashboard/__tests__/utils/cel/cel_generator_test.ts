@@ -222,83 +222,6 @@ describe('CEL Generator', () => {
         });
     });
 
-    describe('CEL from session conditions', () => {
-        test('generates CEL for single session attribute', () => {
-            const conditions: ParsedConditions = {
-                session: {
-                    conditions: [{
-                        id: 'cond1',
-                        attrs: [{
-                            id: 'attr1',
-                            key: 'is_device_foldable',
-                            type: 'boolean',
-                            value: true,
-                            operator: 'eq'
-                        }]
-                    }],
-                    operators: []
-                }
-            };
-
-            const result = conditionsToCel(conditions);
-            expect(result).toBe('(attribute.is_device_foldable == true)');
-        });
-
-        test('generates CEL for multiple session attributes with AND operator', () => {
-            const conditions: ParsedConditions = {
-                session: {
-                    conditions: [
-                        {
-                            id: 'cond1',
-                            attrs: [{
-                                id: 'attr1',
-                                key: 'is_device_foldable',
-                                type: 'boolean',
-                                value: true,
-                                operator: 'eq'
-                            }]
-                        },
-                        {
-                            id: 'cond2',
-                            attrs: [{
-                                id: 'attr2',
-                                key: 'app_version',
-                                type: 'string',
-                                value: '1.0.0',
-                                operator: 'eq'
-                            }]
-                        }
-                    ],
-                    operators: ['AND']
-                }
-            };
-
-            const result = conditionsToCel(conditions);
-            expect(result).toBe('((attribute.is_device_foldable == true) && (attribute.app_version == "1.0.0"))');
-        });
-
-        test('generates CEL for session attribute with string operators', () => {
-            const conditions: ParsedConditions = {
-                session: {
-                    conditions: [{
-                        id: 'cond1',
-                        attrs: [{
-                            id: 'attr1',
-                            key: 'device_model',
-                            type: 'string',
-                            value: 'Samsung',
-                            operator: 'startsWith'
-                        }]
-                    }],
-                    operators: []
-                }
-            };
-
-            const result = conditionsToCel(conditions);
-            expect(result).toBe('(attribute.device_model.startsWith("Samsung"))');
-        });
-    });
-
     describe('Trace Conditions', () => {
         test('generates CEL for single span name condition', () => {
             const conditions: ParsedConditions = {
@@ -690,38 +613,7 @@ describe('CEL Generator', () => {
     });
 
     describe('CEL from combined conditions', () => {
-        test('generates CEL for event and session conditions', () => {
-            const conditions: ParsedConditions = {
-                event: {
-                    conditions: [{
-                        id: 'cond1',
-                        type: 'anr',
-                        attrs: [],
-                        ud_attrs: [],
-                        session_attrs: [],
-                    }],
-                    operators: []
-                },
-                session: {
-                    conditions: [{
-                        id: 'cond2',
-                        attrs: [{
-                            id: 'attr1',
-                            key: 'is_device_foldable',
-                            type: 'boolean',
-                            value: true,
-                            operator: 'eq'
-                        }]
-                    }],
-                    operators: []
-                }
-            };
-
-            const result = conditionsToCel(conditions);
-            expect(result).toBe('(event_type == "anr") && (attribute.is_device_foldable == true)');
-        });
-
-        test('generates CEL for event, trace, and session conditions', () => {
+        test('generates CEL for event and trace', () => {
             const conditions: ParsedConditions = {
                 event: {
                     conditions: [{
@@ -729,7 +621,14 @@ describe('CEL Generator', () => {
                         type: 'custom',
                         attrs: [],
                         ud_attrs: [],
-                        session_attrs: [],
+                        session_attrs: [
+                            {
+                                id: 'attr1',
+                                key: 'platform',
+                                type: 'string',
+                                value: 'android',
+                                operator: 'eq'
+                            }]
                     }],
                     operators: []
                 },
@@ -742,24 +641,11 @@ describe('CEL Generator', () => {
                         session_attrs: [],
                     }],
                     operators: []
-                },
-                session: {
-                    conditions: [{
-                        id: 'cond3',
-                        attrs: [{
-                            id: 'attr1',
-                            key: 'platform',
-                            type: 'string',
-                            value: 'android',
-                            operator: 'eq'
-                        }]
-                    }],
-                    operators: []
                 }
             };
 
             const result = conditionsToCel(conditions);
-            expect(result).toBe('(event_type == "custom") && (span_name == "Activity TTID") && (attribute.platform == "android")');
+            expect(result).toBe('((event_type == "custom" && attribute.platform == "android") && (span_name == "Activity TTID"))');
         });
     });
 });

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation'
-import EventRuleBuilder from '@/app/components/targeting/event_rule_builder'
+import RuleBuilder from '@/app/components/targeting/rule_builder'
 
 export default function CreateEventRule({ params }: { params: { teamId: string, appId: string } }) {
     const router = useRouter()
@@ -19,8 +19,9 @@ export default function CreateEventRule({ params }: { params: { teamId: string, 
     }
 
     return (
-        <EventRuleBuilder
-            mode="create"
+        <RuleBuilder
+            type='event'
+            mode='create'
             appId={params.appId}
             onCancel={handleCancel}
             onSave={handleCreate}

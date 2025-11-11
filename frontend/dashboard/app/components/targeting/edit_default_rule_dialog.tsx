@@ -5,9 +5,7 @@ import { Button } from '@/app/components/button'
 import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 import { useState, useEffect } from 'react'
 import { DialogDescription } from '@radix-ui/react-dialog'
-import { updateEventTargetingRule, updateTraceTargetingRule, UpdateEventTargetingRuleApiStatus, UpdateTraceTargetingRuleApiStatus } from '@/app/api/api_calls'
-
-type CollectionMode = 'sampled' | 'session_timeline' | 'disabled'
+import { updateEventTargetingRule, updateTraceTargetingRule, UpdateEventTargetingRuleApiStatus, UpdateTraceTargetingRuleApiStatus, CollectionMode } from '@/app/api/api_calls'
 
 interface EditDefaultRuleDialogProps {
     isOpen: boolean
@@ -55,6 +53,7 @@ export default function EditDefaultRuleDialog({
         try {
             if (ruleType === 'event') {
                 const result = await updateEventTargetingRule(appId, ruleId, {
+                    name: 'default_behaviour',
                     condition,
                     collection_mode: collectionMode,
                     sampling_rate: collectionMode === 'sampled' ? sampleRate : 0,
@@ -68,6 +67,7 @@ export default function EditDefaultRuleDialog({
                 }
             } else {
                 const result = await updateTraceTargetingRule(appId, ruleId, {
+                    name: 'default_behaviour',
                     condition,
                     collection_mode: collectionMode,
                     sampling_rate: collectionMode === 'sampled' ? sampleRate : 0
@@ -129,8 +129,8 @@ export default function EditDefaultRuleDialog({
                                 type="radio"
                                 name="collectionMode"
                                 value="timeline"
-                                checked={collectionMode === 'session_timeline'}
-                                onChange={() => setCollectionMode('session_timeline')}
+                                checked={collectionMode === 'timeline'}
+                                onChange={() => setCollectionMode('timeline')}
                                 disabled={isSaving}
                                 className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             />

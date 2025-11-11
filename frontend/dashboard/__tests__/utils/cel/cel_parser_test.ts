@@ -13,7 +13,6 @@ describe('CEL Parser', () => {
             ud_attrs: []
         });
         expect(conditions.event!.operators).toHaveLength(0);
-        expect(conditions.session).toBeUndefined();
         expect(conditions.trace).toBeUndefined();
     });
 
@@ -100,43 +99,6 @@ describe('CEL Parser', () => {
         });
     });
 
-    test('parses session attribute condition', () => {
-        const cel = '(attribute.is_device_foldable == true)';
-        const conditions = celToConditions(cel);
-
-        expect(conditions.session).toBeDefined();
-        expect(conditions.session!.conditions).toHaveLength(1);
-        expect(conditions.session!.conditions[0].attrs).toHaveLength(1);
-        expect(conditions.session!.conditions[0].attrs[0]).toMatchObject({
-            key: 'is_device_foldable',
-            type: 'bool',
-            value: true,
-            operator: 'eq'
-        });
-        expect(conditions.event).toBeUndefined();
-        expect(conditions.trace).toBeUndefined();
-    });
-
-    test('parses multiple session attributes with AND operator', () => {
-        const cel = '((attribute.is_device_foldable == true) && (attribute.app_version == "1.0.0"))';
-        const conditions = celToConditions(cel);
-
-        expect(conditions.session).toBeDefined();
-        expect(conditions.session!.conditions).toHaveLength(2);
-        expect(conditions.session!.operators).toEqual(['AND']);
-        expect(conditions.session!.conditions[0].attrs[0].key).toBe('is_device_foldable');
-        expect(conditions.session!.conditions[1].attrs[0].key).toBe('app_version');
-    });
-
-    test('parses multiple session attributes with OR operator', () => {
-        const cel = '((attribute.is_device_foldable == true) || (attribute.app_version == "1.0.0"))';
-        const conditions = celToConditions(cel);
-
-        expect(conditions.session).toBeDefined();
-        expect(conditions.session!.conditions).toHaveLength(2);
-        expect(conditions.session!.operators).toEqual(['OR']);
-    });
-
     test('parses span name condition', () => {
         const cel = '(span_name == "Activity TTID")';
         const conditions = celToConditions(cel);
@@ -149,7 +111,6 @@ describe('CEL Parser', () => {
             ud_attrs: []
         });
         expect(conditions.event).toBeUndefined();
-        expect(conditions.session).toBeUndefined();
     });
 
     test('parses multiple span conditions with AND operator', () => {
@@ -183,17 +144,16 @@ describe('CEL Parser', () => {
     });
 
     test('parses combined event and session conditions', () => {
-        const cel = '(event_type == "anr") && (attribute.is_device_foldable == true)';
+        const cel = '(event_type == "anr" && attribute.is_device_foldable == true)';
         const conditions = celToConditions(cel);
 
         expect(conditions.event).toBeDefined();
-        expect(conditions.session).toBeDefined();
 
         expect(conditions.event!.conditions).toHaveLength(1);
         expect(conditions.event!.conditions[0].type).toBe('anr');
 
-        expect(conditions.session!.conditions).toHaveLength(1);
-        expect(conditions.session!.conditions[0].attrs[0].key).toBe('is_device_foldable');
+        expect(conditions.event!.conditions[0].session_attrs!).toHaveLength(1);
+        expect(conditions.event!.conditions[0].session_attrs[0].key).toBe('is_device_foldable');
     });
 
     test('parses condition with contains operator', () => {
@@ -247,7 +207,7 @@ describe('CEL Parser', () => {
     });
 
     test('parses complex combined conditions', () => {
-        const cel = '((event_type == "anr") && (event_type == "exception")) && (span_name == "Activity TTID" && trace.user_defined_attrs.api_level >= 21) && (attribute.is_device_foldable == true)';
+        const cel = '((event_type == "anr" && attribute.is_device_foldable == true) && (event_type == "exception")) && (span_name == "Activity TTID" && trace.user_defined_attrs.api_level >= 21)';
         const conditions = celToConditions(cel);
 
         // Event conditions
@@ -264,9 +224,8 @@ describe('CEL Parser', () => {
         expect(conditions.trace!.conditions[0].ud_attrs).toHaveLength(1);
 
         // Session conditions
-        expect(conditions.session).toBeDefined();
-        expect(conditions.session!.conditions).toHaveLength(1);
-        expect(conditions.session!.conditions[0].attrs[0].key).toBe('is_device_foldable');
+        expect(conditions.event!.conditions[0].session_attrs[0]).toBeDefined();
+        expect(conditions.event!.conditions[0].session_attrs[0].key).toBe('is_device_foldable');
     });
 
     test('parses condition with null value', () => {
