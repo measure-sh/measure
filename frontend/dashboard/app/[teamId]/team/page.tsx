@@ -7,12 +7,15 @@ import ConfirmationDialog from "@/app/components/confirmation_dialog"
 import CreateTeam from "@/app/components/create_team"
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
+import { Input } from "@/app/components/input"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import { Switch } from "@/app/components/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/table"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatToCamelCase } from "@/app/utils/string_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -389,7 +392,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   }
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <div className="flex flex-row items-center gap-2 justify-between w-full">
         <p className="font-display text-4xl max-w-6xl text-center">Team</p>
         <CreateTeam onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
@@ -468,14 +471,14 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           />
 
           <div className="py-6" />
-          <p className="font-display text-xl max-w-6xl text-center">Invite team members</p>
+          <p className="font-display text-xl max-w-6xl text-center">Invite Team Members</p>
           <div className="flex flex-row items-center">
-            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
+            <Input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 font-body" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
             <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
             <Button
               variant="outline"
-              className="m-4 font-display border border-black select-none"
+              className="m-4"
               disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""}
               loading={inviteMemberApiStatus === InviteMemberApiStatus.Loading}
               onClick={inviteMember}>
@@ -492,26 +495,26 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-body text-sm">Error fetching team members, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
-            <Table className="font-display table-auto w-full">
+            <Table className="font-display select-none table-auto w-full">
               <TableHeader>
-                <TableRow className="hover:bg-white">
-                  <TableHead className="min-w-96 select-none">Member</TableHead>
-                  <TableHead className="select-none">Role</TableHead>
+                <TableRow>
+                  <TableHead className="min-w-96">Member</TableHead>
+                  <TableHead>Role</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {authzAndMembers.members.map(({ id, email, role, authz }) => (
-                  <TableRow key={id} className="font-body hover:bg-white">
+                  <TableRow key={id} className="font-body">
                     <TableCell className="min-w-96 truncate">{email}</TableCell>
 
                     {/* Show only if row is current user */}
                     {id === currentUserId && (
-                      <TableCell className="select-none">{formatToCamelCase(role)}</TableCell>
+                      <TableCell>{formatToCamelCase(role)}</TableCell>
                     )}
 
                     {/* Show roles dropdown if not current user */}
                     {id !== currentUserId && (
-                      <TableCell className="select-none">
+                      <TableCell>
                         {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
                         {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && (
                           <DropdownSelect
@@ -543,7 +546,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       <TableCell>
                         <Button
                           variant="outline"
-                          className="font-display border border-black select-none"
                           disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role}
                           loading={roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id}
                           onClick={() => {
@@ -564,7 +566,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       <TableCell>
                         <Button
                           variant="outline"
-                          className="font-display border border-black select-none"
                           disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
                           loading={removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id}
                           onClick={() => {
@@ -589,26 +590,25 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-body text-sm">Error fetching pending invites, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success && pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0 &&
-            <Table className="font-display table-auto w-full">
+            <Table className="font-display select-none table-auto w-full">
               <TableHeader>
-                <TableRow className="hover:bg-white">
-                  <TableHead className="min-w-64 select-none">Invitee</TableHead>
-                  <TableHead className="min-w-64 select-none">Invited By</TableHead>
-                  <TableHead className="min-w-24 select-none text-center">Invited As</TableHead>
-                  <TableHead className="min-w-48 select-none text-center">Valid Until</TableHead>
+                <TableRow>
+                  <TableHead className="min-w-64">Invitee</TableHead>
+                  <TableHead className="min-w-64">Invited By</TableHead>
+                  <TableHead className="min-w-24 text-center">Invited As</TableHead>
+                  <TableHead className="min-w-48 text-center">Valid Until</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingInvites!.map(({ id, email, invited_by_email, role, valid_until }) => (
-                  <TableRow key={id} className="hover:bg-white font-body">
+                  <TableRow key={id} className="font-body">
                     <TableCell className="truncate" title={email}>{email}</TableCell>
                     <TableCell className="truncate" title={invited_by_email}>{invited_by_email}</TableCell>
-                    <TableCell className="select-none text-center">{formatToCamelCase(role)}</TableCell>
-                    <TableCell className="select-none text-center">{formatDateToHumanReadableDateTime(valid_until)}</TableCell>
+                    <TableCell className="text-center">{formatToCamelCase(role)}</TableCell>
+                    <TableCell className="text-center">{formatDateToHumanReadableDateTime(valid_until)}</TableCell>
                     <TableCell>
                       <Button
                         variant="outline"
-                        className="m-4 font-display border border-black select-none"
                         disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading}
                         loading={resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading && resendPendingInviteId === id}
                         onClick={() => {
@@ -622,7 +622,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <TableCell>
                       <Button
                         variant="outline"
-                        className="m-4 font-display border border-black select-none"
                         disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading}
                         loading={removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading && removePendingInviteId === id}
                         onClick={() => {
@@ -645,13 +644,19 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* error creating slack url or fetching team slack status */}
           {(fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Error || fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Error) &&
-            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md'>guide</Link> to set it up if you haven&apos;t done so.</p>
+            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md'>guide</Link> to set it up if you haven&apos;t done so.</p>
           }
 
           {/* slack not connected, show add to slack button */}
           {fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Success && fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Success && teamSlack === null ? <a
             href={teamSlackConnectUrl!}>
-            <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
+            <Image
+              alt="Add to Slack"
+              height={40}
+              width={139}
+              src="https://platform.slack-edge.com/img/add_to_slack@2x.png"
+              unoptimized
+            />
           </a> : ""}
 
           {/* slack connected, show switch */}
@@ -677,7 +682,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
               <Button
                 variant="outline"
-                className="font-display border border-black select-none w-fit"
+                className="w-fit"
                 disabled={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading || teamSlack.is_active === false}
                 loading={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading}
                 onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
@@ -689,18 +694,18 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           }
 
           <div className="py-8" />
-          <p className="font-display text-xl max-w-6xl text-center">Change team name</p>
+          <p className="font-display text-xl max-w-6xl text-center">Change Team Name</p>
           <div className="flex flex-row items-center">
-            <input id="change-team-name-input" type="text" defaultValue={team!.name}
+            <Input id="change-team-name-input" type="text" defaultValue={team!.name}
               onChange={(event) => {
                 event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
                 setNewTeamName(event.target.value)
                 setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
               }}
-              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+              className="w-96 font-body" />
             <Button
               variant="outline"
-              className="m-4 font-display border border-black select-none"
+              className="m-4"
               disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               onClick={() => setTeamNameConfirmationDialogOpen(true)}>

@@ -143,7 +143,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                         <LoadingBar />
                     </div>
                     <div className="py-4" />
-                    <Table className="font-display">
+                    <Table className="font-display select-none">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[60%]">Bug Report</TableHead>
@@ -157,7 +157,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                 return (
                                     <TableRow
                                         key={`${idx}-${event_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        className="font-body"
                                         tabIndex={0}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -175,12 +175,12 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                                 style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
-                                                <p className="truncate text-xs text-gray-500 select-none">ID: {event_id}</p>
+                                                <p className="truncate text-xs text-muted-foreground select-none">ID: {event_id}</p>
                                                 <div className='py-1' />
                                                 <p className='truncate select-none'>{description ? description : "No Description"}</p>
                                                 <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                                <p className='text-xs truncate text-muted-foreground select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-border rounded-md '>{"Matched " + matched_free_text}</p>}
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
@@ -206,7 +206,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                                 style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4 items-center flex justify-center">
-                                                <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body select-none ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
+                                                <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body select-none ${status === 0 ? 'border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background' : 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>

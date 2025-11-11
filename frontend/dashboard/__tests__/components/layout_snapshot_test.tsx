@@ -1,7 +1,16 @@
 import LayoutSnapshot, { LayoutElementType, LayoutSnapshotStripedBgImage } from '@/app/components/layout_snapshot'
+import { TooltipProvider } from '@/app/components/tooltip'
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
+
+
+// Mock ResizeObserver for Radix UI
+global.ResizeObserver = class ResizeObserver {
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+}
 
 type LayoutElement = {
     id: string
@@ -112,7 +121,7 @@ const mockHorizontalElement: LayoutElement = {
     type: 'container',
     x: 0,
     y: 0,
-    width: 1000, // Wider than tall
+    width: 1000,
     height: 400,
     scrollable: false,
     highlighted: false,
@@ -122,6 +131,14 @@ const mockHorizontalElement: LayoutElement = {
 global.fetch = jest.fn() as unknown as jest.Mock<
     (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 >
+
+const renderWithTooltipProvider = (ui: React.ReactElement) => {
+    return render(
+        <TooltipProvider delayDuration={0}>
+            {ui}
+        </TooltipProvider>
+    )
+}
 
 describe('LayoutSnapshot', () => {
     beforeEach(() => {
@@ -137,9 +154,11 @@ describe('LayoutSnapshot', () => {
     }
 
     it('shows nothing while fetching', async () => {
-        mockFetch(mockElement)
+        // Use a promise that never resolves to test the loading state
+        (global.fetch as jest.Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>)
+            .mockImplementationOnce(() => new Promise(() => { }))
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -147,16 +166,13 @@ describe('LayoutSnapshot', () => {
             />
         )
 
-        // Should show nothing
-        await waitFor(() => {
-            expect(container.firstChild).toBeNull()
-        })
+        expect(container.querySelector('.relative.overflow-hidden')).toBeNull()
     })
 
     it('renders correctly after fetching layout', async () => {
         mockFetch(mockElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -165,14 +181,14 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
     })
 
     it('calls fetch with correct URL', async () => {
         mockFetch(mockElement)
 
-        render(
+        renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -190,7 +206,7 @@ describe('LayoutSnapshot', () => {
         (global.fetch as jest.Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>)
             .mockRejectedValueOnce(new Error('Network error'))
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -202,16 +218,14 @@ describe('LayoutSnapshot', () => {
             expect(consoleErrorSpy).toHaveBeenCalled()
         })
 
-        // Should show nothing on error
-        expect(container.firstChild).toBeNull()
-
+        expect(container.querySelector('.relative.overflow-hidden')).toBeNull()
         consoleErrorSpy.mockRestore()
     })
 
     it('renders with correct outer dimensions', async () => {
         mockFetch(mockElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -228,7 +242,7 @@ describe('LayoutSnapshot', () => {
     it('renders children elements correctly', async () => {
         mockFetch(mockElementWithChildren)
 
-        render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -237,7 +251,7 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            const elements = document.querySelectorAll('.absolute.border')
+            const elements = container.querySelectorAll('.absolute.inset-0.border')
             expect(elements).toHaveLength(3) // root + 2 children
         })
     })
@@ -245,7 +259,7 @@ describe('LayoutSnapshot', () => {
     it('applies highlighted styling to highlighted elements', async () => {
         mockFetch(mockElementWithChildren)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -254,20 +268,20 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            const elements = container.querySelectorAll('.absolute.border')
-            const highlightedChild = elements[2] // root, child1, child2 (highlighted)
+            const elements = container.querySelectorAll('.absolute.inset-0.border')
+            const highlightedChild = elements[2]
 
-            expect(highlightedChild).toHaveClass('border-yellow-200')
+            expect(highlightedChild).toHaveClass('border-primary')
             expect(highlightedChild).toHaveStyle({
                 backgroundImage: LayoutSnapshotStripedBgImage
             })
         })
     })
 
-    it('handles hover interactions correctly', async () => {
+    it('applies hover styling on pointer enter', async () => {
         mockFetch(mockElementWithChildren)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -276,24 +290,23 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
 
-        const wrapper = container.querySelector('.relative')!
-        fireEvent.mouseMove(wrapper, { clientX: 150, clientY: 200 })
-
-        const elements = container.querySelectorAll('.absolute.border')
+        const elements = container.querySelectorAll('.absolute.inset-0.border')
         const firstChild = elements[1]
 
-        fireEvent.mouseEnter(firstChild)
+        expect(firstChild).toHaveClass('border-background/60')
 
-        expect(screen.getByText('Button Element')).toBeInTheDocument()
+        fireEvent.pointerEnter(firstChild)
+
+        expect(firstChild).toHaveClass('border-primary')
     })
 
-    it('shows and hides tooltip on mouse enter and leave', async () => {
+    it('removes hover styling on pointer leave from container', async () => {
         mockFetch(mockElementWithChildren)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -302,55 +315,24 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
 
-        const wrapper = container.querySelector('.relative')!
-        fireEvent.mouseMove(wrapper, { clientX: 150, clientY: 200 })
-
-        const elements = container.querySelectorAll('.absolute.border')
+        const elements = container.querySelectorAll('.absolute.inset-0.border')
         const firstChild = elements[1]
+        const wrapper = container.querySelector('.relative.overflow-hidden')!
 
-        fireEvent.mouseEnter(firstChild)
-        expect(screen.getByText('Button Element')).toBeInTheDocument()
+        fireEvent.pointerEnter(firstChild)
+        expect(firstChild).toHaveClass('border-primary')
 
-        fireEvent.mouseLeave(firstChild)
-        expect(screen.queryByText('Button Element')).not.toBeInTheDocument()
-    })
-
-    it('positions tooltip relative to mouse position', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = render(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
-        })
-
-        const wrapper = container.querySelector('.relative')!
-        const elements = container.querySelectorAll('.absolute.border')
-        const firstChild = elements[1]
-
-        fireEvent.mouseMove(wrapper, { clientX: 150, clientY: 200 })
-        fireEvent.mouseEnter(firstChild)
-
-        const tooltip = screen.getByText('Button Element')
-        expect(tooltip).toHaveStyle({
-            top: '220px', // clientY + 20
-            left: '160px' // clientX + 10
-        })
+        fireEvent.pointerLeave(wrapper)
+        expect(firstChild).toHaveClass('border-background/60')
     })
 
     it('handles nested elements correctly', async () => {
         mockFetch(mockNestedElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -359,15 +341,15 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            const elements = container.querySelectorAll('.absolute.border')
+            const elements = container.querySelectorAll('.absolute.inset-0.border')
             expect(elements).toHaveLength(3) // root + parent + nested child
         })
     })
 
-    it('finds and displays correct label for nested elements', async () => {
+    it('only hovers the target element, not ancestors', async () => {
         mockFetch(mockNestedElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={800}
@@ -376,16 +358,73 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            const elements = container.querySelectorAll('.absolute.border')
-            expect(elements).toHaveLength(3)
-
-            const nestedChild = elements[2]
-            expect(nestedChild).toHaveClass('border-gray-400')
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
+
+        const elements = container.querySelectorAll('.absolute.inset-0.border')
+        const root = elements[0]
+        const parent = elements[1]
+        const nestedChild = elements[2]
+
+        fireEvent.pointerEnter(nestedChild)
+
+        expect(nestedChild).toHaveClass('border-primary')
+        expect(parent).toHaveClass('border-background/60')
+        expect(root).toHaveClass('border-background/60')
+    })
+
+    it('switches hover between elements', async () => {
+        mockFetch(mockElementWithChildren)
+
+        const { container } = renderWithTooltipProvider(
+            <LayoutSnapshot
+                layoutUrl="http://example.com/layout.json"
+                width={800}
+                height={600}
+            />
+        )
+
+        await waitFor(() => {
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
+        })
+
+        const elements = container.querySelectorAll('.absolute.inset-0.border')
+        const firstChild = elements[1]
+        const secondChild = elements[2] // highlighted
+
+        fireEvent.pointerEnter(firstChild)
+        expect(firstChild).toHaveClass('border-primary')
+
+        fireEvent.pointerEnter(secondChild)
+        expect(secondChild).toHaveClass('border-primary')
+        expect(firstChild).toHaveClass('border-background/60')
+    })
+
+    it('maintains highlighted styling even when hovered', async () => {
+        mockFetch(mockElementWithChildren)
+
+        const { container } = renderWithTooltipProvider(
+            <LayoutSnapshot
+                layoutUrl="http://example.com/layout.json"
+                width={800}
+                height={600}
+            />
+        )
+
+        await waitFor(() => {
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
+        })
+
+        const elements = container.querySelectorAll('.absolute.inset-0.border')
+        const highlightedChild = elements[2]
+
+        expect(highlightedChild).toHaveClass('border-primary')
+
+        fireEvent.pointerEnter(highlightedChild)
+        expect(highlightedChild).toHaveClass('border-primary')
     })
 
     it('applies correct scaling for vertical orientation', async () => {
-        // Mock element with vertical aspect ratio (height > width)
         const verticalElement: LayoutElement = {
             ...mockElement,
             width: 400,
@@ -394,7 +433,7 @@ describe('LayoutSnapshot', () => {
 
         mockFetch(verticalElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={211}
@@ -403,14 +442,14 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
     })
 
     it('applies correct scaling for horizontal orientation', async () => {
         mockFetch(mockHorizontalElement)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={366}
@@ -419,7 +458,7 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
     })
 
@@ -431,7 +470,7 @@ describe('LayoutSnapshot', () => {
 
         mockFetch(elementWithEmptyChildren)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -440,121 +479,14 @@ describe('LayoutSnapshot', () => {
         )
 
         await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
+            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
         })
-    })
-
-    it('applies hover styling correctly', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = render(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.border')
-        const firstChild = elements[1]
-
-        expect(firstChild).toHaveClass('border-gray-400')
-
-        fireEvent.mouseEnter(firstChild)
-        expect(firstChild).toHaveClass('border-yellow-200')
-    })
-
-    it('maintains highlighted styling even when hovered', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = render(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.border')
-        const highlightedChild = elements[2]
-
-        expect(highlightedChild).toHaveClass('border-yellow-200')
-
-        fireEvent.mouseEnter(highlightedChild)
-        expect(highlightedChild).toHaveClass('border-yellow-200')
-    })
-
-    it('handles mouse movement without crashing', async () => {
-        mockFetch(mockElement)
-
-        const { container } = render(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={400}
-                height={300}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.relative')).toBeInTheDocument()
-        })
-
-        const wrapper = container.querySelector('.relative')!
-
-        expect(() => {
-            fireEvent.mouseMove(wrapper, { clientX: 100, clientY: 150 })
-            fireEvent.mouseMove(wrapper, { clientX: 200, clientY: 250 })
-        }).not.toThrow()
-    })
-
-    it('tooltip functionality works with proper sequence', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = render(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.border')).toBeInTheDocument()
-        })
-
-        const wrapper = container.querySelector('.relative')!
-        const elements = container.querySelectorAll('.absolute.border')
-        const firstChild = elements[1]
-
-        fireEvent.mouseMove(wrapper, { clientX: 150, clientY: 200 })
-        fireEvent.mouseEnter(firstChild)
-
-        expect(screen.getByText('Button Element')).toBeInTheDocument()
-
-        fireEvent.mouseMove(wrapper, { clientX: 200, clientY: 250 })
-
-        const tooltip = screen.getByText('Button Element')
-        expect(tooltip).toHaveStyle({
-            top: '270px',
-            left: '210px'
-        })
-
-        fireEvent.mouseLeave(firstChild)
-        expect(screen.queryByText('Button Element')).not.toBeInTheDocument()
     })
 
     it('refetches layout when layoutUrl changes', async () => {
         mockFetch(mockElement)
 
-        const { rerender } = render(
+        const { rerender } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout1.json"
                 width={400}
@@ -569,11 +501,13 @@ describe('LayoutSnapshot', () => {
         mockFetch(mockElementWithChildren)
 
         rerender(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout2.json"
-                width={400}
-                height={300}
-            />
+            <TooltipProvider delayDuration={0}>
+                <LayoutSnapshot
+                    layoutUrl="http://example.com/layout2.json"
+                    width={400}
+                    height={300}
+                />
+            </TooltipProvider>
         )
 
         await waitFor(() => {
@@ -588,7 +522,7 @@ describe('LayoutSnapshot', () => {
                 ok: false
             } as unknown as Partial<Response> as Response)
 
-        const { container } = render(
+        const { container } = renderWithTooltipProvider(
             <LayoutSnapshot
                 layoutUrl="http://example.com/layout.json"
                 width={400}
@@ -600,9 +534,7 @@ describe('LayoutSnapshot', () => {
             expect(consoleErrorSpy).toHaveBeenCalled()
         })
 
-        // Should show nothing on non-ok response
-        expect(container.firstChild).toBeNull()
-
+        expect(container.querySelector('.relative.overflow-hidden')).toBeNull()
         consoleErrorSpy.mockRestore()
     })
 })

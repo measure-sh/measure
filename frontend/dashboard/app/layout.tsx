@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { Josefin_Sans, Space_Mono } from 'next/font/google'
+import { Fira_Code, Josefin_Sans, Work_Sans } from 'next/font/google'
+import { CookieBanner } from './components/cookie_banner'
+import { ThemeProvider } from './components/theme_provider'
 import { Toaster } from './components/toaster'
 import { PostHogProvider } from './context/posthog'
 import './globals.css'
@@ -9,9 +11,14 @@ const josefin_sans = Josefin_Sans({
   variable: '--font-josefin-sans'
 })
 
-const space_mono = Space_Mono({
-  subsets: ['latin'], display: 'swap', weight: ['400', '700'],
-  variable: '--font-space-mono'
+const work_sans = Work_Sans({
+  subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-work-sans'
+})
+
+const fira_code = Fira_Code({
+  subsets: ['latin'], display: 'swap', weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-fira-code'
 })
 
 const title = 'Measure'
@@ -66,11 +73,21 @@ export default function RootLayout({
   return (
     <>
       <html lang="en">
-        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>
-          <PostHogProvider>
-            {children}
-          </PostHogProvider>
-          <Toaster />
+        <body className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <PostHogProvider>
+              <CookieBanner />
+              <div className='bg-background text-foreground'>
+                {children}
+              </div>
+            </PostHogProvider>
+            <Toaster />
+          </ThemeProvider>
         </body>
       </html>
     </>

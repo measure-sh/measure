@@ -104,7 +104,7 @@ export enum MetricsApiStatus {
   Cancelled,
 }
 
-export enum SessionsOverviewApiStatus {
+export enum SessionTimelinesOverviewApiStatus {
   Loading,
   Success,
   Error,
@@ -131,7 +131,7 @@ export enum ExceptionsOverviewPlotApiStatus {
   Cancelled,
 }
 
-export enum SessionsOverviewPlotApiStatus {
+export enum SessionTimelinesOverviewPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -521,7 +521,7 @@ export const emptyMetrics = {
   },
 }
 
-export const emptySessionsOverviewResponse = {
+export const emptySessionTimelinesOverviewResponse = {
   meta: {
     next: false,
     previous: false,
@@ -1453,15 +1453,15 @@ export const fetchSessionsVsExceptionsPlotFromServer = async (
 ) => {
   // Fetch all three datasets in parallel
   const [sessionsRes, crashesRes, anrsRes] = await Promise.all([
-    fetchSessionsOverviewPlotFromServer(filters),
+    fetchSessionTimelinesOverviewPlotFromServer(filters),
     fetchExceptionsOverviewPlotFromServer(ExceptionsType.Crash, filters),
     fetchExceptionsOverviewPlotFromServer(ExceptionsType.Anr, filters),
   ])
 
   // Handle error/no data
   if (
-    sessionsRes.status !== SessionsOverviewPlotApiStatus.Success &&
-    sessionsRes.status !== SessionsOverviewPlotApiStatus.NoData
+    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.Success &&
+    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.NoData
   ) {
     return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
   }
@@ -1606,7 +1606,7 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
   }
 }
 
-export const fetchSessionsOverviewFromServer = async (
+export const fetchSessionTimelinesOverviewFromServer = async (
   filters: Filters,
   keyId: string | null,
   keyTimestamp: string | null,
@@ -1628,18 +1628,18 @@ export const fetchSessionsOverviewFromServer = async (
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: SessionsOverviewApiStatus.Error, data: null }
+      return { status: SessionTimelinesOverviewApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: SessionsOverviewApiStatus.Success, data: data }
+    return { status: SessionTimelinesOverviewApiStatus.Success, data: data }
   } catch {
-    return { status: SessionsOverviewApiStatus.Cancelled, data: null }
+    return { status: SessionTimelinesOverviewApiStatus.Cancelled, data: null }
   }
 }
 
-export const fetchSessionsOverviewPlotFromServer = async (filters: Filters) => {
+export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
@@ -1648,18 +1648,18 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters) => {
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: SessionsOverviewPlotApiStatus.Error, data: null }
+      return { status: SessionTimelinesOverviewPlotApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null) {
-      return { status: SessionsOverviewPlotApiStatus.NoData, data: null }
+      return { status: SessionTimelinesOverviewPlotApiStatus.NoData, data: null }
     }
 
-    return { status: SessionsOverviewPlotApiStatus.Success, data: data }
+    return { status: SessionTimelinesOverviewPlotApiStatus.Success, data: data }
   } catch {
-    return { status: SessionsOverviewPlotApiStatus.Cancelled, data: null }
+    return { status: SessionTimelinesOverviewPlotApiStatus.Cancelled, data: null }
   }
 }
 

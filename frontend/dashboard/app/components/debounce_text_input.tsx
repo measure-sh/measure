@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { cn } from '../utils/shadcn_utils'
+import { Input } from './input'
 
 interface DebounceTextInputProps {
   className?: string
@@ -41,11 +42,11 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
   }, [inputValue, onChange])
 
   return (
-    <input
+    <Input
       id={id}
       type="text"
       placeholder={placeholder}
-      className={cn("w-full font-body border border-black rounded-md p-2 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] placeholder:text-neutral-400", className)}
+      className={cn("w-full font-body", className)}
       value={inputValue}
       onChange={handleInputChange}
     />

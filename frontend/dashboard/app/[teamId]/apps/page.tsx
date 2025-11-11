@@ -7,8 +7,10 @@ import CreateApp from "@/app/components/create_app"
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
+import { Input } from "@/app/components/input"
 import LoadingSpinner from "@/app/components/loading_spinner"
-import SdkConfigSection from "@/app/components/sdk_config_section"
+import SdkConfigurator from "@/app/components/sdk_configurator"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import Link from "next/link"
@@ -159,6 +161,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         toastNegative("Error changing app name")
         break
       case AppNameChangeApiStatus.Success:
+        setSaveAppNameButtonDisabled(true)
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
         toastPositive("App name changed")
         if (filtersRef.current?.refresh) {
@@ -169,11 +172,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   }
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <div className="flex flex-row items-center gap-2 justify-between w-full">
         <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
         <CreateApp
           teamId={params.teamId}
+          disabled={!currentUserCanChangeAppSettings}
           onSuccess={(app) => {
             filtersRef.current?.refresh(app.id)
           }} />
@@ -240,24 +244,24 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
           <div className="font-body">
             <div className="flex flex-col">
-              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500">Unique Identifier</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-muted-foreground">Unique Identifier</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{filters.app!.unique_identifier}</p>}
-              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Operating System</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-muted-foreground mt-6">Operating System</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{filters.app!.os_name}</p>}
-              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Created at</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-muted-foreground mt-6">Created at</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>}
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
-                <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
+                <p className="font-body text-sm">Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
             </div>
             <div className="py-10" />
-            <p className="font-display text-xl max-w-6xl">Copy SDK variables</p>
+            <p className="font-display text-xl max-w-6xl">Copy SDK Variables</p>
             <div className="flex flex-row items-center mt-2">
               <p className="text-sm">API URL</p>
               <div className="px-3" />
-              <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+              <Input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96" />
               <Button
                 variant="outline"
-                className="mx-4 my-3 font-display border border-black select-none"
+                className="mx-4 my-3"
                 onClick={() => {
                   navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
                   toastPositive("Base URL copied to clipboard")
@@ -268,10 +272,10 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <p className="text-sm">API key</p>
               <div className="px-3" />
-              <input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+              <Input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96" />
               <Button
                 variant="outline"
-                className="mx-4 my-3 font-display border border-black select-none"
+                className="mx-4 my-3"
                 onClick={() => {
                   navigator.clipboard.writeText(filters.app!.api_key.key)
                   toastPositive("API key copied to clipboard")
@@ -281,22 +285,22 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             </div>
             <div className="py-8" />
 
-            <SdkConfigSection
+            <SdkConfigurator
               appId={filters.app!.id}
               appName={filters.app!.name}
               osName={filters.app!.os_name}
               initialConfig={sdkConfig}
               currentUserCanChangeAppSettings={currentUserCanChangeAppSettings}
 
-/>
+            />
 
             <div className="py-8" />
-            <p className="font-display text-xl max-w-6xl">Configure data rentention</p>
+            <p className="font-display text-xl max-w-6xl">Configure Data Rentention</p>
             <div className="flex flex-row items-center mt-2">
               <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
               <Button
                 variant="outline"
-                className="m-4 font-display border border-black select-none"
+                className="m-4"
                 disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
                 loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
                 onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
@@ -306,17 +310,18 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Change App Name</p>
             <div className="flex flex-row items-center mt-2">
-              <input id="change-app-name-input" type="text" value={appName}
+              <Input id="change-app-name-input" type="text"
+                value={appName}
                 onChange={(event) => {
                   event.target.value === filters.app!.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
                   setAppName(event.target.value)
                   setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
                 }}
-                className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+                className="w-96" />
               <Button
                 variant="outline"
-                disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
-                className="m-4 font-display border border-black select-none"
+                disabled={!currentUserCanChangeAppSettings || saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
+                className="m-4"
                 loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                 onClick={() => setAppNameConfirmationDialogOpen(true)}>
                 Save

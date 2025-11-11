@@ -410,7 +410,7 @@ describe('ExceptionsDetails Component - Crashes', () => {
 
         // Check that the link includes the correct path
         const link = screen.getByTestId('mock-link')
-        expect(link).toHaveAttribute('href', '/123/sessions/app1/session1')
+        expect(link).toHaveAttribute('href', '/123/session_timelines/app1/session1')
         expect(link).toHaveTextContent('View Session')
     })
 

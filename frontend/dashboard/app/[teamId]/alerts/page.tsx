@@ -89,7 +89,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+        <div className="flex flex-col items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Alerts</p>
             <div className="py-4" />
 
@@ -140,7 +140,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                         <LoadingBar />
                     </div>
                     <div className="py-4" />
-                    <Table className="font-display">
+                    <Table className="font-display select-none">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[60%]">Alert</TableHead>
@@ -152,7 +152,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                                 return (
                                     <TableRow
                                         key={`${idx}-${id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        className="font-body select-none"
                                         tabIndex={0}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -170,7 +170,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                                                 style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
-                                                <p className="truncate text-xs text-gray-500 select-none">ID: {id}</p>
+                                                <p className="truncate text-xs text-muted-foreground select-none">ID: {id}</p>
                                                 <div className='py-1' />
                                                 <p className='truncate select-none'>{message}</p>
                                             </div>

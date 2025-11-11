@@ -21,6 +21,7 @@ import React, { useEffect, useState } from "react"
 import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
 import { measureAuth } from "../auth/measure_auth"
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
+import { ThemeToggle } from "../components/theme_toggle"
 import UserAvatar from "../components/user_avatar"
 
 const initNavData = {
@@ -35,8 +36,8 @@ const initNavData = {
           external: false,
         },
         {
-          title: "Sessions",
-          url: "sessions",
+          title: "Session Timelines",
+          url: "session_timelines",
           isActive: false,
           external: false,
         },
@@ -282,8 +283,9 @@ export default function DashboardLayout({
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
+            className="data-[orientation=vertical]:h-4"
           />
+          <ThemeToggle />
         </header>
 
         <main className="md:overflow-auto flex justify-center">
