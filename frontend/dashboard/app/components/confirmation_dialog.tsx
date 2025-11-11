@@ -16,7 +16,7 @@ interface ConfirmationDialogProps {
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ body, open, affirmativeText, cancelText, onAffirmativeAction, onCancelAction }) => {
     return (
         <Dialog open={open} modal={true} onOpenChange={(open) => { if (!open) onCancelAction(); }}>
-            <DialogContent>
+            <DialogContent className="bg-background text-foreground">
                 <DialogHeader>
                     <DialogTitle className="font-display">Are you sure?</DialogTitle>
                 </DialogHeader>
@@ -26,14 +26,12 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ body, open, aff
                 <DialogFooter>
                     <Button
                         variant="default"
-                        className="font-display border border-black select-none"
                         onClick={onAffirmativeAction}
                     >
                         {affirmativeText}
                     </Button>
                     <Button
                         variant="outline"
-                        className="font-display border border-black select-none"
                         onClick={onCancelAction}
                     >
                         {cancelText}

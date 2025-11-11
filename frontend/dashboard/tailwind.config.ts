@@ -13,10 +13,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         display: ['var(--font-josefin-sans)'],
-        body: ['var(--font-space-mono)']
-      },
-      colors: {
-        'redd': '#ff6286',
+        body: ['var(--font-work-sans)'],
+        code: ['var(--font-fira-code)'],
       },
       keyframes: {
         "accordion-down": {

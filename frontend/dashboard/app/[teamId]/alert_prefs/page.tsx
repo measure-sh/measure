@@ -4,6 +4,7 @@ import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
@@ -155,7 +156,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
       {/* Error states for apps fetch */}
       {appsApiStatus === AppsApiStatus.Error && <p className="font-body text-sm">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
-      {appsApiStatus === AppsApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
+      {appsApiStatus === AppsApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
       {appsApiStatus === AppsApiStatus.Success &&

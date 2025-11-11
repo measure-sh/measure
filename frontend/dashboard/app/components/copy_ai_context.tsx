@@ -49,7 +49,6 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
       <TooltipTrigger asChild>
         <Button
           variant="outline"
-          className="font-display border border-black select-none"
           onClick={() => {
             navigator.clipboard.writeText(llmContext)
             toastPositive("AI context copied to clipboard")

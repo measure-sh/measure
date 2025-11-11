@@ -5,16 +5,40 @@ import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/a
 import { Filters } from './filters'
 import MetricsCard from './metrics_card'
 
-interface MetricsOverviewProps {
-  filters: Filters
+const demoMetrics = {
+  adoption: { all_versions: 10000000, selected_version: 4100000, adoption: 41, nan: false },
+  anr_free_sessions: { anr_free_sessions: 99.7, delta: 1.01, nan: false },
+  cold_launch: { delta: 0.07, nan: false, delta_nan: false, p95: 923 },
+  crash_free_sessions: { crash_free_sessions: 99.1, delta: 1.1, nan: false },
+  hot_launch: { delta: 0.02, nan: false, delta_nan: false, p95: 197 },
+  perceived_anr_free_sessions: { perceived_anr_free_sessions: 99.8, delta: 1.05, nan: false },
+  perceived_crash_free_sessions: { perceived_crash_free_sessions: 99.6, delta: 1.05, nan: false },
+  sizes: { average_app_size: 23000000, selected_app_size: 23345678, delta: -345678, nan: false },
+  warm_launch: { delta: 1.03, nan: false, delta_nan: false, p95: 503 },
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
+interface MetricsOverviewProps {
+  filters: Filters
+  demo?: boolean
+}
+
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false }) => {
 
   const [metrics, setMetrics] = useState(emptyMetrics)
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading)
 
   const getMetrics = async () => {
+    if (demo) {
+      setMetricsApiStatus(MetricsApiStatus.Success)
+      setMetrics(demoMetrics)
+      return
+    }
+
+    // Don't try to fetch metrics if filters aren't ready
+    if (!filters.ready) {
+      return
+    }
+
     setMetricsApiStatus(MetricsApiStatus.Loading)
 
     const result = await fetchMetricsFromServer(filters)
@@ -35,7 +59,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
   }, [filters])
 
   return (
-    <div className="flex flex-wrap gap-16 w-full justify-center">
+    <div className={`flex flex-wrap ${demo ? 'gap-x-12 gap-y-16' : 'gap-16'} w-full justify-center`}>
       <MetricsCard
         type="app_adoption"
         status={metricsApiStatus}

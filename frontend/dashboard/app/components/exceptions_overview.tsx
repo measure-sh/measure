@@ -161,7 +161,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             <LoadingBar />
           </div>
           <div className='py-4' />
-          <Table className='font-display'>
+          <Table className='font-display select-none'>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60%]">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'}</TableHead>
@@ -193,7 +193,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   return (
                     <TableRow
                       key={`${idx}-${id}`}
-                      className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                      className="font-body"
                       tabIndex={0}
                       onKeyDown={e => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -215,7 +215,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                             {(file_name !== '' ? file_name : 'unknown_file') + ': ' + (method_name !== '' ? method_name : 'unknown_method') + '()'}
                           </p>
                           <div className="py-1" />
-                          <p className="text-xs truncate text-gray-500 select-none">
+                          <p className="text-xs truncate text-muted-foreground select-none">
                             {`${type}${message ? `:${message}` : ''}`}
                           </p>
                         </div>

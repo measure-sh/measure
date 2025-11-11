@@ -3,7 +3,9 @@
 import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
+import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -22,6 +24,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [months, setMonths] = useState<string[]>()
   const [selectedMonth, setSelectedMonth] = useState<string>()
   const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
+  const { theme } = useTheme()
 
   function parseMonths(data: typeof emptyUsage): string[] {
     const monthYearSet: Set<string> = new Set()
@@ -99,7 +102,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         y={centerY}
         textAnchor="middle"
         dominantBaseline="central"
-        className='font-display font-semibold'
+        className='font-display font-semibold fill-foreground'
       >
         <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
         <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
@@ -111,13 +114,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
-      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <LoadingSpinner />}
@@ -128,6 +131,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <div className='w-full h-[36rem]'>
             <ResponsivePie
               data={selectedMonthUsage!}
+              theme={chartTheme}
               animate
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
               innerRadius={0.7}
@@ -136,13 +140,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               padAngle={0.7}
               cornerRadius={3}
               activeOuterRadiusOffset={8}
-              colors={{ scheme: 'nivo' }}
+              colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
               arcLinkLabelsSkipAngle={10}
               arcLinkLabelsThickness={2}
               arcLinkLabelsColor={{ from: 'color' }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-neutral-800 text-white flex flex-col py-2 px-4 font-display rounded-md">
+                  <div className="bg-accent text-accent-foreground flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>

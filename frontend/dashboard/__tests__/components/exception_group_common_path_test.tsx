@@ -449,7 +449,7 @@ describe('ExceptionGroupCommonPath Component', () => {
 
             await waitFor(() => {
                 const listContainer = screen.getByRole('list').parentElement
-                expect(listContainer).toHaveClass('w-full', 'bg-gray-50', 'px-4', 'py-4', 'h-[24rem]', 'overflow-y-auto')
+                expect(listContainer).toHaveClass('w-full', 'bg-accent', 'text-accent-foreground', 'px-4', 'py-4', 'h-[24rem]', 'overflow-y-auto')
             })
         })
     })
