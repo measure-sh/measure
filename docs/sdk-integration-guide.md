@@ -80,11 +80,11 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
-            manifestPlaceholders["measureUrlKey"] = "YOUR_API_URL"
+            manifestPlaceholders["measureApiUrl"] = "YOUR_API_URL"
         }
         release {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
-            manifestPlaceholders["measureUrlKey"] = "YOUR_API_URL"
+            manifestPlaceholders["measureApiUrl"] = "YOUR_API_URL"
         }
     }
 }
