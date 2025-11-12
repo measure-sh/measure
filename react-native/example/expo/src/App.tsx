@@ -32,8 +32,8 @@ export default function App() {
         true, // enableLogging
         1.0, // samplingRateForErrorFreeSessions
         1.0, // traceSamplingRate
-        false, // trackHttpHeaders
-        false, // trackHttpBody
+        true, // trackHttpHeaders
+        true, // trackHttpBody
         [], // httpHeadersBlocklist
         [], // httpUrlBlocklist
         [], // httpUrlAllowlist

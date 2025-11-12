@@ -80,7 +80,7 @@ const App = (): React.JSX.Element => {
   const callFetchGet = async () => {
     try {
       console.log('Calling GET API (fetch)...');
-      const response = await fetch('https://api.agify.io?name=aparna');
+      const response = await fetch('https://api.agify.io?name=adwin');
       const json = await response.json();
       console.log('GET API (fetch) response:', json);
     } catch (error) {
