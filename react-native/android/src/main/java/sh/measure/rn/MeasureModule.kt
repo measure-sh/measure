@@ -153,4 +153,21 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             promise.reject(ErrorCode.TRACK_EVENT_ERROR, "Failed to track span", e)
         }
     }
+    @ReactMethod
+    fun launchBugReport(
+        takeScreenshot: Boolean,
+        bugReportConfig: ReadableMap?,
+        attributes: ReadableMap?,
+        promise: Promise
+    ) {
+    try {
+        val userAttrs =
+            attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+        Measure.launchBugReportActivity(takeScreenshot, userAttrs)
+
+        promise.resolve("Bug report launched successfully")
+    } catch (e: Exception) {
+        promise.reject("LAUNCH_BUG_REPORT_FAILED", e)
+    }
+    }
 }

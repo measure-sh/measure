@@ -115,4 +115,35 @@ class MeasureModule: NSObject, RCTBridgeModule {
         )
         resolve("Span tracked successfully")
     }
+
+    
+    @objc
+    func launchBugReport(_ takeScreenshot: Bool,
+                         bugReportConfig: [String: Any],
+                         attributes: [String: Any],
+                         resolver: RCTPromiseResolveBlock,
+                         rejecter: RCTPromiseRejectBlock) {
+        Measure.launchBugReport(
+            takeScreenshot: takeScreenshot,
+            bugReportConfig: .default,
+            attributes: attributes
+        )
+        resolver("Bug report launched")
+    }
+    
+    @objc
+    func setShakeListener(_ enable: Bool) {
+        if enable {
+            Measure.onShake {
+                DispatchQueue.main.async {
+                    if let bridge = RCTBridge.current(),
+                       let emitter = bridge.module(for: MeasureOnShake.self) as? MeasureOnShake {
+                        emitter.triggerShakeEvent()
+                    }
+                }
+            }
+        } else {
+            Measure.onShake(nil)
+        }
+    }
 }

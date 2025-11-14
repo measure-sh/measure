@@ -49,7 +49,7 @@ object MapUtils {
                 readableMap.getString(key)?.let { result[key] = it }
             }
         }
-        return result.toMap()
+        return result
     }
 
     fun toAttributeValueMap(readableMap: ReadableMap?): MutableMap<String, AttributeValue> {

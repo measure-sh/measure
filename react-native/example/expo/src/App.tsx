@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView, LogBox, DevSettings } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
@@ -27,22 +27,25 @@ export default function App() {
         'https://localhost:8080'
       );
 
-      
       const measureConfig = new MeasureConfig(
         true, // enableLogging
         1.0, // samplingRateForErrorFreeSessions
         1.0, // traceSamplingRate
         false, // trackHttpHeaders
         false, // trackHttpBody
-        [], // httpHeadersBlocklist
-        [], // httpUrlBlocklist
-        [], // httpUrlAllowlist
-        true, // autoStart
-        true // trackViewControllerLoadTime
+        [],    // httpHeadersBlocklist
+        [],    // httpUrlBlocklist
+        [],    // httpUrlAllowlist
+        true,  // autoStart
+        true   // trackViewControllerLoadTime
       );
 
-      // Initialize Measure SDK
-      Measure.init(clientInfo, measureConfig);
+      await Measure.init(clientInfo, measureConfig);
+
+      Measure.onShake(() => {
+        console.log('Shake detected — launching bug report flow!');
+        Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
+      });
     } catch (error) {
       console.error('Failed to initialize Measure:', error);
     }

@@ -19,6 +19,10 @@ import { Randomizer, type IRandomizer } from './utils/randomizer';
 import { UuidGenerator, type IUuidGenerator } from './utils/uuidGenerator';
 import { SpanProcessor, type ISpanProcessor } from './tracing/spanProcessor';
 import { SignalProcessor, type ISignalProcessor } from './events/signalProcessor';
+import {
+  BugReportCollector,
+  type IBugReportCollector,
+} from './bugReport/bugReportCollector';
 
 export interface MeasureInitializer {
   logger: Logger;
@@ -37,6 +41,7 @@ export interface MeasureInitializer {
   spanProcessor: ISpanProcessor;
   signalProcessor: ISignalProcessor;
   traceSampler: ITraceSampler;
+  bugReportCollector: IBugReportCollector;
 }
 
 export class BaseMeasureInitializer implements MeasureInitializer {
@@ -56,6 +61,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
   spanProcessor: ISpanProcessor;
   signalProcessor: ISignalProcessor;
   traceSampler: ITraceSampler;
+  bugReportCollector: IBugReportCollector;
 
   constructor(client: Client, config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
@@ -122,5 +128,6 @@ export class BaseMeasureInitializer implements MeasureInitializer {
     this.spanCollector = new SpanCollector(
       this.tracer,
     );
+    this.bugReportCollector = new BugReportCollector({ logger: this.logger });
   }
 }

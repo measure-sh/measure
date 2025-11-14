@@ -1,4 +1,5 @@
 #import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 
 @interface RCT_EXTERN_MODULE(MeasureModule, NSObject)
 
@@ -37,5 +38,10 @@ RCT_EXTERN_METHOD(trackSpan:(NSString *)name
                   isSampled:(BOOL)isSampled
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
-
+RCT_EXTERN_METHOD(launchBugReport:(BOOL)takeScreenshot
+                  bugReportConfig:(NSDictionary *)bugReportConfig
+                  attributes:(NSDictionary *)attributes
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(setShakeListener:(BOOL)enable)
 @end
