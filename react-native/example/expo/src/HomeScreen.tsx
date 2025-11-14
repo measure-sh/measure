@@ -58,6 +58,14 @@ const trackCustomEvent = () => {
   console.log('Custom event tracked: button_click');
 };
 
+const trackBugReport = () => {
+  Measure.launchBugReport(
+    true,
+    { theme: 'dark' },
+    { userId: '123', screen: 'Home' }
+  );
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -84,6 +92,11 @@ export default function HomeScreen() {
           id: 'event',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
+        },
+        {
+          id: 'bugReport',
+          title: 'Track Bug Report',
+          onPress: trackBugReport,
         },
       ],
     },

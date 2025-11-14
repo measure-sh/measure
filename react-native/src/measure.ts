@@ -251,4 +251,67 @@ export const Measure = {
   getTraceParentHeaderKey(): string {
     return _measureInternal.getTraceParentHeaderKey();
   },
+
+    /**
+   * Launches the bug report flow, optionally taking a screenshot and attaching metadata.
+   *
+   * This can be used to allow users or QA testers to report issues directly
+   * from within the app, optionally including a screenshot and additional attributes.
+   *
+   * @param takeScreenshot - Set to false to disable screenshot capture. Defaults to true.
+   * @param bugReportConfig - Optional configuration for customizing the bug report UI.
+   * @param attributes - Optional metadata key-value pairs describing the context of the report.
+   *
+   * @example
+   * ```ts
+   * Measure.launchBugReport(true, { theme: "dark" }, { userId: "123", screen: "Home" });
+   * ```
+   */
+  launchBugReport(
+    takeScreenshot: boolean = true,
+    bugReportConfig: Record<string, any> = {},
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.launchBugReport(
+      takeScreenshot,
+      bugReportConfig,
+      attributes
+    );
+  },
+
+   /**
+   * Registers a shake listener that triggers a callback when a shake gesture is detected.
+   *
+   * Calling this method with a function enables shake detection.
+   * Calling it with `null` or `undefined` disables shake detection.
+   *
+   * Internally, this delegates to the native SDK’s shake listener support
+   * (`Measure.shared.onShake` on iOS and `setShakeListener` on Android).
+   *
+   * @param handler - A callback function to invoke when a shake is detected, or `null` to disable.
+   *
+   * @example
+   * ```ts
+   * import { Measure } from '@measure/react-native';
+   *
+   * Measure.onShake(() => {
+   *   console.log('Shake detected! Opening bug report...');
+   *   Measure.launchBugReport();
+   * });
+   * ```
+   */
+  onShake(handler?: (() => void) | null): void {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Call init() first.');
+      return;
+    }
+
+    _measureInternal.onShake(handler);
+  },
 };
