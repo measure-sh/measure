@@ -1,7 +1,8 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, NativeEventEmitter } from 'react-native';
 import type { Logger } from '../utils/logger';
 import { ClientInfoInternal, type Client } from '../config/clientInfo';
 import type { MeasureConfig } from '../config/measureConfig';
+import type { ValidAttributeValue } from '../utils/attributeValueValidator';
 
 const LINKING_ERROR =
   `The package '@measuresh/react-native' doesn't seem to be linked properly.` +
@@ -19,6 +20,9 @@ const MeasureModule = NativeModules.MeasureModule
         },
       }
     );
+
+const { MeasureOnShake } = NativeModules;
+const MeasureEventEmitter = new NativeEventEmitter(MeasureOnShake);
 
 export function initializeNativeSDK(
   client: Client,
@@ -178,4 +182,35 @@ export function trackHttpEvent(
     responseBody,
     client
   );
+}
+
+export function launchBugReport(
+  takeScreenshot: boolean = true,
+  bugReportConfig: Record<string, any> = {},
+  attributes: Record<string, ValidAttributeValue> = {}
+): Promise<void> {
+  if (!MeasureModule.launchBugReport) {
+    return Promise.reject(
+      new Error('launchBugReport native method not available.')
+    );
+  }
+
+  return MeasureModule.launchBugReport(takeScreenshot, bugReportConfig, attributes);
+}
+
+export function setShakeListener(enable: boolean, handler?: () => void): void {
+  if (!MeasureModule.setShakeListener) {
+    throw new Error('setShakeListener native method not available.');
+  }
+
+  MeasureEventEmitter.removeAllListeners('MeasureOnShake');
+
+  if (!enable || !handler) {
+    MeasureModule.setShakeListener(false);
+    return;
+  }
+
+  MeasureModule.setShakeListener(true);
+
+  MeasureEventEmitter.addListener('MeasureOnShake', handler);
 }

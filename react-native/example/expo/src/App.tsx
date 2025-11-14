@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView, LogBox, DevSettings } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
@@ -47,8 +47,12 @@ export default function App() {
         maxDiskUsageInMb: 50,
       });
 
-      // Initialize Measure SDK
-      Measure.init(clientInfo, measureConfig);
+      await Measure.init(clientInfo, measureConfig);
+
+      Measure.onShake(() => {
+        console.log('Shake detected — launching bug report flow!');
+        Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
+      });
     } catch (error) {
       console.error('Failed to initialize Measure:', error);
     }
