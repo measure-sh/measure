@@ -1,4 +1,3 @@
-import type { Attributes } from "../attributes/attributes";
 import type { ValidAttributeValue } from "../utils/attributeValueValidator";
 import type { Checkpoint } from "./checkpoint";
 import type { SpanStatus } from "./spanStatus";
@@ -12,7 +11,7 @@ export interface SpanData {
     endTime: number;
     duration: number;
     status: SpanStatus;
-    attributes?: Attributes;
+    attributes?: {[key: string]: any};
     userDefinedAttrs?: { [key: string]: ValidAttributeValue };
     checkpoints: Checkpoint[];
     hasEnded: boolean;
@@ -28,7 +27,7 @@ export interface SpanDataCodable {
     end_time: string;
     duration: number;
     status: SpanStatus;
-    attributes?: Attributes;
+    attributes?: {[key: string]: any};
     user_defined_attribute?: { [key: string]: ValidAttributeValue };
     checkpoints: Checkpoint[];
 }

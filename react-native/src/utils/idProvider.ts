@@ -15,8 +15,6 @@ export abstract class IIdProvider {
     public abstract traceId(): string;
 }
 
-// ----------------------------------------------------------------------
-
 /**
  * Concrete implementation of the IdProvider, responsible for generating
  * unique trace, span, and session IDs.
@@ -27,7 +25,7 @@ export class IdProvider extends IIdProvider {
 
     /**
      * @param randomizer The random number generator used for trace and span IDs.
-     * @param uuidGenerator The generator used for UUIDs. Defaults to a custom v4 implementation.
+     * @param uuidGenerator The generator used for UUIDs.
      */
     constructor(randomizer: IRandomizer, uuidGenerator: IUuidGenerator) {
         super();
@@ -42,8 +40,7 @@ export class IdProvider extends IIdProvider {
     public spanId(): string {
         let id: string;
         do {
-            // Span ID is 8 bytes (64-bit) = 16 hex characters
-            id = this._randomHex(8);
+            id = this._randomHex(8);   // 8 bytes → 16 hex chars
         } while (this._isAllZero(id));
         return id;
     }
@@ -51,32 +48,49 @@ export class IdProvider extends IIdProvider {
     public traceId(): string {
         let id: string;
         do {
-            // Trace ID is 16 bytes (128-bit) = 32 hex characters
-            id = this._randomHex(16);
+            id = this._randomHex(16);  // 16 bytes → 32 hex chars
         } while (this._isAllZero(id));
         return id;
     }
 
     /**
      * Generates a random hexadecimal string of the specified byte length.
-     * It uses the Randomizer's float 'random()' method to simulate getting a random byte.
+     * Uses crypto.getRandomValues if available, otherwise falls back to
+     * the injected Randomizer.
      */
     private _randomHex(byteLength: number): string {
-        let hex = '';
-        for (let i = 0; i < byteLength; i++) {
-            // Generate a random byte (0 to 255)
-            const byte = Math.floor(this._randomizer.random() * 256);
+    const bytes: Uint8Array = new Uint8Array(byteLength);
 
-            // Convert byte to 2-character hex string, padding with '0'
-            hex += byte.toString(16).padStart(2, '0');
+    // Prefer secure RNG when available
+    if (this._hasCrypto()) {
+        globalThis.crypto.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < byteLength; i++) {
+            bytes[i] = Math.floor(this._randomizer.random() * 256);
         }
-        return hex;
     }
 
+    // Convert bytes → hex safely
+    let hex = "";
+    for (const byte of bytes) {
+        hex += byte.toString(16).padStart(2, "0");
+    }
+
+    return hex;
+}
+
     /**
-     * Checks if a hex string consists only of '0' characters (which is an invalid ID).
+     * Detect if a hex string is all zeros.
      */
     private _isAllZero(hex: string): boolean {
         return /^0+$/.test(hex);
+    }
+
+    private _hasCrypto(): boolean {
+        return (
+            typeof globalThis !== "undefined" &&
+            globalThis.crypto &&
+            typeof globalThis.crypto.getRandomValues === "function"
+        );
     }
 }

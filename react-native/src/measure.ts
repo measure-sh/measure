@@ -240,10 +240,6 @@ export const Measure = {
    * @returns A W3C trace context compliant header value (e.g., '00-traceId-spanId-01').
    */
   getTraceParentHeaderValue(span: Span): string {
-    if (!_measureInternal) {
-      console.warn('Measure is not initialized. Returning empty traceparent value.');
-      return '';
-    }
     return _measureInternal.getTraceParentHeaderValue(span);
   },
 

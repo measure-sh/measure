@@ -22,9 +22,9 @@ export default function App() {
   const initializeMeasure = async () => {
     try {
       const clientInfo = new ClientInfo(
-        'msrsh_3533778aec068f99683daae218d0b94a55bbd999070bef1a541ad7bf7629f195_a07c74cb',
-        'msrsh_78e21553fc5ddaf2a30439bb4989efa05e59fefa19213e19d380066b882e5f4d_c1d7387e',
-        'https://staging-ingest.measure.sh'
+        'msrsh_3533778aec068f99683da...',
+        'msrsh_78e21553fc5ddaf2a3043...',
+        'https://localhost:8080'
       );
 
       

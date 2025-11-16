@@ -113,7 +113,7 @@ export class MsrSpan implements InternalSpan {
 
   setCheckpoint(name: string): Span {
     if (this.hasEndedState === EndState.NotEnded) {
-      const timestamp = this.timeProvider.iso8601Timestamp(this.timeProvider.now());
+      const timestamp = this.timeProvider.now();
       const checkpoint: Checkpoint = { name, timestamp };
       this.checkpoints.push(checkpoint);
     }

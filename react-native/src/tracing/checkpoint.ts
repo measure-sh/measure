@@ -9,7 +9,6 @@ export interface Checkpoint {
 
     /**
      * The timestamp when the checkpoint was created.
-     * Often represented as an ISO 8601 string or a numeric timestamp.
      */
-    timestamp: string;
+    timestamp: number;
 }

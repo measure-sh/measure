@@ -53,8 +53,7 @@ export class SignalProcessor implements ISignalProcessor {
 
       const checkpointsDict = (spanData.checkpoints || []).reduce(
         (acc, cp) => {
-          const numericTimestamp = this.parseCheckpointTimestamp(cp.timestamp);
-          acc[cp.name] = numericTimestamp;
+          acc[cp.name] = cp.timestamp;
           return acc;
         },
         {} as Record<string, number>
@@ -104,24 +103,5 @@ export class SignalProcessor implements ISignalProcessor {
       threadName,
       attachments
     );
-  }
-
-  private parseCheckpointTimestamp(raw: string): number {
-    const asNumber = Number(raw);
-    if (!isNaN(asNumber)) {
-      return asNumber;
-    }
-
-    const parsed = Date.parse(raw);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-
-    // Fallback: use current provider time
-    this.logger.log(
-      'warning',
-      `[SignalProcessor] Invalid checkpoint timestamp '${raw}', using current time`
-    );
-    return this.timeProvider.now();
   }
 }
