@@ -410,7 +410,7 @@ backfill_team_ids() {
   echo "Backfill complete for 'user_def_attrs' table"
 
   local event_reqs_output
-  event_reqs_output=$($DOCKER_COMPOSE exec -T -e PGPASSWORD="${pg_admin_password}" postgres psql -U "${pg_admin_user}" -d "${pg_dbname}" -A -F ',' -t -c "SELECT id, app_id, created_at FROM measure.event_reqs where status = 1;" 2>&1)
+  event_reqs_output=$($DOCKER_COMPOSE exec -T -e PGPASSWORD="${pg_admin_password}" postgres psql -U "${pg_admin_user}" -d "${pg_dbname}" -A -F ',' -t -c "SELECT id, app_id, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS') as created_at FROM measure.event_reqs where status = 1;" 2>&1)
 
   local insert_str=""
 
@@ -419,11 +419,6 @@ backfill_team_ids() {
     id="${id##+([[:space:]])}" id="${id%%+([[:space:]])}"
     app_id="${app_id##+([[:space:]])}" app_id="${app_id%%+([[:space:]])}"
     created_at="${created_at##+([[:space:]])}" created_at="${created_at%%+([[:space:]])}"
-
-    # 'created_at' source timestamps is of the format '2025-03-25 10:55:01.771602+00'
-    # intention is to match the precision when moving these values from postgres to clickhouse.
-    # to make it compatible with ClickHouse's DateTime type, remove the '.771602+00' from the end.
-    created_at="${created_at/\.*/}"
 
     # skip empty lines
     [[ -z "$id" || -z "$app_id" || -z "$created_at" ]] && continue
