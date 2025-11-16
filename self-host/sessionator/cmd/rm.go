@@ -600,7 +600,7 @@ func (j *janitor) rmIngestedBatches(ctx context.Context) (err error) {
 		}
 	}()
 
-	fmt.Println("removing ingestion batches")
+	fmt.Println("removing ingested batches")
 	for i := range j.appIds {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
