@@ -125,7 +125,7 @@ describe('MsrSpan', () => {
         mockSpanProcessor
       );
       span.setCheckpoint('phase1');
-      expect(span.checkpoints).toEqual([{ name: 'phase1', timestamp: 'ts-1000' }]);
+      expect(span.checkpoints).toEqual([{ name: 'phase1', timestamp: 1000 }]);
     });
 
     it('ignores checkpoints after end', () => {
