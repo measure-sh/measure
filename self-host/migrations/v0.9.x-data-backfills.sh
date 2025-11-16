@@ -2,7 +2,7 @@
 
 # Migration
 #
-# This is a one off migration script that should be run as post migration.
+# This is a one off migration script that should be run as post DDL migration step.
 # Assumes, the pre migration job has created the `events_rmt` and `spans_rmt`
 # tables. This script performs backfilling of `events` and `spans` tables to
 # populate all connected materialized views. Backfilling of `events` & `spans`
@@ -10,8 +10,7 @@
 #
 # Rollback
 #
-# In case things go south, activate the `rollback_events` & `rollback_spans`
-# functions. These functions could also be run out of band to save time.
+# In case things go south, run this script again as the operations are idempotent.
 
 # exit on error
 set -e
@@ -40,6 +39,11 @@ start_clickhouse_service() {
 #
 # Migrate table engine of `events` and `spans` root tables
 # to ReplacingMergeTree
+#
+# Note:
+#   1. Both `events_rmt` & `spans_rmt` tables must exist
+#   2. Column count & type of `events` & `events_rmt` tables must match
+#   2. Column count & type of `spans` & `spans_rmt` tables must match
 optimize_clickhouse_database() {
   echo "Optimizing clickhouse database..."
   echo "This might take a while depending on volume of data."
@@ -87,6 +91,46 @@ optimize_clickhouse_database() {
     return 1
   fi
 
+  local events_cols_count
+  events_cols_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM system.columns WHERE database = '$dbname' and table = 'events';")
+
+  local events_rmt_cols_count
+  events_rmt_cols_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM system.columns WHERE database = '$dbname' and table = 'events_rmt';")
+
+  if ! [[ "$events_cols_count" == "$events_rmt_cols_count" ]]; then
+    echo "Mismatch in column count between 'events' & 'events_rmt' tables."
+    echo "events: $events_cols_count  events_rmt: $events_rmt_cols_count"
+    return 1
+  fi
+
+  local spans_cols_count
+  spans_cols_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM system.columns WHERE database = '$dbname' and table = 'spans';")
+
+  local spans_rmt_cols_count
+  spans_rmt_cols_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM system.columns WHERE database = '$dbname' and table = 'spans_rmt';")
+
+  if ! [[ "$spans_cols_count" == "$spans_rmt_cols_count" ]]; then
+    echo "Mismatch in column count between 'spans' & 'spans_rmt' tables."
+    echo "spans: $events_cols_count  spans_rmt: $events_rmt_cols_count"
+    return 1
+  fi
+
   echo
 
   # backfill events
@@ -99,6 +143,10 @@ optimize_clickhouse_database() {
     --multiline \
     --hardware-utilization \
     --query "
+    -- Prepare clean slate for migration
+    drop table if exists events_to_new;
+    truncate table if exists events_rmt;
+
     -- Forward all future writes to new table
     create materialized view events_to_new
     to events_rmt
@@ -111,17 +159,15 @@ optimize_clickhouse_database() {
     -- Monitor & verify
     select
       (select formatReadableSize(sum(bytes)) from system.parts where table = 'events_rmt' group by database) as events_size,
-      (select count() from events_rmt) as events_rmt_count,
+      (select count() from events_rmt final) as events_rmt_count,
       (select count() from events) as events_count;
 
-    -- Atomic switch
-    rename table
-      events to events_old,
-      events_rmt to events;
+    -- Atomic exchange
+    exchange tables events and events_rmt;
 
     -- Cleanup
-    drop table if exists events_old sync;
     drop table if exists events_to_new sync;
+    drop table if exists events_rmt sync;
     "
 
     echo
@@ -136,6 +182,10 @@ optimize_clickhouse_database() {
       --multiline \
       --hardware-utilization \
       --query "
+      -- Prepare clean slate for migration
+      drop table if exists spans_to_new;
+      truncate table if exists spans_rmt;
+
       -- Forward all future writes to new table
       create materialized view spans_to_new
       to spans_rmt
@@ -148,17 +198,15 @@ optimize_clickhouse_database() {
       -- Monitor & verify
       select
         (select formatReadableSize(sum(bytes)) from system.parts where table = 'spans_rmt' group by database) as spans_size,
-        (select count() from spans_rmt) as spans_rmt_count,
+        (select count() from spans_rmt final) as spans_rmt_count,
         (select count() from spans) as spans_count;
 
-      -- Atomic switch
-      rename table
-        spans to spans_old,
-        spans_rmt to spans;
+      -- Atomic exchange
+      exchange tables spans and spans_rmt;
 
       -- Cleanup
-      drop table if exists spans_old sync;
       drop table if exists spans_to_new sync;
+      drop table if exists spans_rmt sync;
       "
 
     echo
@@ -195,8 +243,8 @@ backfill_team_ids() {
 
   while IFS=',' read -r id team_id; do
     # trim whitespace
-    id="${id##+([[:space:]]}" id="${id%%+([[:space:]])}"
-    team_id="${team_id##+([[:space:]])}" team_id="${team_id%%+([[:space:]]}"
+    id="${id##+([[:space:]])}" id="${id%%+([[:space:]])}"
+    team_id="${team_id##+([[:space:]])}" team_id="${team_id%%+([[:space:]])}"
 
     # skip empty lines
     [[ -z "$id" || -z "$team_id" ]] && continue
@@ -369,8 +417,13 @@ backfill_team_ids() {
   while IFS=',' read -r id app_id created_at; do
     # trim whitespace
     id="${id##+([[:space:]])}" id="${id%%+([[:space:]])}"
-    app_id="${id##+([[:space:]])}" app_id="${id%%+([[:space:]])}"
-    created_at="${created_at##+([[:space:]]}" created_at="${created_at%%+([[:space:]])}"
+    app_id="${app_id##+([[:space:]])}" app_id="${app_id%%+([[:space:]])}"
+    created_at="${created_at##+([[:space:]])}" created_at="${created_at%%+([[:space:]])}"
+
+    # 'created_at' source timestamps is of the format '2025-03-25 10:55:01.771602+00'
+    # intention is to match the precision when moving these values from postgres to clickhouse.
+    # to make it compatible with ClickHouse's DateTime type, remove the '.771602+00' from the end.
+    created_at="${created_at/\.*/}"
 
     # skip empty lines
     [[ -z "$id" || -z "$app_id" || -z "$created_at" ]] && continue
@@ -387,68 +440,17 @@ backfill_team_ids() {
     return 0
   fi
 
-  # insert old event reqs batches
-  local ingested_batches_output
-  if ! ingested_batches_output=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+  $DOCKER_COMPOSE exec clickhouse clickhouse-client \
     --user "${ch_admin_user}" \
     --password "${ch_admin_password}" \
     --database "${ch_dbname}" \
-    --query "insert into ingested_batches (team_id, app_id, batch_id, timestamp) values ${insert_str};" 2>&1); then
-      echo "Failed to update 'ingested_batches' table: ${ingested_batches_output}"
-      return 1
-  fi
+    --query "insert into ingested_batches (team_id, app_id, batch_id, timestamp) settings async_insert=1, wait_for_async_insert=1 values $insert_str;"
+
+  echo "Backfill complete for 'ingested_batches' table"
 
   echo
   echo "Backfilling complete!"
   echo
-}
-
-# rollback_events rolls back changes made to
-# events table.
-rollback_events() {
-  local admin_user
-  local admin_password
-  local dbname
-
-  admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
-  admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
-  dbname=measure
-
-  $DOCKER_COMPOSE exec clickhouse clickhouse-client \
-    --user "${admin_user}" \
-    --password "${admin_password}" \
-    --database "${dbname}" \
-    --query "rename table events to events_rmt, events_old to events;"
-
-    echo
-}
-
-# rollback_spans rolls back changes made to
-# spans table.
-rollback_spans() {
-  local admin_user
-  local admin_password
-  local dbname
-
-  admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
-  admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
-  dbname=measure
-
-  $DOCKER_COMPOSE exec clickhouse clickhouse-client \
-    --user "${admin_user}" \
-    --password "${admin_password}" \
-    --database "${dbname}" \
-    --query "rename table spans to spans_rmt, spans_old to spans;"
-
-    echo
-}
-
-# rollback rolls back changes made to
-# root tables.
-rollback() {
-  echo "Rolling back changes..."
-  rollback_events
-  rollback_spans
 }
 
 # kick things off
@@ -456,4 +458,3 @@ check_base_dir
 set_docker_compose
 optimize_clickhouse_database
 backfill_team_ids
-# rollback
