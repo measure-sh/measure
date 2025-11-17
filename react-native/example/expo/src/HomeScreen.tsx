@@ -54,8 +54,6 @@ const trackCustomEvent = () => {
     screen: 'Home',
     action: 'Track Custom Event',
     timestamped: true,
-    objecttype: { id: '12345', name: 'Test Object' },
-    arraytype: ['value1', 'value2'],
   });
   console.log('Custom event tracked: button_click');
 };
@@ -65,6 +63,10 @@ export default function HomeScreen() {
 
   const navigateToComponentScreen = () => {
     navigation.navigate('ComponentScreen');
+  };
+
+  const navigateToTracesScreen = () => {
+    navigation.navigate('TracesScreen'); 
   };
 
   const sections = [
@@ -115,8 +117,13 @@ export default function HomeScreen() {
       data: [
         {
           id: 'navigate',
-          title: 'Navigate to Component Screen',
+          title: 'Component Screen',
           onPress: navigateToComponentScreen,
+        },
+        {
+          id: 'navigate-traces',
+          title: 'Traces Screen',
+          onPress: navigateToTracesScreen,
         },
       ],
     },

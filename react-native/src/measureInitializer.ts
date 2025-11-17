@@ -10,6 +10,15 @@ import { MeasureLogger, type Logger } from './utils/logger';
 import { MeasureTimeProvider, type TimeProvider } from './utils/timeProvider';
 import { CustomEventCollector, type ICustomEventCollector } from './events/customEventCollector';
 import { UserTriggeredEventCollector, type IUserTriggeredEventCollector } from './events/userTriggeredEventCollector';
+import { SpanCollector, type ISpanCollector } from './tracing/spanCollector';
+import type { Tracer } from './tracing/tracer';
+import { TraceSampler, type ITraceSampler } from './tracing/traceSampler';
+import { MsrTracer } from './tracing/msrTracer';
+import { IdProvider, type IIdProvider } from './utils/idProvider';
+import { Randomizer, type IRandomizer } from './utils/randomizer';
+import { UuidGenerator, type IUuidGenerator } from './utils/uuidGenerator';
+import { SpanProcessor, type ISpanProcessor } from './tracing/spanProcessor';
+import { SignalProcessor, type ISignalProcessor } from './events/signalProcessor';
 
 export interface MeasureInitializer {
   logger: Logger;
@@ -20,6 +29,14 @@ export interface MeasureInitializer {
   timeProvider: TimeProvider;
   customEventCollector: ICustomEventCollector;
   userTriggeredEventCollector: IUserTriggeredEventCollector;
+  spanCollector: ISpanCollector;
+  tracer: Tracer;
+  idProvider: IIdProvider;
+  randormizer: IRandomizer;
+  uuidGenerator: IUuidGenerator;
+  spanProcessor: ISpanProcessor;
+  signalProcessor: ISignalProcessor;
+  traceSampler: ITraceSampler;
 }
 
 export class BaseMeasureInitializer implements MeasureInitializer {
@@ -31,6 +48,14 @@ export class BaseMeasureInitializer implements MeasureInitializer {
   timeProvider: TimeProvider;
   customEventCollector: ICustomEventCollector;
   userTriggeredEventCollector: IUserTriggeredEventCollector;
+  spanCollector: ISpanCollector;
+  tracer: Tracer;
+  idProvider: IIdProvider;
+  randormizer: IRandomizer;
+  uuidGenerator: IUuidGenerator;
+  spanProcessor: ISpanProcessor;
+  signalProcessor: ISignalProcessor;
+  traceSampler: ITraceSampler;
 
   constructor(client: Client, config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
@@ -57,14 +82,45 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       this.configLoader
     );
     this.timeProvider = new MeasureTimeProvider();
+    this.signalProcessor = new SignalProcessor(
+      this.logger,
+      this.timeProvider,
+    );
     this.customEventCollector = new CustomEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,
       configProvider: this.configProvider,
+      signalProcessor: this.signalProcessor,
     });
     this.userTriggeredEventCollector = new UserTriggeredEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,
+      signalProcessor: this.signalProcessor,
     });
+    this.uuidGenerator = new UuidGenerator();
+    this.randormizer = new Randomizer();
+    this.idProvider = new IdProvider(
+      this.randormizer,
+      this.uuidGenerator,
+    );
+    this.spanProcessor = new SpanProcessor(
+      this.logger,
+      this.signalProcessor,
+      this.configProvider,
+    );
+    this.traceSampler = new TraceSampler(
+      this.configProvider,
+      this.randormizer,
+    );  
+    this.tracer = new MsrTracer(
+      this.logger,
+      this.idProvider,
+      this.timeProvider,
+      this.spanProcessor,
+      this.traceSampler,
+    );
+    this.spanCollector = new SpanCollector(
+      this.tracer,
+    );
   }
 }

@@ -20,7 +20,11 @@ const MeasureModule = NativeModules.MeasureModule
       }
     );
 
-export function initializeNativeSDK(client: Client, config: MeasureConfig, logger: Logger): Promise<any> {
+export function initializeNativeSDK(
+  client: Client,
+  config: MeasureConfig,
+  logger: Logger
+): Promise<any> {
   if (MeasureModule.initialize) {
     let clientInfo: ClientInfoInternal;
     if (Platform.OS === 'ios') {
@@ -37,7 +41,11 @@ export function initializeNativeSDK(client: Client, config: MeasureConfig, logge
   }
 }
 
-function initNativeSDK(client: ClientInfoInternal, config: MeasureConfig, logger: Logger): Promise<any> {
+function initNativeSDK(
+  client: ClientInfoInternal,
+  config: MeasureConfig,
+  logger: Logger
+): Promise<any> {
   return MeasureModule.initialize(client, config)
     .then((result: any) => {
       logger.log(
@@ -54,11 +62,11 @@ function initNativeSDK(client: ClientInfoInternal, config: MeasureConfig, logger
 
 export function start(): Promise<any> {
   return MeasureModule.start();
-};
+}
 
 export function stop(): Promise<any> {
   return MeasureModule.stop();
-};
+}
 
 export function trackEvent(
   data: Record<string, any>,
@@ -74,7 +82,7 @@ export function trackEvent(
   if (!MeasureModule.trackEvent) {
     return Promise.reject(new Error('trackEvent native method not available.'));
   }
-  
+
   return MeasureModule.trackEvent(
     data,
     type,
@@ -85,5 +93,41 @@ export function trackEvent(
     sessionId,
     threadName,
     attachments
+  );
+}
+
+export function trackSpan(
+  name: string,
+  traceId: string,
+  spanId: string,
+  parentId: string | null,
+  startTime: number,
+  endTime: number,
+  duration: number,
+  status: number,
+  attributes: Record<string, any> = {},
+  userDefinedAttrs: Record<string, any> = {},
+  checkpoints: Record<string, number> = {},
+  hasEnded: boolean,
+  isSampled: boolean
+): Promise<any> {
+  if (!MeasureModule.trackSpan) {
+    return Promise.reject(new Error('trackSpan native method not available.'));
+  }
+
+  return MeasureModule.trackSpan(
+    name,
+    traceId,
+    spanId,
+    parentId,
+    startTime,
+    endTime,
+    duration,
+    status,
+    attributes,
+    userDefinedAttrs,
+    checkpoints,
+    hasEnded,
+    isSampled
   );
 }

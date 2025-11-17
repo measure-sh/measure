@@ -2,7 +2,7 @@ import { validateAttributes, type ValidAttributeValue } from '../utils/attribute
 import type { Logger } from '../utils/logger';
 import type { TimeProvider } from '../utils/timeProvider';
 import { EventType } from './eventType';
-import { trackEvent } from '../native/measureBridge';
+import type { ISignalProcessor } from './signalProcessor';
 
 /**
  * Interface for tracking user-triggered events like screen views or user errors.
@@ -41,13 +41,16 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   private logger: Logger;
   private timeProvider: TimeProvider;
   private enabled = false;
+  private signalProcessor: ISignalProcessor;
 
   constructor(opts: {
     logger: Logger;
     timeProvider: TimeProvider;
+    signalProcessor: ISignalProcessor;
   }) {
     this.logger = opts.logger;
     this.timeProvider = opts.timeProvider;
+    this.signalProcessor = opts.signalProcessor;
   }
 
   register(): void {
@@ -81,7 +84,7 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
     }
 
     try {
-      await trackEvent(
+      this.signalProcessor.trackEvent(
         { name: screenName },
         EventType.ScreenView,
         this.timeProvider.now(),
