@@ -412,8 +412,7 @@ backfill_team_ids() {
   local event_reqs_output
   event_reqs_output=$($DOCKER_COMPOSE exec -T -e PGPASSWORD="${pg_admin_password}" postgres psql -U "${pg_admin_user}" -d "${pg_dbname}" -A -F ',' -t -c "SELECT id, app_id, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS') as created_at FROM measure.event_reqs where status = 1;" 2>&1)
 
-  local insert_str=""
-
+  local csv_str=""
   while IFS=',' read -r id app_id created_at; do
     # trim whitespace
     id="${id##+([[:space:]])}" id="${id%%+([[:space:]])}"
@@ -424,22 +423,25 @@ backfill_team_ids() {
     [[ -z "$id" || -z "$app_id" || -z "$created_at" ]] && continue
 
     local team_id="${apps_teams[$app_id]}"
-    if ! [[ -z "$team_id" ]]; then
-      insert_str+="${insert_str:+, }(toUUID('$team_id'), toUUID('$app_id'), toUUID('$id'), toDateTime('$created_at'))"
-    fi
+    [[ -z "$team_id" ]] && continue
 
+    csv_str+="${team_id},${app_id},${id},${created_at}\n"
   done <<< "$event_reqs_output"
 
-  if [[ -z "$insert_str" ]]; then
+  if [[ -z "$csv_str" ]]; then
     echo "Skipping backfilling of 'event_reqs', no matching app_id found"
     return 0
   fi
 
-  $DOCKER_COMPOSE exec clickhouse clickhouse-client \
+  local ingested_batches_output
+  ingested_batches_output=$(echo -en "$csv_str" | $DOCKER_COMPOSE exec -T clickhouse clickhouse-client \
     --user "${ch_admin_user}" \
     --password "${ch_admin_password}" \
     --database "${ch_dbname}" \
-    --query "insert into ingested_batches (team_id, app_id, batch_id, timestamp) settings async_insert=1, wait_for_async_insert=1 values $insert_str;"
+    --query "insert into ingested_batches (team_id, app_id, batch_id, timestamp) settings async_insert=1, wait_for_async_insert=1 format CSV" 2>&1) || {
+      echo "Failed to update 'ingested_batches' table: $ingested_batches_output"
+      exit 1
+    }
 
   echo "Backfill complete for 'ingested_batches' table"
 
