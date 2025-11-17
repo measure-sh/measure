@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { SafeAreaView, LogBox, DevSettings } from 'react-native';
+import { SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
-import ComponentScreen from './ComponentScreen'; // Create this screen if not already
 import {
   Measure,
   ClientInfo,
@@ -12,6 +11,7 @@ import {
 } from '@measuresh/react-native';
 import TracesScreen from './TracesScreen';
 import { Screen } from 'react-native-screens';
+import ComponentScreen from './ComponentScreen';
 
 export type RootStackParamList = {
   HomeScreen: undefined;

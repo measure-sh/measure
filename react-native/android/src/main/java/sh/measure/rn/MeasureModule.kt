@@ -11,6 +11,7 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
 import sh.measure.android.Measure
 import sh.measure.android.MsrAttachment
+import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 
@@ -31,10 +32,14 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             val config = MeasureConfig.fromJson(configJson)
 
             UiThreadUtil.runOnUiThread {
-                Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+                try {
+                    Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+                    promise.resolve("Native Measure SDK initialized successfully")
+                } catch (e: Exception) {
+                    promise.reject(ErrorCode.INIT_ERROR, e)
+                }
             }
 
-            promise.resolve("Native Measure SDK initialized successfully")
         } catch (e: Exception) {
             promise.reject(ErrorCode.INIT_ERROR, "Failed to initialize Measure SDK", e)
         }
@@ -214,13 +219,30 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         attributes: ReadableMap?,
         promise: Promise
     ) {
-    try {
-        val userAttrs =
-            attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
-        Measure.launchBugReportActivity(takeScreenshot, userAttrs)
+        try {
+            val userAttrs =
+                attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+            Measure.launchBugReportActivity(takeScreenshot, userAttrs)
 
-        promise.resolve("Bug report launched successfully")
-    } catch (e: Exception) {
-        promise.reject("LAUNCH_BUG_REPORT_FAILED", e)
+            promise.resolve("Bug report launched successfully")
+        } catch (e: Exception) {
+            promise.reject("LAUNCH_BUG_REPORT_FAILED", e)
+        }
+    }
+
+    @ReactMethod
+    fun setShakeListener(enable: Boolean) {
+        val shakeEmitter = reactApplicationContext
+            .getNativeModule(MeasureOnShakeModule::class.java)
+
+        if (enable) {
+            Measure.setShakeListener(object : MsrShakeListener {
+                override fun onShake() {
+                    shakeEmitter?.triggerShakeEvent()
+                }
+            })
+        } else {
+            Measure.setShakeListener(null)
+        }
     }
 }
