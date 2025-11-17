@@ -25,7 +25,7 @@ const App = (): React.JSX.Element => {
   const contentBackgroundColor = isDarkMode ? Colors.black : Colors.white;
   const textColor = isDarkMode ? Colors.white : Colors.black;
 
-  const initializeMeasure = () => {
+  const initializeMeasure = async () => {
     const clientInfo = new ClientInfo(
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
@@ -45,14 +45,18 @@ const App = (): React.JSX.Element => {
       true, // trackViewControllerLoadTime
     );
 
-    Measure.init(clientInfo, measureConfig);
+    await Measure.init(clientInfo, measureConfig);
+
+    Measure.onShake(() => {
+      console.log('Shake detected — launching bug report flow!');
+      Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
+    });
   };
 
   useEffect(() => {
     initializeMeasure();
   }, []);
 
-  /** === SDK Actions === */
   const startMeasure = () => {
     Measure.start()
       .then(() => console.log('Measure SDK started successfully'))
@@ -73,7 +77,11 @@ const App = (): React.JSX.Element => {
     });
   };
 
-  /** === Simulation Helpers === */
+  const launchBugReport = () => {
+    console.log('Launching bug report flow manually');
+    Measure.launchBugReport(true, { source: 'manual' }, { screen: 'Home' });
+  };
+
   const simulateJSException = () => {
     throw new Error('Simulated JavaScript exception');
   };
@@ -91,7 +99,6 @@ const App = (): React.JSX.Element => {
     while (true) {}
   };
 
-  /** === UI Sections === */
   const sections = [
     {
       title: 'Session & Init',
@@ -106,7 +113,12 @@ const App = (): React.JSX.Element => {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => trackCustomEvent(),
+          onPress: trackCustomEvent,
+        },
+        {
+          id: 'bug-report',
+          title: 'Open Bug Report',
+          onPress: launchBugReport,
         },
         {
           id: 'crash',
@@ -156,12 +168,8 @@ const App = (): React.JSX.Element => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
+  container: { flex: 1 },
+  content: { padding: 16 },
   title: {
     fontSize: 24,
     fontWeight: '600',
