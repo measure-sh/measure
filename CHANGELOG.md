@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Stop Slack channel removal on `channel_not_found` by @anupcowkur in #2900
 - (**frontend**): Rename DangerConfirmationModal to DangerConfirmationDialog by @anupcowkur in #2901
 
+### :books: Documentation
+
+- Fix placeholder key for API URL (#2896) by @Shabinder in #2896
+
 ## [0.9.2] - 2025-10-30
 
 ### :bug: Bug fixes
