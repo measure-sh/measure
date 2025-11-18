@@ -388,7 +388,7 @@ type SpanMetricsPlotInstance struct {
 func FetchRootSpanNames(ctx context.Context, appId uuid.UUID) (traceNames []string, err error) {
 	stmt := sqlf.
 		Select("distinct toString(span_name)").
-		From("spans").
+		From("spans final").
 		Where("app_id = ?", appId).
 		Where("parent_id = ''").
 		OrderBy("start_time desc")
@@ -428,7 +428,7 @@ func FetchTracesForSessionId(ctx context.Context, appId uuid.UUID, sessionID uui
 		Select("toString(attribute.thread_name)").
 		Select("start_time").
 		Select("end_time").
-		From("spans").
+		From("spans final").
 		Clause("prewhere app_id = toUUID(?) and session_id = ? and parent_id = ''", appId, sessionID).
 		OrderBy("start_time desc")
 
@@ -478,7 +478,7 @@ func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *fil
 		Select("tupleElement(attribute.os_version, 2)").
 		Select("attribute.device_manufacturer").
 		Select("attribute.device_model").
-		From("spans").
+		From("spans final").
 		Clause("prewhere app_id = toUUID(?) and span_name = ? and start_time >= ? and end_time <= ?", af.AppID, spanName, af.From, af.To)
 
 	if len(af.SpanStatuses) > 0 {
@@ -532,7 +532,7 @@ func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *fil
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("span_user_def_attrs").
+		subQuery := sqlf.From("span_user_def_attrs final").
 			Select("span_id id").
 			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
@@ -653,7 +653,7 @@ func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, a
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("span_user_def_attrs").
+		subQuery := sqlf.From("span_user_def_attrs final").
 			Select("span_id id").
 			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
@@ -711,7 +711,7 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 		Select("attribute.device_low_power_mode").
 		Select("attribute.device_thermal_throttling_enabled").
 		Select("user_defined_attribute").
-		From("spans").
+		From("spans final").
 		Where("trace_id = ?", traceId).
 		OrderBy("start_time desc")
 

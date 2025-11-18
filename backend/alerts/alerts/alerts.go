@@ -109,7 +109,7 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 			to := time.Now().UTC()
 
 			var sessionCount uint64
-			sessionCountStmt := sqlf.From("events").
+			sessionCountStmt := sqlf.From("events final").
 				Select("count(distinct session_id) as session_count").
 				Where("app_id = ?", app.ID).
 				Where("timestamp >= ? and timestamp <= ?", from, to)
@@ -1025,7 +1025,7 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 }
 
 func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
-	crashGroupStmt := sqlf.From("events").
+	crashGroupStmt := sqlf.From("events final").
 		Select("exception.fingerprint, count() as crash_count").
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'exception'").
@@ -1066,7 +1066,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 		if crashGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
-			groupInfoStmt := sqlf.From("unhandled_exception_groups").
+			groupInfoStmt := sqlf.From("unhandled_exception_groups final").
 				Select("type").
 				Select("file_name").
 				Select("method_name").
@@ -1142,7 +1142,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 }
 
 func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
-	anrGroupStmt := sqlf.From("events").
+	anrGroupStmt := sqlf.From("events final").
 		Select("anr.fingerprint, count() as anr_count").
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'anr'").
@@ -1182,7 +1182,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 
 		if anrGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
-			groupInfoStmt := sqlf.From("anr_groups").
+			groupInfoStmt := sqlf.From("anr_groups final").
 				Select("type").
 				Select("file_name").
 				Select("method_name").
