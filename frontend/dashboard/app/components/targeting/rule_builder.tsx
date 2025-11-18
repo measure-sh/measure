@@ -1024,7 +1024,7 @@ export default function RuleBuilder({
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="text-xl font-display">When</span>
+                <p className="max-w-6xl text-xl font-display">When</p>
 
                 <div className="flex items-center gap-3">
                     <span className="text-base text-gray-600 font-display">Event of type</span>
@@ -1191,7 +1191,9 @@ export default function RuleBuilder({
 
         return (
             <div>
-                <p className="font-display text-xl mb-4">Then</p>
+                <p className="max-w-6xl text-xl font-display">Then</p>
+
+                <div className="py-2"></div>
 
                 {type === 'timeline' ? (
                     <div className="mb-4">
@@ -1455,7 +1457,7 @@ export default function RuleBuilder({
 
                     {renderThen()}
 
-                    <div className='py-2' />
+                    <div className='py-1' />
 
                     <div className="flex flex-col gap-2">
                         <p className="max-w-6xl text-xl font-display">Rule Name</p>
