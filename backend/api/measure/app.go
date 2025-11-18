@@ -6492,6 +6492,7 @@ func GetEventTargetingRules(c *gin.Context) {
 
 	af := filter.AppFilter{
 		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -6518,16 +6519,15 @@ func GetEventTargetingRules(c *gin.Context) {
 		return
 	}
 
-	// TODO: review how to handle validation for targeting rules
-	// msg := "event targeting rules request validation failed"
-	// if err := af.Validate(); err != nil {
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusBadRequest, gin.H{
-	// 		"error":   msg,
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	app := App{
 		ID: &id,
@@ -6591,6 +6591,7 @@ func GetTraceTargetingRules(c *gin.Context) {
 
 	af := filter.AppFilter{
 		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -6617,16 +6618,15 @@ func GetTraceTargetingRules(c *gin.Context) {
 		return
 	}
 
-	// TODO: review how to handle validation for targeting rules
-	// msg := "trace targeting rules request validation failed"
-	// if err := af.Validate(); err != nil {
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusBadRequest, gin.H{
-	// 		"error":   msg,
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
+	msg := "trace targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	app := App{
 		ID: &id,
@@ -6690,6 +6690,7 @@ func GetSessionTargetingRules(c *gin.Context) {
 
 	af := filter.AppFilter{
 		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -6716,16 +6717,15 @@ func GetSessionTargetingRules(c *gin.Context) {
 		return
 	}
 
-	// TODO: review how to handle validation for targeting rules
-	// msg := "session targeting rules request validation failed"
-	// if err := af.Validate(); err != nil {
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusBadRequest, gin.H{
-	// 		"error":   msg,
-	// 		"details": err.Error(),
-	// 	})
-	// 	return
-	// }
+	msg := "session targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	app := App{
 		ID: &id,
@@ -6975,6 +6975,45 @@ func GetEventTargetingRuleConfig(c *gin.Context) {
 		return
 	}
 
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -7047,7 +7086,7 @@ func GetEventTargetingRuleConfig(c *gin.Context) {
 		app.OSName = opsys.Unknown
 	}
 
-	config, err := GetEventTargetingConfig(ctx, id, app.OSName)
+	config, err := GetEventTargetingConfig(ctx, &af)
 	if err != nil {
 		msg := "failed to get event targeting rule config"
 		fmt.Println(msg, err)
@@ -7068,6 +7107,45 @@ func GetTraceTargetingRuleConfig(c *gin.Context) {
 		return
 	}
 
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "trace targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -7140,7 +7218,7 @@ func GetTraceTargetingRuleConfig(c *gin.Context) {
 		app.OSName = opsys.Unknown
 	}
 
-	config, err := GetTraceTargetingConfig(ctx, id, app.OSName)
+	config, err := GetTraceTargetingConfig(ctx, &af)
 	if err != nil {
 		msg := "failed to get trace targeting rule config"
 		fmt.Println(msg, err)
@@ -7160,6 +7238,45 @@ func GetSessionTargetingRuleConfig(c *gin.Context) {
 		return
 	}
 
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -7232,7 +7349,7 @@ func GetSessionTargetingRuleConfig(c *gin.Context) {
 		app.OSName = opsys.Unknown
 	}
 
-	config, err := GetSessionTargetingConfig(ctx, id, app.OSName)
+	config, err := GetSessionTargetingConfig(ctx, &af)
 	if err != nil {
 		msg := "failed to get session targeting rule config"
 		fmt.Println(msg, err)

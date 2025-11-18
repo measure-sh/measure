@@ -101,9 +101,10 @@ type TraceConfig struct {
 // AttrConfig part of the session
 // targeting dashboard config.
 type AttrConfig struct {
-	Key  string `json:"key"`
-	Type string `json:"type"`
-	Hint string `json:"hint"`
+	Key    string    `json:"key"`
+	Type   string    `json:"type"`
+	Hint   string    `json:"hint"`
+	Values *[]string `json:"values"`
 }
 
 // OperatorTypes part of the session
@@ -549,15 +550,24 @@ func GetSessionTargetingRuleById(ctx context.Context, appId *uuid.UUID, ruleId s
 // GetEventTargetingConfig creates and returns
 // the config required to render event
 // targeting rule creation page.
-func GetEventTargetingConfig(ctx context.Context, appId uuid.UUID, osName string) (EventTargetingConfig, error) {
-	eventUdAttrs, err := getEventUDAttrKeys(ctx, appId)
+func GetEventTargetingConfig(ctx context.Context, af *filter.AppFilter) (EventTargetingConfig, error) {
+	eventUdAttrs, err := getEventUDAttrKeys(ctx, af.AppID)
 	if err != nil {
 		return EventTargetingConfig{}, err
 	}
 
+	// Fetch filter values
+	var filterList filter.FilterList
+	if err := af.GetGenericFilters(ctx, &filterList); err != nil {
+		return EventTargetingConfig{}, err
+	}
+
+	sessionAttrs := newSessionConfig(af.AppOSName)
+	populateSessionConfigValues(sessionAttrs, &filterList)
+
 	return EventTargetingConfig{
-		Events:        newEventsConfig(osName),
-		SessionAttrs:  newSessionConfig(osName),
+		Events:        newEventsConfig(af.AppOSName),
+		SessionAttrs:  sessionAttrs,
 		EventUdAttrs:  eventUdAttrs,
 		OperatorTypes: newOperatorTypes(),
 	}, nil
@@ -566,16 +576,25 @@ func GetEventTargetingConfig(ctx context.Context, appId uuid.UUID, osName string
 // GetTraceTargetingConfig creates and returns
 // the config required to render trace
 // targeting rule creation page.
-func GetTraceTargetingConfig(ctx context.Context, appId uuid.UUID, osName string) (TraceTargetingConfig, error) {
-	traceUdAttrs, err := getTraceUDAttrKeys(ctx, appId)
+func GetTraceTargetingConfig(ctx context.Context, af *filter.AppFilter) (TraceTargetingConfig, error) {
+	traceUdAttrs, err := getTraceUDAttrKeys(ctx, af.AppID)
 	if err != nil {
 		return TraceTargetingConfig{}, err
 	}
 
-	traces, err := span.FetchRootSpanNames(ctx, appId)
+	traces, err := span.FetchRootSpanNames(ctx, af.AppID)
 	if err != nil {
 		return TraceTargetingConfig{}, err
 	}
+
+	// Fetch filter values
+	var filterList filter.FilterList
+	if err := af.GetGenericFilters(ctx, &filterList); err != nil {
+		return TraceTargetingConfig{}, err
+	}
+
+	sessionAttrs := newSessionConfig(af.AppOSName)
+	populateSessionConfigValues(sessionAttrs, &filterList)
 
 	traceConfigs := make([]TraceConfig, 0, len(traces))
 	for _, traceName := range traces {
@@ -587,7 +606,7 @@ func GetTraceTargetingConfig(ctx context.Context, appId uuid.UUID, osName string
 	}
 	return TraceTargetingConfig{
 		Traces:            traceConfigs,
-		SessionAttrs:      newSessionConfig(osName),
+		SessionAttrs:      sessionAttrs,
 		TraceUDAttributes: traceUdAttrs,
 		OperatorTypes:     newOperatorTypes(),
 	}, nil
@@ -596,19 +615,29 @@ func GetTraceTargetingConfig(ctx context.Context, appId uuid.UUID, osName string
 // GetSessionTargetingConfig creates and returns
 // the config required to render session
 // targeting rule creation page.
-func GetSessionTargetingConfig(ctx context.Context, appId uuid.UUID, osName string) (SessionTargetingConfig, error) {
-	eventUdAttrs, err := getEventUDAttrKeys(ctx, appId)
+func GetSessionTargetingConfig(ctx context.Context, af *filter.AppFilter) (SessionTargetingConfig, error) {
+	eventUdAttrs, err := getEventUDAttrKeys(ctx, af.AppID)
 	if err != nil {
 		return SessionTargetingConfig{}, err
 	}
-	traceUdAttrs, err := getTraceUDAttrKeys(ctx, appId)
+	traceUdAttrs, err := getTraceUDAttrKeys(ctx, af.AppID)
 	if err != nil {
 		return SessionTargetingConfig{}, err
 	}
-	traces, err := span.FetchRootSpanNames(ctx, appId)
+	traces, err := span.FetchRootSpanNames(ctx, af.AppID)
 	if err != nil {
 		return SessionTargetingConfig{}, err
 	}
+
+	// Fetch filter values
+	var filterList filter.FilterList
+	if err := af.GetGenericFilters(ctx, &filterList); err != nil {
+		return SessionTargetingConfig{}, err
+	}
+
+	sessionAttrs := newSessionConfig(af.AppOSName)
+	populateSessionConfigValues(sessionAttrs, &filterList)
+
 	traceConfigs := make([]TraceConfig, 0, len(traces))
 	for _, traceName := range traces {
 		traceConfigs = append(traceConfigs, TraceConfig{
@@ -618,11 +647,11 @@ func GetSessionTargetingConfig(ctx context.Context, appId uuid.UUID, osName stri
 		})
 	}
 	return SessionTargetingConfig{
-		Events:            newEventsConfig(osName),
+		Events:            newEventsConfig(af.AppOSName),
 		Traces:            traceConfigs,
 		EventUdAttrs:      eventUdAttrs,
 		TraceUDAttributes: traceUdAttrs,
-		SessionAttrs:      newSessionConfig(osName),
+		SessionAttrs:      sessionAttrs,
 		OperatorTypes:     newOperatorTypes(),
 	}, nil
 }
@@ -1321,7 +1350,7 @@ func newEventsConfig(osName string) []EventConfig {
 	return events
 }
 
-// newEventsConfig creates OS-specific
+// newSessionConfig creates OS-specific
 // session attributes configuration.
 func newSessionConfig(osName string) []AttrConfig {
 	switch opsys.ToFamily(osName) {
@@ -1368,6 +1397,24 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "installation_id", Type: "string", Hint: "Enter an installation ID"},
 			{Key: "os_version", Type: "string", Hint: "Enter API level or iOS version"},
 			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
+		}
+	}
+}
+
+// populateSessionConfigValues maps FilterList data to AttrConfig values.
+func populateSessionConfigValues(configs []AttrConfig, fl *filter.FilterList) {
+	valueMap := map[string][]string{
+		"app_version":         fl.Versions,
+		"app_build":           fl.VersionCodes,
+		"os_version":          fl.OsVersions,
+		"device_locale":       fl.DeviceLocales,
+		"device_manufacturer": fl.DeviceManufacturers,
+		"device_model":        fl.DeviceNames,
+	}
+
+	for i := range configs {
+		if values, exists := valueMap[configs[i].Key]; exists && len(values) > 0 {
+			configs[i].Values = &values
 		}
 	}
 }
