@@ -1024,10 +1024,10 @@ export default function RuleBuilder({
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When</span>
+                <span className="text-xl font-display">When</span>
 
                 <div className="flex items-center gap-3">
-                    <span className="font-display text-base text-gray-600">Event of type</span>
+                    <span className="text-base text-gray-600 font-display">Event of type</span>
                     <DropdownSelect
                         type={DropdownSelectType.SingleString}
                         title="Select event type"
@@ -1035,7 +1035,7 @@ export default function RuleBuilder({
                         initialSelected={ruleState.condition.eventType ?? ''}
                         onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
                     />
-                    <span className="font-display text-base text-gray-600">occurs</span>
+                    <span className="text-base text-gray-600 font-display">occurs</span>
                 </div>
 
                 {ruleState.condition.attributes.length === 0 && (
@@ -1044,7 +1044,7 @@ export default function RuleBuilder({
                             type="button"
                             variant="ghost"
                             onClick={addAttribute}
-                            className="flex items-center gap-1.5 text-sm -ml-2"
+                            className="font-medium flex items-center gap-1.5 text-sm -ml-2"
                         >
                             <Plus className="w-4 h-4" />
                             Add Filter
@@ -1067,10 +1067,10 @@ export default function RuleBuilder({
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When</span>
+                <span className="text-xl font-display">When</span>
 
                 <div className="flex items-center gap-3">
-                    <span className="font-display text-base text-gray-600">Trace with name</span>
+                    <span className="text-base text-gray-600 font-display">Trace with name</span>
                     <TraceOperatorNameInput
                         operator={ruleState.condition.spanOperator || "eq"}
                         value={ruleState.condition.spanName || ""}
@@ -1088,7 +1088,7 @@ export default function RuleBuilder({
                             )
                         }
                     />
-                    <span className="font-display text-base text-gray-600">ends</span>
+                    <span className="text-base text-gray-600 font-display">ends</span>
                 </div>
 
                 {ruleState.condition.attributes.length === 0 && (
@@ -1097,7 +1097,7 @@ export default function RuleBuilder({
                             type="button"
                             variant="ghost"
                             onClick={addAttribute}
-                            className="flex items-center gap-1.5 text-sm -ml-2"
+                            className="font-medium flex items-center gap-1.5 text-sm -ml-2"
                         >
                             <Plus className="w-4 h-4" />
                             Add Filter
@@ -1123,7 +1123,7 @@ export default function RuleBuilder({
 
         return (
             <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When Session contains</span>
+                <span className="text-xl font-display">When Session contains</span>
 
                 <div className="flex items-center gap-3">
                     <DropdownSelect
@@ -1136,7 +1136,7 @@ export default function RuleBuilder({
 
                     {ruleState.conditionType === 'event' ? (
                         <>
-                            <span className="font-display text-base text-gray-600">with type</span>
+                            <span className="text-base text-gray-600 font-display">with type</span>
                             <DropdownSelect
                                 type={DropdownSelectType.SingleString}
                                 title="Select event type"
@@ -1147,7 +1147,7 @@ export default function RuleBuilder({
                         </>
                     ) : (
                         <>
-                            <span className="font-display text-base text-gray-600">with name</span>
+                            <span className="text-base text-gray-600 font-display">with name</span>
                             <TraceOperatorNameInput
                                 operator={ruleState.condition.spanOperator || "eq"}
                                 value={ruleState.condition.spanName || ""}
@@ -1216,7 +1216,7 @@ export default function RuleBuilder({
                                         value="sampled"
                                         checked={ruleState.collectionMode === 'sampled'}
                                         onChange={() => updateRuleState({ collectionMode: 'sampled' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                     />
                                     <SamplingRateInput
                                         value={ruleState.sampleRate || 100}
@@ -1233,7 +1233,7 @@ export default function RuleBuilder({
                                         value="timeline"
                                         checked={ruleState.collectionMode === 'timeline'}
                                         onChange={() => updateRuleState({ collectionMode: 'timeline' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                     />
                                     <span className="text-sm font-body">Collect with timeline only</span>
                                 </label>
@@ -1245,7 +1245,7 @@ export default function RuleBuilder({
                                         value="disabled"
                                         checked={ruleState.collectionMode === 'disabled'}
                                         onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                     />
                                     <span className="text-sm font-body">Do not collect</span>
                                 </label>
@@ -1264,7 +1264,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_layout_snapshot === true && ruleState.take_screenshot === false}
                                             onChange={() => updateRuleState({ take_layout_snapshot: true, take_screenshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                         />
                                         <span className="text-sm font-body">Take layout snapshot</span>
                                     </label>
@@ -1277,7 +1277,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_screenshot === true && ruleState.take_layout_snapshot === false}
                                             onChange={() => updateRuleState({ take_screenshot: true, take_layout_snapshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                         />
                                         <span className="text-sm font-body">Take screenshot</span>
                                     </label>
@@ -1290,7 +1290,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_screenshot === false && ruleState.take_layout_snapshot === false}
                                             onChange={() => updateRuleState({ take_screenshot: false, take_layout_snapshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                         />
                                         <span className="text-sm font-body">No attachments</span>
                                     </label>
@@ -1380,7 +1380,7 @@ export default function RuleBuilder({
                         type="button"
                         variant="ghost"
                         onClick={addAttribute}
-                        className="flex items-center gap-1.5 text-sm self-start -ml-2"
+                        className="font-medium flex items-center gap-1.5 text-sm -ml-2"
                     >
                         <Plus className="w-4 h-4" />
                         Add Filter
@@ -1404,12 +1404,12 @@ export default function RuleBuilder({
         <div>
             {/* Heading & save button */}
             <div className="flex flex-row items-center justify-between w-full">
-                <p className="font-display text-4xl max-w-6xl">{pageHeading}</p>
+                <p className="max-w-6xl text-4xl font-display">{pageHeading}</p>
                 <Button
                     type="button"
                     variant="outline"
                     onClick={handleSave}
-                    className="font-display border border-black"
+                    className="border border-black font-display"
                     disabled={!shouldEnableSaveButton}
                     loading={uiState.saving}
                 >
@@ -1435,8 +1435,8 @@ export default function RuleBuilder({
                         <p className="text-normal font-body">Error loading rule. Please try again or go back.</p>
                         <div className="py-4" />
                         <div className="flex gap-3">
-                            <Button variant="outline" onClick={type == 'event' ? fetchEventPageData : fetchTracePageData} className="font-display border border-black">Retry</Button>
-                            <Button variant="outline" onClick={onCancel} className="font-display border border-black">Go Back</Button>
+                            <Button variant="outline" onClick={type == 'event' ? fetchEventPageData : fetchTracePageData} className="border border-black font-display">Retry</Button>
+                            <Button variant="outline" onClick={onCancel} className="border border-black font-display">Go Back</Button>
                         </div>
                     </div>
                 </div>
@@ -1458,7 +1458,7 @@ export default function RuleBuilder({
                     <div className='py-2' />
 
                     <div className="flex flex-col gap-2">
-                        <p className="font-display text-xl max-w-6xl">Rule Name</p>
+                        <p className="max-w-6xl text-xl font-display">Rule Name</p>
 
                         <div className="py-0.5" />
                         <input
@@ -1467,7 +1467,7 @@ export default function RuleBuilder({
                             maxLength={64}
                             value={ruleState?.name}
                             onChange={handleRuleNameChange}
-                            className={`w-96 border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed ${uiState.ruleNameError ? 'border-red-500' : 'border-black'}`}
+                            className={`w-96 border rounded-md outline-none text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed ${uiState.ruleNameError ? 'border-red-500' : 'border-black'}`}
                         />
                         {uiState.ruleNameError && (
                             <p className="text-red-600 text-sm ml-1">Rule name is required</p>
@@ -1482,7 +1482,7 @@ export default function RuleBuilder({
                                 type="button"
                                 variant="ghost"
                                 onClick={openDeleteDialog}
-                                className="font-display text-red-600 hover:text-white hover:bg-red-600"
+                                className="text-red-600 font-display hover:text-white hover:bg-red-600"
                             >
                                 Delete Rule
                             </Button>
