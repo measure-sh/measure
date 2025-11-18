@@ -2,12 +2,10 @@ package timeline
 
 import (
 	"backend/api/event"
-	"backend/api/server"
 	"context"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/leporo/sqlf"
 )
 
 // Exception represents exception events suitable
@@ -77,36 +75,11 @@ func (a ANR) GetTimestamp() time.Time {
 // for session timeline.
 func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
-
-		var groupId string
-
-		if !event.Exception.Handled {
-			stmt := sqlf.PostgreSQL.
-				From("unhandled_exception_groups final").
-				Select("id").
-				Where("app_id = ?", appId).
-				Where("id = ?", event.Exception.Fingerprint)
-
-			rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-			if err != nil {
-				return nil, err
-			}
-			defer rows.Close()
-
-			if rows.Next() {
-				if err := rows.Scan(&groupId); err != nil {
-					return nil, err
-				}
-			} else {
-				return nil, nil
-			}
-		}
-
 		exceptions := Exception{
 			event.Type,
 			&event.UserDefinedAttribute,
 			event.UserTriggered,
-			groupId,
+			event.Exception.Fingerprint,
 			event.Exception.GetType(),
 			event.Exception.GetMessage(),
 			event.Exception.GetMethodName(),
@@ -130,33 +103,10 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 // for session timeline.
 func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
-
-		var groupId string
-
-		stmt := sqlf.PostgreSQL.
-			From("anr_groups").
-			Select("id").
-			Where("app_id = ?", appId).
-			Where("id = ?", event.ANR.Fingerprint)
-
-		rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-
-		if rows.Next() {
-			if err := rows.Scan(&groupId); err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, nil
-		}
-
 		anrs := ANR{
 			event.Type,
 			&event.UserDefinedAttribute,
-			groupId,
+			event.ANR.Fingerprint,
 			event.ANR.GetType(),
 			event.ANR.GetMessage(),
 			event.ANR.GetMethodName(),
