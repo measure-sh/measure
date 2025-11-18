@@ -127,7 +127,7 @@ type EventTargetingConfig struct {
 // Trace targeting config used
 // by the dashboard.
 type TraceTargetingConfig struct {
-	Traces            []TraceConfig `json:"trace_config"`
+	Traces            []TraceConfig `json:"traces"`
 	SessionAttrs      []AttrConfig  `json:"session_attrs"`
 	TraceUDAttributes []AttrConfig  `json:"trace_ud_attrs"`
 	OperatorTypes     OperatorTypes `json:"operator_types"`
@@ -137,7 +137,7 @@ type TraceTargetingConfig struct {
 // by the dashboard.
 type SessionTargetingConfig struct {
 	Events            []EventConfig `json:"events"`
-	Traces            []TraceConfig `json:"trace_config"`
+	Traces            []TraceConfig `json:"traces"`
 	EventUdAttrs      []AttrConfig  `json:"event_ud_attrs"`
 	TraceUDAttributes []AttrConfig  `json:"trace_ud_attrs"`
 	SessionAttrs      []AttrConfig  `json:"session_attrs"`

@@ -1272,7 +1272,7 @@ export type TraceTargetingConfigResponse = {
 
 export type SessionTargetingConfigResponse = {
   events: EventTargetingConfig[];
-  trace_config: TraceTargetingConfig[];
+  traces: TraceTargetingConfig[];
   event_ud_attrs: AttributeTargetingConfig[];
   trace_ud_attrs: AttributeTargetingConfig[];
   session_attrs: AttributeTargetingConfig[];

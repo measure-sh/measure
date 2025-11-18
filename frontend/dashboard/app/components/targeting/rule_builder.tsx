@@ -13,7 +13,6 @@ import SamplingRateInput from "./sampling_rate_input"
 import DangerConfirmationDialog from "../danger_confirmation_dialog"
 import AttributeBuilder from "./attribute_builder"
 import { Plus } from "lucide-react"
-import AutocompleteInputWithOperator from "../autocomplete_input"
 import TraceOperatorNameInput from "./trace_name_operator_input"
 
 enum PageState {
@@ -674,11 +673,6 @@ export default function RuleBuilder({
                 }
             })
         } else {
-            const firstTrace = sessionConfig.trace_config[0]
-            if (!firstTrace || !('name' in firstTrace)) return
-
-            const traceConfig = firstTrace as TraceTargetingConfig
-
             setRuleState((prev) => {
                 if (!prev) return prev
                 return {
@@ -686,7 +680,7 @@ export default function RuleBuilder({
                     conditionType: 'trace',
                     condition: {
                         id: crypto.randomUUID(),
-                        spanName: traceConfig.name,
+                        spanName: "",
                         attributes: []
                     }
                 }
@@ -846,7 +840,7 @@ export default function RuleBuilder({
             .map(e => e.type)
 
         // Trace names list
-        const traceNames = sessionConfig.trace_config
+        const traceNames = sessionConfig.traces
             .filter((t): t is TraceTargetingConfig => 'name' in t)
             .map(t => t.name)
 
