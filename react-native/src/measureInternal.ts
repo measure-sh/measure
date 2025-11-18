@@ -20,6 +20,7 @@ export class MeasureInternal {
       patchGlobalPromise: true,
       logger: this.measureInitializer.logger,
       timeProvider: this.measureInitializer.timeProvider,
+      signalProcessor: this.measureInitializer.signalProcessor,
     });
 
     this.measureInitializer.logger.internalLog(

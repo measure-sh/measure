@@ -32,11 +32,9 @@ export interface ISignalProcessor {
 
 export class SignalProcessor implements ISignalProcessor {
   private logger: Logger;
-  private timeProvider: TimeProvider;
 
-  constructor(logger: Logger, timeProvider: TimeProvider) {
+  constructor(logger: Logger) {
     this.logger = logger;
-    this.timeProvider = timeProvider;
   }
 
   async trackSpan(spanData: SpanData): Promise<any> {
