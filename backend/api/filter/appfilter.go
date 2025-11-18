@@ -1073,28 +1073,22 @@ func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyT
 		table = "user_def_attrs final"
 	}
 
-	substmt := sqlf.From(table).
-		Select("distinct key").
-		Select("argMax(type, ver) last_inserted_type").
-		Clause("final prewhere app_id = toUUID(?)", af.AppID).
-		GroupBy("key")
-
-	if af.Crash {
-		substmt.Where("exception = true")
-	}
-
-	if af.ANR {
-		substmt.Where("anr = true")
-	}
-
-	stmt := sqlf.With("last_type", substmt).
-		Select("distinct t.key, t.type").
-		From(table+" t").
-		Join("last_type lt", "t.key = lt.key").
-		Where("t.type = lt.last_inserted_type").
+	stmt := sqlf.From(table).
+		Select("key").
+		Select("argMax(type, ver) as type").
+		Clause("prewhere app_id = toUUID(?)", af.AppID).
+		GroupBy("key").
 		OrderBy("key")
 
 	defer stmt.Close()
+
+	if af.Crash {
+		stmt.Where("exception = true")
+	}
+
+	if af.ANR {
+		stmt.Where("anr = true")
+	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
