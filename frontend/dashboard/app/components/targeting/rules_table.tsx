@@ -101,7 +101,7 @@ export default function RulesTable({ rules, tableType, onRuleClick, showOverride
 
             {rules.length === 0 ? (
                 <div className="text-sm font-body text-gray-500">
-                    No override rules configured
+                    No rules created
                 </div>
             ) : (
                 <div className="overflow-hidden">

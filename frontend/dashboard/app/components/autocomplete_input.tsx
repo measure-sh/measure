@@ -17,7 +17,7 @@ export default function AutocompleteInput({
     suggestions = [],
     placeholder = "Enter value...",
     onValueChange,
-    className = "w-96"
+    className = "w-112"
 }: AutocompleteInputProps) {
     const [suggestionsOpen, setSuggestionsOpen] = useState(false)
     const [searchValue, setSearchValue] = useState("")
