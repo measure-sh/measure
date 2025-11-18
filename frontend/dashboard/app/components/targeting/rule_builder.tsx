@@ -65,9 +65,7 @@ export default function RuleBuilder({
     })
 
     const [ruleState, setRuleState] = useState<RuleState | null>(null)
-
     const [initialRuleState, setInitialRuleState] = useState<RuleState | null>(null)
-
     const [config, setConfig] = useState<EventTargetingConfigResponse | TraceTargetingConfigResponse | TraceTargetingConfigResponse | null>(null)
 
     const createEmptyEventRuleState = (config: EventTargetingConfigResponse): RuleState | null => {
@@ -104,7 +102,6 @@ export default function RuleBuilder({
         let attrConfig: AttributeTargetingConfig | undefined
 
         if (source === 'fixed') {
-            // Only applicable for event-based rules
             if ('events' in config) {
                 const eventDef = config.events.find(e => 'type' in e && e.type === eventType)
                 attrConfig = eventDef?.attrs?.find(a => a.key === key)
@@ -217,6 +214,196 @@ export default function RuleBuilder({
         }
     }
 
+    const createEmptyTimelineRuleState = (config: SessionTargetingConfigResponse): RuleState | null => {
+        const firstEvent = config.events[0]
+        if (!firstEvent || !('type' in firstEvent)) {
+            return null
+        }
+
+        const eventConfig = firstEvent as EventTargetingConfig
+
+        return {
+            name: '',
+            condition: {
+                id: crypto.randomUUID(),
+                eventType: eventConfig.type,
+                attributes: [],
+            },
+            conditionType: 'event',
+            collectionMode: 'sampled',
+            sampleRate: 100,
+        }
+    }
+
+    const convertToTimelineRuleState = (
+        ruleData: SessionTargetingRule,
+        config: SessionTargetingConfigResponse
+    ): RuleState | null => {
+        const parsed = celToConditions(ruleData.condition)
+
+        if (parsed.event?.conditions[0]) {
+            const eventCondition = parsed.event.conditions[0]
+
+            const attributes: AttributeField[] = [
+                ...(eventCondition.attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'fixed', attr, config, eventCondition.type)
+                ),
+                ...(eventCondition.session_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
+                ),
+                ...(eventCondition.ud_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+                ),
+            ]
+
+            return {
+                name: ruleData.name,
+                condition: {
+                    id: eventCondition.id,
+                    eventType: eventCondition.type,
+                    attributes: attributes
+                },
+                collectionMode: 'sampled',
+                conditionType: 'event',
+                sampleRate: ruleData.sampling_rate,
+            }
+        }
+
+        if (parsed.trace?.conditions[0]) {
+            const traceCondition = parsed.trace.conditions[0]
+
+            const attributes: AttributeField[] = [
+                ...(traceCondition.ud_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+                ),
+                ...(traceCondition.session_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
+                ),
+            ]
+
+            return {
+                name: ruleData.name,
+                condition: {
+                    id: traceCondition.id,
+                    spanName: traceCondition.spanName,
+                    attributes: attributes
+                },
+                conditionType: 'trace',
+                collectionMode: 'sampled',
+                sampleRate: ruleData.sampling_rate,
+            }
+        }
+
+        console.error("Failed to parse session timeline rule to UI state")
+        return null
+    }
+
+    const getOperatorsForType = (type: string) => {
+        if (!config) return []
+
+        switch (type) {
+            case 'float64':
+                return config?.operator_types.float64
+            case 'int64':
+                return config?.operator_types.int64
+            case 'bool':
+                return config?.operator_types.bool
+            default:
+                return config?.operator_types.string
+        }
+    }
+
+    const getDefaultValue = (type: string): string | number | boolean => {
+        if (type === 'bool') return false
+        if (type === 'int64' || type === 'float64') return 0
+        return ''
+    }
+
+    const updateRuleState = (updates: Partial<RuleState>) => {
+        setRuleState(prev => (prev ? { ...prev, ...updates } : prev))
+    }
+
+    const pageHeading = (() => {
+        switch (type) {
+            case 'event':
+                return mode === 'create' ? 'Create Event Rule' : 'Edit Event Rule'
+            case 'trace':
+                return mode === 'create' ? 'Create Trace Rule' : 'Edit Trace Rule'
+            case 'timeline':
+                return mode === 'create' ? 'Create Session Timeline Rule' : 'Edit Session Timeline Rule'
+        }
+    })()
+
+    const shouldEnableSaveButton = (() => {
+        if (uiState.pageState != PageState.Success) {
+            return false
+        }
+
+        if (mode === 'create') {
+            return true
+        }
+
+        return JSON.stringify(initialRuleState) !== JSON.stringify(ruleState)
+    })()
+
+    const fetchEventPageData = async () => {
+        setUiState((prev) => ({
+            ...prev,
+            pageState: PageState.Loading
+        }))
+
+        try {
+            const configPromise = fetchEventTargetingConfigFromServer(appId)
+            const rulePromise = mode === 'edit' && ruleId
+                ? fetchEventTargetingRuleFromServer(appId, ruleId)
+                : Promise.resolve(null)
+
+            const [configResult, ruleResult] = await Promise.all([configPromise, rulePromise])
+
+            if (!configResult) {
+                setUiState((prev) => ({
+                    ...prev,
+                    pageState: PageState.Error
+                }))
+                return
+            }
+
+            if (mode === 'edit' && !ruleResult) {
+                setUiState((prev) => ({
+                    ...prev,
+                    pageState: PageState.Error
+                }))
+                return
+            }
+
+            const ruleState = mode === 'edit'
+                ? convertToEventRuleState(ruleResult!.data, configResult.data)
+                : createEmptyEventRuleState(configResult.data)
+
+
+            if (!ruleState) {
+                setUiState((prev) => ({
+                    ...prev,
+                    pageState: PageState.Error
+                }))
+                return
+            }
+
+            setConfig(configResult.data)
+            setInitialRuleState(ruleState)
+            setRuleState(ruleState)
+            setUiState((prev) => ({
+                ...prev,
+                pageState: PageState.Success
+            }))
+        } catch (err) {
+            setUiState((prev) => ({
+                ...prev,
+                pageState: PageState.Error
+            }))
+        }
+    }
+
     const fetchTracePageData = async () => {
         setUiState((prev) => ({
             ...prev,
@@ -270,151 +457,6 @@ export default function RuleBuilder({
             }))
         } catch (err) {
             console.log(err)
-            setUiState((prev) => ({
-                ...prev,
-                pageState: PageState.Error
-            }))
-        }
-    }
-
-    const createEmptyTimelineRuleState = (config: SessionTargetingConfigResponse): RuleState | null => {
-        // Default to event type
-        const firstEvent = config.events[0]
-        if (!firstEvent || !('type' in firstEvent)) {
-            return null
-        }
-
-        const eventConfig = firstEvent as EventTargetingConfig
-
-        return {
-            name: '',
-            condition: {
-                id: crypto.randomUUID(),
-                eventType: eventConfig.type,
-                attributes: [],
-            },
-            conditionType: 'event',
-            collectionMode: 'sampled',
-            sampleRate: 100,
-        }
-    }
-
-    const convertToTimelineRuleState = (
-        ruleData: SessionTargetingRule,
-        config: SessionTargetingConfigResponse
-    ): RuleState | null => {
-        const parsed = celToConditions(ruleData.condition)
-
-        // Check if it's an event-based rule
-        if (parsed.event?.conditions[0]) {
-            const eventCondition = parsed.event.conditions[0]
-
-            const attributes: AttributeField[] = [
-                ...(eventCondition.attrs || []).map(attr =>
-                    getAttributeWithSuggestions(attr.key, 'fixed', attr, config, eventCondition.type)
-                ),
-                ...(eventCondition.session_attrs || []).map(attr =>
-                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
-                ),
-                ...(eventCondition.ud_attrs || []).map(attr =>
-                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
-                ),
-            ]
-
-            return {
-                name: ruleData.name,
-                condition: {
-                    id: eventCondition.id,
-                    eventType: eventCondition.type,
-                    attributes: attributes
-                },
-                collectionMode: 'sampled',
-                conditionType: 'event',
-                sampleRate: ruleData.sampling_rate,
-            }
-        }
-
-        // Check if it's a trace-based rule
-        if (parsed.trace?.conditions[0]) {
-            const traceCondition = parsed.trace.conditions[0]
-
-            const attributes: AttributeField[] = [
-                ...(traceCondition.ud_attrs || []).map(attr =>
-                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
-                ),
-                ...(traceCondition.session_attrs || []).map(attr =>
-                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
-                ),
-            ]
-
-            return {
-                name: ruleData.name,
-                condition: {
-                    id: traceCondition.id,
-                    spanName: traceCondition.spanName,
-                    attributes: attributes
-                },
-                conditionType: 'trace',
-                collectionMode: 'sampled',
-                sampleRate: ruleData.sampling_rate,
-            }
-        }
-
-        console.error("Failed to parse session timeline rule to UI state")
-        return null
-    }
-
-    const fetchEventPageData = async () => {
-        setUiState((prev) => ({
-            ...prev,
-            pageState: PageState.Loading
-        }))
-
-        try {
-            const configPromise = fetchEventTargetingConfigFromServer(appId)
-            const rulePromise = mode === 'edit' && ruleId
-                ? fetchEventTargetingRuleFromServer(appId, ruleId)
-                : Promise.resolve(null)
-
-            const [configResult, ruleResult] = await Promise.all([configPromise, rulePromise])
-
-            if (!configResult) {
-                setUiState((prev) => ({
-                    ...prev,
-                    pageState: PageState.Error
-                }))
-                return
-            }
-
-            if (mode === 'edit' && !ruleResult) {
-                setUiState((prev) => ({
-                    ...prev,
-                    pageState: PageState.Error
-                }))
-                return
-            }
-
-            const ruleState = mode === 'edit'
-                ? convertToEventRuleState(ruleResult!.data, configResult.data)
-                : createEmptyEventRuleState(configResult.data)
-
-
-            if (!ruleState) {
-                setUiState((prev) => ({
-                    ...prev,
-                    pageState: PageState.Error
-                }))
-                return
-            }
-
-            setConfig(configResult.data)
-            setInitialRuleState(ruleState)
-            setRuleState(ruleState)
-            setUiState((prev) => ({
-                ...prev,
-                pageState: PageState.Success
-            }))
-        } catch (err) {
             setUiState((prev) => ({
                 ...prev,
                 pageState: PageState.Error
@@ -683,22 +725,6 @@ export default function RuleBuilder({
         }))
     }
 
-    const shouldEnableSaveButton = (() => {
-        if (uiState.pageState != PageState.Success) {
-            return false
-        }
-
-        if (mode === 'create') {
-            return true
-        }
-
-        return JSON.stringify(initialRuleState) !== JSON.stringify(ruleState)
-    })()
-
-    const updateRuleState = (updates: Partial<RuleState>) => {
-        setRuleState(prev => (prev ? { ...prev, ...updates } : prev))
-    }
-
     const handleEventTypeChange = async (type: string) => {
         setRuleState((prev) => {
             if (!prev) return prev;
@@ -712,7 +738,7 @@ export default function RuleBuilder({
                 }
             };
         });
-    };
+    }
 
     const handleConditionTypeChange = (newType: 'event' | 'trace') => {
         if (!config) return
@@ -751,14 +777,6 @@ export default function RuleBuilder({
             })
         }
     }
-
-    const closeDeleteDialog = (() => {
-        setUiState(prev => ({ ...prev, showDeleteDialog: false }))
-    })
-
-    const openDeleteDialog = (() => {
-        setUiState(prev => ({ ...prev, showDeleteDialog: true }))
-    })
 
     const handleDeleteRule = async () => {
         if (!ruleId) return
@@ -799,327 +817,34 @@ export default function RuleBuilder({
         }
     }
 
-    const renderEventWhen = () => {
-        if (!ruleState || !config) return null
+    const handleRuleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRuleState((prev) => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                name: event.target.value,
+            }
+        })
 
-        const eventConfig = config as EventTargetingConfigResponse
-        const eventTypes = eventConfig.events
-            .filter((e): e is EventTargetingConfig => 'type' in e)
-            .map(e => e.type)
-
-        return (
-            <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When</span>
-
-                <div className="flex items-center gap-3">
-                    <span className="font-display text-base text-gray-600">Event of type</span>
-                    <DropdownSelect
-                        type={DropdownSelectType.SingleString}
-                        title="Select event type"
-                        items={eventTypes}
-                        initialSelected={ruleState.condition.eventType ?? ''}
-                        onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
-                    />
-                    <span className="font-display text-base text-gray-600">occurs</span>
-                </div>
-
-                {ruleState.condition.attributes.length === 0 && (
-                    <div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={addAttribute}
-                            className="flex items-center gap-1.5 text-sm -ml-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Filter
-                        </Button>
-                    </div>
-                )}
-            </div>
-        )
+        setUiState((prev) => ({
+            ...prev,
+            ruleNameError: false
+        }))
     }
 
-    const renderTraceWhen = () => {
-        if (!ruleState || !config) return null
+    const closeDeleteDialog = (() => {
+        setUiState(prev => ({ ...prev, showDeleteDialog: false }))
+    })
 
-        const traceConfig = config as TraceTargetingConfigResponse
-        const traceNames = traceConfig.traces
-            .filter((t): t is TraceTargetingConfig => 'name' in t)
-            .map(t => t.name)
-
-        const operators = config.operator_types?.string || ['eq']
-
-        return (
-            <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When</span>
-
-                <div className="flex items-center gap-3">
-                    <span className="font-display text-base text-gray-600">Trace with name</span>
-                    <TraceOperatorNameInput
-                        operator={ruleState.condition.spanOperator || "eq"}
-                        value={ruleState.condition.spanName || ""}
-                        suggestions={traceNames}
-                        availableOperators={operators}
-                        placeholder="Enter trace name"
-                        onValueChange={(value) =>
-                            setRuleState(prev =>
-                                prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
-                            )
-                        }
-                        onOperatorChange={(operator) =>
-                            setRuleState(prev =>
-                                prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
-                            )
-                        }
-                    />
-                    <span className="font-display text-base text-gray-600">ends</span>
-                </div>
-
-                {ruleState.condition.attributes.length === 0 && (
-                    <div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={addAttribute}
-                            className="flex items-center gap-1.5 text-sm -ml-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Filter
-                        </Button>
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    const renderTimelineWhen = () => {
-        if (!ruleState || !config) return null
-
-        const sessionConfig = config as SessionTargetingConfigResponse
-
-        // Event types list
-        const eventTypes = sessionConfig.events
-            .filter((e): e is EventTargetingConfig => 'type' in e)
-            .map(e => e.type)
-
-        // Trace names list
-        const traceNames = sessionConfig.traces
-            .filter((t): t is TraceTargetingConfig => 'name' in t)
-            .map(t => t.name)
-
-        return (
-            <div className="flex flex-col gap-4">
-                <span className="font-display text-xl">When Session contains</span>
-
-                {/* Condition type selector row */}
-                <div className="flex items-center gap-3">
-                    <DropdownSelect
-                        type={DropdownSelectType.SingleString}
-                        title="Select condition type"
-                        items={['event', 'trace']}
-                        initialSelected={ruleState.conditionType}
-                        onChangeSelected={(selected) => handleConditionTypeChange(selected as 'event' | 'trace')}
-                    />
-
-                    {ruleState.conditionType === 'event' ? (
-                        <>
-                            <span className="font-display text-base text-gray-600">with type</span>
-                            <DropdownSelect
-                                type={DropdownSelectType.SingleString}
-                                title="Select event type"
-                                items={eventTypes}
-                                initialSelected={ruleState.condition.eventType ?? ''}
-                                onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <span className="font-display text-base text-gray-600">with name</span>
-                            <TraceOperatorNameInput
-                                operator={ruleState.condition.spanOperator || "eq"}
-                                value={ruleState.condition.spanName || ""}
-                                suggestions={traceNames}
-                                availableOperators={sessionConfig.operator_types?.string || ['eq']}
-                                placeholder="Enter trace name"
-                                onValueChange={(value) =>
-                                    setRuleState(prev =>
-                                        prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
-                                    )
-                                }
-                                onOperatorChange={(operator) =>
-                                    setRuleState(prev =>
-                                        prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
-                                    )
-                                }
-                            />
-                        </>
-                    )}
-                </div>
-
-                {ruleState.condition.attributes.length === 0 && (
-                    <div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={addAttribute}
-                            className="font-medium flex items-center gap-1.5 text-sm -ml-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Filter
-                        </Button>
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    const renderThen = () => {
-        if (!ruleState) return null
-
-        return (
-            <div>
-                <p className="font-display text-xl mb-4">Then</p>
-
-                {type === 'timeline' ? (
-                    <div className="mb-4">
-                        <div className="flex items-center gap-3">
-                            <SamplingRateInput
-                                value={ruleState.sampleRate || 100}
-                                onChange={(value) => updateRuleState({ sampleRate: value })}
-                                disabled={false}
-                                type="timeline"
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        {/* Collection */}
-                        <div className="mb-4">
-                            <p className="font-display text-gray-500 mb-3">Collection</p>
-                            <div className="space-y-3 ml-4">
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="sampled"
-                                        checked={ruleState.collectionMode === 'sampled'}
-                                        onChange={() => updateRuleState({ collectionMode: 'sampled' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                    />
-                                    <SamplingRateInput
-                                        value={ruleState.sampleRate || 100}
-                                        onChange={(value) => updateRuleState({ sampleRate: value })}
-                                        disabled={ruleState.collectionMode !== 'sampled'}
-                                        type={type === 'event' ? 'event' : 'trace'}
-                                    />
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="timeline"
-                                        checked={ruleState.collectionMode === 'timeline'}
-                                        onChange={() => updateRuleState({ collectionMode: 'timeline' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                    />
-                                    <span className="text-sm font-body">Collect with timeline only</span>
-                                </label>
-
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="disabled"
-                                        checked={ruleState.collectionMode === 'disabled'}
-                                        onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                    />
-                                    <span className="text-sm font-body">Do not collect</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Attachments */}
-                        {type === 'event' && (
-                            <div className="mb-4">
-                                <p className="font-display text-gray-500 mb-3">Attachments</p>
-                                <div className="space-y-3 ml-4">
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="layout_snapshot"
-                                            checked={ruleState.take_layout_snapshot === true && ruleState.take_screenshot === false}
-                                            onChange={() => updateRuleState({ take_layout_snapshot: true, take_screenshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                        />
-                                        <span className="text-sm font-body">Take layout snapshot</span>
-                                    </label>
-
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="screenshot"
-                                            checked={ruleState.take_screenshot === true && ruleState.take_layout_snapshot === false}
-                                            onChange={() => updateRuleState({ take_screenshot: true, take_layout_snapshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                        />
-                                        <span className="text-sm font-body">Take screenshot</span>
-                                    </label>
-
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="none"
-                                            checked={ruleState.take_screenshot === false && ruleState.take_layout_snapshot === false}
-                                            onChange={() => updateRuleState({ take_screenshot: false, take_layout_snapshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
-                                        />
-                                        <span className="text-sm font-body">No attachments</span>
-                                    </label>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-        )
-    }
-
-    const getOperatorsForType = (type: string) => {
-        if (!config) return []
-
-        switch (type) {
-            case 'float64':
-                return config?.operator_types.float64
-            case 'int64':
-                return config?.operator_types.int64
-            case 'bool':
-                return config?.operator_types.bool
-            default:
-                return config?.operator_types.string
-        }
-    };
-
-    const getDefaultValue = (type: string): string | number | boolean => {
-        if (type === 'bool') return false
-        if (type === 'int64' || type === 'float64') return 0
-        return ''
-    }
+    const openDeleteDialog = (() => {
+        setUiState(prev => ({ ...prev, showDeleteDialog: true }))
+    })
 
     const addAttribute = () => {
         if (!ruleState || !config) {
             return
         }
 
-        // For timeline type, check the conditionType; for others, use the type directly
         const effectiveType = type === 'timeline' ? ruleState.conditionType : type
 
         if (effectiveType === 'event') {
@@ -1165,7 +890,6 @@ export default function RuleBuilder({
                 }
             })
         } else {
-            // trace type
             const traceConfig = config as TraceTargetingConfigResponse | SessionTargetingConfigResponse
             const traceAttr = traceConfig.session_attrs?.at(0)
 
@@ -1290,25 +1014,298 @@ export default function RuleBuilder({
         })
     }
 
-    const handleRuleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRuleState((prev) => {
-            if (!prev) return null;
-            return {
-                ...prev,
-                name: event.target.value,
-            }
-        })
+    const renderEventWhen = () => {
+        if (!ruleState || !config) return null
 
-        setUiState((prev) => ({
-            ...prev,
-            ruleNameError: false
-        }))
+        const eventConfig = config as EventTargetingConfigResponse
+        const eventTypes = eventConfig.events
+            .filter((e): e is EventTargetingConfig => 'type' in e)
+            .map(e => e.type)
+
+        return (
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When</span>
+
+                <div className="flex items-center gap-3">
+                    <span className="font-display text-base text-gray-600">Event of type</span>
+                    <DropdownSelect
+                        type={DropdownSelectType.SingleString}
+                        title="Select event type"
+                        items={eventTypes}
+                        initialSelected={ruleState.condition.eventType ?? ''}
+                        onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
+                    />
+                    <span className="font-display text-base text-gray-600">occurs</span>
+                </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const renderTraceWhen = () => {
+        if (!ruleState || !config) return null
+
+        const traceConfig = config as TraceTargetingConfigResponse
+        const traceNames = traceConfig.traces
+            .filter((t): t is TraceTargetingConfig => 'name' in t)
+            .map(t => t.name)
+
+        const operators = config.operator_types?.string || ['eq']
+
+        return (
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When</span>
+
+                <div className="flex items-center gap-3">
+                    <span className="font-display text-base text-gray-600">Trace with name</span>
+                    <TraceOperatorNameInput
+                        operator={ruleState.condition.spanOperator || "eq"}
+                        value={ruleState.condition.spanName || ""}
+                        suggestions={traceNames}
+                        availableOperators={operators}
+                        placeholder="Enter trace name"
+                        onValueChange={(value) =>
+                            setRuleState(prev =>
+                                prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
+                            )
+                        }
+                        onOperatorChange={(operator) =>
+                            setRuleState(prev =>
+                                prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
+                            )
+                        }
+                    />
+                    <span className="font-display text-base text-gray-600">ends</span>
+                </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const renderTimelineWhen = () => {
+        if (!ruleState || !config) return null
+
+        const sessionConfig = config as SessionTargetingConfigResponse
+
+        const eventTypes = sessionConfig.events
+            .filter((e): e is EventTargetingConfig => 'type' in e)
+            .map(e => e.type)
+
+        const traceNames = sessionConfig.traces
+            .filter((t): t is TraceTargetingConfig => 'name' in t)
+            .map(t => t.name)
+
+        return (
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When Session contains</span>
+
+                <div className="flex items-center gap-3">
+                    <DropdownSelect
+                        type={DropdownSelectType.SingleString}
+                        title="Select condition type"
+                        items={['event', 'trace']}
+                        initialSelected={ruleState.conditionType}
+                        onChangeSelected={(selected) => handleConditionTypeChange(selected as 'event' | 'trace')}
+                    />
+
+                    {ruleState.conditionType === 'event' ? (
+                        <>
+                            <span className="font-display text-base text-gray-600">with type</span>
+                            <DropdownSelect
+                                type={DropdownSelectType.SingleString}
+                                title="Select event type"
+                                items={eventTypes}
+                                initialSelected={ruleState.condition.eventType ?? ''}
+                                onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <span className="font-display text-base text-gray-600">with name</span>
+                            <TraceOperatorNameInput
+                                operator={ruleState.condition.spanOperator || "eq"}
+                                value={ruleState.condition.spanName || ""}
+                                suggestions={traceNames}
+                                availableOperators={sessionConfig.operator_types?.string || ['eq']}
+                                placeholder="Enter trace name"
+                                onValueChange={(value) =>
+                                    setRuleState(prev =>
+                                        prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
+                                    )
+                                }
+                                onOperatorChange={(operator) =>
+                                    setRuleState(prev =>
+                                        prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
+                                    )
+                                }
+                            />
+                        </>
+                    )}
+                </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="font-medium flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const renderThen = () => {
+        if (!ruleState) return null
+
+        return (
+            <div>
+                <p className="font-display text-xl mb-4">Then</p>
+
+                {type === 'timeline' ? (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-3">
+                            <SamplingRateInput
+                                value={ruleState.sampleRate || 100}
+                                onChange={(value) => updateRuleState({ sampleRate: value })}
+                                disabled={false}
+                                type="timeline"
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="mb-4">
+                            <p className="font-display text-gray-500 mb-3">Collection</p>
+                            <div className="space-y-3 ml-4">
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="sampled"
+                                        checked={ruleState.collectionMode === 'sampled'}
+                                        onChange={() => updateRuleState({ collectionMode: 'sampled' })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                    />
+                                    <SamplingRateInput
+                                        value={ruleState.sampleRate || 100}
+                                        onChange={(value) => updateRuleState({ sampleRate: value })}
+                                        disabled={ruleState.collectionMode !== 'sampled'}
+                                        type={type === 'event' ? 'event' : 'trace'}
+                                    />
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="timeline"
+                                        checked={ruleState.collectionMode === 'timeline'}
+                                        onChange={() => updateRuleState({ collectionMode: 'timeline' })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                    />
+                                    <span className="text-sm font-body">Collect with timeline only</span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer h-10">
+                                    <input
+                                        type="radio"
+                                        name="collectionMode"
+                                        value="disabled"
+                                        checked={ruleState.collectionMode === 'disabled'}
+                                        onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
+                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                    />
+                                    <span className="text-sm font-body">Do not collect</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {type === 'event' && (
+                            <div className="mb-4">
+                                <p className="font-display text-gray-500 mb-3">Attachments</p>
+                                <div className="space-y-3 ml-4">
+                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="layout_snapshot"
+                                            checked={ruleState.take_layout_snapshot === true && ruleState.take_screenshot === false}
+                                            onChange={() => updateRuleState({ take_layout_snapshot: true, take_screenshot: false })}
+                                            disabled={ruleState.collectionMode === 'disabled'}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        />
+                                        <span className="text-sm font-body">Take layout snapshot</span>
+                                    </label>
+
+                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="screenshot"
+                                            checked={ruleState.take_screenshot === true && ruleState.take_layout_snapshot === false}
+                                            onChange={() => updateRuleState({ take_screenshot: true, take_layout_snapshot: false })}
+                                            disabled={ruleState.collectionMode === 'disabled'}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        />
+                                        <span className="text-sm font-body">Take screenshot</span>
+                                    </label>
+
+                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                        <input
+                                            type="radio"
+                                            name="attachmentMode"
+                                            value="none"
+                                            checked={ruleState.take_screenshot === false && ruleState.take_layout_snapshot === false}
+                                            onChange={() => updateRuleState({ take_screenshot: false, take_layout_snapshot: false })}
+                                            disabled={ruleState.collectionMode === 'disabled'}
+                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        />
+                                        <span className="text-sm font-body">No attachments</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        )
     }
 
     const renderAttributes = () => {
         if (!ruleState || !config) return null
 
-        // For timeline type, check the conditionType; for others, use the type directly
         const effectiveType = type === 'timeline' ? ruleState.conditionType : type
 
         const allAttributeKeys: Record<string, string> = {}
@@ -1393,17 +1390,6 @@ export default function RuleBuilder({
         )
     }
 
-    const pageHeading = (() => {
-        switch (type) {
-            case 'event':
-                return mode === 'create' ? 'Create Event Rule' : 'Edit Event Rule'
-            case 'trace':
-                return mode === 'create' ? 'Create Trace Rule' : 'Edit Trace Rule'
-            case 'timeline':
-                return mode === 'create' ? 'Create Session Timeline Rule' : 'Edit Session Timeline Rule'
-        }
-    })()
-
     useEffect(() => {
         if (type == 'event') {
             fetchEventPageData()
@@ -1413,7 +1399,6 @@ export default function RuleBuilder({
             fetchTimelinePageData()
         }
     }, [type, appId, mode, ruleId])
-
 
     return (
         <div>
