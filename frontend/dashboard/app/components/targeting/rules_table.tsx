@@ -60,11 +60,9 @@ export default function RulesTable({ rules, tableType, onRuleClick, showOverride
                 const fullDisplay = attachmentDisplay ? `${collectionDisplay}, ${attachmentDisplay}` : collectionDisplay
 
                 return (
-                    <>
-                        <p className='text-xs truncate select-none text-gray-500'>
-                            {fullDisplay}
-                        </p>
-                    </>
+                    <p className='text-xs truncate select-none text-gray-500'>
+                        {fullDisplay}
+                    </p>
                 )
 
             case 'trace':
@@ -110,8 +108,8 @@ export default function RulesTable({ rules, tableType, onRuleClick, showOverride
                             <TableHeader className="sticky top-0 bg-white z-10">
                                 <TableRow>
                                     <TableHead className="w-[60%]">Rule</TableHead>
-                                    <TableHead className="w-[20%]">Created</TableHead>
-                                    <TableHead className="w-[20%]">Modified</TableHead>
+                                    <TableHead className="w-[20%] text-center">Created</TableHead>
+                                    <TableHead className="w-[20%] text-center">Modified</TableHead>
                                 </TableRow>
                             </TableHeader>
                         </Table>
@@ -130,18 +128,14 @@ export default function RulesTable({ rules, tableType, onRuleClick, showOverride
                                             <div className='py-1' />
                                             {renderCollectionMode(rule)}
                                         </TableCell>
-                                        <TableCell className="w-[20%] p-4">
+                                        <TableCell className="w-[20%] text-center p-4">
                                             <p className='truncate select-none'>{formatDateToHumanReadableDate(rule.created_at)}</p>
                                             <div className='py-1' />
                                             <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(rule.created_at)}</p>
-                                            {rule.created_by && (
-                                                <>
-                                                    <div className='py-1' />
-                                                    <p className='text-xs truncate text-gray-500 select-none'>by {rule.created_by}</p>
-                                                </>
-                                            )}
+                                            <div className='py-1' />
+                                            <p className='text-xs truncate text-gray-500 select-none'>{rule.created_by ? rule.created_by : "Default"}</p>
                                         </TableCell>
-                                        <TableCell className="w-[20%] p-4">
+                                        <TableCell className="w-[20%] text-center p-4">
                                             {rule.updated_at ? (
                                                 <>
                                                     <p className='truncate select-none'>{formatDateToHumanReadableDate(rule.updated_at)}</p>
@@ -150,7 +144,7 @@ export default function RulesTable({ rules, tableType, onRuleClick, showOverride
                                                     {rule.updated_by && (
                                                         <>
                                                             <div className='py-1' />
-                                                            <p className='text-xs truncate text-gray-500 select-none'>by {rule.updated_by}</p>
+                                                            <p className='text-xs truncate text-gray-500 select-none'>{rule.updated_by}</p>
                                                         </>
                                                     )}
                                                 </>
