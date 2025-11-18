@@ -13,6 +13,7 @@ import SamplingRateInput from "./sampling_rate_input"
 import DangerConfirmationDialog from "../danger_confirmation_dialog"
 import AttributeBuilder from "./attribute_builder"
 import { Plus } from "lucide-react"
+import AutocompleteInputWithOperator from "./autocomplete_builder"
 
 enum PageState {
     Loading,
@@ -37,6 +38,7 @@ interface RuleState {
         id: string
         eventType?: string
         spanName?: string
+        spanOperator?: string
         attributes: AttributeField[]
     }
     collectionMode: CollectionMode
@@ -122,26 +124,14 @@ export default function RuleBuilder({
     }
 
     const createEmptyTraceRuleState = (config: TraceTargetingConfigResponse): RuleState | null => {
-        if (!config.trace_config || config.trace_config.length === 0) {
-            console.error("No traces available in config")
-            return null
-        }
-
-        const firstTrace = config.trace_config[0]
-
-        if (!firstTrace) {
-            return null
-        }
-
-        const name = firstTrace.name
-
         return {
             name: '',
             collectionMode: 'timeline',
             conditionType: 'trace',
             condition: {
                 id: crypto.randomUUID(),
-                spanName: name,
+                spanName: '',
+                spanOperator: 'eq',
                 attributes: []
             },
             sampleRate: 100,
@@ -149,6 +139,7 @@ export default function RuleBuilder({
             take_screenshot: false,
         }
     }
+
     const convertToTraceRuleState = (ruleData: TraceTargetingRule): RuleState | null => {
         const parsed = celToConditions(ruleData.condition)
         const traceCondition = parsed.trace?.conditions[0]
@@ -170,6 +161,7 @@ export default function RuleBuilder({
             condition: {
                 id: traceCondition.id,
                 spanName: traceCondition.spanName,
+                spanOperator: traceCondition.operator || 'eq',
                 attributes: attributes
             },
             sampleRate: ruleData.sampling_rate,
@@ -503,7 +495,7 @@ export default function RuleBuilder({
             const traceCondition: TraceCondition = {
                 id: ruleState.condition.id,
                 spanName: ruleState.condition.spanName!,
-                operator: 'eq',
+                operator: ruleState.condition.spanOperator || 'eq',
                 ud_attrs: attributes.filter(a => a.source === 'ud'),
                 session_attrs: attributes.filter(a => a.source === 'session'),
             }
@@ -770,30 +762,31 @@ export default function RuleBuilder({
             .filter((e): e is EventTargetingConfig => 'type' in e)
             .map(e => e.type)
 
-        const eventTypeDropdown = (
-            <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title="Select event type"
-                items={eventTypes}
-                initialSelected={ruleState.condition.eventType ?? ''}
-                onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
-            />
-        )
-
         return (
-            <div className="flex flex-wrap items-center gap-3">
-                <span className="font-display text-xl">When</span>
-                {eventTypeDropdown}
-                <span className="font-display text-xl">event occurs</span>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={addAttribute}
-                    className="flex items-center gap-1 text-sm self-start"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Filter
-                </Button>
+            <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-display text-xl">When</span>
+
+                    <DropdownSelect
+                        type={DropdownSelectType.SingleString}
+                        title="Select event type"
+                        items={eventTypes}
+                        initialSelected={ruleState.condition.eventType ?? ''}
+                        onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
+                    />
+
+                    <span className="font-display text-xl">event occurs</span>
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={addAttribute}
+                        className="flex items-center gap-1 text-sm self-start"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Filter
+                    </Button>
+                </div>
             </div>
         )
     }
@@ -806,30 +799,36 @@ export default function RuleBuilder({
             .filter((t): t is TraceTargetingConfig => 'name' in t)
             .map(t => t.name)
 
-        const traceNameDropdown = (
-            <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title="Select trace name"
-                items={traceNames}
-                initialSelected={ruleState.condition.spanName ?? ''}
-                onChangeSelected={(selected) => handleTraceTypeChange(selected as string)}
-            />
-        )
+        const operators = config.operator_types?.string || ['eq']
 
         return (
-            <div className="flex flex-wrap items-center gap-3">
-                <span className="font-display text-xl">When</span>
-                {traceNameDropdown}
-                <span className="font-display text-xl">trace ends</span>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={addAttribute}
-                    className="flex items-center gap-1 text-sm self-start"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Filter
-                </Button>
+            <div className="flex flex-col gap-2">
+                <span className="font-display text-xl">When trace with name</span>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <AutocompleteInputWithOperator
+                        operator={ruleState.condition.spanOperator || "eq"}
+                        value={ruleState.condition.spanName || ""}
+                        suggestions={traceNames}
+                        availableOperators={operators}
+                        placeholder="Enter trace name"
+                        onValueChange={(value) =>
+                            setRuleState(prev =>
+                                prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
+                            )
+                        }
+                        onOperatorChange={(operator) =>
+                            setRuleState(prev =>
+                                prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
+                            )
+                        }
+                    />
+                    <span className="font-display text-xl">ends</span>
+
+                    <Button type="button" variant="ghost" onClick={addAttribute}>
+                        <Plus className="w-4 h-4" /> Add Filter
+                    </Button>
+                </div>
             </div>
         )
     }
@@ -838,8 +837,8 @@ export default function RuleBuilder({
         if (!ruleState || !config) return null
 
         const sessionConfig = config as SessionTargetingConfigResponse
-        const effectiveType = ruleState.conditionType
 
+        // Dropdown for choosing event / trace
         const conditionTypeDropdown = (
             <DropdownSelect
                 type={DropdownSelectType.SingleString}
@@ -850,28 +849,61 @@ export default function RuleBuilder({
             />
         )
 
-        if (effectiveType === 'event') {
-            const eventTypes = sessionConfig.events
-                .filter((e): e is EventTargetingConfig => 'type' in e)
-                .map(e => e.type)
+        // Event types list
+        const eventTypes = sessionConfig.events
+            .filter((e): e is EventTargetingConfig => 'type' in e)
+            .map(e => e.type)
 
-            const eventTypeDropdown = (
-                <DropdownSelect
-                    type={DropdownSelectType.SingleString}
-                    title="Select event type"
-                    items={eventTypes}
-                    initialSelected={ruleState.condition.eventType ?? ''}
-                    onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
-                />
-            )
+        // Trace names list
+        const traceNames = sessionConfig.trace_config
+            .filter((t): t is TraceTargetingConfig => 'name' in t)
+            .map(t => t.name)
 
-            return (
+        return (
+            <div className="flex flex-col gap-2">
+                {/* Row 1 */}
+                <span className="font-display text-xl">When session contains</span>
+
+                {/* Row 2 - always shows dropdown type selector */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-display text-xl">When</span>
                     {conditionTypeDropdown}
-                    <span className="font-display text-xl">with type</span>
-                    {eventTypeDropdown}
-                    <span className="font-display text-xl">occurs</span>
+
+                    {ruleState.conditionType === 'event' ? (
+                        <>
+                            <span className="font-display text-xl">with type</span>
+
+                            <DropdownSelect
+                                type={DropdownSelectType.SingleString}
+                                title="Select event type"
+                                items={eventTypes}
+                                initialSelected={ruleState.condition.eventType ?? ''}
+                                onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <span className="font-display text-xl">with name</span>
+
+                            <AutocompleteInputWithOperator
+                                operator={ruleState.condition.spanOperator || "eq"}
+                                value={ruleState.condition.spanName || ""}
+                                suggestions={traceNames}
+                                availableOperators={sessionConfig.operator_types?.string || ['eq']}
+                                placeholder="Enter trace name..."
+                                onValueChange={(value) =>
+                                    setRuleState(prev =>
+                                        prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
+                                    )
+                                }
+                                onOperatorChange={(operator) =>
+                                    setRuleState(prev =>
+                                        prev ? { ...prev, condition: { ...prev.condition, spanOperator: operator } } : prev
+                                    )
+                                }
+                            />
+                        </>
+                    )}
+
                     <Button
                         type="button"
                         variant="ghost"
@@ -882,41 +914,8 @@ export default function RuleBuilder({
                         Add Filter
                     </Button>
                 </div>
-            )
-        } else {
-            const traceNames = sessionConfig.trace_config
-                .filter((t): t is TraceTargetingConfig => 'name' in t)
-                .map(t => t.name)
-
-            const traceNameDropdown = (
-                <DropdownSelect
-                    type={DropdownSelectType.SingleString}
-                    title="Select trace name"
-                    items={traceNames}
-                    initialSelected={ruleState.condition.spanName ?? ''}
-                    onChangeSelected={(selected) => handleTraceTypeChange(selected as string)}
-                />
-            )
-
-            return (
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-display text-xl">When</span>
-                    {conditionTypeDropdown}
-                    <span className="font-display text-xl">with name</span>
-                    {traceNameDropdown}
-                    <span className="font-display text-xl">ends</span>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={addAttribute}
-                        className="flex items-center gap-1 text-sm self-start"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Filter
-                    </Button>
-                </div>
-            )
-        }
+            </div>
+        )
     }
 
     const renderThen = () => {

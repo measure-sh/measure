@@ -246,10 +246,6 @@ export default function DataFilters({ params }: { params: { teamId: string } }) 
             {/* Main data rules UI */}
             {canShowContent() &&
                 <div className="flex flex-col items-start w-full">
-                    <div className={`py-1 w-full ${isLoading() ? 'visible' : 'invisible'}`}>
-                        <LoadingBar />
-                    </div>
-
                     {/* Event Rules Section */}
                     <div className="w-full">
                         <p className="font-display text-2xl">Event Rules</p>
