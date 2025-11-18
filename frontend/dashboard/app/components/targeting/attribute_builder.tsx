@@ -50,7 +50,7 @@ export default function AttributeBuilder({
 
     const handleValueChange = (newValue: string) => {
         setLocalValue(newValue)
-        
+
         let value: string | number | boolean;
         if (attribute.type === 'int64') {
             value = parseInt(newValue, 10) || 0
@@ -115,6 +115,7 @@ export default function AttributeBuilder({
                                 : `Enter ${getTypeDisplayName(attribute.type)} value`
                         }
                         onValueChange={handleValueChange}
+                        className="w-full"
                     />
                 )}
             </div>

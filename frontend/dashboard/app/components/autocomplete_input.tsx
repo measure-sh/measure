@@ -17,7 +17,7 @@ export default function AutocompleteInput({
     suggestions = [],
     placeholder = "Enter value...",
     onValueChange,
-    className = "w-112"
+    className = "w-full"
 }: AutocompleteInputProps) {
     const [suggestionsOpen, setSuggestionsOpen] = useState(false)
     const [searchValue, setSearchValue] = useState("")
@@ -155,7 +155,8 @@ export default function AutocompleteInput({
             </PopoverAnchor>
             {suggestionsOpen && filteredSuggestions.length > 0 && (
                 <PopoverContent
-                    className={cn("p-1", className)}
+                    className={"p-1"}
+                    style={{ width: inputRef.current?.offsetWidth }}
                     align="start"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
@@ -163,7 +164,7 @@ export default function AutocompleteInput({
                         ref={listRef}
                         id="suggestions-list"
                         role="listbox"
-                        className="max-h-72 overflow-auto"
+                        className="max-h-72 overflow-auto p-0.5"
                     >
                         {filteredSuggestions.map((suggestion, idx) => (
                             <div
