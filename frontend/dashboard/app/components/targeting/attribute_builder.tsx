@@ -47,7 +47,7 @@ export default function AttributeBuilder({
 
     return (
         <div className={`flex items-center group`}>
-            <span className="ml-5 mr-4">and</span>
+            <span className="mr-4">and</span>
             {/* Attribute Key Dropdown or Text */}
             <div className="flex-[35] mr-3 min-w-0">
                 <AttributeKeyDropdownSelect

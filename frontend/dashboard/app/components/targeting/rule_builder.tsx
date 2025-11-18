@@ -694,20 +694,6 @@ export default function RuleBuilder({
         }
     }
 
-    const handleTraceTypeChange = async (name: string) => {
-        setRuleState((prev) => {
-            if (!prev) return prev;
-
-            return {
-                ...prev,
-                condition: {
-                    ...prev.condition,
-                    spanName: name
-                }
-            };
-        });
-    };
-
     const closeDeleteDialog = (() => {
         setUiState(prev => ({ ...prev, showDeleteDialog: false }))
     })
@@ -764,10 +750,11 @@ export default function RuleBuilder({
             .map(e => e.type)
 
         return (
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-display text-xl">When</span>
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When</span>
 
+                <div className="flex items-center gap-3">
+                    <span className="font-display text-base text-gray-600">Event of type</span>
                     <DropdownSelect
                         type={DropdownSelectType.SingleString}
                         title="Select event type"
@@ -775,19 +762,22 @@ export default function RuleBuilder({
                         initialSelected={ruleState.condition.eventType ?? ''}
                         onChangeSelected={(selected) => handleEventTypeChange(selected as string)}
                     />
-
-                    <span className="font-display text-xl">event occurs</span>
-
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={addAttribute}
-                        className="flex items-center gap-1 text-sm self-start"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Filter
-                    </Button>
+                    <span className="font-display text-base text-gray-600">occurs</span>
                 </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
             </div>
         )
     }
@@ -803,10 +793,11 @@ export default function RuleBuilder({
         const operators = config.operator_types?.string || ['eq']
 
         return (
-            <div className="flex flex-col gap-2">
-                <span className="font-display text-xl">When trace with name</span>
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When</span>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="font-display text-base text-gray-600">Trace with name</span>
                     <TraceOperatorNameInput
                         operator={ruleState.condition.spanOperator || "eq"}
                         value={ruleState.condition.spanName || ""}
@@ -824,12 +815,22 @@ export default function RuleBuilder({
                             )
                         }
                     />
-                    <span className="font-display text-xl">ends</span>
-
-                    <Button type="button" variant="ghost" onClick={addAttribute}>
-                        <Plus className="w-4 h-4" /> Add Filter
-                    </Button>
+                    <span className="font-display text-base text-gray-600">ends</span>
                 </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
             </div>
         )
     }
@@ -838,17 +839,6 @@ export default function RuleBuilder({
         if (!ruleState || !config) return null
 
         const sessionConfig = config as SessionTargetingConfigResponse
-
-        // Dropdown for choosing event / trace
-        const conditionTypeDropdown = (
-            <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title="Select condition type"
-                items={['event', 'trace']}
-                initialSelected={ruleState.conditionType}
-                onChangeSelected={(selected) => handleConditionTypeChange(selected as 'event' | 'trace')}
-            />
-        )
 
         // Event types list
         const eventTypes = sessionConfig.events
@@ -861,18 +851,22 @@ export default function RuleBuilder({
             .map(t => t.name)
 
         return (
-            <div className="flex flex-col gap-2">
-                {/* Row 1 */}
-                <span className="font-display text-xl">When session contains</span>
+            <div className="flex flex-col gap-4">
+                <span className="font-display text-xl">When Session contains</span>
 
-                {/* Row 2 - always shows dropdown type selector */}
-                <div className="flex flex-wrap items-center gap-3">
-                    {conditionTypeDropdown}
+                {/* Condition type selector row */}
+                <div className="flex items-center gap-3">
+                    <DropdownSelect
+                        type={DropdownSelectType.SingleString}
+                        title="Select condition type"
+                        items={['event', 'trace']}
+                        initialSelected={ruleState.conditionType}
+                        onChangeSelected={(selected) => handleConditionTypeChange(selected as 'event' | 'trace')}
+                    />
 
                     {ruleState.conditionType === 'event' ? (
                         <>
-                            <span className="font-display text-xl">with type</span>
-
+                            <span className="font-display text-base text-gray-600">with type</span>
                             <DropdownSelect
                                 type={DropdownSelectType.SingleString}
                                 title="Select event type"
@@ -883,8 +877,7 @@ export default function RuleBuilder({
                         </>
                     ) : (
                         <>
-                            <span className="font-display text-xl">with name</span>
-
+                            <span className="font-display text-base text-gray-600">with name</span>
                             <TraceOperatorNameInput
                                 operator={ruleState.condition.spanOperator || "eq"}
                                 value={ruleState.condition.spanName || ""}
@@ -904,17 +897,21 @@ export default function RuleBuilder({
                             />
                         </>
                     )}
-
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={addAttribute}
-                        className="flex items-center gap-1 text-sm self-start"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Filter
-                    </Button>
                 </div>
+
+                {ruleState.condition.attributes.length === 0 && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={addAttribute}
+                            className="font-medium flex items-center gap-1.5 text-sm -ml-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Filter
+                        </Button>
+                    </div>
+                )}
             </div>
         )
     }
@@ -1277,7 +1274,6 @@ export default function RuleBuilder({
                 allAttributeKeys[key] = 'ud'
             }
         } else {
-            // trace type
             const traceConfig = config as TraceTargetingConfigResponse | SessionTargetingConfigResponse
             const sessionAttrKeys = traceConfig.session_attrs?.map(a => a.key) ?? []
             const udAttrKeys = 'trace_ud_attrs' in traceConfig
@@ -1292,8 +1288,12 @@ export default function RuleBuilder({
             }
         }
 
+        if (ruleState.condition.attributes.length === 0) {
+            return null
+        }
+
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-6">
                 {ruleState.condition.attributes.map(attr => (
                     <AttributeBuilder
                         key={attr.id}
@@ -1315,6 +1315,18 @@ export default function RuleBuilder({
                         allowDelete
                     />
                 ))}
+
+                <div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={addAttribute}
+                        className="flex items-center gap-1.5 text-sm self-start -ml-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Filter
+                    </Button>
+                </div>
             </div>
         )
     }
@@ -1385,32 +1397,35 @@ export default function RuleBuilder({
 
             {/* Main content */}
             {uiState.pageState == PageState.Success && (
-                <div className="flex flex-col gap-4 w-full">
+                <div className="flex flex-col gap-6 w-full">
                     {type === 'event' && renderEventWhen()}
                     {type === 'trace' && renderTraceWhen()}
                     {type === 'timeline' && renderTimelineWhen()}
 
-                    <div className="flex flex-col gap-3">
-                        {renderAttributes()}
-                    </div>
+                    {renderAttributes()}
 
                     <div className="py-2" />
 
                     {renderThen()}
 
                     <div className='py-2' />
-                    <p className="font-display text-xl max-w-6xl">Rule Name</p>
-                    <input
-                        type="text"
-                        placeholder="Enter a rule name"
-                        maxLength={64}
-                        value={ruleState?.name}
-                        onChange={handleRuleNameChange}
-                        className={`w-96 border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 mt-4 font-body disabled:opacity-50 disabled:cursor-not-allowed ${uiState.ruleNameError ? 'border-red-500' : 'border-black'}`}
-                    />
-                    {uiState.ruleNameError && (
-                        <p className="text-red-600 text-sm ml-1">Rule name is required</p>
-                    )}
+
+                    <div className="flex flex-col gap-2">
+                        <p className="font-display text-xl max-w-6xl">Rule Name</p>
+
+                        <div className="py-0.5" />
+                        <input
+                            type="text"
+                            placeholder="Enter a rule name"
+                            maxLength={64}
+                            value={ruleState?.name}
+                            onChange={handleRuleNameChange}
+                            className={`w-96 border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body disabled:opacity-50 disabled:cursor-not-allowed ${uiState.ruleNameError ? 'border-red-500' : 'border-black'}`}
+                        />
+                        {uiState.ruleNameError && (
+                            <p className="text-red-600 text-sm ml-1">Rule name is required</p>
+                        )}
+                    </div>
 
                     <div className="py-6" />
 
