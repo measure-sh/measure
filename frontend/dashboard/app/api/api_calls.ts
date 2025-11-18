@@ -1264,7 +1264,7 @@ export type EventTargetingConfigResponse = {
 }
 
 export type TraceTargetingConfigResponse = {
-  trace_config: TraceTargetingConfig[];
+  traces: TraceTargetingConfig[];
   trace_ud_attrs: AttributeTargetingConfig[];
   session_attrs: AttributeTargetingConfig[];
   operator_types: TargetingOperatorConfig;

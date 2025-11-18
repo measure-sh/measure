@@ -780,7 +780,7 @@ export default function RuleBuilder({
         if (!ruleState || !config) return null
 
         const traceConfig = config as TraceTargetingConfigResponse
-        const traceNames = traceConfig.trace_config
+        const traceNames = traceConfig.traces
             .filter((t): t is TraceTargetingConfig => 'name' in t)
             .map(t => t.name)
 
