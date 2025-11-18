@@ -526,6 +526,7 @@ func (j *janitor) rmApps(ctx context.Context, tx *pgx.Tx) (err error) {
 
 	fmt.Println("removing app(s)")
 	fmt.Printf("  %s\n", args)
+
 	_, err = (*tx).Exec(ctx, deleteApps, args...)
 	if err != nil {
 		return
@@ -543,6 +544,7 @@ func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
 	deleteBuildSizes := fmt.Sprintf("delete from build_sizes where app_id in (%s);", placeholders)
 
 	fmt.Println("removing build mappings")
+
 	rows, err := (*tx).Query(ctx, selectBuildMappings, args...)
 	if err != nil {
 		return
@@ -570,6 +572,7 @@ func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
 	}
 
 	fmt.Println("removing build sizes")
+
 	_, err = (*tx).Exec(ctx, deleteBuildSizes, args...)
 	if err != nil {
 		return
@@ -601,6 +604,7 @@ func (j *janitor) rmIngestedBatches(ctx context.Context) (err error) {
 	}()
 
 	fmt.Println("removing ingested batches")
+
 	for i := range j.appIds {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
@@ -654,6 +658,7 @@ func (j *janitor) rmShortFilters(ctx context.Context, tx *pgx.Tx) (err error) {
 	deleteShortFilters := fmt.Sprintf("delete from short_filters where app_id in (%s);", placeholders)
 
 	fmt.Println("removing short filters")
+
 	_, err = (*tx).Exec(ctx, deleteShortFilters, args...)
 	if err != nil {
 		return
