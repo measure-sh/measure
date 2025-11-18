@@ -978,7 +978,7 @@ export default function RuleBuilder({
                                         name="collectionMode"
                                         value="disabled"
                                         checked={ruleState.collectionMode === 'disabled'}
-                                        onChange={() => updateRuleState({ collectionMode: 'disabled' })}
+                                        onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
                                         className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                                     />
                                     <span className="text-sm font-body">Do not collect</span>

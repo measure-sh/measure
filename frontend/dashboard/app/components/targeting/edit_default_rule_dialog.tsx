@@ -114,7 +114,7 @@ export default function EditDefaultRuleDialog({
                                 checked={collectionMode === 'sampled'}
                                 onChange={() => setCollectionMode('sampled')}
                                 disabled={isSaving}
-                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                             />
                             <SamplingRateInput
                                 value={sampleRate}
@@ -132,7 +132,7 @@ export default function EditDefaultRuleDialog({
                                 checked={collectionMode === 'timeline'}
                                 onChange={() => setCollectionMode('timeline')}
                                 disabled={isSaving}
-                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                             />
                             <span className="text-sm font-body">Collect {displayNameLower} with session timeline only</span>
                         </label>
@@ -145,7 +145,7 @@ export default function EditDefaultRuleDialog({
                                 checked={collectionMode === 'disabled'}
                                 onChange={() => setCollectionMode('disabled')}
                                 disabled={isSaving}
-                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="appearance-none w-4 h-4 border border-gray-400 rounded-full checked:bg-black checked:border-black cursor-pointer outline-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
                             />
                             <span className="text-sm font-body">Collect no {displayNameLower} by default</span>
                         </label>
