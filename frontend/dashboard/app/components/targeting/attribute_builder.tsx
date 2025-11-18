@@ -6,6 +6,7 @@ import { Button } from '../button'
 import DropdownSelect, { DropdownSelectType } from '../dropdown_select'
 import { useState, useEffect } from 'react'
 import AttributeKeyDropdownSelect from './attribute_key_dropdown_select'
+import AutocompleteInput from '../autocomplete_input'
 
 interface AttributeBuilderProps {
     attribute: AttributeField
@@ -16,6 +17,7 @@ interface AttributeBuilderProps {
     onUpdateOperator: (attrId: string, operator: string) => void
     allowDelete: boolean
     onDelete?: (attrId: string) => void
+    suggestions?: string[] | number[]
 }
 
 export default function AttributeBuilder({
@@ -27,6 +29,7 @@ export default function AttributeBuilder({
     allowDelete = true,
     onUpdateKey,
     onDelete,
+    suggestions,
 }: AttributeBuilderProps) {
     const [localValue, setLocalValue] = useState(attribute.value)
 
@@ -43,6 +46,20 @@ export default function AttributeBuilder({
             string: 'text',
         }
         return typeMap[type] || type
+    }
+
+    const handleValueChange = (newValue: string) => {
+        setLocalValue(newValue)
+        
+        let value: string | number | boolean;
+        if (attribute.type === 'int64') {
+            value = parseInt(newValue, 10) || 0
+        } else if (attribute.type === 'number' || attribute.type === 'float64') {
+            value = parseFloat(newValue) || 0
+        } else {
+            value = newValue
+        }
+        onUpdateValue(attribute.id, value)
     }
 
     return (
@@ -89,38 +106,16 @@ export default function AttributeBuilder({
                         buttonClassName="flex justify-between font-display border border-black w-full select-none"
                     />
                 ) : (
-                    <div className="relative">
-                        <input
-                            id={`attr-value-${attribute.id}`}
-                            type={
-                                attribute.type === 'number' ||
-                                    attribute.type === 'int64' ||
-                                    attribute.type === 'float64'
-                                    ? 'number'
-                                    : 'text'
-                            }
-                            placeholder={
-                                attribute.hint
-                                    ? attribute.hint
-                                    : `Enter ${getTypeDisplayName(attribute.type)} value`
-                            }
-                            value={localValue as string | number}
-                            onChange={(e) => setLocalValue(e.target.value)}
-                            onBlur={(e) => {
-                                const raw = e.target.value
-                                let value: string | number | boolean;
-                                if (attribute.type === 'int64') {
-                                    value = parseInt(raw, 10) || 0
-                                } else if (attribute.type === 'number' || attribute.type === 'float64') {
-                                    value = parseFloat(raw) || 0
-                                } else {
-                                    value = raw
-                                }
-                                onUpdateValue(attribute.id, value)
-                            }}
-                            className={`w-full border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 border-black`}
-                        />
-                    </div>
+                    <AutocompleteInput
+                        value={String(localValue ?? '')}
+                        suggestions={suggestions?.map(String) ?? []}
+                        placeholder={
+                            attribute.hint
+                                ? attribute.hint
+                                : `Enter ${getTypeDisplayName(attribute.type)} value`
+                        }
+                        onValueChange={handleValueChange}
+                    />
                 )}
             </div>
 

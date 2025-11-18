@@ -6,6 +6,7 @@ export interface BaseAttributeField {
     value: string | boolean | number
     operator: string
     hint?: string
+    suggestions?: string[] | number[]
 }
 
 // For UI only - extends base with source

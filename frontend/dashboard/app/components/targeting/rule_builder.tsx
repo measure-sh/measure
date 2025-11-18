@@ -1,9 +1,9 @@
 "use client"
 
-import { createEventTargetingRule, CreateEventTargetingRuleApiStatus, createTraceTargetingRule, CreateTraceTargetingRuleApiStatus, EventTargetingConfigResponse, EventTargetingRule, fetchEventTargetingConfigFromServer, fetchEventTargetingRuleFromServer, fetchTraceTargetingConfigFromServer, fetchTraceTargetingRuleFromServer, TraceTargetingConfigResponse, TraceTargetingRule, updateEventTargetingRule, UpdateEventTargetingRuleApiStatus, updateTraceTargetingRule, UpdateTraceTargetingRuleApiStatus, EventTargetingConfig, TraceTargetingConfig, DeleteEventTargetingRuleApiStatus, deleteEventTargetingRule, deleteTraceTargetingRule, DeleteTraceTargetingRuleApiStatus, CollectionMode, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigResponse, SessionTargetingRule, deleteSessionTargetingRule, DeleteSessionTargetingRuleApiStatus, createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from "@/app/api/api_calls"
+import { createEventTargetingRule, CreateEventTargetingRuleApiStatus, createTraceTargetingRule, CreateTraceTargetingRuleApiStatus, EventTargetingConfigResponse, EventTargetingRule, fetchEventTargetingConfigFromServer, fetchEventTargetingRuleFromServer, fetchTraceTargetingConfigFromServer, fetchTraceTargetingRuleFromServer, TraceTargetingConfigResponse, TraceTargetingRule, updateEventTargetingRule, UpdateEventTargetingRuleApiStatus, updateTraceTargetingRule, UpdateTraceTargetingRuleApiStatus, EventTargetingConfig, TraceTargetingConfig, DeleteEventTargetingRuleApiStatus, deleteEventTargetingRule, deleteTraceTargetingRule, DeleteTraceTargetingRuleApiStatus, CollectionMode, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigResponse, SessionTargetingRule, deleteSessionTargetingRule, DeleteSessionTargetingRuleApiStatus, createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus, AttributeTargetingConfig } from "@/app/api/api_calls"
 import { conditionsToCel } from "@/app/utils/cel/cel_generator"
 import { celToConditions, ParsedConditions } from "@/app/utils/cel/cel_parser"
-import { AttributeField, EventCondition, TraceCondition } from "@/app/utils/cel/conditions"
+import { AttributeField, BaseAttributeField, EventCondition, TraceCondition } from "@/app/utils/cel/conditions"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import { useEffect, useState } from "react"
 import { Button } from "../button"
@@ -94,7 +94,43 @@ export default function RuleBuilder({
         }
     }
 
-    const convertToEventRuleState = (ruleData: EventTargetingRule): RuleState | null => {
+    const getAttributeWithSuggestions = (
+        key: string,
+        source: 'fixed' | 'session' | 'ud',
+        baseAttr: BaseAttributeField,
+        config: EventTargetingConfigResponse | TraceTargetingConfigResponse | SessionTargetingConfigResponse,
+        eventType?: string
+    ): AttributeField => {
+        let attrConfig: AttributeTargetingConfig | undefined
+
+        if (source === 'fixed') {
+            // Only applicable for event-based rules
+            if ('events' in config) {
+                const eventDef = config.events.find(e => 'type' in e && e.type === eventType)
+                attrConfig = eventDef?.attrs?.find(a => a.key === key)
+            }
+        } else if (source === 'session') {
+            attrConfig = config.session_attrs?.find(a => a.key === key)
+        } else if (source === 'ud') {
+            if ('event_ud_attrs' in config) {
+                attrConfig = config.event_ud_attrs?.find(a => a.key === key)
+            } else if ('trace_ud_attrs' in config) {
+                attrConfig = config.trace_ud_attrs?.find(a => a.key === key)
+            }
+        }
+
+        return {
+            ...baseAttr,
+            source,
+            suggestions: attrConfig?.suggestions,
+            hint: attrConfig?.hint,
+        }
+    }
+
+    const convertToEventRuleState = (
+        ruleData: EventTargetingRule,
+        config: EventTargetingConfigResponse
+    ): RuleState | null => {
         const parsed = celToConditions(ruleData.condition)
         const eventCondition = parsed.event?.conditions[0]
         if (!eventCondition) {
@@ -103,9 +139,15 @@ export default function RuleBuilder({
         }
 
         const attributes: AttributeField[] = [
-            ...(eventCondition.attrs || []).map(attr => ({ ...attr, source: 'fixed' as const })),
-            ...(eventCondition.session_attrs || []).map(attr => ({ ...attr, source: 'session' as const })),
-            ...(eventCondition.ud_attrs || []).map(attr => ({ ...attr, source: 'ud' as const })),
+            ...(eventCondition.attrs || []).map(attr =>
+                getAttributeWithSuggestions(attr.key, 'fixed', attr, config, eventCondition.type)
+            ),
+            ...(eventCondition.session_attrs || []).map(attr =>
+                getAttributeWithSuggestions(attr.key, 'session', attr, config)
+            ),
+            ...(eventCondition.ud_attrs || []).map(attr =>
+                getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+            ),
         ]
 
         return {
@@ -140,7 +182,10 @@ export default function RuleBuilder({
         }
     }
 
-    const convertToTraceRuleState = (ruleData: TraceTargetingRule): RuleState | null => {
+    const convertToTraceRuleState = (
+        ruleData: TraceTargetingRule,
+        config: TraceTargetingConfigResponse
+    ): RuleState | null => {
         const parsed = celToConditions(ruleData.condition)
         const traceCondition = parsed.trace?.conditions[0]
 
@@ -150,8 +195,12 @@ export default function RuleBuilder({
         }
 
         const attributes: AttributeField[] = [
-            ...(traceCondition.ud_attrs || []).map(attr => ({ ...attr, source: 'ud' as const })),
-            ...(traceCondition.session_attrs || []).map(attr => ({ ...attr, source: 'session' as const })),
+            ...(traceCondition.ud_attrs || []).map(attr =>
+                getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+            ),
+            ...(traceCondition.session_attrs || []).map(attr =>
+                getAttributeWithSuggestions(attr.key, 'session', attr, config)
+            ),
         ]
 
         return {
@@ -200,7 +249,7 @@ export default function RuleBuilder({
             }
 
             const ruleState = mode === 'edit'
-                ? convertToTraceRuleState(ruleResult!.data)
+                ? convertToTraceRuleState(ruleResult!.data, configResult.data)
                 : createEmptyTraceRuleState(configResult.data)
 
 
@@ -250,16 +299,26 @@ export default function RuleBuilder({
         }
     }
 
-    const convertToTimelineRuleState = (ruleData: SessionTargetingRule): RuleState | null => {
+    const convertToTimelineRuleState = (
+        ruleData: SessionTargetingRule,
+        config: SessionTargetingConfigResponse
+    ): RuleState | null => {
         const parsed = celToConditions(ruleData.condition)
 
         // Check if it's an event-based rule
         if (parsed.event?.conditions[0]) {
             const eventCondition = parsed.event.conditions[0]
+
             const attributes: AttributeField[] = [
-                ...(eventCondition.attrs || []).map(attr => ({ ...attr, source: 'fixed' as const })),
-                ...(eventCondition.session_attrs || []).map(attr => ({ ...attr, source: 'session' as const })),
-                ...(eventCondition.ud_attrs || []).map(attr => ({ ...attr, source: 'ud' as const })),
+                ...(eventCondition.attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'fixed', attr, config, eventCondition.type)
+                ),
+                ...(eventCondition.session_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
+                ),
+                ...(eventCondition.ud_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+                ),
             ]
 
             return {
@@ -278,9 +337,14 @@ export default function RuleBuilder({
         // Check if it's a trace-based rule
         if (parsed.trace?.conditions[0]) {
             const traceCondition = parsed.trace.conditions[0]
+
             const attributes: AttributeField[] = [
-                ...(traceCondition.ud_attrs || []).map(attr => ({ ...attr, source: 'ud' as const })),
-                ...(traceCondition.session_attrs || []).map(attr => ({ ...attr, source: 'session' as const })),
+                ...(traceCondition.ud_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'ud', attr, config)
+                ),
+                ...(traceCondition.session_attrs || []).map(attr =>
+                    getAttributeWithSuggestions(attr.key, 'session', attr, config)
+                ),
             ]
 
             return {
@@ -331,7 +395,7 @@ export default function RuleBuilder({
             }
 
             const ruleState = mode === 'edit'
-                ? convertToEventRuleState(ruleResult!.data)
+                ? convertToEventRuleState(ruleResult!.data, configResult.data)
                 : createEmptyEventRuleState(configResult.data)
 
 
@@ -390,7 +454,7 @@ export default function RuleBuilder({
             }
 
             const ruleState = mode === 'edit'
-                ? convertToTimelineRuleState(ruleResult!.data)
+                ? convertToTimelineRuleState(ruleResult!.data, configResult.data)
                 : createEmptyTimelineRuleState(configResult.data)
 
             if (!ruleState) {
@@ -1084,6 +1148,7 @@ export default function RuleBuilder({
                 key: attr.key,
                 type: attr.type,
                 hint: attr.hint,
+                suggestions: attr.suggestions,
                 value: getDefaultValue(attr.type),
                 operator: getOperatorsForType(attr.type)[0] || 'eq',
                 source: source,
@@ -1114,6 +1179,7 @@ export default function RuleBuilder({
                 key: traceAttr.key,
                 type: traceAttr.type,
                 hint: traceAttr.hint,
+                suggestions: traceAttr.suggestions,
                 value: getDefaultValue(traceAttr.type),
                 operator: getOperatorsForType(traceAttr.type)[0] || 'eq',
                 source: 'session',
@@ -1171,6 +1237,7 @@ export default function RuleBuilder({
                             source: newSource,
                             type: attrDef.type,
                             hint: attrDef.hint,
+                            suggestions: attrDef.suggestions,
                             value: getDefaultValue(attrDef.type),
                             operator: getOperatorsForType(attrDef.type)[0] || 'eq',
                         } : attr
@@ -1294,6 +1361,7 @@ export default function RuleBuilder({
                         attribute={attr}
                         attributeKeys={allAttributeKeys}
                         operators={getOperatorsForType(attr.type)}
+                        suggestions={attr.suggestions}
                         onUpdateKey={(id, newKey, source) => {
                             updateAttributeKey(id, newKey, source as 'fixed' | 'session' | 'ud')
                         }}

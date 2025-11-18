@@ -101,10 +101,10 @@ type TraceConfig struct {
 // AttrConfig part of the session
 // targeting dashboard config.
 type AttrConfig struct {
-	Key    string    `json:"key"`
-	Type   string    `json:"type"`
-	Hint   string    `json:"hint"`
-	Values *[]string `json:"values"`
+	Key         string    `json:"key"`
+	Type        string    `json:"type"`
+	Hint        string    `json:"hint"`
+	Suggestions *[]string `json:"suggestions"`
 }
 
 // OperatorTypes part of the session
@@ -1362,9 +1362,8 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
 			{Key: "device_low_power_mode", Type: "bool"},
 			{Key: "device_manufacturer", Type: "string", Hint: "E.g. Samsung, Google"},
-			{Key: "device_model", Type: "string", Hint: "E.g. Redmi Go, Pixel 4a "},
 			{Key: "device_thermal_throttling_enabled", Type: "bool"},
-			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet"},
+			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet", Suggestions: &[]string{"phone", "tablet"}},
 			{Key: "installation_id", Type: "string", Hint: "Enter an installation ID"},
 			{Key: "os_version", Type: "string", Hint: "Enter API level like 21, 36"},
 			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
@@ -1376,9 +1375,8 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "device_is_foldable", Type: "bool"},
 			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
 			{Key: "device_low_power_mode", Type: "bool"},
-			{Key: "device_model", Type: "string", Hint: "E.g. iPhone 17"},
 			{Key: "device_thermal_throttling_enabled", Type: "bool"},
-			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet"},
+			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet", Suggestions: &[]string{"phone", "tablet"}},
 			{Key: "installation_id", Type: "string", Hint: "Enter an installation Id"},
 			{Key: "os_version", Type: "string", Hint: "E.g. 18.3.1, 18.4.1"},
 			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
@@ -1391,9 +1389,8 @@ func newSessionConfig(osName string) []AttrConfig {
 			{Key: "device_locale", Type: "string", Hint: "Enter a locale like en_US, fr_FR"},
 			{Key: "device_low_power_mode", Type: "bool"},
 			{Key: "device_manufacturer", Type: "string", Hint: "E.g. Apple, Samsung, Google"},
-			{Key: "device_model", Type: "string", Hint: "E.g. iPhone 17, Pixel 9"},
 			{Key: "device_thermal_throttling_enabled", Type: "bool"},
-			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet"},
+			{Key: "device_type", Type: "string", Hint: "E.g. phone or tablet", Suggestions: &[]string{"phone", "tablet"}},
 			{Key: "installation_id", Type: "string", Hint: "Enter an installation ID"},
 			{Key: "os_version", Type: "string", Hint: "Enter API level or iOS version"},
 			{Key: "user_id", Type: "string", Hint: "Enter a user ID"},
@@ -1409,12 +1406,11 @@ func populateSessionConfigValues(configs []AttrConfig, fl *filter.FilterList) {
 		"os_version":          fl.OsVersions,
 		"device_locale":       fl.DeviceLocales,
 		"device_manufacturer": fl.DeviceManufacturers,
-		"device_model":        fl.DeviceNames,
 	}
 
 	for i := range configs {
 		if values, exists := valueMap[configs[i].Key]; exists && len(values) > 0 {
-			configs[i].Values = &values
+			configs[i].Suggestions = &values
 		}
 	}
 }

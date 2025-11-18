@@ -1247,6 +1247,7 @@ export type AttributeTargetingConfig = {
   key: string;
   type: string;
   hint?: string;
+  suggestions?: string[] | number[];
 }
 
 export type TargetingOperatorConfig = {
