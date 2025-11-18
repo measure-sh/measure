@@ -1218,7 +1218,7 @@ export default function RuleBuilder({
                                         value="sampled"
                                         checked={ruleState.collectionMode === 'sampled'}
                                         onChange={() => updateRuleState({ collectionMode: 'sampled' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                     />
                                     <SamplingRateInput
                                         value={ruleState.sampleRate || 100}
@@ -1235,7 +1235,7 @@ export default function RuleBuilder({
                                         value="timeline"
                                         checked={ruleState.collectionMode === 'timeline'}
                                         onChange={() => updateRuleState({ collectionMode: 'timeline' })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                     />
                                     <span className="text-sm font-body">Collect with timeline only</span>
                                 </label>
@@ -1247,7 +1247,7 @@ export default function RuleBuilder({
                                         value="disabled"
                                         checked={ruleState.collectionMode === 'disabled'}
                                         onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
-                                        className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                     />
                                     <span className="text-sm font-body">Do not collect</span>
                                 </label>
@@ -1266,7 +1266,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_layout_snapshot === true && ruleState.take_screenshot === false}
                                             onChange={() => updateRuleState({ take_layout_snapshot: true, take_screenshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                         />
                                         <span className="text-sm font-body">Take layout snapshot</span>
                                     </label>
@@ -1279,7 +1279,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_screenshot === true && ruleState.take_layout_snapshot === false}
                                             onChange={() => updateRuleState({ take_screenshot: true, take_layout_snapshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                         />
                                         <span className="text-sm font-body">Take screenshot</span>
                                     </label>
@@ -1292,7 +1292,7 @@ export default function RuleBuilder({
                                             checked={ruleState.take_screenshot === false && ruleState.take_layout_snapshot === false}
                                             onChange={() => updateRuleState({ take_screenshot: false, take_layout_snapshot: false })}
                                             disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border border-gray-400 rounded-full outline-none cursor-pointer checked:bg-black checked:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:cursor-not-allowed"
+                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
                                         />
                                         <span className="text-sm font-body">No attachments</span>
                                     </label>
