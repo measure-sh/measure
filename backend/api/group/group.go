@@ -192,7 +192,7 @@ func SortANRGroups(groups []ANRGroup) {
 // matched by app filter(s) and exception event ids.
 func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`id, exception.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("id in ?", eventIds)
@@ -230,8 +230,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.
-		From(`unhandled_exception_groups`).
-		Clause(`FINAL`).
+		From(`unhandled_exception_groups final`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
@@ -290,7 +289,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 // matched by app filter(s) and ANR event ids.
 func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`id, anr.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where(`id in ?`, eventIds)

@@ -368,7 +368,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		// Fetch attachments for current app's stale events
 		fetchAttachmentsStmt := sqlf.
 			Select("attachments").
-			From("events").
+			From("events final").
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 

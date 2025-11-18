@@ -82,7 +82,7 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 
 		if !event.Exception.Handled {
 			stmt := sqlf.PostgreSQL.
-				From("unhandled_exception_groups").
+				From("unhandled_exception_groups final").
 				Select("id").
 				Where("app_id = ?", appId).
 				Where("id = ?", event.Exception.Fingerprint)

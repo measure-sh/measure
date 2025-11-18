@@ -52,8 +52,7 @@ type BugReportStatusUpdatePayload struct {
 // GetBugReportInstancesPlot provides aggregated bug report instances
 // matching various filters.
 func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
-	base := sqlf.From("bug_reports").
-		Clause("FINAL").
+	base := sqlf.From("bug_reports final").
 		Select("event_id").
 		Select("app_version").
 		Select("timestamp").
@@ -134,9 +133,8 @@ func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugRe
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("distinct event_id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		base.SubQuery("event_id in (", ")", subQuery)
@@ -180,8 +178,7 @@ func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugRe
 // GetBugReportsWithFilter provides bug reports that matches various
 // filter criteria in a paginated fashion.
 func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
-	stmt := sqlf.From("bug_reports").
-		Clause("FINAL").
+	stmt := sqlf.From("bug_reports final").
 		Select("event_id").
 		Select("session_id").
 		Select("timestamp").
@@ -257,9 +254,8 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("distinct event_id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		stmt.SubQuery("event_id in (", ")", subQuery)
@@ -391,8 +387,7 @@ func extractMatches(
 
 // GetBugReport fetches a bug report by its event id.
 func GetBugReportById(ctx context.Context, bugReportId string) (bugReport BugReport, err error) {
-	stmt := sqlf.From("bug_reports").
-		Clause("FINAL").
+	stmt := sqlf.From("bug_reports final").
 		Select("event_id").
 		Select("app_id").
 		Select("session_id").

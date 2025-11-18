@@ -630,9 +630,9 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -696,9 +696,9 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -745,9 +745,9 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -791,9 +791,9 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -837,9 +837,9 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -883,9 +883,9 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -932,9 +932,9 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -978,9 +978,9 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -1024,9 +1024,9 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -1068,9 +1068,9 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
 	var table string
 	if af.Span {
-		table = "span_user_def_attrs"
+		table = "span_user_def_attrs final"
 	} else {
-		table = "user_def_attrs"
+		table = "user_def_attrs final"
 	}
 
 	substmt := sqlf.From(table).

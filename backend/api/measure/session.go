@@ -230,9 +230,8 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("distinct session_id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		base.SubQuery("session_id in (", ")", subQuery)
@@ -371,9 +370,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("distinct session_id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		stmt.SubQuery("session_id in (", ")", subQuery)

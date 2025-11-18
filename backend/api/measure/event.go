@@ -1576,7 +1576,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 
 	prewhere := "prewhere app_id = toUUID(?) and exception.fingerprint = ?"
 
-	substmt := sqlf.From("events").
+	substmt := sqlf.From("events final").
 		Select("distinct id").
 		Select("type").
 		Select("timestamp").
@@ -1606,9 +1606,8 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1716,7 +1715,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
@@ -1776,9 +1775,8 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1849,7 +1847,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 
 	prewhere := "prewhere app_id = toUUID(?) and anr.fingerprint = ?"
 
-	substmt := sqlf.From("events").
+	substmt := sqlf.From("events final").
 		Select("distinct id").
 		Select("type").
 		Select("timestamp").
@@ -1877,9 +1875,8 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -1987,7 +1984,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
@@ -2047,9 +2044,8 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -2154,9 +2150,8 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)
@@ -2233,7 +2228,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	}
 
 	stmt := sqlf.
-		From(`events`).
+		From(`events final`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("uniq(id) as instances").
@@ -2244,9 +2239,8 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)
