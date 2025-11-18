@@ -40,13 +40,6 @@ export default function EditDefaultRuleDialog({
     const [sampleRate, setSampleRate] = useState<number>(initialSampleRate || 100)
     const [isSaving, setIsSaving] = useState(false)
 
-    useEffect(() => {
-        if (isOpen) {
-            setCollectionMode(initialCollectionMode)
-            setSampleRate(initialSampleRate || 100)
-        }
-    }, [isOpen, initialCollectionMode, initialSampleRate])
-
     const handleSave = async () => {
         setIsSaving(true)
 
@@ -87,6 +80,13 @@ export default function EditDefaultRuleDialog({
             setIsSaving(false)
         }
     }
+
+     useEffect(() => {
+        if (isOpen) {
+            setCollectionMode(initialCollectionMode)
+            setSampleRate(initialSampleRate || 100)
+        }
+    }, [isOpen, initialCollectionMode, initialSampleRate])
 
     const isEvent = ruleType === 'event'
     const displayName = isEvent ? 'Events' : 'Traces'
