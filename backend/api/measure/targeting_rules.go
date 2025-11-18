@@ -189,7 +189,7 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
-	stmt.OrderBy("updated_at DESC")
+	stmt.OrderBy("COALESCE(updated_at, created_at) DESC")
 
 	defer stmt.Close()
 
@@ -265,7 +265,7 @@ func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
-	stmt.OrderBy("updated_at DESC")
+	stmt.OrderBy("COALESCE(updated_at, created_at) DESC")
 
 	defer stmt.Close()
 
@@ -337,7 +337,7 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 		Select("auto_created").
 		Where("app_id = ?", af.AppID)
 
-	stmt.OrderBy("updated_at DESC")
+	stmt.OrderBy("COALESCE(updated_at, created_at) DESC")
 
 	defer stmt.Close()
 
