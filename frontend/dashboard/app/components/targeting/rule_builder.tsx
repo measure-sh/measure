@@ -877,7 +877,7 @@ export default function RuleBuilder({
                                 value={ruleState.condition.spanName || ""}
                                 suggestions={traceNames}
                                 availableOperators={sessionConfig.operator_types?.string || ['eq']}
-                                placeholder="Enter trace name..."
+                                placeholder="Enter trace name"
                                 onValueChange={(value) =>
                                     setRuleState(prev =>
                                         prev ? { ...prev, condition: { ...prev.condition, spanName: value } } : prev
