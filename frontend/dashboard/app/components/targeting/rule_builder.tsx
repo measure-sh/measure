@@ -13,7 +13,8 @@ import SamplingRateInput from "./sampling_rate_input"
 import DangerConfirmationDialog from "../danger_confirmation_dialog"
 import AttributeBuilder from "./attribute_builder"
 import { Plus } from "lucide-react"
-import AutocompleteInputWithOperator from "./autocomplete_builder"
+import AutocompleteInputWithOperator from "../autocomplete_input"
+import TraceOperatorNameInput from "./trace_name_operator_input"
 
 enum PageState {
     Loading,
@@ -806,7 +807,7 @@ export default function RuleBuilder({
                 <span className="font-display text-xl">When trace with name</span>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <AutocompleteInputWithOperator
+                    <TraceOperatorNameInput
                         operator={ruleState.condition.spanOperator || "eq"}
                         value={ruleState.condition.spanName || ""}
                         suggestions={traceNames}
@@ -884,7 +885,7 @@ export default function RuleBuilder({
                         <>
                             <span className="font-display text-xl">with name</span>
 
-                            <AutocompleteInputWithOperator
+                            <TraceOperatorNameInput
                                 operator={ruleState.condition.spanOperator || "eq"}
                                 value={ruleState.condition.spanName || ""}
                                 suggestions={traceNames}
