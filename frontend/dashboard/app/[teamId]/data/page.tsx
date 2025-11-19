@@ -31,7 +31,7 @@ const initialState: PageState = {
     editingDefaultRuleType: null,
 }
 
-export default function DataFilters({ params }: { params: { teamId: string } }) {
+export default function DataControlOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const [pageState, setPageState] = useState<PageState>(initialState)
 
