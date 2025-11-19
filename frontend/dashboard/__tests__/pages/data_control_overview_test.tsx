@@ -320,5 +320,4 @@ describe('DataControlOverview Component', () => {
         const createButton = await screen.findByText('Create Rule')
         expect(createButton).not.toBeDisabled()
     })
-    
 })
