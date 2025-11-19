@@ -59,7 +59,7 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
-	// r.GET("/config", measure.ValidateAPIKey(), measure.GetConfig)
+	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfig)
 
 	// Proxy routes
 	r.GET("/proxy/attachments", measure.ProxyAttachment)

@@ -171,7 +171,7 @@ type SessionTargetingRulePayload struct {
 
 // GetEventTargetingRules provides all
 // event targeting rules.
-func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter, teamId *uuid.UUID) (response EventTargetingRulesResponse, err error) {
+func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (response EventTargetingRulesResponse, err error) {
 	stmt := sqlf.PostgreSQL.From("event_targeting_rules").
 		Select("id").
 		Select("team_id").
@@ -249,7 +249,7 @@ func GetEventTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter,
 
 // GetTraceTargetingRulesWithFilter provides all
 // trace targeting rules.
-func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter, teamId *uuid.UUID) (response TraceTargetingRulesResponse, err error) {
+func GetTraceTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (response TraceTargetingRulesResponse, err error) {
 	stmt := sqlf.PostgreSQL.From("trace_targeting_rules").
 		Select("id").
 		Select("team_id").

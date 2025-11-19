@@ -6568,7 +6568,7 @@ func GetEventTargetingRules(c *gin.Context) {
 		return
 	}
 
-	response, err := GetEventTargetingRulesWithFilter(ctx, &af, team.ID)
+	response, err := GetEventTargetingRulesWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's event targeting rules"
 		fmt.Println(msg, err)
@@ -6667,7 +6667,7 @@ func GetTraceTargetingRules(c *gin.Context) {
 		return
 	}
 
-	response, err := GetTraceTargetingRulesWithFilter(ctx, &af, team.ID)
+	response, err := GetTraceTargetingRulesWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's trace targeting rules"
 		fmt.Println(msg, err)
