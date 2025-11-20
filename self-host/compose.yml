@@ -457,8 +457,8 @@ services:
       --maxmemory-policy allkeys-lru
       --io-threads 4
       --io-threads-do-reads yes
-      --save ""
-      --appendonly no
+      --appendonly yes
+      --appendfsync everysec
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 5s

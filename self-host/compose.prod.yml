@@ -144,12 +144,9 @@ services:
       --maxmemory-policy allkeys-lru
       --io-threads 4
       --io-threads-do-reads yes
-      --save ""
-      --appendonly no
+      --appendonly yes
+      --appendfsync everysec
       --requirepass ${REDIS_PASSWORD}
-      --rename-command FLUSHDB ""
-      --rename-command FLUSHALL ""
-      --rename-command CONFIG ""
     restart: unless-stopped
     logging:
       driver: local
