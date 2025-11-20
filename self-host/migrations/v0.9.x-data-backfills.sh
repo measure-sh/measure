@@ -29,10 +29,6 @@ source "${SCRIPT_DIR}/../shared.sh"
 #   2. Column count & type of `events` & `events_rmt` tables must match
 #   2. Column count & type of `spans` & `spans_rmt` tables must match
 optimize_clickhouse_database() {
-  echo "Optimizing clickhouse database..."
-  echo "This might take a while depending on volume of data."
-  echo
-
   local admin_user
   local admin_password
   local dbname
@@ -42,6 +38,9 @@ optimize_clickhouse_database() {
   admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   dbname=measure
+
+  echo
+  echo "Optimizing ClickHouse..."
 
   ch_version=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
     --user "${admin_user}" \
@@ -132,8 +131,8 @@ optimize_clickhouse_database() {
   # if both events and spans tables are empty, this must be a fresh
   # install.
   #
-  # make 'events' & 'spans' table engines are ReplacingMergeTree
-  # & drop the '*_rmt' tables.
+  # make 'events' & 'spans' ReplacingMergeTree tables & drop the
+  # '*_rmt' tables.
   if [[ "$events_rows_count" == "0" && "$spans_rows_count" == "0" ]]; then
     $DOCKER_COMPOSE exec clickhouse clickhouse-client \
       --user "${admin_user}" \
@@ -148,9 +147,11 @@ optimize_clickhouse_database() {
       drop table if exists spans_rmt;
       "
 
+      echo "Optimization complete!"
       exit 0
   fi
 
+  echo "This might take a while depending on volume of data."
   echo
 
   # backfill events
