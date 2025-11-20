@@ -1,5 +1,14 @@
-import React from 'react';
-import { SectionList, Text, View, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  SectionList,
+  Text,
+  View,
+  Pressable,
+  StyleSheet,
+  Modal,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import { Measure } from '@measuresh/react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,22 +21,14 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 const stopMeasure = () => {
   Measure.stop()
-    .then(() => {
-      console.log('Measure SDK stopped successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to stop Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK stopped successfully'))
+    .catch((error) => console.error('Failed to stop Measure SDK:', error));
 };
 
 const startMeasure = () => {
   Measure.start()
-    .then(() => {
-      console.log('Measure SDK started successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to start Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK started successfully'))
+    .catch((error) => console.error('Failed to start Measure SDK:', error));
 };
 
 const simulateJSException = () => {
@@ -39,8 +40,6 @@ const simulateUnhandledPromiseRejection = () => {
 };
 
 const simulateNativeCrash = () => {
-  // Intentionally call something invalid to crash native bridge
-  // (you’ll only see this on device/emulator, not in web preview)
   // @ts-ignore
   Measure.triggerNativeCrash();
 };
@@ -68,6 +67,23 @@ const trackBugReport = () => {
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const captureScreenshot = async () => {
+    try {
+      const result = await Measure.captureScreenshot();
+
+      const base64 = 'data:image/png;base64,' + result.base64;
+      setScreenshot(base64);
+      setModalVisible(true);
+
+      console.log('Screenshot captured:', result);
+    } catch (e) {
+      console.error('Failed to capture screenshot:', e);
+    }
+  };
 
   const navigateToComponentScreen = () => {
     navigation.navigate('ComponentScreen');
@@ -97,6 +113,11 @@ export default function HomeScreen() {
           id: 'bugReport',
           title: 'Track Bug Report',
           onPress: trackBugReport,
+        },
+        {
+          id: 'screenshot',
+          title: 'Capture Screenshot',
+          onPress: captureScreenshot,
         },
       ],
     },
@@ -144,6 +165,33 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Screenshot Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            {screenshot && (
+              <Image
+                source={{ uri: screenshot }}
+                style={styles.screenshotImage}
+                resizeMode="contain"
+              />
+            )}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Main UI */}
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -183,5 +231,38 @@ const styles = StyleSheet.create({
     color: '#1e1e1e',
     fontSize: 16,
     textAlign: 'left',
+  },
+
+  // Modal styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  screenshotImage: {
+    width: '100%',
+    height: 400,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+  },
+  closeButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#333',
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
