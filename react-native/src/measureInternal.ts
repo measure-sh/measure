@@ -6,6 +6,7 @@ import type { MeasureInitializer } from './measureInitializer';
 import { initializeNativeSDK, start, stop } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
+import type { ScreenshotResult } from './screenshot/screenshotCollector';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 export class MeasureInternal {
@@ -111,6 +112,10 @@ export class MeasureInternal {
     );
   }
 
+  async captureScreenshot(): Promise<ScreenshotResult | null> {
+    return this.measureInitializer.screenshotCollector.capture();
+  }
+  
   registerCollectors(): void {
     this.measureInitializer.customEventCollector.register();
     this.measureInitializer.userTriggeredEventCollector.register();

@@ -8,6 +8,7 @@ import { MeasureInternal } from './measureInternal';
 import { InvalidSpan } from './tracing/invalidSpan';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
+import type { ScreenshotResult } from './screenshot/screenshotCollector';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 let _initializationPromise: Promise<void> | null = null;
@@ -374,5 +375,15 @@ export const Measure = {
     }
 
     _measureInternal.onShake(handler);
+  },
+
+  captureScreenshot(): Promise<ScreenshotResult | null> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.captureScreenshot();
   },
 };

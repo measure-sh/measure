@@ -192,4 +192,42 @@ class MeasureModule: NSObject, RCTBridgeModule {
             Measure.onShake(nil)
         }
     }
+
+    @objc
+    func captureScreenshot(_ resolve: @escaping RCTPromiseResolveBlock,
+                        rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            var window: UIWindow?
+            if #available(iOS 13.0, *) {
+                window = UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .flatMap { $0.windows }
+                    .first { $0.isKeyWindow }
+            } else {
+                window = UIApplication.shared.windows.first(where: { $0.isKeyWindow })
+            }
+            
+            guard let window = window else {
+                reject("NO_WINDOW", "Unable to find main window", nil)
+                return
+            }
+
+            UIGraphicsBeginImageContextWithOptions(window.bounds.size, false, 0)
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            let image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+
+            guard let img = image,
+                let pngData = img.pngData() else {
+                reject("CAPTURE_FAIL", "Failed to get screenshot image", nil)
+                return
+            }
+
+            let base64 = pngData.base64EncodedString()
+
+            resolve([
+                "base64": base64
+            ])
+        }
+    }
 }

@@ -245,4 +245,47 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             Measure.setShakeListener(null)
         }
     }
+
+    @ReactMethod
+    fun captureScreenshot(promise: Promise) {
+        try {
+            val activity = currentActivity
+            if (activity == null) {
+                promise.reject("NO_ACTIVITY", "No current activity available")
+                return
+            }
+
+            UiThreadUtil.runOnUiThread {
+                try {
+                    val rootView = activity.window.decorView.rootView
+
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        rootView.width,
+                        rootView.height,
+                        android.graphics.Bitmap.Config.ARGB_8888
+                    )
+
+                    val canvas = android.graphics.Canvas(bitmap)
+                    rootView.draw(canvas)
+
+                    val output = java.io.ByteArrayOutputStream()
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+
+                    val base64 = android.util.Base64.encodeToString(
+                        output.toByteArray(),
+                        android.util.Base64.DEFAULT
+                    )
+
+                    val map = com.facebook.react.bridge.Arguments.createMap()
+                    map.putString("base64", base64)
+
+                    promise.resolve(map)
+                } catch (e: Exception) {
+                    promise.reject("SCREENSHOT_ERROR", e)
+                }
+            }
+        } catch (e: Exception) {
+            promise.reject("SCREENSHOT_CAPTURE_FAILED", e)
+        }
+    }
 }

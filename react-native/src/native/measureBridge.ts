@@ -214,3 +214,15 @@ export function setShakeListener(enable: boolean, handler?: () => void): void {
 
   MeasureEventEmitter.addListener('MeasureOnShake', handler);
 }
+
+export function captureScreenshot(): Promise<{
+  base64: string;
+}> {
+  if (!MeasureModule.captureScreenshot) {
+    return Promise.reject(
+      new Error('captureScreenshot native method not available.')
+    );
+  }
+
+  return MeasureModule.captureScreenshot();
+}

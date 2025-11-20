@@ -36,6 +36,7 @@ import {
   BugReportCollector,
   type IBugReportCollector,
 } from './bugReport/bugReportCollector';
+import { ScreenshotCollector, type IScreenshotCollector } from './screenshot/screenshotCollector';
 
 export interface MeasureInitializer {
   logger: Logger;
@@ -56,6 +57,7 @@ export interface MeasureInitializer {
   traceSampler: ITraceSampler;
   nativeApiProcessor: INativeApiProcessor;
   bugReportCollector: IBugReportCollector;
+  screenshotCollector: IScreenshotCollector;
 }
 
 export class BaseMeasureInitializer implements MeasureInitializer {
@@ -77,6 +79,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
   traceSampler: ITraceSampler;
   nativeApiProcessor: INativeApiProcessor;
   bugReportCollector: IBugReportCollector;
+  screenshotCollector: IScreenshotCollector;
 
   constructor(client: Client, config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
@@ -141,5 +144,6 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       logger: this.logger,
     });
     this.bugReportCollector = new BugReportCollector({ logger: this.logger });
+    this.screenshotCollector = new ScreenshotCollector();
   }
 }
