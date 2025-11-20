@@ -61,25 +61,33 @@ type SDKConfig struct {
 	SessionRules []SDKSessionRule `json:"session_rules"`
 }
 
+// computeETag returns a hex-encoded
+// FNV-1a hash of the given data.
 func computeETag(data []byte) string {
-	h := fnv.New64a() 
+	h := fnv.New64a()
 	_, _ = h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// getSDKConfigETag retrieves the
+// ETag value for the given app
+// ID from Valkey.
 func getSDKConfigETag(ctx context.Context, appId uuid.UUID) (string, error) {
 	key := getSDKConfigCacheKey(appId)
-	return server.Server.Redis.HGet(ctx, key, "etag").Result()
+	return server.Server.Valkey.HGet(ctx, key, "etag").Result()
 }
 
+// getSDKConfigData retrieves the
+// config payload for the given
+// app ID from Valkey.
 func getSDKConfigData(ctx context.Context, appId uuid.UUID) (string, error) {
 	key := getSDKConfigCacheKey(appId)
-	return server.Server.Redis.HGet(ctx, key, "data").Result()
+	return server.Server.Valkey.HGet(ctx, key, "data").Result()
 }
 
 // getSDKConfigCacheKey returns the Redis cache key for SDK config
 func getSDKConfigCacheKey(appId uuid.UUID) string {
-	return fmt.Sprintf("%s:sdk_config", appId.String())
+	return fmt.Sprintf("{%s}:sdk_config", appId.String())
 }
 
 // setSDKConfigToCache stores config JSON & ETag
@@ -88,7 +96,7 @@ func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte
 
 	etag := computeETag(jsonConfig)
 
-	pipe := server.Server.Redis.TxPipeline()
+	pipe := server.Server.Valkey.TxPipeline()
 	pipe.HSet(ctx, key, "etag", etag)
 	pipe.HSet(ctx, key, "data", string(jsonConfig))
 	_, err := pipe.Exec(ctx)
@@ -103,7 +111,7 @@ func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte
 func InvalidateSDKConfigCache(ctx context.Context, appId uuid.UUID) error {
 	key := getSDKConfigCacheKey(appId)
 
-	if err := server.Server.Redis.Del(ctx, key).Err(); err != nil {
+	if err := server.Server.Valkey.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("failed to delete cache: %w", err)
 	}
 
@@ -112,17 +120,17 @@ func InvalidateSDKConfigCache(ctx context.Context, appId uuid.UUID) error {
 
 // fetchSDKConfigFromDB fetches SDK config from database
 func fetchSDKConfigFromDB(ctx context.Context, appId uuid.UUID) (*SDKConfig, error) {
-	eventRules, err := GetSDKEventRules(ctx, appId)
+	eventRules, err := getSDKEventRules(ctx, appId)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching event rules: %w", err)
 	}
 
-	traceRules, err := GetSDKTraceRules(ctx, appId)
+	traceRules, err := getSDKTraceRules(ctx, appId)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching trace rules: %w", err)
 	}
 
-	sessionRules, err := GetSDKSessionRules(ctx, appId)
+	sessionRules, err := getSDKSessionRules(ctx, appId)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching session rules: %w", err)
 	}
@@ -134,8 +142,8 @@ func fetchSDKConfigFromDB(ctx context.Context, appId uuid.UUID) (*SDKConfig, err
 	}, nil
 }
 
-// GetSDKEventRules queries event targeting rules optimized for SDK
-func GetSDKEventRules(ctx context.Context, appId uuid.UUID) ([]SDKEventRule, error) {
+// getSDKEventRules queries event targeting rules optimized for SDK
+func getSDKEventRules(ctx context.Context, appId uuid.UUID) ([]SDKEventRule, error) {
 	stmt := sqlf.PostgreSQL.From("event_targeting_rules").
 		Select("id").
 		Select("name").
@@ -176,8 +184,8 @@ func GetSDKEventRules(ctx context.Context, appId uuid.UUID) ([]SDKEventRule, err
 	return rules, rows.Err()
 }
 
-// GetSDKTraceRules queries trace targeting rules optimized for SDK
-func GetSDKTraceRules(ctx context.Context, appId uuid.UUID) ([]SDKTraceRule, error) {
+// getSDKTraceRules queries trace targeting rules optimized for SDK
+func getSDKTraceRules(ctx context.Context, appId uuid.UUID) ([]SDKTraceRule, error) {
 	stmt := sqlf.PostgreSQL.From("trace_targeting_rules").
 		Select("id").
 		Select("name").
@@ -214,8 +222,8 @@ func GetSDKTraceRules(ctx context.Context, appId uuid.UUID) ([]SDKTraceRule, err
 	return rules, rows.Err()
 }
 
-// GetSDKSessionRules queries session targeting rules optimized for SDK
-func GetSDKSessionRules(ctx context.Context, appId uuid.UUID) ([]SDKSessionRule, error) {
+// getSDKSessionRules queries session targeting rules optimized for SDK
+func getSDKSessionRules(ctx context.Context, appId uuid.UUID) ([]SDKSessionRule, error) {
 	stmt := sqlf.PostgreSQL.From("session_targeting_rules").
 		Select("id").
 		Select("name").
@@ -261,12 +269,12 @@ func GetConfig(c *gin.Context) {
 
 	clientETag := c.GetHeader("If-None-Match")
 
-	redisETag, err := getSDKConfigETag(c.Request.Context(), appId)
-	if err == nil && redisETag != "" {
+	cachedETag, err := getSDKConfigETag(c.Request.Context(), appId)
+	if err == nil && cachedETag != "" {
 		// Same ETag
-		if redisETag == clientETag {
+		if cachedETag == clientETag {
 			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", redisETag)
+			c.Header("ETag", cachedETag)
 			c.Status(http.StatusNotModified)
 			return
 		}
@@ -275,7 +283,7 @@ func GetConfig(c *gin.Context) {
 		data, err := getSDKConfigData(c.Request.Context(), appId)
 		if err == nil && data != "" {
 			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", redisETag)
+			c.Header("ETag", cachedETag)
 			c.Data(http.StatusOK, "application/json", []byte(data))
 			return
 		}

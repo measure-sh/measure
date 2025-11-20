@@ -17,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
+	valkey "github.com/redis/go-redis/v9"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,7 +35,7 @@ type server struct {
 	PgPool  *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
-	Redis   *redis.Client
+	Valkey  *valkey.Client
 	Mail    *mail.Client
 	Config  *ServerConfig
 }
@@ -51,15 +51,15 @@ type ClickhouseConfig struct {
 	ReaderDSN string
 }
 
-type RedisConfig struct {
-	/* connection string of the redis instance */
+type ValkeyConfig struct {
+	/* connection string of the valkey instance */
 	DSN string
 }
 
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
-	RD                         RedisConfig
+	RD                         ValkeyConfig
 	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
@@ -284,7 +284,7 @@ func NewConfig() *ServerConfig {
 			DSN:       clickhouseDSN,
 			ReaderDSN: clickhouseReaderDSN,
 		},
-		RD: RedisConfig{
+		RD: ValkeyConfig{
 			DSN: valkeyDSN,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
@@ -395,19 +395,19 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to create reader CH connection pool: %v\n", err)
 	}
 
-	// init redis client
-	var redisClient *redis.Client
+	// init valkey client
+	var valkeyClient *valkey.Client
 	if config.RD.DSN != "" {
-		redisOpts, err := redis.ParseURL(config.RD.DSN)
+		redisOpts, err := valkey.ParseURL(config.RD.DSN)
 		if err != nil {
-			log.Printf("Unable to parse Redis connection string: %v\n", err)
+			log.Printf("Unable to parse Valkey connection string: %v\n", err)
 		}
 
-		redisClient = redis.NewClient(redisOpts)
+		valkeyClient = valkey.NewClient(redisOpts)
 
 		// test redis connection
-		if err := redisClient.Ping(ctx).Err(); err != nil {
-			log.Printf("Unable to connect to Redis: %v\n", err)
+		if err := valkeyClient.Ping(ctx).Err(); err != nil {
+			log.Printf("Unable to connect to Valkey: %v\n", err)
 		}
 	}
 
@@ -439,7 +439,7 @@ func Init(config *ServerConfig) {
 		PgPool:  pgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
-		Redis:   redisClient,
+		Valkey:  valkeyClient,
 		Config:  config,
 		Mail:    mailClient,
 	}
