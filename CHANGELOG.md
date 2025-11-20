@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use correct ddl state for fresh installs (#2914) by @detj in #2914
 - (**backend**): Improve robustness of ingestion de-duplication (#2891) by @detj in #2891
 - (**backend**): Delete pending alerts older than 24 hours by @anupcowkur in #2902
 - (**backend**): Stop Slack channel removal on `channel_not_found` by @anupcowkur in #2900
