@@ -82,10 +82,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       this.configLoader
     );
     this.timeProvider = new MeasureTimeProvider();
-    this.signalProcessor = new SignalProcessor(
-      this.logger,
-      this.timeProvider,
-    );
+    this.signalProcessor = new SignalProcessor(this.logger);
     this.customEventCollector = new CustomEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,

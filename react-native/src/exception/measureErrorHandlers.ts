@@ -1,7 +1,7 @@
 import type { Logger } from "../utils/logger";
 import { buildExceptionPayload } from "./exceptionBuilder";
-import { trackEvent } from "../native/measureBridge";
 import type { TimeProvider } from "../utils/timeProvider";
+import type { ISignalProcessor } from "../events/signalProcessor";
 
 interface Options {
   onerror?: boolean;
@@ -9,9 +9,10 @@ interface Options {
   patchGlobalPromise?: boolean;
   timeProvider: TimeProvider;
   logger: Logger;
+  signalProcessor: ISignalProcessor;
 }
 
-const DEFAULTS: Omit<Required<Options>, "timeProvider" | "logger"> = {
+const DEFAULTS: Omit<Required<Options>, "timeProvider" | "logger" | "signalProcessor"> = {
   onerror: true,
   onunhandledrejection: true,
   patchGlobalPromise: true,
@@ -23,23 +24,23 @@ let defaultErrorHandler: ((error: any, isFatal?: boolean) => void) | undefined;
  * Initialize React Native global crash & exception tracking
  */
 export function setupErrorHandlers(options: Options): void {
-  const { timeProvider, logger, ...rest } = options;
+  const { timeProvider, logger, signalProcessor, ...rest } = options;
   const merged = { ...DEFAULTS, ...rest };
   const log: Logger = logger
 
   if (merged.onerror) {
-    setupGlobalErrorHandler(timeProvider, log);
+    setupGlobalErrorHandler(timeProvider, log, signalProcessor);
   }
 
   if (merged.onunhandledrejection) {
-    setupUnhandledRejectionHandler(merged.patchGlobalPromise, timeProvider, log);
+    setupUnhandledRejectionHandler(merged.patchGlobalPromise, timeProvider, log, signalProcessor);
   }
 }
 
 /**
  * Common function to capture, log and forward exceptions
  */
-function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger): void {
+function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): void {
   try {
     const exceptionPayload = buildExceptionPayload(error, false);
 
@@ -50,13 +51,10 @@ function captureException(error: unknown, isFatal: boolean, timeProvider: TimePr
       exceptionPayload
     );
 
-    trackEvent(
+    signalProcessor.trackEvent(
       exceptionPayload,
       "exception",
       timeProvider.now(),
-      {},
-      {},
-      false
     ).catch((err) => {
       logger.log("error", "Failed to send exception to native", err);
     });
@@ -68,7 +66,7 @@ function captureException(error: unknown, isFatal: boolean, timeProvider: TimePr
 /**
  * Hook into React Native's global ErrorUtils handler
  */
-function setupGlobalErrorHandler(timeProvider: TimeProvider, logger: Logger): void {
+function setupGlobalErrorHandler(timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): void {
   const errorUtils = (global as any).ErrorUtils;
   if (!errorUtils?.getGlobalHandler || !errorUtils?.setGlobalHandler) {
     logger.log(
@@ -81,7 +79,7 @@ function setupGlobalErrorHandler(timeProvider: TimeProvider, logger: Logger): vo
   defaultErrorHandler = errorUtils.getGlobalHandler();
 
   errorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
-    captureException(error, !!isFatal, timeProvider, logger);
+    captureException(error, !!isFatal, timeProvider, logger, signalProcessor);
 
     if (defaultErrorHandler) {
       defaultErrorHandler(error, isFatal);
@@ -97,7 +95,8 @@ function setupGlobalErrorHandler(timeProvider: TimeProvider, logger: Logger): vo
 function setupUnhandledRejectionHandler(
   patchGlobalPromise: boolean,
   timeProvider: TimeProvider,
-  logger: Logger
+  logger: Logger,
+  signalProcessor: ISignalProcessor
 ): void {
   try {
     const hermes = (global as any).HermesInternal;
@@ -105,7 +104,7 @@ function setupUnhandledRejectionHandler(
     if (hermes?.enablePromiseRejectionTracker && typeof hermes.hasPromise === "function" && hermes.hasPromise()) {
       hermes.enablePromiseRejectionTracker({
         allRejections: true,
-        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger),
+        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger, signalProcessor),
         onHandled: (id: string) => logger.internalLog("debug", `Promise rejection handled (id: ${id})`),
       });
       logger.internalLog("info", "Using Hermes promise rejection tracking.");
@@ -113,7 +112,7 @@ function setupUnhandledRejectionHandler(
       const rejectionTracking = require("promise/setimmediate/rejection-tracking");
       rejectionTracking.enable({
         allRejections: true,
-        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger),
+        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger, signalProcessor),
         onHandled: (id: string) => logger.internalLog("debug", `Promise rejection handled (id: ${id})`),
       });
       logger.internalLog("info", "Using polyfill for promise rejection tracking.");
