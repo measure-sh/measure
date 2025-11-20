@@ -720,6 +720,11 @@ func CreateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return ruleId, nil
 }
 
@@ -759,6 +764,10 @@ func UpdateEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("event targeting rule not found")
+	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
 	}
 
 	return nil
@@ -811,6 +820,11 @@ func CreateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, teamId
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return ruleId, nil
 }
 
@@ -848,6 +862,10 @@ func UpdateTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("trace targeting rule not found")
+	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
 	}
 
 	return nil
@@ -889,6 +907,11 @@ func CreateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, team
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return ruleId, nil
 }
 
@@ -923,6 +946,10 @@ func UpdateSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 		return fmt.Errorf("session targeting rule not found")
 	}
 
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return nil
 }
 
@@ -943,6 +970,11 @@ func DeleteEventTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("event targeting rule not found")
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return nil
 }
 
@@ -963,6 +995,11 @@ func DeleteTraceTargetingRuleForApp(ctx context.Context, appId uuid.UUID, ruleId
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("trace targeting rule not found")
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return nil
 }
 
@@ -983,6 +1020,11 @@ func DeleteSessionTargetingRuleForApp(ctx context.Context, appId uuid.UUID, rule
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("session targeting rule not found")
 	}
+
+	if err := InvalidateSDKConfigCache(ctx, appId); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
+	}
+
 	return nil
 }
 
@@ -1167,6 +1209,10 @@ func CreateDefaultTargetingRules(ctx context.Context, tx pgx.Tx, teamId string, 
 	_, err = tx.Exec(context.Background(), traceStmt.String(), traceStmt.Args()...)
 	if err != nil {
 		return fmt.Errorf("failed to create trace targeting rule: %w", err)
+	}
+
+	if err := InvalidateSDKConfigCache(ctx, appUUID); err != nil {
+		fmt.Println("failed to invalidate SDK config cache:", err)
 	}
 
 	return nil
