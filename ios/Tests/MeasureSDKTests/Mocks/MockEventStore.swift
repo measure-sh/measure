@@ -37,16 +37,10 @@ final class MockEventStore: EventStore {
         completion(events.isEmpty ? nil : events)
     }
 
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void) {
-        var filteredEvents = sessionId == nil ? events : events.filter { $0.sessionId == sessionId }
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void) {
+        let filteredEvents = sessionId == nil ? events : events.filter { $0.sessionId == sessionId }
 
-        filteredEvents.sort {
-            return ascending ? $0.attachmentSize < $1.attachmentSize : $0.attachmentSize > $1.attachmentSize
-        }
-
-        let limitedEvents = Array(filteredEvents.prefix(Int(eventCount)))
-
-        completion(Dictionary(uniqueKeysWithValues: limitedEvents.map { ($0.id, $0.attachmentSize) }))
+        completion(filteredEvents.map(\.id))
     }
 
     func updateBatchId(_ batchId: String, for events: [String]) {

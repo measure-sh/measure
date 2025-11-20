@@ -33,14 +33,12 @@ final class BaseBatchCreator: BatchCreator {
     }
 
     func create(sessionId: String? = nil, completion: @escaping (BatchCreationResult?) -> Void) {
-        eventStore.getUnBatchedEventsWithAttachmentSize(
+        eventStore.getUnBatchedEvents(
             eventCount: configProvider.maxEventsInBatch,
             ascending: true,
             sessionId: sessionId
-        ) { [weak self] eventToAttachmentSizeMap in
+        ) { [weak self] eventIds in
             guard let self else { return }
-
-            let eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
 
             spanStore.getUnBatchedSpans(
                 spanCount: configProvider.maxEventsInBatch,
@@ -84,14 +82,5 @@ final class BaseBatchCreator: BatchCreator {
                 }
             }
         }
-    }
-
-    /// Filters events to ensure the total size of attachments does not exceed the maximum limit.
-    private func filterEventsForMaxAttachmentSize(_ eventToAttachmentSizeMap: [String: Int64]) -> [String] {
-        var totalSize: Int64 = 0
-        return eventToAttachmentSizeMap.prefix {
-            totalSize += $0.value
-            return totalSize <= configProvider.maxAttachmentSizeInEventsBatchInBytes
-        }.map { $0.key }
     }
 }

@@ -42,7 +42,7 @@ jobs:
         id: git-cliff
         with:
           config: cliff.toml
-          args: --verbose --current --strip header footer
+          args: --latest --strip header
         env:
           OUTPUT: CHANGES.md
           GITHUB_REPO: ${{ github.repository }}

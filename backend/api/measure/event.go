@@ -1,33 +1,40 @@
 package measure
 
 import (
+	"backend/api/ambient"
 	"backend/api/chrono"
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
+	"backend/api/objstore"
 	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
+	credentials "cloud.google.com/go/iam/credentials/apiv1"
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
+	"cloud.google.com/go/storage"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/leporo/sqlf"
 	"go.opentelemetry.io/otel"
 )
@@ -36,19 +43,9 @@ import (
 // size of event request in bytes.
 var maxBatchSize = 20 * 1024 * 1024
 
-// retryAfter is the default duration an event
-// request should be retried after.
-const retryAfter = 60 * time.Second
-
-const (
-	// pending represents that the event request
-	// is still being processed.
-	pending status = iota
-
-	// done represents that the event request
-	// has finished processing.
-	done
-)
+// ExpiryDuration is the default expiry duration
+// for signed upload URLs.
+const ExpiryDuration = time.Hour * 24 * 7
 
 // blob represents each blob present in the
 // event request batch during ingestion.
@@ -66,48 +63,91 @@ type blob struct {
 	// header is the file bytes which can be
 	// opened and read
 	header *multipart.FileHeader
-	// uploaded indicates if the blob was
-	// eventually uploaded after ingestion
-	uploaded bool
+	// uploadedAttempted indicates if the blob
+	// was attempted for upload at least once
+	// during ingestion.
+	uploadedAttempted bool
 }
 
+// eventreq represents the ingest batch
 type eventreq struct {
-	id                     uuid.UUID
-	appId                  uuid.UUID
-	status                 status
-	osName                 string
-	symbolicateEvents      map[uuid.UUID]int
-	symbolicateSpans       map[string]int
-	exceptionIds           []int
-	anrIds                 []int
-	size                   int64
-	symbolicationAttempted int
-	events                 []event.EventField
-	spans                  []span.SpanField
-	attachments            map[uuid.UUID]*blob
-	createdAt              time.Time
+	// id is the unique id identifying the request
+	// batch
+	id uuid.UUID
+	// appId is the id of the app
+	appId uuid.UUID
+	// teamId is the id of the team
+	teamId uuid.UUID
+	// seen indicates whether this request batch
+	// was prevously ingested
+	seen bool
+	// osName is operating system runtime of the SDK
+	osName string
+	// symbolicateEvents is a look up table to find
+	// the events that need symbolication
+	symbolicateEvents map[uuid.UUID]int
+	// symbolicateSpans is a look up table to find
+	// the spans that need symbolication
+	symbolicateSpans map[string]int
+	// exceptionIds is a list of all unhandled exception
+	// event ids
+	exceptionIds []int
+	// anrIds is a list of all ANR event ids
+	anrIds []int
+	// size keeps track of the ingest payload size
+	size int64
+	// events is the list of events in the ingest
+	// batch
+	events []event.EventField
+	// spans is the list of spans in the ingest
+	// batch
+	spans []span.SpanField
+	// attachments is look up table for attachment
+	// blobs
+	attachments map[uuid.UUID]*blob
+	// attachmentUploadInfos stores attachment upload
+	// metadata
+	attachmentUploadInfos []AttachmentUploadInfo
 }
 
-// status defines the status of processing
-// of an event request.
-type status int
+// IngestRequest is the ingestion request for JSON
+// payload.
+type IngestRequest struct {
+	Events []event.EventField `json:"events"`
+	Spans  []span.SpanField   `json:"spans"`
+}
 
-// String returns a string representation of the
-// status.
-func (s status) String() string {
-	switch s {
-	default:
-		return "unknown"
-	case pending:
-		return "pending"
-	case done:
-		return "done"
-	}
+// IngestResponse represents the response data for
+// JSON payload ingest request.
+type IngestResponse struct {
+	AttachmentUploadInfo []AttachmentUploadInfo `json:"attachments"`
+}
+
+// AttachmentUploadInfo contains the signed URL
+// and related metadata for clients to upload
+// attachments.
+type AttachmentUploadInfo struct {
+	ID        uuid.UUID         `json:"id"`
+	Type      string            `json:"type"`
+	Filename  string            `json:"filename"`
+	UploadURL string            `json:"upload_url"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	Key       string            `json:"-"`
+	Location  string            `json:"-"`
 }
 
 // uploadAttachments prepares and uploads each attachment.
-func (e *eventreq) uploadAttachments(ctx context.Context) error {
+func (e *eventreq) uploadAttachments() error {
 	for id, attachment := range e.attachments {
+		if attachment == nil {
+			return fmt.Errorf("attachment[%s]: nil blob", id)
+		}
+
+		if attachment.header == nil {
+			return fmt.Errorf("attachment[%s] (%s): header is nil", id, attachment.name)
+		}
+
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
@@ -133,12 +173,25 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		eventAttachment.Reader = file
 
 		go func() {
-			if err := eventAttachment.Upload(ctx); err != nil {
+			defer file.Close()
+			// create fresh context for the upload
+			// operation. ensure uploads proceed even if
+			// the request fails for extra safety.
+			//
+			// better to be safe and process uploads as much
+			// as you can.
+			bgCtx := context.Background()
+
+			if err := eventAttachment.Upload(bgCtx); err != nil {
 				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+				return
 			}
 		}()
 
-		attachment.uploaded = true
+		// this is just a soft flag to indicate the attachment upload
+		// has been attempted, but does not reflect actual upload completion
+		// or success.
+		attachment.uploadedAttempted = true
 	}
 
 	return nil
@@ -150,15 +203,35 @@ func (e *eventreq) bumpSize(n int64) {
 	e.size = e.size + n
 }
 
-// bumpSymbolication increases count of symbolication
-// attempted by 1.
-func (e *eventreq) bumpSymbolication() {
-	e.symbolicationAttempted = e.symbolicationAttempted + 1
+// checkSeen checks & remembers if this request batch was
+// previously ingested.
+func (e *eventreq) checkSeen(c *gin.Context) (err error) {
+	stmt := sqlf.From("ingested_batches final").
+		Select("1").
+		Where("team_id = ?", e.teamId).
+		Where("app_id = ?", e.appId).
+		Where("batch_id = ?", e.id).
+		Limit(1)
+
+	defer stmt.Close()
+	var result uint8
+	if err = server.Server.ChPool.QueryRow(c, stmt.String(), stmt.Args()...).Scan(&result); err != nil {
+		if err == sql.ErrNoRows {
+			err = nil
+		}
+		return
+	}
+
+	if result == 1 {
+		e.seen = true
+	}
+
+	return
 }
 
-// read parses and validates the event request payload for
+// readMultipartRequest parses and validates the event request payload for
 // events and attachments.
-func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
+func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 	reqIdKey := `msr-req-id`
 	reqIdVal := c.Request.Header.Get(reqIdKey)
 	if reqIdVal == "" {
@@ -171,6 +244,10 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 	}
 
 	e.id = reqId
+
+	if err := e.checkSeen(c); err != nil {
+		return err
+	}
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -222,7 +299,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		// partially prepare list of attachments
 		// to extract the filename with extension
 		// because extracting filename from form
-		// field header is not realiable
+		// field header is not reliable
 		//
 		// form field header may lack file extension
 		// in some cases
@@ -237,7 +314,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		// attachment blobs must be present if
 		// any event has attachments
-		if e.hasAttachments() && len(form.File) < 1 {
+		if e.hasAttachmentBlobs() && len(form.File) < 1 {
 			return fmt.Errorf(`some events has attachments, but payload does not contain any attachment blob`)
 		}
 
@@ -339,6 +416,142 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 	return nil
 }
 
+// readJsonRequest parses and validates the JSON event request payload for
+// events and spans. Attachment metadata is extracted but files are not
+// uploaded inline - signed URLs will be returned for separate upload.
+func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
+	reqIdKey := `msr-req-id`
+	reqIdVal := c.Request.Header.Get(reqIdKey)
+	if reqIdVal == "" {
+		return fmt.Errorf("no %q header value found", reqIdKey)
+	}
+
+	reqId, err := uuid.Parse(reqIdVal)
+	if err != nil {
+		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
+	}
+
+	e.id = reqId
+	if err := e.checkSeen(c); err != nil {
+		return err
+	}
+
+	payload := IngestRequest{}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		return err
+	}
+
+	if len(payload.Events) < 1 && len(payload.Spans) < 1 {
+		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
+	}
+
+	dupEvent := make(map[uuid.UUID]struct{})
+
+	for i := range payload.Events {
+		ev := payload.Events[i]
+
+		// discard batch if duplicate event ids found
+		_, ok := dupEvent[ev.ID]
+		if ok {
+			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
+		}
+		dupEvent[ev.ID] = struct{}{}
+
+		bytes, err := json.Marshal(ev)
+		if err != nil {
+			return err
+		}
+
+		e.bumpSize(int64(len(bytes)))
+		ev.AppID = appId
+
+		if ev.NeedsSymbolication() {
+			e.symbolicateEvents[ev.ID] = i
+		}
+
+		if ev.IsUnhandledException() {
+			e.exceptionIds = append(e.exceptionIds, i)
+		}
+
+		if ev.IsANR() {
+			e.anrIds = append(e.anrIds, i)
+		}
+
+		for _, attachment := range ev.Attachments {
+			attachmentUploadInfo := AttachmentUploadInfo{
+				ID:       attachment.ID,
+				Type:     attachment.Type,
+				Filename: attachment.Name,
+			}
+
+			e.attachmentUploadInfos = append(e.attachmentUploadInfos, attachmentUploadInfo)
+		}
+
+		// compute launch timings
+		if ev.IsColdLaunch() {
+			ev.ColdLaunch.Compute()
+
+			// log anomalous cold launch durations
+			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
+				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
+			}
+		}
+		if ev.IsWarmLaunch() {
+			ev.WarmLaunch.Compute()
+
+			// log anomalous warm launch durations
+			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
+				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
+			}
+		}
+		if ev.IsHotLaunch() {
+			ev.HotLaunch.Compute()
+		}
+
+		// read OS name from payload if we haven't figured out already
+		if e.osName == "" {
+			e.osName = strings.ToLower(ev.Attribute.OSName)
+		}
+
+		e.events = append(e.events, ev)
+	}
+
+	dupSpan := make(map[string]struct{})
+
+	for i := range payload.Spans {
+		sp := payload.Spans[i]
+
+		// discard batch if duplicate span ids found
+		_, ok := dupSpan[sp.SpanID]
+		if ok {
+			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
+		}
+		dupSpan[sp.SpanID] = struct{}{}
+
+		bytes, err := json.Marshal(sp)
+		if err != nil {
+			return err
+		}
+
+		e.bumpSize(int64(len(bytes)))
+		sp.AppID = appId
+
+		if sp.NeedsSymbolication() {
+			e.symbolicateSpans[sp.SpanName] = i
+		}
+
+		// read OS name from payload if we haven't figured out already
+		if e.osName == "" {
+			e.osName = strings.ToLower(sp.Attributes.OSName)
+		}
+
+		e.spans = append(e.spans, sp)
+	}
+
+	return nil
+}
+
 // infuseInet looks up the country code for the IP
 // and infuses the country code and IP info to each event.
 func (e *eventreq) infuseInet(rawIP string) error {
@@ -379,101 +592,157 @@ func (e *eventreq) infuseInet(rawIP string) error {
 	return nil
 }
 
-// getStatus gets the status of an event request.
-func (e eventreq) getStatus(ctx context.Context) (s *status, err error) {
-	stmt := sqlf.PostgreSQL.From(`event_reqs`).
-		Select("status").
-		Where("id = ? and app_id = ?", e.id, e.appId)
+// generateAttachmentUploadURLs generates signed URLs for attachments
+// to be uploaded by clients.
+func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
+	config := server.Server.Config
+
+	if config.IsCloud() {
+		// GCS flow for cloud deployments
+		client, err := objstore.CreateGCSClient(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create GCS client: %w", err)
+		}
+
+		// for creating signed URLs, we need to tie the service account
+		// identity along with the credentials. otherwise, the signed
+		// URLs can't be generated and won't work as expected.
+		iamClient, err := credentials.NewIamCredentialsClient(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create IAM client: %w", err)
+		}
+		defer iamClient.Close()
+
+		signBytes := func(b []byte) ([]byte, error) {
+			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
+				Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
+				Payload: b,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return resp.SignedBlob, nil
+		}
+
+		for i := range e.attachmentUploadInfos {
+			id := e.attachmentUploadInfos[i].ID
+			filename := e.attachmentUploadInfos[i].Filename
+			ext := filepath.Ext(filename)
+
+			// Generate upload key and location
+			uploadKey := id.String() + ext
+			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			expiry := time.Now().Add(ExpiryDuration)
+
+			metadata := []string{
+				fmt.Sprintf("x-goog-meta-original_file_name: %s", filename),
+			}
+
+			signOptions := &storage.SignedURLOptions{
+				GoogleAccessID: config.ServiceAccountEmail,
+				SignBytes:      signBytes,
+				Scheme:         storage.SigningSchemeV4,
+				Method:         "PUT",
+				Expires:        expiry,
+				Headers:        metadata,
+			}
+
+			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
+			if err != nil {
+				return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
+			}
+
+			// Update the attachment info with URL and metadata
+			e.attachmentUploadInfos[i].UploadURL = url
+			e.attachmentUploadInfos[i].ExpiresAt = expiry
+			e.attachmentUploadInfos[i].Headers = map[string]string{
+				"x-goog-meta-original_file_name": filename,
+			}
+			e.attachmentUploadInfos[i].Key = uploadKey
+			e.attachmentUploadInfos[i].Location = uploadLocation
+		}
+	} else {
+		// S3 flow for self-hosted deployments
+		client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+
+		for i := range e.attachmentUploadInfos {
+			id := e.attachmentUploadInfos[i].ID
+			filename := e.attachmentUploadInfos[i].Filename
+			ext := filepath.Ext(filename)
+
+			// Generate upload key and location (same format as multipart flow)
+			uploadKey := id.String() + ext
+			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+
+			signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
+				Bucket: aws.String(config.AttachmentsBucket),
+				Key:    aws.String(uploadKey),
+				Metadata: map[string]string{
+					"original_file_name": filename,
+				},
+			}, s3.WithPresignExpires(time.Duration(ExpiryDuration)))
+
+			if err != nil {
+				return fmt.Errorf("failed to create S3 PUT pre-signed URL for %v: %w", filename, err)
+			}
+
+			// proxy the url for self-hosted
+			proxyUrl := fmt.Sprintf("%s/proxy/attachments?payload=%s", config.APIOrigin, url.QueryEscape(signedUrl))
+
+			// Update the attachment info with URL and metadata
+			e.attachmentUploadInfos[i].UploadURL = proxyUrl
+			e.attachmentUploadInfos[i].ExpiresAt = time.Now().Add(ExpiryDuration)
+			e.attachmentUploadInfos[i].Headers = map[string]string{
+				"x-amz-meta-original_file_name": filename,
+			}
+			e.attachmentUploadInfos[i].Key = uploadKey
+			e.attachmentUploadInfos[i].Location = uploadLocation
+		}
+	}
+
+	return nil
+}
+
+func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
+	eventCount = uint32(len(e.events))
+
+	sessionCount = 0
+	for _, ev := range e.events {
+		if ev.Type == event.TypeSessionStart {
+			sessionCount++
+		}
+	}
+
+	if e.hasAttachmentBlobs() {
+		attachmentCount = uint32(len(e.attachments))
+	} else if e.hasAttachmentUploadInfos() {
+		attachmentCount = uint32(len(e.attachmentUploadInfos))
+	}
+
+	traceCount = uint32(0)
+	for _, span := range e.spans {
+		if span.ParentID == "" {
+			traceCount++
+		}
+	}
+
+	spanCount = uint32(len(e.spans))
+
+	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
+}
+
+// remember stores the ingest batch record for future idempotency
+func (e eventreq) remember(ctx context.Context) (err error) {
+	stmt := sqlf.InsertInto("ingested_batches").
+		NewRow().
+		Set("team_id", e.teamId).
+		Set("app_id", e.appId).
+		Set("batch_id", e.id).
+		Set("timestamp", time.Now())
 
 	defer stmt.Close()
 
-	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&s)
-
-	return
-}
-
-// getRequest gets the details of an existing event request.
-func (e eventreq) getRequest(ctx context.Context) (r *eventreq, err error) {
-	r = &eventreq{}
-
-	stmt := sqlf.PostgreSQL.From(`event_reqs`).
-		Select("id").
-		Select("status").
-		Select("app_id").
-		Select("created_at").
-		Where("id = ? and app_id = ?", e.id, e.appId)
-
-	defer stmt.Close()
-
-	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&r.id, &r.status, &r.appId, &r.createdAt)
-
-	return
-}
-
-// start inserts a new pending event request in persistent
-// storage.
-func (e eventreq) start(ctx context.Context) (err error) {
-	stmt := sqlf.PostgreSQL.
-		InsertInto(`event_reqs`).
-		Set(`id`, e.id).
-		Set(`app_id`, e.appId).
-		Set(`status`, int(pending))
-
-	defer stmt.Close()
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// end saves the event request batch marking its
-// status as "done" along with additional even request
-// related metadata.
-func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.Update(`event_reqs`).
-		Set(`event_count`, len(e.events)).
-		Set(`span_count`, len(e.spans)).
-		Set(`attachment_count`, len(e.attachments)).
-		Set(`session_count`, e.sessionCount()).
-		Set(`bytes_in`, e.size).
-		Set(`symbolication_attempts_count`, e.symbolicationAttempted).
-		Set(`status`, int(done)).
-		Where("id = ? and app_id = ?", e.id, e.appId)
-
-	defer stmt.Close()
-
-	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// cleanup cleans up the dangling event request in
-// pending state, if any.
-func (e eventreq) cleanup(ctx context.Context) (err error) {
-	s, err := e.getStatus(ctx)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-
-	if err != nil {
-		return
-	}
-
-	if s == nil {
-		return
-	}
-
-	switch *s {
-	case pending:
-		// remove event request in pending state
-		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, int(pending))
-
-		defer stmt.Close()
-
-		_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	}
-
-	return
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // hasUnhandledExceptions returns true if event payload
@@ -488,13 +757,19 @@ func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
 }
 
-// hasAttachments returns true if payload
-// contains attachments to be processed.
-func (e eventreq) hasAttachments() bool {
+// hasAttachmentBlobs returns true if payload
+// contains attachment blobs to be processed.
+func (e eventreq) hasAttachmentBlobs() bool {
 	return len(e.attachments) > 0
 }
 
-// getUnhandledExceptions returns unhandled excpetions
+// hasAttachmentUploadInfos returns true if payload
+// contains attachment upload infos to be processed.
+func (e eventreq) hasAttachmentUploadInfos() bool {
+	return len(e.attachmentUploadInfos) > 0
+}
+
+// getUnhandledExceptions returns unhandled exceptions
 // from the event payload.
 func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
 	if !e.hasUnhandledExceptions() {
@@ -591,7 +866,7 @@ func (e eventreq) validate() error {
 			}
 		}
 
-		if e.hasAttachments() {
+		if e.hasAttachmentBlobs() || e.hasAttachmentUploadInfos() {
 			for j := range e.events[i].Attachments {
 				if err := e.events[i].Attachments[j].Validate(); err != nil {
 					return err
@@ -704,6 +979,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`id`, e.events[i].ID).
 			Set(`type`, e.events[i].Type).
 			Set(`session_id`, e.events[i].SessionID).
+			Set(`team_id`, e.teamId).
 			Set(`app_id`, e.events[i].AppID).
 			Set(`inet.ipv4`, e.events[i].IPv4).
 			Set(`inet.ipv6`, e.events[i].IPv6).
@@ -1199,7 +1475,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		}
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // ingestSpans writes the spans to database.
@@ -1227,6 +1503,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 		formattedCheckpoints += "]"
 
 		stmt.NewRow().
+			Set(`team_id`, e.teamId).
 			Set(`app_id`, e.spans[i].AppID).
 			Set(`span_name`, e.spans[i].SpanName).
 			Set(`span_id`, e.spans[i].SpanID).
@@ -1259,51 +1536,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
-}
-
-func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
-	eventCount = uint32(len(e.events))
-
-	sessionCount = 0
-	for _, ev := range e.events {
-		if ev.Type == event.TypeSessionStart {
-			sessionCount++
-		}
-	}
-
-	attachmentCount = uint32(len(e.attachments))
-
-	traceCount = uint32(0)
-	for _, span := range e.spans {
-		if span.ParentID == "" {
-			traceCount++
-		}
-	}
-
-	spanCount = uint32(len(e.spans))
-
-	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
-}
-
-// sessionCount counts and provides the number of
-// sessions in event request.
-func (e eventreq) sessionCount() (count int) {
-	sessions := []uuid.UUID{}
-
-	for i := range e.events {
-		if !slices.Contains(sessions, e.events[i].SessionID) {
-			sessions = append(sessions, e.events[i].SessionID)
-		}
-	}
-
-	for i := range e.spans {
-		if !slices.Contains(sessions, e.spans[i].SessionID) {
-			sessions = append(sessions, e.spans[i].SessionID)
-		}
-	}
-
-	return len(sessions)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // GetExceptionsWithFilter fetchs a slice of EventException for an
@@ -1343,7 +1576,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 
 	prewhere := "prewhere app_id = toUUID(?) and exception.fingerprint = ?"
 
-	substmt := sqlf.From("events").
+	substmt := sqlf.From("events final").
 		Select("distinct id").
 		Select("type").
 		Select("timestamp").
@@ -1373,9 +1606,8 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1483,7 +1715,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
@@ -1543,9 +1775,8 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1616,7 +1847,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 
 	prewhere := "prewhere app_id = toUUID(?) and anr.fingerprint = ?"
 
-	substmt := sqlf.From("events").
+	substmt := sqlf.From("events final").
 		Select("distinct id").
 		Select("type").
 		Select("timestamp").
@@ -1644,9 +1875,8 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -1754,7 +1984,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
@@ -1814,9 +2044,8 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -1921,9 +2150,8 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)
@@ -2000,7 +2228,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	}
 
 	stmt := sqlf.
-		From(`events`).
+		From(`events final`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("uniq(id) as instances").
@@ -2011,9 +2239,8 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
+		subQuery := sqlf.From("user_def_attrs final").
 			Select("event_id id").
-			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)
@@ -2104,23 +2331,55 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(ctx, app.TeamId)
+
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:             appId,
+		teamId:            app.TeamId,
 		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
-		createdAt:         time.Now(),
 	}
 
-	if err := eventReq.read(c, appId); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	isJsonRequest := strings.HasPrefix(c.ContentType(), "application/json")
+
+	if isJsonRequest {
+		if err := eventReq.readJsonRequest(c, appId); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if eventReq.seen {
+			// for JSON requests, we return the attachment
+			// upload info again, so that the client can
+			// proceed to upload attachments if any.
+			c.JSON(http.StatusOK, IngestResponse{
+				AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+			})
+			return
+		}
+	} else {
+		if err := eventReq.readMultipartRequest(c, appId); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if eventReq.seen {
+			c.JSON(http.StatusAccepted, gin.H{
+				"ok": "accepted, known event request",
+			})
+			return
+		}
 	}
 
 	if err := eventReq.validate(); err != nil {
@@ -2132,95 +2391,6 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
-
-	// there's a possiblity that a previous event request is already
-	// in progress or was processed.
-	//
-	// if it's in progress, we don't know whether it will succeed or
-	// fail, so we ask the client to retry after sometime.
-	//
-	// if it was processed, tell the client that this event request
-	// was seen previously and we ignore this request.
-	//
-	// if it's in a pending state for a long time, then we remove
-	// that request and proceed with ingestion as usual.
-	prevReq, err := eventReq.getRequest(ctx)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		msg := "failed to check status of event request"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	// pendingTimeout is the duration after which
-	// a pending request should be treated as
-	// stale
-	pendingTimeout := time.Hour * 3
-
-	if prevReq != nil {
-		switch prevReq.status {
-		case pending:
-			if time.Since(prevReq.createdAt) > pendingTimeout {
-				if err = prevReq.cleanup(ctx); err != nil {
-					msg := "failed to clean up previous request"
-					fmt.Println(msg, err)
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"error": msg,
-					})
-					return
-				}
-				break
-			}
-			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
-			c.Header("Retry-After", durStr)
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"warning":                    fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
-				"current_request_id":         eventReq.id,
-				"current_request_timestamp":  eventReq.createdAt,
-				"previous_request_id":        prevReq.id,
-				"previous_request_timestamp": prevReq.createdAt,
-			})
-			return
-		case done:
-			c.JSON(http.StatusAccepted, gin.H{
-				"ok": "accepted, known event request",
-			})
-			return
-		}
-	}
-
-	// start by recording the event request so that
-	// we can deterministically prevent duplication.
-	if err := eventReq.start(ctx); err != nil {
-		// detect primary key violations
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == "23505" {
-				durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
-				c.Header("Retry-After", durStr)
-				c.JSON(http.StatusTooManyRequests, gin.H{
-					"warning": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
-				})
-				return
-			}
-		}
-
-		msg := "failed to start ingestion"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	// cleanup at the end
-	defer func() {
-		if err := eventReq.cleanup(ctx); err != nil {
-			msg := "failed to cleanup event request"
-			fmt.Println(msg, err)
-		}
-	}()
 
 	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
 		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
@@ -2275,18 +2445,16 @@ func PutEvents(c *gin.Context) {
 			// ingestion. ignore the error, log it and continue.
 			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
 		}
-
-		eventReq.bumpSymbolication()
 	}
 
-	if eventReq.hasAttachments() {
+	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
 		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
 		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ctx, "upload-attachments")
 
 		defer uploadAttachmentSpan.End()
 
-		if err := eventReq.uploadAttachments(ctx); err != nil {
+		if err := eventReq.uploadAttachments(); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2306,13 +2474,43 @@ func PutEvents(c *gin.Context) {
 				if !ok {
 					continue
 				}
-				if !attachment.uploaded {
+				if !attachment.uploadedAttempted {
 					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
 					continue
 				}
 
 				eventReq.events[i].Attachments[j].Location = attachment.location
 				eventReq.events[i].Attachments[j].Key = attachment.key
+			}
+		}
+	}
+
+	if eventReq.hasAttachmentUploadInfos() {
+		if err := eventReq.generateAttachmentUploadURLs(ctx); err != nil {
+			msg := `failed to generate attachment upload URLs`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		// Update event attachments with key and location from upload infos
+		for i := range eventReq.events {
+			if !eventReq.events[i].HasAttachments() {
+				continue
+			}
+
+			for j := range eventReq.events[i].Attachments {
+				id := eventReq.events[i].Attachments[j].ID
+				// Find the corresponding attachment upload info
+				for _, uploadInfo := range eventReq.attachmentUploadInfos {
+					if uploadInfo.ID == id {
+						eventReq.events[i].Attachments[j].Location = uploadInfo.Location
+						eventReq.events[i].Attachments[j].Key = uploadInfo.Key
+						break
+					}
+				}
 			}
 		}
 	}
@@ -2336,7 +2534,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -2345,7 +2544,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -2365,6 +2565,8 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	bucketUnhandledExceptionsSpan.End()
+
 	// start span to trace bucketing ANRs
 	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
 	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
@@ -2380,6 +2582,8 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	bucketAnrsSpan.End()
+
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
@@ -2394,31 +2598,6 @@ func PutEvents(c *gin.Context) {
 			})
 			return
 		}
-	}
-
-	if err := eventReq.end(ctx, &tx); err != nil {
-		msg := `failed to save event request`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	// get team id from app id
-	var teamID string
-	teamIdForAppQuery := sqlf.PostgreSQL.From("apps").
-		Select("team_id").
-		Where("id = ?", app.ID)
-	defer teamIdForAppQuery.Close()
-
-	if err := server.Server.PgPool.QueryRow(ctx, teamIdForAppQuery.String(), teamIdForAppQuery.Args()...).Scan(&teamID); err != nil {
-		msg := `failed to get team id for app`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
 	}
 
 	// get retention period for app
@@ -2446,7 +2625,7 @@ func PutEvents(c *gin.Context) {
 
 	// insert metrics into clickhouse table
 	insertMetricsIngestionSelectStmt := sqlf.
-		Select("? AS team_id", teamID).
+		Select("? AS team_id", eventReq.teamId).
 		Select("? AS app_id", app.ID).
 		Select("? AS timestamp", time.Now()).
 		Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
@@ -2464,17 +2643,29 @@ func PutEvents(c *gin.Context) {
 	defer insertMetricsIngestionSelectStmt.Close()
 	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
 
-	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, false, args...); err != nil {
-		msg := `failed to insert metrics into clickhouse`
+	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+		msg := `failed to insert ingestion metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
+		})
+		return
+	}
+
+	// Remember that this batch was ingested, so if same
+	// batch is seen again, we can skip ingesting it.
+	if err := eventReq.remember(ctx); err != nil {
+		msg := `failed to remember event request`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err,
 		})
 		return
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		msg := `failed to ingest event request`
+		msg := `failed to commit ingest transaction`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2482,5 +2673,11 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	if isJsonRequest {
+		c.JSON(http.StatusOK, IngestResponse{
+			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+		})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	}
 }

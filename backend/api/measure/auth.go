@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"backend/api/allowlist"
 	"backend/api/authsession"
 	"backend/api/cipher"
 	"backend/api/server"
@@ -21,6 +22,11 @@ import (
 	"github.com/leporo/sqlf"
 	"google.golang.org/api/idtoken"
 )
+
+// MSRAllowlistAuthErr represents the error condition
+// when an identity doesn't pass the allowlist
+// authentication filter.
+var MSRAllowlistAuthErr = errors.New("allowlist_banned")
 
 // extractToken extracts the access token
 // from the cookie or Authorization header.
@@ -68,7 +74,7 @@ func ValidateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := extractToken(c)
 
-		appId, err := DecodeAPIKey(key)
+		appId, err := DecodeAPIKey(c, key)
 		if err != nil {
 			fmt.Println("api key decode failed:", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
@@ -323,6 +329,16 @@ func SigninGitHub(c *gin.Context) {
 			return
 		}
 
+		// TODO: Remove allowlist filter when appropriate
+		config := server.Server.Config
+		if config.IsCloud() && !allowlist.IsAllowed(ghUser.Email) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":   MSRAllowlistAuthErr.Error(),
+				"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
+			})
+			return
+		}
+
 		userMeta, err := json.Marshal(ghUser)
 		if err != nil {
 			return
@@ -522,10 +538,27 @@ func SigninGoogle(c *gin.Context) {
 	}
 
 	googUser := authsession.GoogleUser{
-		ID:      payload.Subject,
-		Name:    payload.Claims["name"].(string),
-		Email:   payload.Claims["email"].(string),
-		Picture: payload.Claims["picture"].(string),
+		ID:    payload.Subject,
+		Name:  payload.Claims["name"].(string),
+		Email: payload.Claims["email"].(string),
+	}
+
+	// Google may not return the picture claim for some
+	// users.
+	if picture, ok := payload.Claims["picture"]; ok && picture != nil {
+		if pictureStr, ok := picture.(string); ok {
+			googUser.Picture = pictureStr
+		}
+	}
+
+	// TODO: Remove allowlist filter when appropriate
+	config := server.Server.Config
+	if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":   MSRAllowlistAuthErr.Error(),
+			"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
+		})
+		return
 	}
 
 	userMeta, err := json.Marshal(googUser)
@@ -637,6 +670,76 @@ func SigninGoogle(c *gin.Context) {
 		"session_id":    authSess.ID,
 		"user_id":       userId,
 		"own_team_id":   team.ID,
+	})
+}
+
+// ValidateInvite checks if the invite is valid.
+func ValidateInvite(c *gin.Context) {
+	var payload struct {
+		InviteId string `json:"invite_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := "inviteId is required"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	inviteId, err := uuid.Parse(payload.InviteId)
+	if err != nil {
+		msg := "inviteId is invalid"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Query the invite from the database
+	stmt := sqlf.PostgreSQL.From("invites").
+		Select("created_at").
+		Where("id = ?", inviteId)
+	defer stmt.Close()
+
+	var createdAt time.Time
+
+	err = server.Server.PgPool.QueryRow(c.Request.Context(), stmt.String(), stmt.Args()...).
+		Scan(&createdAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			msg := "invite not found"
+			fmt.Println(msg)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		msg := "failed to query invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Check if invite has expired
+	expiryTime := createdAt.Add(teamInviteValidity)
+	if time.Now().After(expiryTime) {
+		msg := "invite has expired"
+		fmt.Println(msg)
+		c.JSON(http.StatusGone, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Invite is valid
+	c.JSON(http.StatusOK, gin.H{
+		"valid": true,
 	})
 }
 
@@ -760,7 +863,7 @@ func ConnectSlackApp(c *gin.Context) {
 		Set("created_at", time.Now()).
 		Set("updated_at", time.Now())
 
-	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET 
+	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET
 		slack_team_id = EXCLUDED.slack_team_id,
 		slack_team_name = EXCLUDED.slack_team_name,
 		enterprise_id = EXCLUDED.enterprise_id,

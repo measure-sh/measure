@@ -102,32 +102,23 @@ func (j *JourneyiOS) computeIssues() {
 // from available events data in the
 // journey.
 //
-// Uses a greedy approach to build a journey
+// Uses a sequential approach to build a journey
 // graph from lifecycle events. The algorithm
-// has 4 broad sections.
+// maintains the actual sequence of events regardless
+// of node type (view controller, swift ui, or screen view).
 //
-// In the first section, it tries to predict
-// which node should be the parent node.
-//
-// In the second section, it attaches extra
-// metadata to edges like session ids.
-//
-// In the third section, it collapses continous
-// series of exactly same nodes.
-//
-// In the fourth section, it establishes edges
-// between the nodes. Optionally, if bigraph
-// setting is true, then it establishes edges
-// in both forward and reverse directions.
+// The algorithm:
+// 1. Iterates through nodes in order
+// 2. Creates edges from current node to next node
+// 3. Tracks session IDs for each edge
+// 4. Collapses consecutive duplicate nodes
+// 5. Respects session boundaries
 func (j *JourneyiOS) buildGraph() {
 	j.Graph = graph.New(len(j.nodelut))
 
 	if j.metalut == nil {
 		j.metalut = make(map[string]*set.UUIDSet)
 	}
-
-	// keep track of who should be parent
-	lastParent := -1
 
 	var nodeidxs []int
 
@@ -137,34 +128,20 @@ func (j *JourneyiOS) buildGraph() {
 		}
 	}
 
-	for _, i := range nodeidxs {
-		first := i == 0
-		last := i == len(j.Nodes)-1
-
-		if last {
-			break
-		}
+	for idx := 0; idx < len(nodeidxs)-1; idx++ {
+		i := nodeidxs[idx]
+		nextIdx := nodeidxs[idx+1]
 
 		currNode := j.Nodes[i]
-		nextNode := j.Nodes[i+1]
+		nextNode := j.Nodes[nextIdx]
 		currEvent := j.Events[currNode.ID]
 		nextEvent := j.Events[nextNode.ID]
 		currSession := currEvent.SessionID
 		nextSession := nextEvent.SessionID
 
-		// assumption is first node will be
-		// an activity
-		if first {
-			lastParent = i
-		}
-
 		sameSession := currSession == nextSession
 
-		if currNode.IsViewController || currNode.IsSwiftUI {
-			lastParent = i
-		}
-
-		vkey := j.Nodes[lastParent].Name
+		vkey := currNode.Name
 		wkey := nextNode.Name
 		v := j.nodelut[vkey]
 		w := j.nodelut[wkey]
@@ -174,45 +151,44 @@ func (j *JourneyiOS) buildGraph() {
 			continue
 		}
 
-		if nextNode.IsViewController || nextNode.IsSwiftUI || nextNode.IsScreenView {
-			j.addEdgeID(v.vertex, w.vertex, currSession)
-		}
-
-		// session has changed, so let's start over
-		if !sameSession {
-			continue
-		}
-
 		// collapse repeating alike events
 		shouldDiscard := false
 
-		if currEvent.IsLifecycleViewController() && nextEvent.IsLifecycleViewController() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
-		}
+		if sameSession {
+			if currEvent.IsLifecycleViewController() && nextEvent.IsLifecycleViewController() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 
-		if currEvent.IsLifecycleSwiftUI() && nextEvent.IsLifecycleSwiftUI() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
-		}
+			if currEvent.IsLifecycleSwiftUI() && nextEvent.IsLifecycleSwiftUI() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 
-		if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
+			if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 		}
 
 		if shouldDiscard {
 			continue
 		}
 
-		if nextNode.IsViewController || nextNode.IsSwiftUI || nextNode.IsScreenView {
-			if j.options.BiGraph {
-				if !j.Graph.Edge(v.vertex, w.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			} else {
-				if !j.Graph.Edge(w.vertex, v.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			}
+		// prevent cycles - skip if reverse edge already exists (unless BiGraph mode)
+		if !j.options.BiGraph && j.Graph.Edge(w.vertex, v.vertex) {
 			continue
+		}
+
+		// add edge metadata (session ID)
+		j.addEdgeID(v.vertex, w.vertex, currSession)
+
+		// add graph edge
+		if j.options.BiGraph {
+			if !j.Graph.Edge(v.vertex, w.vertex) {
+				j.Graph.Add(v.vertex, w.vertex)
+			}
+		} else {
+			if !j.Graph.Edge(w.vertex, v.vertex) {
+				j.Graph.Add(v.vertex, w.vertex)
+			}
 		}
 	}
 }
@@ -332,26 +308,6 @@ func (j JourneyiOS) String() string {
 	b.WriteString("}\n")
 
 	return b.String()
-}
-
-// GetLastView finds the last iOS view
-// node by traversing towards start direction.
-func (j JourneyiOS) GetLastView(node *NodeiOS) (parent *NodeiOS) {
-	c := node.ID
-
-	for {
-		c--
-
-		if c < 0 {
-			break
-		}
-
-		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI || j.Nodes[c].IsScreenView {
-			return &j.Nodes[c]
-		}
-	}
-
-	return
 }
 
 // NewJourneyiOS creates a journey graph object

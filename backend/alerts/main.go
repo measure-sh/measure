@@ -29,14 +29,14 @@ import (
 func main() {
 	config := server.NewConfig()
 	server.Init(config)
+	ctx := context.Background()
 
-	cron := initCron(context.Background())
+	cron := initCron(ctx)
 
 	alertsTracer := initTracer(config.OtelServiceName)
 
 	// close postgres pool at shutdown
 	defer server.Server.PgPool.Close()
-	defer server.Server.RpgPool.Close()
 
 	// close clickhouse connection pool at shutdown
 	defer func() {
@@ -80,10 +80,34 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
-	cron.AddFunc("0 0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
-	cron.AddFunc("0 0 6 * * *", func() { alerts.CreateDailySummary(ctx) })
-	cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) })
-	cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) })
+
+	// run at 6 AM every 24h
+	if _, err := cron.AddFunc("0 6 * * *", func() { alerts.CreateDailySummary(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule daily summary job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled daily summary job")
+
+	// run every hour
+	if _, err := cron.AddFunc("0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule hourly crash and ANR alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled crash & ANR job")
+
+	// run every 5m
+	if _, err := cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule email alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled email alert job")
+
+	// run every 5m
+	if _, err := cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule Slack alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled Slack alert job")
 
 	cron.Start()
 	return cron

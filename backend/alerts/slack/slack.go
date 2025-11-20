@@ -74,8 +74,8 @@ type SlackMessage struct {
 
 // List of errors that require channel removal
 var errorsToRemoveMessageAndChannel = map[string]bool{
-	"access_denied":     true,
-	"channel_not_found": true,
+	"access_denied": true,
+	// "channel_not_found": true,
 	"is_archived":       true,
 	"no_permission":     true,
 	"ekm_access_denied": true,
@@ -144,7 +144,7 @@ func SendPendingAlertSlackMessages(ctx context.Context) error {
 func SendSlackMessage(ctx context.Context, msgID uuid.UUID, teamID uuid.UUID, slackMsgData SlackMessageData) error {
 	url := "https://slack.com/api/chat.postMessage"
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"channel": slackMsgData.Channel,
 		"text":    slackMsgData.Text,
 	}

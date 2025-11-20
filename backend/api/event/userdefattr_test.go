@@ -678,6 +678,7 @@ func TestParameterize(t *testing.T) {
 			"zero_int64":               float64(0),
 			"regular_bool":             true,
 			"regular_string":           "lorem ipsum",
+			"single_quote":             "lorem 'ipsum",
 		},
 		keyTypes: map[string]AttrType{
 			"max_int32":                AttrInt64,
@@ -696,6 +697,7 @@ func TestParameterize(t *testing.T) {
 			"zero_int64":               AttrInt64,
 			"regular_bool":             AttrBool,
 			"regular_string":           AttrString,
+			"single_quote":             AttrString,
 		},
 	}
 
@@ -716,6 +718,7 @@ func TestParameterize(t *testing.T) {
 		"zero_int64":               fmt.Sprintf(`('%s', '0')`, AttrInt64.String()),
 		"regular_bool":             fmt.Sprintf(`('%s', 'true')`, AttrBool.String()),
 		"regular_string":           fmt.Sprintf(`('%s', 'lorem ipsum')`, AttrString.String()),
+		"single_quote":             fmt.Sprintf(`('%s', 'lorem \'ipsum')`, AttrString.String()),
 	}
 	got := udAttr.Parameterize()
 
@@ -742,6 +745,7 @@ func TestScan(t *testing.T) {
 		"zero_int64":               {AttrInt64.String(), 0},
 		"regular_bool":             {AttrBool.String(), true},
 		"regular_string":           {AttrString.String(), "lorem ipsum"},
+		"single_quote":             {AttrString.String(), "lorem \\'ipsum"},
 	}
 	var udAttr UDAttribute
 
@@ -762,6 +766,7 @@ func TestScan(t *testing.T) {
 		"zero_int64":               AttrInt64,
 		"regular_bool":             AttrBool,
 		"regular_string":           AttrString,
+		"single_quote":             AttrString,
 	}
 	expectedRawAttrs := map[string]any{
 		"max_int32":                2147483647,
@@ -780,6 +785,7 @@ func TestScan(t *testing.T) {
 		"zero_int64":               0,
 		"regular_bool":             true,
 		"regular_string":           "lorem ipsum",
+		"single_quote":             "lorem 'ipsum",
 	}
 
 	udAttr.Scan(attrMap)

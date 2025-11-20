@@ -13,7 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        let clientInfo = ClientInfo(apiKey: "msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c",
+        let clientInfo = ClientInfo(apiKey: "msrsh_0aa61e53f87da536285373a47193b3a2baecd5fa35785146f77ce4e1601b739d_98a55756",
                                     apiUrl: "http://localhost:8080")
         final class CustomHeaderProvider: NSObject, MsrRequestHeadersProvider {
             private var requestHeaders: NSDictionary = ["key1": "value1", "key2": "value2"]

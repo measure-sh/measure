@@ -26,11 +26,11 @@ internal class FakeConfigProvider : ConfigProvider {
     override var samplingRateForErrorFreeSessions: Float = 1.0f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 3
     override var eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    override var eventsBatchingJitterMs: Long = 20_000 // 20 seconds
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
-    override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
+    override var sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
     override var maxEventNameLength: Int = 64
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
@@ -56,21 +56,15 @@ internal class FakeConfigProvider : ConfigProvider {
     override val estimatedEventSizeInKb: Int = 15
     override val maxDiskUsageInMb: Int = 50
 
-    var shouldTrackHttpBody = true
+    var shouldTrackHttpBodyResult = true
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
-        return shouldTrackHttpBody
-    }
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = shouldTrackHttpBodyResult
 
     var shouldTrackHttpUrl = true
 
-    override fun shouldTrackHttpUrl(url: String): Boolean {
-        return shouldTrackHttpUrl
-    }
+    override fun shouldTrackHttpUrl(url: String): Boolean = shouldTrackHttpUrl
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
 
     override fun setMeasureUrl(url: String) {
         // no-op

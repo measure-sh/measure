@@ -9,6 +9,7 @@ import {
   ClientInfo,
   MeasureConfig,
 } from '@measuresh/react-native';
+import TracesScreen from './TracesScreen';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -21,16 +22,16 @@ export default function App() {
   const initializeMeasure = async () => {
     try {
       const clientInfo = new ClientInfo(
-        'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-        'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-        'https://api.measure.sh'
+        'msrsh_3533778aec068f99683da...',
+        'msrsh_78e21553fc5ddaf2a3043...',
+        'https://localhost:8080'
       );
 
       
       const measureConfig = new MeasureConfig(
         true, // enableLogging
-        0.7, // samplingRateForErrorFreeSessions
-        0.1, // traceSamplingRate
+        1.0, // samplingRateForErrorFreeSessions
+        1.0, // traceSamplingRate
         false, // trackHttpHeaders
         false, // trackHttpBody
         [], // httpHeadersBlocklist
@@ -57,6 +58,7 @@ export default function App() {
         <Stack.Navigator initialRouteName="HomeScreen">
           <Stack.Screen name="HomeScreen" component={HomeScreen} />
           <Stack.Screen name="ComponentScreen" component={ComponentScreen} />
+          <Stack.Screen name="TracesScreen" component={TracesScreen} />
         </Stack.Navigator>
       </SafeAreaView>
     </NavigationContainer>

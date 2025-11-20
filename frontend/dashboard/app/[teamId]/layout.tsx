@@ -177,7 +177,7 @@ export default function DashboardLayout({
 
   const onTeamChanged = (item: Team) => {
     const selectedTeam = teams!.find((e) => e.id === item.id)!
-    const newPath = pathName.replace(/^\/[^\/]*/, "/" + selectedTeam.id)
+    const newPath = `/${selectedTeam.id}/overview`
     router.push(newPath)
   }
 

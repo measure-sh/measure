@@ -65,6 +65,8 @@ const (
 	maxUserDefAttrsKeyChars                   = 256
 	maxUserDefAttrsValsChars                  = 256
 	maxCustomNameChars                        = 64
+	maxLayoutElementIDChars                   = 512
+	maxLayoutElementLabelChars                = 512
 	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes

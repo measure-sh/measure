@@ -8,8 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import sh.measure.android.fakes.NoopLogger
-import java.io.ByteArrayInputStream
-import java.io.InputStream
 
 class HttpUrlConnectionClientTest {
     private val mockWebServer: MockWebServer = MockWebServer()
@@ -26,26 +24,26 @@ class HttpUrlConnectionClientTest {
     }
 
     @Test
-    fun `test successful multipart request`() {
+    fun `test successful json request`() {
         // given
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         // when
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             mapOf("Authorization" to "Bearer token"),
-            listOf(MultipartData.FormField("key", "value")),
-        )
+        ) { sink ->
+            sink.writeUtf8("""{"events":[],"spans":[]}""")
+        }
 
         // then
         val request = mockWebServer.takeRequest()
-        assertEquals("POST", request.method)
-        assertTrue(request.headers["Content-Type"]?.startsWith("multipart/form-data; boundary=") == true)
+        assertEquals("PUT", request.method)
+        assertEquals("application/json", request.headers["Content-Type"])
         assertEquals("Bearer token", request.headers["Authorization"])
         val body = request.body.readUtf8()
-        assertTrue(body.contains("Content-Disposition: form-data; name=\"key\""))
-        assertTrue(body.contains("value"))
+        assertEquals("""{"events":[],"spans":[]}""", body)
         assertTrue(result is HttpResponse.Success)
     }
 
@@ -55,12 +53,13 @@ class HttpUrlConnectionClientTest {
         mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("expected-body"))
 
         // when
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         // then
         assertEquals(HttpResponse.Success(body = "expected-body"), result)
@@ -70,12 +69,13 @@ class HttpUrlConnectionClientTest {
     fun `test rate limit error`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(429))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.RateLimitError(), result)
     }
@@ -84,12 +84,13 @@ class HttpUrlConnectionClientTest {
     fun `test rate limit error with body`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(429).setBody("error-body"))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.RateLimitError("error-body"), result)
     }
@@ -98,12 +99,13 @@ class HttpUrlConnectionClientTest {
     fun `test client error`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(400))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.ClientError(400), result)
     }
@@ -112,12 +114,13 @@ class HttpUrlConnectionClientTest {
     fun `test client error with body`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(400).setBody("error-body"))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.ClientError(400, "error-body"), result)
     }
@@ -126,12 +129,13 @@ class HttpUrlConnectionClientTest {
     fun `test server error`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.ServerError(500), result)
     }
@@ -140,12 +144,13 @@ class HttpUrlConnectionClientTest {
     fun `test server error with body`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(500).setBody("error-body"))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertEquals(HttpResponse.Error.ServerError(500, "error-body"), result)
     }
@@ -154,67 +159,43 @@ class HttpUrlConnectionClientTest {
     fun `test unknown error`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(600))
 
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            emptyList(),
-        )
+        ) { sink ->
+            sink.writeUtf8("{}")
+        }
 
         assertTrue(result is HttpResponse.Error.UnknownError)
     }
 
     @Test
-    fun `test file upload`() {
+    fun `test streaming json data with multiple writes`() {
         // given
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
-        val inputStream: InputStream = ByteArrayInputStream("file content".toByteArray())
 
         // when
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            listOf(MultipartData.FileData("file", "test.txt", inputStream)),
-        )
+        ) { sink ->
+            // Stream data in chunks
+            sink.writeUtf8("""{"events":[""")
+            sink.writeUtf8("""{"id":"1","type":"test"}""")
+            sink.writeUtf8("""],"spans":[]}""")
+        }
 
         // then
         val request = mockWebServer.takeRequest()
         val body = request.body.readUtf8()
-        assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(body.contains("file content"))
+        assertEquals("""{"events":[{"id":"1","type":"test"}],"spans":[]}""", body)
         assertTrue(result is HttpResponse.Success)
     }
 
     @Test
-    fun `test multiple form fields and file upload`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(200))
-
-        val inputStream: InputStream = ByteArrayInputStream("file content".toByteArray())
-        val result = client.sendMultipartRequest(
-            mockWebServer.url("/").toString(),
-            "POST",
-            emptyMap(),
-            listOf(
-                MultipartData.FormField("key1", "value1"),
-                MultipartData.FormField("key2", "value2"),
-                MultipartData.FileData("file", "test.txt", inputStream),
-            ),
-        )
-
-        val request = mockWebServer.takeRequest()
-        val body = request.body.readUtf8()
-        assertTrue(body.contains("Content-Disposition: form-data; name=\"key1\""))
-        assertTrue(body.contains("value1"))
-        assertTrue(body.contains("Content-Disposition: form-data; name=\"key2\""))
-        assertTrue(body.contains("value2"))
-        assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(body.contains("file content"))
-        assertTrue(result is HttpResponse.Success)
-    }
-
-    @Test
-    fun `test redirection (307 response) with POST request`() {
+    fun `test redirection (307 response) with PUT request`() {
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(307)
@@ -227,32 +208,59 @@ class HttpUrlConnectionClientTest {
         )
 
         // When
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            listOf(MultipartData.FormField("key", "value")),
-        )
+        ) { sink ->
+            sink.writeUtf8("""{"key":"value"}""")
+        }
 
         // Then
         assertTrue(result is HttpResponse.Success)
         assertEquals(2, mockWebServer.requestCount)
 
         val originalRequest = mockWebServer.takeRequest()
-        assertEquals("POST", originalRequest.method)
+        assertEquals("PUT", originalRequest.method)
         assertEquals("/", originalRequest.path)
 
         val redirectedRequest = mockWebServer.takeRequest()
-        assertEquals("POST", redirectedRequest.method)
+        assertEquals("PUT", redirectedRequest.method)
         assertEquals("/redirected", redirectedRequest.path)
 
         val redirectedBody = redirectedRequest.body.readUtf8()
-        assertTrue(redirectedBody.contains("Content-Disposition: form-data; name=\"key\""))
-        assertTrue(redirectedBody.contains("value"))
+        assertEquals("""{"key":"value"}""", redirectedBody)
     }
 
     @Test
-    fun `test no redirection (302 response) for POST request`() {
+    fun `test redirection (308 response) with PUT request`() {
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(308)
+                .addHeader("Location", "/redirected"),
+        )
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("Redirected successfully"),
+        )
+
+        // When
+        val result = client.sendJsonRequest(
+            mockWebServer.url("/").toString(),
+            "PUT",
+            emptyMap(),
+        ) { sink ->
+            sink.writeUtf8("""{"key":"value"}""")
+        }
+
+        // Then
+        assertTrue(result is HttpResponse.Success)
+        assertEquals(2, mockWebServer.requestCount)
+    }
+
+    @Test
+    fun `test no redirection (302 response) for PUT request`() {
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(302)
@@ -260,12 +268,13 @@ class HttpUrlConnectionClientTest {
         )
 
         // When
-        val result = client.sendMultipartRequest(
+        val result = client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            listOf(MultipartData.FormField("key", "value")),
-        )
+        ) { sink ->
+            sink.writeUtf8("""{"key":"value"}""")
+        }
 
         // Then
         assertTrue(result is HttpResponse.Error.UnknownError)
@@ -273,43 +282,88 @@ class HttpUrlConnectionClientTest {
     }
 
     @Test
-    fun `test boundaries and parts are added correctly to the request`() {
+    fun `test content type is application json`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
-        val inputStream: InputStream = ByteArrayInputStream("file content".toByteArray())
-        client.sendMultipartRequest(
+        client.sendJsonRequest(
             mockWebServer.url("/").toString(),
-            "POST",
+            "PUT",
             emptyMap(),
-            listOf(
-                MultipartData.FormField("key1", "value1"),
-                MultipartData.FileData("file", "test.txt", inputStream),
-            ),
-        )
+        ) { sink ->
+            sink.writeUtf8("""{"test":"data"}""")
+        }
 
         val request = mockWebServer.takeRequest()
-        val body = request.body.readUtf8()
+        assertEquals("application/json", request.headers["Content-Type"])
+    }
 
-        // Extract the boundary from the Content-Type header
-        val contentType = request.headers["Content-Type"] ?: ""
-        val boundary = contentType.substringAfter("boundary=")
+    @Test
+    fun `test successful file upload`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
-        // Check if the boundary is present in the Content-Type header
-        assertTrue(contentType.startsWith("multipart/form-data; boundary="))
+        val result = client.uploadFile(
+            url = mockWebServer.url("/").toString(),
+            contentType = "image/png",
+            fileSize = 12L,
+            headers = mapOf(),
+        ) { sink ->
+            sink.writeUtf8("file-content")
+        }
 
-        // Check if the body starts and ends with the correct boundary
-        assertTrue(body.startsWith("--$boundary\r\n"))
-        assertTrue(body.endsWith("--$boundary--\r\n"))
+        val request = mockWebServer.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("image/png", request.headers["Content-Type"])
+        assertEquals("file-content", request.body.readUtf8())
+        assertTrue(result is HttpResponse.Success)
+    }
 
-        // Check if parts are separated by the boundary
-        val parts = body.split("--$boundary\r\n")
-        assertEquals(3, parts.size) // 2 parts + 1 closing boundary
+    @Test
+    fun `test file upload with zero file size uses chunked streaming`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
-        // Check each part for correct format
-        assertTrue(parts[1].contains("Content-Disposition: form-data; name=\"key1\""))
-        assertTrue(parts[1].contains("value1"))
+        val result = client.uploadFile(
+            url = mockWebServer.url("/").toString(),
+            contentType = "text/plain",
+            fileSize = 0L,
+            headers = mapOf(),
+        ) { sink ->
+            sink.writeUtf8("test")
+        }
 
-        assertTrue(parts[2].contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(parts[2].contains("file content"))
+        assertTrue(result is HttpResponse.Success)
+    }
+
+    @Test
+    fun `test file upload failure returns error response`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(500))
+
+        val result = client.uploadFile(
+            url = mockWebServer.url("/").toString(),
+            contentType = "image/jpeg",
+            fileSize = 10L,
+            headers = mapOf(),
+        ) { sink ->
+            sink.writeUtf8("test-image")
+        }
+
+        assertTrue(result is HttpResponse.Error.ServerError)
+        assertEquals(500, (result as HttpResponse.Error.ServerError).code)
+    }
+
+    @Test
+    fun `test file upload with client error`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(400))
+
+        val result = client.uploadFile(
+            url = mockWebServer.url("/").toString(),
+            contentType = "application/pdf",
+            fileSize = 4L,
+            headers = mapOf(),
+        ) { sink ->
+            sink.writeUtf8("test")
+        }
+
+        assertTrue(result is HttpResponse.Error.ClientError)
+        assertEquals(400, (result as HttpResponse.Error.ClientError).code)
     }
 }

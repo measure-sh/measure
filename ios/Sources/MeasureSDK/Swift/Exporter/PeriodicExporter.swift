@@ -71,10 +71,16 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
         }
 
         isExportInProgress = true
-        defer { isExportInProgress = false }
 
-        dispatchQueue.sync {
-            processBatches()
+        let jitterSeconds = Int.random(in: 0...configProvider.maxExportJitterInterval)
+        let jitterTimeInterval = DispatchTimeInterval.seconds(jitterSeconds)
+
+        logger.log(level: .debug, message: "Applying jitter of \(jitterSeconds) seconds before processing batches", error: nil, data: nil)
+
+        dispatchQueue.asyncAfter(deadline: .now() + jitterTimeInterval) { [weak self] in
+            guard let self else { return }
+            self.processBatches()
+            self.isExportInProgress = false
         }
     }
 

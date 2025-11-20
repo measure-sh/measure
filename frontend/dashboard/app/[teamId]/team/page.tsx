@@ -1,10 +1,11 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, UpdateTeamSlackStatusApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, updateTeamSlackStatusFromServer } from "@/app/api/api_calls"
+import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, TestSlackAlertApiStatus, UpdateTeamSlackStatusApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, sendTestSlackAlertFromServer, updateTeamSlackStatusFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
+import ConfirmationDialog from "@/app/components/confirmation_dialog"
 import CreateTeam from "@/app/components/create_team"
-import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
+import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import { Switch } from "@/app/components/switch"
@@ -24,7 +25,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true)
 
-  const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
+  const [teamNameConfirmationDialogOpen, setTeamNameConfirmationDialogOpen] = useState(false)
   const [teamNameChangeApiStatus, setTeamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init)
   const [newTeamName, setNewTeamName] = useState('')
 
@@ -33,7 +34,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [inviteMemberEmail, setInviteMemberEmail] = useState("")
 
   const [removeMemberApiStatus, setRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init)
-  const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
+  const [removeMemberConfirmationDialogOpen, setRemoveMemberConfirmationDialogOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
 
@@ -43,18 +44,18 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [pendingInvitesApiStatus, setPendingInvitesApiStatus] = useState(PendingInvitesApiStatus.Loading)
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[] | null>(null)
 
-  const [resendPendingInviteConfirmationModalOpen, setResendPendingInviteConfirmationModalOpen] = useState(false)
+  const [resendPendingInviteConfirmationDialogOpen, setResendPendingInviteConfirmationDialogOpen] = useState(false)
   const [resendPendingInviteApiStatus, setResendPendingInviteApiStatus] = useState(ResendPendingInviteApiStatus.Init)
   const [resendPendingInviteId, setResendPendingInviteId] = useState("")
   const [resendPendingInviteEmail, setResendPendingInviteEmail] = useState("")
 
-  const [removePendingInviteConfirmationModalOpen, setRemovePendingInviteConfirmationModalOpen] = useState(false)
+  const [removePendingInviteConfirmationDialogOpen, setRemovePendingInviteConfirmationDialogOpen] = useState(false)
   const [removePendingInviteApiStatus, setRemovePendingInviteApiStatus] = useState(RemovePendingInviteApiStatus.Init)
   const [removePendingInviteId, setRemovePendingInviteId] = useState("")
   const [removePendingInviteEmail, setRemovePendingInviteEmail] = useState("")
 
   const [selectedDropdownRolesMap, setSelectedDropdownRolesMap] = useState<Map<String, String>>(new Map())
-  const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
+  const [changeRoleConfirmationDialogOpen, setChangeRoleConfirmationDialogOpen] = useState(false)
   const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init)
   const [roleChangeMemberId, setRoleChangeMemberId] = useState("")
   const [roleChangeMemberEmail, setRoleChangeMemberEmail] = useState("")
@@ -64,9 +65,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [fetchTeamSlackConnectUrlApiStatus, setFetchTeamSlackConnectUrlApiStatus] = useState(FetchTeamSlackConnectUrlApiStatus.Init)
   const [fetchTeamSlackStatusApiStatus, setFetchTeamSlackStatusApiStatus] = useState(FetchTeamSlackStatusApiStatus.Init)
   const [updateTeamSlackStatusApiStatus, setUpdateTeamSlackStatusApiStatus] = useState(UpdateTeamSlackStatusApiStatus.Init)
+  const [testSlackAlertApiStatus, setTestSlackAlertApiStatus] = useState(TestSlackAlertApiStatus.Init)
   const [teamSlackConnectUrl, setTeamSlackConnectUrl] = useState<string | null>(null)
   const [teamSlack, setTeamSlack] = useState<{ slack_team_name: string, is_active: boolean } | null>(null)
-  const [disableSlackConfirmationModalOpen, setDisableSlackConfirmationModalOpen] = useState(false)
+  const [disableSlackConfirmationDialogOpen, setDisableSlackConfirmationDialogOpen] = useState(false)
+  const [testSlackAlertConfirmationDialogOpen, setTestSlackAlertConfirmationDialogOpen] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -325,6 +328,28 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
+  const testSlackAlert = async () => {
+    setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Loading)
+
+    const result = await sendTestSlackAlertFromServer(params.teamId)
+
+    switch (result.status) {
+      case TestSlackAlertApiStatus.Error:
+        setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Error)
+        toastNegative(
+          `Error sending test Slack alerts`,
+          result.error
+        )
+        break
+      case TestSlackAlertApiStatus.Success:
+        setTestSlackAlertApiStatus(TestSlackAlertApiStatus.Success)
+        toastPositive(
+          `Slack integration test alert sent successfully`
+        )
+        break
+    }
+  }
+
   const inviteMember = async () => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
@@ -379,58 +404,67 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       {teamsApiStatus === TeamsApiStatus.Success &&
         <div className="flex flex-col items-start">
 
-          {/* Modal for confirming pending invite resend */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to resend pending invite for <span className="font-display font-bold">{resendPendingInviteEmail}</span>?</p>} open={resendPendingInviteConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming pending invite resend */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to resend pending invite for <span className="font-display font-bold">{resendPendingInviteEmail}</span>?</p>} open={resendPendingInviteConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setResendPendingInviteConfirmationModalOpen(false)
+              setResendPendingInviteConfirmationDialogOpen(false)
               resendPendingInvite()
             }}
-            onCancelAction={() => setResendPendingInviteConfirmationModalOpen(false)}
+            onCancelAction={() => setResendPendingInviteConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming pending invite removal */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove pending invite for <span className="font-display font-bold">{removePendingInviteEmail}</span>?</p>} open={removePendingInviteConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming pending invite removal */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to remove pending invite for <span className="font-display font-bold">{removePendingInviteEmail}</span>?</p>} open={removePendingInviteConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setRemovePendingInviteConfirmationModalOpen(false)
+              setRemovePendingInviteConfirmationDialogOpen(false)
               removePendingInvite()
             }}
-            onCancelAction={() => setRemovePendingInviteConfirmationModalOpen(false)}
+            onCancelAction={() => setRemovePendingInviteConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming team name change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename team <span className="font-display font-bold">{team!.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming team name change */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to rename team <span className="font-display font-bold">{team!.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setTeamNameConfirmationModalOpen(false)
+              setTeamNameConfirmationDialogOpen(false)
               changeTeamName()
             }}
-            onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
+            onCancelAction={() => setTeamNameConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming role change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to change the role of <span className="font-display font-bold">{roleChangeMemberEmail}</span> from <span className="font-display font-bold">{roleChangeOldRole}</span> to <span className="font-display font-bold">{roleChangeNewRole}</span>?</p>} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming role change */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to change the role of <span className="font-display font-bold">{roleChangeMemberEmail}</span> from <span className="font-display font-bold">{roleChangeOldRole}</span> to <span className="font-display font-bold">{roleChangeNewRole}</span>?</p>} open={changeRoleConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setChangeRoleConfirmationModalOpen(false)
+              setChangeRoleConfirmationDialogOpen(false)
               changeRole()
             }}
-            onCancelAction={() => setChangeRoleConfirmationModalOpen(false)}
+            onCancelAction={() => setChangeRoleConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming member removal */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team!.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming member removal */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team!.name}</span>?</p>} open={removeMemberConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setRemoveMemberConfirmationModalOpen(false)
+              setRemoveMemberConfirmationDialogOpen(false)
               removeMember()
             }}
-            onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
+            onCancelAction={() => setRemoveMemberConfirmationDialogOpen(false)}
           />
 
-          {/* Modal for confirming slack disable */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to disable Slack integration for team <span className="font-display font-bold">{team!.name}</span>?<br /><br />This will stop all Slack notifications for this team.</p>} open={disableSlackConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          {/* Dialog for confirming slack disable */}
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to disable Slack integration for team <span className="font-display font-bold">{team!.name}</span>?<br /><br />This will stop all Slack notifications for this team.</p>} open={disableSlackConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
-              setDisableSlackConfirmationModalOpen(false)
+              setDisableSlackConfirmationDialogOpen(false)
               updateSlackStatus(false)
             }}
-            onCancelAction={() => setDisableSlackConfirmationModalOpen(false)}
+            onCancelAction={() => setDisableSlackConfirmationDialogOpen(false)}
+          />
+
+          {/* Dialog for confirming test slack alert */}
+          <ConfirmationDialog body={<p className="font-body">Are you sure you want to send test alert notifications?<br /><br /> This will send test messages to all subscribed alert channels in Slack. </p>} open={testSlackAlertConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setTestSlackAlertConfirmationDialogOpen(false)
+              testSlackAlert()
+            }}
+            onCancelAction={() => setTestSlackAlertConfirmationDialogOpen(false)}
           />
 
           <div className="py-6" />
@@ -517,7 +551,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                             setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
                             setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
                             setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
-                            setChangeRoleConfirmationModalOpen(true)
+                            setChangeRoleConfirmationDialogOpen(true)
                           }}
                         >
                           Change Role
@@ -536,7 +570,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                           onClick={() => {
                             setRemoveMemberId(id)
                             setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
-                            setRemoveMemberConfirmationModalOpen(true)
+                            setRemoveMemberConfirmationDialogOpen(true)
                           }}
                         >
                           Remove
@@ -580,7 +614,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                         onClick={() => {
                           setResendPendingInviteId(id)
                           setResendPendingInviteEmail(email)
-                          setResendPendingInviteConfirmationModalOpen(true)
+                          setResendPendingInviteConfirmationDialogOpen(true)
                         }}>
                         Resend
                       </Button>
@@ -594,7 +628,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                         onClick={() => {
                           setRemovePendingInviteId(id)
                           setRemovePendingInviteEmail(email)
-                          setRemovePendingInviteConfirmationModalOpen(true)
+                          setRemovePendingInviteConfirmationDialogOpen(true)
                         }}>
                         Revoke
                       </Button>
@@ -622,21 +656,37 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* slack connected, show switch */}
           {fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Success && fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Success && teamSlack !== null &&
-            <div className="flex flex-row w-full items-center justify-between">
-              <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
-              <Switch
-                className={"data-[state=checked]:bg-emerald-500"}
-                disabled={updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
-                checked={teamSlack.is_active}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    updateSlackStatus(true)
-                  } else {
-                    setDisableSlackConfirmationModalOpen(true)
-                  }
-                }}
-              />
-            </div>}
+            <div className="flex flex-col w-full">
+              <div className="flex flex-row w-full items-center justify-between">
+                <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
+                <Switch
+                  className={"data-[state=checked]:bg-emerald-500"}
+                  disabled={updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
+                  checked={teamSlack.is_active}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      updateSlackStatus(true)
+                    } else {
+                      setDisableSlackConfirmationDialogOpen(true)
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="py-4" />
+
+              <Button
+                variant="outline"
+                className="font-display border border-black select-none w-fit"
+                disabled={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading || teamSlack.is_active === false}
+                loading={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading}
+                onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
+              >
+                Send Test Alert
+              </Button>
+
+            </div>
+          }
 
           <div className="py-8" />
           <p className="font-display text-xl max-w-6xl text-center">Change team name</p>
@@ -653,7 +703,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               className="m-4 font-display border border-black select-none"
               disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
-              onClick={() => setTeamNameConfirmationModalOpen(true)}>
+              onClick={() => setTeamNameConfirmationDialogOpen(true)}>
               Save
             </Button>
           </div>

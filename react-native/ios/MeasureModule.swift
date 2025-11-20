@@ -27,7 +27,9 @@ class MeasureModule: NSObject, RCTBridgeModule {
             return
         }
         
-        Measure.initialize(with: clientInfo, config: config)
+        DispatchQueue.main.async {
+            Measure.initialize(with: clientInfo, config: config)
+        }
         resolve("Native Measure SDK initialized successfully")
     }
     
@@ -44,7 +46,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
         Measure.stop()
         resolve("Measure SDK stopped successfully")
     }
-
+    
     @objc
     func trackEvent(_ data: NSDictionary,
                     type: NSString,
@@ -58,24 +60,59 @@ class MeasureModule: NSObject, RCTBridgeModule {
                     resolver resolve: @escaping RCTPromiseResolveBlock,
                     rejecter reject: @escaping RCTPromiseRejectBlock) {
         var mutableData = data as? [String: Any?] ?? [:]
-
-        // Convert userDefinedAttrs if needed (depends on your AttributeValue bridging)
-        let userAttrs = userDefinedAttrs as? [String: Any?] ?? [:]
-
-        // Attachments mapping (depends on how you expose MsrAttachment from JS → native)
+        
+        let userAttrs = userDefinedAttrs.transformAttributes()
         let msrAttachments: [MsrAttachment] = [] // TODO: map properly later
-
+        
         Measure.internalTrackEvent(
             data: &mutableData,
             type: type as String,
             timestamp: timestamp.int64Value,
             attributes: attributes as? [String: Any?] ?? [:],
-            userDefinedAttrs: userAttrs as? [String: AttributeValue] ?? [:],
+            userDefinedAttrs: userAttrs,
             userTriggered: userTriggered,
             sessionId: sessionId as String?,
             threadName: threadName as String?,
             attachments: msrAttachments
         )
         resolve("Event tracked successfully")
-}
+    }
+    
+    @objc
+    func trackSpan(_ name: NSString,
+                   traceId: NSString,
+                   spanId: NSString,
+                   parentId: NSString?,
+                   startTime: NSNumber,
+                   endTime: NSNumber,
+                   duration: NSNumber,
+                   status: NSNumber,
+                   attributes: NSDictionary,
+                   userDefinedAttrs: NSDictionary,
+                   checkpoints: NSDictionary,
+                   hasEnded: Bool,
+                   isSampled: Bool,
+                   resolver resolve: @escaping RCTPromiseResolveBlock,
+                   rejecter reject: @escaping RCTPromiseRejectBlock) {
+        let attrDict = attributes as? [String: Any?] ?? [:]
+        let checkpointDict = checkpoints as? [String: Int64] ?? [:]
+        let userAttrs = userDefinedAttrs.transformAttributes()
+        
+        Measure.internalTrackSpan(
+            name: name as String,
+            traceId: traceId as String,
+            spanId: spanId as String,
+            parentId: parentId as String?,
+            startTime: startTime.int64Value,
+            endTime: endTime.int64Value,
+            duration: duration.int64Value,
+            status: status.int64Value,
+            attributes: attrDict,
+            userDefinedAttrs: userAttrs,
+            checkpoints: checkpointDict,
+            hasEnded: hasEnded,
+            isSampled: isSampled
+        )
+        resolve("Span tracked successfully")
+    }
 }

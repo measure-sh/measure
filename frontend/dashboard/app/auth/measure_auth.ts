@@ -1,4 +1,5 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
+import posthog from "posthog-js"
 
 export type MeasureAuthSession = {
   user: {
@@ -66,6 +67,9 @@ export class MeasureAuth {
   }
 
   private redirectToLogin(): void {
+    // Reset posthog
+    posthog.reset()
+
     if (!this.router) {
       throw new Error("Router is not initialized. Call `init` method first.")
     }
@@ -99,6 +103,7 @@ export class MeasureAuth {
     } else if (res.status === 401) {
       error = new Error(`Unauthorized: ${json?.error}`)
     }
+
     if (error) {
       return { error }
     }

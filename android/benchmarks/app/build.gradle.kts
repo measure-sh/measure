@@ -1,18 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.compose)
     id("sh.measure.android.gradle")
 }
 
 android {
     namespace = "sh.measure.test.benchmark"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "sh.measure.test.benchmark"
-        minSdk = 21
-        targetSdk = 35
+        minSdk = 23
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -75,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material.icons.core)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

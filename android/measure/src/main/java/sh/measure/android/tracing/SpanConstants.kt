@@ -7,13 +7,9 @@ internal object SpanName {
     private const val ACTIVITY_TTID_PREFIX = "Activity TTID"
     private const val FRAGMENT_TTID_PREFIX = "Fragment TTID"
 
-    fun activityTtidSpan(className: String, maxLength: Int): String {
-        return truncateClassNameIfNeeded(ACTIVITY_TTID_PREFIX, className, maxLength)
-    }
+    fun activityTtidSpan(className: String, maxLength: Int): String = truncateClassNameIfNeeded(ACTIVITY_TTID_PREFIX, className, maxLength)
 
-    fun fragmentTtidSpan(className: String, maxLength: Int): String {
-        return truncateClassNameIfNeeded(FRAGMENT_TTID_PREFIX, className, maxLength)
-    }
+    fun fragmentTtidSpan(className: String, maxLength: Int): String = truncateClassNameIfNeeded(FRAGMENT_TTID_PREFIX, className, maxLength)
 
     /**
      * Truncates the class name to fit within the specified maximum length, including the prefix.

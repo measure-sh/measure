@@ -10,7 +10,6 @@ import android.telephony.TelephonyManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RuntimeEnvironment
@@ -119,26 +118,9 @@ internal class InitialNetworkStateProviderTest {
         assertNull(networkType)
     }
 
-    @Test
-    @Ignore("Specifying the SDK versions in @Config makes this test cause an OOM error after updating robolectric to 4.14")
-    @Config(sdk = [21])
-    fun `returns correct network type below API 23`() {
-        shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        shadowOf(systemServiceProvider.connectivityManager).setActiveNetworkInfo(
-            systemServiceProvider.connectivityManager!!.getNetworkInfo(ConnectivityManager.TYPE_WIFI),
-        )
-        val networkType = InitialNetworkStateProviderImpl(
-            context = context,
-            logger = logger,
-            systemServiceProvider = systemServiceProvider,
-        ).getNetworkType()
-
-        assertEquals(NetworkType.WIFI, networkType)
-    }
-
     // Ideally we would like to test on multiple versions, but specifying the SDK versions
     // in @Config makes this test cause an OOM error after updating robolectric to 4.14
-    // @Config(sdk = [23, 33])
+    @Config(sdk = [23, 33, 36])
     @Test
     fun `returns correct network type above API 23`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)

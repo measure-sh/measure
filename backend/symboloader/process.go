@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"symboloader/cipher"
-	"symboloader/codec"
 	"symboloader/objstore"
 	"symboloader/server"
 	"symboloader/symbol"
@@ -63,18 +62,24 @@ func (m *Mapping) extractDif() (err error) {
 	switch m.Type {
 	case symbol.TypeProguard.String():
 		contents := m.File
+		// var compressedBytes []byte
 
 		// compress bytes using zstd, if not
 		// already compressed
-		if !codec.IsZstdCompressed(contents) {
-			contents, err = codec.CompressZstd(contents)
-			if err != nil {
-				return
-			}
-		}
+		// if !codec.IsZstdCompressed(contents) {
+		// 	compressedBytes, err = codec.CompressZstd(contents)
+		// 	if err != nil {
+		// 		return
+		// 	}
+		// }
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
 		debugId := uuid.NewSHA1(ns, contents)
+
+		// if already compressed, just use contents
+		// if len(compressedBytes) == 0 {
+		// 	compressedBytes = contents
+		// }
 
 		m.Difs = append(m.Difs, &symbol.Dif{
 			Data: contents,
@@ -382,7 +387,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	var mappingType string
 
-	if err := server.Server.RpgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
 		return err
 	}
 
@@ -401,7 +406,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	defer stmtMappings.Close()
 
-	rows, _ := server.Server.RpgPool.Query(ctx, stmtMappings.String(), stmtMappings.Args()...)
+	rows, _ := server.Server.PgPool.Query(ctx, stmtMappings.String(), stmtMappings.Args()...)
 
 	for rows.Next() {
 		var mapping Mapping

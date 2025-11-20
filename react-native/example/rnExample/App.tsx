@@ -1,11 +1,9 @@
 import React, {useEffect} from 'react';
 import {
-  Alert,
   SectionList,
   SafeAreaView,
   StatusBar,
   Text,
-  View,
   useColorScheme,
   Pressable,
   StyleSheet,
@@ -43,7 +41,7 @@ const App = (): React.JSX.Element => {
       [], // httpHeadersBlocklist
       [], // httpUrlBlocklist
       [], // httpUrlAllowlist
-      false, // autoStart
+      true, // autoStart
       true, // trackViewControllerLoadTime
     );
 
@@ -54,20 +52,52 @@ const App = (): React.JSX.Element => {
     initializeMeasure();
   }, []);
 
+  /** === SDK Actions === */
+  const startMeasure = () => {
+    Measure.start()
+      .then(() => console.log('Measure SDK started successfully'))
+      .catch((error: any) => console.error('Failed to start Measure SDK:', error));
+  };
+
+  const stopMeasure = () => {
+    Measure.stop()
+      .then(() => console.log('Measure SDK stopped successfully'))
+      .catch((error: any) => console.error('Failed to stop Measure SDK:', error));
+  };
+
+  const trackCustomEvent = () => {
+    Measure.trackEvent('button_click', {
+      screen: 'Home',
+      action: 'Track Custom Event',
+      timestamped: true,
+    });
+  };
+
+  /** === Simulation Helpers === */
+  const simulateJSException = () => {
+    throw new Error('Simulated JavaScript exception');
+  };
+
+  const simulateUnhandledPromiseRejection = () => {
+    Promise.reject(new Error('Simulated unhandled promise rejection'));
+  };
+
+  const simulateNativeCrash = () => {
+    // @ts-ignore
+    Measure.triggerNativeCrash();
+  };
+
+  const simulateInfiniteLoop = () => {
+    while (true) {}
+  };
+
+  /** === UI Sections === */
   const sections = [
     {
       title: 'Session & Init',
       data: [
-        {
-          id: 'start',
-          title: 'Start SDK',
-          onPress: () => startMeasure(),
-        },
-        {
-          id: 'stop',
-          title: 'Stop SDK',
-          onPress: () => stopMeasure(),
-        },
+        {id: 'start', title: 'Start SDK', onPress: startMeasure},
+        {id: 'stop', title: 'Stop SDK', onPress: stopMeasure},
       ],
     },
     {
@@ -76,7 +106,7 @@ const App = (): React.JSX.Element => {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => console.log('Track event'),
+          onPress: () => trackCustomEvent(),
         },
         {
           id: 'crash',
@@ -85,15 +115,16 @@ const App = (): React.JSX.Element => {
         },
       ],
     },
+    {
+      title: 'Crash & Exception Simulation',
+      data: [
+        {id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException},
+        {id: 'unhandled-rejection', title: 'Unhandled Promise Rejection', onPress: simulateUnhandledPromiseRejection},
+        {id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash},
+        {id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop},
+      ],
+    },
   ];
-
-  const stopMeasure = () => {
-    Measure.stop();
-  };
-
-  const startMeasure = () => {
-    Measure.start();
-  };
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor}]}>

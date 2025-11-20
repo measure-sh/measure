@@ -40,6 +40,9 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale invites
 	deleteStaleInvites(ctx)
 
+	// delete stale pending alert messages
+	deleteStalePendingAlertMessages(ctx)
+
 	// fetch each app's retention thresholds
 	appRetentions, err := fetchAppRetentions(ctx)
 	if err != nil {
@@ -80,9 +83,6 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale alerts
 	deleteStaleAlerts(ctx, appRetentions)
 
-	// delete stale pending alert messages
-	deleteStalePendingAlertMessages(ctx, appRetentions)
-
 	fmt.Println("Finished cleaning up stale data")
 }
 
@@ -121,7 +121,7 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 // deleteStaleInvites deletes stale invites that
 // have passed the expiry threshold
 func deleteStaleInvites(ctx context.Context) {
-	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
+	threshold := time.Now().Add(-7 * 24 * time.Hour) // 7 day expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
 		Where("updated_at < ?", threshold)
 
@@ -368,7 +368,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		// Fetch attachments for current app's stale events
 		fetchAttachmentsStmt := sqlf.
 			Select("attachments").
-			From("events").
+			From("events final").
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
@@ -517,19 +517,16 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 	fmt.Printf("Succesfully deleted stale alerts\n")
 }
 
-// deleteStalePendingAlertMessages deletes stale pending alert messages for each
-// app's retention threshold.
-func deleteStalePendingAlertMessages(ctx context.Context, retentions []AppRetention) {
-	for _, retention := range retentions {
-		stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
-			Where("app_id = ?", retention.AppID).
-			Where("created_at < ?", retention.Threshold)
+// deleteStalePendingAlertMessages deletes stale pending alert messages
+func deleteStalePendingAlertMessages(ctx context.Context) {
+	threshold := time.Now().Add(-24 * time.Hour) // 1 day expiry
+	stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
+		Where("created_at < ?", threshold)
 
-		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			fmt.Printf("Failed to delete stale pending alert messages: %v\n", err)
-			return
-		}
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale pending alert messages: %v\n", err)
+		return
 	}
 
 	fmt.Printf("Succesfully deleted stale pending alert messages\n")
@@ -546,7 +543,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 
 	defer stmt.Close()
 
-	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}

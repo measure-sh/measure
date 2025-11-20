@@ -9,7 +9,7 @@ on:
         type: string
 
 env:
-  JAVA_VERSION: 17
+  JAVA_VERSION: 21
   JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
@@ -54,9 +54,10 @@ jobs:
           sed -i "s/measure-android = \".*\"/measure-android = \"${{ inputs.version }}\"/" gradle/libs.versions.toml
 
       - name: Generate changelog
-        run: |
-          cd ..
-          git cliff --output android/CHANGELOG.md --tag android-v${{ inputs.version }}
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: android/cliff.toml
+          args: --output CHANGELOG.md --tag android-v${{ inputs.version }}
 
       - name: Update version in README
         run: |

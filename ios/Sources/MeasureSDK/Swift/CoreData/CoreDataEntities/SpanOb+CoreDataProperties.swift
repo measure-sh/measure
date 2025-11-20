@@ -15,21 +15,21 @@ extension SpanOb {
         return NSFetchRequest<SpanOb>(entityName: "SpanOb")
     }
 
-    @NSManaged public var attributes: Data?
-    @NSManaged public var batchId: String?
-    @NSManaged public var checkpoints: Data?
-    @NSManaged public var duration: Int64
-    @NSManaged public var endTime: Int64
-    @NSManaged public var hasEnded: Bool
-    @NSManaged public var isSampled: Bool
-    @NSManaged public var name: String?
-    @NSManaged public var parentId: String?
-    @NSManaged public var sessionId: String?
-    @NSManaged public var spanId: String
-    @NSManaged public var startTime: Int64
-    @NSManaged public var status: Int64
-    @NSManaged public var traceId: String?
-    @NSManaged public var userDefinedAttrs: Data?
-    @NSManaged public var startTimeString: String
-    @NSManaged public var endTimeString: String
+    @NSManaged var attributes: Data?
+    @NSManaged var batchId: String?
+    @NSManaged var checkpoints: Data?
+    @NSManaged var duration: Int64
+    @NSManaged var endTime: Int64
+    @NSManaged var hasEnded: Bool
+    @NSManaged var isSampled: Bool
+    @NSManaged var name: String?
+    @NSManaged var parentId: String?
+    @NSManaged var sessionId: String?
+    @NSManaged var spanId: String
+    @NSManaged var startTime: Int64
+    @NSManaged var status: Int64
+    @NSManaged var traceId: String?
+    @NSManaged var userDefinedAttrs: Data?
+    @NSManaged var startTimeString: String
+    @NSManaged var endTimeString: String
 }

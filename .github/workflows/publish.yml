@@ -3,7 +3,22 @@ name: Publish OCI images
 on:
   push:
     branches:
+      - main
       - "cloud*"
+    paths:
+      # run on backend changes
+      - "backend/**/dockerfile"
+      - "backend/**/*.go"
+      - "backend/**/*.mod"
+      - "backend/**/*.sum"
+      - ".github/workflows/publish.yml"
+
+      # run on frontend changes
+      - "frontend/**"
+      - ".github/workflows/dashboard.yml"
+
+      # don't run on markdown changes
+      - "!**/*.md"
 
 permissions:
   contents: read

@@ -104,19 +104,6 @@ final class BaseSessionManager: SessionManager {
         return nil
     }
 
-    private func isSessonDurationThreadholdReached() -> Bool {
-        guard let recentSession = userDefaultStorage.getRecentSession() else {
-            return false
-        }
-
-        // Check negative time to handle clock skew
-        guard (timeProvider.now() - recentSession.createdAt) > 0 else {
-            return false
-        }
-
-        return (timeProvider.now() - recentSession.createdAt) >= configProvider.maxSessionDurationMs
-    }
-
     private func isFrameworkVersionUpdated() -> Bool {
         if let recentSession = userDefaultStorage.getRecentSession(),
            recentSession.versionCode == self.versionCode {
@@ -168,10 +155,6 @@ final class BaseSessionManager: SessionManager {
             logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
             createNewSession()
             onNewSession(currentSessionId)
-        } else if isSessonDurationThreadholdReached() {
-            logger.log(level: .info, message: "Ending previous session as maxSessionDurationMs threshold is reached.", error: nil, data: nil)
-            createNewSession()
-            onNewSession(currentSessionId)
         } else if let recentSessionId = getRecentSessionId() {
             logger.log(level: .info, message: "Continuing previous session \(recentSessionId)", error: nil, data: nil)
             currentSessionId = recentSessionId
@@ -191,7 +174,7 @@ final class BaseSessionManager: SessionManager {
             // if the app was never in background or a session was never created, return early.
             return
         }
-        if shouldEndSession() || isSessonDurationThreadholdReached() {
+        if shouldEndSession() {
             createNewSession()
         }
         logger.log(level: .info, message: "applicationWillEnterForeground", error: nil, data: nil)

@@ -231,10 +231,8 @@ internal class SignalStoreImpl(
     }
 
     private fun handleEventInsertionFailure(event: EventEntity) {
-        fileStorage.deleteEventIfExist(
-            event.id,
-            event.attachmentEntities?.map { it.id } ?: emptyList(),
-        )
+        fileStorage.deleteEventIfExist(event.id)
+        fileStorage.deleteAttachmentsIfExist(event.attachmentEntities?.map { it.id })
     }
 
     private fun serializeAttachmentEntities(attachmentEntities: List<AttachmentEntity>?): String? {
@@ -294,13 +292,11 @@ internal class SignalStoreImpl(
      * Calculates the total size of all attachments, in bytes.
      */
     private fun calculateAttachmentsSize(attachmentEntities: List<AttachmentEntity>?): Long {
-        fun fileSize(file: File): Long {
-            return try {
-                if (file.exists()) file.length() else 0
-            } catch (e: SecurityException) {
-                logger.log(LogLevel.Debug, "Failed to calculate attachment size", e)
-                0
-            }
+        fun fileSize(file: File): Long = try {
+            if (file.exists()) file.length() else 0
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Debug, "Failed to calculate attachment size", e)
+            0
         }
         return attachmentEntities?.sumOf {
             fileStorage.getFile(it.path)?.let { file -> fileSize(file) } ?: 0

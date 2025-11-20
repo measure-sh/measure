@@ -76,9 +76,7 @@ internal class AppExitCollector(
         return reasonId == REASON_CRASH || reasonId == REASON_ANR || reasonId == REASON_CRASH_NATIVE
     }
 
-    private fun getSessionForAppExit(pid: Int): Session? {
-        return database.getSessionForAppExit(pid)
-    }
+    private fun getSessionForAppExit(pid: Int): Session? = database.getSessionForAppExit(pid)
 
     internal data class Session(
         val id: String,

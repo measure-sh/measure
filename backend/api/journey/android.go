@@ -22,7 +22,7 @@ type NodeAndroid struct {
 	ID int
 
 	// Name is the name of the
-	// lifecycle activity, 
+	// lifecycle activity,
 	// fragment's class name,
 	// or screen view name.
 	Name string
@@ -107,32 +107,23 @@ func (j *JourneyAndroid) computeIssues() {
 // from available events data in the
 // journey.
 //
-// Uses a greedy approach to build a journey
+// Uses a sequential approach to build a journey
 // graph from lifecycle events. The algorithm
-// has 4 broad sections.
+// maintains the actual sequence of events regardless
+// of node type (activity, fragment, or screen view).
 //
-// In the first section, it tries to predict
-// which node should be the parent node.
-//
-// In the second section, it attaches extra
-// metadata to edges like session ids.
-//
-// In the third section, it collapses continous
-// series of exactly same nodes.
-//
-// In the fourth section, it establishes edges
-// between the nodes. Optionally, if bigraph
-// setting is true, then it establishes edges
-// in both forward and reverse directions.
+// The algorithm:
+// 1. Iterates through nodes in order
+// 2. Creates edges from current node to next node
+// 3. Tracks session IDs for each edge
+// 4. Collapses consecutive duplicate nodes
+// 5. Respects session boundaries
 func (j *JourneyAndroid) buildGraph() {
 	j.Graph = graph.New(len(j.nodelut))
 
 	if j.metalut == nil {
 		j.metalut = make(map[string]*set.UUIDSet)
 	}
-
-	// keep track of who should be parent
-	lastParent := -1
 
 	var nodeidxs []int
 
@@ -142,82 +133,20 @@ func (j *JourneyAndroid) buildGraph() {
 		}
 	}
 
-	for _, i := range nodeidxs {
-		first := i == 0
-		last := i == len(j.Nodes)-1
-
-		if last {
-			break
-		}
+	for idx := 0; idx < len(nodeidxs)-1; idx++ {
+		i := nodeidxs[idx]
+		nextIdx := nodeidxs[idx+1]
 
 		currNode := j.Nodes[i]
-		nextNode := j.Nodes[i+1]
+		nextNode := j.Nodes[nextIdx]
 		currEvent := j.Events[currNode.ID]
 		nextEvent := j.Events[nextNode.ID]
 		currSession := currEvent.SessionID
 		nextSession := nextEvent.SessionID
 
-		// assumption is first node will be
-		// an activity
-		if first {
-			lastParent = i
-		}
-
 		sameSession := currSession == nextSession
 
-		if currNode.IsActivity {
-			lastParent = i
-		}
-
-		// an activity node should not create an edge directly
-		// to a child fragment.
-		if currNode.IsActivity && nextNode.IsFragment && !nextNode.IsFragmentParent {
-			continue
-		}
-
-		// perform some basic heuristics to
-		// look for a parent node when current
-		// node is a fragment
-		if currNode.IsFragment {
-			// determine parent when current node
-			// is a fragment.
-			if currNode.IsFragmentParent {
-				lastParent = i
-			} else {
-				parentNode := j.getParentFragmentNode(&currNode)
-				if parentNode != nil {
-					lastParent = parentNode.ID
-				}
-			}
-
-			// if next node is a child fragment, only establish an edge
-			// if the fragment's parent node matches the current event's
-			// fragment class name.
-			if !nextNode.IsFragmentParent {
-				parentNode := j.getParentFragmentNode(&nextNode)
-				if parentNode != nil {
-					if nextEvent.LifecycleFragment.ParentFragment != currEvent.LifecycleFragment.ClassName {
-						continue
-					}
-				}
-			}
-
-			// if going from fragment to activity, we find the
-			// last activity and set that as the next activity's
-			// parent node.
-			if nextNode.IsActivity {
-				parentNode := j.GetLastActivity(&currNode)
-				if parentNode != nil {
-					lastParent = parentNode.ID
-				} else {
-					// did not find a parent activity
-					// wil not create an edge
-					continue
-				}
-			}
-		}
-
-		vkey := j.Nodes[lastParent].Name
+		vkey := currNode.Name
 		wkey := nextNode.Name
 		v := j.nodelut[vkey]
 		w := j.nodelut[wkey]
@@ -227,79 +156,44 @@ func (j *JourneyAndroid) buildGraph() {
 			continue
 		}
 
-		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
-			j.addEdgeID(v.vertex, w.vertex, currSession)
-		}
-
-		if nextNode.IsActivity {
-			j.addEdgeID(v.vertex, w.vertex, currSession)
-		}
-
-		if nextNode.IsScreenView {
-			j.addEdgeID(v.vertex, w.vertex, currSession)
-		}
-
-		// session has changed, so let's start over
-		if !sameSession {
-			continue
-		}
-
 		// collapse repeating alike events
 		shouldDiscard := false
 
-		if currEvent.IsLifecycleActivity() && nextEvent.IsLifecycleActivity() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
-		}
+		if sameSession {
+			if currEvent.IsLifecycleActivity() && nextEvent.IsLifecycleActivity() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 
-		if currEvent.IsLifecycleFragment() && nextEvent.IsLifecycleFragment() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
-		}
+			if currEvent.IsLifecycleFragment() && nextEvent.IsLifecycleFragment() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 
-		if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
-			shouldDiscard = true
+			if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
+				shouldDiscard = true
+			}
 		}
 
 		if shouldDiscard {
 			continue
 		}
 
-		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
-			if j.options.BiGraph {
-				if !j.Graph.Edge(v.vertex, w.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			} else {
-				if !j.Graph.Edge(w.vertex, v.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			}
+		// prevent cycles - skip if reverse edge already exists (unless BiGraph mode)
+		if !j.options.BiGraph && j.Graph.Edge(w.vertex, v.vertex) {
 			continue
 		}
 
-		if nextNode.IsActivity {
-			if j.options.BiGraph {
-				if !j.Graph.Edge(v.vertex, w.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			} else {
-				if !j.Graph.Edge(w.vertex, v.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			}
-			continue
-		}
+		// add edge metadata (session ID)
+		j.addEdgeID(v.vertex, w.vertex, currSession)
 
-		if nextNode.IsScreenView {
-			if j.options.BiGraph {
-				if !j.Graph.Edge(v.vertex, w.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
-			} else {
-				if !j.Graph.Edge(w.vertex, v.vertex) {
-					j.Graph.Add(v.vertex, w.vertex)
-				}
+		// add graph edge
+		if j.options.BiGraph {
+			if !j.Graph.Edge(v.vertex, w.vertex) {
+				j.Graph.Add(v.vertex, w.vertex)
 			}
-			continue
+		} else {
+			if !j.Graph.Edge(w.vertex, v.vertex) {
+				j.Graph.Add(v.vertex, w.vertex)
+			}
 		}
 	}
 }
@@ -464,50 +358,6 @@ func (j JourneyAndroid) String() string {
 	b.WriteString("}\n")
 
 	return b.String()
-}
-
-// isFragmentOrphan tells if the event indexed by `i`
-// is a lifecycle fragment and if the lifecycle fragment
-// lacks a parent activity.
-func (j JourneyAndroid) isFragmentOrphan(i int) bool {
-	event := j.Events[i]
-	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
-}
-
-// getParentFragmentNode gets the fragment's parent node.
-func (j JourneyAndroid) getParentFragmentNode(node *NodeAndroid) (parent *NodeAndroid) {
-	if !node.IsFragment {
-		return
-	}
-	name := j.Events[node.ID].LifecycleFragment.ParentFragment
-	nodebag := j.nodelut[name]
-	// some fragments may not have a parent
-	// fragment set, for those fragments,
-	// we may not find a legit parent fragment node.
-	if nodebag == nil {
-		return
-	}
-	return &j.Nodes[nodebag.nodeid]
-}
-
-// GetLastActivity finds the last activity
-// node by traversing towards start direction.
-func (j JourneyAndroid) GetLastActivity(node *NodeAndroid) (parent *NodeAndroid) {
-	c := node.ID
-
-	for {
-		c--
-
-		if c < 0 {
-			break
-		}
-
-		if j.Nodes[c].IsActivity {
-			return &j.Nodes[c]
-		}
-	}
-
-	return
 }
 
 // NewJourneyAndroid creates a journey graph object

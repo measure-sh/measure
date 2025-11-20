@@ -98,4 +98,170 @@ class DbMigrationsTest {
 
         db.close()
     }
+
+    @Test
+    fun `migration v4 to v5 creates attachments_v1 table and migrates data`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V4)
+
+        // Insert test data into old attachments table
+        db.execSQL(
+            """
+        INSERT INTO ${AttachmentTable.TABLE_NAME} (
+            ${AttachmentTable.COL_ID},
+            ${AttachmentTable.COL_SESSION_ID},
+            ${AttachmentTable.COL_EVENT_ID},
+            ${AttachmentTable.COL_TYPE},
+            ${AttachmentTable.COL_TIMESTAMP},
+            ${AttachmentTable.COL_FILE_PATH},
+            ${AttachmentTable.COL_NAME}
+        ) VALUES (
+            'attachment-1',
+            'session-1',
+            'event-1',
+            'screenshot',
+            '1643723400',
+            '/path/to/file1.png',
+            'screenshot1.png'
+        )
+            """.trimIndent(),
+        )
+
+        db.execSQL(
+            """
+        INSERT INTO ${AttachmentTable.TABLE_NAME} (
+            ${AttachmentTable.COL_ID},
+            ${AttachmentTable.COL_SESSION_ID},
+            ${AttachmentTable.COL_EVENT_ID},
+            ${AttachmentTable.COL_TYPE},
+            ${AttachmentTable.COL_TIMESTAMP},
+            ${AttachmentTable.COL_FILE_PATH},
+            ${AttachmentTable.COL_NAME}
+        ) VALUES (
+            'attachment-2',
+            'session-1',
+            'event-2',
+            'log',
+            '1643723410',
+            '/path/to/file2.log',
+            'log2.log'
+        )
+            """.trimIndent(),
+        )
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V4, DbVersion.V5)
+
+        // Verify new table exists with correct schema
+        val tableInfoCursor = db.queryTableInfo(AttachmentV1Table.TABLE_NAME)
+        val columnNames = mutableListOf<String>()
+        if (tableInfoCursor.moveToFirst()) {
+            do {
+                columnNames.add(tableInfoCursor.getString(tableInfoCursor.getColumnIndexOrThrow("name")))
+            } while (tableInfoCursor.moveToNext())
+        }
+        tableInfoCursor.close()
+
+        // Verify all expected columns exist
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_ID))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_SESSION_ID))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_EVENT_ID))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_TYPE))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_TIMESTAMP))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_FILE_PATH))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_NAME))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_UPLOAD_URL))
+        assertTrue(columnNames.contains(AttachmentV1Table.COL_URL_EXPIRES_AT))
+
+        // Verify data was migrated correctly
+        val dataCursor = db.rawQuery(
+            "SELECT * FROM ${AttachmentV1Table.TABLE_NAME} ORDER BY ${AttachmentV1Table.COL_ID}",
+            null,
+        )
+        assertTrue(dataCursor.moveToFirst())
+        assertEquals(2, dataCursor.count)
+
+        // Verify first row
+        assertEquals(
+            "attachment-1",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_ID)),
+        )
+        assertEquals(
+            "session-1",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_SESSION_ID)),
+        )
+        assertEquals(
+            "event-1",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_EVENT_ID)),
+        )
+        assertEquals(
+            "screenshot",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_TYPE)),
+        )
+        assertEquals(
+            "1643723400",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_TIMESTAMP)),
+        )
+        assertEquals(
+            "/path/to/file1.png",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_FILE_PATH)),
+        )
+        assertEquals(
+            "screenshot1.png",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_NAME)),
+        )
+
+        // Verify second row
+        assertTrue(dataCursor.moveToNext())
+        assertEquals(
+            "attachment-2",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_ID)),
+        )
+        assertEquals(
+            "session-1",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_SESSION_ID)),
+        )
+        assertEquals(
+            "event-2",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_EVENT_ID)),
+        )
+        assertEquals(
+            "log",
+            dataCursor.getString(dataCursor.getColumnIndexOrThrow(AttachmentV1Table.COL_TYPE)),
+        )
+
+        dataCursor.close()
+
+        // Verify old table no longer exists
+        val tablesCursor = db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='${AttachmentTable.TABLE_NAME}'",
+            null,
+        )
+        assertEquals(0, tablesCursor.count)
+        tablesCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    fun `migration v4 to v5 handles empty attachments table`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V4)
+
+        // Perform migration without any data
+        DbMigrations.apply(logger, db, DbVersion.V4, DbVersion.V5)
+
+        // Verify new table exists but is empty
+        val dataCursor = db.rawQuery("SELECT * FROM ${AttachmentV1Table.TABLE_NAME}", null)
+        assertEquals(0, dataCursor.count)
+        dataCursor.close()
+
+        // Verify old table no longer exists
+        val tablesCursor = db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='${AttachmentTable.TABLE_NAME}'",
+            null,
+        )
+        assertEquals(0, tablesCursor.count)
+        tablesCursor.close()
+
+        db.close()
+    }
 }

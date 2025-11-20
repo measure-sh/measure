@@ -8,7 +8,7 @@
 
 ## What Is a Session?
 
-A session is a continuous period of activity within the app. A new session begins when the app is launched for the first time or after 20 minutes of inactivity. Sessions can span across app background and foreground events, so short interruptions won’t start a new session.
+A session is a continuous period of activity within the app. A new session begins when the app is launched for the first time or after 3 minutes of inactivity. Sessions can span across app background and foreground events, so short interruptions won’t start a new session.
 
 ## Session Search
 

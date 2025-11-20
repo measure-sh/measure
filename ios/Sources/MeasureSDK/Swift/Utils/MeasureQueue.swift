@@ -9,7 +9,12 @@ import Foundation
 
 struct MeasureQueue {
     static let periodicEventExporter: DispatchQueue = {
-        let queue = DispatchQueue(label: periodicEventExporterLabel, qos: .background)
+        let queue = DispatchQueue(label: "sh.measure.periodic.event.exporter", qos: .background)
+        return queue
+    }()
+
+    static let attachmentExporter: DispatchQueue = {
+        let queue = DispatchQueue(label: "sh.measure.attachment.exporter", qos: .utility)
         return queue
     }()
 }

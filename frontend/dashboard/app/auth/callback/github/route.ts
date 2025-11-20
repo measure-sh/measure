@@ -1,23 +1,35 @@
 import { NextResponse } from "next/server";
+import { getPosthogServer } from "../../../posthog-server";
 import { setCookiesFromJWT } from "../../cookie";
 
 export const dynamic = "force-dynamic";
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
 const apiOrigin = process?.env?.API_BASE_URL;
+const posthog = getPosthogServer()
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`;
+
+  let err = ""
   if (!code) {
-    console.log("GitHub login failure: no nonce");
+    err = "GitHub login failure: no nonce"
+    posthog.captureException(err, {
+      source: 'github_oauth_callback'
+    })
+    console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (!state) {
-    console.log("GitHub login failure: no state");
+    err = "GitHub login failure: no state"
+    posthog.captureException(err, {
+      source: 'github_oauth_callback'
+    })
+    console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
@@ -34,21 +46,42 @@ export async function GET(request: Request) {
   });
 
   if (!res.ok) {
-    let body = "";
+    let body: { error?: string; details?: string } | string;
     try {
       body = await res.json();
     } catch (error) {
+      posthog.captureException(error, {
+        source: 'github_oauth_callback'
+      })
       console.error("Error parsing GitHub login error response JSON:", error);
       body = await res.text();
     }
 
-    console.log(
-      `GitHub login failure: post /auth/github returned ${res.status}`,
-    );
+    // Check if allowlist banned this identity
+    if (typeof body === "object" && body.error === "allowlist_banned") {
+      err = "GitHub login failure: allowlist banned"
+      posthog.captureException(err, {
+        source: 'github_oauth_callback'
+      })
+      console.log(err);
+
+      const parsedUrl = new URL(errRedirectUrl);
+      if (body?.details) {
+        parsedUrl.searchParams.set("message", body.details);
+      }
+
+      return NextResponse.redirect(parsedUrl.toString(), { status: 302 });
+    }
 
     if (body) {
-      console.log("github login failure res:", body);
+      err = `GitHub login failure - post /auth/github returned ${res.status}. Details: ${JSON.stringify(body)}`
+    } else {
+      err = `GitHub login failure: post /auth/github returned ${res.status}`
     }
+    posthog.captureException(err, {
+      source: 'github_oauth_callback'
+    })
+    console.log(err);
 
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }

@@ -11,17 +11,11 @@ internal class FakeConfigProvider : ConfigProvider {
         // no-op
     }
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = false
 
-    override fun shouldTrackHttpUrl(url: String): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpUrl(url: String): Boolean = false
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = false
 
     override fun setMeasureUrl(url: String) {
         // No-op
@@ -40,11 +34,11 @@ internal class FakeConfigProvider : ConfigProvider {
     override val traceSamplingRate: Float = 1f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 1_000_000
     override var eventsBatchingIntervalMs: Long = 1_000_000
+    override var eventsBatchingJitterMs: Long = 1_000_000
     override var maxEventsInBatch: Int = 1_000_000
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionEndLastEventThresholdMs: Long = 1_000_000
-    override var maxSessionDurationMs: Long = 6_000_000
     override var maxEventNameLength: Int = 64
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
     override val maxUserDefinedAttributesPerEvent: Int = 100

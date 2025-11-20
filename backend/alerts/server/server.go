@@ -22,7 +22,6 @@ var Server *server
 
 type server struct {
 	PgPool  *pgxpool.Pool
-	RpgPool *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
 	Mail    *mail.Client
@@ -72,22 +71,21 @@ func NewConfig() *ServerConfig {
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
 	if siteOrigin == "" {
-		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
 	if clickhouseReaderDSN == "" {
-		// log.Fatal("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
@@ -122,7 +120,7 @@ func NewConfig() *ServerConfig {
 	} else {
 		parsedSiteOrigin, err := url.Parse(siteOrigin)
 		if err != nil {
-			log.Fatalf("Error parsing SITE_ORIGIN: %v\n", err)
+			log.Printf("Error parsing SITE_ORIGIN: %v\n", err)
 		}
 		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
 	}
@@ -155,27 +153,15 @@ func NewConfig() *ServerConfig {
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
-	var rPgPool *pgxpool.Pool
 
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
-	}
-	oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role operator")
-		return err
+		log.Printf("Unable to parse postgres connection string: %v\n", err)
 	}
 
-	// reader pool
-	rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	if err != nil {
-		log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
-	}
-	rConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role reader")
-		return err
-	}
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
@@ -187,7 +173,7 @@ func Init(config *ServerConfig) {
 			cloudsqlconn.WithLazyRefresh(),
 		)
 		if err != nil {
-			fmt.Println("Failed to dial postgress connection.")
+			fmt.Println("Failed to dial postgres connection.")
 		}
 
 		csqlConnName := os.Getenv("CSQL_CONN_NAME")
@@ -199,28 +185,16 @@ func Init(config *ServerConfig) {
 			fmt.Printf("Dialing network: %s, address: %s\n", network, address)
 			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
 		}
-
-		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
-		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		log.Printf("Unable to create PG connection pool: %v\n", err)
 	}
 	pgPool = pool
 
-	rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
-	if err != nil {
-		log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
-	}
-	rPgPool = rPool
-
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
@@ -231,7 +205,6 @@ func Init(config *ServerConfig) {
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		// log.Fatalf("Unable to create CH connection pool: %v", err)
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
@@ -247,19 +220,18 @@ func Init(config *ServerConfig) {
 	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
 		smtpConfigPort, err := strconv.Atoi(config.SmtpPort)
 		if err != nil {
-			log.Printf("Invalid smtp port: %s", err)
+			log.Printf("Invalid smtp port: %v\n", err)
 		}
 
 		mailClient, err = mail.NewClient(config.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
 			mail.WithUsername(config.SmtpUser), mail.WithPassword(config.SmtpPassword))
 		if err != nil {
-			log.Printf("failed to create email client: %s", err)
+			log.Printf("failed to create email client: %v\n", err)
 		}
 	}
 
 	Server = &server{
 		PgPool:  pgPool,
-		RpgPool: rPgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
 		Config:  config,

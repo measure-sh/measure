@@ -94,6 +94,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var periodicExporter: PeriodicExporter {
         return measureInitializer.periodicExporter
     }
+    private var attachmentExporter: AttachmentExporter {
+        return measureInitializer.attachmentExporter
+    }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
     }
@@ -323,6 +326,30 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
 
+    func trackHttpEvent(url: String,
+                        method: String,
+                        startTime: UInt64,
+                        endTime: UInt64,
+                        client: String = "unknown",
+                        statusCode: Int? = nil,
+                        error: Error? = nil,
+                        requestHeaders: [String: String]? = nil,
+                        responseHeaders: [String: String]? = nil,
+                        requestBody: String? = nil,
+                        responseBody: String? = nil) {
+        return userTriggeredEventCollector.trackHttpEvent(url: url,
+                                                          method: method,
+                                                          startTime: startTime,
+                                                          endTime: endTime,
+                                                          client: client,
+                                                          statusCode: statusCode,
+                                                          error: error,
+                                                          requestHeaders: requestHeaders,
+                                                          responseHeaders: responseHeaders,
+                                                          requestBody: requestBody,
+                                                          responseBody: responseBody)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false
@@ -368,6 +395,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
+        self.attachmentExporter.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -388,6 +416,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
+        self.attachmentExporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {

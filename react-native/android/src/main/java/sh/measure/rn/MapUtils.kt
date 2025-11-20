@@ -9,11 +9,13 @@ import sh.measure.android.attributes.DoubleAttr
 import sh.measure.android.attributes.StringAttr
 
 object MapUtils {
-    fun toMap(readableMap: ReadableMap): Map<String, Any?> {
+    fun toMap(readableMap: ReadableMap?): Map<String, Any?> {
+        if (readableMap == null) return emptyMap()
         return buildGenericMap(readableMap).toMap()
     }
 
-    fun toMutableMap(readableMap: ReadableMap): MutableMap<String, Any?> {
+    fun toMutableMap(readableMap: ReadableMap?): MutableMap<String, Any?> {
+        if (readableMap == null) return mutableMapOf()
         return buildGenericMap(readableMap)
     }
 
@@ -25,50 +27,33 @@ object MapUtils {
             when (readableMap.getType(key)) {
                 ReadableType.Boolean -> result[key] = readableMap.getBoolean(key)
                 ReadableType.Number -> {
-                    // TODO: assuming all numbers are doubles for now
-                    //  we should ideally cast the number to the correct
-                    //  type
-                    val num: Double = readableMap.getDouble(key)
-                    result[key] = num
+                    val num = readableMap.getDouble(key)
+                    result[key] = if (num == num.toLong().toDouble()) num.toLong() else num
                 }
-
-                ReadableType.String -> {
-                    readableMap.getString(key)?.let {
-                        result[key] = it
-                    }
-                }
-
-                ReadableType.Map -> {
-                    readableMap.getMap(key)?.let {
-                        result[key] = buildGenericMap(it)
-                    }
-                }
-
+                ReadableType.String -> readableMap.getString(key)?.let { result[key] = it }
+                ReadableType.Map -> readableMap.getMap(key)?.let { result[key] = buildGenericMap(it) }
                 ReadableType.Array -> result[key] = toList(readableMap.getArray(key))
-
-                else -> null
+                else -> result[key] = null
             }
         }
         return result
     }
 
-    fun toStringMap(readableMap: ReadableMap): Map<String, String> {
+    fun toStringMap(readableMap: ReadableMap?): Map<String, String> {
+        if (readableMap == null) return emptyMap()
         val result = mutableMapOf<String, String>()
         val iterator = readableMap.keySetIterator()
         while (iterator.hasNextKey()) {
             val key = iterator.nextKey()
             if (readableMap.getType(key) == ReadableType.String) {
-                val value = readableMap.getString(key)
-                if (value == null) {
-                    continue
-                }
-                result[key] = value
+                readableMap.getString(key)?.let { result[key] = it }
             }
         }
         return result.toMap()
     }
 
-    fun toAttributeValueMap(readableMap: ReadableMap): MutableMap<String, AttributeValue> {
+    fun toAttributeValueMap(readableMap: ReadableMap?): MutableMap<String, AttributeValue> {
+        if (readableMap == null) return mutableMapOf()
         val result = mutableMapOf<String, AttributeValue>()
         val iterator = readableMap.keySetIterator()
         while (iterator.hasNextKey()) {
@@ -77,28 +62,9 @@ object MapUtils {
             val value: AttributeValue? = when (type) {
                 ReadableType.Null -> null
                 ReadableType.Boolean -> BooleanAttr(readableMap.getBoolean(key))
-                ReadableType.Number -> {
-                    // TODO: assuming all numbers are doubles for now
-                    //  we should ideally cast the number to the correct
-                    //  type
-                    val num: Double = readableMap.getDouble(key)
-                    DoubleAttr(num)
-                }
-
-                ReadableType.String -> {
-                    val value = readableMap.getString(key)
-                    when {
-                        value != null -> StringAttr(value)
-                        else -> null
-                    }
-                }
-
-                else -> {
-                    // Attribute values can never have a map, array or
-                    // null value. We ignore such attributes if we
-                    // encounter it here.
-                    null
-                }
+                ReadableType.Number -> DoubleAttr(readableMap.getDouble(key))
+                ReadableType.String -> readableMap.getString(key)?.let { StringAttr(it) }
+                else -> null // Ignore maps/arrays
             }
             if (value != null) result[key] = value
         }
@@ -106,9 +72,7 @@ object MapUtils {
     }
 
     private fun toList(readableArray: ReadableArray?): List<Any?> {
-        if (readableArray == null) {
-            return emptyList()
-        }
+        if (readableArray == null) return emptyList()
         val size = readableArray.size()
         val out = ArrayList<Any?>(size)
         for (i in 0 until size) {
@@ -119,9 +83,8 @@ object MapUtils {
                     val num = readableArray.getDouble(i)
                     out.add(if (num == num.toLong().toDouble()) num.toLong() else num)
                 }
-
                 ReadableType.String -> out.add(readableArray.getString(i))
-                ReadableType.Map -> out.add(buildGenericMap(readableArray.getMap(i)))
+                ReadableType.Map -> out.add(readableArray.getMap(i)?.let { buildGenericMap(it) })
                 ReadableType.Array -> out.add(toList(readableArray.getArray(i)))
             }
         }

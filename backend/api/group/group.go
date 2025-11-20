@@ -1,6 +1,7 @@
 package group
 
 import (
+	"backend/api/ambient"
 	"backend/api/chrono"
 	"backend/api/event"
 	"backend/api/filter"
@@ -75,8 +76,14 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 
 // Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
 	stmt := sqlf.
 		InsertInto("unhandled_exception_groups").
+		Set("team_id", teamId).
 		Set("app_id", e.AppID).
 		Set("id", e.ID).
 		Set("type", e.Type).
@@ -88,7 +95,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // GetId provides the ANR's
@@ -113,8 +120,14 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 
 // Insert inserts a new ANRGroup into the database.
 func (a *ANRGroup) Insert(ctx context.Context) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
 	stmt := sqlf.
 		InsertInto("anr_groups").
+		Set("team_id", teamId).
 		Set("app_id", a.AppID).
 		Set("id", a.ID).
 		Set("type", a.Type).
@@ -126,7 +139,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from
@@ -179,7 +192,7 @@ func SortANRGroups(groups []ANRGroup) {
 // matched by app filter(s) and exception event ids.
 func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`id, exception.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("id in ?", eventIds)
@@ -217,8 +230,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.
-		From(`unhandled_exception_groups`).
-		Clause(`FINAL`).
+		From(`unhandled_exception_groups final`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
@@ -277,7 +289,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 // matched by app filter(s) and ANR event ids.
 func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`id, anr.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where(`id in ?`, eventIds)

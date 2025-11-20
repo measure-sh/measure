@@ -38,14 +38,20 @@ func main() {
 	// close clickhouse connection pool at shutdown
 	defer func() {
 		if err := server.Server.ChPool.Close(); err != nil {
-			log.Fatalf("Unable to close clickhouse connection: %v", err)
+			fmt.Printf("Unable to close clickhouse operator connection: %v\n", err)
+		}
+	}()
+
+	defer func() {
+		if err := server.Server.RchPool.Close(); err != nil {
+			fmt.Printf("Unable to close clickhouse reader connection: %v\n", err)
 		}
 	}()
 
 	// close otel tracer at shutdown
 	defer func() {
 		if err := meteringTracer(context.Background()); err != nil {
-			log.Fatalf("Unable to close otel tracer: %v", err)
+			fmt.Printf("Unable to close otel tracer: %v\n", err)
 		}
 	}()
 
@@ -73,8 +79,14 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
+
 	// Run metering job at 11:59 PM every day to calculate usage for the day
-	cron.AddFunc("59 23 * * *", func() { metering.CalculateUsage(ctx) })
+	if _, err := cron.AddFunc("59 23 * * *", func() { metering.CalculateUsage(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule metering job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled metering job")
+
 	cron.Start()
 	return cron
 }

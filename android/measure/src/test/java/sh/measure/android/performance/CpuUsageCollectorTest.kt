@@ -233,11 +233,9 @@ internal class CpuUsageCollectorTest {
         cuTime: Long = 100,
         csTime: Long = 200,
         startTime: Long = 5835385,
-    ): File {
-        return File.createTempFile("stat", null).apply {
-            writeText(
-                "15354 (.measure.sample) R 1274 1274 0 0 -1 4194624 16399 0 0 0 $utime $stime $cuTime $csTime 30 10 24 0 $startTime 15334526976 31865 18446744073709551615 434698489856 434698501984 548727546288 0 0 0 4612 1 1073775864 0 0 0 17 7 0 0 0 0 0 434698502144 434698503416 434785861632 548727550460 548727550559 548727550559 548727554014 0",
-            )
-        }
+    ): File = File.createTempFile("stat", null).apply {
+        writeText(
+            "15354 (.measure.sample) R 1274 1274 0 0 -1 4194624 16399 0 0 0 $utime $stime $cuTime $csTime 30 10 24 0 $startTime 15334526976 31865 18446744073709551615 434698489856 434698501984 548727546288 0 0 0 4612 1 1073775864 0 0 0 17 7 0 0 0 0 0 434698502144 434698503416 434785861632 548727550460 548727550559 548727550559 548727554014 0",
+        )
     }
 }

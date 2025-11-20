@@ -94,4 +94,20 @@ export class BaseConfigProvider implements ConfigProvider {
   get maxEventNameLength(): number {
     return this.getMergedConfig('maxEventNameLength');
   }
+
+  get customEventNameRegex(): string {
+    return this.getMergedConfig('customEventNameRegex');
+  }
+
+  get maxSpanNameLength(): number {
+    return this.getMergedConfig('maxSpanNameLength');
+  }
+
+  get maxCheckpointNameLength(): number {
+    return this.getMergedConfig('maxCheckpointNameLength');
+  }
+
+  get maxCheckpointsPerSpan(): number {
+    return this.getMergedConfig('maxCheckpointsPerSpan');
+  }
 }

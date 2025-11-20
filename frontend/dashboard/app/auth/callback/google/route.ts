@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { getPosthogServer } from "../../../posthog-server";
 import { setCookiesFromJWT } from "../../cookie";
 
 export const dynamic = "force-dynamic";
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
 const apiOrigin = process?.env?.API_BASE_URL;
+const posthog = getPosthogServer()
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,18 +17,32 @@ export async function POST(request: Request) {
   const formdata = await request.formData();
   const credential = formdata.get("credential");
 
+  let err = ""
   if (!credential) {
-    console.log("google login failure: no credential");
+    err = "google login failure: no credential"
+    posthog.captureException(err, {
+      source: 'google_oauth_callback'
+    })
+    console.log(err);
+
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (state && !nonce) {
-    console.log("google login failure: no nonce");
+    err = "google login failure: no nonce"
+    posthog.captureException(err, {
+      source: 'google_oauth_callback'
+    })
+    console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (nonce && !state) {
-    console.log("google login failure: no state");
+    err = "google login failure: no state"
+    posthog.captureException(err, {
+      source: 'google_oauth_callback'
+    })
+    console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
@@ -58,7 +74,7 @@ export async function POST(request: Request) {
   });
 
   if (!res.ok) {
-    let body = "";
+    let body: { error?: string; details?: string } | string = "";
     try {
       body = await res.json();
     } catch (error) {
@@ -66,13 +82,31 @@ export async function POST(request: Request) {
       body = await res.text();
     }
 
-    console.log(
-      `google login failure: post /auth/google returned ${res.status}`,
-    );
+    // Check if allowlist banned this identity
+    if (typeof body === "object" && body.error === "allowlist_banned") {
+      err = "Google login failure: allowlist banned"
+      posthog.captureException(err, {
+        source: 'google_oauth_callback'
+      })
+      console.log(err);
+
+      const parsedUrl = new URL(errRedirectUrl);
+      if (body?.details) {
+        parsedUrl.searchParams.set("message", body.details);
+      }
+
+      return NextResponse.redirect(parsedUrl.toString(), { status: 302 });
+    }
 
     if (body) {
-      console.log("google login failure res:", body);
+      err = `Google login failure - post /auth/google returned ${res.status}. Details: ${JSON.stringify(body)}`
+    } else {
+      err = `Google login failure: post /auth/google returned ${res.status}`
     }
+    posthog.captureException(err, {
+      source: 'google_oauth_callback'
+    })
+    console.log(err);
 
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }

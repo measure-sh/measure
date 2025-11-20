@@ -33,7 +33,7 @@ internal class AnrCollector(
             data = toMeasureException(anrError),
             timestamp = anrError.timestamp,
             type = EventType.ANR,
-            takeScreenshot = false,
+            takeScreenshot = true,
         )
     }
 
@@ -42,12 +42,10 @@ internal class AnrCollector(
         nativeBridge.disableAnrReporting()
     }
 
-    private fun toMeasureException(anr: AnrError): ExceptionData {
-        return ExceptionFactory.createMeasureException(
-            throwable = anr,
-            handled = false,
-            thread = anr.thread,
-            foreground = processInfo.isForegroundProcess(),
-        )
-    }
+    private fun toMeasureException(anr: AnrError): ExceptionData = ExceptionFactory.createMeasureException(
+        throwable = anr,
+        handled = false,
+        thread = anr.thread,
+        foreground = processInfo.isForegroundProcess(),
+    )
 }

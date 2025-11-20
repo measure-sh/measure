@@ -93,8 +93,7 @@ func (a App) rename() error {
 // GetExceptionGroup queries a single exception group by its id.
 func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *group.ExceptionGroup, err error) {
 	stmt := sqlf.
-		From("unhandled_exception_groups").
-		Clause("FINAL").
+		From("unhandled_exception_groups final").
 		Select("app_id").
 		Select("id").
 		Select(`type`).
@@ -135,7 +134,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 	exceptionGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
 		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.ID).
 		Where("type = 'exception'").
@@ -174,8 +173,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.
-		From("unhandled_exception_groups").
-		Clause("FINAL").
+		From("unhandled_exception_groups final").
 		Select("app_id").
 		Select("id").
 		Select(`type`).
@@ -219,7 +217,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		exceptionGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("events").
+			From("events final").
 			Select("distinct id").
 			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.ID).
 			Where("type = ?", event.TypeException).
@@ -228,9 +226,8 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		defer eventDataStmt.Close()
 
 		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs").
+			subQuery := sqlf.From("user_def_attrs final").
 				Select("event_id id").
-				Clause("final").
 				Where("app_id = toUUID(?)", af.AppID).
 				Where("exception = true")
 			af.UDExpression.Augment(subQuery)
@@ -318,8 +315,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 // GetANRGroup queries a single ANR group by its id.
 func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGroup, err error) {
 	stmt := sqlf.
-		From("anr_groups").
-		Clause("FINAL").
+		From("anr_groups final").
 		Select("app_id").
 		Select("id").
 		Select(`type`).
@@ -360,7 +356,7 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 	anrGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`events`).
+	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
 		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.ID).
 		Where("type = ?", event.TypeANR).
@@ -395,8 +391,7 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.
-		From("anr_groups").
-		Clause("FINAL").
+		From("anr_groups final").
 		Select("app_id").
 		Select("id").
 		Select(`type`).
@@ -440,7 +435,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		anrGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("events").
+			From("events final").
 			Select("distinct id").
 			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
 			Where("type = ?", event.TypeANR)
@@ -448,9 +443,8 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		defer eventDataStmt.Close()
 
 		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs").
+			subQuery := sqlf.From("user_def_attrs final").
 				Select("event_id id").
-				Clause("final").
 				Where("app_id = toUUID(?)", af.AppID)
 			af.UDExpression.Augment(subQuery)
 			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
@@ -543,7 +537,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
-		From("events").
+		From("events final").
 		Where("app_id = ?", af.AppID).
 		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -929,7 +923,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`events`).
+		From(`events final`).
 		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
@@ -1505,7 +1499,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	}
 
-	stmt := sqlf.From("events")
+	stmt := sqlf.From("events final")
 	defer stmt.Close()
 
 	for i := range cols {
@@ -1991,6 +1985,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
+		Select("team_id").
 		Select("onboarded").
 		Select("unique_identifier").
 		Select("os_name").
@@ -2004,7 +1999,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app = &App{}
 	}
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &app.TeamId, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {

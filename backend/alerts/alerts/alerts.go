@@ -83,7 +83,9 @@ type MetricData struct {
 }
 
 const crashOrAnrSpikeTimePeriod = time.Hour
+
 const minCrashOrAnrCountThreshold = 100
+
 const crashOrAnrSpikeThreshold = 0.5               // percent
 const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
 
@@ -107,7 +109,7 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 			to := time.Now().UTC()
 
 			var sessionCount uint64
-			sessionCountStmt := sqlf.From("events").
+			sessionCountStmt := sqlf.From("events final").
 				Select("count(distinct session_id) as session_count").
 				Where("app_id = ?", app.ID).
 				Where("timestamp >= ? and timestamp <= ?", from, to)
@@ -171,7 +173,7 @@ func CreateDailySummary(ctx context.Context) {
 			}
 
 			dailySummaryEmailBody := formatDailySummaryEmailBody(appName, dashboardURL, date, metrics)
-			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, dashboardURL, appName)
+			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, appName)
 			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
 		}
 	}
@@ -228,7 +230,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 		Where("id = ?", appID)
 	defer appNameStmt.Close()
 	var appName string
-	err := server.Server.RpgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
+	err := server.Server.PgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
 	if err != nil {
 		return "", err
 	}
@@ -340,8 +342,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.cold_launch_p95_ms > pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS cold_launch_subtitle,
-            (isNaN(cd.cold_launch_p95_ms) = 0 AND cd.cold_launch_p95_ms > 2000 AND cd.cold_launch_p95_ms > 0) AS cold_launch_has_warning,
-            (isNaN(cd.cold_launch_p95_ms) = 0 AND cd.cold_launch_p95_ms > 3000 AND cd.cold_launch_p95_ms > 0) AS cold_launch_has_error,
+            0 AS cold_launch_has_warning,
+            0 AS cold_launch_has_error,
 
             -- Warm Launch
             CASE
@@ -355,8 +357,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.warm_launch_p95_ms > pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS warm_launch_subtitle,
-            (isNaN(cd.warm_launch_p95_ms) = 0 AND cd.warm_launch_p95_ms > 1000 AND cd.warm_launch_p95_ms > 0) AS warm_launch_has_warning,
-            (isNaN(cd.warm_launch_p95_ms) = 0 AND cd.warm_launch_p95_ms > 1500 AND cd.warm_launch_p95_ms > 0) AS warm_launch_has_error,
+            0 AS warm_launch_has_warning,
+            0 AS warm_launch_has_error,
 
             -- Hot Launch
             CASE
@@ -370,8 +372,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.hot_launch_p95_ms > pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS hot_launch_subtitle,
-            (isNaN(cd.hot_launch_p95_ms) = 0 AND cd.hot_launch_p95_ms > 800 AND cd.hot_launch_p95_ms > 0) AS hot_launch_has_warning,
-            (isNaN(cd.hot_launch_p95_ms) = 0 AND cd.hot_launch_p95_ms > 1200 AND cd.hot_launch_p95_ms > 0) AS hot_launch_has_error
+            0 AS hot_launch_has_warning,
+            0 AS hot_launch_has_error
 
 
         FROM current_day cd
@@ -480,7 +482,7 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 		Limit(1)
 	defer stmt.Close()
 	var createdAt time.Time
-	row := server.Server.RpgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
 	err := row.Scan(&createdAt)
 	if err != nil {
 		return false, nil // no previous alert
@@ -498,7 +500,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Where("team_id = ?", alert.TeamID)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", alert.TeamID, err)
 		return
@@ -519,7 +521,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue
@@ -551,7 +553,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Set("team_id", alert.TeamID).
 			Set("app_id", alert.AppID).
 			Set("channel", "email").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
@@ -615,7 +617,7 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 			Set("team_id", alert.TeamID).
 			Set("app_id", alert.AppID).
 			Set("channel", "slack").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 
@@ -627,14 +629,14 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 	}
 }
 
-func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, url, appName string) {
+func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, appName string) {
 	memberStmt := sqlf.PostgreSQL.
 		Select("user_id").
 		From("team_membership").
 		Where("team_id = ?", teamId)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", teamId, err)
 		return
@@ -655,7 +657,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue
@@ -680,7 +682,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Set("team_id", teamId).
 			Set("app_id", appId).
 			Set("channel", "email").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
@@ -737,7 +739,7 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 			Set("team_id", teamId).
 			Set("app_id", appId).
 			Set("channel", "slack").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 
@@ -763,7 +765,7 @@ func formatAlertEmailBody(appName, title, message, url string) string {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
         </div>
 
@@ -856,13 +858,21 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
 	for _, metric := range metrics {
 		icon := ""
 		if metric.HasError {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-				<span style="color: white; font-size: 12px; font-weight: bold;">!</span>
-			</div>`
+			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%;">
+   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
+        					<tr>
+            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
+        					</tr>
+    					</table>
+					</div>`
 		} else if metric.HasWarning {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #d08700; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-				<span style="color: white; font-size: 12px; font-weight: bold;">!</span>
-			</div>`
+			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #d08700; border-radius: 50%;">
+   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
+        					<tr>
+            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
+        					</tr>
+    					</table>
+					</div>`
 		}
 
 		metricsHTML += fmt.Sprintf(`
@@ -893,7 +903,7 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle; margin-right: 2px;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s Daily Summary</h1>
         </div>
 
@@ -1015,7 +1025,7 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 }
 
 func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
-	crashGroupStmt := sqlf.From("events").
+	crashGroupStmt := sqlf.From("events final").
 		Select("exception.fingerprint, count() as crash_count").
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'exception'").
@@ -1056,7 +1066,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 		if crashGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
-			groupInfoStmt := sqlf.From("unhandled_exception_groups").
+			groupInfoStmt := sqlf.From("unhandled_exception_groups final").
 				Select("type").
 				Select("file_name").
 				Select("method_name").
@@ -1132,7 +1142,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 }
 
 func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
-	anrGroupStmt := sqlf.From("events").
+	anrGroupStmt := sqlf.From("events final").
 		Select("anr.fingerprint, count() as anr_count").
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'anr'").
@@ -1172,7 +1182,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 
 		if anrGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
-			groupInfoStmt := sqlf.From("anr_groups").
+			groupInfoStmt := sqlf.From("anr_groups final").
 				Select("type").
 				Select("file_name").
 				Select("method_name").

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
 import { Button } from './button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown_menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown_menu'
 
 interface UserAvatarProps {
   onLogoutClick?: () => void
@@ -13,6 +13,7 @@ interface UserAvatarProps {
 const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
   const [session, setSession] = useState<MeasureAuthSession | null>(null)
   const [sessionError, setSessionError] = useState<Error | null>(null)
+  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -30,6 +31,29 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
     }
   }
 
+  // Helper function to get initials from name
+  const getInitials = (name: string) => {
+    const trimmedName = name.trim()
+
+    if (!trimmedName) {
+      return 'N/A'
+    }
+
+    const words = trimmedName.split(/\s+/).filter(word => word.length > 0)
+
+    if (words.length === 0) {
+      return 'N/A'
+    }
+
+    if (words.length === 1) {
+      // Single name: return first two characters
+      return trimmedName.slice(0, 2).toUpperCase()
+    }
+
+    // Multiple names: return first letter of first and last word
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase()
+  }
+
   return (
     <DropdownMenu >
       <DropdownMenuTrigger asChild className='w-full'>
@@ -42,15 +66,22 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
           <div
             className="aspect-square w-12 rounded-full">
             {session !== null && sessionError === null && (
-              <div className="relative w-full h-full">
-                <Image
-                  src={session!.user.avatar_url}
-                  fill
-                  loading='lazy'
-                  sizes="48px"
-                  alt="User Avatar"
-                  className="object-fit rounded-full"
-                />
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                {!imageError ? (
+                  <Image
+                    src={session.user.avatar_url}
+                    fill
+                    loading='lazy'
+                    sizes="48px"
+                    alt="User Avatar"
+                    className="object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <span className="text-sm">
+                    {getInitials(session.user.name)}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -68,8 +99,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
         className='select-none'
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <DropdownMenuLabel className='font-display'>Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogoutClick} className='font-body'>
           Logout
         </DropdownMenuItem>

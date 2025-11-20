@@ -27,7 +27,8 @@ internal class PeriodicExporterImpl(
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat,
     private val exporter: Exporter,
-) : PeriodicExporter, HeartbeatListener {
+) : PeriodicExporter,
+    HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
 
@@ -43,11 +44,17 @@ internal class PeriodicExporterImpl(
     }
 
     override fun register() {
-        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+        heartbeat.start(
+            intervalMs = configProvider.eventsBatchingIntervalMs,
+            jitterMs = configProvider.eventsBatchingJitterMs,
+        )
     }
 
     override fun resume() {
-        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+        heartbeat.start(
+            intervalMs = configProvider.eventsBatchingIntervalMs,
+            jitterMs = configProvider.eventsBatchingJitterMs,
+        )
     }
 
     override fun unregister() {

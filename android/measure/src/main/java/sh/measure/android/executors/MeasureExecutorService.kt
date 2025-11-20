@@ -27,40 +27,33 @@ internal interface MeasureExecutorService {
     fun shutdown()
 }
 
-internal class MeasureExecutorServiceImpl @TestOnly constructor(private val executorService: ScheduledExecutorService) :
-    MeasureExecutorService {
+internal class MeasureExecutorServiceImpl @TestOnly constructor(private val executorService: ScheduledExecutorService) : MeasureExecutorService {
 
     constructor(threadFactory: ThreadFactory) : this(
         Executors.newSingleThreadScheduledExecutor(threadFactory),
     )
 
-    override fun <T> submit(callable: Callable<T>): Future<T> {
-        return executorService.submit(callable)
-    }
+    override fun <T> submit(callable: Callable<T>): Future<T> = executorService.submit(callable)
 
-    override fun <T> schedule(callable: Callable<T>, delayMillis: Long): Future<T> {
-        return executorService.schedule(callable, delayMillis, TimeUnit.MILLISECONDS)
-    }
+    override fun <T> schedule(callable: Callable<T>, delayMillis: Long): Future<T> = executorService.schedule(callable, delayMillis, TimeUnit.MILLISECONDS)
 
     override fun scheduleAtFixedRate(
         runnable: Runnable,
         initialDelay: Long,
         delayMillis: Long,
         delayUnit: TimeUnit,
-    ): Future<*> {
-        return executorService.scheduleWithFixedDelay(
-            runnable,
-            initialDelay,
-            delayMillis,
-            delayUnit,
-        )
-    }
+    ): Future<*> = executorService.scheduleWithFixedDelay(
+        runnable,
+        initialDelay,
+        delayMillis,
+        delayUnit,
+    )
 
     override fun shutdown() {
         executorService.shutdown()
         try {
             executorService.awaitTermination(30, TimeUnit.SECONDS)
-        } catch (ie: InterruptedException) {
+        } catch (_: InterruptedException) {
             // ignore interrupted exceptions
         }
     }

@@ -8,6 +8,7 @@ import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
+import sh.measure.android.okhttp.HttpData
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
@@ -22,6 +23,21 @@ internal interface UserTriggeredEventCollector {
         description: String,
         screenshots: List<MsrAttachment>,
         attributes: MutableMap<String, AttributeValue>,
+    )
+
+    fun trackHttp(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        client: String,
+        statusCode: Int?,
+        failureReason: String?,
+        failureDescription: String?,
+        requestHeaders: MutableMap<String, String>?,
+        responseHeaders: MutableMap<String, String>?,
+        requestBody: String?,
+        responseBody: String?,
     )
 }
 
@@ -65,6 +81,102 @@ internal class UserTriggeredEventCollectorImpl(
         logger.log(LogLevel.Debug, "Bug report event received")
     }
 
+    override fun trackHttp(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        client: String,
+        statusCode: Int?,
+        failureReason: String?,
+        failureDescription: String?,
+        requestHeaders: MutableMap<String, String>?,
+        responseHeaders: MutableMap<String, String>?,
+        requestBody: String?,
+        responseBody: String?,
+    ) {
+        val timestamp = timeProvider.now()
+        // validate url to be not empty
+        if (url.isEmpty()) {
+            logger.log(LogLevel.Error, "Failed to track HTTP event, url is required")
+            return
+        }
+
+        // validate method
+        if (method != "get" && method != "post" && method != "put" && method != "delete" && method != "patch") {
+            logger.log(LogLevel.Error, "Failed to track HTTP event, invalid method $method")
+            return
+        }
+
+        // validate start and end time
+        if (startTime <= 0 || endTime <= 0) {
+            logger.log(LogLevel.Error, "Failed to track HTTP event, invalid start or end time")
+            return
+        }
+        if (endTime - startTime < 0) {
+            logger.log(LogLevel.Error, "Failed to track HTTP event, invalid start or end time")
+            return
+        }
+
+        // validate status code
+        if (statusCode != null && statusCode !in 100..599) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to track HTTP event, invalid status code: $statusCode",
+            )
+            return
+        }
+
+        // apply URL configs
+        if (!configProvider.shouldTrackHttpUrl(url)) {
+            logger.log(LogLevel.Debug, "Discarding HTTP event, URL is not allowed for tracking")
+            return
+        }
+
+        // apply headers config
+        if (!configProvider.trackHttpHeaders && (!responseHeaders.isNullOrEmpty() || !requestHeaders.isNullOrEmpty())) {
+            logger.log(
+                LogLevel.Debug,
+                "Discarding HTTP event, request or response headers were present but not configured for tracking in Measure.init",
+            )
+            return
+        }
+
+        // sanitize headers
+        if (configProvider.trackHttpHeaders) {
+            requestHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
+            responseHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
+        }
+
+        val shouldTrackRequestHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(requestHeaders))
+        val shouldTrackResponseHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(responseHeaders))
+
+        val data = HttpData(
+            url = url,
+            method = method,
+            status_code = statusCode,
+            start_time = startTime,
+            end_time = endTime,
+            client = client,
+            request_headers = requestHeaders,
+            response_headers = responseHeaders,
+            request_body = if (shouldTrackRequestHttpBody) requestBody else null,
+            response_body = if (shouldTrackResponseHttpBody) responseBody else null,
+            failure_reason = failureReason,
+            failure_description = failureDescription,
+        )
+
+        signalProcessor.track(
+            data = data,
+            timestamp = timestamp,
+            type = EventType.HTTP,
+            threadName = Thread.currentThread().name,
+            userTriggered = true,
+        )
+    }
+
     override fun trackHandledException(
         throwable: Throwable,
         attributes: Map<String, AttributeValue>,
@@ -100,4 +212,6 @@ internal class UserTriggeredEventCollectorImpl(
         )
         logger.log(LogLevel.Debug, "Screen view event received")
     }
+
+    private fun getContentType(headers: MutableMap<String, String>?): String? = headers?.get("Content-Type") ?: headers?.get("content-type")
 }

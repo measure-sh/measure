@@ -520,7 +520,18 @@
         "touch_down_time": 28991106,
         "touch_up_time": 28991185
       },
-      "attachments": null,
+      "attachments": [
+        {
+          "id": "d2c8f7e4-91ab-4e75-b6fd-2c4f0de6e391",
+          "type": "layout_snapshot_json",
+          "name": "snapshot.json"
+        },
+        {
+          "id": "4fa83c7d-2b19-4a07-9f8e-63b36d0a1d92",
+          "type": "layout_snapshot_json",
+          "name": "snapshot.json"
+        }
+      ],
       "attribute": {
         "thread_name": "main",
         "platform": "android",
@@ -667,6 +678,11 @@
         "touch_up_time": 28991984
       },
       "attachments": [
+        {
+          "id": "f3a9d7c1-62b5-4a2a-9d14-8f2bc3fbce47",
+          "type": "layout_snapshot_json",
+          "name": "snapshot.json"
+        },
         {
           "id": "8c6facd3-b962-44b4-8803-1e775ba88f91",
           "type": "layout_snapshot",

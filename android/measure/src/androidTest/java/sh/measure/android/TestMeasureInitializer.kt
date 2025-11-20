@@ -32,12 +32,15 @@ import sh.measure.android.events.UserTriggeredEventCollectorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistry
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
+import sh.measure.android.exporter.AttachmentExporter
 import sh.measure.android.exporter.BatchCreator
 import sh.measure.android.exporter.BatchCreatorImpl
+import sh.measure.android.exporter.DefaultAttachmentExporter
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.exporter.ExceptionExporterImpl
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.exporter.ExporterImpl
+import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicExporter
@@ -130,7 +133,7 @@ internal class TestMeasureInitializer(
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
-    private val fileStorage: FileStorage = FileStorageImpl(
+    override val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
     ),
@@ -252,12 +255,21 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
         idProvider = idProvider,
     ),
+    override val attachmentExporter: AttachmentExporter = DefaultAttachmentExporter(
+        logger = logger,
+        database = database,
+        executorService = executorServiceRegistry.attachmentExportExecutor(),
+        randomizer = randomizer,
+        fileStorage = fileStorage,
+        httpClient = HttpUrlConnectionClient(logger),
+    ),
     private val exporter: Exporter = ExporterImpl(
         logger = logger,
         database = database,
         networkClient = networkClient,
         fileStorage = fileStorage,
         batchCreator = batchCreator,
+        attachmentExporter = attachmentExporter,
     ),
     private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
         logger = logger,
@@ -375,7 +387,6 @@ internal class TestMeasureInitializer(
         logger,
         timeProvider,
         configProvider,
-        tracer,
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         application = application,
@@ -384,7 +395,6 @@ internal class TestMeasureInitializer(
         launchTracker = launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
-        logger = logger,
         context = application,
         signalProcessor = signalProcessor,
         systemServiceProvider = systemServiceProvider,
@@ -426,8 +436,8 @@ internal class TestMeasureInitializer(
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
-            timeProvider = timeProvider,
             configProvider = configProvider,
+            logger = logger,
         ),
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(

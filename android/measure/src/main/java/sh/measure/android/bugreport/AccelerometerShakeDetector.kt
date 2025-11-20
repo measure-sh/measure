@@ -47,7 +47,8 @@ internal class AccelerometerShakeDetector(
     private val sensorManager: SensorManager?,
     private val configProvider: ConfigProvider,
     private val logger: Logger,
-) : ShakeDetector, SensorEventListener {
+) : ShakeDetector,
+    SensorEventListener {
 
     private val accelerometer: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private var shakeListener: ShakeDetector.Listener? = null
@@ -136,8 +137,7 @@ internal class AccelerometerShakeDetector(
         }
     }
 
-    private fun isSignificantMovement(squaredMagnitude: Float): Boolean =
-        squaredMagnitude > squaredShakeAccelerationThreshold
+    private fun isSignificantMovement(squaredMagnitude: Float): Boolean = squaredMagnitude > squaredShakeAccelerationThreshold
 
     private fun recordMovement(timestamp: Long) {
         significantMovementsQueue.addLast(timestamp)
@@ -154,15 +154,13 @@ internal class AccelerometerShakeDetector(
         }
     }
 
-    private fun isShakeDetected(): Boolean =
-        significantMovementsQueue.size >= configProvider.shakeSlop
+    private fun isShakeDetected(): Boolean = significantMovementsQueue.size >= configProvider.shakeSlop
 
     /**
      * Calculates squared magnitude of acceleration vector (x² + y² + z²).
      * Using squared values avoids expensive sqrt() while preserving relative ordering.
      */
-    private fun calculateSquaredMagnitude(x: Float, y: Float, z: Float): Float =
-        x * x + y * y + z * z
+    private fun calculateSquaredMagnitude(x: Float, y: Float, z: Float): Float = x * x + y * y + z * z
 
     private fun notifyShake(currentTime: Long) {
         shakeListener?.onShake()

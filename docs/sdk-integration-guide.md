@@ -37,20 +37,20 @@ in later steps.
 
 | Name                  | Version         |
 |-----------------------|-----------------|
-| Android Gradle Plugin | `7.4`           |
+| Android Gradle Plugin | `8.0.2`         |
 | Min SDK               | `21` (Lollipop) |
-| Target SDK            | `31`            |
+| Target SDK            | `35`            |
 
 </details>
 
 <details>
     <summary>Self-host Compatibility</summary>
 
-| SDK Version       | Minimum Required Self-host Version |
-|-------------------|------------------------------------|
-| `0.10.0`          | `0.6.0`                            |
-| `0.9.0`           | `0.5.0`                            |
-| `0.1.0` - `0.8.2` | `0.1.1`                            |
+| SDK Version         | Minimum Required Self-host Version |
+|---------------------|------------------------------------|
+| >=`0.13.0`          | `0.9.0`                            |
+| `0.10.0` - `0.12.0` | `0.6.0`                            |
+| `0.9.0`             | `0.5.0`                            |
 
 </details>
 
@@ -80,11 +80,11 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
-            manifestPlaceholders["measureUrlKey"] = "YOUR_API_URL"
+            manifestPlaceholders["measureApiUrl"] = "YOUR_API_URL"
         }
         release {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
-            manifestPlaceholders["measureUrlKey"] = "YOUR_API_URL"
+            manifestPlaceholders["measureApiUrl"] = "YOUR_API_URL"
         }
     }
 }
@@ -126,7 +126,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.10.0"
+    id("sh.measure.android.gradle") version "0.11.0"
 }
 ```
 
@@ -134,7 +134,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.10.0'
+    id 'sh.measure.android.gradle' version '0.11.0'
 }
 ```
 
@@ -181,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.12.0")
+implementation("sh.measure:measure-android:0.14.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.12.0'
+implementation 'sh.measure:measure-android:0.14.0'
 ```
 
 ### Initialize the SDK
@@ -229,6 +229,7 @@ See the [troubleshooting](#troubleshoot) section if you face any issues.
 | SDK Version | Minimum Required Self-host Version |
 |-------------|------------------------------------|
 | >=0.1.0     | 0.6.0                              |
+| >=0.7.0     | 0.9.0                              |
 
 </details>
 
@@ -254,7 +255,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.6.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.7.1")
 ]
 ```
 
@@ -337,31 +338,38 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.1.2
+  measure_flutter: ^0.2.1
 ```
 
 ### Initialize the SDK
 
 To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
 
-> ![IMPORTANT]
-> The `MeasureWidget` is a widget that wraps your app and allows the Measure SDK to inject instrumentation into your
-> app. Not using the `MeasureWidget` can result in certain features like screenshots to not work as expected.
+- Run app inside the callback passed to the `init` method. This ensures that the Measure SDK can set up error handlers to
+  track uncaught exceptions.
+- Wrap your app with the `MeasureWidget`, this is required for gesture tracking and screenshots.
+- Set the `sessionSamplingRate` and `samplingRateForErrorFreeSessions` in the `MeasureConfig` as per your requirements.
+  Ideally, set to `1` for debug.
+- Provide different API Keys for iOS and Android by creating two separate apps on the dashboard.
+
+> [!IMPORTANT]
+> To detect early native crashes and to ensure accurate launch time metrics, initialize the Android SDK in
+> `Application` class as described in the [Android](#initialize-the-sdk) section and the iOS SDK in `AppDelegate` as described in 
+> the [iOS](#initialize-the-sdk-1) section. It is highly recommended to initialize both native SDKs even when using the Flutter SDK.
 
 ```dart
 Future<void> main() async {
   await Measure.instance.init(
         () =>
         runApp(
-          MeasureWidget(child: MyApp()),
+          MeasureWidget(child: MyApp()), // wrap your app with MeasureWidget
         ),
-    config: const MeasureConfig(
-      enableLogging: true,
+    config: const MeasureConfig( // SDK configuration
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
     ),
-    clientInfo: ClientInfo(
-      apiKey: "YOUR_API_KEY",
+    clientInfo: ClientInfo( // API Key & URL
+      apiKey: Platform.isAndroid ? "ANDROID_API_KEY" : "IOS_API_KEY",
       apiUrl: "YOUR_API_URL",
     ),
   );

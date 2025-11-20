@@ -31,7 +31,8 @@ internal class DefaultActivityLifecycleCollector(
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
     private val tracer: Tracer,
-) : ActivityLifecycleCollector, ActivityLifecycleListener {
+) : ActivityLifecycleCollector,
+    ActivityLifecycleListener {
     private val createdActivities = mutableMapOf<String, Span>()
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
@@ -197,9 +198,7 @@ internal class DefaultActivityLifecycleCollector(
         }
     }
 
-    private fun isAndroidXFragmentAvailable() =
-        isClassAvailable("androidx.fragment.app.FragmentActivity")
+    private fun isAndroidXFragmentAvailable() = isClassAvailable("androidx.fragment.app.FragmentActivity")
 
-    private fun isAndroidXFragmentNavigationAvailable() =
-        isClassAvailable("androidx.navigation.fragment.NavHostFragment")
+    private fun isAndroidXFragmentNavigationAvailable() = isClassAvailable("androidx.navigation.fragment.NavHostFragment")
 }

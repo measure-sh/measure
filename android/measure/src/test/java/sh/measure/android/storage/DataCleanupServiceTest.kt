@@ -48,7 +48,7 @@ class DataCleanupServiceTest {
         `when`(database.getEventsCount()).thenReturn(1000)
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, never()).deleteEventsIfExist(any(), any())
+        verify(fileStorage, never()).deleteEventsIfExist(any())
         verify(database, never()).deleteSessions(any())
     }
 
@@ -68,7 +68,8 @@ class DataCleanupServiceTest {
 
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, times(1)).deleteEventsIfExist(eventIds, attachmentIds)
+        verify(fileStorage, times(1)).deleteEventsIfExist(eventIds)
+        verify(fileStorage, times(1)).deleteAttachmentsIfExist(attachmentIds)
         verify(database, times(1)).deleteSessions(sessionIds)
     }
 
@@ -94,7 +95,8 @@ class DataCleanupServiceTest {
 
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, times(1)).deleteEventsIfExist(listOf("event1"), listOf("attachment1"))
+        verify(fileStorage, times(1)).deleteEventsIfExist(listOf("event1"))
+        verify(fileStorage, times(1)).deleteAttachmentsIfExist(listOf("attachment1"))
         verify(database, times(1)).deleteSessions(listOf("session1"))
     }
 

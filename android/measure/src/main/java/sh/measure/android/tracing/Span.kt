@@ -199,8 +199,6 @@ interface Span {
     fun getDuration(): Long
 
     companion object {
-        internal fun invalid(): Span {
-            return InvalidSpan()
-        }
+        internal fun invalid(): Span = InvalidSpan()
     }
 }

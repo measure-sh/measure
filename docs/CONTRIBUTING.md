@@ -9,9 +9,9 @@
 
 ## Local environment setup
 
-> [!WARNING]
+> [!TIP]
 >
-> Not interested in contributing? If you just want to try out measure, follow our [self hosting guide](./hosting/README.md).
+> If you just looking to try out measure, follow our [self hosting guide](./hosting/README.md).
 >
 > **The self hosting guide is the official and recommended way to try out measure.**
 
@@ -21,7 +21,7 @@
 - Docker Compose >= 2.27.3
 - Node LTS
 
-After cloning the repostiory, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
+After cloning the repository, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
 
 > [!NOTE]
 >
@@ -51,7 +51,7 @@ Next, run `./config.sh`
 ./config.sh
 ```
 
-This will start the configuration wizard and prepre all the environment variable files tuned for local development.
+This will start the configuration wizard and prepare all the environment variable files tuned for local development.
 
 ### Start services
 
@@ -65,7 +65,7 @@ docker compose --profile migrate up
 >
 > #### About Compose Profiles
 >
-> The `migrate` profiles are idempotent in nature. You can use it everytime, though for subsequent runs you may choose to skip them.
+> The `migrate` profiles are idempotent in nature. You can use it every time, though for subsequent runs you may choose to skip them.
 
 Alternatively, you could build and up the containers in separate steps, like this.
 
@@ -196,7 +196,96 @@ When contributing to databases, please strictly follow the following guidelines.
 
 - Ensure every migration is backward compatible.
 - Optimize queries for performance and scalability.
-- Make sure all database migrations are in ALWAYS order.
+- Make sure all database migrations are **ALWAYS** in sequence.
+
+### Connecting to Postgres
+
+To connect to locally running Postgres instance, use the following command from the `self-host` directory:
+
+```sh
+# when postgres service is running
+docker compose exec postgres psql -U postgres -d measure
+
+# when postgres service is _not_ running
+docker compose run --rm postgres psql -U postgres -d measure
+```
+
+### Connecting to ClickHouse
+
+To connect to locally running ClickHouse instance, use the following command from the `self-host` directory:
+
+```sh
+# when clickhouse service is running
+docker compose exec clickhouse clickhouse-client -u app_admin -d measure
+
+# when clickhouse service is _not_ running
+docker compose run --rm clickhouse clickhouse-client -u app_admin -d measure
+```
+
+### Managing Dashboard Environment Variables
+
+Typically, there are 2 kinds of environment variables in the dashboard nextjs application. Public & Private.
+
+1. **Public**. Variables prefixed with `NEXT_PUBLIC_...`
+
+    - Public variables **MUST** only contain non-sensitive data.
+    - Public variables are baked into the deployable artifact at build time.
+    - Public variables are exposed to browsers which is a vulnerable environment.
+    - Example: OAuth client identifiers, analytics service identifers & so on.
+
+    To manage public variables:
+
+    1. Define them in the `dashboard/compose.prod.yml` file under `dashboard.build.args` section.
+    2. Define them in the `dashboard/dockerfile.prod` file as `ARG` & pass them as environment variables in the `RUN` directive.
+    3. Make sure to keep the variables in sync in both step **1** & **2**.
+
+    Example for `dashboard/compose.prod.yml`
+
+    ```yaml
+    dashboard:
+      build:
+        dockerfile: dockerfile.prod
+        args:
+          - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+          - NEXT_PUBLIC_YOUR_VARIABLE=${NEXT_PUBLIC_YOUR_VARIABLE}
+    ```
+
+    Example for `dashboard/dockerfile.prod`
+
+    ```dockerfile
+    ARG NEXT_PUBLIC_SITE_URL
+    ARG NEXT_PUBLIC_YOUR_VARIABLE
+
+    RUN NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+        NEXT_PUBLIC_YOUR_VARIABLE=${NEXT_PUBLIC_YOUR_VARIABLE} \
+        npm run build
+    ```
+
+2. **Private**. Variables without the `NEXT_PUBLIC_...` prefix
+
+    - Private variables may contain sensitive & non-sensitive data.
+    - Private variables are not baked into the deployable artifact.
+    - Private variables are not exposed to browsers, they are safely & securely passed to the nextjs server at runtime.
+    - Exmaple: OAuth client secrets, LLM provider API keys & other non-sensitive data.
+
+    To manage private variables:
+
+    1. Define them in the `self-host/.env`.
+    2. Use them in the `self-host/compose.yml` under `services.dashboard.environment`.
+
+
+    Example for `self-host/compose.yml`
+
+    ```yaml
+    serivces:
+      dashboard:
+        environment:
+          - YOUR_VARIABLE=${YOUR_VARIABLE}
+    ```
+
+> [!CAUTION]
+>
+> **NEVER commit the `self-host/.env` file.**
 
 ## Migrating codebase from <= v0.8.x
 
@@ -255,6 +344,6 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 ```
 
 ## Documentation
-- Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, sdk guides and so on
+- Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, SDK guides and so on
 - Main folder of subproject should link to main guide. ex: [frontend README](../../frontend/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../../backend/benchmarking/README.md) which describes its purpose

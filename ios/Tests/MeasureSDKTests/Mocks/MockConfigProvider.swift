@@ -9,6 +9,8 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var maxBodySizeBytes: Int
+    var maxAttachmentsInBatch: Int
     var lifecycleViewControllerExcludeList: [String]
     var cpuTrackingIntervalMs: UnsignedNumber
     var memoryTrackingIntervalMs: UnsignedNumber
@@ -55,6 +57,9 @@ final class MockConfigProvider: ConfigProvider {
     var disallowedCustomHeaders: [String]
     var maxDiskUsageInMb: Int
     var estimatedEventSizeInKb: Int
+    var maxExportJitterInterval: Int
+    var combinedHttpHeadersBlocklist: [String]
+    var combinedHttpUrlBlocklist: [String]
 
     init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
@@ -110,7 +115,10 @@ final class MockConfigProvider: ConfigProvider {
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
          disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
          maxDiskUsageInMb: Int = 50,
-         estimatedEventSizeInKb: Int = 10) {
+         estimatedEventSizeInKb: Int = 10,
+         maxExportJitterInterval: Int = 20,
+         maxAttachmentsInBatch: Int = 10,
+         maxBodySizeBytes: Int = 256 * 1024) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -174,7 +182,53 @@ final class MockConfigProvider: ConfigProvider {
         ]
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.estimatedEventSizeInKb = estimatedEventSizeInKb
+        self.maxExportJitterInterval = maxExportJitterInterval
+        self.maxAttachmentsInBatch = maxAttachmentsInBatch
+        self.combinedHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist + self.httpHeadersBlocklist
+        self.combinedHttpUrlBlocklist = self.httpUrlBlocklist
+        self.maxBodySizeBytes = maxBodySizeBytes
     }
 
     func loadNetworkConfig() {}
+
+    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
+        if !trackHttpBody {
+            return false
+        }
+
+        if contentType?.isEmpty ?? true {
+            return false
+        }
+
+        if !shouldTrackHttpUrl(url: url) {
+            return false
+        }
+
+        let nonNilContentType = contentType!
+        return httpContentTypeAllowlist.contains { allowlistEntry in
+            return nonNilContentType.lowercased().hasPrefix(allowlistEntry.lowercased())
+        }
+    }
+    
+    func shouldTrackHttpUrl(url: String) -> Bool {
+        if !httpUrlAllowlist.isEmpty {
+            return httpUrlAllowlist.contains { allowlistEntry in
+                return url.range(of: allowlistEntry, options: .caseInsensitive) != nil
+            }
+        }
+
+        return !combinedHttpUrlBlocklist.contains { blocklistEntry in
+            return url.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+    
+    func shouldTrackHttpHeader(key: String) -> Bool {
+        return !combinedHttpHeadersBlocklist.contains { blocklistEntry in
+            return key.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+
+    func setMeasureUrl(url: String) {
+        combinedHttpUrlBlocklist.append(url)
+    }
 }

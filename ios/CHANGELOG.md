@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.7.1] - 2025-10-29
+
+### :bug: Bug fixes
+
+
+- (**ios**): Filter HTTP body fields instead of discarding events (#2856)
+- (**ios**): Log proper error message on failure
+
+### :hammer: Misc
+
+
+- (**ios**): Limit http data body size to 256 kb (#2852)
+
+## [ios-v0.7.0] - 2025-10-22
+
+### :bug: Bug fixes
+
+
+- (**ios**): Track proper session duration (#2641)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.7.0 (#2799)
+- (**ios**): Use signed urls to upload dsyms (#2785)
+- (**ios**): Continue existing attachment export on unregister (#2796)
+- (**ios**): Update core data model version (#2775)
+- (**ios**): Implement serial attachment upload (#2730)
+- (**ios**): Centralize custom attribute validation logic (#2716)
+- (**ios**): Remove maxSessionDurationMs from internal config (#2696)
+- (**ios**): Add jitter to periodic export (#2695)
+- (**ios**): Update upload dyms scripts (#2626)
+
+### :sparkles: New features
+
+
+- (**ios**): Expose API to track http events (#2788)
+- (**ios**): Add session start event (#2607)
+
 ## [ios-v0.6.0] - 2025-09-01
 
 ### :bug: Bug fixes
@@ -23,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.6.0 (#2606)
 - (**ios**): Update performance docs (#2605)
 - (**ios**): Update ios project structure (#2601)
 - (**ios**): Update package.swift to include objc code (#2599)
@@ -244,6 +284,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.7.1]: https://github.com///compare/ios-v0.7.0..ios-v0.7.1
+[ios-v0.7.0]: https://github.com///compare/ios-v0.6.0..ios-v0.7.0
 [ios-v0.6.0]: https://github.com///compare/ios-v0.5.1..ios-v0.6.0
 [ios-v0.5.1]: https://github.com///compare/ios-v0.5.0..ios-v0.5.1
 [ios-v0.5.0]: https://github.com///compare/ios-v0.4.0..ios-v0.5.0

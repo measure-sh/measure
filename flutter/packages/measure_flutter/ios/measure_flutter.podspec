@@ -4,17 +4,17 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'measure_flutter'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '0.2.1'
+  s.summary          = 'Measure Flutter iOS Plugin'
   s.description      = <<-DESC
-A new Flutter plugin project.
+Measure Flutter iOS Plugin.
                        DESC
   s.homepage         = 'https://measure.sh'
   s.author           = { 'Measure.sh' => 'email@example.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'measure-sh', '0.5.1'
+  s.dependency 'measure-sh', '0.7.1'
   s.platform = :ios, '12.0'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.10'

@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
   spec.name         = "measure-sh"
   spec.module_name  = "Measure"
-  spec.version      = "0.6.0"
+  spec.version      = "0.7.1"
   spec.summary      = "Open source tool to monitor mobile apps"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
   spec.license      = { :type => "Apache 2.0", :file => "LICENSE" }
@@ -16,7 +16,10 @@ Pod::Spec.new do |spec|
   spec.pod_target_xcconfig = {
     "DEFINES_MODULE" => "YES"
   }
-  spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld"]
+  spec.resources    = [
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld",
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel" 
+  ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "PLCrashReporter", "1.11.2"
 end

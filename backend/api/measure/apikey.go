@@ -83,7 +83,17 @@ func (a *APIKey) String() string {
 	return fmt.Sprintf("%s_%s_%s", a.keyPrefix, a.keyValue, a.checksum)
 }
 
-func DecodeAPIKey(key string) (*uuid.UUID, error) {
+func updateLastSeenForApiKey(ctx context.Context, apiKeyId uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.Update("api_keys").
+		Set("last_seen", time.Now()).
+		Where("id = ?", apiKeyId)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	return err
+}
+
+func DecodeAPIKey(ctx context.Context, key string) (*uuid.UUID, error) {
 	defaultErr := errors.New("invalid api key")
 
 	if len(key) < 1 {
@@ -113,19 +123,28 @@ func DecodeAPIKey(key string) (*uuid.UUID, error) {
 		return nil, defaultErr
 	}
 
-	stmt := sqlf.PostgreSQL.Select("app_id").
+	stmt := sqlf.PostgreSQL.
+		Select("id").
+		Select("app_id").
 		From("api_keys").
 		Where("key_value = ? and revoked = ?", nil, nil, nil).
 		Limit(1)
 	defer stmt.Close()
 
+	var id uuid.UUID
 	var appId uuid.UUID
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), value, false, 1).Scan(&appId); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), value, false, 1).Scan(&id, &appId); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
+	}
+
+	err = updateLastSeenForApiKey(ctx, id)
+	if err != nil {
+		msg := "failed to update API key last seen value"
+		fmt.Println(msg, err)
 	}
 
 	return &appId, nil

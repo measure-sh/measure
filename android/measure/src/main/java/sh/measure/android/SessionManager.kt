@@ -228,9 +228,6 @@ internal class SessionManagerImpl(
             // session.
             return false
         }
-        if (sessionDuration >= configProvider.maxSessionDurationMs) {
-            return false
-        }
 
         if (packageInfoProvider.getVersionCode() != recentSession.versionCode) {
             // The app version has changed since last session, create a new session.
@@ -265,11 +262,7 @@ internal class SessionManagerImpl(
         return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
     }
 
-    private fun <T> Event<T>.isUnhandledException(): Boolean {
-        return type == EventType.EXCEPTION && data is ExceptionData && !data.handled
-    }
+    private fun <T> Event<T>.isUnhandledException(): Boolean = type == EventType.EXCEPTION && data is ExceptionData && !data.handled
 
-    private fun <T> Event<T>.isAnr(): Boolean {
-        return type == EventType.ANR
-    }
+    private fun <T> Event<T>.isAnr(): Boolean = type == EventType.ANR
 }

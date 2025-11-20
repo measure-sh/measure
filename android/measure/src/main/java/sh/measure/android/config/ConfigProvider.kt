@@ -6,7 +6,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
-internal interface ConfigProvider : IMeasureConfig, InternalConfig {
+internal interface ConfigProvider :
+    IMeasureConfig,
+    InternalConfig {
     fun loadNetworkConfig()
     fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
     fun shouldTrackHttpUrl(url: String): Boolean
@@ -77,6 +79,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { traceSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
+    override val eventsBatchingJitterMs: Long
+        get() = getMergedConfig { eventsBatchingJitterMs }
     override val maxEventsInBatch: Int
         get() = getMergedConfig { maxEventsInBatch }
     override val httpContentTypeAllowlist: List<String>
@@ -85,8 +89,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
     override val sessionEndLastEventThresholdMs: Long
         get() = getMergedConfig { sessionEndLastEventThresholdMs }
-    override val maxSessionDurationMs: Long
-        get() = getMergedConfig { maxSessionDurationMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
     override val maxEventNameLength: Int
@@ -163,9 +165,7 @@ internal class ConfigProviderImpl(
         }
     }
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
 
     override fun setMeasureUrl(url: String) {
         combinedHttpUrlBlocklist.add(url)

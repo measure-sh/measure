@@ -652,13 +652,9 @@ class EventsTest {
         }
     }
 
-    private fun String.containsEvent(eventType: EventType): Boolean {
-        return contains("\"type\":\"${eventType.value}\"")
-    }
+    private fun String.containsEvent(eventType: EventType): Boolean = contains("\"type\":\"${eventType.value}\"")
 
-    private fun String.containsAttribute(key: String, value: String): Boolean {
-        return contains("\"$key\":\"$value\"")
-    }
+    private fun String.containsAttribute(key: String, value: String): Boolean = contains("\"$key\":\"$value\"")
 
     private fun triggerExport() {
         Measure.simulateAppCrash(

@@ -7,6 +7,10 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
     * [Permissions](#permissions)
 * [Custom Experience](#custom-experience)
     * [Attachments](#attachments)
+      * [Capture Screenshot](#capture-screenshot)
+      * [Capture Layout Snapshot](#capture-layout-snapshot)
+    * [Add Image from Gallery](#add-image-from-gallery)
+    * [Limits](#limits)
 * [Add Attributes](#add-attributes)
 * [Shake to Report Bug](#shake-to-report-bug)
 * [Benchmarks](#benchmarks)
@@ -73,6 +77,7 @@ You can add attachments to bug reports in the following ways:
 * [Capture Screenshot](#capture-screenshot)
 * [Capture Layout Snapshot](#capture-layout-snapshot)
 * [Add Image from Gallery](#add-image-from-gallery)
+
 
 #### Capture Screenshot
 
@@ -144,6 +149,11 @@ Measure.trackBugReport(
     attachments = attachments
 )
 ```
+
+#### Limits
+
+- Each bug report can have a maximum of `5` attachments.
+- The bug report description can have a maximum length of `4000` characters.
 
 ## Add Attributes
 

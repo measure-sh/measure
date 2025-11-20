@@ -15,11 +15,9 @@ import android.net.NetworkCapabilities.TRANSPORT_WIFI
 import android.net.NetworkRequest
 import android.os.Build
 import android.telephony.TelephonyManager
-import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
-import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.getNetworkGeneration
@@ -39,14 +37,10 @@ import sh.measure.android.utils.hasPhoneStatePermission
  *
  * The SDK does not add any new permissions to the app. It only uses the permissions that the app
  * already has.
- *
- * Although SDK versions 21 and 22 also support registering network callbacks, the
- * [ConnectivityManager.NetworkCallback.onCapabilitiesChanged] method is never called.
  */
 internal class NetworkChangesCollector(
     private val context: Context,
     private val systemServiceProvider: SystemServiceProvider,
-    private val logger: Logger,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val networkStateProvider: NetworkStateProvider,
@@ -70,7 +64,7 @@ internal class NetworkChangesCollector(
                 }
             }
 
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+            else -> {
                 val connectivityManager = systemServiceProvider.connectivityManager ?: return
                 if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
                     val networkCallback = networkCallback()
@@ -93,7 +87,6 @@ internal class NetworkChangesCollector(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     private fun networkCallback() = object : ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(
             network: Network,
@@ -188,25 +181,22 @@ internal class NetworkChangesCollector(
         previousNetworkType: String?,
         newNetworkGeneration: String?,
         previousNetworkGeneration: String?,
-    ): Boolean {
-        return when {
-            // track if network type has changed
-            previousNetworkType != newNetworkType -> {
-                true
-            }
+    ): Boolean = when {
+        // track if network type has changed
+        previousNetworkType != newNetworkType -> {
+            true
+        }
 
-            // track if network type is cellular, but network generation has changed
-            newNetworkType == NetworkType.CELLULAR && newNetworkGeneration != null && newNetworkGeneration != previousNetworkGeneration -> {
-                true
-            }
+        // track if network type is cellular, but network generation has changed
+        newNetworkType == NetworkType.CELLULAR && newNetworkGeneration != null && newNetworkGeneration != previousNetworkGeneration -> {
+            true
+        }
 
-            else -> {
-                false
-            }
+        else -> {
+            false
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     private fun getNetworkGenerationIfAvailable(networkType: String): String? {
         if (networkType != NetworkType.CELLULAR) return null

@@ -20,12 +20,14 @@ final class BaseCustomEventCollector: CustomEventCollector {
     private let configProvider: ConfigProvider
     private var isEnabled = AtomicBool(false)
     private let customEventNameRegex: NSRegularExpression?
+    private let attributeValueValidator: AttributeValueValidator
 
-    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
+    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider, attributeValueValidator: AttributeValueValidator) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
+        self.attributeValueValidator = attributeValueValidator
         do {
             self.customEventNameRegex = try NSRegularExpression(pattern: configProvider.customEventNameRegex)
         } catch {
@@ -49,7 +51,7 @@ final class BaseCustomEventCollector: CustomEventCollector {
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
         guard isEnabled.get() else { return }
         guard validateName(name) else { return }
-        guard validateAttributes(name: name, attributes: attributes) else { return }
+        guard attributeValueValidator.validateAttributes(name: name, attributes: attributes) else { return }
 
         let data = CustomEventData(name: name)
         let userDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(attributes)
@@ -82,39 +84,5 @@ final class BaseCustomEventCollector: CustomEventCollector {
         }
 
         return true
-    }
-
-    private func validateAttributes(name: String, attributes: [String: AttributeValue]) -> Bool {
-        if attributes.count > configProvider.maxUserDefinedAttributesPerEvent {
-            logger.log(level: .warning, message: "Event(\(name)) contains more than max allowed attributes. This event will be dropped.", error: nil, data: nil)
-            return false
-        }
-
-        return attributes.allSatisfy { key, value in
-            let isKeyValid = validateKey(key)
-            let isValueValid = validateValue(value)
-
-            if !isKeyValid {
-                logger.log(level: .warning, message: "Event(\(name)) contains invalid attribute key: \(key). This event will be dropped.", error: nil, data: nil)
-            }
-            if !isValueValid {
-                logger.log(level: .warning, message: "Event(\(name)) contains invalid attribute value. This event will be dropped.", error: nil, data: nil)
-            }
-
-            return isKeyValid && isValueValid
-        }
-    }
-
-    private func validateKey(_ key: String) -> Bool {
-        return key.count <= configProvider.maxUserDefinedAttributeKeyLength
-    }
-
-    private func validateValue(_ value: AttributeValue) -> Bool {
-        switch value {
-        case .string(let stringValue):
-            return stringValue.count <= configProvider.maxUserDefinedAttributeValueLength
-        default:
-            return true
-        }
     }
 }

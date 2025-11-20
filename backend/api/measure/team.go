@@ -66,7 +66,7 @@ type MemberWithAuthz struct {
 	MemberAuthz `json:"authz"`
 }
 
-const teamInviteValidity = 48 * time.Hour
+const teamInviteValidity = 7 * 24 * time.Hour // 7 days
 
 func (t *Team) getApps(ctx context.Context) ([]App, error) {
 	var apps []App
@@ -216,9 +216,10 @@ func (t *Team) rename(ctx context.Context) error {
 }
 
 // addInvites adds invites to invites table. It skips invitees if an
-// invite already exists for that email.
-func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee) error {
+// invite already exists for that email. Returns a map of email to invite ID.
+func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee) (map[string]uuid.UUID, error) {
 	now := time.Now()
+	inviteeEmailToInviteIdMap := make(map[string]uuid.UUID)
 
 	// Query existing invites for the given team and emails
 	existingEmails := make(map[string]bool)
@@ -229,19 +230,19 @@ func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee
 
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), t.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var email string
 		if err := rows.Scan(&email); err != nil {
-			return err
+			return nil, err
 		}
 		existingEmails[email] = true
 	}
 
-	// Filter out invitees who already have invites
+	// Filter out invitees who already have invites and generate IDs
 	stmt = sqlf.PostgreSQL.InsertInto("invites")
 	defer stmt.Close()
 	var args []any
@@ -249,6 +250,9 @@ func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee
 		if existingEmails[invitee.Email] {
 			continue
 		}
+		inviteId := uuid.New()
+		inviteeEmailToInviteIdMap[invitee.Email] = inviteId
+
 		stmt.NewRow().
 			Set("id", nil).
 			Set("invited_by_user_id", nil).
@@ -257,20 +261,20 @@ func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee
 			Set("email", nil).
 			Set("created_at", nil).
 			Set("updated_at", nil)
-		args = append(args, uuid.New(), userId, t.ID, invitee.Role.String(), invitee.Email, now, now)
+		args = append(args, inviteId, userId, t.ID, invitee.Role.String(), invitee.Email, now, now)
 	}
 
 	if len(args) == 0 {
 		// No new invites to add
-		return errors.New("already invited")
+		return nil, errors.New("already invited")
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return inviteeEmailToInviteIdMap, nil
 }
 
 func (t *Team) getValidInvites(ctx context.Context) ([]*Invite, error) {
@@ -952,7 +956,8 @@ func InviteMembers(c *gin.Context) {
 
 	// Handle new invitees
 	if len(newInvitees) > 0 {
-		if err := team.addInvites(c.Request.Context(), userId, newInvitees); err != nil {
+		inviteeEmailToInviteIdMap, err := team.addInvites(c.Request.Context(), userId, newInvitees)
+		if err != nil {
 			msg := `failed to create invites for new users: `
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -963,9 +968,20 @@ func InviteMembers(c *gin.Context) {
 
 		// Send emails to new invitees
 		for _, invitee := range newInvitees {
+			inviteId, ok := inviteeEmailToInviteIdMap[invitee.Email]
+			if !ok {
+				fmt.Printf("Warning: invite ID not found for %s\n", invitee.Email)
+				continue
+			}
+
 			title := "Invitation to join Measure"
-			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invitee.Role, *team.Name)
-			url := server.Server.Config.SiteOrigin + "/auth/login"
+			days := int(teamInviteValidity.Hours() / 24)
+			dayStr := "day"
+			if days != 1 {
+				dayStr = "days"
+			}
+			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>! <br/><br/>This invite is valid for <b>%d %s</b>.", *user.Email, invitee.Role, *team.Name, days, dayStr)
+			url := server.Server.Config.SiteOrigin + "/auth/login?inviteId=" + inviteId.String()
 			body := formatTeamEmailBody(title, msg, url, "Join Team")
 			emailInfo := &email.EmailInfo{
 				From:        server.Server.Config.TxEmailAddress,

@@ -92,11 +92,7 @@ object TestDatabaseHelper {
         this.insertOrThrow(EventsBatchTable.TABLE_NAME, null, values)
     }
 
-    fun SQLiteDatabase.getBatchesTable(): Cursor {
-        return rawQuery("SELECT * FROM batches", null)
-    }
+    fun SQLiteDatabase.getBatchesTable(): Cursor = rawQuery("SELECT * FROM batches", null)
 
-    fun SQLiteDatabase.queryTableInfo(tableName: String): Cursor {
-        return rawQuery("PRAGMA table_info($tableName)", null)
-    }
+    fun SQLiteDatabase.queryTableInfo(tableName: String): Cursor = rawQuery("PRAGMA table_info($tableName)", null)
 }

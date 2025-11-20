@@ -49,11 +49,24 @@ const simulateInfiniteLoop = () => {
   while (true) {}
 };
 
+const trackCustomEvent = () => {
+  Measure.trackEvent('button_click', {
+    screen: 'Home',
+    action: 'Track Custom Event',
+    timestamped: true,
+  });
+  console.log('Custom event tracked: button_click');
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
   const navigateToComponentScreen = () => {
     navigation.navigate('ComponentScreen');
+  };
+
+  const navigateToTracesScreen = () => {
+    navigation.navigate('TracesScreen'); 
   };
 
   const sections = [
@@ -70,7 +83,7 @@ export default function HomeScreen() {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => console.log('Event pressed'),
+          onPress: trackCustomEvent,
         },
       ],
     },
@@ -104,8 +117,13 @@ export default function HomeScreen() {
       data: [
         {
           id: 'navigate',
-          title: 'Navigate to Component Screen',
+          title: 'Component Screen',
           onPress: navigateToComponentScreen,
+        },
+        {
+          id: 'navigate-traces',
+          title: 'Traces Screen',
+          onPress: navigateToTracesScreen,
         },
       ],
     },

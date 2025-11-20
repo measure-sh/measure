@@ -6,6 +6,14 @@ import {
   getTimeZoneForServer,
 } from "../utils/time_utils"
 
+export enum ValidateInviteApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum TeamsApiStatus {
   Loading,
   Success,
@@ -138,6 +146,13 @@ export enum ExceptionsDetailsApiStatus {
   Cancelled,
 }
 
+export enum ExceptionGroupCommonPathApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum ExceptionsDetailsPlotApiStatus {
   Loading,
   Success,
@@ -256,6 +271,14 @@ export enum FetchTeamSlackStatusApiStatus {
 }
 
 export enum UpdateTeamSlackStatusApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum TestSlackAlertApiStatus {
   Init,
   Loading,
   Success,
@@ -1209,6 +1232,26 @@ async function applyGenericFiltersToUrl(
   return u.toString()
 }
 
+export const validateInvitesFromServer = async (inviteId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/auth/validateInvite`, {
+      method: "POST",
+      body: JSON.stringify({ invite_id: inviteId }),
+    })
+
+    if (!res.ok) {
+      console.log("Validate invite failed with status:", res.status)
+      return { status: ValidateInviteApiStatus.Error }
+    }
+
+    console.log("Validate invite succeeded")
+    return { status: ValidateInviteApiStatus.Success }
+  } catch {
+    console.log("Validate invite cancelled due to exception")
+    return { status: ValidateInviteApiStatus.Cancelled }
+  }
+}
+
 export const fetchTeamsFromServer = async () => {
   try {
     const res = await measureAuth.fetchMeasure(`/api/teams`)
@@ -1656,6 +1699,34 @@ export const fetchExceptionsDetailsFromServer = async (
   }
 }
 
+export const fetchExceptionGroupCommonPathFromServer = async (
+  type: ExceptionsType,
+  appId: string,
+  groupId: string
+) => {
+  var url = ""
+  if (type === ExceptionsType.Crash) {
+    url = `/api/apps/${appId}/crashGroups/${groupId}/path`
+  } else {
+    url = `/api/apps/${appId}/anrGroups/${groupId}/path`
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    console.log("Fetching exception group common path from:", url)
+
+    if (!res.ok) {
+      return { status: ExceptionGroupCommonPathApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: ExceptionGroupCommonPathApiStatus.Success, data: data }
+  } catch {
+    return { status: ExceptionGroupCommonPathApiStatus.Cancelled, data: null }
+  }
+}
+
 export const fetchExceptionsOverviewPlotFromServer = async (
   exceptionsType: ExceptionsType,
   filters: Filters,
@@ -2074,6 +2145,30 @@ export const updateTeamSlackStatusFromServer = async (
     return { status: UpdateTeamSlackStatusApiStatus.Success }
   } catch {
     return { status: UpdateTeamSlackStatusApiStatus.Cancelled }
+  }
+}
+
+export const sendTestSlackAlertFromServer = async (
+  teamId: string,
+) => {
+  const opts = {
+    method: "POST"
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/slack/test`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: TestSlackAlertApiStatus.Error, error: data.error }
+    }
+
+    return { status: TestSlackAlertApiStatus.Success }
+  } catch {
+    return { status: TestSlackAlertApiStatus.Cancelled }
   }
 }
 

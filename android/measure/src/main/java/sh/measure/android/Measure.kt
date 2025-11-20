@@ -248,12 +248,10 @@ object Measure {
      *
      * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
      */
-    fun startSpan(name: String): Span {
-        return if (isInitialized.get()) {
-            measure.startSpan(name)
-        } else {
-            Span.invalid()
-        }
+    fun startSpan(name: String): Span = if (isInitialized.get()) {
+        measure.startSpan(name)
+    } else {
+        Span.invalid()
     }
 
     /**
@@ -269,12 +267,10 @@ object Measure {
      * Note: Use this method when you need to trace an operation that has already started and you have
      * captured its start time using [getCurrentTime].
      */
-    fun startSpan(name: String, timestamp: Long): Span {
-        return if (isInitialized.get()) {
-            measure.startSpan(name, timestamp = timestamp)
-        } else {
-            Span.invalid()
-        }
+    fun startSpan(name: String, timestamp: Long): Span = if (isInitialized.get()) {
+        measure.startSpan(name, timestamp = timestamp)
+    } else {
+        Span.invalid()
     }
 
     /**
@@ -288,12 +284,10 @@ object Measure {
      *
      * Note: Use this method when you need to create a span without immediately starting it.
      */
-    fun createSpanBuilder(name: String): SpanBuilder? {
-        return if (isInitialized.get()) {
-            measure.createSpan(name)
-        } else {
-            null
-        }
+    fun createSpanBuilder(name: String): SpanBuilder? = if (isInitialized.get()) {
+        measure.createSpan(name)
+    } else {
+        null
     }
 
     /**
@@ -311,9 +305,7 @@ object Measure {
      * Note: Use this value in the `traceparent` HTTP header when making API calls to enable
      * distributed tracing between your mobile app and backend services.
      */
-    fun getTraceParentHeaderValue(span: Span): String {
-        return measure.getTraceParentHeaderValue(span)
-    }
+    fun getTraceParentHeaderValue(span: Span): String = measure.getTraceParentHeaderValue(span)
 
     /**
      * Returns the W3C traceparent header key/name.
@@ -324,9 +316,7 @@ object Measure {
      * @see getTraceParentHeaderValue
      * @see <a href="https://www.w3.org/TR/trace-context/#header-name">W3C Trace Context specification</a>
      */
-    fun getTraceParentHeaderKey(): String {
-        return measure.getTraceParentHeaderKey()
-    }
+    fun getTraceParentHeaderKey(): String = measure.getTraceParentHeaderKey()
 
     /**
      * Returns the current time in milliseconds since epoch using a monotonic clock source.
@@ -336,12 +326,10 @@ object Measure {
      * Note: Use this method to obtain timestamps when creating spans to ensure consistent time
      * measurements and avoid clock drift issues within traces.
      */
-    fun getCurrentTime(): Long {
-        return if (isInitialized.get()) {
-            measure.timeProvider.now()
-        } else {
-            System.currentTimeMillis()
-        }
+    fun getCurrentTime(): Long = if (isInitialized.get()) {
+        measure.timeProvider.now()
+    } else {
+        System.currentTimeMillis()
     }
 
     /**
@@ -491,6 +479,62 @@ object Measure {
     ) {
         if (isInitialized.get()) {
             return measure.imageUriToAttachment(context, uri, onComplete, onError)
+        }
+    }
+
+    /**
+     * Tracks a HTTP event. Note that if you're using the Measure gradle plugin,
+     * OkHttp events will be automatically tracked. This method is useful if you
+     * use any other HTTP client.
+     *
+     * Usage notes:
+     * - Always set the `statusCode` in case of a response or `error` in case the request failed.
+     * - Use `SystemClock.elapsedRealtime` for start and end time to avoid clock skew issues.
+     * - Use `requestHeaders`, `responseHeaders`, `requestBody` and `responseBody` only when
+     * required as they can increase the amount of data to be stored and sent considerably.
+     * - Request body is only tracked if the request headers contain the `Content-Type` header set
+     * to `application/json`. Similarly, response body is only tracked if the response headers
+     * contain the `Content-Type` header set to `application/json`.
+     *
+     * @param url The URL to which the request was made
+     * @param method The HTTP method used for the request
+     * @param startTime The time when the HTTP request started, it is recommended to use `SystemClock.elapsedRealtime()`
+     * @param endTime The time when the HTTP request ended, it is recommended to use `SystemClock.elapsedRealtime()`
+     * @param client The name of the HTTP client used, optional
+     * @param statusCode The HTTP status code of the response received
+     * @param error The exception if the request fails.
+     * @param requestHeaders The HTTP headers in the request
+     * @param responseHeaders The HTTP headers in the response
+     * @param requestBody An optional request body
+     * @param responseBody An optional response body
+     */
+    fun trackHttpEvent(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        statusCode: Int? = null,
+        error: Exception? = null,
+        requestHeaders: MutableMap<String, String>? = null,
+        responseHeaders: MutableMap<String, String>? = null,
+        requestBody: String? = null,
+        responseBody: String? = null,
+        client: String = "unknown",
+    ) {
+        if (isInitialized.get()) {
+            measure.trackHttpEvent(
+                url,
+                method,
+                startTime,
+                endTime,
+                statusCode,
+                error,
+                requestHeaders,
+                responseHeaders,
+                requestBody,
+                responseBody,
+                client,
+            )
         }
     }
 
@@ -681,7 +725,8 @@ object Measure {
 
     private fun storeProcessImportanceState() {
         try {
-            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
+            LaunchState.processImportanceOnInit =
+                measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
                 LogLevel.Debug,

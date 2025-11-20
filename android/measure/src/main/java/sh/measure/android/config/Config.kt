@@ -21,11 +21,13 @@ internal data class Config(
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
     override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
-) : InternalConfig, IMeasureConfig {
+) : InternalConfig,
+    IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
     override val maxAttachmentSizeInEventsBatchInBytes: Int = 3_000_000 // 3 MB
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    override val eventsBatchingJitterMs: Long = 20_000 // 20 seconds
     override val maxEventsInBatch: Int = 500
     override val httpContentTypeAllowlist: List<String> = listOf("application/json")
     override val defaultHttpHeadersBlocklist: List<String> = listOf(
@@ -36,8 +38,7 @@ internal data class Config(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-    override val sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
-    override val maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
+    override val sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
     override val maxEventNameLength: Int = 64 // 64 chars
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100

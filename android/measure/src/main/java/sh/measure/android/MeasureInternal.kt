@@ -49,6 +49,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val networkChangesCollector by lazy { measureInitializer.networkChangesCollector }
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicExporter by lazy { measureInitializer.periodicExporter }
+    private val attachmentExporter by lazy { measureInitializer.attachmentExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
@@ -113,21 +114,17 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     // Validates and initializes the network client, returns true if initialization was successful,
     // false otherwise.
-    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean {
-        return if (clientInfo != null) {
-            initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
-        } else {
-            initializeFromManifest()
-        }
+    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
+        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
+    } else {
+        initializeFromManifest()
     }
 
-    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? {
-        return when {
-            apiUrl.isNullOrEmpty() -> "API URL is missing"
-            apiKey.isNullOrEmpty() -> "API Key is missing"
-            !apiKey.startsWith("msrsh") -> "invalid API Key"
-            else -> null
-        }
+    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
+        apiUrl.isNullOrEmpty() -> "API URL is missing"
+        apiKey.isNullOrEmpty() -> "API Key is missing"
+        !apiKey.startsWith("msrsh") -> "invalid API Key"
+        else -> null
     }
 
     private fun initializeFromManifest(): Boolean {
@@ -169,6 +166,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         httpEventCollector.register()
         powerStateProvider.register()
         periodicExporter.resume()
+        attachmentExporter.register()
         spanCollector.register()
         customEventCollector.register()
         periodicSignalStoreScheduler.register()
@@ -185,6 +183,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 cpuUsageCollector.resume()
                 memoryUsageCollector.resume()
                 periodicExporter.resume()
+                attachmentExporter.register()
             }
         }
     }
@@ -196,6 +195,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
                 periodicExporter.pause()
+                attachmentExporter.unregister()
                 powerStateProvider.unregister()
                 networkChangesCollector.unregister()
                 periodicSignalStoreScheduler.onAppBackground()
@@ -223,21 +223,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }
 
-    fun createSpan(name: String): SpanBuilder? {
-        return spanCollector.createSpan(name)
-    }
+    fun createSpan(name: String): SpanBuilder? = spanCollector.createSpan(name)
 
-    fun startSpan(name: String, timestamp: Long? = null): Span {
-        return spanCollector.startSpan(name, timestamp)
-    }
+    fun startSpan(name: String, timestamp: Long? = null): Span = spanCollector.startSpan(name, timestamp)
 
-    fun getTraceParentHeaderValue(span: Span): String {
-        return spanCollector.getTraceParentHeaderValue(span)
-    }
+    fun getTraceParentHeaderValue(span: Span): String = spanCollector.getTraceParentHeaderValue(span)
 
-    fun getTraceParentHeaderKey(): String {
-        return spanCollector.getTraceParentHeaderKey()
-    }
+    fun getTraceParentHeaderKey(): String = spanCollector.getTraceParentHeaderKey()
 
     fun getSessionId(): String? {
         return try {
@@ -374,8 +366,35 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         }
     }
 
-    fun getAttachmentDirectory(): String? {
-        return fileStorage.getAttachmentDirectory()
+    fun getAttachmentDirectory(): String? = fileStorage.getAttachmentDirectory()
+
+    fun trackHttpEvent(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        statusCode: Int?,
+        error: Exception?,
+        requestHeaders: MutableMap<String, String>?,
+        responseHeaders: MutableMap<String, String>?,
+        requestBody: String?,
+        responseBody: String?,
+        client: String,
+    ) {
+        userTriggeredEventCollector.trackHttp(
+            url,
+            method,
+            startTime,
+            endTime,
+            client,
+            statusCode,
+            error?.javaClass?.name,
+            error?.message,
+            requestHeaders,
+            responseHeaders,
+            requestBody,
+            responseBody,
+        )
     }
 
     private fun trackSessionStart(sessionInitResult: SessionInitResult) {
@@ -416,6 +435,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         httpEventCollector.unregister()
         powerStateProvider.unregister()
         periodicExporter.unregister()
+        attachmentExporter.unregister()
         spanCollector.unregister()
         customEventCollector.unregister()
         periodicSignalStoreScheduler.unregister()

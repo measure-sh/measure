@@ -8,11 +8,7 @@ internal interface ProcProvider {
 }
 
 internal class ProcProviderImpl : ProcProvider {
-    override fun getStatFile(pid: Int): File {
-        return File("/proc/$pid/stat")
-    }
+    override fun getStatFile(pid: Int): File = File("/proc/$pid/stat")
 
-    override fun getStatmFile(pid: Int): File {
-        return File("/proc/$pid/statm")
-    }
+    override fun getStatmFile(pid: Int): File = File("/proc/$pid/statm")
 }

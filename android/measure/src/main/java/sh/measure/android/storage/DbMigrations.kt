@@ -1,29 +1,31 @@
 package sh.measure.android.storage
 
 import android.database.sqlite.SQLiteDatabase
+import androidx.core.database.sqlite.transaction
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 
 internal object DbMigrations {
     fun apply(logger: Logger, db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         try {
-            db.beginTransaction()
-            try {
-                // Apply migrations sequentially
-                for (version in oldVersion + 1..newVersion) {
-                    when (version) {
-                        DbVersion.V2 -> migrateToV2(db)
-                        DbVersion.V3 -> migrateToV3(db)
-                        DbVersion.V4 -> migrateToV4(db)
-                        else -> logger.log(
-                            LogLevel.Debug,
-                            "Db migration failed: $version not found ",
-                        )
+            db.transaction {
+                try {
+                    // Apply migrations sequentially
+                    for (version in oldVersion + 1..newVersion) {
+                        when (version) {
+                            DbVersion.V2 -> migrateToV2(this)
+                            DbVersion.V3 -> migrateToV3(this)
+                            DbVersion.V4 -> migrateToV4(this)
+                            DbVersion.V5 -> migrateToV5(this)
+                            else -> logger.log(
+                                LogLevel.Debug,
+                                "Db migration failed: $version not found ",
+                            )
+                        }
                     }
+                } catch (e: Exception) {
+                    logger.log(LogLevel.Debug, "Db migration failed", e)
                 }
-                db.setTransactionSuccessful()
-            } finally {
-                db.endTransaction()
             }
         } catch (e: Exception) {
             logger.log(LogLevel.Debug, "Db migration failed from $oldVersion->$newVersion", e)
@@ -61,5 +63,37 @@ internal object DbMigrations {
     private fun migrateToV4(db: SQLiteDatabase) {
         db.execSQL("ALTER TABLE ${AppExitTable.TABLE_NAME} ADD COLUMN ${AppExitTable.COL_APP_BUILD} TEXT DEFAULT NULL;")
         db.execSQL("ALTER TABLE ${AppExitTable.TABLE_NAME} ADD COLUMN ${AppExitTable.COL_APP_VERSION} TEXT DEFAULT NULL;")
+    }
+
+    private fun migrateToV5(db: SQLiteDatabase) {
+        // Step 1: Create new attachments_v1 table with updated schema
+        db.execSQL(Sql.CREATE_ATTACHMENTS_V1_TABLE)
+
+        // Step 2: Migrate existing data from old table to new table
+        db.execSQL(
+            """
+        INSERT INTO ${AttachmentV1Table.TABLE_NAME} (
+            ${AttachmentV1Table.COL_ID},
+            ${AttachmentV1Table.COL_SESSION_ID},
+            ${AttachmentV1Table.COL_EVENT_ID},
+            ${AttachmentV1Table.COL_TYPE},
+            ${AttachmentV1Table.COL_TIMESTAMP},
+            ${AttachmentV1Table.COL_FILE_PATH},
+            ${AttachmentV1Table.COL_NAME}
+        )
+        SELECT 
+            ${AttachmentTable.COL_ID},
+            ${AttachmentTable.COL_SESSION_ID},
+            ${AttachmentTable.COL_EVENT_ID},
+            ${AttachmentTable.COL_TYPE},
+            ${AttachmentTable.COL_TIMESTAMP},
+            ${AttachmentTable.COL_FILE_PATH},
+            ${AttachmentTable.COL_NAME}
+        FROM ${AttachmentTable.TABLE_NAME}
+            """.trimIndent(),
+        )
+
+        // Step 3: Drop old table
+        db.execSQL("DROP TABLE IF EXISTS ${AttachmentTable.TABLE_NAME}")
     }
 }

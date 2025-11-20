@@ -259,6 +259,13 @@ SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
+###########
+# PostHog #
+###########
+
+POSTHOG_HOST=
+POSTHOG_API_KEY=
+
 ########
 # OTEL #
 ########
@@ -396,6 +403,13 @@ EMAIL_DOMAIN=$EMAIL_DOMAIN
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+
+###########
+# PostHog #
+###########
+
+POSTHOG_HOST=
+POSTHOG_API_KEY=
 
 ########
 # OTEL #
@@ -579,9 +593,9 @@ END
     EMAIL_DOMAIN=$(prompt_optional_value_manual "Enter email domain (optional): ")
 
     echo -e "\nSet Slack credentials"
-    echo -e "Set up a Slack app to get API credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md for more details. If you wish to ignore this, enter dummy values."
-    SLACK_CLIENT_ID=$(prompt_value_manual "Enter Slack client ID: ")
-    SLACK_CLIENT_SECRET=$(prompt_password_manual "Enter Slack client secret: ")
+    echo -e "Set up a Slack app to get API credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md for more details. If you wish to ignore this, enter empty values."
+    SLACK_CLIENT_ID=$(prompt_optional_value_manual "Enter Slack client ID: ")
+    SLACK_CLIENT_SECRET=$(prompt_optional_value_manual "Enter Slack client secret: ")
     echo -e "Generated secure Slack OAuth State Salt"
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
@@ -733,8 +747,44 @@ ensure() {
     add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
   fi
 
+  if ! check_env_variable "SMTP_HOST"; then
+    add_env_variable "SMTP_HOST" ""
+  fi
+
+  if ! check_env_variable "SMTP_PORT"; then
+    add_env_variable "SMTP_PORT" ""
+  fi
+
+  if ! check_env_variable "SMTP_USER"; then
+    add_env_variable "SMTP_USER" ""
+  fi
+
+  if ! check_env_variable "SMTP_PASSWORD"; then
+    add_env_variable "SMTP_PASSWORD" ""
+  fi
+
   if ! check_env_variable "EMAIL_DOMAIN"; then
     add_env_variable "EMAIL_DOMAIN" "" "SMTP_PASSWORD"
+  fi
+
+  if ! check_env_variable "SLACK_CLIENT_ID"; then
+    add_env_variable "SLACK_CLIENT_ID" ""
+  fi
+
+  if ! check_env_variable "SLACK_CLIENT_SECRET"; then
+    add_env_variable "SLACK_CLIENT_SECRET" ""
+  fi
+
+  if ! check_env_variable "SLACK_OAUTH_STATE_SALT"; then
+    add_env_variable "SLACK_OAUTH_STATE_SALT" ""
+  fi
+
+  if ! check_env_variable "POSTHOG_HOST"; then
+    add_env_variable "POSTHOG_HOST" ""
+  fi
+
+  if ! check_env_variable "POSTHOG_API_KEY"; then
+    add_env_variable "POSTHOG_API_KEY" ""
   fi
 }
 

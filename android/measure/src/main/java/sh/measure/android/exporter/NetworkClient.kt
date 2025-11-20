@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import okio.source
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -11,7 +12,6 @@ internal interface NetworkClient {
     fun execute(
         batchId: String,
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
     ): HttpResponse
 }
@@ -20,10 +20,6 @@ internal class NetworkClientImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
     private val httpClient: HttpClient = HttpUrlConnectionClient(logger),
-    private val multipartDataFactory: MultipartDataFactory = MultipartDataFactoryImpl(
-        logger,
-        fileStorage,
-    ),
     private val configProvider: ConfigProvider,
 ) : NetworkClient {
     private var baseUrl: URL? = null
@@ -43,7 +39,6 @@ internal class NetworkClientImpl(
     override fun execute(
         batchId: String,
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
     ): HttpResponse {
         if (!isInitialized()) {
@@ -54,36 +49,31 @@ internal class NetworkClientImpl(
         }
 
         val headers = createHeaders(batchId)
-        val multipartData = prepareMultipartData(eventPackets, attachmentPackets, spanPackets)
 
         return try {
-            httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
+            httpClient.sendJsonRequest(eventsUrl.toString(), "PUT", headers) { sink ->
+                writeJsonPayload(sink, eventPackets, spanPackets)
+            }
         } catch (e: Exception) {
             HttpResponse.Error.UnknownError(e)
         }
     }
 
-    private fun parseUrl(url: String): URL? {
-        return try {
-            URL(url)
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
-            null
-        }
+    private fun parseUrl(url: String): URL? = try {
+        URL(url)
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
+        null
     }
 
-    private fun createEventsUrl(baseUrl: URL): URL? {
-        return try {
-            baseUrl.toURI().resolve(PATH_EVENTS).toURL()
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
-            null
-        }
+    private fun createEventsUrl(baseUrl: URL): URL? = try {
+        baseUrl.toURI().resolve(PATH_EVENTS).toURL()
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
+        null
     }
 
-    private fun isInitialized(): Boolean {
-        return !(baseUrl == null || eventsUrl == null || apiKey == null)
-    }
+    private fun isInitialized(): Boolean = !(baseUrl == null || eventsUrl == null || apiKey == null)
 
     private fun createHeaders(batchId: String): Map<String, String> {
         val defaultHeaders = mapOf(
@@ -99,21 +89,92 @@ internal class NetworkClientImpl(
         }
     }
 
-    private fun prepareMultipartData(
+    private fun writeJsonPayload(
+        sink: okio.BufferedSink,
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
-    ): List<MultipartData> {
-        val events = eventPackets.mapNotNull {
-            multipartDataFactory.createFromEventPacket(it)
+    ) {
+        sink.writeUtf8("{\"events\":[")
+
+        eventPackets.forEachIndexed { index, event ->
+            if (index > 0) sink.writeUtf8(",")
+            writeEventPacket(sink, event)
         }
-        val attachments = attachmentPackets.mapNotNull {
-            multipartDataFactory.createFromAttachmentPacket(it)
+
+        sink.writeUtf8("],\"spans\":[")
+
+        spanPackets.forEachIndexed { index, span ->
+            if (index > 0) sink.writeUtf8(",")
+            writeSpanPacket(sink, span)
         }
-        val spans = spanPackets.map {
-            multipartDataFactory.createFromSpanPacket(it)
+
+        sink.writeUtf8("]}")
+    }
+
+    private fun writeEventPacket(sink: okio.BufferedSink, event: EventPacket) {
+        sink.writeUtf8("{\"id\":\"${event.eventId}\"")
+        sink.writeUtf8(",\"session_id\":\"${event.sessionId}\"")
+        sink.writeUtf8(",\"user_triggered\":${event.userTriggered}")
+        sink.writeUtf8(",\"timestamp\":\"${event.timestamp}\"")
+        sink.writeUtf8(",\"type\":\"${event.type.value}\"")
+
+        // Write event data
+        sink.writeUtf8(",\"${event.type.value}\":")
+        when {
+            event.serializedData != null -> {
+                sink.writeUtf8(event.serializedData)
+            }
+            event.serializedDataFilePath != null -> {
+                streamFileContent(sink, event.serializedDataFilePath)
+            }
+            else -> {
+                sink.writeUtf8("null")
+            }
         }
-        return events + attachments + spans
+
+        // Write attachments
+        sink.writeUtf8(",\"attachments\":")
+        if (event.serializedAttachments != null) {
+            sink.writeUtf8(event.serializedAttachments)
+        } else {
+            sink.writeUtf8("null")
+        }
+
+        // Write attributes
+        sink.writeUtf8(",\"attribute\":${event.serializedAttributes}")
+
+        // Write user defined attributes
+        sink.writeUtf8(",\"user_defined_attribute\":")
+        if (event.serializedUserDefinedAttributes != null) {
+            sink.writeUtf8(event.serializedUserDefinedAttributes)
+        } else {
+            sink.writeUtf8("null")
+        }
+
+        sink.writeUtf8("}")
+    }
+
+    private fun writeSpanPacket(sink: okio.BufferedSink, span: SpanPacket) {
+        val serialized = sh.measure.android.serialization.jsonSerializer.encodeToString(
+            SpanPacket.serializer(),
+            span,
+        )
+        sink.writeUtf8(serialized)
+    }
+
+    private fun streamFileContent(sink: okio.BufferedSink, filePath: String) {
+        val file = fileStorage.getFile(filePath)
+        if (file == null) {
+            sink.writeUtf8("null")
+            return
+        }
+
+        val source = file.inputStream().source()
+        try {
+            sink.writeAll(source)
+        } finally {
+            source.close()
+        }
     }
 
     private fun sanitizedCustomHeaders(): Map<String, String>? {

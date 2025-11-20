@@ -30,9 +30,6 @@ protocol InternalConfig {
     /// The request timeout interval for all tasks within sessions based on this configuration
     var timeoutIntervalForRequest: TimeInterval { get }
 
-    /// The maximum duration for a session. Used when the app comes to foreground, sessions which remain in foreground for more than this time will still continue. Defaults to 6 hours.
-    var maxSessionDurationMs: Number { get }
-
     /// The interval at which CPU related data is collected. Defaults to 3 seconds.
     var cpuTrackingIntervalMs: UnsignedNumber { get }
 
@@ -104,4 +101,13 @@ protocol InternalConfig {
 
     /// The estimated size of one event on disk (in kilobytes).
     var estimatedEventSizeInKb: Int { get }
+
+    /// The maximum jitter interval to apply when scheduling batch exports. A random delay between 0 and this value (in seconds) will be added. Defaults to 20 seconds.
+    var maxExportJitterInterval: Int { get }
+
+    /// The maximum number of attachment to export in API. Defaults to 10.
+    var maxAttachmentsInBatch: Int { get }
+
+    /// The maximum size of response or request body in `HttpData`. Defaults to 256 x 1024 bytes
+    var maxBodySizeBytes: Int { get }
 }

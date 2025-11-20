@@ -30,7 +30,7 @@ track network requests done using Dio.
 
 ```yaml
 dependencies:
-  measure_dio: ^0.1.1
+  measure_dio: ^0.2.0
 ```
 
 ```dart

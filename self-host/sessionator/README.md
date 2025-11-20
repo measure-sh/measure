@@ -11,6 +11,7 @@ Easily ingest test sessions during development.
   - [`--clean-all` flag](#--clean-all-flag)
   - [`--clean` flag](#--clean-flag)
 - [Skipping apps from ingestion](#skipping-apps-from-ingestion)
+- [Delaying ingestion for builds to process](#delaying-ingestion-for-builds-to-process)
 - [Uploading mappings \& attachments locally](#uploading-mappings--attachments-locally)
 - [Remove apps completely](#remove-apps-completely)
 
@@ -147,6 +148,14 @@ go run . ingest --skip-apps com.example.appOne,com.example.appTwo
 
 Sessionator will not scan the `com.example.appOne` and `com.example.appTwo` apps for the above. Note the app name must match the directory name under the `session-data` directory.
 
+### Delaying ingestion for builds to process
+
+Build are processed asynchronously. Without a delay, events that require symbolication will not be symbolicated if their related build mapping is
+not ready yet. By default, the delay is set to 5 seconds. You can change this by setting the `-b/--build-process-delay` option.
+
+```sh
+go run . ingest --clean --build-process-delay 10s
+```
 
 ### Uploading mappings & attachments locally
 

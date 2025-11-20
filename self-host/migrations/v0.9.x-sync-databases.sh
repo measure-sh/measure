@@ -6,41 +6,10 @@ set -e
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../shared.sh"
 
-# Check if command is available
-has_command() {
-  if command -v "$1" &>/dev/null; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Check if the script is run from the 'self-host' directory
-check_base_dir() {
-  local base_dir
-  base_dir=$(basename "$(pwd)")
-  if [[ "$base_dir" != "self-host" ]]; then
-    echo "Error: This script must be run from the 'self-host' directory."
-    exit 1
-  fi
-}
-
-# Set the docker-compose command
-set_docker_compose() {
-  if has_command docker-compose; then
-    DOCKER_COMPOSE="docker-compose"
-  elif docker compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker compose"
-  else
-    echo "Neither 'docker compose' nor 'docker-compose' is available" >&2
-    exit 1
-  fi
-}
-
 # Shutdown if measure compose services are up
 shutdown_measure_services() {
   local running_services
-  running_services=$("$DOCKER_COMPOSE" ps -a -q | wc -l)
+  running_services=$($DOCKER_COMPOSE ps -a -q | wc -l)
   if [[ "$running_services" -gt 0 ]]; then
     echo "Shutting down measure services..."
     $DOCKER_COMPOSE \
@@ -88,18 +57,20 @@ shutdown_clickhouse_service() {
 #
 # - Creates the 'measure' database if it doesn't exist
 # - Moves all tables from the 'public' schema to the 'measure' schema
+# - Drops and recreates the 'public' schema for 'postgres' database
 # - Creates 'operator' and 'reader' roles if they do not exist
 # - Grants appropriate privileges to the 'operator' and 'reader' roles
 migrate_postgres_database() {
   echo "Migrating postgres database..."
   start_postgres_service
-  if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOF
-  create database measure with template postgres;
-EOF
-  then
-    echo "Error: Failed to create 'measure' database." >&2
-    shutdown_postgres_service
-    return 1
+
+  # create the database if it doesn't exist
+  if ! $DOCKER_COMPOSE exec -T postgres psql -q -U postgres -d postgres -t -c "select 1 from pg_database where datname = 'measure'" | grep -q 1; then
+    if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c "create database measure with template postgres;"; then
+      echo "Error: Failed to create 'measure' database." >&2
+      shutdown_postgres_service
+      return 1
+    fi
   fi
 
   if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d measure <<-EOF
@@ -151,6 +122,18 @@ EOF
 EOF
   then
     echo "Failed to grant privileges in postgres"
+    shutdown_postgres_service
+    return 1
+  fi
+
+  if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOF
+  drop schema public cascade;
+  create schema public;
+  grant all on schema public to postgres;
+  grant all on schema public to public;
+EOF
+  then
+    echo "Error: Failed to recreate 'public' schema." >&2
     shutdown_postgres_service
     return 1
   fi
@@ -211,7 +194,7 @@ migrate_clickhouse_database() {
     --password "$admin_password" \
     --query "create role if not exists operator;" \
     --query "create role if not exists reader;" \
-    --query "grant select, insert on measure.* to operator;" \
+    --query "grant select, insert, delete, update on measure.* to operator;" \
     --query "grant select on measure.* to reader;" \
     --query "create user if not exists ${operator_user} identified with sha256_password by '${operator_password}' default role operator default database measure;" \
     --query "create user if not exists ${reader_user} identified with sha256_password by '${reader_password}' default role reader default database measure;" \
