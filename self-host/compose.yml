@@ -415,8 +415,9 @@ services:
       - ./postgres/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.10-alpine
+    image: clickhouse/clickhouse-server:25.8-alpine
     environment:
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_ADMIN_USER=${CLICKHOUSE_ADMIN_USER}
       - CLICKHOUSE_ADMIN_PASSWORD=${CLICKHOUSE_ADMIN_PASSWORD}
       - CLICKHOUSE_OPERATOR_USER=${CLICKHOUSE_OPERATOR_USER}
