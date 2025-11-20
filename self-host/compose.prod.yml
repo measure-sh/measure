@@ -136,3 +136,23 @@ services:
       options:
         max-size: 10m
         max-file: 5
+
+  valkey:
+    command: >
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --io-threads 4
+      --io-threads-do-reads yes
+      --save ""
+      --appendonly no
+      --requirepass ${REDIS_PASSWORD}
+      --rename-command FLUSHDB ""
+      --rename-command FLUSHALL ""
+      --rename-command CONFIG ""
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5

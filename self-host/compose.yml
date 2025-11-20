@@ -444,6 +444,27 @@ services:
         source: ./clickhouse/config/users.xml
         target: /etc/clickhouse-server/users.xml
 
+  valkey:
+    image: valkey/valkey:9.0.0-alpine
+    ports:
+      - "6379:6379"
+    environment:
+        - VALKEY_PASSWORD=${VALKEY_PASSWORD:-dev_password}
+        - VALKEY_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    command: >
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --io-threads 4
+      --io-threads-do-reads yes
+      --save ""
+      --appendonly no
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   clickhouse-volume:
   migrator-volume:
