@@ -3,8 +3,10 @@ package measure
 import (
 	"backend/api/server"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +18,11 @@ const (
 	cacheControlHeader = "Cache-Control"
 	cacheControlValue  = "max-age=600" // 10 minutes
 )
+
+type CachedSDKConfig struct {
+	Config string `json:"config"`
+	ETag   string `json:"etag"`
+}
 
 // SDK-specific rule types
 type SDKEventRule struct {
@@ -54,46 +61,42 @@ type SDKConfig struct {
 	SessionRules []SDKSessionRule `json:"session_rules"`
 }
 
+func computeETag(data []byte) string {
+	h := fnv.New64a() 
+	_, _ = h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func getSDKConfigETag(ctx context.Context, appId uuid.UUID) (string, error) {
+	key := getSDKConfigCacheKey(appId)
+	return server.Server.Redis.HGet(ctx, key, "etag").Result()
+}
+
+func getSDKConfigData(ctx context.Context, appId uuid.UUID) (string, error) {
+	key := getSDKConfigCacheKey(appId)
+	return server.Server.Redis.HGet(ctx, key, "data").Result()
+}
+
 // getSDKConfigCacheKey returns the Redis cache key for SDK config
 func getSDKConfigCacheKey(appId uuid.UUID) string {
-	return fmt.Sprintf("sdk_config:%s", appId.String())
+	return fmt.Sprintf("%s:sdk_config", appId.String())
 }
 
-// getSDKConfigFromCache attempts to read SDK config from Redis cache
-func getSDKConfigFromCache(ctx context.Context, appId uuid.UUID) (*SDKConfig, error) {
+// setSDKConfigToCache stores config JSON & ETag
+func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte) (string, error) {
 	key := getSDKConfigCacheKey(appId)
 
-	data, err := server.Server.Redis.Get(ctx, key).Result()
+	etag := computeETag(jsonConfig)
+
+	pipe := server.Server.Redis.TxPipeline()
+	pipe.HSet(ctx, key, "etag", etag)
+	pipe.HSet(ctx, key, "data", string(jsonConfig))
+	_, err := pipe.Exec(ctx)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("failed to store config hash: %w", err)
 	}
 
-	var config SDKConfig
-	if err := json.Unmarshal([]byte(data), &config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cached config: %w", err)
-	}
-
-	fmt.Println("[SdkConfig]: Accessed SDK config from cache")
-	return &config, nil
-}
-
-// setSDKConfigToCache stores SDK config in Redis cache
-func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, config *SDKConfig) error {
-	key := getSDKConfigCacheKey(appId)
-
-	data, err := json.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	// Set with no expiration
-	if err := server.Server.Redis.Set(ctx, key, data, 0).Err(); err != nil {
-		return fmt.Errorf("failed to set cache: %w", err)
-	}
-
-	fmt.Println("[SdkConfig]: Setting SDK config to cache")
-
-	return nil
+	return etag, nil
 }
 
 // InvalidateSDKConfigCache deletes the cached SDK config for an app
@@ -104,13 +107,11 @@ func InvalidateSDKConfigCache(ctx context.Context, appId uuid.UUID) error {
 		return fmt.Errorf("failed to delete cache: %w", err)
 	}
 
-	fmt.Println("[SdkConfig]: Invalidate SDK config")
 	return nil
 }
 
 // fetchSDKConfigFromDB fetches SDK config from database
 func fetchSDKConfigFromDB(ctx context.Context, appId uuid.UUID) (*SDKConfig, error) {
-	// Fetch all rule types
 	eventRules, err := GetSDKEventRules(ctx, appId)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching event rules: %w", err)
@@ -125,8 +126,6 @@ func fetchSDKConfigFromDB(ctx context.Context, appId uuid.UUID) (*SDKConfig, err
 	if err != nil {
 		return nil, fmt.Errorf("error fetching session rules: %w", err)
 	}
-
-	fmt.Println("[SdkConfig]: Accessed SDK config from DB")
 
 	return &SDKConfig{
 		EventRules:   eventRules,
@@ -260,13 +259,26 @@ func GetConfig(c *gin.Context) {
 		return
 	}
 
-	// Check cache
-	cachedConfig, err := getSDKConfigFromCache(c.Request.Context(), appId)
-	if err == nil && cachedConfig != nil {
-		// Cache hit
-		c.Header(cacheControlHeader, cacheControlValue)
-		c.JSON(http.StatusOK, cachedConfig)
-		return
+	clientETag := c.GetHeader("If-None-Match")
+
+	redisETag, err := getSDKConfigETag(c.Request.Context(), appId)
+	if err == nil && redisETag != "" {
+		// Same ETag
+		if redisETag == clientETag {
+			c.Header(cacheControlHeader, cacheControlValue)
+			c.Header("ETag", redisETag)
+			c.Status(http.StatusNotModified)
+			return
+		}
+
+		// Different ETag
+		data, err := getSDKConfigData(c.Request.Context(), appId)
+		if err == nil && data != "" {
+			c.Header(cacheControlHeader, cacheControlValue)
+			c.Header("ETag", redisETag)
+			c.Data(http.StatusOK, "application/json", []byte(data))
+			return
+		}
 	}
 
 	// Cache miss
@@ -278,11 +290,10 @@ func GetConfig(c *gin.Context) {
 		return
 	}
 
-	// Update cache
-	if err := setSDKConfigToCache(c.Request.Context(), appId, sdkConfig); err != nil {
-		fmt.Println("failed to cache SDK config:", err)
-	}
+	jsonConfig, _ := json.Marshal(sdkConfig)
+	etag, _ := setSDKConfigToCache(c.Request.Context(), appId, jsonConfig)
 
 	c.Header(cacheControlHeader, cacheControlValue)
-	c.JSON(http.StatusOK, sdkConfig)
+	c.Header("ETag", etag)
+	c.Data(http.StatusOK, "application/json", jsonConfig)
 }
