@@ -18,22 +18,6 @@ set -e
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../shared.sh"
 
-# Start the postgres service
-start_postgres_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d postgres
-}
-
-# Start the clickhouse service
-start_clickhouse_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d clickhouse
-}
-
 # Optimize entire clickhouse database for robust
 # ingest deduplication.
 #
@@ -45,10 +29,6 @@ start_clickhouse_service() {
 #   2. Column count & type of `events` & `events_rmt` tables must match
 #   2. Column count & type of `spans` & `spans_rmt` tables must match
 optimize_clickhouse_database() {
-  echo "Optimizing clickhouse database..."
-  echo "This might take a while depending on volume of data."
-  echo
-
   local admin_user
   local admin_password
   local dbname
@@ -58,6 +38,9 @@ optimize_clickhouse_database() {
   admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   dbname=measure
+
+  echo
+  echo "Optimizing ClickHouse..."
 
   ch_version=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
     --user "${admin_user}" \
@@ -131,6 +114,44 @@ optimize_clickhouse_database() {
     return 1
   fi
 
+  local events_rows_count
+  events_rows_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM events;")
+
+  local spans_rows_count
+  spans_rows_count=$($DOCKER_COMPOSE exec clickhouse clickhouse-client \
+    --user "${admin_user}" \
+    --password "${admin_password}" \
+    --database "${dbname}" \
+    --query "SELECT count() FROM spans;")
+
+  # if both events and spans tables are empty, this must be a fresh
+  # install.
+  #
+  # make 'events' & 'spans' ReplacingMergeTree tables & drop the
+  # '*_rmt' tables.
+  if [[ "$events_rows_count" == "0" && "$spans_rows_count" == "0" ]]; then
+    $DOCKER_COMPOSE exec clickhouse clickhouse-client \
+      --user "${admin_user}" \
+      --password "${admin_password}" \
+      --database "${dbname}" \
+      --multiline \
+      --query "
+      exchange tables events_rmt and events;
+      drop table if exists events_rmt;
+
+      exchange tables spans_rmt and spans;
+      drop table if exists spans_rmt;
+      "
+
+      echo "Optimization complete!"
+      exit 0
+  fi
+
+  echo "This might take a while depending on volume of data."
   echo
 
   # backfill events
@@ -251,6 +272,11 @@ backfill_team_ids() {
 
     apps_teams["$id"]="$team_id"
   done <<< "$apps_output"
+
+  if [[ ${#apps_teams[@]} -eq 0 ]]; then
+    echo "No apps found, skipping backfilling of team_id"
+    return 0
+  fi
 
   echo "Loaded ${#apps_teams[@]} entries in 'app_id --> team_id' dictionary"
 

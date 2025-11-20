@@ -38,6 +38,7 @@ UNINSTALL_DOCKER=${UNINSTALL_DOCKER:-0}
 USE_PODMAN=false
 CONTAINER_RUNTIME=docker
 DOCKER_COMPOSE_BIN=0
+FRESH_INSTALL=true
 
 # ------------------------------------------------------------------------------
 # Sister file paths.
@@ -540,6 +541,15 @@ function remove_minio_mc_image() {
 }
 
 # ------------------------------------------------------------------------------
+# run_backfills runs data backfill script when needed.
+# ------------------------------------------------------------------------------
+run_backfills() {
+  if [[ "$FRESH_INSTALL" == "true" ]]; then
+    source ./migrations/v0.9.x-data-backfills.sh
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # cleanup detects and removes unused resources.
 # ------------------------------------------------------------------------------
 cleanup() {
@@ -576,6 +586,7 @@ ensure_config() {
     source ./config.sh "--production" "--wizard"
     set -u
   else
+    FRESH_INSTALL=false
     info "Configuration file found, skipping wizard"
   fi
 }
@@ -647,4 +658,5 @@ start_docker
 ensure_config
 detect_compose_command
 start_docker_compose
+run_backfills
 cleanup
