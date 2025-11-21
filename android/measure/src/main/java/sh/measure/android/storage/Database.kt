@@ -354,7 +354,7 @@ internal class DatabaseImpl(
                 coldLaunchSamplingRate,
                 warmLaunchSamplingRate,
                 hotLaunchSamplingRate,
-                journeyEventsSamplingRate
+                journeyEventsSamplingRate,
             )
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIds = mutableListOf<String>()
