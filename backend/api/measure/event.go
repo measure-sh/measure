@@ -47,6 +47,11 @@ var maxBatchSize = 20 * 1024 * 1024
 // for signed upload URLs.
 const ExpiryDuration = time.Hour * 24 * 7
 
+// ingestCtxTimeout is the default timeout for all
+// ingestion related operations like symbolication
+// & ingestion database operations.
+const ingestCtxTimeout = time.Second * 30
+
 // blob represents each blob present in the
 // event request batch during ingestion.
 type blob struct {
@@ -2331,8 +2336,6 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	ctx = ambient.WithTeamId(ctx, app.TeamId)
-
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:             appId,
@@ -2392,6 +2395,10 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(context.Background(), app.TeamId)
+	ingestCtx, cancel := context.WithTimeout(ctx, ingestCtxTimeout)
+	defer cancel()
+
 	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
 		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
 		fmt.Println(msg, err)
@@ -2436,11 +2443,11 @@ func PutEvents(c *gin.Context) {
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
-		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
+		_, symbolicationSpan := symbolicationTracer.Start(ingestCtx, "symbolicate-events")
 
 		defer symbolicationSpan.End()
 
-		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
+		if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
 			// in case there was symbolication failure, we don't fail
 			// ingestion. ignore the error, log it and continue.
 			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
@@ -2450,7 +2457,7 @@ func PutEvents(c *gin.Context) {
 	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
 		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
-		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ctx, "upload-attachments")
+		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ingestCtx, "upload-attachments")
 
 		defer uploadAttachmentSpan.End()
 
@@ -2486,7 +2493,7 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.hasAttachmentUploadInfos() {
-		if err := eventReq.generateAttachmentUploadURLs(ctx); err != nil {
+		if err := eventReq.generateAttachmentUploadURLs(ingestCtx); err != nil {
 			msg := `failed to generate attachment upload URLs`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2515,7 +2522,7 @@ func PutEvents(c *gin.Context) {
 		}
 	}
 
-	tx, err := server.Server.PgPool.BeginTx(ctx, pgx.TxOptions{
+	tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
 		IsoLevel: pgx.ReadCommitted,
 	})
 
@@ -2528,9 +2535,9 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ingestCtx)
 
-	if err := eventReq.ingestEvents(ctx); err != nil {
+	if err := eventReq.ingestEvents(ingestCtx); err != nil {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2540,7 +2547,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if err := eventReq.ingestSpans(ctx); err != nil {
+	if err := eventReq.ingestSpans(ingestCtx); err != nil {
 		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2552,11 +2559,11 @@ func PutEvents(c *gin.Context) {
 
 	// start span to trace bucketing unhandled exceptions
 	bucketUnhandledExceptionsTracer := otel.Tracer("bucket-unhandled-exceptions-tracer")
-	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ctx, "bucket-unhandled-exceptions")
+	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
 
 	defer bucketUnhandledExceptionsSpan.End()
 
-	if err := eventReq.bucketUnhandledExceptions(ctx); err != nil {
+	if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2569,11 +2576,11 @@ func PutEvents(c *gin.Context) {
 
 	// start span to trace bucketing ANRs
 	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
-	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
+	_, bucketAnrsSpan := bucketAnrsTracer.Start(ingestCtx, "bucket-anrs-exceptions")
 
 	defer bucketAnrsSpan.End()
 
-	if err := eventReq.bucketANRs(ctx); err != nil {
+	if err := eventReq.bucketANRs(ingestCtx); err != nil {
 		msg := `failed to bucket anrs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2590,7 +2597,7 @@ func PutEvents(c *gin.Context) {
 		osName := strings.ToLower(firstEvent.Attribute.OSName)
 		version := firstEvent.Attribute.AppVersion
 
-		if err := app.Onboard(ctx, &tx, uniqueID, osName, version); err != nil {
+		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
 			msg := `failed to onboard app`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2607,7 +2614,7 @@ func PutEvents(c *gin.Context) {
 		Where("app_id = ?", app.ID)
 	defer retentionPeriodQuery.Close()
 
-	if err := server.Server.PgPool.QueryRow(ctx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+	if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
 		msg := `failed to get app retention period`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2643,7 +2650,7 @@ func PutEvents(c *gin.Context) {
 	defer insertMetricsIngestionSelectStmt.Close()
 	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
 
-	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+	if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
 		msg := `failed to insert ingestion metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2654,7 +2661,7 @@ func PutEvents(c *gin.Context) {
 
 	// Remember that this batch was ingested, so if same
 	// batch is seen again, we can skip ingesting it.
-	if err := eventReq.remember(ctx); err != nil {
+	if err := eventReq.remember(ingestCtx); err != nil {
 		msg := `failed to remember event request`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2664,7 +2671,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(ingestCtx); err != nil {
 		msg := `failed to commit ingest transaction`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
