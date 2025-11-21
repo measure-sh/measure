@@ -117,7 +117,7 @@ func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte
 	key := getSDKConfigCacheKey(appId)
 	etag := computeETag(jsonConfig)
 
-	cmd := vk.B().Hmset().Key(key).FieldValue().
+	cmd := vk.B().Hset().Key(key).FieldValue().
 		FieldValue("etag", etag).
 		FieldValue("data", string(jsonConfig)).
 		Build()
