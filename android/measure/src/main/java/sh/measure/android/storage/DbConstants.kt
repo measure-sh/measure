@@ -258,7 +258,6 @@ internal object Sql {
         journeyEventsSamplingRate: Float,
     ): String {
         if (sessionId != null) {
-            Log.e("WTF", "Session ID was not null")
             /**
              * ```sql
              * SELECT e.*
@@ -294,7 +293,6 @@ internal object Sql {
              * LIMIT 100
              * ```
              */
-            Log.e("WTF", "Cold launch sampling rate: $coldLaunchSamplingRate")
             return """
                 SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
                 FROM ${EventTable.TABLE_NAME} e

@@ -49,7 +49,6 @@ internal class ExporterImpl(
         try {
             val events = database.getEventPackets(batch.eventIds)
             if (events.find { it.type == EventType.COLD_LAUNCH } != null) {
-                Log.e("WTF", "FUCKED")
                 throw IllegalStateException("WTF cold launch got sampled")
             }
             val spans = database.getSpanPackets(batch.spanIds)
