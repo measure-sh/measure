@@ -64,4 +64,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val trackFragmentLoadTime: Boolean = true
     override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
+    override val coldLaunchSamplingRate: Float = 0.01f
+    override val warmLaunchSamplingRate: Float = 0.01f
+    override val hotLaunchSamplingRate: Float = 0.01f
+    override val journeyEventsSamplingRate: Float = 0.01f
 }

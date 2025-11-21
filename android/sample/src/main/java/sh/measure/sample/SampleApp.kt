@@ -24,9 +24,16 @@ class SampleApp : Application() {
                 trackHttpBody = true,
                 trackActivityIntentData = true,
                 httpUrlBlocklist = listOf("http://localhost:8080"),
-                samplingRateForErrorFreeSessions = 1f,
+                samplingRateForErrorFreeSessions = 0f,
                 autoStart = true,
                 traceSamplingRate = 1.0f,
+                trackActivityLoadTime = true,
+                trackFragmentLoadTime = true,
+                maxDiskUsageInMb = 1500,
+                hotLaunchSamplingRate = 0.01f,
+                warmLaunchSamplingRate = 0.01f,
+                coldLaunchSamplingRate = 0.01f,
+                journeyEventsSamplingRate = 0f,
             )
         )
         val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)
