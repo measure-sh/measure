@@ -198,8 +198,9 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
+VALKEY_HOST=valkey
+VALKEY_PORT=6379
 VALKEY_PASSWORD=
-VALKEY_DSN=redis://valkey:6379/0
 
 ##################
 # Object Storage #
@@ -348,8 +349,9 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
+VALKEY_HOST=valkey
+VALKEY_PORT=6379
 VALKEY_PASSWORD=$VALKEY_PASSWORD
-VALKEY_DSN=redis://:\${VALKEY_PASSWORD}@valkey:6379/0
 
 ##################
 # Object Storage #
@@ -639,8 +641,9 @@ ensure() {
   local clickhouse_reader_dsn
   local symbolicator_origin
   local symboloader_origin
+  local valkey_host
+  local valkey_port
   local valkey_password
-  local valkey_dsn
 
   clickhouse_admin_user="app_admin"
   clickhouse_operator_user="app_operator"
@@ -652,12 +655,13 @@ ensure() {
   clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
+  valkey_host="valkey"
+  valkey_port="6379"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
     clickhouse_admin_password="dummY_pa55w0rd"
     clickhouse_operator_password="dummY_pa55w0rd"
     clickhouse_reader_password="dummY_pa55w0rd"
-    valkey_dsn="redis://valkey:6379/0"
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
       add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
@@ -703,12 +707,16 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
 
-    if ! check_env_variable "VALKEY_PASSWORD"; then
-      add_env_variable "VALKEY_PASSWORD" "" "CLICKHOUSE_READER_DSN"
+    if ! check_env_variable "VALKEY_HOST"; then
+      add_env_variable "VALKEY_HOST" "$valkey_host" "CLICKHOUSE_READER_DSN"
     fi
 
-    if ! check_env_variable "VALKEY_DSN"; then
-      add_env_variable "VALKEY_DSN" "$valkey_dsn" "VALKEY_PASSWORD"
+    if ! check_env_variable "VALKEY_PORT"; then
+      add_env_variable "VALKEY_PORT" "$valkey_port" "VALKEY_HOST"
+    fi
+
+    if ! check_env_variable "VALKEY_PASSWORD"; then
+      add_env_variable "VALKEY_PASSWORD" "" "VALKEY_PORT"
     fi
 
   elif [[ "$SETUP_ENV" == "production" ]]; then
@@ -716,7 +724,6 @@ ensure() {
     clickhouse_operator_password=$(generate_password 24)
     clickhouse_reader_password=$(generate_password 24)
     valkey_password=$(generate_password 24)
-    valkey_dsn="redis://:\${VALKEY_PASSWORD}@valkey:6379/0"
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
       add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
@@ -762,12 +769,16 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
 
-    if ! check_env_variable "VALKEY_PASSWORD"; then
-      add_env_variable "VALKEY_PASSWORD" "$valkey_password" "CLICKHOUSE_READER_DSN"
+    if ! check_env_variable "VALKEY_HOST"; then
+      add_env_variable "VALKEY_HOST" "$valkey_host" "CLICKHOUSE_READER_DSN"
     fi
 
-    if ! check_env_variable "VALKEY_DSN"; then
-      add_env_variable "VALKEY_DSN" "$valkey_dsn" "VALKEY_PASSWORD"
+    if ! check_env_variable "VALKEY_PORT"; then
+      add_env_variable "VALKEY_PORT" "$valkey_port" "VALKEY_HOST"
+    fi
+
+    if ! check_env_variable "VALKEY_PASSWORD"; then
+      add_env_variable "VALKEY_PASSWORD" "$valkey_password" "VALKEY_PORT"
     fi
   fi
 

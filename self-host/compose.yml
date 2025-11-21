@@ -64,7 +64,9 @@ services:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
-      - VALKEY_DSN=${VALKEY_DSN}   
+      - VALKEY_PORT=${VALKEY_PORT}
+      - VALKEY_HOST=${VALKEY_HOST}
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD} 
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
@@ -455,8 +457,6 @@ services:
       valkey-server
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
-      --io-threads 4
-      --io-threads-do-reads yes
       --appendonly yes
       --appendfsync everysec
     healthcheck:

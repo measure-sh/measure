@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
+	"github.com/valkey-io/valkey-go"
 )
 
 const (
@@ -73,34 +74,55 @@ func computeETag(data []byte) string {
 // ETag value for the given app
 // ID from Valkey.
 func getSDKConfigETag(ctx context.Context, appId uuid.UUID) (string, error) {
+	vk := server.Server.VK
 	key := getSDKConfigCacheKey(appId)
-	return server.Server.Valkey.HGet(ctx, key, "etag").Result()
+	cmd := vk.B().Hget().Key(key).Field("etag").Build()
+	result := vk.Do(ctx, cmd)
+	if err := result.Error(); err != nil {
+		if valkey.IsValkeyNil(err) {
+			return "", nil // Cache miss is not an error
+		}
+		return "", err
+	}
+	return result.ToString()
 }
 
 // getSDKConfigData retrieves the
 // config payload for the given
 // app ID from Valkey.
 func getSDKConfigData(ctx context.Context, appId uuid.UUID) (string, error) {
+	vk := server.Server.VK
 	key := getSDKConfigCacheKey(appId)
-	return server.Server.Valkey.HGet(ctx, key, "data").Result()
+	cmd := vk.B().Hget().Key(key).Field("data").Build()
+	result := vk.Do(ctx, cmd)
+	if err := result.Error(); err != nil {
+		if valkey.IsValkeyNil(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	fmt.Println("[SDKCONFIG] accessed Cache")
+	return result.ToString()
 }
 
 // getSDKConfigCacheKey returns the Redis cache key for SDK config
 func getSDKConfigCacheKey(appId uuid.UUID) string {
-	return fmt.Sprintf("{%s}:sdk_config", appId.String())
+	return fmt.Sprintf("sdk_config:{%s}", appId.String())
 }
 
 // setSDKConfigToCache stores config JSON & ETag
 func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte) (string, error) {
+	vk := server.Server.VK
 	key := getSDKConfigCacheKey(appId)
-
 	etag := computeETag(jsonConfig)
 
-	pipe := server.Server.Valkey.TxPipeline()
-	pipe.HSet(ctx, key, "etag", etag)
-	pipe.HSet(ctx, key, "data", string(jsonConfig))
-	_, err := pipe.Exec(ctx)
-	if err != nil {
+	cmd := vk.B().Hmset().Key(key).FieldValue().
+		FieldValue("etag", etag).
+		FieldValue("data", string(jsonConfig)).
+		Build()
+
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
 		return "", fmt.Errorf("failed to store config hash: %w", err)
 	}
 
@@ -109,12 +131,12 @@ func setSDKConfigToCache(ctx context.Context, appId uuid.UUID, jsonConfig []byte
 
 // InvalidateSDKConfigCache deletes the cached SDK config for an app
 func InvalidateSDKConfigCache(ctx context.Context, appId uuid.UUID) error {
+	vk := server.Server.VK
 	key := getSDKConfigCacheKey(appId)
-
-	if err := server.Server.Valkey.Del(ctx, key).Err(); err != nil {
+	cmd := vk.B().Del().Key(key).Build()
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
 		return fmt.Errorf("failed to delete cache: %w", err)
 	}
-
 	return nil
 }
 
@@ -134,6 +156,8 @@ func fetchSDKConfigFromDB(ctx context.Context, appId uuid.UUID) (*SDKConfig, err
 	if err != nil {
 		return nil, fmt.Errorf("error fetching session rules: %w", err)
 	}
+
+	fmt.Println("[SDKCONFIG] accessed DB")
 
 	return &SDKConfig{
 		EventRules:   eventRules,

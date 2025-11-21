@@ -142,8 +142,6 @@ services:
       valkey-server
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
-      --io-threads 4
-      --io-threads-do-reads yes
       --appendonly yes
       --appendfsync everysec
       --requirepass ${REDIS_PASSWORD}
