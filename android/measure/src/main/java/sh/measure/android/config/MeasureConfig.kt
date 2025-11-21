@@ -157,7 +157,7 @@ class MeasureConfig(
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 
     /**
-     * Enable or disable automatic collection of Activity load time. Defaults to `true`.
+     * Enable or disable automatic collection of Activity load time. Defaults to `false`.
      *
      * Activity load time measures the time between the Activity being created and the first
      * frame being drawn on the screen. This is also known as Time to First Frame (TTF) or
@@ -171,7 +171,7 @@ class MeasureConfig(
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
 
     /**
-     * Enable or disable automatic collection of Fragment load time. Defaults to `true`.
+     * Enable or disable automatic collection of Fragment load time. Defaults to `false`.
      *
      * Fragment load time measures the time between the Fragment view being created and the
      * first frame being drawn on the screen. This is also known as Time to First Frame (TTF)
