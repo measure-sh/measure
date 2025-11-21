@@ -165,18 +165,14 @@ internal class DefaultActivityLifecycleCollector(
     }
 
     private fun startActivityTtidSpan(activity: Activity): Span {
-        if (configProvider.trackActivityLoadTime) {
-            val span = tracer.spanBuilder(
-                SpanName.activityTtidSpan(
-                    activity.javaClass.name,
-                    configProvider.maxSpanNameLength,
-                ),
-            ).startSpan()
-            span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
-            return span
-        } else {
-            return Span.invalid()
-        }
+        val span = tracer.spanBuilder(
+            SpanName.activityTtidSpan(
+                activity.javaClass.name,
+                configProvider.maxSpanNameLength,
+            ),
+        ).startSpan()
+        span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
+        return span
     }
 
     private fun endActivityTtidSpan(activityIdentityHash: String) {

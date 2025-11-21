@@ -56,8 +56,9 @@ class SessionManagerTest {
 
     @Before
     fun setup() {
-        // forces "needs reporting" to be set to false
+        // forces "needs reporting" and "track journey events" to be set to false
         configProvider.samplingRateForErrorFreeSessions = 0.0f
+        configProvider.journeySamplingRate = 0.0f
         randomizer.randomDouble = 0.0
     }
 
@@ -88,6 +89,7 @@ class SessionManagerTest {
                 supportsAppExit = false,
                 appVersion = packageInfoProvider.appVersion,
                 appBuild = packageInfoProvider.getVersionCode(),
+                trackJourney = false,
             ),
         )
     }

@@ -48,13 +48,15 @@ internal class FakeConfigProvider : ConfigProvider {
     override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
     override val shakeMinTimeIntervalMs: Long = 5000
     override val shakeSlop: Int = 2
-    override val trackActivityLoadTime: Boolean = true
-    override val trackFragmentLoadTime: Boolean = true
     override val disallowedCustomHeaders: List<String> =
         listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
     override val estimatedEventSizeInKb: Int = 15
     override val maxDiskUsageInMb: Int = 50
+    override val coldLaunchSamplingRate: Float = 0.01f
+    override val warmLaunchSamplingRate: Float = 0.01f
+    override val hotLaunchSamplingRate: Float = 0.01f
+    override var journeySamplingRate: Float = 0.01f
 
     var shouldTrackHttpBodyResult = true
 

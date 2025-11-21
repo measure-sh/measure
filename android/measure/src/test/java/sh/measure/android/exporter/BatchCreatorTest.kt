@@ -33,6 +33,9 @@ class BatchCreatorTest {
                 ascending = eq(true),
                 sessionId = eq(null),
                 eventTypeExportAllowList = eq(config.eventTypeExportAllowList),
+                coldLaunchSamplingRate = any(),
+                warmLaunchSamplingRate = any(),
+                hotLaunchSamplingRate = any(),
             ),
         ).thenReturn(
             listOf(),

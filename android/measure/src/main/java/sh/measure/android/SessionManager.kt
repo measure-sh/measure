@@ -164,17 +164,22 @@ internal class SessionManagerImpl(
     private fun createNewSession(): RecentSession {
         val newSessionId = idProvider.uuid()
         val needsReporting = shouldMarkSessionForExport()
+        val trackJourney = shouldTrackJourneyForSession()
         val createdAt = timeProvider.now()
         val session = RecentSession(
             newSessionId,
             createdAt,
             versionCode = packageInfoProvider.getVersionCode(),
         )
-        storeSession(session, needsReporting)
+        storeSession(session, needsReporting, trackJourney)
         return session
     }
 
-    private fun storeSession(session: RecentSession, needsReporting: Boolean) {
+    private fun storeSession(
+        session: RecentSession,
+        needsReporting: Boolean,
+        trackJourney: Boolean,
+    ) {
         try {
             ioExecutor.submit {
                 val success = database.insertSession(
@@ -186,6 +191,7 @@ internal class SessionManagerImpl(
                         supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                         appVersion = packageInfoProvider.appVersion,
                         appBuild = packageInfoProvider.getVersionCode(),
+                        trackJourney = trackJourney,
                     ),
                 )
                 if (success) {
@@ -260,6 +266,16 @@ internal class SessionManagerImpl(
             return true
         }
         return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
+    }
+
+    private fun shouldTrackJourneyForSession(): Boolean {
+        if (configProvider.journeySamplingRate == 0.0f) {
+            return false
+        }
+        if (configProvider.journeySamplingRate == 1.0f) {
+            return true
+        }
+        return randomizer.random() < configProvider.journeySamplingRate
     }
 
     private fun <T> Event<T>.isUnhandledException(): Boolean = type == EventType.EXCEPTION && data is ExceptionData && !data.handled

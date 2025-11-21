@@ -18,6 +18,7 @@ import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.serialization.jsonSerializer
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.Closeable
 
@@ -48,6 +49,9 @@ internal interface Database : Closeable {
         ascending: Boolean = true,
         sessionId: String? = null,
         eventTypeExportAllowList: List<EventType> = emptyList(),
+        coldLaunchSamplingRate: Float = 0f,
+        warmLaunchSamplingRate: Float = 0f,
+        hotLaunchSamplingRate: Float = 0f,
     ): List<String>
 
     fun getUnBatchedSpans(
@@ -336,21 +340,36 @@ internal class DatabaseImpl(
         ascending: Boolean,
         sessionId: String?,
         eventTypeExportAllowList: List<EventType>,
+        coldLaunchSamplingRate: Float,
+        warmLaunchSamplingRate: Float,
+        hotLaunchSamplingRate: Float,
     ): List<String> {
-        val query =
-            Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
-        val cursor = readableDatabase.rawQuery(query, null)
-        val eventIds = mutableListOf<String>()
+        return InternalTrace.trace({
+            "msr-getUnbatchedEvents"
+        }, {
+            val query =
+                Sql.getEventsBatchQuery(
+                    eventCount,
+                    ascending,
+                    sessionId,
+                    eventTypeExportAllowList,
+                    coldLaunchSamplingRate,
+                    warmLaunchSamplingRate,
+                    hotLaunchSamplingRate,
+                )
+            val cursor = readableDatabase.rawQuery(query, null)
+            val eventIds = mutableListOf<String>()
 
-        cursor.use {
-            while (it.moveToNext()) {
-                val eventIdIndex = cursor.getColumnIndex(EventTable.COL_ID)
-                val eventId = cursor.getString(eventIdIndex)
-                eventIds.add(eventId)
+            cursor.use {
+                while (it.moveToNext()) {
+                    val eventIdIndex = cursor.getColumnIndex(EventTable.COL_ID)
+                    val eventId = cursor.getString(eventIdIndex)
+                    eventIds.add(eventId)
+                }
             }
-        }
 
-        return eventIds
+            return@trace eventIds
+        })
     }
 
     override fun getUnBatchedSpans(
@@ -636,6 +655,7 @@ internal class DatabaseImpl(
                 put(SessionsTable.COL_CREATED_AT, session.createdAt)
                 put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
                 put(SessionsTable.COL_CRASHED, session.crashed)
+                put(SessionsTable.COL_TRACK_JOURNEY, session.trackJourney)
             }
             val appExitResult = if (session.supportsAppExit) {
                 val appExitValues = ContentValues().apply {

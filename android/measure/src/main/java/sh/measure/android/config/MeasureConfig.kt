@@ -29,10 +29,12 @@ internal interface IMeasureConfig {
     val samplingRateForErrorFreeSessions: Float
     val autoStart: Boolean
     val traceSamplingRate: Float
-    val trackActivityLoadTime: Boolean
-    val trackFragmentLoadTime: Boolean
     val maxDiskUsageInMb: Int
     val requestHeadersProvider: MsrRequestHeadersProvider?
+    val coldLaunchSamplingRate: Float
+    val warmLaunchSamplingRate: Float
+    val hotLaunchSamplingRate: Float
+    val journeySamplingRate: Float
 }
 
 /**
@@ -147,7 +149,7 @@ class MeasureConfig(
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
 
     /**
-     * Allows setting a sampling rate for traces. Defaults to 0.1.
+     * Allows setting a sampling rate for traces. Defaults to 0.0001, ie, 0.01%.
      *
      * The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export
      * only 10% of all traces, a value of `0` will disable exporting of traces.
@@ -155,31 +157,6 @@ class MeasureConfig(
      * Setting a value outside the range will throw an [IllegalArgumentException].
      */
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
-
-    /**
-     * Enable or disable automatic collection of Activity load time. Defaults to `true`.
-     *
-     * Activity load time measures the time between the Activity being created and the first
-     * frame being drawn on the screen. This is also known as Time to First Frame (TTF) or
-     * Time to Initial Display (TTID). A large value for this metric would mean users are waiting
-     * for a long time before they see anything on the screen while navigating through the app.
-     *
-     * Each Activity load time is captured using a span with the name `Activity TTID` followed
-     * by the fully qualified class name of the Activity. For example, for
-     * `com.example.MainActivity` the span name would be `Activity TTID com.example.MainActivity`.
-     */
-    override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
-
-    /**
-     * Enable or disable automatic collection of Fragment load time. Defaults to `true`.
-     *
-     * Fragment load time measures the time between the Fragment view being created and the
-     * first frame being drawn on the screen. This is also known as Time to First Frame (TTF)
-     * or Time to Initial Display (TTID). A large value for this metric would mean users are
-     * waiting for a long time before they see anything on the screen while navigating
-     * through the app.
-     */
-    override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
 
     /**
      * Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
@@ -209,6 +186,49 @@ class MeasureConfig(
      * See [MsrRequestHeadersProvider] for usage details.
      */
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
+
+    /**
+     * Configure sampling rate for cold launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A cold launch refers to an app starting from scratch. Cold launch happens in cases such
+     * as an app launching for the first time since the device booted or since the system
+     * killed the app.
+     */
+    override val coldLaunchSamplingRate: Float = DefaultConfig.COLD_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configure sampling rate for warm launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A warm launch refers to the re-launch of an app causing an Activity onCreate to be
+     * triggered instead of just onResume. This requires the system to recreate the activity from
+     * scratch and hence requires more work than a hot launch.
+     */
+    override val warmLaunchSamplingRate: Float = DefaultConfig.WARM_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configure sampling rate for hot launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A hot launch refers to the re-launch of an app causing an Activity onResume to be triggered.
+     * This typically requires less work than a warm launch as the system does not need to recreate
+     * the activity from scratch.
+     */
+    override val hotLaunchSamplingRate: Float = DefaultConfig.HOT_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configures sampling rate for sessions that track "user journeys". This feature shows
+     * traffic of users across different screens of the app. When set to 0, the journey will only
+     * be generated from crashed sessions or sessions collected using
+     * [samplingRateForErrorFreeSessions].
+     *
+     * Defaults to 0.
+     *
+     * If a value of 0.1 is set, then 10% of the sessions will contain events required
+     * to build the journey which includes screen view, lifecycle activity and lifecycle fragments.
+     *
+     * **Note: a higher value for this config can significantly increase the number of events
+     * collected for your app.**
+     */
+    override val journeySamplingRate: Float = DefaultConfig.JOURNEY_EVENTS_SAMPLING_RATE,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {
@@ -253,8 +273,6 @@ internal data class SerializableMeasureConfig(
     val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
     val autoStart: Boolean = DefaultConfig.AUTO_START,
     val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
-    val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
-    val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
     val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) {
@@ -271,8 +289,6 @@ internal data class SerializableMeasureConfig(
         samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions,
         autoStart = autoStart,
         traceSamplingRate = traceSamplingRate,
-        trackActivityLoadTime = trackActivityLoadTime,
-        trackFragmentLoadTime = trackFragmentLoadTime,
         maxDiskUsageInMb = maxDiskUsageInMb,
         requestHeadersProvider = requestHeadersProvider,
     )
@@ -291,8 +307,6 @@ internal data class SerializableMeasureConfig(
             samplingRateForErrorFreeSessions = config.samplingRateForErrorFreeSessions,
             autoStart = config.autoStart,
             traceSamplingRate = config.traceSamplingRate,
-            trackActivityLoadTime = config.trackActivityLoadTime,
-            trackFragmentLoadTime = config.trackFragmentLoadTime,
             maxDiskUsageInMb = config.maxDiskUsageInMb,
             requestHeadersProvider = config.requestHeadersProvider,
         )
