@@ -417,6 +417,9 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:25.8-alpine
     environment:
+      - CLICKHOUSE_DB=measure
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_ADMIN_USER=${CLICKHOUSE_ADMIN_USER}
       - CLICKHOUSE_ADMIN_PASSWORD=${CLICKHOUSE_ADMIN_PASSWORD}
@@ -441,9 +444,6 @@ services:
       - type: bind
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
-      - type: bind
-        source: ./clickhouse/config/users.xml
-        target: /etc/clickhouse-server/users.xml
 
 volumes:
   clickhouse-volume:
