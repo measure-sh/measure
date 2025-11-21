@@ -48,10 +48,10 @@ internal interface Database : Closeable {
         ascending: Boolean = true,
         sessionId: String? = null,
         eventTypeExportAllowList: List<EventType> = emptyList(),
-        coldLaunchSamplingRate: Float,
-        warmLaunchSamplingRate: Float,
-        hotLaunchSamplingRate: Float,
-        journeyEventsSamplingRate: Float,
+        coldLaunchSamplingRate: Float = 0f,
+        warmLaunchSamplingRate: Float = 0f,
+        hotLaunchSamplingRate: Float = 0f,
+        journeyEventsSamplingRate: Float = 0f,
     ): List<String>
 
     fun getUnBatchedSpans(
