@@ -6,6 +6,7 @@ import SamplingRateInput from '@/app/components/targeting/sampling_rate_input'
 import { useState, useEffect } from 'react'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { updateEventTargetingRule, updateTraceTargetingRule, UpdateEventTargetingRuleApiStatus, UpdateTraceTargetingRuleApiStatus, CollectionMode } from '@/app/api/api_calls'
+import { RadioGroup, RadioGroupItem } from '../radio_group'
 
 interface EditDefaultRuleDialogProps {
     isOpen: boolean
@@ -44,38 +45,38 @@ export default function EditDefaultRuleDialog({
         setIsSaving(true)
 
         try {
-            if (ruleType === 'event') {
+            if (ruleType === "event") {
                 const result = await updateEventTargetingRule(appId, ruleId, {
-                    name: 'default_behaviour',
+                    name: "default_behaviour",
                     condition,
                     collection_mode: collectionMode,
-                    sampling_rate: collectionMode === 'sampled' ? sampleRate : 0,
+                    sampling_rate: collectionMode === "sampled" ? sampleRate : 0,
                     take_screenshot: takeScreenshot || false,
                     take_layout_snapshot: takeLayoutSnapshot || false
                 })
 
                 if (result.status === UpdateEventTargetingRuleApiStatus.Error) {
-                    onError(result.error || 'Failed to update rule')
+                    onError(result.error || "Failed to update rule")
                     return
                 }
             } else {
                 const result = await updateTraceTargetingRule(appId, ruleId, {
-                    name: 'default_behaviour',
+                    name: "default_behaviour",
                     condition,
                     collection_mode: collectionMode,
-                    sampling_rate: collectionMode === 'sampled' ? sampleRate : 0
+                    sampling_rate: collectionMode === "sampled" ? sampleRate : 0
                 })
 
                 if (result.status === UpdateTraceTargetingRuleApiStatus.Error) {
-                    onError(result.error || 'Failed to update rule')
+                    onError(result.error || "Failed to update rule")
                     return
                 }
             }
 
-            onSuccess(collectionMode, collectionMode === 'sampled' ? sampleRate : undefined)
+            onSuccess(collectionMode, collectionMode === "sampled" ? sampleRate : undefined)
             onClose()
         } catch (error) {
-            onError(error instanceof Error ? error.message : 'Failed to update rule')
+            onError(error instanceof Error ? error.message : "Failed to update rule")
         } finally {
             setIsSaving(false)
         }
@@ -88,9 +89,9 @@ export default function EditDefaultRuleDialog({
         }
     }, [isOpen, initialCollectionMode, initialSampleRate])
 
-    const isEvent = ruleType === 'event'
-    const displayName = isEvent ? 'Events' : 'Traces'
-    const displayNameLower = isEvent ? 'events' : 'traces'
+    const isEvent = ruleType === "event"
+    const displayName = isEvent ? "Events" : "Traces"
+    const displayNameLower = isEvent ? "events" : "traces"
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -105,51 +106,40 @@ export default function EditDefaultRuleDialog({
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-3 cursor-pointer h-10">
-                            <input
-                                type="radio"
-                                name="collectionMode"
-                                value="sampled"
-                                checked={collectionMode === 'sampled'}
-                                onChange={() => setCollectionMode('sampled')}
-                                disabled={isSaving}
-                                className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                            />
+                    <RadioGroup
+                        value={collectionMode}
+                        onValueChange={(value) => setCollectionMode(value as CollectionMode)}
+                        disabled={isSaving}
+                    >
+                        <label
+                            htmlFor="sampled"
+                            className="flex items-center gap-3 h-10 cursor-pointer"
+                        >
+                            <RadioGroupItem value="sampled" id="sampled" />
                             <SamplingRateInput
                                 value={sampleRate}
                                 onChange={setSampleRate}
-                                disabled={collectionMode !== 'sampled' || isSaving}
-                                type={displayNameLower as 'events' | 'traces'}
+                                disabled={collectionMode !== "sampled" || isSaving}
+                                type={displayNameLower as "events" | "traces"}
                             />
                         </label>
 
-                        <label className="flex items-center gap-3 cursor-pointer h-10">
-                            <input
-                                type="radio"
-                                name="collectionMode"
-                                value="timeline"
-                                checked={collectionMode === 'timeline'}
-                                onChange={() => setCollectionMode('timeline')}
-                                disabled={isSaving}
-                                className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                            />
-                            <span className="text-sm font-body">Collect {displayNameLower} with session timeline only</span>
+                        <label
+                            htmlFor="timeline"
+                            className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                        >
+                            <RadioGroupItem value="timeline" id="timeline" />
+                            Collect {displayNameLower} with session timeline only
                         </label>
 
-                        <label className="flex items-center gap-3 cursor-pointer h-10">
-                            <input
-                                type="radio"
-                                name="collectionMode"
-                                value="disable"
-                                checked={collectionMode === 'disabled'}
-                                onChange={() => setCollectionMode('disabled')}
-                                disabled={isSaving}
-                                className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                            />
-                            <span className="text-sm font-body">Collect no {displayNameLower} by default</span>
+                        <label
+                            htmlFor="disabled"
+                            className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                        >
+                            <RadioGroupItem value="disabled" id="disabled" />
+                            Collect no {displayNameLower} by default
                         </label>
-                    </div>
+                    </RadioGroup>
                 </div>
 
                 <DialogFooter>

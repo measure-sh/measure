@@ -14,6 +14,7 @@ import DangerConfirmationDialog from "../danger_confirmation_dialog"
 import AttributeBuilder from "./attribute_builder"
 import { Plus } from "lucide-react"
 import TraceOperatorNameInput from "./trace_name_operator_input"
+import { RadioGroup, RadioGroupItem } from "../radio_group"
 
 enum PageState {
     Loading,
@@ -1210,92 +1211,104 @@ export default function RuleBuilder({
                     <>
                         <div className="mb-4">
                             <p className="font-display text-gray-500 mb-3">Collection</p>
-                            <div className="space-y-3 ml-4">
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="sampled"
-                                        checked={ruleState.collectionMode === 'sampled'}
-                                        onChange={() => updateRuleState({ collectionMode: 'sampled' })}
-                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                    />
-                                    <SamplingRateInput
-                                        value={ruleState.sampleRate || 100}
-                                        onChange={(value) => updateRuleState({ sampleRate: value })}
-                                        disabled={ruleState.collectionMode !== 'sampled'}
-                                        type={type === 'event' ? 'event' : 'trace'}
-                                    />
-                                </label>
+                            <div className="ml-4">
+                                <RadioGroup
+                                    value={ruleState.collectionMode}
+                                    onValueChange={(value) => {
+                                        if (value === "disabled") {
+                                            updateRuleState({
+                                                collectionMode: value as CollectionMode,
+                                                take_layout_snapshot: false,
+                                                take_screenshot: false,
+                                            })
+                                        } else {
+                                            updateRuleState({ collectionMode: value as CollectionMode })
+                                        }
+                                    }}
+                                >
+                                    <label
+                                        htmlFor="collection-sampled"
+                                        className="flex items-center gap-3 h-10 cursor-pointer"
+                                    >
+                                        <RadioGroupItem value="sampled" id="collection-sampled" />
+                                        <SamplingRateInput
+                                            value={ruleState.sampleRate || 100}
+                                            onChange={(value) => updateRuleState({ sampleRate: value })}
+                                            disabled={ruleState.collectionMode !== "sampled"}
+                                            type={type === "event" ? "event" : "trace"}
+                                        />
+                                    </label>
 
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="timeline"
-                                        checked={ruleState.collectionMode === 'timeline'}
-                                        onChange={() => updateRuleState({ collectionMode: 'timeline' })}
-                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                    />
-                                    <span className="text-sm font-body">Collect with timeline only</span>
-                                </label>
+                                    <label
+                                        htmlFor="collection-timeline"
+                                        className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                                    >
+                                        <RadioGroupItem value="timeline" id="collection-timeline" />
+                                        Collect with timeline only
+                                    </label>
 
-                                <label className="flex items-center gap-3 cursor-pointer h-10">
-                                    <input
-                                        type="radio"
-                                        name="collectionMode"
-                                        value="disabled"
-                                        checked={ruleState.collectionMode === 'disabled'}
-                                        onChange={() => updateRuleState({ collectionMode: 'disabled', take_layout_snapshot: false, take_screenshot: false })}
-                                        className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                    />
-                                    <span className="text-sm font-body">Do not collect</span>
-                                </label>
+                                    <label
+                                        htmlFor="collection-disabled"
+                                        className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                                    >
+                                        <RadioGroupItem value="disabled" id="collection-disabled" />
+                                        Do not collect
+                                    </label>
+                                </RadioGroup>
                             </div>
                         </div>
 
-                        {type === 'event' && (
+                        {type === "event" && (
                             <div className="mb-4">
                                 <p className="font-display text-gray-500 mb-3">Attachments</p>
-                                <div className="space-y-3 ml-4">
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="layout_snapshot"
-                                            checked={ruleState.take_layout_snapshot === true && ruleState.take_screenshot === false}
-                                            onChange={() => updateRuleState({ take_layout_snapshot: true, take_screenshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                        />
-                                        <span className="text-sm font-body">Take layout snapshot</span>
-                                    </label>
+                                <div className={`ml-4 ${ruleState.collectionMode === "disabled" ? "opacity-50" : ""}`}>
+                                    <RadioGroup
+                                        value={
+                                            ruleState.take_layout_snapshot && !ruleState.take_screenshot
+                                                ? "layout_snapshot"
+                                                : ruleState.take_screenshot && !ruleState.take_layout_snapshot
+                                                    ? "screenshot"
+                                                    : "none"
+                                        }
+                                        onValueChange={(value) => {
+                                            switch (value) {
+                                                case "layout_snapshot":
+                                                    updateRuleState({ take_layout_snapshot: true, take_screenshot: false })
+                                                    break
+                                                case "screenshot":
+                                                    updateRuleState({ take_screenshot: true, take_layout_snapshot: false })
+                                                    break
+                                                case "none":
+                                                    updateRuleState({ take_screenshot: false, take_layout_snapshot: false })
+                                                    break
+                                            }
+                                        }}
+                                        disabled={ruleState.collectionMode === "disabled"}
+                                    >
+                                        <label
+                                            htmlFor="attachment-layout"
+                                            className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                                        >
+                                            <RadioGroupItem value="layout_snapshot" id="attachment-layout" />
+                                            Take layout snapshot
+                                        </label>
 
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="screenshot"
-                                            checked={ruleState.take_screenshot === true && ruleState.take_layout_snapshot === false}
-                                            onChange={() => updateRuleState({ take_screenshot: true, take_layout_snapshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                        />
-                                        <span className="text-sm font-body">Take screenshot</span>
-                                    </label>
+                                        <label
+                                            htmlFor="attachment-screenshot"
+                                            className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                                        >
+                                            <RadioGroupItem value="screenshot" id="attachment-screenshot" />
+                                            Take screenshot
+                                        </label>
 
-                                    <label className={`flex items-center gap-3 h-10 ${ruleState.collectionMode === 'disabled' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                        <input
-                                            type="radio"
-                                            name="attachmentMode"
-                                            value="none"
-                                            checked={ruleState.take_screenshot === false && ruleState.take_layout_snapshot === false}
-                                            onChange={() => updateRuleState({ take_screenshot: false, take_layout_snapshot: false })}
-                                            disabled={ruleState.collectionMode === 'disabled'}
-                                            className="appearance-none w-4 h-4 border-2 border-gray-300 rounded-full cursor-pointer bg-white checked:bg-yellow-500 checked:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                        />
-                                        <span className="text-sm font-body">No attachments</span>
-                                    </label>
+                                        <label
+                                            htmlFor="attachment-none"
+                                            className="flex items-center gap-3 h-10 cursor-pointer text-sm font-body"
+                                        >
+                                            <RadioGroupItem value="none" id="attachment-none" />
+                                            No attachments
+                                        </label>
+                                    </RadioGroup>
                                 </div>
                             </div>
                         )}
