@@ -44,15 +44,7 @@ internal data class Config(
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override val maxUserDefinedAttributeKeyLength: Int = 256 // 256 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
-    override val eventTypeExportAllowList: List<EventType> = listOf(
-        EventType.COLD_LAUNCH,
-        EventType.HOT_LAUNCH,
-        EventType.WARM_LAUNCH,
-        EventType.LIFECYCLE_ACTIVITY,
-        EventType.LIFECYCLE_FRAGMENT,
-        EventType.SCREEN_VIEW,
-        EventType.SESSION_START,
-    )
+    override val eventTypeExportAllowList: List<EventType> = listOf(EventType.SESSION_START)
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
