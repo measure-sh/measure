@@ -26,4 +26,5 @@ class DefaultConfig {
   static const int maxUserDefinedAttributesPerEvent = 100;
   static const int maxUserDefinedAttributeKeyLength = 256;
   static const int maxUserDefinedAttributeValueLength = 256;
+  static const Map<Type, String> widgetFilter = <Type, String>{};
 }

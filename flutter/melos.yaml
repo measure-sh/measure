@@ -51,6 +51,8 @@ scripts:
 
   test:
     run: |
-      melos exec --dir-exists=test -- \
-        flutter test
-    description: Run `flutter test` in packages that have a test directory.
+      melos exec --dir-exists=test --ignore="measure_build" -- \
+        flutter test && \
+      melos exec --dir-exists=test --scope="measure_build" -- \
+        dart test
+    description: Run tests in all packages (dart test for pure Dart packages, flutter test for Flutter packages).

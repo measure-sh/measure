@@ -134,6 +134,7 @@ internal class DefaultAttachmentExporter(
             val response = httpClient.uploadFile(
                 url = attachment.url,
                 contentType = attachment.contentType,
+                contentEncoding = attachment.contentEncoding,
                 headers = attachment.headers,
                 fileSize = file.length(),
             ) { sink ->

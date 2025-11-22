@@ -141,11 +141,11 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
-  }) {
+  }) async {
     trackedBugReports.add(BugReportCall(description, attachments, attributes));
   }
 
@@ -165,18 +165,29 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackClick(ClickData clickData) {
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
     throw UnimplementedError();
   }
 
   @override
-  void trackLongClick(LongClickData longClickData) {
+  Future<void> trackLongClick(
+      LongClickData longClickData, SnapshotNode? snapshot) async {
     throw UnimplementedError();
   }
 
   @override
-  void trackScroll(ScrollData scrollData) {
+  Future<void> trackScroll(ScrollData scrollData) async {
     throw UnimplementedError();
+  }
+
+  @override
+  Map<Type, String> getLayoutSnapshotWidgetFilter() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Logger? getLogger() {
+    return null;
   }
 }
 
