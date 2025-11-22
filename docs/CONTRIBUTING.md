@@ -318,6 +318,12 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
     docker compose run --rm dbmate-clickhouse migrate
     ```
 
+5. Run backfills script
+
+   ```sh
+    ./migrations/v0.9.x-data-backfills.sh
+    ```
+
 5. Start development
 
     ```sh
