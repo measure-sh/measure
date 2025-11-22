@@ -135,6 +135,14 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxDiskUsageInMb }
     override val estimatedEventSizeInKb: Int
         get() = getMergedConfig { estimatedEventSizeInKb }
+    override val coldLaunchSamplingRate: Float
+        get() = getMergedConfig { coldLaunchSamplingRate }
+    override val warmLaunchSamplingRate: Float
+        get() = getMergedConfig { warmLaunchSamplingRate }
+    override val hotLaunchSamplingRate: Float
+        get() = getMergedConfig { hotLaunchSamplingRate }
+    override val journeyEventsSamplingRate: Float
+        get() = getMergedConfig { journeyEventsSamplingRate }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

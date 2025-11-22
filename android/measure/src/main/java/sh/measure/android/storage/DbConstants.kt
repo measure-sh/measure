@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import android.util.Log
 import sh.measure.android.events.EventType
 
 internal object DbConstants {
@@ -251,6 +252,10 @@ internal object Sql {
         ascending: Boolean,
         sessionId: String?,
         eventTypeAllowList: List<EventType>,
+        coldLaunchSamplingRate: Float,
+        warmLaunchSamplingRate: Float,
+        hotLaunchSamplingRate: Float,
+        journeyEventsSamplingRate: Float,
     ): String {
         if (sessionId != null) {
             /**
@@ -291,12 +296,31 @@ internal object Sql {
             return """
                 SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
                 FROM ${EventTable.TABLE_NAME} e
-                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
-                JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb 
+                    ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+                JOIN ${SessionsTable.TABLE_NAME} s 
+                    ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
                 WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
                 AND (
+                    -- Always allowed event types (no sampling)
                     e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'${it.value}'" }})
+                    
+                    -- Must report sessions
                     OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
+            
+                    -- Sampled event types
+                    OR (e.${EventTable.COL_TYPE} = 'cold_launch' 
+                        AND (abs(random()) / 9223372036854775807.0) < $coldLaunchSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'warm_launch' 
+                        AND (abs(random()) / 9223372036854775807.0) < $warmLaunchSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'hot_launch' 
+                        AND (abs(random()) / 9223372036854775807.0) < $hotLaunchSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'lifecycle_activity' 
+                        AND (abs(random()) / 9223372036854775807.0) < $journeyEventsSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'lifecycle_fragment' 
+                        AND (abs(random()) / 9223372036854775807.0) < $journeyEventsSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'screen_view' 
+                        AND (abs(random()) / 9223372036854775807.0) < $journeyEventsSamplingRate)
                 )
                 ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
                 LIMIT $eventCount

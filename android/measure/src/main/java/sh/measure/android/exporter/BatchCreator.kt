@@ -52,6 +52,10 @@ internal class BatchCreatorImpl(
                     configProvider.maxEventsInBatch,
                     sessionId = sessionId,
                     eventTypeExportAllowList = configProvider.eventTypeExportAllowList,
+                    coldLaunchSamplingRate = configProvider.coldLaunchSamplingRate,
+                    warmLaunchSamplingRate = configProvider.warmLaunchSamplingRate,
+                    hotLaunchSamplingRate = configProvider.hotLaunchSamplingRate,
+                    journeyEventsSamplingRate = configProvider.journeyEventsSamplingRate,
                 )
             val spanIds = database.getUnBatchedSpans(configProvider.maxEventsInBatch)
 

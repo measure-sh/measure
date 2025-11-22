@@ -21,6 +21,10 @@ internal data class Config(
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
     override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
+    override val coldLaunchSamplingRate: Float = DefaultConfig.COLD_LAUNCH_SAMPLING_RATE,
+    override val warmLaunchSamplingRate: Float = DefaultConfig.WARM_LAUNCH_SAMPLING_RATE,
+    override val hotLaunchSamplingRate: Float = DefaultConfig.HOT_LAUNCH_SAMPLING_RATE,
+    override val journeyEventsSamplingRate: Float = DefaultConfig.JOURNEY_EVENTS_SAMPLING_RATE,
 ) : InternalConfig,
     IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
@@ -44,15 +48,7 @@ internal data class Config(
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override val maxUserDefinedAttributeKeyLength: Int = 256 // 256 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
-    override val eventTypeExportAllowList: List<EventType> = listOf(
-        EventType.COLD_LAUNCH,
-        EventType.HOT_LAUNCH,
-        EventType.WARM_LAUNCH,
-        EventType.LIFECYCLE_ACTIVITY,
-        EventType.LIFECYCLE_FRAGMENT,
-        EventType.SCREEN_VIEW,
-        EventType.SESSION_START,
-    )
+    override val eventTypeExportAllowList: List<EventType> = listOf(EventType.SESSION_START)
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100

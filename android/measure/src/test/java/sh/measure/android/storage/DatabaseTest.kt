@@ -453,6 +453,158 @@ class DatabaseTest {
     }
 
     @Test
+    fun `getUnBatchedEventsWithAttachmentSize returns sampled events from sessions that do not need reporting`() {
+        // given
+        val coldLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-1",
+            sessionId = "session-id-1",
+            type = EventType.COLD_LAUNCH,
+        )
+
+        val warmLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-2",
+            sessionId = "session-id-1",
+            type = EventType.WARM_LAUNCH,
+        )
+
+        val hotLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-3",
+            sessionId = "session-id-1",
+            type = EventType.HOT_LAUNCH,
+        )
+
+        val lifecycleActivityEvent = TestData.getEventEntity(
+            eventId = "event-id-4",
+            sessionId = "session-id-1",
+            type = EventType.LIFECYCLE_ACTIVITY,
+        )
+
+        val lifecycleFragmentEvent = TestData.getEventEntity(
+            eventId = "event-id-5",
+            sessionId = "session-id-1",
+            type = EventType.LIFECYCLE_FRAGMENT,
+        )
+
+        val screenViewEvent = TestData.getEventEntity(
+            eventId = "event-id-6",
+            sessionId = "session-id-1",
+            type = EventType.SCREEN_VIEW,
+        )
+
+        val nonLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-7",
+            sessionId = "session-id-1",
+            type = EventType.STRING,
+        )
+
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = false, // sampling should apply
+            ),
+        )
+
+        database.insertEvent(coldLaunchEvent)
+        database.insertEvent(warmLaunchEvent)
+        database.insertEvent(hotLaunchEvent)
+        database.insertEvent(lifecycleActivityEvent)
+        database.insertEvent(lifecycleFragmentEvent)
+        database.insertEvent(screenViewEvent)
+        database.insertEvent(nonLaunchEvent)
+
+        // when - set sampling rate to 1.0 so all launch types are always included
+        val eventsToBatch = database.getUnBatchedEvents(
+            eventCount = 100,
+            coldLaunchSamplingRate = 1.0f,
+            warmLaunchSamplingRate = 1.0f,
+            hotLaunchSamplingRate = 1.0f,
+            journeyEventsSamplingRate = 1.0f,
+        )
+
+        // then - only sampled events are included, non-launch excluded
+        assertEquals(6, eventsToBatch.size)
+        assertTrue(eventsToBatch.contains(coldLaunchEvent.id))
+        assertTrue(eventsToBatch.contains(warmLaunchEvent.id))
+        assertTrue(eventsToBatch.contains(hotLaunchEvent.id))
+        assertTrue(eventsToBatch.contains(screenViewEvent.id))
+        assertTrue(eventsToBatch.contains(lifecycleActivityEvent.id))
+        assertTrue(eventsToBatch.contains(lifecycleFragmentEvent.id))
+    }
+
+    @Test
+    fun `getUnBatchedEventsWithAttachmentSize excludes sampled events from sessions that do not need reporting when sampling rate is zero`() {
+        // given
+        val coldLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-1",
+            sessionId = "session-id-1",
+            type = EventType.COLD_LAUNCH,
+        )
+
+        val warmLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-2",
+            sessionId = "session-id-1",
+            type = EventType.WARM_LAUNCH,
+        )
+
+        val hotLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-3",
+            sessionId = "session-id-1",
+            type = EventType.HOT_LAUNCH,
+        )
+
+        val lifecycleActivityEvent = TestData.getEventEntity(
+            eventId = "event-id-4",
+            sessionId = "session-id-1",
+            type = EventType.LIFECYCLE_ACTIVITY,
+        )
+
+        val lifecycleFragmentEvent = TestData.getEventEntity(
+            eventId = "event-id-5",
+            sessionId = "session-id-1",
+            type = EventType.LIFECYCLE_FRAGMENT,
+        )
+
+        val screenViewEvent = TestData.getEventEntity(
+            eventId = "event-id-6",
+            sessionId = "session-id-1",
+            type = EventType.SCREEN_VIEW,
+        )
+
+        val nonLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-7",
+            sessionId = "session-id-1",
+            type = EventType.STRING,
+        )
+
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = false, // sampling should apply
+            ),
+        )
+
+        database.insertEvent(coldLaunchEvent)
+        database.insertEvent(warmLaunchEvent)
+        database.insertEvent(hotLaunchEvent)
+        database.insertEvent(lifecycleActivityEvent)
+        database.insertEvent(lifecycleFragmentEvent)
+        database.insertEvent(screenViewEvent)
+        database.insertEvent(nonLaunchEvent)
+
+        // when - set sampling to 0.0 so no sampled event types are returned
+        val eventsToBatch = database.getUnBatchedEvents(
+            eventCount = 100,
+            coldLaunchSamplingRate = 0.0f,
+            warmLaunchSamplingRate = 0.0f,
+            hotLaunchSamplingRate = 0.0f,
+            journeyEventsSamplingRate = 0.0f,
+        )
+
+        // then - all sampled types should be excluded
+        assertEquals(0, eventsToBatch.size)
+    }
+
+    @Test
     fun `getUnBatchedSpans returns sampled spans, but discards already batched spans`() {
         // given
         val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")

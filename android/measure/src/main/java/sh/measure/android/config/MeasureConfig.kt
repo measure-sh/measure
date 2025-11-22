@@ -33,6 +33,10 @@ internal interface IMeasureConfig {
     val trackFragmentLoadTime: Boolean
     val maxDiskUsageInMb: Int
     val requestHeadersProvider: MsrRequestHeadersProvider?
+    val coldLaunchSamplingRate: Float
+    val warmLaunchSamplingRate: Float
+    val hotLaunchSamplingRate: Float
+    val journeyEventsSamplingRate: Float
 }
 
 /**
@@ -147,7 +151,7 @@ class MeasureConfig(
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
 
     /**
-     * Allows setting a sampling rate for traces. Defaults to 0.1.
+     * Allows setting a sampling rate for traces. Defaults to 0.0001, ie, 0.01%.
      *
      * The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export
      * only 10% of all traces, a value of `0` will disable exporting of traces.
@@ -157,7 +161,7 @@ class MeasureConfig(
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 
     /**
-     * Enable or disable automatic collection of Activity load time. Defaults to `true`.
+     * Enable or disable automatic collection of Activity load time. Defaults to `false`.
      *
      * Activity load time measures the time between the Activity being created and the first
      * frame being drawn on the screen. This is also known as Time to First Frame (TTF) or
@@ -171,7 +175,7 @@ class MeasureConfig(
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
 
     /**
-     * Enable or disable automatic collection of Fragment load time. Defaults to `true`.
+     * Enable or disable automatic collection of Fragment load time. Defaults to `false`.
      *
      * Fragment load time measures the time between the Fragment view being created and the
      * first frame being drawn on the screen. This is also known as Time to First Frame (TTF)
@@ -209,6 +213,45 @@ class MeasureConfig(
      * See [MsrRequestHeadersProvider] for usage details.
      */
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
+
+    /**
+     * Configure sampling rate for cold launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A cold launch refers to an app starting from scratch. Cold launch happens in cases such
+     * as an app launching for the first time since the device booted or since the system
+     * killed the app.
+     */
+    override val coldLaunchSamplingRate: Float = DefaultConfig.COLD_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configure sampling rate for warm launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A warm launch refers to the re-launch of an app causing an Activity onCreate to be
+     * triggered instead of just onResume. This requires the system to recreate the activity from
+     * scratch and hence requires more work than a hot launch.
+     */
+    override val warmLaunchSamplingRate: Float = DefaultConfig.WARM_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configure sampling rate for hot launch events. Defaults to 0.01, ie, 1%.
+     *
+     * A hot launch refers to the re-launch of an app causing an Activity onResume to be triggered.
+     * This typically requires less work than a warm launch as the system does not need to recreate
+     * the activity from scratch.
+     */
+    override val hotLaunchSamplingRate: Float = DefaultConfig.HOT_LAUNCH_SAMPLING_RATE,
+
+    /**
+     * Configures sampling rate for like screen view, lifecycle activity and lifecycle
+     * fragments. These events are used by the "journey" feature on the dashboard which shows
+     * traffic of users across different parts of the app.
+     *
+     * Defaults to 0. Which means these events are only collected for sessions with crashes and
+     * for sessions selected using [samplingRateForErrorFreeSessions].
+     *
+     * Journey feature is currently experimental and may change in future versions.
+     */
+    override val journeyEventsSamplingRate: Float = DefaultConfig.JOURNEY_EVENTS_SAMPLING_RATE,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {

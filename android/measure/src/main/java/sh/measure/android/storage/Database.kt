@@ -48,6 +48,10 @@ internal interface Database : Closeable {
         ascending: Boolean = true,
         sessionId: String? = null,
         eventTypeExportAllowList: List<EventType> = emptyList(),
+        coldLaunchSamplingRate: Float = 0f,
+        warmLaunchSamplingRate: Float = 0f,
+        hotLaunchSamplingRate: Float = 0f,
+        journeyEventsSamplingRate: Float = 0f,
     ): List<String>
 
     fun getUnBatchedSpans(
@@ -336,9 +340,22 @@ internal class DatabaseImpl(
         ascending: Boolean,
         sessionId: String?,
         eventTypeExportAllowList: List<EventType>,
+        coldLaunchSamplingRate: Float,
+        warmLaunchSamplingRate: Float,
+        hotLaunchSamplingRate: Float,
+        journeyEventsSamplingRate: Float,
     ): List<String> {
         val query =
-            Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
+            Sql.getEventsBatchQuery(
+                eventCount,
+                ascending,
+                sessionId,
+                eventTypeExportAllowList,
+                coldLaunchSamplingRate,
+                warmLaunchSamplingRate,
+                hotLaunchSamplingRate,
+                journeyEventsSamplingRate,
+            )
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIds = mutableListOf<String>()
 
