@@ -198,6 +198,10 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
+VALKEY_HOST=valkey
+VALKEY_PORT=6379
+VALKEY_PASSWORD=
+
 ##################
 # Object Storage #
 ##################
@@ -344,6 +348,10 @@ CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
+
+VALKEY_HOST=valkey
+VALKEY_PORT=6379
+VALKEY_PASSWORD=$VALKEY_PASSWORD
 
 ##################
 # Object Storage #
@@ -521,6 +529,9 @@ END
 
       echo -e "Set ClickHouse reader user's password"
       CLICKHOUSE_READER_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+      echo -e "Set Valkey password"
+      VALKEY_PASSWORD=$(prompt_password 24 "Enter password for Valkey: ")
     else
       # Generate secure database passwords
       echo -e "Generated secure password for Postgres user"
@@ -534,6 +545,9 @@ END
 
       echo -e "Generated secure password for ClickHouse reader user"
       CLICKHOUSE_READER_PASSWORD=$(generate_password 24)
+
+      echo -e "Generated secure password for Valkey"
+      VALKEY_PASSWORD=$(generate_password 24)
     fi
 
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
@@ -610,6 +624,9 @@ END
 # ------------------------------------------------------------------------------
 # Sync environment variables
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Sync environment variables
+# ------------------------------------------------------------------------------
 ensure() {
   local clickhouse_admin_user
   local clickhouse_admin_password
@@ -624,6 +641,9 @@ ensure() {
   local clickhouse_reader_dsn
   local symbolicator_origin
   local symboloader_origin
+  local valkey_host
+  local valkey_port
+  local valkey_password
 
   clickhouse_admin_user="app_admin"
   clickhouse_operator_user="app_operator"
@@ -635,6 +655,8 @@ ensure() {
   clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
+  valkey_host="valkey"
+  valkey_port="6379"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
     clickhouse_admin_password="dummY_pa55w0rd"
@@ -684,10 +706,24 @@ ensure() {
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
+
+    if ! check_env_variable "VALKEY_HOST"; then
+      add_env_variable "VALKEY_HOST" "$valkey_host" "CLICKHOUSE_READER_DSN"
+    fi
+
+    if ! check_env_variable "VALKEY_PORT"; then
+      add_env_variable "VALKEY_PORT" "$valkey_port" "VALKEY_HOST"
+    fi
+
+    if ! check_env_variable "VALKEY_PASSWORD"; then
+      add_env_variable "VALKEY_PASSWORD" "" "VALKEY_PORT"
+    fi
+
   elif [[ "$SETUP_ENV" == "production" ]]; then
     clickhouse_admin_password=$(generate_password 24)
     clickhouse_operator_password=$(generate_password 24)
     clickhouse_reader_password=$(generate_password 24)
+    valkey_password=$(generate_password 24)
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
       add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
@@ -731,6 +767,18 @@ ensure() {
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
+    fi
+
+    if ! check_env_variable "VALKEY_HOST"; then
+      add_env_variable "VALKEY_HOST" "$valkey_host" "CLICKHOUSE_READER_DSN"
+    fi
+
+    if ! check_env_variable "VALKEY_PORT"; then
+      add_env_variable "VALKEY_PORT" "$valkey_port" "VALKEY_HOST"
+    fi
+
+    if ! check_env_variable "VALKEY_PASSWORD"; then
+      add_env_variable "VALKEY_PASSWORD" "$valkey_password" "VALKEY_PORT"
     fi
   fi
 

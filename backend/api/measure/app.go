@@ -1109,18 +1109,11 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	return
 }
 
-func (a *App) add() (*APIKey, error) {
+func (a *App) add(tx pgx.Tx) (*APIKey, error) {
 	id := uuid.New()
 	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -1133,10 +1126,6 @@ func (a *App) add() (*APIKey, error) {
 	}
 
 	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -4607,16 +4596,39 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := app.add()
+	tx, err := server.Server.PgPool.Begin(context.Background())
+	if err != nil {
+		msg := `failed to start transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer tx.Rollback(context.Background()) // Rollback if not committed
 
+	apiKey, err := app.add(tx)
 	if err != nil {
 		msg := "failed to create app"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-
 	app.APIKey = apiKey
+
+	err = CreateDefaultTargetingRules(c, tx, teamId.String(), app.ID.String(), userId)
+	if err != nil {
+		msg := "failed to create default targeting rules for app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		msg := "failed to commit transaction"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusCreated, app)
 }
@@ -6461,4 +6473,1546 @@ func GetAlertsOverview(c *gin.Context) {
 			"previous": previous,
 		},
 	})
+}
+
+func GetEventTargetingRules(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	response, err := GetEventTargetingRulesWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's event targeting rules"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func GetTraceTargetingRules(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "trace targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	response, err := GetTraceTargetingRulesWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's trace targeting rules"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func GetSessionTargetingRules(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "session targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	rules, err := GetSessionTargetingRulesWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's session targeting rules"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": rules,
+	})
+}
+
+func GetEventTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	targetingRule, err := GetEventTargetingRuleById(ctx, app.ID, ruleId)
+	if err != nil {
+		msg := "failed to get event targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, targetingRule)
+}
+
+func GetTraceTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	targetingRule, err := GetTraceTargetingRuleById(ctx, app.ID, ruleId)
+	if err != nil {
+		msg := "failed to get session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, targetingRule)
+}
+
+func GetSessionTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	targetingRule, err := GetSessionTargetingRuleById(ctx, app.ID, ruleId)
+	if err != nil {
+		msg := "failed to get session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, targetingRule)
+}
+
+func GetEventTargetingRuleConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// Safely get OS name for the app
+	// set to opsys.Unknown if unavailable
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("os_name").
+		Where("id = ?", app.ID)
+
+	defer stmt.Close()
+
+	var osName *string
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&osName)
+	if err != nil {
+		msg := `failed to fetch app details`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if osName != nil {
+		app.OSName = *osName
+	} else {
+		app.OSName = opsys.Unknown
+	}
+
+	config, err := GetEventTargetingConfig(ctx, &af)
+	if err != nil {
+		msg := "failed to get event targeting rule config"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+
+func GetTraceTargetingRuleConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "trace targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// Safely get OS name for the app
+	// set to opsys.Unknown if unavailable
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("os_name").
+		Where("id = ?", app.ID)
+
+	defer stmt.Close()
+
+	var osName *string
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&osName)
+	if err != nil {
+		msg := `failed to fetch app details`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if osName != nil {
+		app.OSName = *osName
+	} else {
+		app.OSName = opsys.Unknown
+	}
+
+	config, err := GetTraceTargetingConfig(ctx, &af)
+	if err != nil {
+		msg := "failed to get trace targeting rule config"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+func GetSessionTargetingRuleConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "event targeting rules request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// Safely get OS name for the app
+	// set to opsys.Unknown if unavailable
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("os_name").
+		Where("id = ?", app.ID)
+
+	defer stmt.Close()
+
+	var osName *string
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&osName)
+	if err != nil {
+		msg := `failed to fetch app details`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if osName != nil {
+		app.OSName = *osName
+	} else {
+		app.OSName = opsys.Unknown
+	}
+
+	config, err := GetSessionTargetingConfig(ctx, &af)
+	if err != nil {
+		msg := "failed to get session targeting rule config"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+
+func CreateEventTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	var payload EventTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse create event targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	// TODO: check for ScopeAppWrite when implemented
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ruleId, err := CreateEventTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
+	if err != nil {
+		msg := "failed to create event targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": ruleId})
+}
+
+func CreateTraceTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	var payload TraceTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse create trace targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	// TODO: check for ScopeAppWrite when implemented
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ruleId, err := CreateTraceTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
+	if err != nil {
+		msg := "failed to create trace targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": ruleId})
+}
+
+func CreateSessionTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	var payload SessionTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse create session targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	// TODO: check for ScopeAppWrite when implemented
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ruleId, err := CreateSessionTargetingRuleForApp(ctx, id, *team.ID, payload, userId)
+	if err != nil {
+		msg := "failed to create session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": ruleId})
+}
+
+func UpdateEventTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+	var payload EventTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse update event targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = UpdateEventTargetingRuleForApp(ctx, id, ruleId, payload, userId)
+	if err != nil {
+		msg := "failed to update event targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func UpdateTraceTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+	var payload TraceTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse update trace targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = UpdateTraceTargetingRuleForApp(ctx, id, ruleId, payload, userId)
+	if err != nil {
+		msg := "failed to update trace targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func UpdateSessionTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+	var payload SessionTargetingRulePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse update session targeting rule json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = UpdateSessionTargetingRuleForApp(ctx, id, ruleId, payload, userId)
+	if err != nil {
+		msg := "failed to update session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func DeleteEventTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = DeleteEventTargetingRuleForApp(ctx, id, ruleId)
+	if err != nil {
+		msg := "failed to delete event targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func DeleteTraceTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = DeleteTraceTargetingRuleForApp(ctx, id, ruleId)
+	if err != nil {
+		msg := "failed to delete trace targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func DeleteSessionTargetingRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+	err = DeleteSessionTargetingRuleForApp(ctx, id, ruleId)
+	if err != nil {
+		msg := "failed to delete session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func DeleteSessionTargetingRules(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ruleId := c.Param("ruleId")
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = DeleteSessionTargetingRuleForApp(ctx, id, ruleId)
+	if err != nil {
+		msg := "failed to delete session targeting rule"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

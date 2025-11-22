@@ -368,6 +368,135 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum EventTargetingApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum TraceTargetingApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum SessionTargetingApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum EventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum TraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum EventTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum TraceTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteEventTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteTraceTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DeleteSessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1037,6 +1166,134 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
+export type CollectionMode = 'sampled' | 'timeline' | 'disabled';
+
+export type EventTargetingRulesResponse = {
+  rules: EventTargetingRule[] | null,
+  default_rule: EventTargetingRule
+};
+
+
+export type EventTargetingRuleRequest = {
+  name: string,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
+  take_screenshot: boolean,
+  take_layout_snapshot: boolean,
+}
+
+export type TraceTargetingRuleRequest = {
+  name: string,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
+}
+
+export type SessionTargetingRuleRequest = {
+  name: string,
+  condition: string,
+  sampling_rate: number,
+}
+
+export type EventTargetingRule = {
+  id: string,
+  name: string,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
+  take_screenshot: boolean,
+  take_layout_snapshot: boolean,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
+}
+
+export type TraceTargetingRulesResponse = {
+  rules: TraceTargetingRule[] | null,
+  default_rule: TraceTargetingRule
+};
+
+export type TraceTargetingRule = {
+  id: string,
+  name: string,
+  condition: string,
+  collection_mode: CollectionMode,
+  sampling_rate: number,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
+}
+
+export type SessionTargetingRulesResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: SessionTargetingRule[]
+};
+
+export type SessionTargetingRule = {
+  id: string,
+  name: string,
+  condition: string,
+  sampling_rate: number,
+  updated_at?: string,
+  updated_by?: string,
+  created_at: string,
+  created_by: string,
+}
+
+export type EventTargetingConfig = {
+  type: string;
+  attrs: AttributeTargetingConfig[] | null;
+  has_ud_attrs: boolean;
+}
+
+export type TraceTargetingConfig = {
+  name: string;
+  attrs: AttributeTargetingConfig[] | null;
+  has_ud_attrs: boolean;
+}
+
+export type AttributeTargetingConfig = {
+  key: string;
+  type: string;
+  hint?: string;
+  suggestions?: string[] | number[];
+}
+
+export type TargetingOperatorConfig = {
+  bool: string[];
+  float64: string[];
+  int64: string[];
+  string: string[];
+}
+
+export type EventTargetingConfigResponse = {
+  events: EventTargetingConfig[];
+  event_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
+}
+
+export type TraceTargetingConfigResponse = {
+  traces: TraceTargetingConfig[];
+  trace_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
+}
+
+export type SessionTargetingConfigResponse = {
+  events: EventTargetingConfig[];
+  traces: TraceTargetingConfig[];
+  event_ud_attrs: AttributeTargetingConfig[];
+  trace_ud_attrs: AttributeTargetingConfig[];
+  session_attrs: AttributeTargetingConfig[];
+  operator_types: TargetingOperatorConfig;
+}
 export class AppVersion {
   name: string
   code: string
@@ -2421,5 +2678,386 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchEventTargetingRulesFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/events`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: EventTargetingApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null) {
+      return { status: EventTargetingApiStatus.NoData, data: null }
+    } else {
+      return { status: EventTargetingApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: EventTargetingApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTraceTargetingRulesFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/traces`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: TraceTargetingApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null) {
+      return { status: TraceTargetingApiStatus.NoData, data: null }
+    } else {
+      return { status: TraceTargetingApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: TraceTargetingApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingRulesFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/sessions`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: SessionTargetingApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null) {
+      return { status: SessionTargetingApiStatus.NoData, data: null }
+    } else {
+      return { status: SessionTargetingApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: SessionTargetingApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchEventTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: EventTargetingRuleApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+    return { status: EventTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: EventTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTraceTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: TraceTargetingRuleApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: TraceTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: TraceTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingRuleFromServer = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SessionTargetingRuleApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchEventTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/events/config`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: EventTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: EventTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: EventTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTraceTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/traces/config`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: TraceTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: TraceTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: TraceTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingConfigFromServer = async (
+  appId: String,
+) => {
+  const url = `/api/apps/${appId}/targetingRules/sessions/config`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SessionTargetingConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SessionTargetingConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const createEventTargetingRule = async (
+  appId: String,
+  ruleData: EventTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateEventTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateEventTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const createTraceTargetingRule = async (
+  appId: String,
+  ruleData: TraceTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateTraceTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateTraceTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const createSessionTargetingRule = async (
+  appId: String,
+  ruleData: SessionTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: CreateSessionTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: CreateSessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateSessionTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateEventTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: EventTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PUT",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateEventTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateEventTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateTraceTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: TraceTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PUT",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateTraceTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateTraceTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateSessionTargetingRule = async (
+  appId: String,
+  ruleId: string,
+  ruleData: SessionTargetingRuleRequest,
+) => {
+  const opts = {
+    method: "PUT",
+    body: JSON.stringify(ruleData),
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+    if (!res.ok) {
+      return { status: UpdateSessionTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateSessionTargetingRuleApiStatus.Success, data: data }
+  }
+  catch {
+    return { status: UpdateSessionTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteEventTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/events/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteEventTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteEventTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteEventTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteTraceTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/traces/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteTraceTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteTraceTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteTraceTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const deleteSessionTargetingRule = async (
+  appId: String,
+  ruleId: string,
+) => {
+  const opts = {
+    method: "DELETE",
+  }
+
+  const url = `/api/apps/${appId}/targetingRules/sessions/${ruleId}`
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    if (!res.ok) {
+      return { status: DeleteSessionTargetingRuleApiStatus.Error }
+    }
+    return { status: DeleteSessionTargetingRuleApiStatus.Success }
+  }
+  catch {
+    return { status: DeleteSessionTargetingRuleApiStatus.Cancelled }
   }
 }

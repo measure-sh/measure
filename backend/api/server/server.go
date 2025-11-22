@@ -2,7 +2,6 @@ package server
 
 import (
 	"backend/api/allowlist"
-	"backend/api/inet"
 	"context"
 	"fmt"
 	"log"
@@ -17,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,6 +35,7 @@ type server struct {
 	ChPool  driver.Conn
 	RchPool driver.Conn
 	Mail    *mail.Client
+	VK      valkey.Client
 	Config  *ServerConfig
 }
 
@@ -49,9 +50,16 @@ type ClickhouseConfig struct {
 	ReaderDSN string
 }
 
+type ValkeyConfig struct {
+	Host     string
+	Port     int
+	Password string
+}
+
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
+	VK                         ValkeyConfig
 	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
@@ -210,6 +218,23 @@ func NewConfig() *ServerConfig {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
+	valkeyHost := os.Getenv("VALKEY_HOST")
+	if valkeyHost == "" {
+		log.Println("VALKEY_HOST env var is not set, caching will not work")
+	}
+
+	valkeyPortStr := os.Getenv("VALKEY_PORT")
+	if valkeyPortStr == "" {
+		log.Println("VALKEY_PORT env var is not set, caching will not work")
+	}
+
+	valkeyPort, err := strconv.Atoi(valkeyPortStr)
+	if err != nil {
+		log.Fatalf("Invalid VALKEY_PORT value: %v", err)
+	}
+
+	valkeyPassword := os.Getenv("VALKEY_PASSWORD")
+
 	smtpHost := os.Getenv("SMTP_HOST")
 	if smtpHost == "" {
 		log.Println("SMTP_HOST env var is not set, emails will not work")
@@ -271,6 +296,11 @@ func NewConfig() *ServerConfig {
 			DSN:       clickhouseDSN,
 			ReaderDSN: clickhouseReaderDSN,
 		},
+		VK: ValkeyConfig{
+			Host:     valkeyHost,
+			Port:     valkeyPort,
+			Password: valkeyPassword,
+		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
 		SymbolsBucketRegion:        symbolsBucketRegion,
@@ -325,12 +355,12 @@ func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration)
 	}
 }
 
-func Init(config *ServerConfig) {
+func Init(cfg *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
 
 	// read/write pool
-	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
+	oConfig, err := pgxpool.ParseConfig(cfg.PG.DSN)
 	if err != nil {
 		log.Printf("Unable to parse postgres connection string: %v\n", err)
 	}
@@ -348,12 +378,12 @@ func Init(config *ServerConfig) {
 		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
 
-	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
+	chOpts, err := clickhouse.ParseDSN(cfg.CH.DSN)
 	if err != nil {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDSN)
+	rChOpts, err := clickhouse.ParseDSN(cfg.CH.ReaderDSN)
 	if err != nil {
 		log.Printf("unable to parse reader CH connection string %v\n", err)
 	}
@@ -379,20 +409,33 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to create reader CH connection pool: %v\n", err)
 	}
 
-	if err := inet.Init(); err != nil {
-		log.Printf("Unable to initialize geo ip lookup system: %v\n", err)
+	// init valkey client
+	addr := fmt.Sprintf("%s:%d", cfg.VK.Host, cfg.VK.Port)
+	options := valkey.ClientOption{
+		InitAddress: []string{addr},
+	}
+
+	if cfg.VK.Password != "" {
+		options.Password = cfg.VK.Password
+	}
+	options.ConnWriteTimeout = 30 * time.Second
+	options.ClientName = "measure-api"
+
+	vkClient, err := valkey.NewClient(options)
+	if err != nil {
+		log.Printf("failed to create valkey client: %w", err)
 	}
 
 	// init email client
 	var mailClient *mail.Client
-	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
-		smtpConfigPort, err := strconv.Atoi(config.SmtpPort)
+	if cfg.SmtpHost != "" || cfg.SmtpPort != "" || cfg.SmtpUser != "" || cfg.SmtpPassword != "" {
+		smtpConfigPort, err := strconv.Atoi(cfg.SmtpPort)
 		if err != nil {
 			log.Printf("Invalid smtp port: %v\n", err)
 		}
 
-		mailClient, err = mail.NewClient(config.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
-			mail.WithUsername(config.SmtpUser), mail.WithPassword(config.SmtpPassword))
+		mailClient, err = mail.NewClient(cfg.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithUsername(cfg.SmtpUser), mail.WithPassword(cfg.SmtpPassword))
 		if err != nil {
 			log.Printf("failed to create email client: %v\n", err)
 		}
@@ -407,7 +450,8 @@ func Init(config *ServerConfig) {
 		PgPool:  pgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
-		Config:  config,
+		Config:  cfg,
+		VK:      vkClient,
 		Mail:    mailClient,
 	}
 }
