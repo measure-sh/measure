@@ -50,7 +50,7 @@ const ExpiryDuration = time.Hour * 24 * 7
 // ingestCtxTimeout is the default timeout for all
 // ingestion related operations like symbolication
 // & ingestion database operations.
-const ingestCtxTimeout = time.Second * 30
+const ingestCtxTimeout = time.Second * 60
 
 // blob represents each blob present in the
 // event request batch during ingestion.
@@ -2522,21 +2522,6 @@ func PutEvents(c *gin.Context) {
 		}
 	}
 
-	tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
-		IsoLevel: pgx.ReadCommitted,
-	})
-
-	if err != nil {
-		msg := `failed to ingest event request, failed to acquire transaction`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	defer tx.Rollback(ingestCtx)
-
 	if err := eventReq.ingestEvents(ingestCtx); err != nil {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
@@ -2592,6 +2577,21 @@ func PutEvents(c *gin.Context) {
 	bucketAnrsSpan.End()
 
 	if !app.Onboarded && len(eventReq.events) > 0 {
+		tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
+			IsoLevel: pgx.ReadCommitted,
+		})
+
+		if err != nil {
+			msg := `failed to acquire transaction while onboarding app`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		defer tx.Rollback(ingestCtx)
+
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
 		osName := strings.ToLower(firstEvent.Attribute.OSName)
@@ -2599,6 +2599,15 @@ func PutEvents(c *gin.Context) {
 
 		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
 			msg := `failed to onboard app`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		if err := tx.Commit(ingestCtx); err != nil {
+			msg := `failed to commit app onboard transaction`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
@@ -2667,15 +2676,6 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   msg,
 			"details": err,
-		})
-		return
-	}
-
-	if err := tx.Commit(ingestCtx); err != nil {
-		msg := `failed to commit ingest transaction`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
 		})
 		return
 	}
