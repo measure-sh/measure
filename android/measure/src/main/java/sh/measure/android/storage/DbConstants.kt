@@ -278,7 +278,7 @@ internal object Sql {
               AND e.${EventTable.COL_SESSION_ID} = '$sessionId'
             ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
             LIMIT $eventCount
-        """.trimIndent()
+            """.trimIndent()
         } else {
             return """
             SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE}
@@ -311,7 +311,7 @@ internal object Sql {
                 )
             ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
             LIMIT $eventCount
-        """.trimIndent()
+            """.trimIndent()
         }
     }
 
