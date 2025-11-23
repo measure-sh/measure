@@ -31,11 +31,11 @@
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="YOUR_API_KEY" />
+            android:value="msrsh_key" />
 
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="https://www.measure.sh" />
+            android:value="http://localhost:8080" />
     </application>
 
 </manifest>
