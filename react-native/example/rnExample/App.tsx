@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SectionList,
   SafeAreaView,
@@ -7,6 +7,7 @@ import {
   useColorScheme,
   Pressable,
   StyleSheet,
+  Image,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -29,6 +30,10 @@ const App = (): React.JSX.Element => {
   const backgroundColor = isDarkMode ? Colors.darker : Colors.lighter;
   const contentBackgroundColor = isDarkMode ? Colors.black : Colors.white;
   const textColor = isDarkMode ? Colors.white : Colors.black;
+
+  // Screenshot state
+  const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
+  const [showScreenshot, setShowScreenshot] = useState(false);
 
   const initializeMeasure = async () => {
     const clientInfo = new ClientInfo(
@@ -121,6 +126,25 @@ const App = (): React.JSX.Element => {
     Measure.launchBugReport(true, { source: 'manual' }, { screen: 'Home' });
   };
 
+  const captureScreenshot = async () => {
+    try {
+      const attachment = await Measure.captureScreenshot();
+
+      if (attachment?.path) {
+        const path = attachment.path.startsWith('file://')
+          ? attachment.path
+          : `file://${attachment.path}`;
+
+        setScreenshotPath(path);
+        setShowScreenshot(true);
+      }
+
+      console.log('Screenshot captured:', attachment);
+    } catch (e) {
+      console.error('Screenshot failed:', e);
+    }
+  };
+
   const simulateJSException = () => {
     throw new Error('Simulated JavaScript exception');
   };
@@ -209,6 +233,16 @@ const App = (): React.JSX.Element => {
           title: 'Test XHR API Call',
           onPress: testXhrApi,
         },
+        {
+          id: 'screenshot',
+          title: 'Capture Screenshot',
+          onPress: captureScreenshot,
+        },
+        {
+          id: 'crash',
+          title: 'Simulate Crash',
+          onPress: () => console.log('Simulate crash'),
+        },
       ],
     },
     {
@@ -244,7 +278,9 @@ const App = (): React.JSX.Element => {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
       />
+
       <Text style={styles.title}>Measure SDK Actions</Text>
+
       <SectionList
         sections={sections}
         keyExtractor={item => item.id}
@@ -263,6 +299,20 @@ const App = (): React.JSX.Element => {
           </Text>
         )}
       />
+
+      {/* Screenshot Popup */}
+      {showScreenshot && screenshotPath && (
+        <Pressable
+          style={styles.screenshotOverlay}
+          onPress={() => setShowScreenshot(false)}
+        >
+          <Image
+            source={{ uri: screenshotPath }}
+            style={styles.screenshotImage}
+            resizeMode="contain"
+          />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 };
@@ -292,6 +342,22 @@ const styles = StyleSheet.create({
     color: '#1e1e1e',
     fontSize: 16,
     textAlign: 'left',
+  },
+  screenshotOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  screenshotImage: {
+    width: '100%',
+    height: '80%',
+    borderRadius: 12,
   },
 });
 

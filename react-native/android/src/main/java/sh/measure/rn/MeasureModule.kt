@@ -2,6 +2,8 @@
 
 package sh.measure.rn
 
+import android.util.Base64
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -14,6 +16,7 @@ import sh.measure.android.MsrAttachment
 import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
+import java.io.File
 
 class MeasureModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -246,46 +249,106 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
-    @ReactMethod
+   @ReactMethod
     fun captureScreenshot(promise: Promise) {
-        try {
-            val activity = currentActivity
-            if (activity == null) {
-                promise.reject("NO_ACTIVITY", "No current activity available")
-                return
-            }
-
-            UiThreadUtil.runOnUiThread {
-                try {
-                    val rootView = activity.window.decorView.rootView
-
-                    val bitmap = android.graphics.Bitmap.createBitmap(
-                        rootView.width,
-                        rootView.height,
-                        android.graphics.Bitmap.Config.ARGB_8888
-                    )
-
-                    val canvas = android.graphics.Canvas(bitmap)
-                    rootView.draw(canvas)
-
-                    val output = java.io.ByteArrayOutputStream()
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
-
-                    val base64 = android.util.Base64.encodeToString(
-                        output.toByteArray(),
-                        android.util.Base64.DEFAULT
-                    )
-
-                    val map = com.facebook.react.bridge.Arguments.createMap()
-                    map.putString("base64", base64)
-
-                    promise.resolve(map)
-                } catch (e: Exception) {
-                    promise.reject("SCREENSHOT_ERROR", e)
-                }
-            }
-        } catch (e: Exception) {
-            promise.reject("SCREENSHOT_CAPTURE_FAILED", e)
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("NO_ACTIVITY", "No current activity available")
+            return
         }
+
+        UiThreadUtil.runOnUiThread {
+            try {
+                Measure.captureScreenshot(
+                    activity,
+                    onComplete = { attachment ->
+
+                        try {
+                            val map = Arguments.createMap().apply {
+                                putString("id", attachment.name) // or generate your own if needed
+                                putString("name", attachment.name)
+                                putString("type", attachment.type)
+
+                                // If Android returns path
+                                attachment.path?.let { filePath ->
+                                    putString("path", filePath)
+
+                                    // Add size
+                                    val file = File(filePath)
+                                    if (file.exists()) {
+                                        putInt("size", file.length().toInt())
+                                    }
+                                }
+
+                                // If Android returns bytes instead
+                                attachment.bytes?.let { bytes ->
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                    putString("bytes", base64)
+                                    putInt("size", bytes.size)
+                                }
+                            }
+
+                            promise.resolve(map)
+                        } catch (e: Exception) {
+                            promise.reject("MAP_ERROR", "Failed building result map", e)
+                        }
+                    },
+                    onError = {
+                        promise.reject("CAPTURE_FAIL", "Failed to capture screenshot")
+                    }
+                )
+            } catch (e: Exception) {
+                promise.reject("SCREENSHOT_CAPTURE_FAILED", e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun trackBugReport(
+        description: String,
+        attachments: ReadableArray?,
+        attributes: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            val attrs =
+                attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+
+            val msrAttachments = getMsrAttachments(attachments)
+
+            Measure.trackBugReport(
+                description,
+                msrAttachments,
+                attrs
+            )
+
+            promise.resolve("Bug report tracked successfully")
+        } catch (e: Exception) {
+            promise.reject("TRACK_BUG_REPORT_FAILED", e)
+        }
+    }
+
+    internal fun getMsrAttachments(attachments: ReadableArray?): List<MsrAttachment> {
+        if (attachments == null || attachments.size() == 0) return emptyList()
+
+        val list = mutableListOf<MsrAttachment>()
+
+        for (i in 0 until attachments.size()) {
+            val map = attachments.getMap(i) ?: continue
+
+            val name = map.getString("name") ?: continue
+            val type = map.getString("type") ?: continue
+            val path = map.getString("path")
+
+            list.add(
+                MsrAttachment(
+                    name = name,
+                    path = path,
+                    type = type,
+                )
+            )
+        }
+
+        return list
     }
 }

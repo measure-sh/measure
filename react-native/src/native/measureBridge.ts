@@ -216,7 +216,11 @@ export function setShakeListener(enable: boolean, handler?: () => void): void {
 }
 
 export function captureScreenshot(): Promise<{
-  base64: string;
+  name: string;
+  type: 'screenshot';
+  path: string;
+  size: number;
+  id: string;
 }> {
   if (!MeasureModule.captureScreenshot) {
     return Promise.reject(
@@ -225,4 +229,18 @@ export function captureScreenshot(): Promise<{
   }
 
   return MeasureModule.captureScreenshot();
+}
+
+export function trackBugReport(
+  description: string,
+  attachments: any[] = [],
+  attributes: Record<string, ValidAttributeValue> = {}
+): Promise<void> {
+  if (!MeasureModule.trackBugReport) {
+    return Promise.reject(
+      new Error('trackBugReport native method not available.')
+    );
+  }
+
+  return MeasureModule.trackBugReport(description, attachments, attributes);
 }

@@ -91,29 +91,64 @@ const trackHttpEventManually = () => {
 
 const trackBugReport = () => {
   Measure.launchBugReport(
+    false,
+    { theme: 'light' },
+    { userId: '123', screen: 'Home' }
+  );
+}
+
+const trackBugReportWithUI = () => {
+  Measure.launchBugReport(
     true,
     { theme: 'dark' },
     { userId: '123', screen: 'Home' }
   );
 }
 
+const trackManualBugReport = async () => {
+  try {
+    const attachment = await Measure.captureScreenshot();
+
+    await Measure.trackBugReport(
+      'Manual bug report triggered from example app',
+      attachment ? [attachment] : [],
+      { source: 'example_app', screen: 'Home' }
+    );
+
+    console.log('Manual bug report with screenshot sent!');
+  } catch (err) {
+    console.error('Failed to send manual bug report:', err);
+  }
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
-  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const captureScreenshot = async () => {
     try {
       const result = await Measure.captureScreenshot();
 
-      const base64 = 'data:image/png;base64,' + result.base64;
-      setScreenshot(base64);
-      setModalVisible(true);
+      if (!result) {
+        console.warn('No screenshot returned');
+        return;
+      }
 
-      console.log('Screenshot captured:', result);
-    } catch (e) {
-      console.error('Failed to capture screenshot:', e);
+      if (result.path) {
+        setImageUri('file://' + result.path);
+      } else if (result.bytes) {
+        // Convert base64 bytes → image source
+        setImageUri(`data:image/png;base64,${result.bytes}`);
+      } else {
+        console.warn('No path or bytes found in screenshot');
+        return;
+      }
+
+      setModalVisible(true);
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error);
     }
   };
 
@@ -136,6 +171,8 @@ export default function HomeScreen() {
     {
       title: 'User Actions',
       data: [
+        { id: 'event', title: 'Track Custom Event', onPress: trackCustomEvent },
+        { id: 'bugReport', title: 'Launch Bug Report UI', onPress: trackBugReportWithUI },
         {
           id: 'event',
           title: 'Track Custom Event',
@@ -162,6 +199,11 @@ export default function HomeScreen() {
           onPress: trackBugReport,
         },
         {
+          id: 'manual-bug-report',
+          title: 'Track Bug Report (Manual)',
+          onPress: trackManualBugReport,
+        },
+        {
           id: 'screenshot',
           title: 'Capture Screenshot',
           onPress: captureScreenshot,
@@ -171,41 +213,21 @@ export default function HomeScreen() {
     {
       title: 'Crash & Exception Simulation',
       data: [
-        {
-          id: 'js-exception',
-          title: 'Throw JS Exception',
-          onPress: simulateJSException,
-        },
+        { id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException },
         {
           id: 'unhandled-rejection',
           title: 'Unhandled Promise Rejection',
           onPress: simulateUnhandledPromiseRejection,
         },
-        {
-          id: 'native-crash',
-          title: 'Trigger Native Crash',
-          onPress: simulateNativeCrash,
-        },
-        {
-          id: 'infinite-loop',
-          title: 'UI Freeze (Infinite Loop)',
-          onPress: simulateInfiniteLoop,
-        },
+        { id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash },
+        { id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop },
       ],
     },
     {
       title: 'Navigation',
       data: [
-        {
-          id: 'navigate',
-          title: 'Component Screen',
-          onPress: navigateToComponentScreen,
-        },
-        {
-          id: 'navigate-traces',
-          title: 'Traces Screen',
-          onPress: navigateToTracesScreen,
-        },
+        { id: 'navigate', title: 'Component Screen', onPress: navigateToComponentScreen },
+        { id: 'navigate-traces', title: 'Traces Screen', onPress: navigateToTracesScreen },
       ],
     },
   ];
@@ -215,15 +237,15 @@ export default function HomeScreen() {
       {/* Screenshot Modal */}
       <Modal
         visible={modalVisible}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
-            {screenshot && (
+            {imageUri && (
               <Image
-                source={{ uri: screenshot }}
+                source={{ uri: imageUri }}
                 style={styles.screenshotImage}
                 resizeMode="contain"
               />
@@ -277,10 +299,8 @@ const styles = StyleSheet.create({
   itemText: {
     color: '#1e1e1e',
     fontSize: 16,
-    textAlign: 'left',
   },
 
-  // Modal styles
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

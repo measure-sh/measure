@@ -1,5 +1,6 @@
 import type { Client } from './config/clientInfo';
 import { MeasureConfig } from './config/measureConfig';
+import type { MsrAttachment } from './events/msrAttachment';
 import {
   BaseMeasureInitializer,
   type MeasureInitializer,
@@ -8,7 +9,6 @@ import { MeasureInternal } from './measureInternal';
 import { InvalidSpan } from './tracing/invalidSpan';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
-import type { ScreenshotResult } from './screenshot/screenshotCollector';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 let _initializationPromise: Promise<void> | null = null;
@@ -377,7 +377,7 @@ export const Measure = {
     _measureInternal.onShake(handler);
   },
 
-  captureScreenshot(): Promise<ScreenshotResult | null> {
+  captureScreenshot(): Promise<MsrAttachment | null> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
@@ -385,5 +385,43 @@ export const Measure = {
     }
 
     return _measureInternal.captureScreenshot();
+  },
+
+    /**
+   * Tracks a custom bug report.
+   *
+   * This method allows programmatic bug report tracking without showing
+   * the default Measure bug report UI.
+   *
+   * Attachments may include screenshots, layout snapshots, or any files
+   * captured via the Measure attachment APIs.
+   *
+   * @param description - A human-readable description of the bug (max 4000 chars).
+   * @param attachments - Optional list of MsrAttachment objects (max 5).
+   * @param attributes - Optional metadata describing the bug context.
+   *
+   * @example
+   * ```ts
+   * const screenshot = await Measure.captureScreenshot();
+   *
+   * Measure.trackBugReport(
+   *   "Something broke on the Home screen",
+   *   screenshot ? [screenshot] : [],
+   *   { userId: "123", screen: "Home" }
+   * );
+   * ```
+   */
+  trackBugReport(
+    description: string,
+    attachments: MsrAttachment[] = [],
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error("Measure is not initialized. Call init() first.")
+      );
+    }
+
+    return _measureInternal.trackBugReport(description, attachments, attributes);
   },
 };
