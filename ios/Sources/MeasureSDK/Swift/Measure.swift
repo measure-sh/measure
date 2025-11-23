@@ -321,7 +321,6 @@ extension Measure {
     ///                                                          httpUrlBlocklist:@[]
     ///                                                          httpUrlAllowlist:@[]
     ///                                                          autoStart:true
-    ///                                                          trackViewControllerLoadTime:true
     ///                                                          screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
     ///                                                          requestHeadersProvider:nil];
     ///   [Measure initializeWith:clientInfo config:config];

@@ -223,7 +223,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    httpUrlBlocklist: config.httpUrlBlocklist,
                                    httpUrlAllowlist: config.httpUrlAllowlist,
                                    autoStart: config.autoStart,
-                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime,
                                    screenshotMaskLevel: config.screenshotMaskLevel,
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)

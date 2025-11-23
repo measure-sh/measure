@@ -105,10 +105,6 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.maxDescriptionLengthInBugReport)
     }
 
-    var trackViewControllerLoadTime: Bool {
-        return getMergedConfig(\.trackViewControllerLoadTime)
-    }
-
     var maxSpanNameLength: Int {
         return getMergedConfig(\.maxSpanNameLength)
     }

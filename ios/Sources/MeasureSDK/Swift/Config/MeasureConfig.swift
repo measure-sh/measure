@@ -18,7 +18,6 @@ protocol MeasureConfig {
     var httpUrlBlocklist: [String] { get }
     var httpUrlAllowlist: [String] { get }
     var autoStart: Bool { get }
-    var trackViewControllerLoadTime: Bool { get }
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
     var maxDiskUsageInMb: Int { get }
@@ -76,23 +75,6 @@ protocol MeasureConfig {
     ///
     let httpUrlAllowlist: [String]
 
-    /// Enables or disables automatic collection of ViewController load time. Defaults to `true`.
-    ///
-    /// ViewController load time measures the time between when the ViewController's view is loaded
-    /// and the first frame is drawn on the screen. This is also known as **Time to First Frame (TTF)**
-    /// or **Time to Initial Display (TTID)**.
-    ///
-    /// A large TTID value means users are waiting too long before any content appears on screen during
-    /// app navigation.
-    ///
-    /// Each ViewController load time is captured as a `Span` with the name
-    /// `VC TTID <class name>`. For example, for a class
-    /// `MainViewController`, the span name would be:
-    /// `VC TTID MainViewController`.
-    ///
-    /// Set to `false` to disable this tracking.
-    let trackViewControllerLoadTime: Bool
-
     /// Allows changing the masking level of screenshots to prevent sensitive information from leaking.
     /// Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     let screenshotMaskLevel: ScreenshotMaskLevel
@@ -132,7 +114,6 @@ protocol MeasureConfig {
         httpHeadersBlocklist = try container.decodeIfPresent([String].self, forKey: .httpHeadersBlocklist) ?? DefaultConfig.httpHeadersBlocklist
         httpUrlBlocklist = try container.decodeIfPresent([String].self, forKey: .httpUrlBlocklist) ?? DefaultConfig.httpUrlBlocklist
         httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
-        trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
         maxDiskUsageInMb = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) ?? DefaultConfig.maxEstimatedDiskUsageInMb
@@ -150,7 +131,6 @@ protocol MeasureConfig {
         case httpHeadersBlocklist
         case httpUrlBlocklist
         case httpUrlAllowlist
-        case trackViewControllerLoadTime
         case screenshotMaskLevel
         // requestHeadersProvider is not encodable
         case maxDiskUsageInMb
@@ -167,7 +147,6 @@ protocol MeasureConfig {
         try container.encode(httpHeadersBlocklist, forKey: .httpHeadersBlocklist)
         try container.encode(httpUrlBlocklist, forKey: .httpUrlBlocklist)
         try container.encode(httpUrlAllowlist, forKey: .httpUrlAllowlist)
-        try container.encode(trackViewControllerLoadTime, forKey: .trackViewControllerLoadTime)
         try container.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
         try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
     }
@@ -198,7 +177,6 @@ protocol MeasureConfig {
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
-    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
@@ -211,7 +189,6 @@ protocol MeasureConfig {
                 httpUrlBlocklist: [String]? = nil,
                 httpUrlAllowlist: [String]? = nil,
                 autoStart: Bool? = nil,
-                trackViewControllerLoadTime: Bool? = nil,
                 screenshotMaskLevel: ScreenshotMaskLevel? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil) {
@@ -224,7 +201,6 @@ protocol MeasureConfig {
         self.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist
         self.autoStart = autoStart ?? DefaultConfig.autoStart
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxEstimatedDiskUsageInMb
@@ -264,7 +240,6 @@ protocol MeasureConfig {
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
-    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
@@ -277,7 +252,6 @@ protocol MeasureConfig {
                                   httpUrlBlocklist: [String],
                                   httpUrlAllowlist: [String],
                                   autoStart: Bool,
-                                  trackViewControllerLoadTime: Bool,
                                   screenshotMaskLevel: ScreenshotMaskLevelObjc,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,
                                   maxDiskUsageInMb: NSNumber?) {
@@ -290,7 +264,6 @@ protocol MeasureConfig {
                   httpUrlBlocklist: httpUrlBlocklist,
                   httpUrlAllowlist: httpUrlAllowlist,
                   autoStart: autoStart,
-                  trackViewControllerLoadTime: trackViewControllerLoadTime,
                   screenshotMaskLevel: screenshotMaskLevel.toSwiftValue(),
                   requestHeadersProvider: requestHeadersProvider,
                   maxDiskUsageInMb: maxDiskUsageInMb?.intValue)

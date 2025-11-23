@@ -18,7 +18,6 @@ struct DefaultConfig {
     static let httpUrlBlocklist: [String] = []
     static let httpUrlAllowlist: [String] = []
     static let autoStart = true
-    static let trackViewControllerLoadTime = true
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
     static let disallowedCustomHeaders = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]
     static let maxEstimatedDiskUsageInMb = 50 // 50MB

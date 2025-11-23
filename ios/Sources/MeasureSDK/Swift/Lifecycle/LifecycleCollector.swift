@@ -75,8 +75,6 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
         trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
 
-        guard configProvider.trackViewControllerLoadTime else { return }
-
         switch vcLifecycleType {
         case .loadView:
             startViewControllerTtidSpan(for: viewController, className: className, checkpoint: CheckpointName.vcLoadView)

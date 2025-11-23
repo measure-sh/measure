@@ -46,7 +46,6 @@ final class MockConfigProvider: ConfigProvider {
     var maxSpanNameLength: Int
     var maxCheckpointNameLength: Int
     var maxCheckpointsPerSpan: Int
-    var trackViewControllerLoadTime: Bool
     var screenshotMaskLevel: ScreenshotMaskLevel
     var maxAttachmentsInBugReport: Int
     var maxDescriptionLengthInBugReport: Int
@@ -105,7 +104,6 @@ final class MockConfigProvider: ConfigProvider {
          maxSpanNameLength: Int = 64,
          maxCheckpointNameLength: Int = 64,
          maxCheckpointsPerSpan: Int = 100,
-         trackViewControllerLoadTime: Bool = true,
          screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
          maxAttachmentsInBugReport: Int = 5,
          maxDescriptionLengthInBugReport: Int = 4000,
@@ -153,7 +151,6 @@ final class MockConfigProvider: ConfigProvider {
         self.maxSpanNameLength = maxSpanNameLength
         self.maxCheckpointNameLength = maxCheckpointNameLength
         self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
         self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
         self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport

@@ -49,7 +49,6 @@ struct Config: InternalConfig, MeasureConfig {
     let maxSpanNameLength: Int
     let maxCheckpointNameLength: Int
     let maxCheckpointsPerSpan: Int
-    let trackViewControllerLoadTime: Bool
     let maxAttachmentsInBugReport: Int
     let maxDescriptionLengthInBugReport: Int
     let shakeAccelerationThreshold: Float
@@ -73,7 +72,6 @@ struct Config: InternalConfig, MeasureConfig {
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
-                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
                   screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
                   requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                   maxDiskUsageInMb: Int = DefaultConfig.maxEstimatedDiskUsageInMb) {
@@ -86,7 +84,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
