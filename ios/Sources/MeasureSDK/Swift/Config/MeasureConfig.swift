@@ -32,7 +32,7 @@ protocol MeasureConfig {
     /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
     let samplingRateForErrorFreeSessions: Float
 
-    /// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.1.
+    /// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.0001.
     /// For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     let traceSamplingRate: Float
 
