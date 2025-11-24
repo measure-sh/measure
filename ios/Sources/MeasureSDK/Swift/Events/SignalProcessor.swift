@@ -176,6 +176,11 @@ final class BaseSignalProcessor: SignalProcessor {
                 needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
             }
 
+            // Apply user journey sampling
+            if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
+                needsReporting = signalSampler.shouldTrackJourneyEvents()
+            }
+
             let eventEntity = EventEntity(event, needsReporting: needsReporting)
 
             self.eventStore.insertEvent(event: eventEntity) {}

@@ -11,6 +11,7 @@ protocol SignalSampler {
     func shouldTrackLaunchEvents(type: EventType) -> Bool
     func shouldMarkSessionForExport() -> Bool
     func shouldTrackTrace() -> Bool
+    func shouldTrackJourneyEvents() -> Bool
 }
 
 final class BaseSignalSampler: SignalSampler {
@@ -41,6 +42,10 @@ final class BaseSignalSampler: SignalSampler {
 
     func shouldTrackTrace() -> Bool {
         return shouldTrack(configProvider.traceSamplingRate)
+    }
+
+    func shouldTrackJourneyEvents() -> Bool {
+        return shouldTrack(configProvider.userJourneysSamplingRate)
     }
 
     private func shouldTrack(_ samplingRate: Float) -> Bool {

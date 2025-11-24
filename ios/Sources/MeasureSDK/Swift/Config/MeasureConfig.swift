@@ -24,6 +24,7 @@ protocol MeasureConfig {
     var coldLaunchSamplingRate: Float { get }
     var warmLaunchSamplingRate: Float { get }
     var hotLaunchSamplingRate: Float { get }
+    var userJourneysSamplingRate: Float { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -46,6 +47,14 @@ protocol MeasureConfig {
 
     /// The sampling rate for hot launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
     let hotLaunchSamplingRate: Float
+
+    /// Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    /// When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`
+    ///
+    /// Defaults to 0.
+    ///
+    /// If a value of 0.1 is set, then 10% of the sessions will contain events required to build the journey which includes screen view, lifecycle view controller.
+    let userJourneysSamplingRate: Float
 
     /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
     let autoStart: Bool
@@ -132,6 +141,7 @@ protocol MeasureConfig {
         coldLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate) ?? DefaultConfig.coldLaunchSamplingRate
         warmLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate) ?? DefaultConfig.warmLaunchSamplingRate
         hotLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.hotLaunchSamplingRate
+        userJourneysSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.userJourneysSamplingRate
 
         super.init()
     }
@@ -152,6 +162,7 @@ protocol MeasureConfig {
         case coldLaunchSamplingRate
         case warmLaunchSamplingRate
         case hotLaunchSamplingRate
+        case userJourneysSamplingRate
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -170,6 +181,7 @@ protocol MeasureConfig {
         try container.encode(coldLaunchSamplingRate, forKey: .coldLaunchSamplingRate)
         try container.encode(warmLaunchSamplingRate, forKey: .warmLaunchSamplingRate)
         try container.encode(hotLaunchSamplingRate, forKey: .hotLaunchSamplingRate)
+        try container.encode(userJourneysSamplingRate, forKey: .userJourneysSamplingRate)
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -185,6 +197,8 @@ protocol MeasureConfig {
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
     ///   - httpHeadersBlocklist:List of HTTP headers to not collect with the `http` event for both request and response. Defaults to an empty list. The following headers are always excluded:
@@ -213,6 +227,7 @@ protocol MeasureConfig {
                 coldLaunchSamplingRate: Float? = nil,
                 warmLaunchSamplingRate: Float? = nil,
                 hotLaunchSamplingRate: Float? = nil,
+                userJourneysSamplingRate: Float? = nil,
                 trackHttpHeaders: Bool? = nil,
                 trackHttpBody: Bool? = nil,
                 httpHeadersBlocklist: [String]? = nil,
@@ -237,6 +252,7 @@ protocol MeasureConfig {
         self.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate
         self.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate
         self.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate
+        self.userJourneysSamplingRate = userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")
@@ -259,6 +275,8 @@ protocol MeasureConfig {
     ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
+    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
@@ -288,6 +306,7 @@ protocol MeasureConfig {
                                   coldLaunchSamplingRate: Float,
                                   warmLaunchSamplingRate: Float,
                                   hotLaunchSamplingRate: Float,
+                                  userJourneysSamplingRate: Float,
                                   trackHttpHeaders: Bool,
                                   trackHttpBody: Bool,
                                   httpHeadersBlocklist: [String],
@@ -303,6 +322,7 @@ protocol MeasureConfig {
                   coldLaunchSamplingRate: coldLaunchSamplingRate,
                   warmLaunchSamplingRate: warmLaunchSamplingRate,
                   hotLaunchSamplingRate: hotLaunchSamplingRate,
+                  userJourneysSamplingRate: userJourneysSamplingRate,
                   trackHttpHeaders: trackHttpHeaders,
                   trackHttpBody: trackHttpBody,
                   httpHeadersBlocklist: httpHeadersBlocklist,

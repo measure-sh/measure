@@ -49,6 +49,10 @@ final class BaseConfigProvider: ConfigProvider {
         return self.httpUrlBlocklist
     }()
 
+    var userJourneysSamplingRate: Float {
+        return getMergedConfig(\.userJourneysSamplingRate)
+    }
+
     var coldLaunchSamplingRate: Float {
         return getMergedConfig(\.coldLaunchSamplingRate)
     }
