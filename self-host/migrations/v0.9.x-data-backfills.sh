@@ -39,6 +39,10 @@ optimize_clickhouse_database() {
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   dbname=measure
 
+  if ! is_compose_service_up "clickhouse"; then
+    start_clickhouse_service
+  fi
+
   echo
   echo "Optimizing ClickHouse..."
 
@@ -255,6 +259,14 @@ backfill_team_ids() {
   ch_admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   ch_admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   ch_dbname=measure
+
+  if ! is_compose_service_up "postgres"; then
+    start_postgres_service
+  fi
+
+  if ! is_compose_service_up "clickhouse"; then
+    start_clickhouse_service
+  fi
 
   declare -A apps_teams
 
@@ -479,9 +491,5 @@ backfill_team_ids() {
 # kick things off
 check_base_dir
 set_docker_compose
-start_postgres_service
-start_clickhouse_service
 optimize_clickhouse_database
 backfill_team_ids
-shutdown_postgres_service
-shutdown_clickhouse_service

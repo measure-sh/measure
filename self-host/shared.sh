@@ -192,3 +192,11 @@ shutdown_clickhouse_service() {
     --file compose.prod.yml \
     down clickhouse
 }
+
+# ------------------------------------------------------------------------------
+# is_compose_service_up checks if a compose service is up
+# ------------------------------------------------------------------------------
+is_compose_service_up() {
+  local svc="$1"
+  $DOCKER_COMPOSE ps -q "$svc" 2>/dev/null | grep -q .
+}
