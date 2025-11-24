@@ -21,6 +21,9 @@ protocol MeasureConfig {
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
     var maxDiskUsageInMb: Int { get }
+    var coldLaunchSamplingRate: Float { get }
+    var warmLaunchSamplingRate: Float { get }
+    var hotLaunchSamplingRate: Float { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -28,12 +31,21 @@ protocol MeasureConfig {
     /// Whether to enable internal SDK logging. Defaults to `false`.
     let enableLogging: Bool
 
-    /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
+    /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 0.
     let samplingRateForErrorFreeSessions: Float
 
     /// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.0001.
     /// For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     let traceSamplingRate: Float
+
+    /// The sampling rate for cold launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let coldLaunchSamplingRate: Float
+
+    /// The sampling rate for warm launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let warmLaunchSamplingRate: Float
+
+    /// The sampling rate for hot launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let hotLaunchSamplingRate: Float
 
     /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
     let autoStart: Bool
@@ -117,6 +129,9 @@ protocol MeasureConfig {
         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
         maxDiskUsageInMb = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) ?? DefaultConfig.maxEstimatedDiskUsageInMb
+        coldLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate) ?? DefaultConfig.coldLaunchSamplingRate
+        warmLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate) ?? DefaultConfig.warmLaunchSamplingRate
+        hotLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.hotLaunchSamplingRate
 
         super.init()
     }
@@ -134,6 +149,9 @@ protocol MeasureConfig {
         case screenshotMaskLevel
         // requestHeadersProvider is not encodable
         case maxDiskUsageInMb
+        case coldLaunchSamplingRate
+        case warmLaunchSamplingRate
+        case hotLaunchSamplingRate
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -149,6 +167,9 @@ protocol MeasureConfig {
         try container.encode(httpUrlAllowlist, forKey: .httpUrlAllowlist)
         try container.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
         try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
+        try container.encode(coldLaunchSamplingRate, forKey: .coldLaunchSamplingRate)
+        try container.encode(warmLaunchSamplingRate, forKey: .warmLaunchSamplingRate)
+        try container.encode(hotLaunchSamplingRate, forKey: .hotLaunchSamplingRate)
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -157,6 +178,12 @@ protocol MeasureConfig {
     ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - coldLaunchSamplingRate: Sampling rate for cold launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
@@ -183,6 +210,9 @@ protocol MeasureConfig {
     public init(enableLogging: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 traceSamplingRate: Float? = nil,
+                coldLaunchSamplingRate: Float? = nil,
+                warmLaunchSamplingRate: Float? = nil,
+                hotLaunchSamplingRate: Float? = nil,
                 trackHttpHeaders: Bool? = nil,
                 trackHttpBody: Bool? = nil,
                 httpHeadersBlocklist: [String]? = nil,
@@ -204,6 +234,9 @@ protocol MeasureConfig {
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxEstimatedDiskUsageInMb
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")
@@ -220,6 +253,12 @@ protocol MeasureConfig {
     ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - coldLaunchSamplingRate: Sampling rate for cold launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
@@ -246,6 +285,9 @@ protocol MeasureConfig {
     @objc public convenience init(enableLogging: Bool,
                                   samplingRateForErrorFreeSessions: Float,
                                   traceSamplingRate: Float,
+                                  coldLaunchSamplingRate: Float,
+                                  warmLaunchSamplingRate: Float,
+                                  hotLaunchSamplingRate: Float,
                                   trackHttpHeaders: Bool,
                                   trackHttpBody: Bool,
                                   httpHeadersBlocklist: [String],
@@ -258,6 +300,9 @@ protocol MeasureConfig {
         self.init(enableLogging: enableLogging,
                   samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions,
                   traceSamplingRate: traceSamplingRate,
+                  coldLaunchSamplingRate: coldLaunchSamplingRate,
+                  warmLaunchSamplingRate: warmLaunchSamplingRate,
+                  hotLaunchSamplingRate: hotLaunchSamplingRate,
                   trackHttpHeaders: trackHttpHeaders,
                   trackHttpBody: trackHttpBody,
                   httpHeadersBlocklist: httpHeadersBlocklist,

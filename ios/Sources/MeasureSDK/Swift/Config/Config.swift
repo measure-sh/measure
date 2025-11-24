@@ -15,6 +15,9 @@ import Foundation
 /// - Note: If no values are provided during initialization, the struct will use default values specified in `DefaultConfig` where applicable.
 ///
 struct Config: InternalConfig, MeasureConfig {
+    let coldLaunchSamplingRate: Float
+    let warmLaunchSamplingRate: Float
+    let hotLaunchSamplingRate: Float
     let maxDiskUsageInMb: Int
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
@@ -66,6 +69,9 @@ struct Config: InternalConfig, MeasureConfig {
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
+                  coldLaunchSamplingRate: Float = DefaultConfig.coldLaunchSamplingRate,
+                  warmLaunchSamplingRate: Float = DefaultConfig.warmLaunchSamplingRate,
+                  hotLaunchSamplingRate: Float = DefaultConfig.hotLaunchSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
@@ -86,6 +92,9 @@ struct Config: InternalConfig, MeasureConfig {
         self.autoStart = autoStart
         self.screenshotMaskLevel = screenshotMaskLevel
         self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
@@ -108,10 +117,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxUserDefinedAttributeKeyLength = 256 // 256 chars
         self.maxUserDefinedAttributeValueLength = 256 // 256 chars
         self.maxUserDefinedAttributesPerEvent = 100
-        self.eventTypeExportAllowList = [.coldLaunch,
-                                         .hotLaunch,
-                                         .warmLaunch,
-                                         .lifecycleSwiftUI,
+        self.eventTypeExportAllowList = [.lifecycleSwiftUI,
                                          .lifecycleViewController,
                                          .screenView,
                                          .sessionStart]

@@ -49,6 +49,18 @@ final class BaseConfigProvider: ConfigProvider {
         return self.httpUrlBlocklist
     }()
 
+    var coldLaunchSamplingRate: Float {
+        return getMergedConfig(\.coldLaunchSamplingRate)
+    }
+
+    var warmLaunchSamplingRate: Float {
+        return getMergedConfig(\.warmLaunchSamplingRate)
+    }
+
+    var hotLaunchSamplingRate: Float {
+        return getMergedConfig(\.hotLaunchSamplingRate)
+    }
+
     var maxBodySizeBytes: Int {
         return getMergedConfig(\.maxBodySizeBytes)
     }

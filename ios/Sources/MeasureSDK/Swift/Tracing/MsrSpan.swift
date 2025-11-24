@@ -55,7 +55,7 @@ class MsrSpan: InternalSpan {
                           timeProvider: TimeProvider,
                           sessionManager: SessionManager,
                           idProvider: IdProvider,
-                          traceSampler: TraceSampler,
+                          signalSampler: SignalSampler,
                           parentSpan: Span?,
                           spanProcessor: SpanProcessor,
                           timestamp: Number? = nil) -> Span {
@@ -63,7 +63,7 @@ class MsrSpan: InternalSpan {
         let spanId = idProvider.spanId()
         let traceId = parentSpan?.traceId ?? idProvider.traceId()
         let sessionId = sessionManager.sessionId
-        let isSampled = parentSpan?.isSampled ?? traceSampler.shouldSample()
+        let isSampled = parentSpan?.isSampled ?? signalSampler.shouldTrackTrace()
 
         let span = MsrSpan(logger: logger,
                            timeProvider: timeProvider,

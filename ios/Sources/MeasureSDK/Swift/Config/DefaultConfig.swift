@@ -21,4 +21,7 @@ struct DefaultConfig {
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
     static let disallowedCustomHeaders = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]
     static let maxEstimatedDiskUsageInMb = 50 // 50MB
+    static let coldLaunchSamplingRate: Float = 0.01
+    static let warmLaunchSamplingRate: Float = 0.01
+    static let hotLaunchSamplingRate: Float = 0.01
 }

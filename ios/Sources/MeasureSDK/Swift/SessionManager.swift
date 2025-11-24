@@ -31,13 +31,13 @@ final class BaseSessionManager: SessionManager {
     private let timeProvider: TimeProvider
     private var appBackgroundTimeMs: Number
     private let configProvider: ConfigProvider
-    private let randomizer: Randomizer
     private let sessionStore: SessionStore
     private let eventStore: EventStore
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
     private let versionCode: String
     private let appVersionInfo: AppVersionInfo
+    private let signalSampler: SignalSampler
     var shouldReportSession: Bool
 
     /// The current session ID.
@@ -54,30 +54,30 @@ final class BaseSessionManager: SessionManager {
          logger: Logger,
          timeProvider: TimeProvider,
          configProvider: ConfigProvider,
-         randomizer: Randomizer = BaseRandomizer(),
          sessionStore: SessionStore,
          eventStore: EventStore,
          userDefaultStorage: UserDefaultStorage,
          versionCode: String,
-         appVersionInfo: AppVersionInfo) {
+         appVersionInfo: AppVersionInfo,
+         signalSampler: SignalSampler) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
         self.logger = logger
         self.timeProvider = timeProvider
         self.configProvider = configProvider
-        self.randomizer = randomizer
         self.sessionStore = sessionStore
         self.eventStore = eventStore
         self.userDefaultStorage = userDefaultStorage
         self.versionCode = versionCode
         self.shouldReportSession = false
         self.appVersionInfo = appVersionInfo
+        self.signalSampler = signalSampler
     }
 
     private func createNewSession() {
         currentSessionId = idProvider.uuid()
         logger.log(level: .info, message: "New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
-        shouldReportSession = shouldMarkSessionForExport()
+        shouldReportSession = signalSampler.shouldMarkSessionForExport()
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
                                     createdAt: Number(timeProvider.now()),
@@ -228,15 +228,5 @@ final class BaseSessionManager: SessionManager {
         }
 
         return false
-    }
-
-    private func shouldMarkSessionForExport() -> Bool {
-        if configProvider.samplingRateForErrorFreeSessions == 0.0 {
-            return false
-        }
-        if configProvider.samplingRateForErrorFreeSessions == 1.0 {
-            return true
-        }
-        return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
     }
 }

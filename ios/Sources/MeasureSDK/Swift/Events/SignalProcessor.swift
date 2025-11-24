@@ -47,6 +47,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private let eventStore: EventStore
     private let spanStore: SpanStore
     private let measureDispatchQueue: MeasureDispatchQueue
+    private let signalSampler: SignalSampler
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -57,7 +58,8 @@ final class BaseSignalProcessor: SignalProcessor {
          crashDataPersistence: CrashDataPersistence,
          eventStore: EventStore,
          spanStore: SpanStore,
-         measureDispatchQueue: MeasureDispatchQueue) {
+         measureDispatchQueue: MeasureDispatchQueue,
+         signalSampler: SignalSampler) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -68,6 +70,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.measureDispatchQueue = measureDispatchQueue
+        self.signalSampler = signalSampler
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -164,8 +167,14 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName )
 
-            let needsReporting = self.sessionManager.shouldReportSession ||
+            // Track events if session needs to be reported or if the event should always be tracked
+            var needsReporting = self.sessionManager.shouldReportSession ||
             self.configProvider.eventTypeExportAllowList.contains(event.type)
+
+            // Apply launch event sampling
+            if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
+                needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
+            }
 
             let eventEntity = EventEntity(event, needsReporting: needsReporting)
 
