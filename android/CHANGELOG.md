@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.15.0] - 2025-11-24
+
+### :hammer: Misc
+
+- (**android**): Fix event insertion error for cleaned up session (#2932) by @abhaysood in #2932
+- (**android**): Update measure config and default event collection (#2924) by @abhaysood in #2924
+- (**android**): Prepare next development version (#2863) by @abhaysood in #2863
+
 ## [android-v0.14.0] - 2025-10-29
 
 ### :bug: Bug fixes
@@ -13,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.14.0 (#2862) by @abhaysood in #2862
 - (**android**): Reverts min sdk change back to 21 (#2812) by @abhaysood in #2812
 - (**android**): Upgrade dependencies (#2806) by @abhaysood in #2806
 
@@ -805,6 +814,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.15.0]: https://github.com/measure-sh/measure/compare/android-v0.14.0..android-v0.15.0
 [android-v0.14.0]: https://github.com/measure-sh/measure/compare/android-v0.13.0..android-v0.14.0
 [android-v0.13.0]: https://github.com/measure-sh/measure/compare/android-v0.12.0..android-v0.13.0
 [android-v0.12.0]: https://github.com/measure-sh/measure/compare/android-v0.11.0..android-v0.12.0
