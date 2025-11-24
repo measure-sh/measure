@@ -16,6 +16,7 @@ internal interface PrefsStorage {
     fun setRecentSessionCrashed()
     fun setRecentSessionEventTime(timestamp: Long)
     fun getRecentSession(): RecentSession?
+    fun deleteRecentSession()
 }
 
 internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
@@ -86,5 +87,15 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
             crashed = crashed,
             versionCode = versionCode,
         )
+    }
+
+    override fun deleteRecentSession() {
+        sharedPreferences.edit {
+            remove(RECENT_SESSION_ID)
+            remove(RECENT_SESSION_CREATED_AT)
+            remove(RECENT_SESSION_EVENT_TIME)
+            remove(RECENT_SESSION_CRASHED)
+            remove(RECENT_SESSION_VERSION_CODE)
+        }
     }
 }

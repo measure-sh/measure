@@ -25,6 +25,7 @@ internal class DataCleanupServiceImpl(
     private val ioExecutor: MeasureExecutorService,
     private val sessionManager: SessionManager,
     private val configProvider: ConfigProvider,
+    private val prefsStorage: PrefsStorage,
 ) : DataCleanupService {
     private companion object {
         // The maximum number of sessions to query for deletion.
@@ -107,8 +108,22 @@ internal class DataCleanupServiceImpl(
         fileStorage.deleteEventsIfExist(eventIds)
         val attachmentIds = database.getAttachmentsForEvents(eventIds)
         fileStorage.deleteAttachmentsIfExist(attachmentIds)
+        deleteRecentSessionPrefsIfRequired(sessionIds)
+
         // deleting sessions from db will also delete events, spans and attachments for the session
         // as they are cascaded deletes.
         database.deleteSessions(sessionIds)
+    }
+
+    // Deletes the recent session prefs if it is being deleted from DB.
+    // AppExit event relies on the session ID from recent session,
+    // but if cleanup has deleted it, Database will throw an exception
+    // as it tries to insert an event for a sessio that no longer exists.
+    private fun deleteRecentSessionPrefsIfRequired(sessionIds: List<String>) {
+        sessionIds.forEach {
+            if (prefsStorage.getRecentSession()?.id == it) {
+                prefsStorage.deleteRecentSession()
+            }
+        }
     }
 }
