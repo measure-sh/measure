@@ -23,6 +23,7 @@ final class SignalProcessorTests: XCTestCase {
     var spanStore: MockSpanStore!
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
+    var signalSampler: MockSignalSampler!
     let attributes = Attributes(
         threadName: "main",
         deviceName: "iPhone",
@@ -78,6 +79,7 @@ final class SignalProcessorTests: XCTestCase {
         screenshotGenerator = MockScreenshotGenerator()
         eventStore = MockEventStore()
         spanStore = MockSpanStore()
+        signalSampler = MockSignalSampler()
     }
 
     override func tearDown() {
@@ -94,6 +96,7 @@ final class SignalProcessorTests: XCTestCase {
         sessionManager = nil
         eventStore = nil
         screenshotGenerator = nil
+        signalSampler = nil
     }
 
     func testTrackExceptionEventWithNilAttributesAndNilSessionId() {  // swiftlint:disable:this function_body_length
@@ -137,7 +140,8 @@ final class SignalProcessorTests: XCTestCase {
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
                                               spanStore: spanStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue())
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
@@ -190,7 +194,8 @@ final class SignalProcessorTests: XCTestCase {
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
                                               spanStore: spanStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue())
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",

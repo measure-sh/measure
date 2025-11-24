@@ -9,6 +9,10 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var coldLaunchSamplingRate: Float
+    var warmLaunchSamplingRate: Float
+    var hotLaunchSamplingRate: Float
+    var userJourneysSamplingRate: Float
     var maxBodySizeBytes: Int
     var maxAttachmentsInBatch: Int
     var lifecycleViewControllerExcludeList: [String]
@@ -63,6 +67,10 @@ final class MockConfigProvider: ConfigProvider {
     init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
          samplingRateForErrorFreeSessions: Float = 1.0,
+         coldLaunchSamplingRate: Float = 1,
+         warmLaunchSamplingRate: Float = 1,
+         hotLaunchSamplingRate: Float = 1,
+         userJourneysSamplingRate: Float = 1,
          eventsBatchingIntervalMs: Number = 30000,
          sessionEndLastEventThresholdMs: Number = 60 * 1000,
          longPressTimeout: TimeInterval = 500,
@@ -120,6 +128,10 @@ final class MockConfigProvider: ConfigProvider {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate
+        self.userJourneysSamplingRate = userJourneysSamplingRate
         self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
         self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
         self.longPressTimeout = longPressTimeout

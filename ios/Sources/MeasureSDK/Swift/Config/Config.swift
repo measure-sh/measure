@@ -120,10 +120,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxUserDefinedAttributeKeyLength = 256 // 256 chars
         self.maxUserDefinedAttributeValueLength = 256 // 256 chars
         self.maxUserDefinedAttributesPerEvent = 100
-        self.eventTypeExportAllowList = [.lifecycleSwiftUI,
-                                         .lifecycleViewController,
-                                         .screenView,
-                                         .sessionStart]
+        self.eventTypeExportAllowList = [.sessionStart]
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
