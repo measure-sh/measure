@@ -10,10 +10,7 @@ class DefaultConfig {
   static const List<String> httpUrlAllowlist = [];
   static const bool trackActivityIntentData = false;
   static const double sessionSamplingRate = 1.0;
-  static const double traceSamplingRate = 0.1;
-  static const bool trackActivityLoadTime = true;
-  static const bool trackFragmentLoadTime = true;
-  static const bool trackViewControllerLoadTime = true;
+  static const double traceSamplingRate = 0.0001;
   static const int maxCheckpointsPerSpan = 100;
   static const int maxSpanNameLength = 64;
   static const int maxCheckpointNameLength = 64;
@@ -26,4 +23,8 @@ class DefaultConfig {
   static const int maxUserDefinedAttributesPerEvent = 100;
   static const int maxUserDefinedAttributeKeyLength = 256;
   static const int maxUserDefinedAttributeValueLength = 256;
+  static const double coldLaunchSamplingRate = 0.0001;
+  static const double warmLaunchSamplingRate = 0.0001;
+  static const double hotLaunchSamplingRate = 0.0001;
+  static const double journeySamplingRate = 0;
 }

@@ -38,15 +38,19 @@ MeasureConfig _$MeasureConfigFromJson(Map<String, dynamic> json) =>
               DefaultConfig.sessionSamplingRate,
       traceSamplingRate: (json['traceSamplingRate'] as num?)?.toDouble() ??
           DefaultConfig.traceSamplingRate,
-      trackActivityLoadTime: json['trackActivityLoadTime'] as bool? ??
-          DefaultConfig.trackActivityLoadTime,
-      trackFragmentLoadTime: json['trackFragmentLoadTime'] as bool? ??
-          DefaultConfig.trackFragmentLoadTime,
       maxDiskUsageInMb: (json['maxDiskUsageInMb'] as num?)?.toInt() ??
           DefaultConfig.maxDiskUsageInMb,
-      trackViewControllerLoadTime:
-          json['trackViewControllerLoadTime'] as bool? ??
-              DefaultConfig.trackViewControllerLoadTime,
+      coldLaunchSamplingRate:
+          (json['coldLaunchSamplingRate'] as num?)?.toDouble() ??
+              DefaultConfig.coldLaunchSamplingRate,
+      warmLaunchSamplingRate:
+          (json['warmLaunchSamplingRate'] as num?)?.toDouble() ??
+              DefaultConfig.warmLaunchSamplingRate,
+      hotLaunchSamplingRate:
+          (json['hotLaunchSamplingRate'] as num?)?.toDouble() ??
+              DefaultConfig.hotLaunchSamplingRate,
+      journeySamplingRate: (json['journeySamplingRate'] as num?)?.toDouble() ??
+          DefaultConfig.journeySamplingRate,
     );
 
 Map<String, dynamic> _$MeasureConfigToJson(MeasureConfig instance) =>
@@ -64,8 +68,9 @@ Map<String, dynamic> _$MeasureConfigToJson(MeasureConfig instance) =>
       'samplingRateForErrorFreeSessions':
           instance.samplingRateForErrorFreeSessions,
       'traceSamplingRate': instance.traceSamplingRate,
-      'trackActivityLoadTime': instance.trackActivityLoadTime,
-      'trackFragmentLoadTime': instance.trackFragmentLoadTime,
-      'trackViewControllerLoadTime': instance.trackViewControllerLoadTime,
       'maxDiskUsageInMb': instance.maxDiskUsageInMb,
+      'coldLaunchSamplingRate': instance.coldLaunchSamplingRate,
+      'warmLaunchSamplingRate': instance.warmLaunchSamplingRate,
+      'hotLaunchSamplingRate': instance.hotLaunchSamplingRate,
+      'journeySamplingRate': instance.journeySamplingRate,
     };

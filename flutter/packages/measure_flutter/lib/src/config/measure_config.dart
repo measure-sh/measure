@@ -30,13 +30,15 @@ abstract class IMeasureConfig {
 
   double get traceSamplingRate;
 
-  bool get trackActivityLoadTime;
-
-  bool get trackFragmentLoadTime;
-
-  bool get trackViewControllerLoadTime;
-
   int get maxDiskUsageInMb;
+
+  double get coldLaunchSamplingRate;
+
+  double get warmLaunchSamplingRate;
+
+  double get hotLaunchSamplingRate;
+
+  double get journeySamplingRate;
 }
 
 /// Configuration class for Measure SDK
@@ -149,50 +151,6 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final double traceSamplingRate;
 
-  /// Enable or disable automatic collection of Activity load time. Defaults to `true`
-  /// for Android.
-  ///
-  /// Activity load time measures the time between the Activity being created and the first
-  /// frame being drawn on the screen. This is also known as Time to First Frame (TTF) or
-  /// Time to Initial Display (TTID). A large value for this metric would mean users are waiting
-  /// for a long time before they see anything on the screen while navigating through the app.
-  ///
-  /// Each Activity load time is captured using a span with the name `Activity TTID` followed
-  /// by the fully qualified class name of the Activity. For example, for
-  /// `com.example.MainActivity` the span name would be `Activity TTID com.example.MainActivity`.
-  @override
-  final bool trackActivityLoadTime;
-
-  /// Enable or disable automatic collection of Fragment load time. Defaults to `true`
-  /// for Android.
-  ///
-  /// Fragment load time measures the time between the Fragment view being created and the
-  /// first frame being drawn on the screen. This is also known as Time to First Frame (TTF)
-  /// or Time to Initial Display (TTID). A large value for this metric would mean users are
-  /// waiting for a long time before they see anything on the screen while navigating
-  /// through the app.
-  @override
-  final bool trackFragmentLoadTime;
-
-  /// Enables or disables automatic collection of ViewController load time. Defaults to `true`
-  /// for iOS.
-  ///
-  /// ViewController load time measures the time between when the ViewController's view is loaded
-  /// and the first frame is drawn on the screen. This is also known as **Time to First Frame (TTF)**
-  /// or **Time to Initial Display (TTID)**.
-  ///
-  /// A large TTID value means users are waiting too long before any content appears on screen during
-  /// app navigation.
-  ///
-  /// Each ViewController load time is captured as a `Span` with the name
-  /// `VC TTID <class name>`. For example, for a class
-  /// `MainViewController`, the span name would be:
-  /// `VC TTID MainViewController`.
-  ///
-  /// Set to `false` to disable this tracking.
-  @override
-  final bool trackViewControllerLoadTime;
-
   /// Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
   ///
   /// This is useful to control the amount of disk space used by the SDK for storing session data,
@@ -213,6 +171,45 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final int maxDiskUsageInMb;
 
+  /// Configure sampling rate for cold launch events. Defaults to 0.01, ie, 1%.
+  ///
+  /// A cold launch refers to an app starting from scratch. Cold launch happens in cases such
+  /// as an app launching for the first time since the device booted or since the system
+  /// killed the app.
+  @override
+  final double coldLaunchSamplingRate;
+
+  /// Configure sampling rate for warm launch events. Defaults to 0.01, ie, 1%.
+  ///
+  /// A warm launch refers to the re-launch of an app causing an Activity onCreate to be
+  /// triggered instead of just onResume. This requires the system to recreate the activity from
+  /// scratch and hence requires more work than a hot launch.
+  @override
+  final double warmLaunchSamplingRate;
+
+  /// Configure sampling rate for hot launch events. Defaults to 0.01, ie, 1%.
+  ///
+  /// A hot launch refers to the re-launch of an app causing an Activity onResume to be triggered.
+  /// This typically requires less work than a warm launch as the system does not need to recreate
+  /// the activity from scratch.
+  @override
+  final double hotLaunchSamplingRate;
+
+  /// Configures sampling rate for sessions that track "user journeys". This feature shows
+  /// traffic of users across different screens of the app. When set to 0, the journey will only
+  /// be generated from crashed sessions or sessions collected using
+  /// [samplingRateForErrorFreeSessions].
+  ///
+  /// Defaults to 0.
+  ///
+  /// If a value of 0.1 is set, then 10% of the sessions will contain events required
+  /// to build the journey which includes screen view, lifecycle activity and lifecycle fragments.
+  ///
+  /// **Note: a higher value for this config can significantly increase the number of events
+  /// collected for your app.**
+  @override
+  final double journeySamplingRate;
+
   /// Creates a new MeasureConfig instance
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
@@ -227,23 +224,18 @@ class MeasureConfig implements IMeasureConfig {
     this.trackActivityIntentData = DefaultConfig.trackActivityIntentData,
     this.samplingRateForErrorFreeSessions = DefaultConfig.sessionSamplingRate,
     this.traceSamplingRate = DefaultConfig.traceSamplingRate,
-    this.trackActivityLoadTime = DefaultConfig.trackActivityLoadTime,
-    this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
-    this.trackViewControllerLoadTime =
-        DefaultConfig.trackViewControllerLoadTime,
-  })  : assert(
-            samplingRateForErrorFreeSessions >= 0.0 &&
-                samplingRateForErrorFreeSessions <= 1.0,
+    this.coldLaunchSamplingRate = DefaultConfig.coldLaunchSamplingRate,
+    this.warmLaunchSamplingRate = DefaultConfig.warmLaunchSamplingRate,
+    this.hotLaunchSamplingRate = DefaultConfig.hotLaunchSamplingRate,
+    this.journeySamplingRate = DefaultConfig.journeySamplingRate,
+  })  : assert(samplingRateForErrorFreeSessions >= 0.0 && samplingRateForErrorFreeSessions <= 1.0,
             'session sampling rate must be between 0.0 and 1.0'),
-        assert(traceSamplingRate >= 0.0 && traceSamplingRate <= 1.0,
-            'Trace sampling rate must be between 0.0 and 1.0'),
-        assert(maxDiskUsageInMb >= 20 && maxDiskUsageInMb <= 1500,
-            'maxDiskUsageInMb must be between 20 - 1500');
+        assert(traceSamplingRate >= 0.0 && traceSamplingRate <= 1.0, 'Trace sampling rate must be between 0.0 and 1.0'),
+        assert(maxDiskUsageInMb >= 20 && maxDiskUsageInMb <= 1500, 'maxDiskUsageInMb must be between 20 - 1500');
 
   /// Creates a new MeasureConfig instance from a JSON map
-  factory MeasureConfig.fromJson(Map<String, dynamic> json) =>
-      _$MeasureConfigFromJson(json);
+  factory MeasureConfig.fromJson(Map<String, dynamic> json) => _$MeasureConfigFromJson(json);
 
   /// Creates a new MeasureConfig instance from a JSON map.
   Map<String, dynamic> toJson() => _$MeasureConfigToJson(this);
