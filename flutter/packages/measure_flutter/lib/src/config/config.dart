@@ -16,24 +16,22 @@ class Config implements InternalConfig, IMeasureConfig {
     this.trackActivityIntentData = DefaultConfig.trackActivityIntentData,
     this.samplingRateForErrorFreeSessions = DefaultConfig.sessionSamplingRate,
     this.traceSamplingRate = DefaultConfig.traceSamplingRate,
-    this.trackActivityLoadTime = DefaultConfig.trackActivityLoadTime,
-    this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
-    this.trackViewControllerLoadTime =
-        DefaultConfig.trackViewControllerLoadTime,
     this.maxCheckpointNameLength = DefaultConfig.maxCheckpointNameLength,
     this.maxSpanNameLength = DefaultConfig.maxSpanNameLength,
     this.maxCheckpointsPerSpan = DefaultConfig.maxCheckpointsPerSpan,
     this.maxAttachmentsInBugReport = DefaultConfig.maxAttachmentsInBugReport,
-    this.maxDescriptionLengthInBugReport =
-        DefaultConfig.maxDescriptionLengthInBugReport,
-    this.screenshotCompressionQuality =
-        DefaultConfig.screenshotCompressionQuality,
+    this.maxDescriptionLengthInBugReport = DefaultConfig.maxDescriptionLengthInBugReport,
+    this.screenshotCompressionQuality = DefaultConfig.screenshotCompressionQuality,
     this.maxEventNameLength = DefaultConfig.maxEventNameLength,
     this.customEventNameRegex = DefaultConfig.customEventNameRegex,
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
     this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
     this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
     this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
+    this.coldLaunchSamplingRate = DefaultConfig.coldLaunchSamplingRate,
+    this.warmLaunchSamplingRate = DefaultConfig.warmLaunchSamplingRate,
+    this.hotLaunchSamplingRate = DefaultConfig.hotLaunchSamplingRate,
+    this.journeySamplingRate = DefaultConfig.journeySamplingRate,
   });
 
   @override
@@ -61,12 +59,6 @@ class Config implements InternalConfig, IMeasureConfig {
   @override
   final double traceSamplingRate;
   @override
-  final bool trackActivityLoadTime;
-  @override
-  final bool trackFragmentLoadTime;
-  @override
-  final bool trackViewControllerLoadTime;
-  @override
   final int maxCheckpointNameLength;
   @override
   final int maxSpanNameLength;
@@ -90,10 +82,17 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxUserDefinedAttributeKeyLength;
   @override
   final int maxUserDefinedAttributeValueLength;
+  @override
+  final double coldLaunchSamplingRate;
+  @override
+  final double warmLaunchSamplingRate;
+  @override
+  final double hotLaunchSamplingRate;
+  @override
+  final double journeySamplingRate;
 
   @override
-  List<String> get defaultHttpContentTypeAllowlist =>
-      const ["application/json"];
+  List<String> get defaultHttpContentTypeAllowlist => const ["application/json"];
 
   @override
   List<String> get defaultHttpHeadersBlocklist => const [
@@ -119,26 +118,27 @@ class Config implements InternalConfig, IMeasureConfig {
     bool? trackActivityLoadTime,
     bool? trackFragmentLoadTime,
     int? maxDiskUsageInMb,
+    double? coldLaunchSamplingRate,
+    double? warmLaunchSamplingRate,
+    double? hotLaunchSamplingRate,
+    double? journeySamplingRate,
   }) {
     return Config(
       enableLogging: enableLogging ?? this.enableLogging,
-      autoInitializeNativeSDK:
-          autoInitializeNativeSDK ?? this.autoInitializeNativeSDK,
+      autoInitializeNativeSDK: autoInitializeNativeSDK ?? this.autoInitializeNativeSDK,
       trackHttpHeaders: trackHttpHeaders ?? this.trackHttpHeaders,
       trackHttpBody: trackHttpBody ?? this.trackHttpBody,
       httpHeadersBlocklist: httpHeadersBlocklist ?? this.httpHeadersBlocklist,
       httpUrlAllowlist: httpUrlAllowlist ?? this.httpUrlAllowlist,
       httpUrlBlocklist: httpUrlBlocklist ?? this.httpUrlBlocklist,
-      trackActivityIntentData:
-          trackActivityIntentData ?? this.trackActivityIntentData,
-      samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions ??
-          this.samplingRateForErrorFreeSessions,
+      trackActivityIntentData: trackActivityIntentData ?? this.trackActivityIntentData,
+      samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions ?? this.samplingRateForErrorFreeSessions,
       traceSamplingRate: traceSamplingRate ?? this.traceSamplingRate,
-      trackActivityLoadTime:
-          trackActivityLoadTime ?? this.trackActivityLoadTime,
-      trackFragmentLoadTime:
-          trackFragmentLoadTime ?? this.trackFragmentLoadTime,
       maxDiskUsageInMb: maxDiskUsageInMb ?? this.maxDiskUsageInMb,
+      coldLaunchSamplingRate: coldLaunchSamplingRate ?? this.coldLaunchSamplingRate,
+      warmLaunchSamplingRate: warmLaunchSamplingRate ?? this.warmLaunchSamplingRate,
+      hotLaunchSamplingRate: hotLaunchSamplingRate ?? this.hotLaunchSamplingRate,
+      journeySamplingRate: journeySamplingRate ?? this.journeySamplingRate,
     );
   }
 }

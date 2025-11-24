@@ -102,9 +102,9 @@ final class MeasureInitializer {
         samplingRateForErrorFreeSessions:
             inputConfig.samplingRateForErrorFreeSessions,
         traceSamplingRate: inputConfig.traceSamplingRate,
-        trackActivityLoadTime: inputConfig.trackActivityLoadTime,
-        trackFragmentLoadTime: inputConfig.trackFragmentLoadTime,
-        trackViewControllerLoadTime: inputConfig.trackViewControllerLoadTime,
+        coldLaunchSamplingRate: inputConfig.coldLaunchSamplingRate,
+        warmLaunchSamplingRate: inputConfig.warmLaunchSamplingRate,
+        hotLaunchSamplingRate: inputConfig.hotLaunchSamplingRate,
         autoStart: inputConfig.autoStart,
       ),
     );

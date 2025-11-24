@@ -66,16 +66,6 @@ class ConfigProviderImpl implements ConfigProvider {
   bool get trackActivityIntentData => _defaultConfig.trackActivityIntentData;
 
   @override
-  bool get trackActivityLoadTime => _defaultConfig.trackActivityLoadTime;
-
-  @override
-  bool get trackFragmentLoadTime => _defaultConfig.trackFragmentLoadTime;
-
-  @override
-  bool get trackViewControllerLoadTime =>
-      _defaultConfig.trackViewControllerLoadTime;
-
-  @override
   int get maxCheckpointsPerSpan => _defaultConfig.maxCheckpointsPerSpan;
 
   @override
@@ -112,6 +102,18 @@ class ConfigProviderImpl implements ConfigProvider {
 
   @override
   int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
+
+  @override
+  double get coldLaunchSamplingRate => _defaultConfig.coldLaunchSamplingRate;
+
+  @override
+  double get warmLaunchSamplingRate => _defaultConfig.warmLaunchSamplingRate;
+
+  @override
+  double get hotLaunchSamplingRate => _defaultConfig.hotLaunchSamplingRate;
+
+  @override
+  double get journeySamplingRate => _defaultConfig.journeySamplingRate;
 
   @override
   bool shouldTrackHttpBody(String url, String? contentType) {

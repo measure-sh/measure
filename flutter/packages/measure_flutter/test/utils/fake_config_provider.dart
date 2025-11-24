@@ -15,11 +15,8 @@ class FakeConfigProvider implements ConfigProvider {
   double _samplingRateForErrorFreeSessions = 0.0;
   double _traceSamplingRate = 0.0;
   bool _trackActivityIntentData = false;
-  bool _trackActivityLoadTime = false;
-  bool _trackFragmentLoadTime = false;
   bool _trackHttpBody = false;
   bool _trackHttpHeaders = false;
-  bool _trackViewControllerLoadTime = false;
   bool _autoStart = true;
   int _maxAttachmentsInBugReport = 5;
   int _maxDescriptionLengthInBugReport = 1000;
@@ -30,6 +27,10 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributeValueLength = 100;
   int _maxUserDefinedAttributeKeyLength = 256;
   int _maxUserDefinedAttributesPerEvent = 256;
+  double _coldLaunchSamplingRate = 0.01;
+  double _warmLaunchSamplingRate = 0.01;
+  double _hotLaunchSamplingRate = 0.01;
+  double _journeySamplingRate = 0;
 
   // Getters
   @override
@@ -77,19 +78,10 @@ class FakeConfigProvider implements ConfigProvider {
   bool get trackActivityIntentData => _trackActivityIntentData;
 
   @override
-  bool get trackActivityLoadTime => _trackActivityLoadTime;
-
-  @override
-  bool get trackFragmentLoadTime => _trackFragmentLoadTime;
-
-  @override
   bool get trackHttpBody => _trackHttpBody;
 
   @override
   bool get trackHttpHeaders => _trackHttpHeaders;
-
-  @override
-  bool get trackViewControllerLoadTime => _trackViewControllerLoadTime;
 
   @override
   int get maxAttachmentsInBugReport => _maxAttachmentsInBugReport;
@@ -117,6 +109,18 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
+
+  @override
+  double get coldLaunchSamplingRate => _coldLaunchSamplingRate;
+
+  @override
+  double get warmLaunchSamplingRate => _warmLaunchSamplingRate;
+
+  @override
+  double get hotLaunchSamplingRate => _hotLaunchSamplingRate;
+
+  @override
+  double get journeySamplingRate => _journeySamplingRate;
 
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
@@ -153,16 +157,9 @@ class FakeConfigProvider implements ConfigProvider {
 
   set trackActivityIntentData(bool value) => _trackActivityIntentData = value;
 
-  set trackActivityLoadTime(bool value) => _trackActivityLoadTime = value;
-
-  set trackFragmentLoadTime(bool value) => _trackFragmentLoadTime = value;
-
   set trackHttpBody(bool value) => _trackHttpBody = value;
 
   set trackHttpHeaders(bool value) => _trackHttpHeaders = value;
-
-  set trackViewControllerLoadTime(bool value) =>
-      _trackViewControllerLoadTime = value;
 
   set autoStart(bool value) => _autoStart = value;
 
@@ -186,6 +183,14 @@ class FakeConfigProvider implements ConfigProvider {
   set maxUserDefinedAttributeKeyLength(int value) => _maxUserDefinedAttributeKeyLength = value;
 
   set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
+
+  set coldLaunchSamplingRate(double value) => _coldLaunchSamplingRate = value;
+
+  set warmLaunchSamplingRate(double value) => _warmLaunchSamplingRate = value;
+
+  set hotLaunchSamplingRate(double value) => _hotLaunchSamplingRate = value;
+
+  set journeySamplingRate(double value) => _journeySamplingRate = value;
 
   // Methods
   @override
