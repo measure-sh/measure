@@ -95,7 +95,6 @@ import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
-import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -110,7 +109,11 @@ export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/events/attachment_type.dart';
 export 'src/events/msr_attachment.dart';
+export 'src/gestures/snapshot_node.dart';
+export 'src/gestures/layout_snapshot_capture.dart';
 export 'src/http/http_method.dart';
+export 'src/logger/log_level.dart';
+export 'src/logger/logger.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
@@ -493,13 +496,13 @@ class Measure implements MeasureApi {
   /// - [createBugReportWidget] for the built-in bug reporting UI
   /// - [captureScreenshot] for capturing screen attachments
   @override
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
-  }) {
+  }) async {
     if (_isInitialized) {
-      _measure.trackBugReport(
+      await _measure.trackBugReport(
         description,
         attachments,
         attributes,
@@ -540,7 +543,8 @@ class Measure implements MeasureApi {
   }) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: true, attributes: attributes);
+      return _measure.trackError(details,
+          handled: true, attributes: attributes);
     }
     return Future.value();
   }
@@ -870,7 +874,8 @@ class Measure implements MeasureApi {
         attributes: attributes,
       );
     } else {
-      developer.log('Failed to open bug report, Measure SDK is not initialized');
+      developer
+          .log('Failed to open bug report, Measure SDK is not initialized');
       return SizedBox.shrink(key: key);
     }
   }
@@ -915,6 +920,7 @@ class Measure implements MeasureApi {
   ///
   /// **Parameters:**
   /// - [clickData]: Data containing click position, target widget info, and timestamp
+  /// - [snapshot]: An optional layout snapshot to attach with the event
   ///
   /// **Example:**
   /// ```dart
@@ -932,9 +938,9 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackClick(ClickData clickData) {
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
     if (isInitialized) {
-      _measure.trackClick(clickData);
+      return _measure.trackClick(clickData, snapshot);
     }
   }
 
@@ -945,6 +951,7 @@ class Measure implements MeasureApi {
   ///
   /// **Parameters:**
   /// - [longClickData]: Data containing long press position, target widget info, and timestamp
+  /// - [snapshot]: An optional layout snapshot to attach with the event
   ///
   /// **Example:**
   /// ```dart
@@ -956,15 +963,16 @@ class Measure implements MeasureApi {
   ///   timestamp: Measure.instance.getCurrentTime(),
   /// );
   ///
-  /// Measure.instance.trackLongClick(longClickData);
+  /// await Measure.instance.trackLongClick(longClickData);
   /// ```
   ///
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackLongClick(LongClickData longClickData) {
+  Future<void> trackLongClick(
+      LongClickData longClickData, SnapshotNode? snapshot) async {
     if (isInitialized) {
-      _measure.trackLongClick(longClickData);
+      return _measure.trackLongClick(longClickData, snapshot);
     }
   }
 
@@ -993,10 +1001,27 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackScroll(ScrollData scrollData) {
+  Future<void> trackScroll(ScrollData scrollData) async {
     if (isInitialized) {
-      _measure.trackScroll(scrollData);
+      return _measure.trackScroll(scrollData);
     }
+  }
+
+  @override
+  Map<Type, String> getLayoutSnapshotWidgetFilter() {
+    if (_isInitialized) {
+      return _measure.getLayoutSnapshotWidgetFilter();
+    } else {
+      return {};
+    }
+  }
+
+  @override
+  Logger? getLogger() {
+    if (_isInitialized) {
+      return _measure.logger;
+    }
+    return null;
   }
 
   Future<void> _initializeMeasureSDK(
@@ -1101,7 +1126,8 @@ class Measure implements MeasureApi {
     }
   }
 
-  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig, Map<String, String> jsonClientInfo) {
+  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig,
+      Map<String, String> jsonClientInfo) {
     if (enableLogging) {
       developer.log(
         'Initializing measure-flutter with config: $jsonConfig',

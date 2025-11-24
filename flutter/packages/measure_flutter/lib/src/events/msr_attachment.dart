@@ -6,7 +6,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 part 'msr_attachment.g.dart';
 
 /// Represents a file attachment that can be included with bug reports or events.
-/// 
+///
 /// [MsrAttachment] encapsulates file data, metadata, and type information
 /// for attachments like screenshots, logs, or user-selected files.
 ///
@@ -33,10 +33,10 @@ class MsrAttachment {
   });
 
   /// Creates an [MsrAttachment] from binary data.
-  /// 
+  ///
   /// Use this factory when you have file content as bytes, such as
   /// from a screenshot capture or downloaded file.
-  /// 
+  ///
   /// **Parameters:**
   /// - [bytes]: The binary file content
   /// - [type]: The type of attachment (screenshot, image, etc.)
@@ -56,9 +56,9 @@ class MsrAttachment {
   }
 
   /// Creates an [MsrAttachment] from a file path.
-  /// 
+  ///
   /// Use this factory when referencing an existing file on the filesystem.
-  /// 
+  ///
   /// **Parameters:**
   /// - [path]: The file system path to the file
   /// - [type]: The type of attachment

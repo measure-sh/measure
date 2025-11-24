@@ -42,11 +42,9 @@ class SendButton extends StatelessWidget {
       onPressed: enabled ? onSend : null,
       style: TextButton.styleFrom(
         foregroundColor: enabled
-            ? (bugReportTheme.colors.primaryColor ??
-            colorScheme.primary)
-            : (bugReportTheme.colors.primaryColor ??
-            colorScheme.primary)
-            .withValues(alpha: 0.4),
+            ? (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+            : (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+                .withValues(alpha: 0.4),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
       child: Text(
@@ -54,11 +52,9 @@ class SendButton extends StatelessWidget {
         style: theme.textTheme.bodyLarge?.copyWith(
           fontWeight: FontWeight.w600,
           color: enabled
-              ? (bugReportTheme.colors.primaryColor ??
-              colorScheme.primary)
-              : (bugReportTheme.colors.primaryColor ??
-              colorScheme.primary)
-              .withValues(alpha: 0.4),
+              ? (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+              : (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+                  .withValues(alpha: 0.4),
         ),
       ),
     );
