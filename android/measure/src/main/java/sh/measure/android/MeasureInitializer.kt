@@ -445,6 +445,7 @@ internal class MeasureInitializerImpl(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         sessionManager = sessionManager,
         configProvider = configProvider,
+        prefsStorage = prefsStorage,
     ),
     override val customEventCollector: CustomEventCollector = CustomEventCollector(
         logger = logger,
