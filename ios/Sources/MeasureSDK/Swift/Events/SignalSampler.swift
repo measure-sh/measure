@@ -17,6 +17,7 @@ protocol SignalSampler {
 final class BaseSignalSampler: SignalSampler {
     private let configProvider: ConfigProvider
     private let randomizer: Randomizer
+    private var shouldSampleUserJourney: Bool?
 
     init(configProvider: ConfigProvider, randomizer: Randomizer) {
         self.configProvider = configProvider
@@ -45,7 +46,11 @@ final class BaseSignalSampler: SignalSampler {
     }
 
     func shouldTrackJourneyEvents() -> Bool {
-        return shouldTrack(configProvider.userJourneysSamplingRate)
+        if let shouldSampleUserJourney {
+            return shouldSampleUserJourney
+        }
+        shouldSampleUserJourney = shouldTrack(configProvider.userJourneysSamplingRate)
+        return shouldSampleUserJourney!
     }
 
     private func shouldTrack(_ samplingRate: Float) -> Bool {
