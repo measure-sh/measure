@@ -479,5 +479,9 @@ backfill_team_ids() {
 # kick things off
 check_base_dir
 set_docker_compose
+start_postgres_service
+start_clickhouse_service
 optimize_clickhouse_database
 backfill_team_ids
+shutdown_postgres_service
+shutdown_clickhouse_service

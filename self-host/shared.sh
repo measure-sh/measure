@@ -152,3 +152,43 @@ ${key}=${escaped_value}
     echo "${key}=${value}" >> "$env_file"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# start_postgres_service starts the postgres service
+# ------------------------------------------------------------------------------
+start_postgres_service() {
+  $DOCKER_COMPOSE \
+    --file compose.yml \
+    --file compose.prod.yml \
+    up --wait -d postgres
+}
+
+# ------------------------------------------------------------------------------
+# shutdown_postgres_service shuts down the postgres service
+# ------------------------------------------------------------------------------
+shutdown_postgres_service() {
+  $DOCKER_COMPOSE \
+    --file compose.yml \
+    --file compose.prod.yml \
+    down postgres
+}
+
+# ------------------------------------------------------------------------------
+# start_clickhouse_service starts the clickhouse service
+# ------------------------------------------------------------------------------
+start_clickhouse_service() {
+  $DOCKER_COMPOSE \
+    --file compose.yml \
+    --file compose.prod.yml \
+    up --wait -d clickhouse
+}
+
+# ------------------------------------------------------------------------------
+# shutdown_clickhouse_service shuts down the clickhouse service
+# ------------------------------------------------------------------------------
+shutdown_clickhouse_service() {
+  $DOCKER_COMPOSE \
+    --file compose.yml \
+    --file compose.prod.yml \
+    down clickhouse
+}

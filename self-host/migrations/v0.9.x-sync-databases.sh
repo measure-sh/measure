@@ -21,38 +21,6 @@ shutdown_measure_services() {
   fi
 }
 
-# Start the postgres service
-start_postgres_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d postgres
-}
-
-# Shutdown the postgres service
-shutdown_postgres_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    down postgres
-}
-
-# Start the clickhouse service
-start_clickhouse_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d clickhouse
-}
-
-# Shutdown the clickhouse service
-shutdown_clickhouse_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    down clickhouse
-}
-
 # Migrate the Postgres database
 #
 # - Creates the 'measure' database if it doesn't exist
