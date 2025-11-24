@@ -4,7 +4,7 @@ import sh.measure.android.events.EventType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V5
+    const val DATABASE_VERSION = DbVersion.V6
 }
 
 internal object DbVersion {
@@ -13,6 +13,7 @@ internal object DbVersion {
     const val V3 = 3
     const val V4 = 4
     const val V5 = 5
+    const val V6 = 6
 }
 
 internal object EventTable {
@@ -87,6 +88,7 @@ internal object SessionsTable {
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
     const val COL_NEEDS_REPORTING = "needs_reporting"
     const val COL_CRASHED = "crashed"
+    const val COL_TRACK_JOURNEY = "track_journey"
 }
 
 internal object AppExitTable {
@@ -116,6 +118,13 @@ internal object SpansTable {
 }
 
 internal object Sql {
+    private const val MAX_LONG_AS_DOUBLE = Long.MAX_VALUE.toDouble()
+    private val journeyEventTypes = listOf(
+        EventType.LIFECYCLE_ACTIVITY,
+        EventType.LIFECYCLE_FRAGMENT,
+        EventType.SCREEN_VIEW,
+    )
+
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE IF NOT EXISTS ${EventTable.TABLE_NAME} (
             ${EventTable.COL_ID} TEXT PRIMARY KEY,
@@ -195,7 +204,8 @@ internal object Sql {
             ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
             ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
             ${SessionsTable.COL_NEEDS_REPORTING} INTEGER DEFAULT 0,
-            ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0
+            ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_TRACK_JOURNEY} INTEGER DEFAULT 0
         )
     """
 
@@ -245,61 +255,62 @@ internal object Sql {
      * @param sessionId The session ID for which the events should be returned, if not null. If null,
      * the sessions which need to be reported are considered.
      * @param eventTypeAllowList The list of event types to allow in the batch.
+     * @param coldLaunchSamplingRate The sampling rate at which to select cold launch events.
+     * @param warmLaunchSamplingRate The sampling rate at which to select warm launch events.
+     * @param hotLaunchSamplingRate The sampling rate at which to select warm launch events.
      */
     fun getEventsBatchQuery(
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
         eventTypeAllowList: List<EventType>,
+        coldLaunchSamplingRate: Float,
+        warmLaunchSamplingRate: Float,
+        hotLaunchSamplingRate: Float,
     ): String {
         if (sessionId != null) {
-            /**
-             * ```sql
-             * SELECT e.*
-             * FROM events e
-             * LEFT JOIN events_batch eb ON e.id = eb.event_id
-             * WHERE eb.event_id IS NULL
-             * AND e.session_id = '$sessionId'
-             * ORDER BY e.timestamp ASC
-             * LIMIT 100
-             * ```
-             */
             return """
-                SELECT e.${EventTable.COL_ID}
-                FROM ${EventTable.TABLE_NAME} e
-                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
-                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
-                AND e.${EventTable.COL_SESSION_ID} = '$sessionId'
-                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
-                LIMIT $eventCount
+            SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE}
+            FROM ${EventTable.TABLE_NAME} e
+            LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb 
+                ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+            WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+              AND e.${EventTable.COL_SESSION_ID} = '$sessionId'
+            ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+            LIMIT $eventCount
             """.trimIndent()
         } else {
-            /**
-             * ```sql
-             * SELECT e.*
-             * FROM events e
-             * LEFT JOIN events_batch eb ON e.id = eb.event_id
-             * JOIN sessions s ON e.session_id = s.session_id
-             * WHERE eb.event_id IS NULL
-             * AND (
-             *     e.type = 'cold_launch'
-             *     OR (s.needs_reporting = 1)
-             * )
-             * LIMIT 100
-             * ```
-             */
             return """
-                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
-                FROM ${EventTable.TABLE_NAME} e
-                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
-                JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
-                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
-                AND (
+            SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE}
+            FROM ${EventTable.TABLE_NAME} e
+            LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb 
+                ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+            JOIN ${SessionsTable.TABLE_NAME} s
+                ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+            WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+              AND (
+                    -- Always allowed event types (no sampling)
                     e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'${it.value}'" }})
-                    OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
+
+                    -- Must-report sessions
+                    OR s.${SessionsTable.COL_NEEDS_REPORTING} = 1
+
+                    -- Journey events
+                    OR (
+                        s.${SessionsTable.COL_TRACK_JOURNEY} = 1
+                        AND e.${EventTable.COL_TYPE} IN (${journeyEventTypes.joinToString(", ") { "'${it.value}'" }})
+                    )
+
+                    -- Sampled events
+                    OR (e.${EventTable.COL_TYPE} = 'cold_launch' 
+                        AND (abs(random()) / $MAX_LONG_AS_DOUBLE) < $coldLaunchSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'warm_launch' 
+                        AND (abs(random()) / $MAX_LONG_AS_DOUBLE) < $warmLaunchSamplingRate)
+                    OR (e.${EventTable.COL_TYPE} = 'hot_launch' 
+                        AND (abs(random()) / $MAX_LONG_AS_DOUBLE) < $hotLaunchSamplingRate)
                 )
-                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
-                LIMIT $eventCount
+            ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+            LIMIT $eventCount
             """.trimIndent()
         }
     }

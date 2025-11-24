@@ -106,6 +106,7 @@ internal data class SessionEntity(
     val supportsAppExit: Boolean,
     val appVersion: String?,
     val appBuild: String?,
+    val trackJourney: Boolean?,
 )
 
 internal data class BatchEntity(

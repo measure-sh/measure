@@ -195,24 +195,26 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public static final field $stable I
 	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFILsh/measure/android/config/MsrRequestHeadersProvider;FFFF)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFILsh/measure/android/config/MsrRequestHeadersProvider;FFFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
+	public fun getColdLaunchSamplingRate ()F
 	public fun getEnableLogging ()Z
+	public fun getHotLaunchSamplingRate ()F
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getJourneySamplingRate ()F
 	public fun getMaxDiskUsageInMb ()I
 	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
 	public fun getSamplingRateForErrorFreeSessions ()F
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
 	public fun getTraceSamplingRate ()F
 	public fun getTrackActivityIntentData ()Z
-	public fun getTrackActivityLoadTime ()Z
-	public fun getTrackFragmentLoadTime ()Z
 	public fun getTrackHttpBody ()Z
 	public fun getTrackHttpHeaders ()Z
 	public fun getTrackScreenshotOnCrash ()Z
+	public fun getWarmLaunchSamplingRate ()F
 }
 
 public final class sh/measure/android/config/MeasureConfig$Companion {

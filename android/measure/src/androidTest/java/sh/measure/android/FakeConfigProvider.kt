@@ -60,8 +60,10 @@ internal class FakeConfigProvider : ConfigProvider {
     override val shakeSlop: Int = 2
     override val disallowedCustomHeaders: List<String> = mutableListOf()
     override val estimatedEventSizeInKb: Int = 10
-    override val trackActivityLoadTime: Boolean = true
-    override val trackFragmentLoadTime: Boolean = true
     override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
+    override val coldLaunchSamplingRate: Float = 0.01f
+    override val warmLaunchSamplingRate: Float = 0.01f
+    override val hotLaunchSamplingRate: Float = 0.01f
+    override val journeySamplingRate: Float = 0.01f
 }

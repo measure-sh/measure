@@ -106,9 +106,6 @@ internal class FragmentLifecycleCollector(
     }
 
     private fun startFragmentTtidSpan(f: Fragment) {
-        if (!configProvider.trackFragmentLoadTime) {
-            return
-        }
         val identityHash = getIdentityHash(f)
         val fragmentTtidSpan = tracer.spanBuilder(
             SpanName.fragmentTtidSpan(

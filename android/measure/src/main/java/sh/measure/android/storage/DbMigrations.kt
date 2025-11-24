@@ -17,6 +17,7 @@ internal object DbMigrations {
                             DbVersion.V3 -> migrateToV3(this)
                             DbVersion.V4 -> migrateToV4(this)
                             DbVersion.V5 -> migrateToV5(this)
+                            DbVersion.V6 -> migrateToV6(this)
                             else -> logger.log(
                                 LogLevel.Debug,
                                 "Db migration failed: $version not found ",
@@ -95,5 +96,9 @@ internal object DbMigrations {
 
         // Step 3: Drop old table
         db.execSQL("DROP TABLE IF EXISTS ${AttachmentTable.TABLE_NAME}")
+    }
+
+    private fun migrateToV6(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_TRACK_JOURNEY} INTEGER DEFAULT NULL;")
     }
 }

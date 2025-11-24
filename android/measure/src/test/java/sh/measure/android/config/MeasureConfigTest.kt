@@ -20,8 +20,6 @@ class MeasureConfigTest {
             "trackActivityIntentData" to false,
             "samplingRateForErrorFreeSessions" to 1.0,
             "traceSamplingRate" to 1.0,
-            "trackActivityLoadTime" to true,
-            "trackFragmentLoadTime" to true,
             "trackViewControllerLoadTime" to true,
         )
 
@@ -38,7 +36,5 @@ class MeasureConfigTest {
         Assert.assertEquals(false, measureConfig.trackActivityIntentData)
         Assert.assertEquals(1.0f, measureConfig.samplingRateForErrorFreeSessions)
         Assert.assertEquals(1.0f, measureConfig.traceSamplingRate)
-        Assert.assertEquals(true, measureConfig.trackActivityLoadTime)
-        Assert.assertEquals(true, measureConfig.trackFragmentLoadTime)
     }
 }

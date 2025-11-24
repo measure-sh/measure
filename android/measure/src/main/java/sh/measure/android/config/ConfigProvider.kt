@@ -123,10 +123,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { shakeAccelerationThreshold }
     override val shakeSlop: Int
         get() = getMergedConfig { shakeSlop }
-    override val trackActivityLoadTime: Boolean
-        get() = getMergedConfig { trackActivityLoadTime }
-    override val trackFragmentLoadTime: Boolean
-        get() = getMergedConfig { trackFragmentLoadTime }
     override val disallowedCustomHeaders: List<String>
         get() = getMergedConfig { disallowedCustomHeaders }
     override val requestHeadersProvider: MsrRequestHeadersProvider?
@@ -135,6 +131,14 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxDiskUsageInMb }
     override val estimatedEventSizeInKb: Int
         get() = getMergedConfig { estimatedEventSizeInKb }
+    override val coldLaunchSamplingRate: Float
+        get() = getMergedConfig { coldLaunchSamplingRate }
+    override val warmLaunchSamplingRate: Float
+        get() = getMergedConfig { warmLaunchSamplingRate }
+    override val hotLaunchSamplingRate: Float
+        get() = getMergedConfig { hotLaunchSamplingRate }
+    override val journeySamplingRate: Float
+        get() = getMergedConfig { journeySamplingRate }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

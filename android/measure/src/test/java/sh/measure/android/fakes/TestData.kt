@@ -15,8 +15,6 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exceptions.ExceptionUnit
 import sh.measure.android.exceptions.Frame
-import sh.measure.android.exporter.EventPacket
-import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -46,7 +44,6 @@ import sh.measure.android.tracing.SpanData
 import sh.measure.android.tracing.SpanProcessor
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.iso8601Timestamp
 
 internal object TestData {
 
@@ -350,19 +347,6 @@ internal object TestData {
         percentageUsage,
     )
 
-    fun getEventPacket(eventEntity: EventEntity): EventPacket = EventPacket(
-        eventId = eventEntity.id,
-        type = eventEntity.type,
-        timestamp = eventEntity.timestamp,
-        sessionId = eventEntity.sessionId,
-        userTriggered = eventEntity.userTriggered,
-        serializedData = eventEntity.serializedData,
-        serializedAttributes = eventEntity.serializedAttributes ?: "",
-        serializedAttachments = eventEntity.serializedAttachments,
-        serializedDataFilePath = eventEntity.filePath,
-        serializedUserDefinedAttributes = eventEntity.serializedUserDefAttributes,
-    )
-
     fun getAttachment(
         type: String = "type",
         name: String = "name",
@@ -422,6 +406,7 @@ internal object TestData {
         supportsAppExit: Boolean = false,
         appVersion: String? = "1.0.0",
         appBuild: String? = "100",
+        trackJourney: Boolean? = false,
     ): SessionEntity = SessionEntity(
         sessionId = id,
         pid = pid,
@@ -431,6 +416,7 @@ internal object TestData {
         supportsAppExit = supportsAppExit,
         appVersion = appVersion,
         appBuild = appBuild,
+        trackJourney = trackJourney,
     )
 
     fun getEventBatchEntity(
@@ -550,26 +536,6 @@ internal object TestData {
         userDefinedAttrs = userDefinedAttrs,
         checkpoints = checkpoints,
     ).toSpanEntity()
-
-    fun getSpanPacket(spanEntity: SpanEntity): SpanPacket = SpanPacket(
-        name = spanEntity.name,
-        traceId = spanEntity.traceId,
-        spanId = spanEntity.spanId,
-        parentId = spanEntity.parentId,
-        sessionId = spanEntity.sessionId,
-        startTime = spanEntity.startTime.iso8601Timestamp(),
-        endTime = spanEntity.endTime.iso8601Timestamp(),
-        duration = spanEntity.duration,
-        status = spanEntity.status.value,
-        serializedAttributes = spanEntity.serializedAttributes,
-        serializedCheckpoints = spanEntity.serializedCheckpoints,
-        serializedUserDefAttrs = spanEntity.serializedUserDefinedAttrs,
-    )
-
-    fun getCheckpoint(): Checkpoint = Checkpoint(
-        name = "name",
-        timestamp = 98765432L,
-    )
 
     fun getBugReportData(): BugReportData = BugReportData("Bug report description")
 
