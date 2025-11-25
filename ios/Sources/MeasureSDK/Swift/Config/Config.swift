@@ -15,6 +15,10 @@ import Foundation
 /// - Note: If no values are provided during initialization, the struct will use default values specified in `DefaultConfig` where applicable.
 ///
 struct Config: InternalConfig, MeasureConfig {
+    let coldLaunchSamplingRate: Float
+    let warmLaunchSamplingRate: Float
+    let hotLaunchSamplingRate: Float
+    let userJourneysSamplingRate: Float
     let maxDiskUsageInMb: Int
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
@@ -49,7 +53,6 @@ struct Config: InternalConfig, MeasureConfig {
     let maxSpanNameLength: Int
     let maxCheckpointNameLength: Int
     let maxCheckpointsPerSpan: Int
-    let trackViewControllerLoadTime: Bool
     let maxAttachmentsInBugReport: Int
     let maxDescriptionLengthInBugReport: Int
     let shakeAccelerationThreshold: Float
@@ -67,13 +70,16 @@ struct Config: InternalConfig, MeasureConfig {
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
+                  coldLaunchSamplingRate: Float = DefaultConfig.coldLaunchSamplingRate,
+                  warmLaunchSamplingRate: Float = DefaultConfig.warmLaunchSamplingRate,
+                  hotLaunchSamplingRate: Float = DefaultConfig.hotLaunchSamplingRate,
+                  userJourneysSamplingRate: Float = DefaultConfig.userJourneysSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
-                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
                   screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
                   requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                   maxDiskUsageInMb: Int = DefaultConfig.maxEstimatedDiskUsageInMb) {
@@ -86,9 +92,12 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
         self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate
+        self.userJourneysSamplingRate = userJourneysSamplingRate
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
@@ -111,13 +120,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxUserDefinedAttributeKeyLength = 256 // 256 chars
         self.maxUserDefinedAttributeValueLength = 256 // 256 chars
         self.maxUserDefinedAttributesPerEvent = 100
-        self.eventTypeExportAllowList = [.coldLaunch,
-                                         .hotLaunch,
-                                         .warmLaunch,
-                                         .lifecycleSwiftUI,
-                                         .lifecycleViewController,
-                                         .screenView,
-                                         .sessionStart]
+        self.eventTypeExportAllowList = [.sessionStart]
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms

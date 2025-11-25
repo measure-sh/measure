@@ -167,7 +167,6 @@ final class LifecycleCollectorTests: XCTestCase {
     }
 
     func testViewControllerTTIDSpanTracking() {
-        mockConfigProvider.trackViewControllerLoadTime = true
         lifecycleCollector.enable()
 
         // Start span in loadView

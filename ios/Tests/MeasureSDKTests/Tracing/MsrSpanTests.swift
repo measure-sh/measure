@@ -15,7 +15,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     private var idProvider: MockIdProvider!
     private var spanProcessor: MockSpanProcessor!
     private var sessionManager: MockSessionManager!
-    private var traceSampler: MockTraceSampler!
+    private var signalSampler: MockSignalSampler!
 
     override func setUp() {
         super.setUp()
@@ -24,7 +24,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
         idProvider = MockIdProvider()
         spanProcessor = MockSpanProcessor()
         sessionManager = MockSessionManager(sessionId: "session-id")
-        traceSampler = MockTraceSampler()
+        signalSampler = MockSignalSampler()
     }
 
     override func tearDown() {
@@ -33,14 +33,14 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
         idProvider = nil
         spanProcessor = nil
         sessionManager = nil
-        traceSampler = nil
+        signalSampler = nil
         super.tearDown()
     }
 
     func test_startSpan_setsParentSpanIfProvided() {
         let parentSpan = MsrSpan(logger: logger,
                                  timeProvider: timeProvider,
-                                 isSampled: traceSampler.shouldSample(),
+                                 isSampled: signalSampler.shouldTrackTrace(),
                                  name: "parent-span",
                                  spanId: "span-id",
                                  traceId: "trace-id",
@@ -53,7 +53,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: parentSpan,
                                      spanProcessor: spanProcessor)
 
@@ -67,7 +67,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         XCTAssertEqual(span.startTime, 1000)
@@ -80,7 +80,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor,
                                      timestamp: timestamp) as! MsrSpan
@@ -93,7 +93,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         spanProcessor.verifyOnStartCalled(with: span)
@@ -105,7 +105,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         XCTAssertEqual(span.getStatus(), .unset)
@@ -117,7 +117,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setStatus(.ok)
@@ -130,7 +130,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setName("updated-span-name")
@@ -143,7 +143,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         XCTAssertFalse(span.hasEnded())
@@ -155,7 +155,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.end()
@@ -169,7 +169,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         timeProvider.current = 2000
@@ -183,7 +183,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setCheckpoint("checkpoint")
@@ -197,7 +197,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor).end() as! MsrSpan
         span.setCheckpoint("event-id")
@@ -210,7 +210,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setAttribute("key", value: "value")
@@ -223,7 +223,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor).end() as! MsrSpan
         span.setAttribute("key", value: "value")
@@ -236,7 +236,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setAttribute("key", value: "value")
@@ -251,7 +251,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      timeProvider: timeProvider,
                                      sessionManager: sessionManager,
                                      idProvider: idProvider,
-                                     traceSampler: traceSampler,
+                                     signalSampler: signalSampler,
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         timeProvider.current = 2000
@@ -259,67 +259,67 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     }
 
     func test_samplingState_rootSpan() {
-        traceSampler.sample = true
+        signalSampler.shouldTrackTraceReturnValue = true
         let sampledSpan = MsrSpan.startSpan(name: "sampled",
                                             logger: logger,
                                             timeProvider: timeProvider,
                                             sessionManager: sessionManager,
                                             idProvider: idProvider,
-                                            traceSampler: traceSampler,
+                                            signalSampler: signalSampler,
                                             parentSpan: nil,
                                             spanProcessor: spanProcessor)
         XCTAssertTrue(sampledSpan.isSampled)
 
-        traceSampler.sample = false
+        signalSampler.shouldTrackTraceReturnValue = false
         let unsampledSpan = MsrSpan.startSpan(name: "unsampled",
                                               logger: logger,
                                               timeProvider: timeProvider,
                                               sessionManager: sessionManager,
                                               idProvider: idProvider,
-                                              traceSampler: traceSampler,
+                                              signalSampler: signalSampler,
                                               parentSpan: nil,
                                               spanProcessor: spanProcessor)
         XCTAssertFalse(unsampledSpan.isSampled)
     }
 
     func test_samplingState_childSpanInheritsFromParent() {
-        traceSampler.sample = true
+        signalSampler.shouldTrackTraceReturnValue = true
         let parentSpan = MsrSpan.startSpan(name: "parent",
                                            logger: logger,
                                            timeProvider: timeProvider,
                                            sessionManager: sessionManager,
                                            idProvider: idProvider,
-                                           traceSampler: traceSampler,
+                                           signalSampler: signalSampler,
                                            parentSpan: nil,
                                            spanProcessor: spanProcessor)
 
-        traceSampler.sample = false
+        signalSampler.shouldTrackTraceReturnValue = false
         let childSpan = MsrSpan.startSpan(name: "child",
                                           logger: logger,
                                           timeProvider: timeProvider,
                                           sessionManager: sessionManager,
                                           idProvider: idProvider,
-                                          traceSampler: traceSampler,
+                                          signalSampler: signalSampler,
                                           parentSpan: parentSpan,
                                           spanProcessor: spanProcessor)
         XCTAssertTrue(childSpan.isSampled)
 
-        traceSampler.sample = false
+        signalSampler.shouldTrackTraceReturnValue = false
         let unsampledParent = MsrSpan.startSpan(name: "unsampled-parent",
                                                 logger: logger,
                                                 timeProvider: timeProvider,
                                                 sessionManager: sessionManager,
                                                 idProvider: idProvider,
-                                                traceSampler: traceSampler,
+                                                signalSampler: signalSampler,
                                                 parentSpan: nil,
                                                 spanProcessor: spanProcessor)
-        traceSampler.sample = true
+        signalSampler.shouldTrackTraceReturnValue = true
         let unsampledChild = MsrSpan.startSpan(name: "child",
                                                logger: logger,
                                                timeProvider: timeProvider,
                                                sessionManager: sessionManager,
                                                idProvider: idProvider,
-                                               traceSampler: traceSampler,
+                                               signalSampler: signalSampler,
                                                parentSpan: unsampledParent,
                                                spanProcessor: spanProcessor)
         XCTAssertFalse(unsampledChild.isSampled)
@@ -331,7 +331,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                        timeProvider: timeProvider,
                                        sessionManager: sessionManager,
                                        idProvider: idProvider,
-                                       traceSampler: traceSampler,
+                                       signalSampler: signalSampler,
                                        parentSpan: nil,
                                        spanProcessor: spanProcessor)
         let child = MsrSpan.startSpan(name: "child",
@@ -339,7 +339,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                       timeProvider: timeProvider,
                                       sessionManager: sessionManager,
                                       idProvider: idProvider,
-                                      traceSampler: traceSampler,
+                                      signalSampler: signalSampler,
                                       parentSpan: parent,
                                       spanProcessor: spanProcessor)
         XCTAssertEqual(child.traceId, parent.traceId)
@@ -352,7 +352,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                        timeProvider: timeProvider,
                                        sessionManager: sessionManager,
                                        idProvider: idProvider,
-                                       traceSampler: traceSampler,
+                                       signalSampler: signalSampler,
                                        parentSpan: nil,
                                        spanProcessor: spanProcessor)
         let child = MsrSpan.startSpan(name: "child",
@@ -360,7 +360,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                       timeProvider: timeProvider,
                                       sessionManager: sessionManager,
                                       idProvider: idProvider,
-                                      traceSampler: traceSampler,
+                                      signalSampler: signalSampler,
                                       parentSpan: nil,
                                       spanProcessor: spanProcessor)
         child.setParent(parent)

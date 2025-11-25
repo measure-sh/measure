@@ -23,6 +23,7 @@ final class SignalProcessorTests: XCTestCase {
     var spanStore: MockSpanStore!
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
+    var signalSampler: MockSignalSampler!
     let attributes = Attributes(
         threadName: "main",
         deviceName: "iPhone",
@@ -78,6 +79,7 @@ final class SignalProcessorTests: XCTestCase {
         screenshotGenerator = MockScreenshotGenerator()
         eventStore = MockEventStore()
         spanStore = MockSpanStore()
+        signalSampler = MockSignalSampler()
     }
 
     override func tearDown() {
@@ -94,6 +96,7 @@ final class SignalProcessorTests: XCTestCase {
         sessionManager = nil
         eventStore = nil
         screenshotGenerator = nil
+        signalSampler = nil
     }
 
     func testTrackExceptionEventWithNilAttributesAndNilSessionId() {  // swiftlint:disable:this function_body_length
@@ -137,7 +140,8 @@ final class SignalProcessorTests: XCTestCase {
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
                                               spanStore: spanStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue())
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
@@ -190,7 +194,8 @@ final class SignalProcessorTests: XCTestCase {
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
                                               spanStore: spanStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue())
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",
@@ -278,5 +283,207 @@ final class SignalProcessorTests: XCTestCase {
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
         XCTAssertEqual(event.exception, exception)
+    }
+
+    func testLaunchEventTracked_whenSessionShouldReportSessionIsTrue_evenIfSamplingIsFalse() {
+        sessionManager.shouldReportSession = true
+        signalSampler.shouldTrackLaunchEventsReturnValue = false
+        signalSampler.shouldTrackJourneyEventsReturnValue = false
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .coldLaunch,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
+    }
+
+    func testJourneyEventTracked_whenSessionShouldReportSessionIsTrue_evenIfSamplingIsFalse() {
+        sessionManager.shouldReportSession = true
+        signalSampler.shouldTrackLaunchEventsReturnValue = false
+        signalSampler.shouldTrackJourneyEventsReturnValue = false
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .screenView,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
+    }
+
+    func testEventTracked_whenLaunchSamplingAllows_evenIfSessionShouldReportIsFalse() {
+        sessionManager.shouldReportSession = false
+        signalSampler.shouldTrackLaunchEventsReturnValue = true
+        signalSampler.shouldTrackJourneyEventsReturnValue = false
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .coldLaunch,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
+    }
+
+    func testEventTracked_whenJourneySamplingAllows_evenIfSessionShouldReportIsFalse() {
+        sessionManager.shouldReportSession = false
+        signalSampler.shouldTrackLaunchEventsReturnValue = false
+        signalSampler.shouldTrackJourneyEventsReturnValue = true
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .screenView,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
+    }
+
+    func testEventNotTracked_whenSessionFalse_andSamplingFalse_andNotInAllowList() {
+        sessionManager.shouldReportSession = false
+        signalSampler.shouldTrackLaunchEventsReturnValue = false
+        signalSampler.shouldTrackJourneyEventsReturnValue = false
+
+        configProvider.eventTypeExportAllowList = []
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .coldLaunch,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, false, "Event should NOT be tracked when session=false and sampling=false")
+    }
+
+    func testEventTracked_whenInAllowList_evenIfSessionFalse_andSamplingFalse() {
+        sessionManager.shouldReportSession = false
+        signalSampler.shouldTrackLaunchEventsReturnValue = false
+        signalSampler.shouldTrackJourneyEventsReturnValue = false
+
+        configProvider.eventTypeExportAllowList = [.sessionStart]
+
+        signalProcessor = BaseSignalProcessor(
+            logger: logger,
+            idProvider: idProvider,
+            sessionManager: sessionManager,
+            attributeProcessors: [],
+            configProvider: configProvider,
+            timeProvider: BaseTimeProvider(),
+            crashDataPersistence: crashDataPersistence,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            measureDispatchQueue: MockMeasureDispatchQueue(),
+            signalSampler: signalSampler
+        )
+
+        signalProcessor.track(
+            data: "Test",
+            timestamp: 1234,
+            type: .sessionStart,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil,
+            threadName: nil
+        )
+
+        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when allowList contains eventType")
     }
 }

@@ -43,12 +43,13 @@ final class SessionManagerTests: XCTestCase {
                                             logger: logger,
                                             timeProvider: timeProvider,
                                             configProvider: configProvider,
-                                            randomizer: randomizer,
                                             sessionStore: sessionStore,
                                             eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
                                             versionCode: "1.0.0",
-                                            appVersionInfo: appVersionInfo)
+                                            appVersionInfo: appVersionInfo,
+                                            signalSampler: BaseSignalSampler(configProvider: configProvider,
+                                                                             randomizer: randomizer))
         appVersionInfo.appVersion = "1.0.0"
         appVersionInfo.buildNumber = "1"
         userDefaultStorage.setRecentAppVersion("1.0.0")

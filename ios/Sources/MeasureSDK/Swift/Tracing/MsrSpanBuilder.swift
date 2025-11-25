@@ -7,7 +7,7 @@ final class MsrSpanBuilder: SpanBuilder {
     private let timeProvider: TimeProvider
     private let spanProcessor: SpanProcessor
     private let sessionManager: SessionManager
-    private let traceSampler: TraceSampler
+    private let signalSampler: SignalSampler
     private let logger: Logger
     private var parentSpan: Span?
 
@@ -16,14 +16,14 @@ final class MsrSpanBuilder: SpanBuilder {
          timeProvider: TimeProvider,
          spanProcessor: SpanProcessor,
          sessionManager: SessionManager,
-         traceSampler: TraceSampler,
+         signalSampler: SignalSampler,
          logger: Logger) {
         self.name = name
         self.idProvider = idProvider
         self.timeProvider = timeProvider
         self.spanProcessor = spanProcessor
         self.sessionManager = sessionManager
-        self.traceSampler = traceSampler
+        self.signalSampler = signalSampler
         self.logger = logger
     }
 
@@ -43,7 +43,7 @@ final class MsrSpanBuilder: SpanBuilder {
                                  timeProvider: timeProvider,
                                  sessionManager: sessionManager,
                                  idProvider: idProvider,
-                                 traceSampler: traceSampler,
+                                 signalSampler: signalSampler,
                                  parentSpan: parentSpan,
                                  spanProcessor: spanProcessor)
     }
@@ -57,7 +57,7 @@ final class MsrSpanBuilder: SpanBuilder {
                                  timeProvider: timeProvider,
                                  sessionManager: sessionManager,
                                  idProvider: idProvider,
-                                 traceSampler: traceSampler,
+                                 signalSampler: signalSampler,
                                  parentSpan: parentSpan,
                                  spanProcessor: spanProcessor,
                                  timestamp: timestamp)

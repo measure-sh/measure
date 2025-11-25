@@ -47,6 +47,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private let eventStore: EventStore
     private let spanStore: SpanStore
     private let measureDispatchQueue: MeasureDispatchQueue
+    private let signalSampler: SignalSampler
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -57,7 +58,8 @@ final class BaseSignalProcessor: SignalProcessor {
          crashDataPersistence: CrashDataPersistence,
          eventStore: EventStore,
          spanStore: SpanStore,
-         measureDispatchQueue: MeasureDispatchQueue) {
+         measureDispatchQueue: MeasureDispatchQueue,
+         signalSampler: SignalSampler) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -68,6 +70,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.measureDispatchQueue = measureDispatchQueue
+        self.signalSampler = signalSampler
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -162,10 +165,28 @@ final class BaseSignalProcessor: SignalProcessor {
                 userDefinedAttributes: userDefinedAttributes
             )
 
-            self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName )
+            self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            let needsReporting = self.sessionManager.shouldReportSession ||
-            self.configProvider.eventTypeExportAllowList.contains(event.type)
+            var needsReporting = false
+
+            // If session is marked for export everything is tracked
+            if self.sessionManager.shouldReportSession {
+                needsReporting = true
+            } else {
+                // Launch events
+                if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
+                    needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
+                }
+
+                // Journey events
+                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
+                    needsReporting = signalSampler.shouldTrackJourneyEvents()
+                }
+
+                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
+                    needsReporting = true
+                }
+            }
 
             let eventEntity = EventEntity(event, needsReporting: needsReporting)
 

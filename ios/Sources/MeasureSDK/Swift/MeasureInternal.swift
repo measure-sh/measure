@@ -127,9 +127,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
     }
-    var traceSampler: TraceSampler {
-        return measureInitializer.traceSampler
-    }
     var spanCollector: SpanCollector {
         return measureInitializer.spanCollector
     }

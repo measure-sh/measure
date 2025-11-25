@@ -9,6 +9,10 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var coldLaunchSamplingRate: Float
+    var warmLaunchSamplingRate: Float
+    var hotLaunchSamplingRate: Float
+    var userJourneysSamplingRate: Float
     var maxBodySizeBytes: Int
     var maxAttachmentsInBatch: Int
     var lifecycleViewControllerExcludeList: [String]
@@ -46,7 +50,6 @@ final class MockConfigProvider: ConfigProvider {
     var maxSpanNameLength: Int
     var maxCheckpointNameLength: Int
     var maxCheckpointsPerSpan: Int
-    var trackViewControllerLoadTime: Bool
     var screenshotMaskLevel: ScreenshotMaskLevel
     var maxAttachmentsInBugReport: Int
     var maxDescriptionLengthInBugReport: Int
@@ -64,6 +67,10 @@ final class MockConfigProvider: ConfigProvider {
     init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
          samplingRateForErrorFreeSessions: Float = 1.0,
+         coldLaunchSamplingRate: Float = 1,
+         warmLaunchSamplingRate: Float = 1,
+         hotLaunchSamplingRate: Float = 1,
+         userJourneysSamplingRate: Float = 1,
          eventsBatchingIntervalMs: Number = 30000,
          sessionEndLastEventThresholdMs: Number = 60 * 1000,
          longPressTimeout: TimeInterval = 500,
@@ -105,7 +112,6 @@ final class MockConfigProvider: ConfigProvider {
          maxSpanNameLength: Int = 64,
          maxCheckpointNameLength: Int = 64,
          maxCheckpointsPerSpan: Int = 100,
-         trackViewControllerLoadTime: Bool = true,
          screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
          maxAttachmentsInBugReport: Int = 5,
          maxDescriptionLengthInBugReport: Int = 4000,
@@ -122,6 +128,10 @@ final class MockConfigProvider: ConfigProvider {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate
+        self.userJourneysSamplingRate = userJourneysSamplingRate
         self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
         self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
         self.longPressTimeout = longPressTimeout
@@ -153,7 +163,6 @@ final class MockConfigProvider: ConfigProvider {
         self.maxSpanNameLength = maxSpanNameLength
         self.maxCheckpointNameLength = maxCheckpointNameLength
         self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
         self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
         self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport

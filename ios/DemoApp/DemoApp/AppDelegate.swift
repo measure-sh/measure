@@ -22,14 +22,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 return requestHeaders
             }
         }
-        let config = BaseMeasureConfig(enableLogging: true,
-                                       samplingRateForErrorFreeSessions: 1.0,
-                                       traceSamplingRate: 1.0,
-                                       autoStart: true,
-                                       trackViewControllerLoadTime: true,
-                                       screenshotMaskLevel: .sensitiveFieldsOnly,
-                                       requestHeadersProvider: CustomHeaderProvider())
-        Measure.initialize(with: clientInfo, config: config)
+        let measureConfig = BaseMeasureConfig(enableLogging: true,
+                                              samplingRateForErrorFreeSessions: 1,
+                                              traceSamplingRate: 1,
+                                              coldLaunchSamplingRate: 1,
+                                              warmLaunchSamplingRate: 1,
+                                              hotLaunchSamplingRate: 1,
+                                              userJourneysSamplingRate: 1,
+                                              trackHttpHeaders: true,
+                                              trackHttpBody: true,
+                                              httpHeadersBlocklist: nil,
+                                              httpUrlBlocklist: nil,
+                                              httpUrlAllowlist: nil,
+                                              autoStart: true,
+                                              screenshotMaskLevel: .allTextAndMedia,
+                                              requestHeadersProvider: CustomHeaderProvider(),
+                                              maxDiskUsageInMb: 100)
+        Measure.initialize(with: clientInfo, config: measureConfig)
         Measure.setUserId("test_user_ios")
         Measure.onShake {
             Measure.launchBugReport(takeScreenshot: true, bugReportConfig: BugReportConfig.default, attributes: nil)

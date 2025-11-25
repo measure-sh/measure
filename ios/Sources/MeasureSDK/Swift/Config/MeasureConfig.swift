@@ -18,10 +18,13 @@ protocol MeasureConfig {
     var httpUrlBlocklist: [String] { get }
     var httpUrlAllowlist: [String] { get }
     var autoStart: Bool { get }
-    var trackViewControllerLoadTime: Bool { get }
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
     var maxDiskUsageInMb: Int { get }
+    var coldLaunchSamplingRate: Float { get }
+    var warmLaunchSamplingRate: Float { get }
+    var hotLaunchSamplingRate: Float { get }
+    var userJourneysSamplingRate: Float { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -29,12 +32,29 @@ protocol MeasureConfig {
     /// Whether to enable internal SDK logging. Defaults to `false`.
     let enableLogging: Bool
 
-    /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
+    /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 0.
     let samplingRateForErrorFreeSessions: Float
 
-    /// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.1.
+    /// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.0001.
     /// For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     let traceSamplingRate: Float
+
+    /// The sampling rate for cold launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let coldLaunchSamplingRate: Float
+
+    /// The sampling rate for warm launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let warmLaunchSamplingRate: Float
+
+    /// The sampling rate for hot launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
+    let hotLaunchSamplingRate: Float
+
+    /// Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    /// When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`
+    ///
+    /// Defaults to 0.
+    ///
+    /// If a value of 0.1 is set, then 10% of the sessions will contain events required to build the journey which includes screen view, lifecycle view controller.
+    let userJourneysSamplingRate: Float
 
     /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
     let autoStart: Bool
@@ -76,23 +96,6 @@ protocol MeasureConfig {
     ///
     let httpUrlAllowlist: [String]
 
-    /// Enables or disables automatic collection of ViewController load time. Defaults to `true`.
-    ///
-    /// ViewController load time measures the time between when the ViewController's view is loaded
-    /// and the first frame is drawn on the screen. This is also known as **Time to First Frame (TTF)**
-    /// or **Time to Initial Display (TTID)**.
-    ///
-    /// A large TTID value means users are waiting too long before any content appears on screen during
-    /// app navigation.
-    ///
-    /// Each ViewController load time is captured as a `Span` with the name
-    /// `VC TTID <class name>`. For example, for a class
-    /// `MainViewController`, the span name would be:
-    /// `VC TTID MainViewController`.
-    ///
-    /// Set to `false` to disable this tracking.
-    let trackViewControllerLoadTime: Bool
-
     /// Allows changing the masking level of screenshots to prevent sensitive information from leaking.
     /// Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     let screenshotMaskLevel: ScreenshotMaskLevel
@@ -132,10 +135,13 @@ protocol MeasureConfig {
         httpHeadersBlocklist = try container.decodeIfPresent([String].self, forKey: .httpHeadersBlocklist) ?? DefaultConfig.httpHeadersBlocklist
         httpUrlBlocklist = try container.decodeIfPresent([String].self, forKey: .httpUrlBlocklist) ?? DefaultConfig.httpUrlBlocklist
         httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
-        trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
         maxDiskUsageInMb = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) ?? DefaultConfig.maxEstimatedDiskUsageInMb
+        coldLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate) ?? DefaultConfig.coldLaunchSamplingRate
+        warmLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate) ?? DefaultConfig.warmLaunchSamplingRate
+        hotLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.hotLaunchSamplingRate
+        userJourneysSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.userJourneysSamplingRate
 
         super.init()
     }
@@ -150,10 +156,13 @@ protocol MeasureConfig {
         case httpHeadersBlocklist
         case httpUrlBlocklist
         case httpUrlAllowlist
-        case trackViewControllerLoadTime
         case screenshotMaskLevel
         // requestHeadersProvider is not encodable
         case maxDiskUsageInMb
+        case coldLaunchSamplingRate
+        case warmLaunchSamplingRate
+        case hotLaunchSamplingRate
+        case userJourneysSamplingRate
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -167,9 +176,12 @@ protocol MeasureConfig {
         try container.encode(httpHeadersBlocklist, forKey: .httpHeadersBlocklist)
         try container.encode(httpUrlBlocklist, forKey: .httpUrlBlocklist)
         try container.encode(httpUrlAllowlist, forKey: .httpUrlAllowlist)
-        try container.encode(trackViewControllerLoadTime, forKey: .trackViewControllerLoadTime)
         try container.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
         try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
+        try container.encode(coldLaunchSamplingRate, forKey: .coldLaunchSamplingRate)
+        try container.encode(warmLaunchSamplingRate, forKey: .warmLaunchSamplingRate)
+        try container.encode(hotLaunchSamplingRate, forKey: .hotLaunchSamplingRate)
+        try container.encode(userJourneysSamplingRate, forKey: .userJourneysSamplingRate)
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -179,6 +191,14 @@ protocol MeasureConfig {
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - coldLaunchSamplingRate: Sampling rate for cold launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
     ///   - httpHeadersBlocklist:List of HTTP headers to not collect with the `http` event for both request and response. Defaults to an empty list. The following headers are always excluded:
@@ -198,20 +218,22 @@ protocol MeasureConfig {
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
-    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     public init(enableLogging: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 traceSamplingRate: Float? = nil,
+                coldLaunchSamplingRate: Float? = nil,
+                warmLaunchSamplingRate: Float? = nil,
+                hotLaunchSamplingRate: Float? = nil,
+                userJourneysSamplingRate: Float? = nil,
                 trackHttpHeaders: Bool? = nil,
                 trackHttpBody: Bool? = nil,
                 httpHeadersBlocklist: [String]? = nil,
                 httpUrlBlocklist: [String]? = nil,
                 httpUrlAllowlist: [String]? = nil,
                 autoStart: Bool? = nil,
-                trackViewControllerLoadTime: Bool? = nil,
                 screenshotMaskLevel: ScreenshotMaskLevel? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil) {
@@ -224,10 +246,13 @@ protocol MeasureConfig {
         self.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist
         self.autoStart = autoStart ?? DefaultConfig.autoStart
-        self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxEstimatedDiskUsageInMb
+        self.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate
+        self.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate
+        self.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate
+        self.userJourneysSamplingRate = userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")
@@ -245,6 +270,14 @@ protocol MeasureConfig {
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - coldLaunchSamplingRate: Sampling rate for cold launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
+    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
     ///   - httpHeadersBlocklist:List of HTTP headers to not collect with the `http` event for both request and response. Defaults to an empty list. The following headers are always excluded:
@@ -264,33 +297,38 @@ protocol MeasureConfig {
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
-    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     @objc public convenience init(enableLogging: Bool,
                                   samplingRateForErrorFreeSessions: Float,
                                   traceSamplingRate: Float,
+                                  coldLaunchSamplingRate: Float,
+                                  warmLaunchSamplingRate: Float,
+                                  hotLaunchSamplingRate: Float,
+                                  userJourneysSamplingRate: Float,
                                   trackHttpHeaders: Bool,
                                   trackHttpBody: Bool,
                                   httpHeadersBlocklist: [String],
                                   httpUrlBlocklist: [String],
                                   httpUrlAllowlist: [String],
                                   autoStart: Bool,
-                                  trackViewControllerLoadTime: Bool,
                                   screenshotMaskLevel: ScreenshotMaskLevelObjc,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,
                                   maxDiskUsageInMb: NSNumber?) {
         self.init(enableLogging: enableLogging,
                   samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions,
                   traceSamplingRate: traceSamplingRate,
+                  coldLaunchSamplingRate: coldLaunchSamplingRate,
+                  warmLaunchSamplingRate: warmLaunchSamplingRate,
+                  hotLaunchSamplingRate: hotLaunchSamplingRate,
+                  userJourneysSamplingRate: userJourneysSamplingRate,
                   trackHttpHeaders: trackHttpHeaders,
                   trackHttpBody: trackHttpBody,
                   httpHeadersBlocklist: httpHeadersBlocklist,
                   httpUrlBlocklist: httpUrlBlocklist,
                   httpUrlAllowlist: httpUrlAllowlist,
                   autoStart: autoStart,
-                  trackViewControllerLoadTime: trackViewControllerLoadTime,
                   screenshotMaskLevel: screenshotMaskLevel.toSwiftValue(),
                   requestHeadersProvider: requestHeadersProvider,
                   maxDiskUsageInMb: maxDiskUsageInMb?.intValue)

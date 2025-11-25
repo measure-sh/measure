@@ -49,6 +49,22 @@ final class BaseConfigProvider: ConfigProvider {
         return self.httpUrlBlocklist
     }()
 
+    var userJourneysSamplingRate: Float {
+        return getMergedConfig(\.userJourneysSamplingRate)
+    }
+
+    var coldLaunchSamplingRate: Float {
+        return getMergedConfig(\.coldLaunchSamplingRate)
+    }
+
+    var warmLaunchSamplingRate: Float {
+        return getMergedConfig(\.warmLaunchSamplingRate)
+    }
+
+    var hotLaunchSamplingRate: Float {
+        return getMergedConfig(\.hotLaunchSamplingRate)
+    }
+
     var maxBodySizeBytes: Int {
         return getMergedConfig(\.maxBodySizeBytes)
     }
@@ -103,10 +119,6 @@ final class BaseConfigProvider: ConfigProvider {
 
     var maxDescriptionLengthInBugReport: Int {
         return getMergedConfig(\.maxDescriptionLengthInBugReport)
-    }
-
-    var trackViewControllerLoadTime: Bool {
-        return getMergedConfig(\.trackViewControllerLoadTime)
     }
 
     var maxSpanNameLength: Int {

@@ -58,7 +58,6 @@ protocol MeasureInitializer {
     var svgGenerator: SvgGenerator { get }
     var appVersionInfo: AppVersionInfo { get }
     var httpEventValidator: HttpEventValidator { get }
-    var traceSampler: TraceSampler { get }
     var randomizer: Randomizer { get }
     var spanProcessor: SpanProcessor { get }
     var tracer: Tracer { get }
@@ -75,6 +74,7 @@ protocol MeasureInitializer {
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
     var attachmentExporter: AttachmentExporter { get }
+    var signalSampler: SignalSampler { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -132,7 +132,6 @@ protocol MeasureInitializer {
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
-/// - `traceSampler`: `TraceSampler` object that manages trace sampling.
 /// - `randomizer`: `Randomizer` object that generates random numbers.
 /// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
 /// - `tracer`: `Tracer` object to create and manage tracing spans.
@@ -144,6 +143,7 @@ protocol MeasureInitializer {
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
 /// - `attachmentExporter`: `AttachmentExporter` object that exports attachments.
+/// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -194,7 +194,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
-    let traceSampler: TraceSampler
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
     let spanCollector: SpanCollector
@@ -211,23 +210,26 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
     let attachmentExporter: AttachmentExporter
+    let signalSampler: SignalSampler
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
                                    traceSamplingRate: config.traceSamplingRate,
+                                   coldLaunchSamplingRate: config.coldLaunchSamplingRate,
+                                   warmLaunchSamplingRate: config.warmLaunchSamplingRate,
+                                   hotLaunchSamplingRate: config.hotLaunchSamplingRate,
+                                   userJourneysSamplingRate: config.userJourneysSamplingRate,
                                    trackHttpHeaders: config.trackHttpHeaders,
                                    trackHttpBody: config.trackHttpBody,
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,
                                    httpUrlBlocklist: config.httpUrlBlocklist,
                                    httpUrlAllowlist: config.httpUrlAllowlist,
                                    autoStart: config.autoStart,
-                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime,
                                    screenshotMaskLevel: config.screenshotMaskLevel,
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
-
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
         self.timeProvider = BaseTimeProvider()
@@ -240,6 +242,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.eventStore = BaseEventStore(coreDataManager: coreDataManager,
                                          logger: logger)
         self.userDefaultStorage = BaseUserDefaultStorage()
+        self.randomizer = BaseRandomizer()
+        self.signalSampler = BaseSignalSampler(configProvider: configProvider,
+                                               randomizer: randomizer)
         self.sessionManager = BaseSessionManager(idProvider: idProvider,
                                                  logger: logger,
                                                  timeProvider: timeProvider,
@@ -248,7 +253,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
                                                  versionCode: FrameworkInfo.version,
-                                                 appVersionInfo: appVersionInfo)
+                                                 appVersionInfo: appVersionInfo,
+                                                 signalSampler: signalSampler)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
@@ -287,7 +293,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    crashDataPersistence: crashDataPersistence,
                                                    eventStore: eventStore,
                                                    spanStore: spanStore,
-                                                   measureDispatchQueue: measureDispatchQueue)
+                                                   measureDispatchQueue: measureDispatchQueue,
+                                                   signalSampler: signalSampler)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
@@ -340,8 +347,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      heartbeat: heartbeat,
                                                      exporter: exporter,
                                                      dispatchQueue: MeasureQueue.periodicEventExporter)
-        self.randomizer = BaseRandomizer()
-        self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
         self.spanProcessor = BaseSpanProcessor(logger: logger,
                                                signalProcessor: signalProcessor,
                                                attributeProcessors: attributeProcessors,
@@ -351,7 +356,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                 timeProvider: timeProvider,
                                 spanProcessor: spanProcessor,
                                 sessionManager: sessionManager,
-                                traceSampler: traceSampler)
+                                signalSampler: signalSampler)
         self.spanCollector = BaseSpanCollector(tracer: tracer)
         self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,

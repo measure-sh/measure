@@ -13,20 +13,20 @@ final class MsrTracer: Tracer {
     private let timeProvider: TimeProvider
     private let spanProcessor: SpanProcessor
     private let sessionManager: SessionManager
-    private let traceSampler: TraceSampler
+    private let signalSampler: SignalSampler
 
     init(logger: Logger,
          idProvider: IdProvider,
          timeProvider: TimeProvider,
          spanProcessor: SpanProcessor,
          sessionManager: SessionManager,
-         traceSampler: TraceSampler) {
+         signalSampler: SignalSampler) {
         self.logger = logger
         self.idProvider = idProvider
         self.timeProvider = timeProvider
         self.spanProcessor = spanProcessor
         self.sessionManager = sessionManager
-        self.traceSampler = traceSampler
+        self.signalSampler = signalSampler
     }
 
     func spanBuilder(name: String) -> SpanBuilder {
@@ -35,7 +35,7 @@ final class MsrTracer: Tracer {
                               timeProvider: timeProvider,
                               spanProcessor: spanProcessor,
                               sessionManager: sessionManager,
-                              traceSampler: traceSampler,
+                              signalSampler: signalSampler,
                               logger: logger)
     }
 

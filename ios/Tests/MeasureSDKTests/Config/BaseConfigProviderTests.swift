@@ -79,15 +79,7 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributeKeyLength, 256)
         XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributeValueLength, 256)
         XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributesPerEvent, 100)
-        XCTAssertEqual(baseConfigProvider.eventTypeExportAllowList, [
-                .coldLaunch,
-                .hotLaunch,
-                .warmLaunch,
-                .lifecycleSwiftUI,
-                .lifecycleViewController,
-                .screenView,
-                .sessionStart
-            ])
+        XCTAssertEqual(baseConfigProvider.eventTypeExportAllowList, [.sessionStart])
         XCTAssertTrue(baseConfigProvider.autoStart)
         XCTAssertEqual(baseConfigProvider.maxSpanNameLength, 64)
         XCTAssertEqual(baseConfigProvider.maxCheckpointNameLength, 64)

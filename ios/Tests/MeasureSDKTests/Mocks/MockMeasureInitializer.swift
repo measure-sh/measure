@@ -9,6 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
+    let signalSampler: SignalSampler
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -58,7 +59,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
-    let traceSampler: TraceSampler
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
     let spanCollector: SpanCollector
@@ -123,7 +123,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
          userAttributeProcessor: UserAttributeProcessor? = nil,
-         traceSampler: TraceSampler? = nil,
          randomizer: Randomizer? = nil,
          spanProcessor: SpanProcessor? = nil,
          spanCollector: SpanCollector? = nil,
@@ -133,10 +132,14 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          measureDispatchQueue: MeasureDispatchQueue? = nil,
          attributeValueValidator: AttributeValueValidator? = nil,
          attachmentStore: AttachmentStore? = nil,
-         attachmentExporter: AttachmentExporter? = nil) {
+         attachmentExporter: AttachmentExporter? = nil,
+         signalSampler: SignalSampler? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
+        self.randomizer = randomizer ?? BaseRandomizer()
+        self.signalSampler = signalSampler ?? BaseSignalSampler(configProvider: self.configProvider,
+                                                                randomizer: self.randomizer)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
         self.appVersionInfo = appVersionInfo ?? BaseAppVersionInfo()
         self.logger = logger ?? MockLogger()
@@ -159,7 +162,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    eventStore: self.eventStore,
                                                                    userDefaultStorage: self.userDefaultStorage,
                                                                    versionCode: FrameworkInfo.version,
-                                                                   appVersionInfo: self.appVersionInfo)
+                                                                   appVersionInfo: self.appVersionInfo,
+                                                                   signalSampler: self.signalSampler)
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
@@ -196,7 +200,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                       crashDataPersistence: self.crashDataPersistence,
                                                                       eventStore: self.eventStore,
                                                                       spanStore: self.spanStore,
-                                                                      measureDispatchQueue: self.measureDispatchQueue)
+                                                                      measureDispatchQueue: self.measureDispatchQueue,
+                                                                      signalSampler: self.signalSampler)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
                                                                               signalProcessor: self.signalProcessor,
@@ -247,9 +252,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                          heartbeat: self.heartbeat,
                                                                          exporter: self.exporter,
                                                                          dispatchQueue: MeasureQueue.periodicEventExporter)
-        self.randomizer = randomizer ?? BaseRandomizer()
-        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider,
-                                                             randomizer: self.randomizer)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                                 signalProcessor: self.signalProcessor,
                                                                 attributeProcessors: attributeProcessors,
@@ -259,7 +261,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                           timeProvider: self.timeProvider,
                                           spanProcessor: self.spanProcessor,
                                           sessionManager: self.sessionManager,
-                                          traceSampler: self.traceSampler)
+                                          signalSampler: self.signalSampler)
         self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
         self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
                                                                                timeProvider: self.timeProvider,

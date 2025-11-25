@@ -14,7 +14,7 @@ final class MsrSpanBuilderTests: XCTestCase {
     private var logger: MockLogger!
     private var spanProcessor: MockSpanProcessor!
     private var sessionManager: MockSessionManager!
-    private var traceSampler: MockTraceSampler!
+    private var signalSampler: MockSignalSampler!
 
     override func setUp() {
         super.setUp()
@@ -23,7 +23,7 @@ final class MsrSpanBuilderTests: XCTestCase {
         logger = MockLogger()
         spanProcessor = MockSpanProcessor()
         sessionManager = MockSessionManager(sessionId: "session-id")
-        traceSampler = MockTraceSampler()
+        signalSampler = MockSignalSampler()
     }
 
     override func tearDown() {
@@ -32,7 +32,7 @@ final class MsrSpanBuilderTests: XCTestCase {
         logger = nil
         spanProcessor = nil
         sessionManager = nil
-        traceSampler = nil
+        signalSampler = nil
         super.tearDown()
     }
 
@@ -42,7 +42,7 @@ final class MsrSpanBuilderTests: XCTestCase {
                                            timeProvider: timeProvider,
                                            sessionManager: sessionManager,
                                            idProvider: idProvider,
-                                           traceSampler: traceSampler,
+                                           signalSampler: signalSampler,
                                            parentSpan: nil,
                                            spanProcessor: spanProcessor)
 
@@ -51,7 +51,7 @@ final class MsrSpanBuilderTests: XCTestCase {
                                   timeProvider: timeProvider,
                                   spanProcessor: spanProcessor,
                                   sessionManager: sessionManager,
-                                  traceSampler: traceSampler,
+                                  signalSampler: signalSampler,
                                   logger: logger).setParent(parentSpan).startSpan()
 
         XCTAssertEqual(span.parentId, parentSpan.spanId)
@@ -64,7 +64,7 @@ final class MsrSpanBuilderTests: XCTestCase {
                                   timeProvider: timeProvider,
                                   spanProcessor: spanProcessor,
                                   sessionManager: sessionManager,
-                                  traceSampler: traceSampler,
+                                  signalSampler: signalSampler,
                                   logger: logger).startSpan() as? MsrSpan
 
         XCTAssertEqual(span!.startTime, 100000)
@@ -76,7 +76,7 @@ final class MsrSpanBuilderTests: XCTestCase {
                                   timeProvider: timeProvider,
                                   spanProcessor: spanProcessor,
                                   sessionManager: sessionManager,
-                                  traceSampler: traceSampler,
+                                  signalSampler: signalSampler,
                                   logger: logger).startSpan(1000001) as? MsrSpan
 
         XCTAssertEqual(span!.startTime, 1000001)
