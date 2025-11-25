@@ -188,6 +188,8 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
 POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure
 
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=dummY_pa55w0rd
 CLICKHOUSE_ADMIN_USER=app_admin
 CLICKHOUSE_ADMIN_PASSWORD=dummY_pa55w0rd
 CLICKHOUSE_OPERATOR_USER=app_operator
@@ -335,6 +337,8 @@ POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
 POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure
 
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=$CLICKHOUSE_ADMIN_PASSWORD
 CLICKHOUSE_ADMIN_USER=app_admin
 CLICKHOUSE_ADMIN_PASSWORD=$CLICKHOUSE_ADMIN_PASSWORD
 CLICKHOUSE_OPERATOR_USER=app_operator
@@ -641,6 +645,14 @@ ensure() {
     clickhouse_operator_password="dummY_pa55w0rd"
     clickhouse_reader_password="dummY_pa55w0rd"
 
+    if ! check_env_variable "CLICKHOUSE_USER"; then
+      add_env_variable "CLICKHOUSE_USER" "default" "POSTGRES_DSN"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_USER"
+    fi
+
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
       add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
     fi
@@ -688,6 +700,14 @@ ensure() {
     clickhouse_admin_password=$(generate_password 24)
     clickhouse_operator_password=$(generate_password 24)
     clickhouse_reader_password=$(generate_password 24)
+
+    if ! check_env_variable "CLICKHOUSE_USER"; then
+      add_env_variable "CLICKHOUSE_USER" "default" "POSTGRES_DSN"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_USER"
+    fi
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
       add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"

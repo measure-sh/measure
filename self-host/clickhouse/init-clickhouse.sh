@@ -5,10 +5,11 @@ set -euo pipefail
 # Primary database name
 DB_NAME=measure
 
-clickhouse-client \
-  --user default \
+clickhouse-client -n \
+  --user "${CLICKHOUSE_USER}" \
+  --password "${CLICKHOUSE_PASSWORD}" \
   --query "create user '${CLICKHOUSE_ADMIN_USER}' identified with sha256_password by '${CLICKHOUSE_ADMIN_PASSWORD}'" \
-  --query "grant all on *.* to '${CLICKHOUSE_ADMIN_USER}' with grant option;" \
+  --query "grant current grants on *.* to '${CLICKHOUSE_ADMIN_USER}' with grant option;" \
   --query "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 
 clickhouse-client -n \

@@ -32,7 +32,7 @@ In the repo root, run
 
 ```sh
 npm install
-npm prepare
+npm run prepare
 ```
 
 The above commands would install the required dependencies and setup git hooks as intended. This is a one-time setup, unless you do a fresh clone again.
@@ -45,10 +45,10 @@ Change to `self-host` directory.
 cd self-host
 ```
 
-Next, run `./config.sh`
+Next, configure the environment variables.
 
 ```sh
-./config.sh
+./config.sh --development --wizard
 ```
 
 This will start the configuration wizard and prepare all the environment variable files tuned for local development.
@@ -72,6 +72,12 @@ Alternatively, you could build and up the containers in separate steps, like thi
 ```sh
 docker compose build
 docker compose --profile migrate up
+```
+
+Additionally, run the following script to finish migration.
+
+```sh
+./migrations/v0.9.x-data-backfills.sh
 ```
 
 For automatic file watching using docker compose, run:
@@ -316,6 +322,12 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
 
     ```sh
     docker compose run --rm dbmate-clickhouse migrate
+    ```
+
+5. Run backfills script
+
+   ```sh
+    ./migrations/v0.9.x-data-backfills.sh
     ```
 
 5. Start development

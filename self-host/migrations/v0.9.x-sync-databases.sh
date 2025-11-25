@@ -21,38 +21,6 @@ shutdown_measure_services() {
   fi
 }
 
-# Start the postgres service
-start_postgres_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d postgres
-}
-
-# Shutdown the postgres service
-shutdown_postgres_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    down postgres
-}
-
-# Start the clickhouse service
-start_clickhouse_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    up --wait -d clickhouse
-}
-
-# Shutdown the clickhouse service
-shutdown_clickhouse_service() {
-  $DOCKER_COMPOSE \
-    --file compose.yml \
-    --file compose.prod.yml \
-    down clickhouse
-}
-
 # Migrate the Postgres database
 #
 # - Creates the 'measure' database if it doesn't exist
@@ -161,7 +129,7 @@ migrate_clickhouse_database() {
   dbname=measure
 
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="create user if not exists $admin_user identified with sha256_password by '$admin_password';"
-  $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="grant all on *.* to '$admin_user' with grant option;"
+  $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="grant current grants on *.* to '$admin_user' with grant option;"
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="create database if not exists $dbname;"
   tables=$($DOCKER_COMPOSE exec clickhouse clickhouse-client --query="select name from system.tables where database = 'default';" --format=TabSeparatedRaw)
 
