@@ -295,6 +295,7 @@
 		CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D782DAFDA530095115E /* MockSpanStore.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
+		CFF5AE902ED5E912003BCA79 /* MeasureConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -638,6 +639,7 @@
 		CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpanBuilderTests.swift; sourceTree = "<group>"; };
 		CFD88D782DAFDA530095115E /* MockSpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSpanStore.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
+		CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfigTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1053,6 +1055,7 @@
 			children = (
 				69F6D44A2DFAA2D4000367EA /* ClientInfoTests.swift */,
 				52B7F0E32D757F81001498BC /* BaseConfigProviderTests.swift */,
+				CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -1855,6 +1858,7 @@
 				52B7F1652D757F81001498BC /* MockScreenshotGenerator.swift in Sources */,
 				52B7F1582D757F81001498BC /* MockConfigProvider.swift in Sources */,
 				CF1BB4FF2DDF35E600588506 /* MockMotionManager.swift in Sources */,
+				CFF5AE902ED5E912003BCA79 /* MeasureConfigTests.swift in Sources */,
 				52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */,
 				52B7F16F2D757F81001498BC /* CpuUsageCollectorTests.swift in Sources */,
 				52B7F13B2D757F81001498BC /* EventStoreTests.swift in Sources */,

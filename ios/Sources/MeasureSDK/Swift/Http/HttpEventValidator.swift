@@ -44,7 +44,7 @@ final class BaseHttpEventValidator: HttpEventValidator {
             return body
         }
 
-        var trimmedData = data.prefix(maxBodySizeBytes)
+        let trimmedData = data.prefix(maxBodySizeBytes)
 
         var trimmedString: String? = String(data: trimmedData, encoding: .utf8)
         if trimmedString == nil {
