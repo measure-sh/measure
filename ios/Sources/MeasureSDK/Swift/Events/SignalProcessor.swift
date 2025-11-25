@@ -169,27 +169,23 @@ final class BaseSignalProcessor: SignalProcessor {
 
             var needsReporting = false
 
-            // If session is marked for export → everything is tracked
+            // If session is marked for export everything is tracked
             if self.sessionManager.shouldReportSession {
                 needsReporting = true
             } else {
-                var shouldTrackEvent = false
-
                 // Launch events
                 if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
-                    shouldTrackEvent = signalSampler.shouldTrackLaunchEvents(type: event.type)
+                    needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
                 }
 
                 // Journey events
                 if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
-                    shouldTrackEvent = signalSampler.shouldTrackJourneyEvents()
+                    needsReporting = signalSampler.shouldTrackJourneyEvents()
                 }
 
                 if self.configProvider.eventTypeExportAllowList.contains(event.type) {
-                    shouldTrackEvent = true
+                    needsReporting = true
                 }
-
-                needsReporting = shouldTrackEvent
             }
 
             let eventEntity = EventEntity(event, needsReporting: needsReporting)
