@@ -141,7 +141,7 @@ protocol MeasureConfig {
         coldLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate) ?? DefaultConfig.coldLaunchSamplingRate
         warmLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate) ?? DefaultConfig.warmLaunchSamplingRate
         hotLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.hotLaunchSamplingRate
-        userJourneysSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.userJourneysSamplingRate
+        userJourneysSamplingRate = try container.decodeIfPresent(Float.self, forKey: .userJourneysSamplingRate) ?? DefaultConfig.userJourneysSamplingRate
 
         super.init()
     }
