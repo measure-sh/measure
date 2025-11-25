@@ -165,20 +165,31 @@ final class BaseSignalProcessor: SignalProcessor {
                 userDefinedAttributes: userDefinedAttributes
             )
 
-            self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName )
+            self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            // Track events if session needs to be reported or if the event should always be tracked
-            var needsReporting = self.sessionManager.shouldReportSession ||
-            self.configProvider.eventTypeExportAllowList.contains(event.type)
+            var needsReporting = false
 
-            // Apply launch event sampling
-            if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
-                needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
-            }
+            // If session is marked for export → everything is tracked
+            if self.sessionManager.shouldReportSession {
+                needsReporting = true
+            } else {
+                var shouldTrackEvent = false
 
-            // Apply user journey sampling
-            if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
-                needsReporting = signalSampler.shouldTrackJourneyEvents()
+                // Launch events
+                if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
+                    shouldTrackEvent = signalSampler.shouldTrackLaunchEvents(type: event.type)
+                }
+
+                // Journey events
+                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
+                    shouldTrackEvent = signalSampler.shouldTrackJourneyEvents()
+                }
+
+                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
+                    shouldTrackEvent = true
+                }
+
+                needsReporting = shouldTrackEvent
             }
 
             let eventEntity = EventEntity(event, needsReporting: needsReporting)
