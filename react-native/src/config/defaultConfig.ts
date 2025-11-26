@@ -1,3 +1,5 @@
+import { ScreenshotMaskLevel } from "./screenshotMaskLevel";
+
 /// Default values for configuration options for the Measure SDK.
 export const DefaultConfig = {
   enableLogging: false,
@@ -19,5 +21,7 @@ export const DefaultConfig = {
     "Authorization",
     "Content-Length"
   ],
-  customEventNameRegex: "^[a-zA-Z0-9_-]+\$"
+  customEventNameRegex: "^[a-zA-Z0-9_-]+\$",
+  screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
+  maxDiskUsageInMb: 50,
 };

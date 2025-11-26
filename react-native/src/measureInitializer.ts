@@ -78,6 +78,8 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       config?.httpUrlBlocklist,
       config?.httpUrlAllowlist,
       config?.autoStart,
+      config?.screenshotMaskLevel,
+      config?.maxDiskUsageInMb,
     );
     this.configLoader = new BaseConfigLoader();
     this.configProvider = new BaseConfigProvider(
