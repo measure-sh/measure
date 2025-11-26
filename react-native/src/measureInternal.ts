@@ -39,6 +39,10 @@ export class MeasureInternal {
         new MeasureConfig(
           DefaultConfig.enableLogging,
           DefaultConfig.sessionSamplingRate,
+          DefaultConfig.coldLaunchSamplingRate,
+          DefaultConfig.warmLaunchSamplingRate,
+          DefaultConfig.hotLaunchSamplingRate,
+          DefaultConfig.userJourneysSamplingRate,
           DefaultConfig.traceSamplingRate,
           DefaultConfig.trackHttpHeaders,
           DefaultConfig.trackHttpBody,
@@ -46,7 +50,6 @@ export class MeasureInternal {
           DefaultConfig.httpUrlBlocklist,
           DefaultConfig.httpUrlAllowlist,
           DefaultConfig.autoStart,
-          DefaultConfig.trackViewControllerLoadTime
         ),
       this.measureInitializer.logger
     );

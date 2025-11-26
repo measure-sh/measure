@@ -49,7 +49,6 @@ export const Measure = {
    * [],     // httpUrlBlocklist
    * [],     // httpUrlAllowlist
    * false,  // autoStart
-   * true    // trackViewControllerLoadTime
    * );
    *
    * Measure.init(client, measureConfig);
