@@ -1,6 +1,7 @@
 import { DefaultConfig } from './defaultConfig';
 import type { InternalConfig } from './internalConfig';
 import type { MeasureConfigInterface } from './measureConfig';
+import type { ScreenshotMaskLevel } from './screenshotMaskLevel';
 
 export class Config implements InternalConfig, MeasureConfigInterface {
   maxEventNameLength: number;
@@ -21,6 +22,8 @@ export class Config implements InternalConfig, MeasureConfigInterface {
   maxSpanNameLength: number;
   maxCheckpointNameLength: number;
   maxCheckpointsPerSpan: number;
+  screenshotMaskLevel: ScreenshotMaskLevel;
+  maxDiskUsageInMb: number;
 
   constructor(
     enableLogging?: boolean,
@@ -36,6 +39,8 @@ export class Config implements InternalConfig, MeasureConfigInterface {
     httpUrlBlocklist?: string[],
     httpUrlAllowlist?: string[],
     autoStart?: boolean,
+    screenshotMaskLevel?: ScreenshotMaskLevel,
+    maxDiskUsageInMb?: number,
   ) {
     this.enableLogging = enableLogging ?? DefaultConfig.enableLogging;
     this.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate;
@@ -50,6 +55,8 @@ export class Config implements InternalConfig, MeasureConfigInterface {
     this.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist;
     this.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist;
     this.autoStart = autoStart ?? DefaultConfig.autoStart;
+    this.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel;
+    this.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxDiskUsageInMb;
     this.maxEventNameLength = 64;
     this.customEventNameRegex = DefaultConfig.customEventNameRegex;
     this.maxSpanNameLength = 64;

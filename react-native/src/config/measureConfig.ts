@@ -1,4 +1,5 @@
 import { DefaultConfig } from './defaultConfig';
+import type { ScreenshotMaskLevel } from './screenshotMaskLevel';
 
 /**
  * Configuration for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -119,6 +120,32 @@ export interface MeasureConfigInterface {
    * Defaults to true.
    */
   autoStart: boolean;
+
+  /**
+   * Allows changing the masking level of screenshots to prevent sensitive information from leaking.
+   * Defaults to [ScreenshotMaskLevel.allTextAndMedia].
+   */
+  screenshotMaskLevel: ScreenshotMaskLevel;
+
+  /**
+   * Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
+   *
+   * This is useful to control the amount of disk space used by the SDK for storing session data,
+   * crash reports, and other collected information.
+   *
+   * Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`. Any value outside this
+   * range will be clamped to the nearest limit.
+   *
+   * All Measure SDKs store data to disk and upload it to the server in batches. While the app is
+   * in foreground, the data is synced periodically and usually the disk space used by the SDK is
+   * low. However, if the device is offline or the server is unreachable, the SDK will continue to
+   * store data on disk until it reaches the maximum disk usage limit.
+   *
+   * Note that the storage usage is not exact and works on estimates and typically the SDK will
+   * use much less disk space than the configured limit. When the SDK reaches the maximum disk
+   * usage limit, it will start deleting the oldest data to make space for new data.
+   */
+  maxDiskUsageInMb: number;
 }
 
 /**
@@ -138,6 +165,8 @@ export class MeasureConfig implements MeasureConfigInterface {
   httpUrlBlocklist: string[];
   httpUrlAllowlist: string[];
   autoStart: boolean;
+  screenshotMaskLevel: ScreenshotMaskLevel;
+  maxDiskUsageInMb: number;
 
   /**
    * Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -177,35 +206,27 @@ export class MeasureConfig implements MeasureConfigInterface {
    *   - Disable a subdomain, e.g. api.example.com
    *   - Disable a particular path, e.g. example.com/order
    * @param autoStart Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
+   * @param screenshotMaskLevel Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to `ScreenshotMaskLevel.allTextAndMedia`.
+   * @param maxDiskUsageInMb Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
+   * This controls the amount of disk space used for session data, crash reports and other persisted items.
+   * Defaults to `50` (MB). Allowed values are between `20` and `1500`. Values outside this range will be clamped to the nearest limit.
    */
-  constructor(
-    enableLogging: boolean | null,
-    samplingRateForErrorFreeSessions: number | null,
-    coldLaunchSamplingRate: number | null,
-    warmLaunchSamplingRate: number | null,
-    hotLaunchSamplingRate: number | null,
-    userJourneysSamplingRate: number | null,
-    traceSamplingRate: number | null,
-    trackHttpHeaders: boolean | null,
-    trackHttpBody: boolean | null,
-    httpHeadersBlocklist: string[] | null,
-    httpUrlBlocklist: string[] | null,
-    httpUrlAllowlist: string[] | null,
-    autoStart: boolean | null
-  ) {
-    this.enableLogging = enableLogging ?? DefaultConfig.enableLogging;
-    this.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate;
-    this.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate;
-    this.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate;
-    this.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate;
-    this.userJourneysSamplingRate = userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate;
-    this.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate;
-    this.trackHttpHeaders = trackHttpHeaders ?? DefaultConfig.trackHttpHeaders;
-    this.trackHttpBody = trackHttpBody ?? DefaultConfig.trackHttpBody;
-    this.httpHeadersBlocklist = httpHeadersBlocklist ?? DefaultConfig.httpHeadersBlocklist;
-    this.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist;
-    this.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist;
-    this.autoStart = autoStart ?? DefaultConfig.autoStart;
+  constructor(options: Partial<MeasureConfigInterface> = {}) {
+    this.enableLogging = options.enableLogging ?? DefaultConfig.enableLogging;
+    this.samplingRateForErrorFreeSessions = options.samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate;
+    this.coldLaunchSamplingRate = options.coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate;
+    this.warmLaunchSamplingRate = options.warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate;
+    this.hotLaunchSamplingRate = options.hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate;
+    this.userJourneysSamplingRate = options.userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate;
+    this.traceSamplingRate = options.traceSamplingRate ?? DefaultConfig.traceSamplingRate;
+    this.trackHttpHeaders = options.trackHttpHeaders ?? DefaultConfig.trackHttpHeaders;
+    this.trackHttpBody = options.trackHttpBody ?? DefaultConfig.trackHttpBody;
+    this.httpHeadersBlocklist = options.httpHeadersBlocklist ?? DefaultConfig.httpHeadersBlocklist;
+    this.httpUrlBlocklist = options.httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist;
+    this.httpUrlAllowlist = options.httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist;
+    this.autoStart = options.autoStart ?? DefaultConfig.autoStart;
+    this.screenshotMaskLevel = options.screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel;
+    this.maxDiskUsageInMb = options.maxDiskUsageInMb ?? DefaultConfig.maxDiskUsageInMb;
 
     if (
       !(
@@ -220,6 +241,44 @@ export class MeasureConfig implements MeasureConfigInterface {
 
     if (!(this.traceSamplingRate >= 0 && this.traceSamplingRate <= 1)) {
       console.warn('traceSamplingRate must be between 0.0 and 1.0');
+    }
+
+    if (
+      !(this.coldLaunchSamplingRate >= 0 && this.coldLaunchSamplingRate <= 1)
+    ) {
+      console.warn('coldLaunchSamplingRate must be between 0.0 and 1.0');
+    }
+
+    if (
+      !(this.warmLaunchSamplingRate >= 0 && this.warmLaunchSamplingRate <= 1)
+    ) {
+      console.warn('warmLaunchSamplingRate must be between 0.0 and 1.0');
+    }
+
+    if (!(this.hotLaunchSamplingRate >= 0 && this.hotLaunchSamplingRate <= 1)) {
+      console.warn('hotLaunchSamplingRate must be between 0.0 and 1.0');
+    }
+
+    if (
+      !(
+        this.userJourneysSamplingRate >= 0 && this.userJourneysSamplingRate <= 1
+      )
+    ) {
+      console.warn('userJourneysSamplingRate must be between 0.0 and 1.0');
+    }
+
+    const MIN_DISK_MB = 20;
+    const MAX_DISK_MB = 1500;
+    if (this.maxDiskUsageInMb < MIN_DISK_MB) {
+      console.warn(
+        `maxDiskUsageInMb is below minimum (${MIN_DISK_MB}MB). Clamping to minimum.`
+      );
+      this.maxDiskUsageInMb = MIN_DISK_MB;
+    } else if (this.maxDiskUsageInMb > MAX_DISK_MB) {
+      console.warn(
+        `maxDiskUsageInMb is above maximum (${MAX_DISK_MB}MB). Clamping to maximum.`
+      );
+      this.maxDiskUsageInMb = MAX_DISK_MB;
     }
   }
 }

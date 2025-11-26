@@ -50,6 +50,8 @@ export class MeasureInternal {
           DefaultConfig.httpUrlBlocklist,
           DefaultConfig.httpUrlAllowlist,
           DefaultConfig.autoStart,
+          DefaultConfig.screenshotMaskLevel,
+          DefaultConfig.maxDiskUsageInMb,
         ),
       this.measureInitializer.logger
     );

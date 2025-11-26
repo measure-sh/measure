@@ -4,6 +4,7 @@ import { Config } from './config';
 import type { ConfigLoader } from './configLoader';
 import type { MeasureConfigInterface } from './measureConfig';
 import type { InternalConfig } from './internalConfig';
+import type { ScreenshotMaskLevel } from './screenshotMaskLevel';
 
 /**
  * Configuration Provider for the Measure SDK.
@@ -105,6 +106,14 @@ export class BaseConfigProvider implements ConfigProvider {
 
   get maxEventNameLength(): number {
     return this.getMergedConfig('maxEventNameLength');
+  }
+
+  get screenshotMaskLevel(): ScreenshotMaskLevel {
+    return this.getMergedConfig('screenshotMaskLevel');
+  }
+  
+  get maxDiskUsageInMb(): number {
+    return this.getMergedConfig('maxDiskUsageInMb');
   }
 
   get customEventNameRegex(): string {
