@@ -38,7 +38,6 @@ export default function App() {
         [], // httpUrlBlocklist
         [], // httpUrlAllowlist
         true, // autoStart
-        true // trackViewControllerLoadTime
       );
 
       // Initialize Measure SDK

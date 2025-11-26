@@ -59,6 +59,22 @@ export class BaseConfigProvider implements ConfigProvider {
     return this.getMergedConfig('samplingRateForErrorFreeSessions');
   }
 
+  get coldLaunchSamplingRate(): number {
+    return this.getMergedConfig('coldLaunchSamplingRate');
+  }
+
+  get warmLaunchSamplingRate(): number {
+    return this.getMergedConfig('warmLaunchSamplingRate');
+  }
+
+  get hotLaunchSamplingRate(): number {
+    return this.getMergedConfig('hotLaunchSamplingRate');
+  }
+
+  get userJourneysSamplingRate(): number {
+    return this.getMergedConfig('userJourneysSamplingRate');
+  }
+ 
   get traceSamplingRate(): number {
     return this.getMergedConfig('traceSamplingRate');
   }
@@ -85,10 +101,6 @@ export class BaseConfigProvider implements ConfigProvider {
 
   get httpUrlAllowlist(): string[] {
     return this.getMergedConfig('httpUrlAllowlist');
-  }
-
-  get trackViewControllerLoadTime(): boolean {
-    return this.getMergedConfig('trackViewControllerLoadTime');
   }
 
   get maxEventNameLength(): number {

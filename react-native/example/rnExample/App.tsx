@@ -42,7 +42,6 @@ const App = (): React.JSX.Element => {
       [], // httpUrlBlocklist
       [], // httpUrlAllowlist
       true, // autoStart
-      true, // trackViewControllerLoadTime
     );
 
     Measure.init(clientInfo, measureConfig);
