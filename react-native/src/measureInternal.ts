@@ -36,23 +36,23 @@ export class MeasureInternal {
     return initializeNativeSDK(
       client,
       config ??
-        new MeasureConfig(
-          DefaultConfig.enableLogging,
-          DefaultConfig.sessionSamplingRate,
-          DefaultConfig.coldLaunchSamplingRate,
-          DefaultConfig.warmLaunchSamplingRate,
-          DefaultConfig.hotLaunchSamplingRate,
-          DefaultConfig.userJourneysSamplingRate,
-          DefaultConfig.traceSamplingRate,
-          DefaultConfig.trackHttpHeaders,
-          DefaultConfig.trackHttpBody,
-          DefaultConfig.httpHeadersBlocklist,
-          DefaultConfig.httpUrlBlocklist,
-          DefaultConfig.httpUrlAllowlist,
-          DefaultConfig.autoStart,
-          DefaultConfig.screenshotMaskLevel,
-          DefaultConfig.maxDiskUsageInMb,
-        ),
+        new MeasureConfig({
+                enableLogging: DefaultConfig.enableLogging,
+                samplingRateForErrorFreeSessions: DefaultConfig.sessionSamplingRate,
+                coldLaunchSamplingRate: DefaultConfig.coldLaunchSamplingRate,
+                warmLaunchSamplingRate: DefaultConfig.warmLaunchSamplingRate,
+                hotLaunchSamplingRate: DefaultConfig.hotLaunchSamplingRate,
+                journeySamplingRate: DefaultConfig.journeySamplingRate,
+                traceSamplingRate: DefaultConfig.traceSamplingRate,
+                trackHttpHeaders: DefaultConfig.trackHttpHeaders,
+                trackHttpBody: DefaultConfig.trackHttpBody,
+                httpHeadersBlocklist: DefaultConfig.httpHeadersBlocklist,
+                httpUrlBlocklist: DefaultConfig.httpUrlBlocklist,
+                httpUrlAllowlist: DefaultConfig.httpUrlAllowlist,
+                autoStart: DefaultConfig.autoStart,
+                screenshotMaskLevel: DefaultConfig.screenshotMaskLevel,
+                maxDiskUsageInMb: DefaultConfig.maxDiskUsageInMb,
+              }),
       this.measureInitializer.logger
     );
   }

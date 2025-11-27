@@ -8,7 +8,7 @@ export const DefaultConfig = {
   coldLaunchSamplingRate: 0.01,
   warmLaunchSamplingRate: 0.01,
   hotLaunchSamplingRate: 0.01,
-  userJourneysSamplingRate: 0,
+  journeySamplingRate: 0,
   trackHttpHeaders: false,
   trackHttpBody: false,
   httpHeadersBlocklist: [],

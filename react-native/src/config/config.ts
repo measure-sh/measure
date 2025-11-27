@@ -10,7 +10,7 @@ export class Config implements InternalConfig, MeasureConfigInterface {
   coldLaunchSamplingRate: number;
   warmLaunchSamplingRate: number;
   hotLaunchSamplingRate: number;
-  userJourneysSamplingRate: number;
+  journeySamplingRate: number;
   traceSamplingRate: number;
   trackHttpHeaders: boolean;
   trackHttpBody: boolean;
@@ -31,7 +31,7 @@ export class Config implements InternalConfig, MeasureConfigInterface {
     coldLaunchSamplingRate?: number,
     warmLaunchSamplingRate?: number,
     hotLaunchSamplingRate?: number,
-    userJourneysSamplingRate?: number,
+    journeySamplingRate?: number,
     traceSamplingRate?: number,
     trackHttpHeaders?: boolean,
     trackHttpBody?: boolean,
@@ -47,7 +47,7 @@ export class Config implements InternalConfig, MeasureConfigInterface {
     this.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate;
     this.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate;
     this.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate;
-    this.userJourneysSamplingRate = userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate;
+    this.journeySamplingRate = journeySamplingRate ?? DefaultConfig.journeySamplingRate;
     this.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate;
     this.trackHttpHeaders = trackHttpHeaders ?? DefaultConfig.trackHttpHeaders;
     this.trackHttpBody = trackHttpBody ?? DefaultConfig.trackHttpBody;
@@ -83,8 +83,8 @@ export class Config implements InternalConfig, MeasureConfigInterface {
       console.warn('hotLaunchSamplingRate must be between 0.0 and 1.0');
     }
 
-    if (!(this.userJourneysSamplingRate >= 0 && this.userJourneysSamplingRate <= 1)) {
-      console.warn('userJourneysSamplingRate must be between 0.0 and 1.0');
+    if (!(this.journeySamplingRate >= 0 && this.journeySamplingRate <= 1)) {
+      console.warn('journeySamplingRate must be between 0.0 and 1.0');
     }
   }
 }

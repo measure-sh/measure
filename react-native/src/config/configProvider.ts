@@ -72,8 +72,8 @@ export class BaseConfigProvider implements ConfigProvider {
     return this.getMergedConfig('hotLaunchSamplingRate');
   }
 
-  get userJourneysSamplingRate(): number {
-    return this.getMergedConfig('userJourneysSamplingRate');
+  get journeySamplingRate(): number {
+    return this.getMergedConfig('journeySamplingRate');
   }
  
   get traceSamplingRate(): number {

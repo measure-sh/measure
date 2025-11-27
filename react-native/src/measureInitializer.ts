@@ -70,7 +70,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       config?.coldLaunchSamplingRate,
       config?.warmLaunchSamplingRate,
       config?.hotLaunchSamplingRate,
-      config?.userJourneysSamplingRate,
+      config?.journeySamplingRate,
       config?.traceSamplingRate,
       config?.trackHttpHeaders,
       config?.trackHttpBody,
