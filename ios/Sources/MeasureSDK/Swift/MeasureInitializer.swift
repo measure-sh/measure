@@ -220,7 +220,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    coldLaunchSamplingRate: config.coldLaunchSamplingRate,
                                    warmLaunchSamplingRate: config.warmLaunchSamplingRate,
                                    hotLaunchSamplingRate: config.hotLaunchSamplingRate,
-                                   userJourneysSamplingRate: config.userJourneysSamplingRate,
+                                   journeySamplingRate: config.journeySamplingRate,
                                    trackHttpHeaders: config.trackHttpHeaders,
                                    trackHttpBody: config.trackHttpBody,
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,

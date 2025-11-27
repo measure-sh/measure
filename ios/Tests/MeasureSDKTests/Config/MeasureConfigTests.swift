@@ -18,7 +18,7 @@ final class MeasureConfigTests: XCTestCase {
             "coldLaunchSamplingRate": 0.12,
             "warmLaunchSamplingRate": 0.34,
             "hotLaunchSamplingRate": 0.56,
-            "userJourneysSamplingRate": 0.78,
+            "journeySamplingRate": 0.78,
             "trackHttpHeaders": true,
             "trackHttpBody": true,
             "httpHeadersBlocklist": ["A", "B"],
@@ -39,7 +39,7 @@ final class MeasureConfigTests: XCTestCase {
         XCTAssertEqual(config.coldLaunchSamplingRate, 0.12)
         XCTAssertEqual(config.warmLaunchSamplingRate, 0.34)
         XCTAssertEqual(config.hotLaunchSamplingRate, 0.56)
-        XCTAssertEqual(config.userJourneysSamplingRate, 0.78)
+        XCTAssertEqual(config.journeySamplingRate, 0.78)
         XCTAssertTrue(config.trackHttpHeaders)
         XCTAssertTrue(config.trackHttpBody)
         XCTAssertEqual(config.httpHeadersBlocklist, ["A", "B"])

@@ -49,7 +49,7 @@ final class BaseSignalSampler: SignalSampler {
         if let shouldSampleUserJourney {
             return shouldSampleUserJourney
         }
-        shouldSampleUserJourney = shouldTrack(configProvider.userJourneysSamplingRate)
+        shouldSampleUserJourney = shouldTrack(configProvider.journeySamplingRate)
         return shouldSampleUserJourney!
     }
 
