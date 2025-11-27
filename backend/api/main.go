@@ -6,19 +6,43 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"backend/api/inet"
 	"backend/api/measure"
 	"backend/api/server"
 
 	"github.com/gin-gonic/gin"
+	"github.com/valkey-io/valkey-go"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
+var vkClient valkey.Client
+var vkHost = os.Getenv("REDIS_HOST")
+var vkPort = os.Getenv("REDIS_PORT")
+
+func initValkey() {
+	client, err := valkey.NewClient(valkey.ClientOption{
+		InitAddress: []string{fmt.Sprintf("%s:%s", vkHost, vkPort)},
+	})
+
+	if err != nil {
+		log.Fatalf("Unable to initialize valkey client: %v", err)
+	}
+
+	vkClient = client
+
+	// Test connection
+	if _, err := vkClient.Do(context.Background(), vkClient.B().Ping().Build()).ToString(); err != nil {
+		log.Fatalf("Unable to connect to valkey: %v", err)
+	}
+}
+
 func main() {
 	config := server.NewConfig()
 	server.Init(config)
+	initValkey()
 
 	defer server.Server.PgPool.Close()
 
@@ -66,6 +90,75 @@ func main() {
 	if !config.IsCloud() {
 		r.PUT("/proxy/symbols", measure.ProxySymbol)
 	}
+
+	r.GET("/kv/:key", func(c *gin.Context) {
+		key := c.Param("key")
+		if key == "" {
+			c.JSON(400, gin.H{"error": "key required"})
+			return
+		}
+
+		result := vkClient.Do(c, vkClient.B().Get().Key(key).Build())
+		if err := result.Error(); err != nil {
+			if err == result.Error() {
+				c.JSON(404, gin.H{"error": "key not found"})
+				return
+			}
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		val, _ := result.ToString()
+		c.JSON(200, gin.H{"key": key, "value": val})
+	})
+
+	r.PUT("/kv/:key", func(c *gin.Context) {
+		key := c.Param("key")
+		if key == "" {
+			c.JSON(400, gin.H{"error": "key required"})
+			return
+		}
+
+		var payload struct {
+			Value string `json:"value" binding:"required"`
+		}
+		var value string
+
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			// fallback to raw body
+			body, _ := c.GetRawData()
+			if len(body) == 0 {
+				c.JSON(400, gin.H{"error": "empty body"})
+				return
+			}
+			value = string(body)
+		} else {
+			value = payload.Value
+		}
+
+		ttlSec := int64(0)
+		if ttlStr := c.Query("ttl"); ttlStr != "" {
+			if d, err := time.ParseDuration(ttlStr); err == nil {
+				ttlSec = int64(d.Seconds())
+			}
+		}
+
+		cmd := vkClient.B().Set().Key(key).Value(value)
+		if ttlSec > 0 {
+			cmd.Ex(time.Hour * 1)
+		}
+
+		if err := vkClient.Do(c, cmd.Build()).Error(); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"key":   key,
+			"value": value,
+			"ttl":   ttlSec,
+		})
+	})
 
 	// Auth routes
 	auth := r.Group("/auth")
