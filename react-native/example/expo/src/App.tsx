@@ -35,7 +35,7 @@ export default function App() {
         coldLaunchSamplingRate: 1.0,
         warmLaunchSamplingRate: 1.0,
         hotLaunchSamplingRate: 1.0,
-        userJourneysSamplingRate: 1.0,
+        journeySamplingRate: 1.0,
         traceSamplingRate: 1.0,
         trackHttpHeaders: true,
         trackHttpBody: true,

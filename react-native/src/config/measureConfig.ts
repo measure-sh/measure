@@ -57,7 +57,7 @@ export interface MeasureConfigInterface {
    * **Note: a higher value for this config can significantly increase the number of events
    * collected for your app.**
    */
-  userJourneysSamplingRate: number;
+  journeySamplingRate: number;
 
   /**
    * The sampling rate for traces. Must be between 0.0 and 1.0.
@@ -157,7 +157,7 @@ export class MeasureConfig implements MeasureConfigInterface {
   coldLaunchSamplingRate: number;
   warmLaunchSamplingRate: number;
   hotLaunchSamplingRate: number;
-  userJourneysSamplingRate: number;
+  journeySamplingRate: number;
   traceSamplingRate: number;
   trackHttpHeaders: boolean;
   trackHttpBody: boolean;
@@ -180,7 +180,7 @@ export class MeasureConfig implements MeasureConfigInterface {
    * For example, a value of `0.1` will export only 10% of all warm launch events, a value of `0` will disable exporting of warm launch events.
    * @param hotLaunchSamplingRate Sampling rate for hot launch events. The sampling rate is a value between 0 and 1.
    * For example, a value of `0.1` will export only 10% of all hot launch events, a value of `0` will disable exporting of hot launch events.
-   * @param userJourneysSamplingRate Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different parts of the app.
+   * @param journeySamplingRate Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different parts of the app.
    * When set to 0, the journey will only be generated from crashed sessions or sessions collected using [samplingRateForErrorFreeSessions].
    * Defaults to 0.
    * If a value of 0.1 is set, then 10% of the sessions will contain events required
@@ -217,7 +217,7 @@ export class MeasureConfig implements MeasureConfigInterface {
     this.coldLaunchSamplingRate = options.coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate;
     this.warmLaunchSamplingRate = options.warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate;
     this.hotLaunchSamplingRate = options.hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate;
-    this.userJourneysSamplingRate = options.userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate;
+    this.journeySamplingRate = options.journeySamplingRate ?? DefaultConfig.journeySamplingRate;
     this.traceSamplingRate = options.traceSamplingRate ?? DefaultConfig.traceSamplingRate;
     this.trackHttpHeaders = options.trackHttpHeaders ?? DefaultConfig.trackHttpHeaders;
     this.trackHttpBody = options.trackHttpBody ?? DefaultConfig.trackHttpBody;
@@ -261,10 +261,10 @@ export class MeasureConfig implements MeasureConfigInterface {
 
     if (
       !(
-        this.userJourneysSamplingRate >= 0 && this.userJourneysSamplingRate <= 1
+        this.journeySamplingRate >= 0 && this.journeySamplingRate <= 1
       )
     ) {
-      console.warn('userJourneysSamplingRate must be between 0.0 and 1.0');
+      console.warn('journeySamplingRate must be between 0.0 and 1.0');
     }
 
     const MIN_DISK_MB = 20;
