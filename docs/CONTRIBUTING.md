@@ -15,6 +15,12 @@
 >
 > **The self hosting guide is the official and recommended way to try out measure.**
 
+## Running Checks Locally
+
+Before submitting a pull request, it's important to run all the checks for the platform you are working on to ensure that your changes don't break anything and are consistent with the project's style.
+
+For detailed instructions on how to run the checks for each platform, please refer to our [Local Development Guide](../LOCAL_DEVELOPMENT.md).
+
 ### Prerequisites
 
 - Docker >= v26.1.3
