@@ -25,7 +25,7 @@ final class MeasureConfigTests: XCTestCase {
             "httpUrlBlocklist": ["blocked"],
             "httpUrlAllowlist": ["allowed"],
             "autoStart": false,
-            "screenshotMaskLevel": "allTextAndMedia",
+            "screenshotMaskLevel": "AllTextAndMedia",
             "maxDiskUsageInMb": 999
         }
         """.data(using: .utf8)!

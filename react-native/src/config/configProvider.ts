@@ -4,6 +4,7 @@ import { Config } from './config';
 import type { ConfigLoader } from './configLoader';
 import type { MeasureConfigInterface } from './measureConfig';
 import type { InternalConfig } from './internalConfig';
+import type { ScreenshotMaskLevel } from './screenshotMaskLevel';
 
 /**
  * Configuration Provider for the Measure SDK.
@@ -59,6 +60,22 @@ export class BaseConfigProvider implements ConfigProvider {
     return this.getMergedConfig('samplingRateForErrorFreeSessions');
   }
 
+  get coldLaunchSamplingRate(): number {
+    return this.getMergedConfig('coldLaunchSamplingRate');
+  }
+
+  get warmLaunchSamplingRate(): number {
+    return this.getMergedConfig('warmLaunchSamplingRate');
+  }
+
+  get hotLaunchSamplingRate(): number {
+    return this.getMergedConfig('hotLaunchSamplingRate');
+  }
+
+  get journeySamplingRate(): number {
+    return this.getMergedConfig('journeySamplingRate');
+  }
+ 
   get traceSamplingRate(): number {
     return this.getMergedConfig('traceSamplingRate');
   }
@@ -87,12 +104,16 @@ export class BaseConfigProvider implements ConfigProvider {
     return this.getMergedConfig('httpUrlAllowlist');
   }
 
-  get trackViewControllerLoadTime(): boolean {
-    return this.getMergedConfig('trackViewControllerLoadTime');
-  }
-
   get maxEventNameLength(): number {
     return this.getMergedConfig('maxEventNameLength');
+  }
+
+  get screenshotMaskLevel(): ScreenshotMaskLevel {
+    return this.getMergedConfig('screenshotMaskLevel');
+  }
+  
+  get maxDiskUsageInMb(): number {
+    return this.getMergedConfig('maxDiskUsageInMb');
   }
 
   get customEventNameRegex(): string {

@@ -67,6 +67,10 @@ export class BaseMeasureInitializer implements MeasureInitializer {
     this.config = new Config(
       config?.enableLogging,
       config?.samplingRateForErrorFreeSessions,
+      config?.coldLaunchSamplingRate,
+      config?.warmLaunchSamplingRate,
+      config?.hotLaunchSamplingRate,
+      config?.journeySamplingRate,
       config?.traceSamplingRate,
       config?.trackHttpHeaders,
       config?.trackHttpBody,
@@ -74,7 +78,8 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       config?.httpUrlBlocklist,
       config?.httpUrlAllowlist,
       config?.autoStart,
-      config?.trackViewControllerLoadTime
+      config?.screenshotMaskLevel,
+      config?.maxDiskUsageInMb,
     );
     this.configLoader = new BaseConfigLoader();
     this.configProvider = new BaseConfigProvider(
