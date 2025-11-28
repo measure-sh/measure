@@ -32,6 +32,12 @@ jobs:
       - name: Clean Derived Data
         run: rm -rf ~/Library/Developer/Xcode/DerivedData
 
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: swiftlint --strict --config ios/.swiftlint.yml
+
       - name: Run Unit Tests
         run: |
           xcodebuild test \
