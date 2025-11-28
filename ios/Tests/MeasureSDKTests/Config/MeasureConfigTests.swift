@@ -48,4 +48,78 @@ final class MeasureConfigTests: XCTestCase {
         XCTAssertFalse(config.autoStart)
         XCTAssertEqual(config.maxDiskUsageInMb, 999)
     }
+
+    func testSamplingRatesBelowZeroClampToDefault() {
+        let config = BaseMeasureConfig(
+            samplingRateForErrorFreeSessions: -1,
+            traceSamplingRate: -0.5,
+            coldLaunchSamplingRate: -0.2,
+            warmLaunchSamplingRate: -0.3,
+            hotLaunchSamplingRate: -0.9,
+            journeySamplingRate: -0.1
+        )
+
+        XCTAssertEqual(config.samplingRateForErrorFreeSessions, DefaultConfig.sessionSamplingRate)
+        XCTAssertEqual(config.traceSamplingRate, DefaultConfig.traceSamplingRate)
+        XCTAssertEqual(config.coldLaunchSamplingRate, DefaultConfig.coldLaunchSamplingRate)
+        XCTAssertEqual(config.warmLaunchSamplingRate, DefaultConfig.warmLaunchSamplingRate)
+        XCTAssertEqual(config.hotLaunchSamplingRate, DefaultConfig.hotLaunchSamplingRate)
+        XCTAssertEqual(config.journeySamplingRate, DefaultConfig.journeySamplingRate)
+    }
+
+    func testSamplingRatesAboveOneClampToDefault() {
+        let config = BaseMeasureConfig(
+            samplingRateForErrorFreeSessions: 1.5,
+            traceSamplingRate: 2.0,
+            coldLaunchSamplingRate: 3.0,
+            warmLaunchSamplingRate: 4.0,
+            hotLaunchSamplingRate: 9.0,
+            journeySamplingRate: 5.0
+        )
+
+        XCTAssertEqual(config.samplingRateForErrorFreeSessions, DefaultConfig.sessionSamplingRate)
+        XCTAssertEqual(config.traceSamplingRate, DefaultConfig.traceSamplingRate)
+        XCTAssertEqual(config.coldLaunchSamplingRate, DefaultConfig.coldLaunchSamplingRate)
+        XCTAssertEqual(config.warmLaunchSamplingRate, DefaultConfig.warmLaunchSamplingRate)
+        XCTAssertEqual(config.hotLaunchSamplingRate, DefaultConfig.hotLaunchSamplingRate)
+        XCTAssertEqual(config.journeySamplingRate, DefaultConfig.journeySamplingRate)
+    }
+
+    func testDiskUsageBelowMinimumIsClamped() {
+        let config = BaseMeasureConfig(maxDiskUsageInMb: 5)
+        XCTAssertEqual(config.maxDiskUsageInMb, 20)
+    }
+
+    func testDiskUsageAboveMaximumIsClamped() {
+        let config = BaseMeasureConfig(maxDiskUsageInMb: 5000)
+        XCTAssertEqual(config.maxDiskUsageInMb, 1500)
+    }
+
+    func testDiskUsageWithinRangeIsAccepted() {
+        let config = BaseMeasureConfig(maxDiskUsageInMb: 300)
+        XCTAssertEqual(config.maxDiskUsageInMb, 300)
+    }
+
+    func testDecodingInvalidSamplingRatesAppliesValidation() throws {
+        let json = """
+        {
+            "samplingRateForErrorFreeSessions": -1,
+            "traceSamplingRate": 2,
+            "coldLaunchSamplingRate": -5,
+            "warmLaunchSamplingRate": 10,
+            "hotLaunchSamplingRate": -0.1,
+            "journeySamplingRate": 99
+        }
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        let config = try decoder.decode(BaseMeasureConfig.self, from: json)
+
+        XCTAssertEqual(config.samplingRateForErrorFreeSessions, DefaultConfig.sessionSamplingRate)
+        XCTAssertEqual(config.traceSamplingRate, DefaultConfig.traceSamplingRate)
+        XCTAssertEqual(config.coldLaunchSamplingRate, DefaultConfig.coldLaunchSamplingRate)
+        XCTAssertEqual(config.warmLaunchSamplingRate, DefaultConfig.warmLaunchSamplingRate)
+        XCTAssertEqual(config.hotLaunchSamplingRate, DefaultConfig.hotLaunchSamplingRate)
+        XCTAssertEqual(config.journeySamplingRate, DefaultConfig.journeySamplingRate)
+    }
 }
