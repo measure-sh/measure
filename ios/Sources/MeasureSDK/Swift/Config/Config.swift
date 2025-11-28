@@ -18,7 +18,7 @@ struct Config: InternalConfig, MeasureConfig {
     let coldLaunchSamplingRate: Float
     let warmLaunchSamplingRate: Float
     let hotLaunchSamplingRate: Float
-    let userJourneysSamplingRate: Float
+    let journeySamplingRate: Float
     let maxDiskUsageInMb: Int
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
@@ -73,7 +73,7 @@ struct Config: InternalConfig, MeasureConfig {
                   coldLaunchSamplingRate: Float = DefaultConfig.coldLaunchSamplingRate,
                   warmLaunchSamplingRate: Float = DefaultConfig.warmLaunchSamplingRate,
                   hotLaunchSamplingRate: Float = DefaultConfig.hotLaunchSamplingRate,
-                  userJourneysSamplingRate: Float = DefaultConfig.userJourneysSamplingRate,
+                  journeySamplingRate: Float = DefaultConfig.journeySamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
@@ -97,7 +97,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.coldLaunchSamplingRate = coldLaunchSamplingRate
         self.warmLaunchSamplingRate = warmLaunchSamplingRate
         self.hotLaunchSamplingRate = hotLaunchSamplingRate
-        self.userJourneysSamplingRate = userJourneysSamplingRate
+        self.journeySamplingRate = journeySamplingRate
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues

@@ -28,7 +28,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                               coldLaunchSamplingRate: 1,
                                               warmLaunchSamplingRate: 1,
                                               hotLaunchSamplingRate: 1,
-                                              userJourneysSamplingRate: 1,
+                                              journeySamplingRate: 1,
                                               trackHttpHeaders: true,
                                               trackHttpBody: true,
                                               httpHeadersBlocklist: nil,

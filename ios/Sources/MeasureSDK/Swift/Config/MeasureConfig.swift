@@ -24,7 +24,7 @@ protocol MeasureConfig {
     var coldLaunchSamplingRate: Float { get }
     var warmLaunchSamplingRate: Float { get }
     var hotLaunchSamplingRate: Float { get }
-    var userJourneysSamplingRate: Float { get }
+    var journeySamplingRate: Float { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -54,7 +54,7 @@ protocol MeasureConfig {
     /// Defaults to 0.
     ///
     /// If a value of 0.1 is set, then 10% of the sessions will contain events required to build the journey which includes screen view, lifecycle view controller.
-    let userJourneysSamplingRate: Float
+    let journeySamplingRate: Float
 
     /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
     let autoStart: Bool
@@ -127,8 +127,6 @@ protocol MeasureConfig {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
-        samplingRateForErrorFreeSessions = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions) ?? DefaultConfig.sessionSamplingRate
-        traceSamplingRate = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
         autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
         trackHttpHeaders = try container.decodeIfPresent(Bool.self, forKey: .trackHttpHeaders) ?? DefaultConfig.trackHttpHeaders
         trackHttpBody = try container.decodeIfPresent(Bool.self, forKey: .trackHttpBody) ?? DefaultConfig.trackHttpBody
@@ -137,11 +135,48 @@ protocol MeasureConfig {
         httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
-        maxDiskUsageInMb = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) ?? DefaultConfig.maxEstimatedDiskUsageInMb
-        coldLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate) ?? DefaultConfig.coldLaunchSamplingRate
-        warmLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate) ?? DefaultConfig.warmLaunchSamplingRate
-        hotLaunchSamplingRate = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate) ?? DefaultConfig.hotLaunchSamplingRate
-        userJourneysSamplingRate = try container.decodeIfPresent(Float.self, forKey: .userJourneysSamplingRate) ?? DefaultConfig.userJourneysSamplingRate
+
+        let decodedSessionSampling = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions)
+        let decodedTraceSampling = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate)
+        let decodedColdLaunchSampling = try container.decodeIfPresent(Float.self, forKey: .coldLaunchSamplingRate)
+        let decodedWarmLaunchSampling = try container.decodeIfPresent(Float.self, forKey: .warmLaunchSamplingRate)
+        let decodedHotLaunchSampling = try container.decodeIfPresent(Float.self, forKey: .hotLaunchSamplingRate)
+        let decodedJourneySampling = try container.decodeIfPresent(Float.self, forKey: .journeySamplingRate)
+
+        let minDiskUsage = 20
+        let maxDiskUsage = 1500
+        if let provided = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) {
+            if provided < minDiskUsage {
+                debugPrint("maxDiskUsageInMb too low (\(provided)MB). Clamping to \(minDiskUsage)MB.")
+                maxDiskUsageInMb = minDiskUsage
+            } else if provided > maxDiskUsage {
+                debugPrint("maxDiskUsageInMb too high (\(provided)MB). Clamping to \(maxDiskUsage)MB.")
+                maxDiskUsageInMb = maxDiskUsage
+            } else {
+                maxDiskUsageInMb = provided
+            }
+        } else {
+            maxDiskUsageInMb = DefaultConfig.maxEstimatedDiskUsageInMb
+        }
+
+        samplingRateForErrorFreeSessions = Self.validated(decodedSessionSampling,
+                                                          default: DefaultConfig.sessionSamplingRate,
+                                                          label: "Session sampling rate")
+        traceSamplingRate = Self.validated(decodedTraceSampling,
+                                           default: DefaultConfig.traceSamplingRate,
+                                           label: "Trace sampling rate")
+        coldLaunchSamplingRate = Self.validated(decodedColdLaunchSampling,
+                                                default: DefaultConfig.coldLaunchSamplingRate,
+                                                label: "Cold launch sampling rate")
+        warmLaunchSamplingRate = Self.validated(decodedWarmLaunchSampling,
+                                                default: DefaultConfig.warmLaunchSamplingRate,
+                                                label: "Warm launch sampling rate")
+        hotLaunchSamplingRate = Self.validated(decodedHotLaunchSampling,
+                                               default: DefaultConfig.hotLaunchSamplingRate,
+                                               label: "Hot launch sampling rate")
+        journeySamplingRate = Self.validated(decodedJourneySampling,
+                                             default: DefaultConfig.journeySamplingRate,
+                                             label: "Journey sampling rate")
 
         super.init()
     }
@@ -162,7 +197,7 @@ protocol MeasureConfig {
         case coldLaunchSamplingRate
         case warmLaunchSamplingRate
         case hotLaunchSamplingRate
-        case userJourneysSamplingRate
+        case journeySamplingRate
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -181,7 +216,7 @@ protocol MeasureConfig {
         try container.encode(coldLaunchSamplingRate, forKey: .coldLaunchSamplingRate)
         try container.encode(warmLaunchSamplingRate, forKey: .warmLaunchSamplingRate)
         try container.encode(hotLaunchSamplingRate, forKey: .hotLaunchSamplingRate)
-        try container.encode(userJourneysSamplingRate, forKey: .userJourneysSamplingRate)
+        try container.encode(journeySamplingRate, forKey: .journeySamplingRate)
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -197,7 +232,7 @@ protocol MeasureConfig {
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
-    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   - journeySamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
     ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
     ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
@@ -227,7 +262,7 @@ protocol MeasureConfig {
                 coldLaunchSamplingRate: Float? = nil,
                 warmLaunchSamplingRate: Float? = nil,
                 hotLaunchSamplingRate: Float? = nil,
-                userJourneysSamplingRate: Float? = nil,
+                journeySamplingRate: Float? = nil,
                 trackHttpHeaders: Bool? = nil,
                 trackHttpBody: Bool? = nil,
                 httpHeadersBlocklist: [String]? = nil,
@@ -238,8 +273,6 @@ protocol MeasureConfig {
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
-        self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
-        self.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate
         self.trackHttpHeaders = trackHttpHeaders ?? DefaultConfig.trackHttpHeaders
         self.trackHttpBody = trackHttpBody ?? DefaultConfig.trackHttpBody
         self.httpHeadersBlocklist = httpHeadersBlocklist ?? DefaultConfig.httpHeadersBlocklist
@@ -248,19 +281,45 @@ protocol MeasureConfig {
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
         self.requestHeadersProvider = requestHeadersProvider
-        self.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxEstimatedDiskUsageInMb
-        self.coldLaunchSamplingRate = coldLaunchSamplingRate ?? DefaultConfig.coldLaunchSamplingRate
-        self.warmLaunchSamplingRate = warmLaunchSamplingRate ?? DefaultConfig.warmLaunchSamplingRate
-        self.hotLaunchSamplingRate = hotLaunchSamplingRate ?? DefaultConfig.hotLaunchSamplingRate
-        self.userJourneysSamplingRate = userJourneysSamplingRate ?? DefaultConfig.userJourneysSamplingRate
 
-        if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
-            debugPrint("Session sampling rate must be between 0.0 and 1.0")
+        let minDiskUsage = 20
+        let maxDiskUsage = 1500
+
+        if let provided = maxDiskUsageInMb {
+            if provided < minDiskUsage {
+                debugPrint("maxDiskUsageInMb too low (\(provided)MB). Clamping to \(minDiskUsage)MB.")
+                self.maxDiskUsageInMb = minDiskUsage
+            } else if provided > maxDiskUsage {
+                debugPrint("maxDiskUsageInMb too high (\(provided)MB). Clamping to \(maxDiskUsage)MB.")
+                self.maxDiskUsageInMb = maxDiskUsage
+            } else {
+                self.maxDiskUsageInMb = provided
+            }
+        } else {
+            self.maxDiskUsageInMb = DefaultConfig.maxEstimatedDiskUsageInMb
         }
 
-        if !(0.0...1.0).contains(self.traceSamplingRate) {
-            debugPrint("Trace sampling rate must be between 0.0 and 1.0")
-        }
+        self.samplingRateForErrorFreeSessions = Self.validated(samplingRateForErrorFreeSessions,
+                                                               default: DefaultConfig.sessionSamplingRate,
+                                                               label: "Session sampling rate")
+        self.traceSamplingRate = Self.validated(traceSamplingRate,
+                                                default: DefaultConfig.traceSamplingRate,
+                                                label: "Trace sampling rate")
+        
+        self.coldLaunchSamplingRate = Self.validated(coldLaunchSamplingRate,
+                                                     default: DefaultConfig.coldLaunchSamplingRate,
+                                                     label: "Cold launch sampling rate")
+        
+        self.warmLaunchSamplingRate = Self.validated(warmLaunchSamplingRate,
+                                                     default: DefaultConfig.warmLaunchSamplingRate,
+                                                     label: "Warm launch sampling rate")
+        
+        self.hotLaunchSamplingRate = Self.validated(hotLaunchSamplingRate,
+                                                    default: DefaultConfig.hotLaunchSamplingRate,
+                                                    label: "Hot launch sampling rate")
+        self.journeySamplingRate = Self.validated(journeySamplingRate,
+                                                  default: DefaultConfig.journeySamplingRate,
+                                                  label: "Journey sampling rate")
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -275,7 +334,7 @@ protocol MeasureConfig {
     ///   - warmLaunchSamplingRate: Sampling rate for warm launch times. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - hotLaunchSamplingRate: Sampling rate for hot launch times. The sampling rate is a value between 0 and 1.
-    ///   - userJourneysSamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
+    ///   - journeySamplingRate:Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
     ///   When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`. Defaults to 0.
     ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
     ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
@@ -306,7 +365,7 @@ protocol MeasureConfig {
                                   coldLaunchSamplingRate: Float,
                                   warmLaunchSamplingRate: Float,
                                   hotLaunchSamplingRate: Float,
-                                  userJourneysSamplingRate: Float,
+                                  journeySamplingRate: Float,
                                   trackHttpHeaders: Bool,
                                   trackHttpBody: Bool,
                                   httpHeadersBlocklist: [String],
@@ -322,7 +381,7 @@ protocol MeasureConfig {
                   coldLaunchSamplingRate: coldLaunchSamplingRate,
                   warmLaunchSamplingRate: warmLaunchSamplingRate,
                   hotLaunchSamplingRate: hotLaunchSamplingRate,
-                  userJourneysSamplingRate: userJourneysSamplingRate,
+                  journeySamplingRate: journeySamplingRate,
                   trackHttpHeaders: trackHttpHeaders,
                   trackHttpBody: trackHttpBody,
                   httpHeadersBlocklist: httpHeadersBlocklist,
@@ -332,5 +391,15 @@ protocol MeasureConfig {
                   screenshotMaskLevel: screenshotMaskLevel.toSwiftValue(),
                   requestHeadersProvider: requestHeadersProvider,
                   maxDiskUsageInMb: maxDiskUsageInMb?.intValue)
+    }
+
+    private static func validated(_ value: Float?,
+                                  default def: Float,
+                                  label: String) -> Float {
+        if let value, !(0.0...1.0).contains(value) {
+            debugPrint("\(label) must be between 0.0 and 1.0. Setting default value.")
+            return def
+        }
+        return value ?? def
     }
 }
