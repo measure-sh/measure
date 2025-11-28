@@ -19,5 +19,5 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-native:+")
-    implementation("sh.measure:measure-android:0.12.0-SNAPSHOT")
+    implementation("sh.measure:measure-android:0.14.0")
 }
