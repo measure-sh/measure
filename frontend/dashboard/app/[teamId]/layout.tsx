@@ -104,6 +104,12 @@ const initNavData = {
           external: false,
         },
         {
+          title: "Data",
+          url: "data",
+          isActive: false,
+          external: false,
+        },
+        {
           title: "Usage",
           url: "usage",
           isActive: false,
