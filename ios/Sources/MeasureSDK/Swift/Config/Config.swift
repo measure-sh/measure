@@ -98,7 +98,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.warmLaunchSamplingRate = warmLaunchSamplingRate
         self.hotLaunchSamplingRate = hotLaunchSamplingRate
         self.journeySamplingRate = journeySamplingRate
-        self.eventsBatchingIntervalMs = 30000 // 30 seconds
+        self.eventsBatchingIntervalMs = 5 * 60 * 1000 // 5 minitues
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
