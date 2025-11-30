@@ -2399,6 +2399,13 @@ func PutEvents(c *gin.Context) {
 	ingestCtx, cancel := context.WithTimeout(ctx, ingestCtxTimeout)
 	defer cancel()
 
+	ingestTracer := otel.Tracer("ingest-tracer")
+	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
+	defer ingestSpan.End()
+
+	_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
+	defer infuseInetSpan.End()
+
 	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
 		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
 		fmt.Println(msg, err)
@@ -2408,6 +2415,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	infuseInetSpan.End()
 
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
@@ -2442,8 +2451,7 @@ func PutEvents(c *gin.Context) {
 		symblctr := symbolicator.New(origin, osName, sources)
 
 		// start span to trace symbolication
-		symbolicationTracer := otel.Tracer("symbolication-tracer")
-		_, symbolicationSpan := symbolicationTracer.Start(ingestCtx, "symbolicate-events")
+		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 
 		defer symbolicationSpan.End()
 
@@ -2452,12 +2460,13 @@ func PutEvents(c *gin.Context) {
 			// ingestion. ignore the error, log it and continue.
 			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
 		}
+
+		symbolicationSpan.End()
 	}
 
 	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
-		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
-		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ingestCtx, "upload-attachments")
+		_, uploadAttachmentSpan := ingestTracer.Start(ingestCtx, "upload-attachments")
 
 		defer uploadAttachmentSpan.End()
 
@@ -2469,6 +2478,8 @@ func PutEvents(c *gin.Context) {
 			})
 			return
 		}
+
+		uploadAttachmentSpan.End()
 
 		for i := range eventReq.events {
 			if !eventReq.events[i].HasAttachments() {
@@ -2493,6 +2504,9 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.hasAttachmentUploadInfos() {
+		_, genSignedURLsSpan := ingestTracer.Start(ingestCtx, "generate-signed-urls")
+		defer genSignedURLsSpan.End()
+
 		if err := eventReq.generateAttachmentUploadURLs(ingestCtx); err != nil {
 			msg := `failed to generate attachment upload URLs`
 			fmt.Println(msg, err)
@@ -2520,7 +2534,12 @@ func PutEvents(c *gin.Context) {
 				}
 			}
 		}
+
+		genSignedURLsSpan.End()
 	}
+
+	_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
+	defer ingestEventsSpan.End()
 
 	if err := eventReq.ingestEvents(ingestCtx); err != nil {
 		msg := `failed to ingest events`
@@ -2532,6 +2551,11 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ingestEventsSpan.End()
+
+	_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
+	defer ingestSpansSpan.End()
+
 	if err := eventReq.ingestSpans(ingestCtx); err != nil {
 		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
@@ -2542,9 +2566,10 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ingestSpansSpan.End()
+
 	// start span to trace bucketing unhandled exceptions
-	bucketUnhandledExceptionsTracer := otel.Tracer("bucket-unhandled-exceptions-tracer")
-	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
+	_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
 
 	defer bucketUnhandledExceptionsSpan.End()
 
@@ -2560,8 +2585,7 @@ func PutEvents(c *gin.Context) {
 	bucketUnhandledExceptionsSpan.End()
 
 	// start span to trace bucketing ANRs
-	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
-	_, bucketAnrsSpan := bucketAnrsTracer.Start(ingestCtx, "bucket-anrs-exceptions")
+	_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
 
 	defer bucketAnrsSpan.End()
 
@@ -2577,6 +2601,9 @@ func PutEvents(c *gin.Context) {
 	bucketAnrsSpan.End()
 
 	if !app.Onboarded && len(eventReq.events) > 0 {
+		_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
+		defer onboardAppSpan.End()
+
 		tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
 			IsoLevel: pgx.ReadCommitted,
 		})
@@ -2614,7 +2641,12 @@ func PutEvents(c *gin.Context) {
 			})
 			return
 		}
+
+		onboardAppSpan.End()
 	}
+
+	_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
+	defer retentionPeriodSpan.End()
 
 	// get retention period for app
 	var retentionPeriod int
@@ -2631,6 +2663,11 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	retentionPeriodSpan.End()
+
+	_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
+	defer ingestMetricsSpan.End()
 
 	sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
 	sessionCountDays := sessionCount * uint32(retentionPeriod)
@@ -2668,6 +2705,11 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ingestMetricsSpan.End()
+
+	_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
+	defer rememberIngestSpan.End()
+
 	// Remember that this batch was ingested, so if same
 	// batch is seen again, we can skip ingesting it.
 	if err := eventReq.remember(ingestCtx); err != nil {
@@ -2679,6 +2721,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	rememberIngestSpan.End()
 
 	if isJsonRequest {
 		c.JSON(http.StatusOK, IngestResponse{
