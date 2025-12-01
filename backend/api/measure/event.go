@@ -2436,6 +2436,84 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	ingestReqTracer := otel.Tracer("ingest-req-tracer")
+	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest")
+	defer ingestReqSpan.End()
+
+	if eventReq.hasAttachmentBlobs() {
+		// start span to trace attachment uploads
+		_, uploadAttachmentSpan := ingestReqTracer.Start(ingestReqCtx, "upload-attachments")
+
+		defer uploadAttachmentSpan.End()
+
+		if err := eventReq.uploadAttachments(); err != nil {
+			msg := `failed to upload attachments`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		uploadAttachmentSpan.End()
+
+		for i := range eventReq.events {
+			if !eventReq.events[i].HasAttachments() {
+				continue
+			}
+
+			for j := range eventReq.events[i].Attachments {
+				id := eventReq.events[i].Attachments[j].ID
+				attachment, ok := eventReq.attachments[id]
+				if !ok {
+					continue
+				}
+				if !attachment.uploadedAttempted {
+					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
+					continue
+				}
+
+				eventReq.events[i].Attachments[j].Location = attachment.location
+				eventReq.events[i].Attachments[j].Key = attachment.key
+			}
+		}
+	}
+
+	if eventReq.hasAttachmentUploadInfos() {
+		_, genSignedURLsSpan := ingestReqTracer.Start(ingestReqCtx, "generate-signed-urls")
+		defer genSignedURLsSpan.End()
+
+		if err := eventReq.generateAttachmentUploadURLs(ingestReqCtx); err != nil {
+			msg := `failed to generate attachment upload URLs`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		// Update event attachments with key and location from upload infos
+		for i := range eventReq.events {
+			if !eventReq.events[i].HasAttachments() {
+				continue
+			}
+
+			for j := range eventReq.events[i].Attachments {
+				id := eventReq.events[i].Attachments[j].ID
+				// Find the corresponding attachment upload info
+				for _, uploadInfo := range eventReq.attachmentUploadInfos {
+					if uploadInfo.ID == id {
+						eventReq.events[i].Attachments[j].Location = uploadInfo.Location
+						eventReq.events[i].Attachments[j].Key = uploadInfo.Key
+						break
+					}
+				}
+			}
+		}
+
+		genSignedURLsSpan.End()
+	}
+
 	if isJsonRequest {
 		c.JSON(http.StatusOK, IngestResponse{
 			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
@@ -2509,80 +2587,6 @@ func PutEvents(c *gin.Context) {
 		}
 
 		symbolicationSpan.End()
-	}
-
-	if eventReq.hasAttachmentBlobs() {
-		// start span to trace attachment uploads
-		_, uploadAttachmentSpan := ingestTracer.Start(ingestCtx, "upload-attachments")
-
-		defer uploadAttachmentSpan.End()
-
-		if err := eventReq.uploadAttachments(); err != nil {
-			msg := `failed to upload attachments`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		uploadAttachmentSpan.End()
-
-		for i := range eventReq.events {
-			if !eventReq.events[i].HasAttachments() {
-				continue
-			}
-
-			for j := range eventReq.events[i].Attachments {
-				id := eventReq.events[i].Attachments[j].ID
-				attachment, ok := eventReq.attachments[id]
-				if !ok {
-					continue
-				}
-				if !attachment.uploadedAttempted {
-					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
-					continue
-				}
-
-				eventReq.events[i].Attachments[j].Location = attachment.location
-				eventReq.events[i].Attachments[j].Key = attachment.key
-			}
-		}
-	}
-
-	if eventReq.hasAttachmentUploadInfos() {
-		_, genSignedURLsSpan := ingestTracer.Start(ingestCtx, "generate-signed-urls")
-		defer genSignedURLsSpan.End()
-
-		if err := eventReq.generateAttachmentUploadURLs(ingestCtx); err != nil {
-			msg := `failed to generate attachment upload URLs`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		// Update event attachments with key and location from upload infos
-		for i := range eventReq.events {
-			if !eventReq.events[i].HasAttachments() {
-				continue
-			}
-
-			for j := range eventReq.events[i].Attachments {
-				id := eventReq.events[i].Attachments[j].ID
-				// Find the corresponding attachment upload info
-				for _, uploadInfo := range eventReq.attachmentUploadInfos {
-					if uploadInfo.ID == id {
-						eventReq.events[i].Attachments[j].Location = uploadInfo.Location
-						eventReq.events[i].Attachments[j].Key = uploadInfo.Key
-						break
-					}
-				}
-			}
-		}
-
-		genSignedURLsSpan.End()
 	}
 
 	concur.GlobalWg.Add(1)
