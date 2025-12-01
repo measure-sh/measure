@@ -2357,6 +2357,10 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 }
 
 func PutEvents(c *gin.Context) {
+	ingestReqTracer := otel.Tracer("ingest-req-tracer")
+	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest-request")
+	defer ingestReqSpan.End()
+
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
 		msg := `error parsing app's uuid`
@@ -2367,6 +2371,9 @@ func PutEvents(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
+	_, selectAppSpan := ingestReqTracer.Start(ctx, "select-app")
+	defer selectAppSpan.End()
+
 	app, err := SelectApp(ctx, appId)
 	if app == nil || err != nil {
 		msg := `failed to lookup app`
@@ -2376,6 +2383,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	selectAppSpan.End()
 
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
@@ -2388,6 +2397,9 @@ func PutEvents(c *gin.Context) {
 	}
 
 	isJsonRequest := strings.HasPrefix(c.ContentType(), "application/json")
+
+	_, readRequestSpan := ingestReqTracer.Start(ingestReqCtx, "read")
+	defer readRequestSpan.End()
 
 	if isJsonRequest {
 		if err := eventReq.readJsonRequest(c, appId); err != nil {
@@ -2426,6 +2438,11 @@ func PutEvents(c *gin.Context) {
 		}
 	}
 
+	readRequestSpan.End()
+
+	_, validateReqSpan := ingestReqTracer.Start(ingestReqCtx, "validate")
+	defer validateReqSpan.End()
+
 	if err := eventReq.validate(); err != nil {
 		msg := `failed to validate event request payload`
 		fmt.Println(msg, err)
@@ -2436,9 +2453,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	ingestReqTracer := otel.Tracer("ingest-req-tracer")
-	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest")
-	defer ingestReqSpan.End()
+	validateReqSpan.End()
 
 	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
@@ -2522,77 +2537,90 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 	}
 
+	ingestReqSpan.End()
+
 	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
 
 	ingestTracer := otel.Tracer("ingest-tracer")
 	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
 	defer ingestSpan.End()
 
-	_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
-	defer infuseInetSpan.End()
-
-	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
-		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	infuseInetSpan.End()
-
-	if eventReq.needsSymbolication() {
-		config := server.Server.Config
-		origin := config.SymbolicatorOrigin
-		osName := eventReq.osName
-		sources := []symbolicator.Source{}
-
-		// configure correct sources as per
-		// OS
-		switch opsys.ToFamily(osName) {
-		case opsys.Android:
-			if config.IsCloud() {
-				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-				sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-			} else {
-				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-			}
-		case opsys.AppleFamily:
-			// by default only symbolicate app's own symbols. to symbolicate iOS
-			// system framework symbols, append a GCSSourceApple source containing
-			// all iOS system framework symbol debug information files.
-			if config.IsCloud() {
-				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-				sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-			} else {
-				sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-			}
-		}
-
-		symblctr := symbolicator.New(origin, osName, sources)
-
-		// start span to trace symbolication
-		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
-
-		defer symbolicationSpan.End()
-
-		if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
-			// in case there was symbolication failure, we don't fail
-			// ingestion. ignore the error, log it and continue.
-			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
-		}
-
-		symbolicationSpan.End()
-	}
-
 	concur.GlobalWg.Add(1)
 
 	go func() {
 		defer concur.GlobalWg.Done()
+		var infuseInetGroup errgroup.Group
+		infuseInetGroup.Go(func() error {
+			_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
+			defer infuseInetSpan.End()
+
+			if err := eventReq.infuseInet(c.ClientIP()); err != nil {
+				msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
+				fmt.Println(msg, err)
+				return err
+			}
+			infuseInetSpan.End()
+			return nil
+		})
+
+		var symbolicationGroup errgroup.Group
+
+		symbolicationGroup.Go(func() error {
+			if eventReq.needsSymbolication() {
+				config := server.Server.Config
+				origin := config.SymbolicatorOrigin
+				osName := eventReq.osName
+				sources := []symbolicator.Source{}
+
+				// configure correct sources as per
+				// OS
+				switch opsys.ToFamily(osName) {
+				case opsys.Android:
+					if config.IsCloud() {
+						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+						sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					} else {
+						sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					}
+				case opsys.AppleFamily:
+					// by default only symbolicate app's own symbols. to symbolicate iOS
+					// system framework symbols, append a GCSSourceApple source containing
+					// all iOS system framework symbol debug information files.
+					if config.IsCloud() {
+						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					} else {
+						sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					}
+				}
+
+				symblctr := symbolicator.New(origin, osName, sources)
+
+				// start span to trace symbolication
+				_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
+				defer symbolicationSpan.End()
+
+				if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
+					// in case there was symbolication failure, we don't fail
+					// ingestion. ignore the error, log it and continue.
+					fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
+					return err
+				}
+
+				symbolicationSpan.End()
+			}
+			return nil
+		})
+
+		if err := infuseInetGroup.Wait(); err != nil {
+			fmt.Println("failed to lookup IP info")
+		}
+
+		if err := symbolicationGroup.Wait(); err != nil {
+			fmt.Println("failed to symbolicate", err)
+		}
 
 		var ingestGroup errgroup.Group
 
@@ -2655,6 +2683,78 @@ func PutEvents(c *gin.Context) {
 			fmt.Println("failed to bucket issues", err)
 			return
 		}
+
+		var metricsGroup errgroup.Group
+
+		metricsGroup.Go(func() error {
+			_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
+			defer retentionPeriodSpan.End()
+
+			// get retention period for app
+			var retentionPeriod int
+			retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
+				Select("retention_period").
+				Where("app_id = ?", app.ID)
+			defer retentionPeriodQuery.Close()
+
+			if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+				fmt.Println(`failed to get app retention period`, err)
+				return err
+			}
+
+			retentionPeriodSpan.End()
+
+			_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
+			defer ingestMetricsSpan.End()
+
+			sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+			sessionCountDays := sessionCount * uint32(retentionPeriod)
+			eventCountDays := eventCount * uint32(retentionPeriod)
+			spanCountDays := spanCount * uint32(retentionPeriod)
+			traceCountDays := traceCount * uint32(retentionPeriod)
+			attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+
+			// insert metrics into clickhouse table
+			insertMetricsIngestionSelectStmt := sqlf.
+				Select("? AS team_id", eventReq.teamId).
+				Select("? AS app_id", app.ID).
+				Select("? AS timestamp", time.Now()).
+				Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+				Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
+				Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
+				Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
+				Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
+				Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+			selectSQL := insertMetricsIngestionSelectStmt.String()
+			args := insertMetricsIngestionSelectStmt.Args()
+			defer insertMetricsIngestionSelectStmt.Close()
+			insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+			if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+				fmt.Println(`failed to insert ingestion metrics`, err)
+				return err
+			}
+			return nil
+		})
+
+		if err := metricsGroup.Wait(); err != nil {
+			fmt.Println(`failed to count ingestion metrics`, err)
+			return
+		}
+
+		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
+		defer rememberIngestSpan.End()
+
+		// Remember that this batch was ingested, so if same
+		// batch is seen again, we can skip ingesting it.
+		if err := eventReq.remember(ingestCtx); err != nil {
+			fmt.Println(`failed to remember event request`, err)
+			return
+		}
 	}()
 
 	if eventReq.onboardable() && !app.Onboarded {
@@ -2689,80 +2789,4 @@ func PutEvents(c *gin.Context) {
 			}
 		}()
 	}
-
-	var metricsGroup errgroup.Group
-
-	metricsGroup.Go(func() error {
-		_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
-		defer retentionPeriodSpan.End()
-
-		// get retention period for app
-		var retentionPeriod int
-		retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
-			Select("retention_period").
-			Where("app_id = ?", app.ID)
-		defer retentionPeriodQuery.Close()
-
-		if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
-			fmt.Println(`failed to get app retention period`, err)
-			return err
-		}
-
-		retentionPeriodSpan.End()
-
-		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
-		defer ingestMetricsSpan.End()
-
-		sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
-		sessionCountDays := sessionCount * uint32(retentionPeriod)
-		eventCountDays := eventCount * uint32(retentionPeriod)
-		spanCountDays := spanCount * uint32(retentionPeriod)
-		traceCountDays := traceCount * uint32(retentionPeriod)
-		attachmentCountDays := attachmentCount * uint32(retentionPeriod)
-
-		// insert metrics into clickhouse table
-		insertMetricsIngestionSelectStmt := sqlf.
-			Select("? AS team_id", eventReq.teamId).
-			Select("? AS app_id", app.ID).
-			Select("? AS timestamp", time.Now()).
-			Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
-			Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
-			Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
-			Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
-			Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
-			Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
-		selectSQL := insertMetricsIngestionSelectStmt.String()
-		args := insertMetricsIngestionSelectStmt.Args()
-		defer insertMetricsIngestionSelectStmt.Close()
-		insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
-
-		if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
-			fmt.Println(`failed to insert ingestion metrics`, err)
-			return err
-		}
-		return nil
-	})
-
-	if err := metricsGroup.Wait(); err != nil {
-		fmt.Println(`failed to count ingestion metrics`, err)
-		return
-	}
-
-	concur.GlobalWg.Add(1)
-	go func() {
-		defer concur.GlobalWg.Done()
-		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
-		defer rememberIngestSpan.End()
-
-		// Remember that this batch was ingested, so if same
-		// batch is seen again, we can skip ingesting it.
-		if err := eventReq.remember(ingestCtx); err != nil {
-			fmt.Println(`failed to remember event request`, err)
-			return
-		}
-	}()
 }
