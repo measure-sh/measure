@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Some attachments were not getting uploaded (#2967) by @detj in #2967
 - (**backend**): Move to async ingestion flow for higher throughput (#2964) by @detj in #2964
 - (**backend**): Fix default user auth error on clickhouse 25.8 migration (#2925) by @anupcowkur in #2925
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
