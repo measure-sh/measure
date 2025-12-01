@@ -6,7 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"backend/api/concur"
 	"backend/api/inet"
 	"backend/api/measure"
 	"backend/api/server"
@@ -146,12 +150,39 @@ func main() {
 		slack.POST("/events", measure.HandleSlackEvents)
 	}
 
-	// Listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	if err := r.Run(":" + port); err != nil {
-		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	// Run server in a goroutine
+	go func() {
+		fmt.Printf("Listening and serving HTTP on %s\n", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Failed to listen and serve on %s\n", srv.Addr)
+		}
+	}()
+
+	// List for shutdown signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	fmt.Println("Shutting down API service...")
+
+	// Graceful shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 9*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		fmt.Printf("Failed to gracefully shutdown server: %v\n", err)
+	}
+
+	// Wait for all background tasks
+	fmt.Println("Waiting for background tasks...")
+	concur.GlobalWg.Wait()
 }

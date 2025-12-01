@@ -445,6 +445,14 @@ services:
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
 
+  clickstack:
+    image: docker.hyperdx.io/hyperdx/hyperdx-local
+    profiles:
+      - debug
+    ports:
+      - 9090:8080
+      - 4317:4317
+
 volumes:
   clickhouse-volume:
   migrator-volume:

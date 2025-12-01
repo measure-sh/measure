@@ -3,6 +3,7 @@ package measure
 import (
 	"backend/api/ambient"
 	"backend/api/chrono"
+	"backend/api/concur"
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
@@ -37,6 +38,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/sync/errgroup"
 )
 
 // maxBatchSize is the maximum allowed payload
@@ -84,7 +86,7 @@ type eventreq struct {
 	// teamId is the id of the team
 	teamId uuid.UUID
 	// seen indicates whether this request batch
-	// was prevously ingested
+	// was previously ingested
 	seen bool
 	// osName is operating system runtime of the SDK
 	osName string
@@ -97,7 +99,7 @@ type eventreq struct {
 	// exceptionIds is a list of all unhandled exception
 	// event ids
 	exceptionIds []int
-	// anrIds is a list of all ANR event ids
+	// anrIds is a list of all ANR event IDs
 	anrIds []int
 	// size keeps track of the ingest payload size
 	size int64
@@ -736,6 +738,15 @@ func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCou
 	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
 }
 
+// onboardable determines if the ingest batch
+// meets the conditions for onboarding the app.
+func (e eventreq) onboardable() (ok bool) {
+	if len(e.events) > 0 || len(e.spans) > 0 {
+		ok = true
+	}
+	return
+}
+
 // remember stores the ingest batch record for future idempotency
 func (e eventreq) remember(ctx context.Context) (err error) {
 	stmt := sqlf.InsertInto("ingested_batches").
@@ -772,6 +783,36 @@ func (e eventreq) hasAttachmentBlobs() bool {
 // contains attachment upload infos to be processed.
 func (e eventreq) hasAttachmentUploadInfos() bool {
 	return len(e.attachmentUploadInfos) > 0
+}
+
+// getOSName extracts the operating system name
+// of the app from ingest batch.
+func (e eventreq) getOSName() (osName string) {
+	if len(e.events) > 0 {
+		return strings.ToLower(e.events[0].Attribute.OSName)
+	}
+
+	return strings.ToLower(e.spans[0].Attributes.OSName)
+}
+
+// getOSVersion extracts the operating system version
+// of the app from ingest batch.
+func (e eventreq) getOSVersion() (osVersion string) {
+	if len(e.events) > 0 {
+		return strings.ToLower(e.events[0].Attribute.OSVersion)
+	}
+
+	return strings.ToLower(e.spans[0].Attributes.OSVersion)
+}
+
+// getAppUniqueID extracts the app's unique identifier from
+// ingest batch.
+func (e eventreq) getAppUniqueID() (appUniqueID string) {
+	if len(e.events) > 0 {
+		return strings.ToLower(e.events[0].Attribute.AppUniqueID)
+	}
+
+	return strings.ToLower(e.spans[0].Attributes.AppUniqueID)
 }
 
 // getUnhandledExceptions returns unhandled exceptions
@@ -2395,9 +2436,22 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	ctx = ambient.WithTeamId(context.Background(), app.TeamId)
-	ingestCtx, cancel := context.WithTimeout(ctx, ingestCtxTimeout)
-	defer cancel()
+	if isJsonRequest {
+		c.JSON(http.StatusOK, IngestResponse{
+			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+		})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	}
+
+	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
+
+	ingestTracer := otel.Tracer("ingest-tracer")
+	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
+	defer ingestSpan.End()
+
+	_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
+	defer infuseInetSpan.End()
 
 	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
 		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
@@ -2408,6 +2462,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	infuseInetSpan.End()
 
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
@@ -2442,8 +2498,7 @@ func PutEvents(c *gin.Context) {
 		symblctr := symbolicator.New(origin, osName, sources)
 
 		// start span to trace symbolication
-		symbolicationTracer := otel.Tracer("symbolication-tracer")
-		_, symbolicationSpan := symbolicationTracer.Start(ingestCtx, "symbolicate-events")
+		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 
 		defer symbolicationSpan.End()
 
@@ -2452,12 +2507,13 @@ func PutEvents(c *gin.Context) {
 			// ingestion. ignore the error, log it and continue.
 			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
 		}
+
+		symbolicationSpan.End()
 	}
 
 	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
-		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
-		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ingestCtx, "upload-attachments")
+		_, uploadAttachmentSpan := ingestTracer.Start(ingestCtx, "upload-attachments")
 
 		defer uploadAttachmentSpan.End()
 
@@ -2469,6 +2525,8 @@ func PutEvents(c *gin.Context) {
 			})
 			return
 		}
+
+		uploadAttachmentSpan.End()
 
 		for i := range eventReq.events {
 			if !eventReq.events[i].HasAttachments() {
@@ -2493,6 +2551,9 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.hasAttachmentUploadInfos() {
+		_, genSignedURLsSpan := ingestTracer.Start(ingestCtx, "generate-signed-urls")
+		defer genSignedURLsSpan.End()
+
 		if err := eventReq.generateAttachmentUploadURLs(ingestCtx); err != nil {
 			msg := `failed to generate attachment upload URLs`
 			fmt.Println(msg, err)
@@ -2520,171 +2581,184 @@ func PutEvents(c *gin.Context) {
 				}
 			}
 		}
+
+		genSignedURLsSpan.End()
 	}
 
-	if err := eventReq.ingestEvents(ingestCtx); err != nil {
-		msg := `failed to ingest events`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+	concur.GlobalWg.Add(1)
 
-	if err := eventReq.ingestSpans(ingestCtx); err != nil {
-		msg := `failed to ingest spans`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+	go func() {
+		defer concur.GlobalWg.Done()
 
-	// start span to trace bucketing unhandled exceptions
-	bucketUnhandledExceptionsTracer := otel.Tracer("bucket-unhandled-exceptions-tracer")
-	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
+		var ingestGroup errgroup.Group
 
-	defer bucketUnhandledExceptionsSpan.End()
+		ingestGroup.Go(func() error {
+			_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
+			defer ingestEventsSpan.End()
+			if err := eventReq.ingestEvents(ingestCtx); err != nil {
+				fmt.Println(`failed to ingest events`, err)
+				return err
+			}
 
-	if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
-		msg := `failed to bucket unhandled exceptions`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	bucketUnhandledExceptionsSpan.End()
-
-	// start span to trace bucketing ANRs
-	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
-	_, bucketAnrsSpan := bucketAnrsTracer.Start(ingestCtx, "bucket-anrs-exceptions")
-
-	defer bucketAnrsSpan.End()
-
-	if err := eventReq.bucketANRs(ingestCtx); err != nil {
-		msg := `failed to bucket anrs`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	bucketAnrsSpan.End()
-
-	if !app.Onboarded && len(eventReq.events) > 0 {
-		tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
-			IsoLevel: pgx.ReadCommitted,
+			return nil
 		})
 
-		if err != nil {
-			msg := `failed to acquire transaction while onboarding app`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+		ingestGroup.Go(func() error {
+			_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
+			defer ingestSpansSpan.End()
+			if err := eventReq.ingestSpans(ingestCtx); err != nil {
+				fmt.Println(`failed to ingest spans`, err)
+				return err
+			}
+
+			return nil
+		})
+
+		if err := ingestGroup.Wait(); err != nil {
+			fmt.Println("failed to ingest", err)
 			return
 		}
 
-		defer tx.Rollback(ingestCtx)
+		var bucketGroup errgroup.Group
+		bucketGroup.Go(func() error {
+			// start span to trace bucketing unhandled exceptions
+			_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
 
-		firstEvent := eventReq.events[0]
-		uniqueID := firstEvent.Attribute.AppUniqueID
-		osName := strings.ToLower(firstEvent.Attribute.OSName)
-		version := firstEvent.Attribute.AppVersion
+			defer bucketUnhandledExceptionsSpan.End()
 
-		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
-			msg := `failed to onboard app`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+			if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
+				fmt.Println(`failed to bucket unhandled exceptions`, err)
+				return err
+			}
+
+			return nil
+		})
+
+		bucketGroup.Go(func() error {
+			// start span to trace bucketing ANRs
+			_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
+			defer bucketAnrsSpan.End()
+
+			if err := eventReq.bucketANRs(ingestCtx); err != nil {
+				fmt.Println(`failed to bucket anrs`, err)
+				return err
+			}
+
+			return nil
+		})
+
+		if err := bucketGroup.Wait(); err != nil {
+			fmt.Println("failed to bucket issues", err)
 			return
 		}
+	}()
 
-		if err := tx.Commit(ingestCtx); err != nil {
-			msg := `failed to commit app onboard transaction`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+	if eventReq.onboardable() && !app.Onboarded {
+		concur.GlobalWg.Add(1)
+		go func() {
+			defer concur.GlobalWg.Done()
+			_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
+			defer onboardAppSpan.End()
+
+			tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
+				IsoLevel: pgx.ReadCommitted,
 			})
+			defer tx.Rollback(ingestCtx)
+
+			if err != nil {
+				fmt.Println(`failed to acquire transaction while onboarding app`, err)
+				return
+			}
+
+			uniqueID := eventReq.getAppUniqueID()
+			osName := eventReq.getOSName()
+			version := eventReq.getOSVersion()
+
+			if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
+				fmt.Println(`failed to onboard app`, err)
+				return
+			}
+
+			if err := tx.Commit(ingestCtx); err != nil {
+				fmt.Println(`failed to commit app onboard transaction`, err)
+				return
+			}
+		}()
+	}
+
+	var metricsGroup errgroup.Group
+
+	metricsGroup.Go(func() error {
+		_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
+		defer retentionPeriodSpan.End()
+
+		// get retention period for app
+		var retentionPeriod int
+		retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
+			Select("retention_period").
+			Where("app_id = ?", app.ID)
+		defer retentionPeriodQuery.Close()
+
+		if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+			fmt.Println(`failed to get app retention period`, err)
+			return err
+		}
+
+		retentionPeriodSpan.End()
+
+		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
+		defer ingestMetricsSpan.End()
+
+		sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+		sessionCountDays := sessionCount * uint32(retentionPeriod)
+		eventCountDays := eventCount * uint32(retentionPeriod)
+		spanCountDays := spanCount * uint32(retentionPeriod)
+		traceCountDays := traceCount * uint32(retentionPeriod)
+		attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+
+		// insert metrics into clickhouse table
+		insertMetricsIngestionSelectStmt := sqlf.
+			Select("? AS team_id", eventReq.teamId).
+			Select("? AS app_id", app.ID).
+			Select("? AS timestamp", time.Now()).
+			Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+			Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
+			Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
+			Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
+			Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
+			Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
+			Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
+			Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
+			Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
+			Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+		selectSQL := insertMetricsIngestionSelectStmt.String()
+		args := insertMetricsIngestionSelectStmt.Args()
+		defer insertMetricsIngestionSelectStmt.Close()
+		insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+		if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+			fmt.Println(`failed to insert ingestion metrics`, err)
+			return err
+		}
+		return nil
+	})
+
+	if err := metricsGroup.Wait(); err != nil {
+		fmt.Println(`failed to count ingestion metrics`, err)
+		return
+	}
+
+	concur.GlobalWg.Add(1)
+	go func() {
+		defer concur.GlobalWg.Done()
+		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
+		defer rememberIngestSpan.End()
+
+		// Remember that this batch was ingested, so if same
+		// batch is seen again, we can skip ingesting it.
+		if err := eventReq.remember(ingestCtx); err != nil {
+			fmt.Println(`failed to remember event request`, err)
 			return
 		}
-	}
-
-	// get retention period for app
-	var retentionPeriod int
-	retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
-		Select("retention_period").
-		Where("app_id = ?", app.ID)
-	defer retentionPeriodQuery.Close()
-
-	if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
-		msg := `failed to get app retention period`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
-	sessionCountDays := sessionCount * uint32(retentionPeriod)
-	eventCountDays := eventCount * uint32(retentionPeriod)
-	spanCountDays := spanCount * uint32(retentionPeriod)
-	traceCountDays := traceCount * uint32(retentionPeriod)
-	attachmentCountDays := attachmentCount * uint32(retentionPeriod)
-
-	// insert metrics into clickhouse table
-	insertMetricsIngestionSelectStmt := sqlf.
-		Select("? AS team_id", eventReq.teamId).
-		Select("? AS app_id", app.ID).
-		Select("? AS timestamp", time.Now()).
-		Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
-		Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
-		Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
-		Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
-		Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
-		Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
-		Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
-		Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
-		Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
-		Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
-	selectSQL := insertMetricsIngestionSelectStmt.String()
-	args := insertMetricsIngestionSelectStmt.Args()
-	defer insertMetricsIngestionSelectStmt.Close()
-	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
-
-	if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
-		msg := `failed to insert ingestion metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	// Remember that this batch was ingested, so if same
-	// batch is seen again, we can skip ingesting it.
-	if err := eventReq.remember(ingestCtx); err != nil {
-		msg := `failed to remember event request`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err,
-		})
-		return
-	}
-
-	if isJsonRequest {
-		c.JSON(http.StatusOK, IngestResponse{
-			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
-		})
-	} else {
-		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
-	}
+	}()
 }
