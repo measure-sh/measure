@@ -85,6 +85,8 @@ type eventreq struct {
 	appId uuid.UUID
 	// teamId is the id of the team
 	teamId uuid.UUID
+	// json indicates that content type is JSON
+	json bool
 	// seen indicates whether this request batch
 	// was previously ingested
 	seen bool
@@ -212,7 +214,7 @@ func (e *eventreq) bumpSize(n int64) {
 
 // checkSeen checks & remembers if this request batch was
 // previously ingested.
-func (e *eventreq) checkSeen(c *gin.Context) (err error) {
+func (e *eventreq) checkSeen(ctx context.Context) (err error) {
 	stmt := sqlf.From("ingested_batches final").
 		Select("1").
 		Where("team_id = ?", e.teamId).
@@ -222,7 +224,7 @@ func (e *eventreq) checkSeen(c *gin.Context) (err error) {
 
 	defer stmt.Close()
 	var result uint8
-	if err = server.Server.ChPool.QueryRow(c, stmt.String(), stmt.Args()...).Scan(&result); err != nil {
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&result); err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
 		}
@@ -238,24 +240,7 @@ func (e *eventreq) checkSeen(c *gin.Context) (err error) {
 
 // readMultipartRequest parses and validates the event request payload for
 // events and attachments.
-func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
-	reqIdKey := `msr-req-id`
-	reqIdVal := c.Request.Header.Get(reqIdKey)
-	if reqIdVal == "" {
-		return fmt.Errorf("no %q header value found", reqIdKey)
-	}
-
-	reqId, err := uuid.Parse(reqIdVal)
-	if err != nil {
-		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
-	}
-
-	e.id = reqId
-
-	if err := e.checkSeen(c); err != nil {
-		return err
-	}
-
+func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return err
@@ -289,7 +274,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		ev.AppID = appId
+		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
 			e.symbolicateEvents[ev.ID] = i
@@ -378,7 +363,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		sp.AppID = appId
+		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
 			e.symbolicateSpans[sp.SpanName] = i
@@ -423,32 +408,10 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 	return nil
 }
 
-// readJsonRequest parses and validates the JSON event request payload for
+// readJsonRequest reads and validates the JSON event request payload for
 // events and spans. Attachment metadata is extracted but files are not
 // uploaded inline - signed URLs will be returned for separate upload.
-func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
-	reqIdKey := `msr-req-id`
-	reqIdVal := c.Request.Header.Get(reqIdKey)
-	if reqIdVal == "" {
-		return fmt.Errorf("no %q header value found", reqIdKey)
-	}
-
-	reqId, err := uuid.Parse(reqIdVal)
-	if err != nil {
-		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
-	}
-
-	e.id = reqId
-	if err := e.checkSeen(c); err != nil {
-		return err
-	}
-
-	payload := IngestRequest{}
-
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		return err
-	}
-
+func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 	if len(payload.Events) < 1 && len(payload.Spans) < 1 {
 		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
@@ -471,7 +434,7 @@ func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		ev.AppID = appId
+		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
 			e.symbolicateEvents[ev.ID] = i
@@ -542,7 +505,7 @@ func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		sp.AppID = appId
+		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
 			e.symbolicateSpans[sp.SpanName] = i
@@ -2371,6 +2334,23 @@ func PutEvents(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
+	reqIdKey := `msr-req-id`
+	reqIdVal := c.Request.Header.Get(reqIdKey)
+	if reqIdVal == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("no %q header value found", reqIdKey),
+		})
+		return
+	}
+
+	reqId, err := uuid.Parse(reqIdVal)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("%q value is not a valid UUID", reqIdKey),
+		})
+		return
+	}
+
 	_, selectAppSpan := ingestReqTracer.Start(ctx, "select-app")
 	defer selectAppSpan.End()
 
@@ -2388,21 +2368,23 @@ func PutEvents(c *gin.Context) {
 
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
+		id:                reqId,
 		appId:             appId,
 		teamId:            app.TeamId,
+		json:              strings.HasPrefix(c.ContentType(), "application/json"),
 		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
 	}
 
-	isJsonRequest := strings.HasPrefix(c.ContentType(), "application/json")
+	if eventReq.json {
+		ingestPayload := IngestRequest{}
 
-	_, readRequestSpan := ingestReqTracer.Start(ingestReqCtx, "read")
-	defer readRequestSpan.End()
+		_, parseJSONSpan := ingestReqTracer.Start(ingestReqCtx, "parse-json")
+		defer parseJSONSpan.End()
 
-	if isJsonRequest {
-		if err := eventReq.readJsonRequest(c, appId); err != nil {
+		if err := c.ShouldBindJSON(&ingestPayload); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":   msg,
@@ -2411,34 +2393,58 @@ func PutEvents(c *gin.Context) {
 			return
 		}
 
-		if eventReq.seen {
+		parseJSONSpan.End()
+
+		_, readRequestSpan := ingestReqTracer.Start(ingestReqCtx, "read")
+		defer readRequestSpan.End()
+
+		if err := eventReq.readJsonRequest(&ingestPayload); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		readRequestSpan.End()
+	} else {
+		if err := eventReq.readMultipartRequest(c); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if err := eventReq.checkSeen(ingestReqCtx); err != nil {
+		msg := "failed to check for duplicate event requst batch"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// return early if we can recall this batch
+	if eventReq.seen {
+		if eventReq.json {
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.
 			c.JSON(http.StatusOK, IngestResponse{
 				AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 			})
-			return
-		}
-	} else {
-		if err := eventReq.readMultipartRequest(c, appId); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-
-		if eventReq.seen {
+		} else {
 			c.JSON(http.StatusAccepted, gin.H{
 				"ok": "accepted, known event request",
 			})
-			return
 		}
+		return
 	}
-
-	readRequestSpan.End()
 
 	_, validateReqSpan := ingestReqTracer.Start(ingestReqCtx, "validate")
 	defer validateReqSpan.End()
@@ -2529,7 +2535,7 @@ func PutEvents(c *gin.Context) {
 		genSignedURLsSpan.End()
 	}
 
-	if isJsonRequest {
+	if eventReq.json {
 		c.JSON(http.StatusOK, IngestResponse{
 			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 		})
