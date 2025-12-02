@@ -49,11 +49,6 @@ var maxBatchSize = 20 * 1024 * 1024
 // for signed upload URLs.
 const ExpiryDuration = time.Hour * 24 * 7
 
-// ingestCtxTimeout is the default timeout for all
-// ingestion related operations like symbolication
-// & ingestion database operations.
-const ingestCtxTimeout = time.Second * 60
-
 // blob represents each blob present in the
 // event request batch during ingestion.
 type blob struct {
@@ -573,6 +568,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create GCS client: %w", err)
 		}
+		defer client.Close()
 
 		// for creating signed URLs, we need to tie the service account
 		// identity along with the credentials. otherwise, the signed
@@ -593,6 +589,9 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 			}
 			return resp.SignedBlob, nil
 		}
+
+		var signgroup errgroup.Group
+		signgroup.SetLimit(16)
 
 		for i := range e.attachmentUploadInfos {
 			id := e.attachmentUploadInfos[i].ID
@@ -617,19 +616,27 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 				Headers:        metadata,
 			}
 
-			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
-			if err != nil {
-				return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
-			}
+			signgroup.Go(func() error {
+				url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
+				if err != nil {
+					return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
+				}
 
-			// Update the attachment info with URL and metadata
-			e.attachmentUploadInfos[i].UploadURL = url
-			e.attachmentUploadInfos[i].ExpiresAt = expiry
-			e.attachmentUploadInfos[i].Headers = map[string]string{
-				"x-goog-meta-original_file_name": filename,
-			}
-			e.attachmentUploadInfos[i].Key = uploadKey
-			e.attachmentUploadInfos[i].Location = uploadLocation
+				// Update the attachment info with URL and metadata
+				e.attachmentUploadInfos[i].UploadURL = url
+				e.attachmentUploadInfos[i].ExpiresAt = expiry
+				e.attachmentUploadInfos[i].Headers = map[string]string{
+					"x-goog-meta-original_file_name": filename,
+				}
+				e.attachmentUploadInfos[i].Key = uploadKey
+				e.attachmentUploadInfos[i].Location = uploadLocation
+
+				return nil
+			})
+		}
+
+		if err := signgroup.Wait(); err != nil {
+			return err
 		}
 	} else {
 		// S3 flow for self-hosted deployments
