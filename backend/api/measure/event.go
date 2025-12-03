@@ -724,7 +724,13 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 		Set("team_id", e.teamId).
 		Set("app_id", e.appId).
 		Set("batch_id", e.id).
-		Set("timestamp", time.Now())
+		Set("timestamp", time.Now()).
+		// Let's not wait long for the async insert ack
+		// for this particular write. Even if ClickHouse
+		// doesn't ack within 200ms, there's a high liklihood
+		// the write will persist to disk, it only waits for
+		// this duration after writing to buffer.
+		Clause("settings wait_for_async_insert_timeout 200")
 
 	defer stmt.Close()
 
