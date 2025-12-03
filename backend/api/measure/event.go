@@ -49,11 +49,6 @@ var maxBatchSize = 20 * 1024 * 1024
 // for signed upload URLs.
 const ExpiryDuration = time.Hour * 24 * 7
 
-// ingestCtxTimeout is the default timeout for all
-// ingestion related operations like symbolication
-// & ingestion database operations.
-const ingestCtxTimeout = time.Second * 60
-
 // blob represents each blob present in the
 // event request batch during ingestion.
 type blob struct {
@@ -85,6 +80,8 @@ type eventreq struct {
 	appId uuid.UUID
 	// teamId is the id of the team
 	teamId uuid.UUID
+	// json indicates that content type is JSON
+	json bool
 	// seen indicates whether this request batch
 	// was previously ingested
 	seen bool
@@ -212,7 +209,7 @@ func (e *eventreq) bumpSize(n int64) {
 
 // checkSeen checks & remembers if this request batch was
 // previously ingested.
-func (e *eventreq) checkSeen(c *gin.Context) (err error) {
+func (e *eventreq) checkSeen(ctx context.Context) (err error) {
 	stmt := sqlf.From("ingested_batches final").
 		Select("1").
 		Where("team_id = ?", e.teamId).
@@ -222,7 +219,7 @@ func (e *eventreq) checkSeen(c *gin.Context) (err error) {
 
 	defer stmt.Close()
 	var result uint8
-	if err = server.Server.ChPool.QueryRow(c, stmt.String(), stmt.Args()...).Scan(&result); err != nil {
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&result); err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
 		}
@@ -238,24 +235,7 @@ func (e *eventreq) checkSeen(c *gin.Context) (err error) {
 
 // readMultipartRequest parses and validates the event request payload for
 // events and attachments.
-func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
-	reqIdKey := `msr-req-id`
-	reqIdVal := c.Request.Header.Get(reqIdKey)
-	if reqIdVal == "" {
-		return fmt.Errorf("no %q header value found", reqIdKey)
-	}
-
-	reqId, err := uuid.Parse(reqIdVal)
-	if err != nil {
-		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
-	}
-
-	e.id = reqId
-
-	if err := e.checkSeen(c); err != nil {
-		return err
-	}
-
+func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return err
@@ -289,7 +269,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		ev.AppID = appId
+		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
 			e.symbolicateEvents[ev.ID] = i
@@ -326,25 +306,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		// compute launch timings
-		if ev.IsColdLaunch() {
-			ev.ColdLaunch.Compute()
-
-			// log anomalous cold launch durations
-			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsWarmLaunch() {
-			ev.WarmLaunch.Compute()
-
-			// log anomalous warm launch durations
-			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
-				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsHotLaunch() {
-			ev.HotLaunch.Compute()
-		}
+		ev.ComputeLaunchTimes()
 
 		// read OS name from payload
 		// if we haven't figured out
@@ -378,7 +340,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		sp.AppID = appId
+		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
 			e.symbolicateSpans[sp.SpanName] = i
@@ -423,32 +385,10 @@ func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 	return nil
 }
 
-// readJsonRequest parses and validates the JSON event request payload for
+// readJsonRequest reads and validates the JSON event request payload for
 // events and spans. Attachment metadata is extracted but files are not
 // uploaded inline - signed URLs will be returned for separate upload.
-func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
-	reqIdKey := `msr-req-id`
-	reqIdVal := c.Request.Header.Get(reqIdKey)
-	if reqIdVal == "" {
-		return fmt.Errorf("no %q header value found", reqIdKey)
-	}
-
-	reqId, err := uuid.Parse(reqIdVal)
-	if err != nil {
-		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
-	}
-
-	e.id = reqId
-	if err := e.checkSeen(c); err != nil {
-		return err
-	}
-
-	payload := IngestRequest{}
-
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		return err
-	}
-
+func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 	if len(payload.Events) < 1 && len(payload.Spans) < 1 {
 		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
@@ -471,7 +411,7 @@ func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		ev.AppID = appId
+		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
 			e.symbolicateEvents[ev.ID] = i
@@ -496,25 +436,7 @@ func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		// compute launch timings
-		if ev.IsColdLaunch() {
-			ev.ColdLaunch.Compute()
-
-			// log anomalous cold launch durations
-			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsWarmLaunch() {
-			ev.WarmLaunch.Compute()
-
-			// log anomalous warm launch durations
-			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
-				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsHotLaunch() {
-			ev.HotLaunch.Compute()
-		}
+		ev.ComputeLaunchTimes()
 
 		// read OS name from payload if we haven't figured out already
 		if e.osName == "" {
@@ -542,7 +464,7 @@ func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.bumpSize(int64(len(bytes)))
-		sp.AppID = appId
+		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
 			e.symbolicateSpans[sp.SpanName] = i
@@ -610,6 +532,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create GCS client: %w", err)
 		}
+		defer client.Close()
 
 		// for creating signed URLs, we need to tie the service account
 		// identity along with the credentials. otherwise, the signed
@@ -630,6 +553,9 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 			}
 			return resp.SignedBlob, nil
 		}
+
+		var signgroup errgroup.Group
+		signgroup.SetLimit(16)
 
 		for i := range e.attachmentUploadInfos {
 			id := e.attachmentUploadInfos[i].ID
@@ -654,19 +580,27 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 				Headers:        metadata,
 			}
 
-			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
-			if err != nil {
-				return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
-			}
+			signgroup.Go(func() error {
+				url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
+				if err != nil {
+					return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
+				}
 
-			// Update the attachment info with URL and metadata
-			e.attachmentUploadInfos[i].UploadURL = url
-			e.attachmentUploadInfos[i].ExpiresAt = expiry
-			e.attachmentUploadInfos[i].Headers = map[string]string{
-				"x-goog-meta-original_file_name": filename,
-			}
-			e.attachmentUploadInfos[i].Key = uploadKey
-			e.attachmentUploadInfos[i].Location = uploadLocation
+				// Update the attachment info with URL and metadata
+				e.attachmentUploadInfos[i].UploadURL = url
+				e.attachmentUploadInfos[i].ExpiresAt = expiry
+				e.attachmentUploadInfos[i].Headers = map[string]string{
+					"x-goog-meta-original_file_name": filename,
+				}
+				e.attachmentUploadInfos[i].Key = uploadKey
+				e.attachmentUploadInfos[i].Location = uploadLocation
+
+				return nil
+			})
+		}
+
+		if err := signgroup.Wait(); err != nil {
+			return err
 		}
 	} else {
 		// S3 flow for self-hosted deployments
@@ -754,7 +688,13 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 		Set("team_id", e.teamId).
 		Set("app_id", e.appId).
 		Set("batch_id", e.id).
-		Set("timestamp", time.Now())
+		Set("timestamp", time.Now()).
+		// Let's not wait long for the async insert ack
+		// for this particular write. Even if ClickHouse
+		// doesn't ack within 200ms, there's a high liklihood
+		// the write will persist to disk, it only waits for
+		// this duration after writing to buffer.
+		Clause("settings wait_for_async_insert_timeout 200")
 
 	defer stmt.Close()
 
@@ -2357,6 +2297,10 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 }
 
 func PutEvents(c *gin.Context) {
+	ingestReqTracer := otel.Tracer("ingest-req-tracer")
+	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest-request")
+	defer ingestReqSpan.End()
+
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
 		msg := `error parsing app's uuid`
@@ -2366,6 +2310,26 @@ func PutEvents(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	reqIdKey := `msr-req-id`
+	reqIdVal := c.Request.Header.Get(reqIdKey)
+	if reqIdVal == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("no %q header value found", reqIdKey),
+		})
+		return
+	}
+
+	reqId, err := uuid.Parse(reqIdVal)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("%q value is not a valid UUID", reqIdKey),
+		})
+		return
+	}
+
+	_, selectAppSpan := ingestReqTracer.Start(ctx, "select-app")
+	defer selectAppSpan.End()
 
 	app, err := SelectApp(ctx, appId)
 	if app == nil || err != nil {
@@ -2377,20 +2341,27 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	selectAppSpan.End()
+
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
+		id:                reqId,
 		appId:             appId,
 		teamId:            app.TeamId,
+		json:              strings.HasPrefix(c.ContentType(), "application/json"),
 		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
 	}
 
-	isJsonRequest := strings.HasPrefix(c.ContentType(), "application/json")
+	if eventReq.json {
+		ingestPayload := IngestRequest{}
 
-	if isJsonRequest {
-		if err := eventReq.readJsonRequest(c, appId); err != nil {
+		_, parseJSONSpan := ingestReqTracer.Start(ingestReqCtx, "parse-json")
+		defer parseJSONSpan.End()
+
+		if err := c.ShouldBindJSON(&ingestPayload); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":   msg,
@@ -2399,32 +2370,61 @@ func PutEvents(c *gin.Context) {
 			return
 		}
 
-		if eventReq.seen {
+		parseJSONSpan.End()
+
+		_, readRequestSpan := ingestReqTracer.Start(ingestReqCtx, "read")
+		defer readRequestSpan.End()
+
+		if err := eventReq.readJsonRequest(&ingestPayload); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		readRequestSpan.End()
+	} else {
+		if err := eventReq.readMultipartRequest(c); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if err := eventReq.checkSeen(ingestReqCtx); err != nil {
+		msg := "failed to check for duplicate event requst batch"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// return early if we can recall this batch
+	if eventReq.seen {
+		if eventReq.json {
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.
 			c.JSON(http.StatusOK, IngestResponse{
 				AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 			})
-			return
-		}
-	} else {
-		if err := eventReq.readMultipartRequest(c, appId); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-
-		if eventReq.seen {
+		} else {
 			c.JSON(http.StatusAccepted, gin.H{
 				"ok": "accepted, known event request",
 			})
-			return
 		}
+		return
 	}
+
+	_, validateReqSpan := ingestReqTracer.Start(ingestReqCtx, "validate")
+	defer validateReqSpan.End()
 
 	if err := eventReq.validate(); err != nil {
 		msg := `failed to validate event request payload`
@@ -2436,9 +2436,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	ingestReqTracer := otel.Tracer("ingest-req-tracer")
-	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest")
-	defer ingestReqSpan.End()
+	validateReqSpan.End()
 
 	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
@@ -2514,7 +2512,7 @@ func PutEvents(c *gin.Context) {
 		genSignedURLsSpan.End()
 	}
 
-	if isJsonRequest {
+	if eventReq.json {
 		c.JSON(http.StatusOK, IngestResponse{
 			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 		})
@@ -2522,77 +2520,90 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 	}
 
+	ingestReqSpan.End()
+
 	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
 
 	ingestTracer := otel.Tracer("ingest-tracer")
 	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
 	defer ingestSpan.End()
 
-	_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
-	defer infuseInetSpan.End()
-
-	if err := eventReq.infuseInet(c.ClientIP()); err != nil {
-		msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	infuseInetSpan.End()
-
-	if eventReq.needsSymbolication() {
-		config := server.Server.Config
-		origin := config.SymbolicatorOrigin
-		osName := eventReq.osName
-		sources := []symbolicator.Source{}
-
-		// configure correct sources as per
-		// OS
-		switch opsys.ToFamily(osName) {
-		case opsys.Android:
-			if config.IsCloud() {
-				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-				sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-			} else {
-				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-			}
-		case opsys.AppleFamily:
-			// by default only symbolicate app's own symbols. to symbolicate iOS
-			// system framework symbols, append a GCSSourceApple source containing
-			// all iOS system framework symbol debug information files.
-			if config.IsCloud() {
-				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-				sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-			} else {
-				sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-			}
-		}
-
-		symblctr := symbolicator.New(origin, osName, sources)
-
-		// start span to trace symbolication
-		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
-
-		defer symbolicationSpan.End()
-
-		if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
-			// in case there was symbolication failure, we don't fail
-			// ingestion. ignore the error, log it and continue.
-			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
-		}
-
-		symbolicationSpan.End()
-	}
-
 	concur.GlobalWg.Add(1)
 
 	go func() {
 		defer concur.GlobalWg.Done()
+		var infuseInetGroup errgroup.Group
+		infuseInetGroup.Go(func() error {
+			_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
+			defer infuseInetSpan.End()
+
+			if err := eventReq.infuseInet(c.ClientIP()); err != nil {
+				msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
+				fmt.Println(msg, err)
+				return err
+			}
+			infuseInetSpan.End()
+			return nil
+		})
+
+		var symbolicationGroup errgroup.Group
+
+		symbolicationGroup.Go(func() error {
+			if eventReq.needsSymbolication() {
+				config := server.Server.Config
+				origin := config.SymbolicatorOrigin
+				osName := eventReq.osName
+				sources := []symbolicator.Source{}
+
+				// configure correct sources as per
+				// OS
+				switch opsys.ToFamily(osName) {
+				case opsys.Android:
+					if config.IsCloud() {
+						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+						sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					} else {
+						sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					}
+				case opsys.AppleFamily:
+					// by default only symbolicate app's own symbols. to symbolicate iOS
+					// system framework symbols, append a GCSSourceApple source containing
+					// all iOS system framework symbol debug information files.
+					if config.IsCloud() {
+						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					} else {
+						sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					}
+				}
+
+				symblctr := symbolicator.New(origin, osName, sources)
+
+				// start span to trace symbolication
+				_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
+				defer symbolicationSpan.End()
+
+				if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
+					// in case there was symbolication failure, we don't fail
+					// ingestion. ignore the error, log it and continue.
+					fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
+					return err
+				}
+
+				symbolicationSpan.End()
+			}
+			return nil
+		})
+
+		if err := infuseInetGroup.Wait(); err != nil {
+			fmt.Println("failed to lookup IP info")
+		}
+
+		if err := symbolicationGroup.Wait(); err != nil {
+			fmt.Println("failed to symbolicate", err)
+		}
 
 		var ingestGroup errgroup.Group
 
@@ -2655,6 +2666,78 @@ func PutEvents(c *gin.Context) {
 			fmt.Println("failed to bucket issues", err)
 			return
 		}
+
+		var metricsGroup errgroup.Group
+
+		metricsGroup.Go(func() error {
+			_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
+			defer retentionPeriodSpan.End()
+
+			// get retention period for app
+			var retentionPeriod int
+			retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
+				Select("retention_period").
+				Where("app_id = ?", app.ID)
+			defer retentionPeriodQuery.Close()
+
+			if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+				fmt.Println(`failed to get app retention period`, err)
+				return err
+			}
+
+			retentionPeriodSpan.End()
+
+			_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
+			defer ingestMetricsSpan.End()
+
+			sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+			sessionCountDays := sessionCount * uint32(retentionPeriod)
+			eventCountDays := eventCount * uint32(retentionPeriod)
+			spanCountDays := spanCount * uint32(retentionPeriod)
+			traceCountDays := traceCount * uint32(retentionPeriod)
+			attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+
+			// insert metrics into clickhouse table
+			insertMetricsIngestionSelectStmt := sqlf.
+				Select("? AS team_id", eventReq.teamId).
+				Select("? AS app_id", app.ID).
+				Select("? AS timestamp", time.Now()).
+				Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+				Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
+				Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
+				Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
+				Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
+				Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
+				Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+			selectSQL := insertMetricsIngestionSelectStmt.String()
+			args := insertMetricsIngestionSelectStmt.Args()
+			defer insertMetricsIngestionSelectStmt.Close()
+			insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+			if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+				fmt.Println(`failed to insert ingestion metrics`, err)
+				return err
+			}
+			return nil
+		})
+
+		if err := metricsGroup.Wait(); err != nil {
+			fmt.Println(`failed to count ingestion metrics`, err)
+			return
+		}
+
+		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
+		defer rememberIngestSpan.End()
+
+		// Remember that this batch was ingested, so if same
+		// batch is seen again, we can skip ingesting it.
+		if err := eventReq.remember(ingestCtx); err != nil {
+			fmt.Println(`failed to remember event request`, err)
+			return
+		}
 	}()
 
 	if eventReq.onboardable() && !app.Onboarded {
@@ -2689,80 +2772,4 @@ func PutEvents(c *gin.Context) {
 			}
 		}()
 	}
-
-	var metricsGroup errgroup.Group
-
-	metricsGroup.Go(func() error {
-		_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
-		defer retentionPeriodSpan.End()
-
-		// get retention period for app
-		var retentionPeriod int
-		retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
-			Select("retention_period").
-			Where("app_id = ?", app.ID)
-		defer retentionPeriodQuery.Close()
-
-		if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
-			fmt.Println(`failed to get app retention period`, err)
-			return err
-		}
-
-		retentionPeriodSpan.End()
-
-		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
-		defer ingestMetricsSpan.End()
-
-		sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
-		sessionCountDays := sessionCount * uint32(retentionPeriod)
-		eventCountDays := eventCount * uint32(retentionPeriod)
-		spanCountDays := spanCount * uint32(retentionPeriod)
-		traceCountDays := traceCount * uint32(retentionPeriod)
-		attachmentCountDays := attachmentCount * uint32(retentionPeriod)
-
-		// insert metrics into clickhouse table
-		insertMetricsIngestionSelectStmt := sqlf.
-			Select("? AS team_id", eventReq.teamId).
-			Select("? AS app_id", app.ID).
-			Select("? AS timestamp", time.Now()).
-			Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
-			Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
-			Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
-			Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
-			Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
-			Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
-			Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
-		selectSQL := insertMetricsIngestionSelectStmt.String()
-		args := insertMetricsIngestionSelectStmt.Args()
-		defer insertMetricsIngestionSelectStmt.Close()
-		insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
-
-		if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
-			fmt.Println(`failed to insert ingestion metrics`, err)
-			return err
-		}
-		return nil
-	})
-
-	if err := metricsGroup.Wait(); err != nil {
-		fmt.Println(`failed to count ingestion metrics`, err)
-		return
-	}
-
-	concur.GlobalWg.Add(1)
-	go func() {
-		defer concur.GlobalWg.Done()
-		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
-		defer rememberIngestSpan.End()
-
-		// Remember that this batch was ingested, so if same
-		// batch is seen again, we can skip ingesting it.
-		if err := eventReq.remember(ingestCtx); err != nil {
-			fmt.Println(`failed to remember event request`, err)
-			return
-		}
-	}()
 }
