@@ -306,25 +306,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		}
 
 		// compute launch timings
-		if ev.IsColdLaunch() {
-			ev.ColdLaunch.Compute()
-
-			// log anomalous cold launch durations
-			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsWarmLaunch() {
-			ev.WarmLaunch.Compute()
-
-			// log anomalous warm launch durations
-			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
-				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsHotLaunch() {
-			ev.HotLaunch.Compute()
-		}
+		ev.ComputeLaunchTimes()
 
 		// read OS name from payload
 		// if we haven't figured out
@@ -454,25 +436,7 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 		}
 
 		// compute launch timings
-		if ev.IsColdLaunch() {
-			ev.ColdLaunch.Compute()
-
-			// log anomalous cold launch durations
-			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsWarmLaunch() {
-			ev.WarmLaunch.Compute()
-
-			// log anomalous warm launch durations
-			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
-				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
-			}
-		}
-		if ev.IsHotLaunch() {
-			ev.HotLaunch.Compute()
-		}
+		ev.ComputeLaunchTimes()
 
 		// read OS name from payload if we haven't figured out already
 		if e.osName == "" {

@@ -636,288 +636,6 @@ type EventField struct {
 	SessionStart            *SessionStart            `json:"session_start,omitempty"`
 }
 
-// Compute computes the most accurate cold launch timing
-//
-// Android reports varied process uptime values over
-// varied api levels. Computes as a best effort case
-// based on what values are available.
-func (cl *ColdLaunch) Compute() {
-	uptime := cl.ProcessStartRequestedUptime
-	if uptime < 1 {
-		uptime = cl.ProcessStartUptime
-	}
-	if uptime < 1 {
-		uptime = cl.ContentProviderAttachUptime
-	}
-
-	onNextDrawUptime := cl.OnNextDrawUptime
-	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
-}
-
-// Compute computes the warm launch duration.
-//
-// Warm launch duration is only calculated for non-lukewarm
-// launches that have a valid app visible uptime.
-func (wl *WarmLaunch) Compute() {
-	if wl.IsLukewarm {
-		wl.Duration = 0
-		return
-	}
-
-	if wl.AppVisibleUptime > 0 {
-		wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
-		return
-	}
-
-	// for non-lukewarm launches that do not
-	// have valid app visible uptime
-	wl.Duration = 0
-}
-
-// Compute computes the hot launch duration.
-func (hl *HotLaunch) Compute() {
-	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
-}
-
-// IsException returns true for
-// exception event.
-func (e EventField) IsException() bool {
-	return e.Type == TypeException
-}
-
-// IsUnhandledException returns true
-// for unhandled exception event.
-func (e EventField) IsUnhandledException() bool {
-	return e.Type == TypeException && !e.Exception.Handled
-}
-
-// IsCustom returns true for custom
-// event.
-func (e EventField) IsCustom() bool {
-	return e.Type == TypeCustom
-}
-
-// IsBugReport returns true for bug report
-// event.
-func (e EventField) IsBugReport() bool {
-	return e.Type == TypeBugReport
-}
-
-// IsANR returns true for ANR
-// event.
-func (e EventField) IsANR() bool {
-	return e.Type == TypeANR
-}
-
-// IsAppExit returns true for app
-// exit event.
-func (e EventField) IsAppExit() bool {
-	return e.Type == TypeAppExit
-}
-
-// IsSring returns true for string
-// event.
-func (e EventField) IsString() bool {
-	return e.Type == TypeString
-}
-
-// IsGestureLongClick returns true for
-// gesture long click event.
-func (e EventField) IsGestureLongClick() bool {
-	return e.Type == TypeGestureLongClick
-}
-
-// IsGestureScroll returns true for
-// gesture scroll event.
-func (e EventField) IsGestureScroll() bool {
-	return e.Type == TypeGestureScroll
-}
-
-// IsGestureClick returns true for
-// gesture click event.
-func (e EventField) IsGestureClick() bool {
-	return e.Type == TypeGestureClick
-}
-
-// IsLifecycleActivity returns true for
-// lifecycle activity event.
-func (e EventField) IsLifecycleActivity() bool {
-	return e.Type == TypeLifecycleActivity
-}
-
-// IsLifecycleFragment returns true for
-// lifecycle fragment event.
-func (e EventField) IsLifecycleFragment() bool {
-	return e.Type == TypeLifecycleFragment
-}
-
-// IsLifecycleViewController returns true for
-// lifecycle view controller event.
-func (e EventField) IsLifecycleViewController() bool {
-	return e.Type == TypeLifecycleViewController
-}
-
-// IsLifecycleSwiftUI returns true for lifecycle
-// swift ui event.
-func (e EventField) IsLifecycleSwiftUI() bool {
-	return e.Type == TypeLifecycleSwiftUI
-}
-
-// IsLifecycleApp returns true for
-// lifecycle app event.
-func (e EventField) IsLifecycleApp() bool {
-	return e.Type == TypeLifecycleApp
-}
-
-// IsColdLaunch returns true for cold
-// launch event.
-func (e EventField) IsColdLaunch() bool {
-	return e.Type == TypeColdLaunch
-}
-
-// IsWarmLaunch returns true for warm
-// launch event.
-func (e EventField) IsWarmLaunch() bool {
-	return e.Type == TypeWarmLaunch
-}
-
-// IsHotLaunch returns true for hot
-// launch event.
-func (e EventField) IsHotLaunch() bool {
-	return e.Type == TypeHotLaunch
-}
-
-// IsNetworkChange returns true for
-// network change event.
-func (e EventField) IsNetworkChange() bool {
-	return e.Type == TypeNetworkChange
-}
-
-// IsHttp returns true for http event.
-func (e EventField) IsHttp() bool {
-	return e.Type == TypeHttp
-}
-
-// IsMemoryUsage returns true for
-// memory usage event.
-func (e EventField) IsMemoryUsage() bool {
-	return e.Type == TypeMemoryUsage
-}
-
-// IsMemoryUsageAbs returns true for
-// memory usage absolute event.
-func (e EventField) IsMemoryUsageAbs() bool {
-	return e.Type == TypeMemoryUsageAbs
-}
-
-// IsTrimMemory returns true for trim
-// memory event.
-func (e EventField) IsTrimMemory() bool {
-	return e.Type == TypeTrimMemory
-}
-
-// IsCPUUsage returns true for cpu usage
-// event.
-func (e EventField) IsCPUUsage() bool {
-	return e.Type == TypeCPUUsage
-}
-
-// IsLowMemory returns true for low
-// memory event.
-func (e EventField) IsLowMemory() bool {
-	return e.Type == TypeLowMemory
-}
-
-// IsNavigation returns true for navigation
-// event.
-func (e EventField) IsNavigation() bool {
-	return e.Type == TypeNavigation
-}
-
-// IsScreenView returns true for screen
-// view event.
-func (e EventField) IsScreenView() bool {
-	return e.Type == TypeScreenView
-}
-
-// NeedsSymbolication returns true if the event needs
-// symbolication, false otherwise.
-func (e EventField) NeedsSymbolication() (result bool) {
-	result = false
-
-	if e.Type == TypeException {
-		switch e.Exception.GetFramework() {
-		case FrameworkJVM:
-			result = true
-		case FrameworkApple:
-			// some Apple exceptions may just contain
-			// Error with no stacktraces. skip those
-			// exceptions.
-			if e.Exception.HasExceptions() {
-				return true
-			}
-			result = false
-		case FrameworkDart:
-			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
-				result = true
-			}
-		}
-
-		return
-	}
-
-	switch strings.ToLower(e.Attribute.OSName) {
-	case opsys.Android:
-		if e.IsANR() {
-			result = true
-			return
-		}
-		if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
-			result = true
-			return
-		}
-
-		if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
-			result = true
-			return
-		}
-
-		if e.IsLifecycleFragment() {
-			hasClassName := len(e.LifecycleFragment.ClassName) > 0
-			hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
-			hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
-
-			if hasClassName || hasParentActivity || hasParentFragment {
-				result = true
-				return
-			}
-		}
-
-		if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
-			result = true
-			return
-		}
-
-		if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
-			result = true
-			return
-		}
-
-		if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
-			result = true
-			return
-		}
-	}
-
-	return
-}
-
-// HasAttachments returns true if the event contains
-// at least 1 attachment.
-func (e EventField) HasAttachments() bool {
-	return len(e.Attachments) > 0
-}
-
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
@@ -1328,6 +1046,272 @@ func (e *EventField) Validate() error {
 	}
 
 	return nil
+}
+
+// ComputeLaunchTimes computes launch time durations of
+// all launch time events & notifies about anomalous
+// durations if detected.
+func (e *EventField) ComputeLaunchTimes() {
+	if e.IsColdLaunch() {
+		e.ColdLaunch.Compute()
+
+		// log anomalous cold launch durations
+		if e.ColdLaunch.Duration >= NominalColdLaunchThreshold {
+			fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", NominalColdLaunchThreshold, e.ColdLaunch.Duration.Milliseconds(), e.Attribute.OSName, e.Attribute.OSVersion)
+		}
+	}
+
+	if e.IsWarmLaunch() {
+		e.WarmLaunch.Compute()
+
+		// log anomalous warm launch durations
+		if !e.WarmLaunch.IsLukewarm && e.WarmLaunch.AppVisibleUptime <= 0 {
+			fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", e.WarmLaunch.ProcessStartUptime, e.WarmLaunch.ProcessStartRequestedUptime, e.WarmLaunch.ContentProviderAttachUptime, e.Attribute.OSName, e.Attribute.OSVersion)
+		}
+	}
+
+	if e.IsHotLaunch() {
+		e.HotLaunch.Compute()
+	}
+}
+
+// IsException returns true for
+// exception event.
+func (e EventField) IsException() bool {
+	return e.Type == TypeException
+}
+
+// IsUnhandledException returns true
+// for unhandled exception event.
+func (e EventField) IsUnhandledException() bool {
+	return e.Type == TypeException && !e.Exception.Handled
+}
+
+// IsCustom returns true for custom
+// event.
+func (e EventField) IsCustom() bool {
+	return e.Type == TypeCustom
+}
+
+// IsBugReport returns true for bug report
+// event.
+func (e EventField) IsBugReport() bool {
+	return e.Type == TypeBugReport
+}
+
+// IsANR returns true for ANR
+// event.
+func (e EventField) IsANR() bool {
+	return e.Type == TypeANR
+}
+
+// IsAppExit returns true for app
+// exit event.
+func (e EventField) IsAppExit() bool {
+	return e.Type == TypeAppExit
+}
+
+// IsSring returns true for string
+// event.
+func (e EventField) IsString() bool {
+	return e.Type == TypeString
+}
+
+// IsGestureLongClick returns true for
+// gesture long click event.
+func (e EventField) IsGestureLongClick() bool {
+	return e.Type == TypeGestureLongClick
+}
+
+// IsGestureScroll returns true for
+// gesture scroll event.
+func (e EventField) IsGestureScroll() bool {
+	return e.Type == TypeGestureScroll
+}
+
+// IsGestureClick returns true for
+// gesture click event.
+func (e EventField) IsGestureClick() bool {
+	return e.Type == TypeGestureClick
+}
+
+// IsLifecycleActivity returns true for
+// lifecycle activity event.
+func (e EventField) IsLifecycleActivity() bool {
+	return e.Type == TypeLifecycleActivity
+}
+
+// IsLifecycleFragment returns true for
+// lifecycle fragment event.
+func (e EventField) IsLifecycleFragment() bool {
+	return e.Type == TypeLifecycleFragment
+}
+
+// IsLifecycleViewController returns true for
+// lifecycle view controller event.
+func (e EventField) IsLifecycleViewController() bool {
+	return e.Type == TypeLifecycleViewController
+}
+
+// IsLifecycleSwiftUI returns true for lifecycle
+// swift ui event.
+func (e EventField) IsLifecycleSwiftUI() bool {
+	return e.Type == TypeLifecycleSwiftUI
+}
+
+// IsLifecycleApp returns true for
+// lifecycle app event.
+func (e EventField) IsLifecycleApp() bool {
+	return e.Type == TypeLifecycleApp
+}
+
+// IsColdLaunch returns true for cold
+// launch event.
+func (e EventField) IsColdLaunch() bool {
+	return e.Type == TypeColdLaunch
+}
+
+// IsWarmLaunch returns true for warm
+// launch event.
+func (e EventField) IsWarmLaunch() bool {
+	return e.Type == TypeWarmLaunch
+}
+
+// IsHotLaunch returns true for hot
+// launch event.
+func (e EventField) IsHotLaunch() bool {
+	return e.Type == TypeHotLaunch
+}
+
+// IsNetworkChange returns true for
+// network change event.
+func (e EventField) IsNetworkChange() bool {
+	return e.Type == TypeNetworkChange
+}
+
+// IsHttp returns true for http event.
+func (e EventField) IsHttp() bool {
+	return e.Type == TypeHttp
+}
+
+// IsMemoryUsage returns true for
+// memory usage event.
+func (e EventField) IsMemoryUsage() bool {
+	return e.Type == TypeMemoryUsage
+}
+
+// IsMemoryUsageAbs returns true for
+// memory usage absolute event.
+func (e EventField) IsMemoryUsageAbs() bool {
+	return e.Type == TypeMemoryUsageAbs
+}
+
+// IsTrimMemory returns true for trim
+// memory event.
+func (e EventField) IsTrimMemory() bool {
+	return e.Type == TypeTrimMemory
+}
+
+// IsCPUUsage returns true for cpu usage
+// event.
+func (e EventField) IsCPUUsage() bool {
+	return e.Type == TypeCPUUsage
+}
+
+// IsLowMemory returns true for low
+// memory event.
+func (e EventField) IsLowMemory() bool {
+	return e.Type == TypeLowMemory
+}
+
+// IsNavigation returns true for navigation
+// event.
+func (e EventField) IsNavigation() bool {
+	return e.Type == TypeNavigation
+}
+
+// IsScreenView returns true for screen
+// view event.
+func (e EventField) IsScreenView() bool {
+	return e.Type == TypeScreenView
+}
+
+// NeedsSymbolication returns true if the event needs
+// symbolication, false otherwise.
+func (e EventField) NeedsSymbolication() (result bool) {
+	result = false
+
+	if e.Type == TypeException {
+		switch e.Exception.GetFramework() {
+		case FrameworkJVM:
+			result = true
+		case FrameworkApple:
+			// some Apple exceptions may just contain
+			// Error with no stacktraces. skip those
+			// exceptions.
+			if e.Exception.HasExceptions() {
+				return true
+			}
+			result = false
+		case FrameworkDart:
+			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
+				result = true
+			}
+		}
+
+		return
+	}
+
+	switch strings.ToLower(e.Attribute.OSName) {
+	case opsys.Android:
+		if e.IsANR() {
+			result = true
+			return
+		}
+		if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
+			result = true
+			return
+		}
+
+		if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
+			result = true
+			return
+		}
+
+		if e.IsLifecycleFragment() {
+			hasClassName := len(e.LifecycleFragment.ClassName) > 0
+			hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
+			hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
+
+			if hasClassName || hasParentActivity || hasParentFragment {
+				result = true
+				return
+			}
+		}
+
+		if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
+
+		if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
+
+		if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
+	}
+
+	return
+}
+
+// HasAttachments returns true if the event contains
+// at least 1 attachment.
+func (e EventField) HasAttachments() bool {
+	return len(e.Attachments) > 0
 }
 
 // GetFramework returns the exception framework
@@ -1908,4 +1892,47 @@ func (a *ANR) ComputeFingerprint() (err error) {
 	a.Fingerprint = hex.EncodeToString(hash[:])
 
 	return nil
+}
+
+// Compute computes the most accurate cold launch timing
+//
+// Android reports varied process uptime values over
+// varied api levels. Computes as a best effort case
+// based on what values are available.
+func (cl *ColdLaunch) Compute() {
+	uptime := cl.ProcessStartRequestedUptime
+	if uptime < 1 {
+		uptime = cl.ProcessStartUptime
+	}
+	if uptime < 1 {
+		uptime = cl.ContentProviderAttachUptime
+	}
+
+	onNextDrawUptime := cl.OnNextDrawUptime
+	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
+}
+
+// Compute computes the warm launch duration.
+//
+// Warm launch duration is only calculated for non-lukewarm
+// launches that have a valid app visible uptime.
+func (wl *WarmLaunch) Compute() {
+	if wl.IsLukewarm {
+		wl.Duration = 0
+		return
+	}
+
+	if wl.AppVisibleUptime > 0 {
+		wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
+		return
+	}
+
+	// for non-lukewarm launches that do not
+	// have valid app visible uptime
+	wl.Duration = 0
+}
+
+// Compute computes the hot launch duration.
+func (hl *HotLaunch) Compute() {
+	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
 }
