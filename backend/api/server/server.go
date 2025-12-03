@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -36,6 +37,7 @@ type server struct {
 	RchPool driver.Conn
 	Mail    *mail.Client
 	Config  *ServerConfig
+	VK      redis.Client
 }
 
 type PostgresConfig struct {
@@ -49,9 +51,15 @@ type ClickhouseConfig struct {
 	ReaderDSN string
 }
 
+type RedisConfig struct {
+	Host string
+	Port int
+}
+
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
+	RD                         RedisConfig
 	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
@@ -210,6 +218,21 @@ func NewConfig() *ServerConfig {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		log.Println("REDIS_HOST env var is not set, caching will not work")
+	}
+
+	redisPortStr := os.Getenv("REDIS_PORT")
+	if redisPortStr == "" {
+		log.Println("REDIS_PORT env var is not set, caching will not work")
+	}
+
+	redisPort, err := strconv.Atoi(redisPortStr)
+	if err != nil {
+		log.Fatalf("Invalid REDIS_PORT value: %v", err)
+	}
+
 	smtpHost := os.Getenv("SMTP_HOST")
 	if smtpHost == "" {
 		log.Println("SMTP_HOST env var is not set, emails will not work")
@@ -270,6 +293,10 @@ func NewConfig() *ServerConfig {
 		CH: ClickhouseConfig{
 			DSN:       clickhouseDSN,
 			ReaderDSN: clickhouseReaderDSN,
+		},
+		RD: RedisConfig{
+			Host: redisHost,
+			Port: redisPort,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
@@ -383,6 +410,20 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to initialize geo ip lookup system: %v\n", err)
 	}
 
+	// init redis client
+	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
+	options := redis.ClientOption{
+		InitAddress: []string{addr},
+	}
+
+	options.ConnWriteTimeout = 30 * time.Second
+	options.ClientName = "measure-api"
+
+	vkClient, err := redis.NewClient(options)
+	if err != nil {
+		log.Printf("failed to create redis client: %v\n", err)
+	}
+
 	// init email client
 	var mailClient *mail.Client
 	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
@@ -408,6 +449,7 @@ func Init(config *ServerConfig) {
 		ChPool:  chPool,
 		RchPool: rChPool,
 		Config:  config,
+		VK:      vkClient,
 		Mail:    mailClient,
 	}
 }

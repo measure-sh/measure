@@ -64,6 +64,8 @@ services:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_HOST=${REDIS_HOST}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
@@ -124,6 +126,8 @@ services:
       symboloader:
         condition: service_healthy
       metering:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   cleanup:
@@ -444,6 +448,21 @@ services:
       - type: bind
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
+  redis:
+    image: valkey/valkey:9.0.0-alpine
+    ports:
+      - "6379:6379"
+    command: >
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   clickstack:
     image: docker.hyperdx.io/hyperdx/hyperdx-local
