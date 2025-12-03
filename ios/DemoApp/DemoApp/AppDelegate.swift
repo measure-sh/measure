@@ -22,7 +22,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 return requestHeaders
             }
         }
-        let measureConfig = BaseMeasureConfig(enableLogging: true,
+        let measureConfig = BaseMeasureConfig(enableDebugMode: true,
                                               samplingRateForErrorFreeSessions: 1,
                                               traceSamplingRate: 1,
                                               coldLaunchSamplingRate: 1,

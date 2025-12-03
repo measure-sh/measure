@@ -26,7 +26,7 @@ final class SessionManagerTests: XCTestCase {
         logger = MockLogger()
         timeProvider = MockTimeProvider()
         userDefaultStorage = MockUserDefaultStorage()
-        configProvider = MockConfigProvider(enableLogging: false,
+        configProvider = MockConfigProvider(enableDebugMode: false,
                                             trackScreenshotOnCrash: false,
                                             eventsBatchingIntervalMs: 1000,
                                             sessionEndLastEventThresholdMs: 1000,

@@ -20,7 +20,7 @@ struct Config: InternalConfig, MeasureConfig {
     let hotLaunchSamplingRate: Float
     let journeySamplingRate: Float
     let maxDiskUsageInMb: Int
-    let enableLogging: Bool
+    let enableDebugMode: Bool
     let samplingRateForErrorFreeSessions: Float
     let traceSamplingRate: Float
     let eventsBatchingIntervalMs: Number
@@ -67,7 +67,7 @@ struct Config: InternalConfig, MeasureConfig {
     let maxAttachmentsInBatch: Int
     let maxBodySizeBytes: Int
 
-    internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
+    internal init(enableDebugMode: Bool = DefaultConfig.enableDebugMode, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   coldLaunchSamplingRate: Float = DefaultConfig.coldLaunchSamplingRate,
@@ -83,7 +83,7 @@ struct Config: InternalConfig, MeasureConfig {
                   screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
                   requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                   maxDiskUsageInMb: Int = DefaultConfig.maxEstimatedDiskUsageInMb) {
-        self.enableLogging = enableLogging
+        self.enableDebugMode = enableDebugMode
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
         self.trackHttpHeaders = trackHttpHeaders
@@ -98,8 +98,9 @@ struct Config: InternalConfig, MeasureConfig {
         self.warmLaunchSamplingRate = warmLaunchSamplingRate
         self.hotLaunchSamplingRate = hotLaunchSamplingRate
         self.journeySamplingRate = journeySamplingRate
-        self.eventsBatchingIntervalMs = 5 * 60 * 1000 // 5 minitues
-        self.maxEventsInBatch = 500
+        // 30 seconds in debug mode, otherwise 5 minutes
+        self.eventsBatchingIntervalMs = enableDebugMode ? 30 * 1000 : 5 * 60 * 1000
+        self.maxEventsInBatch = 1000
         self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
         self.longPressTimeout = 500 // 500 ms

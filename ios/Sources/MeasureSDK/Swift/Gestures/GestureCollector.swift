@@ -42,7 +42,7 @@ final class BaseGestureCollector: GestureCollector {
 
     func enable(for window: UIWindow) {
         self.window = window
-        logger.internalLog(level: .debug, message: "GestureCollector enabled.", error: nil, data: nil)
+        logger.log(level: .debug, message: "GestureCollector enabled.", error: nil, data: nil)
         UIApplication.shared.setGestureCollector(self)
         UIApplication.swizzleSendEvent()
         isEnabled = true
@@ -50,7 +50,7 @@ final class BaseGestureCollector: GestureCollector {
 
     func disable() {
         isEnabled = false
-        logger.internalLog(level: .debug, message: "GestureCollector disabled.", error: nil, data: nil)
+        logger.log(level: .debug, message: "GestureCollector disabled.", error: nil, data: nil)
     }
 
     func processEvent(_ event: UIEvent) {

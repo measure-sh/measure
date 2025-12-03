@@ -214,7 +214,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
-        let defaultConfig = Config(enableLogging: config.enableLogging,
+        let defaultConfig = Config(enableDebugMode: config.enableDebugMode,
                                    samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
                                    traceSamplingRate: config.traceSamplingRate,
                                    coldLaunchSamplingRate: config.coldLaunchSamplingRate,
@@ -234,7 +234,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  configLoader: BaseConfigLoader())
         self.timeProvider = BaseTimeProvider()
         self.appVersionInfo = BaseAppVersionInfo()
-        self.logger = MeasureLogger(enabled: configProvider.enableLogging)
+        self.logger = MeasureLogger(enabled: configProvider.enableDebugMode)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,

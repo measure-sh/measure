@@ -58,7 +58,7 @@ final class SignalProcessorTests: XCTestCase {
         idProvider.uuId = "event-id"
         logger = MockLogger()
         timeProvider = BaseTimeProvider()
-        configProvider = MockConfigProvider(enableLogging: false,
+        configProvider = MockConfigProvider(enableDebugMode: false,
                                             trackScreenshotOnCrash: false,
                                             samplingRateForErrorFreeSessions: 1.0,
                                             eventsBatchingIntervalMs: 1000,

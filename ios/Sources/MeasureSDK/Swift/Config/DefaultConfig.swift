@@ -9,7 +9,7 @@ import Foundation
 
 /// Default values of configuration options for the Measure SDK.
 struct DefaultConfig {
-    static let enableLogging = false
+    static let enableDebugMode = false
     static let sessionSamplingRate: Float = 0.0
     static let traceSamplingRate: Float = 0.0001
     static let trackHttpHeaders = false

@@ -217,8 +217,8 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.samplingRateForErrorFreeSessions)
     }
 
-    var enableLogging: Bool {
-        return getMergedConfig(\.enableLogging)
+    var enableDebugMode: Bool {
+        return getMergedConfig(\.enableDebugMode)
     }
 
     var eventsBatchingIntervalMs: Number {
