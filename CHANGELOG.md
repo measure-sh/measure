@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Improve ingest flow & tracing (#2970) by @detj in #2970
 - (**backend**): Set exec bit for postgres init script (#2921) by @detj in #2921
 - (**backend**): Set execute bit for clickhouse init script (#2918) by @detj in #2918
 - (**backend**): Fix shebang in clickhouse init script (#2916) by @detj in #2916
