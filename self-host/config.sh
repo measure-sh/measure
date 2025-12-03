@@ -200,6 +200,9 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
+REDIS_HOST=valkey
+REDIS_PORT=6379
+
 ##################
 # Object Storage #
 ##################
@@ -348,6 +351,9 @@ CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
+
+REDIS_HOST=$REDIS_HOST
+REDIS_PORT=$REDIS_PORT
 
 ##################
 # Object Storage #
@@ -540,6 +546,11 @@ END
       CLICKHOUSE_READER_PASSWORD=$(generate_password 24)
     fi
 
+    # Set Redis configuration for production
+    echo -e "Setting Redis configuration"
+    REDIS_HOST="valkey"
+    REDIS_PORT="6379"
+
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
       echo -e "\nSet storage bucket for symbols"
       SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
@@ -628,6 +639,8 @@ ensure() {
   local clickhouse_reader_dsn
   local symbolicator_origin
   local symboloader_origin
+  local redis_host
+  local redis_port
 
   clickhouse_admin_user="app_admin"
   clickhouse_operator_user="app_operator"
@@ -639,6 +652,8 @@ ensure() {
   clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
+  redis_host="valkey"
+  redis_port="6379"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
     clickhouse_admin_password="dummY_pa55w0rd"
@@ -765,6 +780,23 @@ ensure() {
 
   if ! check_env_variable "SYMBOLOADER_ORIGIN"; then
     add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
+  fi
+
+  # Redis configuration checks
+  if ! check_env_variable "REDIS_HOST"; then
+    add_env_variable "REDIS_HOST" "$redis_host" "CLICKHOUSE_MIGRATION_URL"
+  fi
+
+  if check_env_variable "REDIS_HOST"; then
+    update_env_variable "REDIS_HOST" "$redis_host"
+  fi
+
+  if ! check_env_variable "REDIS_PORT"; then
+    add_env_variable "REDIS_PORT" "$redis_port" "REDIS_HOST"
+  fi
+
+  if check_env_variable "REDIS_PORT"; then
+    update_env_variable "REDIS_PORT" "$redis_port"
   fi
 
   if ! check_env_variable "SMTP_HOST"; then
