@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {Measure, ClientInfo, MeasureConfig} from '@measuresh/react-native';
+import {Measure, ClientInfo, MeasureConfig, ScreenshotMaskLevel} from '@measuresh/react-native';
 
 type ActionItem = {
   id: string;
@@ -32,18 +32,23 @@ const App = (): React.JSX.Element => {
       'https://api.measure.sh',
     );
 
-    const measureConfig = new MeasureConfig(
-      true, // enableLogging
-      0.7, // samplingRateForErrorFreeSessions
-      0.1, // traceSamplingRate
-      false, // trackHttpHeaders
-      false, // trackHttpBody
-      [], // httpHeadersBlocklist
-      [], // httpUrlBlocklist
-      [], // httpUrlAllowlist
-      true, // autoStart
-      true, // trackViewControllerLoadTime
-    );
+    const measureConfig = new MeasureConfig({
+        enableLogging: true,
+        samplingRateForErrorFreeSessions: 1.0,
+        coldLaunchSamplingRate: 1.0,
+        warmLaunchSamplingRate: 1.0,
+        hotLaunchSamplingRate: 1.0,
+        userJourneysSamplingRate: 1.0,
+        traceSamplingRate: 1.0,
+        trackHttpHeaders: true,
+        trackHttpBody: true,
+        httpHeadersBlocklist: [],
+        httpUrlBlocklist: [],
+        httpUrlAllowlist: [],
+        autoStart: true,
+        screenshotMaskLevel: ScreenshotMaskLevel.allText,
+        maxDiskUsageInMb: 50,
+      });
 
     Measure.init(clientInfo, measureConfig);
   };
@@ -56,13 +61,17 @@ const App = (): React.JSX.Element => {
   const startMeasure = () => {
     Measure.start()
       .then(() => console.log('Measure SDK started successfully'))
-      .catch((error: any) => console.error('Failed to start Measure SDK:', error));
+      .catch((error: any) =>
+        console.error('Failed to start Measure SDK:', error),
+      );
   };
 
   const stopMeasure = () => {
     Measure.stop()
       .then(() => console.log('Measure SDK stopped successfully'))
-      .catch((error: any) => console.error('Failed to stop Measure SDK:', error));
+      .catch((error: any) =>
+        console.error('Failed to stop Measure SDK:', error),
+      );
   };
 
   const trackCustomEvent = () => {
@@ -118,10 +127,26 @@ const App = (): React.JSX.Element => {
     {
       title: 'Crash & Exception Simulation',
       data: [
-        {id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException},
-        {id: 'unhandled-rejection', title: 'Unhandled Promise Rejection', onPress: simulateUnhandledPromiseRejection},
-        {id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash},
-        {id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop},
+        {
+          id: 'js-exception',
+          title: 'Throw JS Exception',
+          onPress: simulateJSException,
+        },
+        {
+          id: 'unhandled-rejection',
+          title: 'Unhandled Promise Rejection',
+          onPress: simulateUnhandledPromiseRejection,
+        },
+        {
+          id: 'native-crash',
+          title: 'Trigger Native Crash',
+          onPress: simulateNativeCrash,
+        },
+        {
+          id: 'infinite-loop',
+          title: 'UI Freeze (Infinite Loop)',
+          onPress: simulateInfiniteLoop,
+        },
       ],
     },
   ];

@@ -8,8 +8,10 @@ import {
   Measure,
   ClientInfo,
   MeasureConfig,
+  ScreenshotMaskLevel,
 } from '@measuresh/react-native';
 import TracesScreen from './TracesScreen';
+import { Screen } from 'react-native-screens';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -27,19 +29,23 @@ export default function App() {
         'https://localhost:8080'
       );
 
-      
-      const measureConfig = new MeasureConfig(
-        true, // enableLogging
-        1.0, // samplingRateForErrorFreeSessions
-        1.0, // traceSamplingRate
-        false, // trackHttpHeaders
-        false, // trackHttpBody
-        [], // httpHeadersBlocklist
-        [], // httpUrlBlocklist
-        [], // httpUrlAllowlist
-        true, // autoStart
-        true // trackViewControllerLoadTime
-      );
+      const measureConfig = new MeasureConfig({
+        enableLogging: true,
+        samplingRateForErrorFreeSessions: 1.0,
+        coldLaunchSamplingRate: 1.0,
+        warmLaunchSamplingRate: 1.0,
+        hotLaunchSamplingRate: 1.0,
+        journeySamplingRate: 1.0,
+        traceSamplingRate: 1.0,
+        trackHttpHeaders: true,
+        trackHttpBody: true,
+        httpHeadersBlocklist: [],
+        httpUrlBlocklist: [],
+        httpUrlAllowlist: [],
+        autoStart: true,
+        screenshotMaskLevel: ScreenshotMaskLevel.allText,
+        maxDiskUsageInMb: 50,
+      });
 
       // Initialize Measure SDK
       Measure.init(clientInfo, measureConfig);
