@@ -3,7 +3,6 @@ package sh.measure.android.applaunch
 import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
-import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
@@ -116,22 +115,22 @@ internal class LaunchTracker(
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
         val onCreateRecord = createdActivities[identityHash]
-        activity.window.onNextDraw {
-            mainHandler.postAtFrontOfQueueAsync {
-                if (launchInProgress) {
-                    val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
-                    onCreateRecord?.let { onCreateRecord ->
-                        val launchType = computeLaunchType(onCreateRecord)
-                        trackLaunchEvent(
-                            launchType,
-                            onNextDrawElapsedRealtime,
-                            onCreateRecord,
-                        )
-                        launchInProgress = false
-                    }
-                }
-            }
-        }
+//        activity.window.onNextDraw {
+//            mainHandler.postAtFrontOfQueueAsync {
+//                if (launchInProgress) {
+//                    val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
+//                    onCreateRecord?.let { onCreateRecord ->
+//                        val launchType = computeLaunchType(onCreateRecord)
+//                        trackLaunchEvent(
+//                            launchType,
+//                            onNextDrawElapsedRealtime,
+//                            onCreateRecord,
+//                        )
+//                        launchInProgress = false
+//                    }
+//                }
+//            }
+//        }
     }
 
     override fun onActivityPaused(activity: Activity) {

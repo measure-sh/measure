@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
-import curtains.onNextDraw
+//import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -122,12 +122,12 @@ internal class FragmentLifecycleCollector(
         val fragmentTtidSpan = attachedFragmentSpans[identityHash]?.setCheckpoint(
             CheckpointName.FRAGMENT_RESUMED,
         )
-        f.activity?.window?.onNextDraw {
-            mainHandler.postAtFrontOfQueueAsync {
-                fragmentTtidSpan?.setStatus(SpanStatus.Ok)?.end()
-                attachedFragmentSpans.remove(identityHash)
-            }
-        }
+//        f.activity?.window?.onNextDraw {
+//            mainHandler.postAtFrontOfQueueAsync {
+//                fragmentTtidSpan?.setStatus(SpanStatus.Ok)?.end()
+//                attachedFragmentSpans.remove(identityHash)
+//            }
+//        }
     }
 
     private fun getIdentityHash(fragment: Fragment): String = Integer.toHexString(System.identityHashCode(fragment))

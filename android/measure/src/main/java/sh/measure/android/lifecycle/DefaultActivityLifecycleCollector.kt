@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
-import curtains.onNextDraw
+// import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -94,14 +94,14 @@ internal class DefaultActivityLifecycleCollector(
             ),
         )
 
-        activity.window.onNextDraw {
-            mainHandler.postAtFrontOfQueueAsync {
-                val activityIdentityHash = Integer.toHexString(System.identityHashCode(activity))
-                val ttidSpan = createdActivities[activityIdentityHash]
-                ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
-                endActivityTtidSpan(activityIdentityHash)
-            }
-        }
+//        activity.window.onNextDraw {
+//            mainHandler.postAtFrontOfQueueAsync {
+//                val activityIdentityHash = Integer.toHexString(System.identityHashCode(activity))
+//                val ttidSpan = createdActivities[activityIdentityHash]
+//                ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
+//                endActivityTtidSpan(activityIdentityHash)
+//            }
+//        }
     }
 
     override fun onActivityPaused(activity: Activity) {

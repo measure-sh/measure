@@ -1,7 +1,6 @@
 package sh.measure.android.applaunch
 
 import android.os.Process
-import curtains.onNextDraw
 import kotlinx.serialization.Serializable
 import sh.measure.android.MeasureInitProvider
 

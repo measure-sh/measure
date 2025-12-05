@@ -4,11 +4,11 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.view.MotionEvent
 import android.view.Window
-import curtains.Curtains
-import curtains.OnRootViewsChangedListener
-import curtains.OnTouchEventListener
-import curtains.phoneWindow
-import curtains.touchEventInterceptors
+//import curtains.Curtains
+//import curtains.OnRootViewsChangedListener
+//import curtains.OnTouchEventListener
+//import curtains.phoneWindow
+//import curtains.touchEventInterceptors
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
@@ -36,51 +36,51 @@ internal class GestureCollector(
     private val layoutSnapshotThrottler: LayoutSnapshotThrottler,
 ) {
     private var listener: GestureListener? = null
-    private val touchListeners = mutableMapOf<Window, OnTouchEventListener>()
-    private var rootViewsChangedListener: OnRootViewsChangedListener? = null
+//    private val touchListeners = mutableMapOf<Window, OnTouchEventListener>()
+//    private var rootViewsChangedListener: OnRootViewsChangedListener? = null
 
     fun register() {
-        rootViewsChangedListener = OnRootViewsChangedListener { view, added ->
-            view.phoneWindow?.let { window ->
-                if (added) {
-                    addTouchListenerToWindow(window)
-                } else {
-                    removeTouchListenerFromWindow(window)
-                }
-            }
-        }.also { listener ->
-            Curtains.onRootViewsChangedListeners += listener
-        }
-        Curtains.rootViews.forEach { view ->
-            view.phoneWindow?.let { window ->
-                addTouchListenerToWindow(window)
-            }
-        }
+//        rootViewsChangedListener = OnRootViewsChangedListener { view, added ->
+//            view.phoneWindow?.let { window ->
+//                if (added) {
+//                    addTouchListenerToWindow(window)
+//                } else {
+//                    removeTouchListenerFromWindow(window)
+//                }
+//            }
+//        }.also { listener ->
+//            Curtains.onRootViewsChangedListeners += listener
+//        }
+//        Curtains.rootViews.forEach { view ->
+//            view.phoneWindow?.let { window ->
+//                addTouchListenerToWindow(window)
+//            }
+//        }
     }
 
     fun unregister() {
-        rootViewsChangedListener?.let { listener ->
-            Curtains.onRootViewsChangedListeners -= listener
-        }
-        rootViewsChangedListener = null
-        touchListeners.forEach { (window, listener) ->
-            window.touchEventInterceptors -= listener
-        }
-        touchListeners.clear()
+//        rootViewsChangedListener?.let { listener ->
+//            Curtains.onRootViewsChangedListeners -= listener
+//        }
+//        rootViewsChangedListener = null
+//        touchListeners.forEach { (window, listener) ->
+//            window.touchEventInterceptors -= listener
+//        }
+//        touchListeners.clear()
     }
 
     private fun addTouchListenerToWindow(window: Window) {
-        val touchListener = OnTouchEventListener { motionEvent ->
-            trackGesture(motionEvent, window)
-        }
-        touchListeners[window] = touchListener
-        window.touchEventInterceptors += touchListener
+//        val touchListener = OnTouchEventListener { motionEvent ->
+//            trackGesture(motionEvent, window)
+//        }
+//        touchListeners[window] = touchListener
+//        window.touchEventInterceptors += touchListener
     }
 
     private fun removeTouchListenerFromWindow(window: Window) {
-        touchListeners.remove(window)?.let { listener ->
-            window.touchEventInterceptors -= listener
-        }
+//        touchListeners.remove(window)?.let { listener ->
+//            window.touchEventInterceptors -= listener
+//        }
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
