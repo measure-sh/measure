@@ -121,4 +121,12 @@ export class MeasureInternal {
   getTraceParentHeaderKey(): string {
     return this.measureInitializer.spanCollector.getTraceParentHeaderKey();
   }
+
+  setUserId(userId: string): void {
+    return this.measureInitializer.nativeApiProcessor.setUserId(userId);
+  }
+
+  clearUserId(): void {
+    return this.measureInitializer.nativeApiProcessor.clearUserId();
+  }
 }

@@ -58,6 +58,14 @@ const trackCustomEvent = () => {
   console.log('Custom event tracked: button_click');
 };
 
+const setUserIdExample = () => {
+  Measure.setUserId('sample_user_123');
+};
+
+const clearUserIdExample = () => {
+  Measure.clearUserId();
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -66,7 +74,7 @@ export default function HomeScreen() {
   };
 
   const navigateToTracesScreen = () => {
-    navigation.navigate('TracesScreen'); 
+    navigation.navigate('TracesScreen');
   };
 
   const sections = [
@@ -84,6 +92,16 @@ export default function HomeScreen() {
           id: 'event',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
+        },
+        {
+          id: 'set-user',
+          title: 'Set User ID',
+          onPress: setUserIdExample,
+        },
+        {
+          id: 'clear-user',
+          title: 'Clear User ID',
+          onPress: clearUserIdExample,
         },
       ],
     },

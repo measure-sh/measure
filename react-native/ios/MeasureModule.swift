@@ -115,4 +115,19 @@ class MeasureModule: NSObject, RCTBridgeModule {
         )
         resolve("Span tracked successfully")
     }
+
+    @objc
+    func setUserId(_ userId: NSString,
+                   resolver resolve: @escaping RCTPromiseResolveBlock,
+                   rejecter reject: @escaping RCTPromiseRejectBlock) {
+        Measure.setUserId(userId as String)
+        resolve("User ID set successfully")
+    }
+
+    @objc
+    func clearUserId(_ resolve: @escaping RCTPromiseResolveBlock,
+                     rejecter reject: @escaping RCTPromiseRejectBlock) {
+        Measure.clearUserId()
+        resolve("User ID cleared successfully")
+    }
 }
