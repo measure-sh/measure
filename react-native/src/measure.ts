@@ -250,4 +250,40 @@ export const Measure = {
   getTraceParentHeaderKey(): string {
     return _measureInternal.getTraceParentHeaderKey();
   },
+
+    /**
+   * Sets the user ID for the current user.
+   *
+   * User ID is persisted by the native SDK and used across sessions.
+   * It is recommended to avoid the use of PII (Personally Identifiable Information) in the
+   * user ID, such as email, phone number, or any other sensitive information. Instead, use a hashed
+   * or anonymized user ID to protect user privacy.
+   *
+   * @param userId - A non-empty string identifier.
+   */
+  setUserId(userId: string): void {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Call init() first.');
+      return;
+    }
+
+    if (typeof userId !== 'string' || userId.trim().length === 0) {
+      console.warn('Measure.setUserId requires a non-empty string.');
+      return;
+    }
+
+    _measureInternal.setUserId(userId);
+  },
+
+  /**
+   * Clears the user ID previously set via `setUserId`.
+   */
+  clearUserId(): void {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Call init() first.');
+      return;
+    }
+
+    _measureInternal.clearUserId();
+  },
 };

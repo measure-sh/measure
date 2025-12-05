@@ -131,3 +131,17 @@ export function trackSpan(
     isSampled
   );
 }
+
+export function setUserId(userId: string): Promise<any> {
+  if (!MeasureModule.setUserId) {
+    return Promise.reject(new Error('setUserId native method not available.'));
+  }
+  return MeasureModule.setUserId(userId);
+}
+
+export function clearUserId(): Promise<any> {
+  if (!MeasureModule.clearUserId) {
+    return Promise.reject(new Error('clearUserId native method not available.'));
+  }
+  return MeasureModule.clearUserId();
+}

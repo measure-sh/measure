@@ -37,5 +37,10 @@ RCT_EXTERN_METHOD(trackSpan:(NSString *)name
                   isSampled:(BOOL)isSampled
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(setUserId:(NSString *)userId
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(clearUserId:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 
 @end

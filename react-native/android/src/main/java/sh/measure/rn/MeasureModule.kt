@@ -153,4 +153,24 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             promise.reject(ErrorCode.TRACK_EVENT_ERROR, "Failed to track span", e)
         }
     }
+
+    @ReactMethod
+    fun setUserId(userId: String, promise: Promise) {
+        try {
+            Measure.setUserId(userId)
+            promise.resolve("User ID set successfully")
+        } catch (e: Exception) {
+            promise.reject("SET_USER_ID_ERROR", "Failed to set userId", e)
+        }
+    }
+
+    @ReactMethod
+    fun clearUserId(promise: Promise) {
+        try {
+            Measure.clearUserId()
+            promise.resolve("User ID cleared successfully")
+        } catch (e: Exception) {
+            promise.reject("CLEAR_USER_ID_ERROR", "Failed to clear userId", e)
+        }
+    }
 }

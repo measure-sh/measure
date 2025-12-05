@@ -1,7 +1,6 @@
 import { trackEvent, trackSpan } from '../native/measureBridge';
 import type { SpanData } from '../tracing/spanData';
 import type { Logger } from '../utils/logger';
-import type { TimeProvider } from '../utils/timeProvider';
 
 /**
  * Protocol for processing events and spans.
