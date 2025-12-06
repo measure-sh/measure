@@ -33,8 +33,7 @@ type SessionDisplay struct {
 	MatchedFreeText string        `json:"matched_free_text"`
 }
 
-// firstEvent returns a pointer to the first event
-// from the session's event slice.
+// GetID returns the ID of session.
 func (s Session) GetID() uuid.UUID {
 	return s.SessionID
 }
