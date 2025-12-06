@@ -1,16 +1,47 @@
 "use client"
 
 import { ResponsiveLine } from '@nivo/line'
+import { DateTime } from 'luxon'
 import React, { useEffect, useState } from 'react'
 import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls'
+import { numberToKMB } from '../utils/number_utils'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
+const demoDataDate = DateTime.now()
+const demoData = [
+  {
+    id: "1.0.0 (100)",
+    data: [
+      { datetime: demoDataDate.toFormat('yyyy-MM-dd'), instances: 1796 },
+      { datetime: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), instances: 0 }
+    ]
+  },
+  {
+    id: "2.0.0 (200)",
+    data: [
+      { datetime: demoDataDate.toFormat('yyyy-MM-dd'), instances: 2204 },
+      { datetime: demoDataDate.minus({ days: 1 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 2 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 3 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 4 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 5 }).toFormat('yyyy-MM-dd'), instances: 0 },
+      { datetime: demoDataDate.minus({ days: 6 }).toFormat('yyyy-MM-dd'), instances: 0 }
+    ]
+  }
+]
+
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
   exceptionsGroupId: string,
-  filters: Filters
+  filters: Filters,
+  demo?: boolean,
 }
 
 type ExceptionsDetailsPlot = {
@@ -21,11 +52,17 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters, demo = false }) => {
   const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
 
   const getExceptionsDetailsPlot = async () => {
+    if (demo) {
+      setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
+      setPlot(demoData.map((item: any) => ({ id: item.id, data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })) })))
+      return
+    }
+
     // Don't try to fetch plot if filters aren't ready
     if (!filters.ready) {
       return
@@ -59,10 +96,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [exceptionsType, exceptionsGroupId, filters])
+  }, [exceptionsType, exceptionsGroupId, filters, demo])
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-[32rem]">
+    <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -100,9 +137,9 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            format: value => Number.isInteger(value) ? value : '',
+            format: value => Number.isInteger(value) ? numberToKMB(value) : '',
             legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
-            legendOffset: -40,
+            legendOffset: demo ? -45 : -40,
             legendPosition: 'middle'
           }}
           pointSize={6}
