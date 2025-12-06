@@ -9,7 +9,7 @@ import Foundation
 
 /// Configuration for the Measure SDK. See `MeasureConfig` for details.
 protocol MeasureConfig {
-    var enableLogging: Bool { get }
+    var enableDebugMode: Bool { get }
     var samplingRateForErrorFreeSessions: Float { get }
     var traceSamplingRate: Float { get }
     var trackHttpHeaders: Bool { get }
@@ -29,8 +29,12 @@ protocol MeasureConfig {
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 @objc public final class BaseMeasureConfig: NSObject, MeasureConfig, Codable {
-    /// Whether to enable internal SDK logging. Defaults to `false`.
-    let enableLogging: Bool
+    /// Whether to enable SDK in initialized for a debug build.
+    /// When `enableDebugMode` is enabled the data is exported out to the server every 30 seconds instead of the default 5 minitues.
+    /// Enabling `enableDebugMode` will also show Measure SDK logs when debugger is attached.
+    ///
+    /// Defaults to `false`.
+    let enableDebugMode: Bool
 
     /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 0.
     let samplingRateForErrorFreeSessions: Float
@@ -126,7 +130,7 @@ protocol MeasureConfig {
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
+        enableDebugMode = try container.decodeIfPresent(Bool.self, forKey: .enableDebugMode) ?? DefaultConfig.enableDebugMode
         autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
         trackHttpHeaders = try container.decodeIfPresent(Bool.self, forKey: .trackHttpHeaders) ?? DefaultConfig.trackHttpHeaders
         trackHttpBody = try container.decodeIfPresent(Bool.self, forKey: .trackHttpBody) ?? DefaultConfig.trackHttpBody
@@ -182,7 +186,7 @@ protocol MeasureConfig {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case enableLogging
+        case enableDebugMode
         case samplingRateForErrorFreeSessions
         case traceSamplingRate
         case autoStart
@@ -202,7 +206,7 @@ protocol MeasureConfig {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(enableLogging, forKey: .enableLogging)
+        try container.encode(enableDebugMode, forKey: .enableDebugMode)
         try container.encode(samplingRateForErrorFreeSessions, forKey: .samplingRateForErrorFreeSessions)
         try container.encode(traceSamplingRate, forKey: .traceSamplingRate)
         try container.encode(autoStart, forKey: .autoStart)
@@ -221,7 +225,10 @@ protocol MeasureConfig {
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
-    ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
+    ///   - enableDebugMode: Whether to enable SDK in initialized for a debug build.
+    ///     When `enableDebugMode` is enabled the data is exported out to the server every 30 seconds instead of the default 5 minitues.
+    ///     Enabling `enableDebugMode` will also show Measure SDK logs when debugger is attached.
+    ///     Defaults to `false`.
     ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
@@ -256,7 +263,7 @@ protocol MeasureConfig {
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
-    public init(enableLogging: Bool? = nil,
+    public init(enableDebugMode: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 traceSamplingRate: Float? = nil,
                 coldLaunchSamplingRate: Float? = nil,
@@ -272,7 +279,7 @@ protocol MeasureConfig {
                 screenshotMaskLevel: ScreenshotMaskLevel? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil) {
-        self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
+        self.enableDebugMode = enableDebugMode ?? DefaultConfig.enableDebugMode
         self.trackHttpHeaders = trackHttpHeaders ?? DefaultConfig.trackHttpHeaders
         self.trackHttpBody = trackHttpBody ?? DefaultConfig.trackHttpBody
         self.httpHeadersBlocklist = httpHeadersBlocklist ?? DefaultConfig.httpHeadersBlocklist
@@ -324,7 +331,10 @@ protocol MeasureConfig {
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
-    ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
+    ///   - enableDebugMode: Whether to enable SDK in initialized for a debug build.
+    ///     When `enableDebugMode` is enabled the data is exported out to the server every 30 seconds instead of the default 5 minitues.
+    ///     Enabling `enableDebugMode` will also show Measure SDK logs when debugger is attached.
+    ///     Defaults to `false`.
     ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
     ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
@@ -359,7 +369,7 @@ protocol MeasureConfig {
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
-    @objc public convenience init(enableLogging: Bool,
+    @objc public convenience init(enableDebugMode: Bool,
                                   samplingRateForErrorFreeSessions: Float,
                                   traceSamplingRate: Float,
                                   coldLaunchSamplingRate: Float,
@@ -375,7 +385,7 @@ protocol MeasureConfig {
                                   screenshotMaskLevel: ScreenshotMaskLevelObjc,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,
                                   maxDiskUsageInMb: NSNumber?) {
-        self.init(enableLogging: enableLogging,
+        self.init(enableDebugMode: enableDebugMode,
                   samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions,
                   traceSamplingRate: traceSamplingRate,
                   coldLaunchSamplingRate: coldLaunchSamplingRate,

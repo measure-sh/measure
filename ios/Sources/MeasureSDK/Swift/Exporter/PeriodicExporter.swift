@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 protocol PeriodicExporter {
     func applicationDidEnterBackground()
@@ -22,6 +23,8 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
     private let exporter: Exporter
     private let dispatchQueue: DispatchQueue
     private let isEnabled = AtomicBool(false)
+
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
     var isExportInProgress: Bool = false
     var lastBatchCreationUptimeMs: Int64 = 0
@@ -61,7 +64,34 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
     }
 
     func applicationDidEnterBackground() {
+        exportEvents()
         disable()
+    }
+
+    private func startBackgroundTask() {
+        guard self.backgroundTask == .invalid else { return }
+
+        self.backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "PeriodicEventExport") {
+            self.logger.log(level: .warning, message: "Background task for PeriodicEventExport expired.", error: nil, data: nil)
+            self.endExport()
+        }
+        self.logger.internalLog(level: .debug, message: "Started background task \(self.backgroundTask.rawValue).", error: nil, data: nil)
+    }
+
+    private func endBackgroundTask() {
+        guard self.backgroundTask != .invalid else { return }
+        
+        self.logger.internalLog(level: .debug, message: "Ending background task \(self.backgroundTask.rawValue).", error: nil, data: nil)
+        UIApplication.shared.endBackgroundTask(self.backgroundTask)
+        self.backgroundTask = .invalid
+    }
+
+    private func endExport() {
+        guard self.isExportInProgress else { return }
+
+        self.endBackgroundTask()
+        self.isExportInProgress = false
+        self.logger.internalLog(level: .debug, message: "Export operation completed and flag reset.", error: nil, data: nil)
     }
 
     private func exportEvents() {
@@ -72,15 +102,19 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
 
         isExportInProgress = true
 
+        self.startBackgroundTask()
+
         let jitterSeconds = Int.random(in: 0...configProvider.maxExportJitterInterval)
         let jitterTimeInterval = DispatchTimeInterval.seconds(jitterSeconds)
 
         logger.log(level: .debug, message: "Applying jitter of \(jitterSeconds) seconds before processing batches", error: nil, data: nil)
 
         dispatchQueue.asyncAfter(deadline: .now() + jitterTimeInterval) { [weak self] in
-            guard let self else { return }
+            guard let self else {
+                self?.endExport()
+                return
+            }
             self.processBatches()
-            self.isExportInProgress = false
         }
     }
 
@@ -97,7 +131,10 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
 
     private func processExistingBatches(_ batches: [BatchEntity]) {
         func processNext(index: Int) {
-            guard index < batches.count else { return } // Done with all batches
+            guard index < batches.count else {
+                self.endExport()
+                return
+            }
 
             let batch = batches[index]
 
@@ -112,9 +149,11 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
                     switch error {
                     case .rateLimitError:
                         logger.internalLog(level: .error, message: "Rate limit hit. Stopping further batch processing.", error: nil, data: nil)
+                        self.endExport()
                         return // Stop processing
                     case .serverError:
                         logger.internalLog(level: .error, message: "Internal server error. Stopping further batch processing.", error: nil, data: nil)
+                        self.endExport()
                         return // Stop processing
                     default:
                         logger.internalLog(level: .error, message: "Batch \(batch.batchId) request failed.", error: nil, data: nil)
@@ -134,7 +173,10 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
 
         if currentTime - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
             exporter.createBatch(nil) { [weak self] result in
-                guard let self = self, let result = result else { return }
+                guard let self = self, let result = result else {
+                    self?.endExport() // Batch creation failed, call combined cleanup
+                    return
+                }
 
                 self.lastBatchCreationUptimeMs = currentTime
 
@@ -147,6 +189,7 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
             }
         } else {
             logger.log(level: .debug, message: "Skipping batch creation as interval hasn't elapsed", error: nil, data: nil)
+            self.endExport()
         }
     }
 }
