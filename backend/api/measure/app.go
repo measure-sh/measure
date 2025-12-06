@@ -2541,19 +2541,22 @@ func GetAppMetrics(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"cold_launch": gin.H{
-			"p95":   launch.ColdLaunchP95,
-			"delta": launch.ColdDelta,
-			"nan":   launch.ColdNaN,
+			"p95":       launch.ColdLaunchP95,
+			"delta":     launch.ColdDelta,
+			"nan":       launch.ColdNaN,
+			"delta_nan": launch.ColdDeltaNaN,
 		},
 		"warm_launch": gin.H{
-			"p95":   launch.WarmLaunchP95,
-			"delta": launch.WarmDelta,
-			"nan":   launch.WarmNaN,
+			"p95":       launch.WarmLaunchP95,
+			"delta":     launch.WarmDelta,
+			"nan":       launch.WarmNaN,
+			"delta_nan": launch.WarmDeltaNaN,
 		},
 		"hot_launch": gin.H{
-			"p95":   launch.HotLaunchP95,
-			"delta": launch.HotDelta,
-			"nan":   launch.HotNaN,
+			"p95":       launch.HotLaunchP95,
+			"delta":     launch.HotDelta,
+			"nan":       launch.HotNaN,
+			"delta_nan": launch.HotDeltaNaN,
 		},
 		"adoption":                      adoption,
 		"sizes":                         sizes,
