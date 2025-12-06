@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove redis command from production compose (#2983) by @detj in #2983
 - (**backend**): Integrate with redis-go (#2973) by @abhaysood in #2973
 - (**backend**): Improve ingest flow & tracing (#2970) by @detj in #2970
 - (**backend**): Set exec bit for postgres init script (#2921) by @detj in #2921
