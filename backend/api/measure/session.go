@@ -33,6 +33,12 @@ type SessionDisplay struct {
 	MatchedFreeText string        `json:"matched_free_text"`
 }
 
+const (
+	// sessionMinEvents is the minimum number of events
+	// required for a session to be considered valid.
+	sessionMinEvents = 3
+)
+
 // firstEvent returns a pointer to the first event
 // from the session's event slice.
 func (s Session) GetID() uuid.UUID {
@@ -132,6 +138,11 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		Select("last_event_timestamp").
 		Select("app_version").
 		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
+
+	// Don't return boring sessions that has less than n events, so filter
+	// those out. Many sessions may have just a `session_start`
+	// event & nothing else.
+	base.Having("uniqMerge(event_count) >= ?", sessionMinEvents)
 
 	if af.Crash && af.ANR {
 		base.Having("uniqMerge(crash_count) >= 1 or uniqMerge(anr_count) >= 1")
@@ -314,6 +325,11 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 	if af.Offset >= 0 {
 		stmt.Offset(uint64(af.Offset))
 	}
+
+	// Don't return boring sessions that has less than n events, so filter
+	// those out. Many sessions may have just a `session_start`
+	// event & nothing else.
+	stmt.Having("uniqMerge(event_count) >= ?", sessionMinEvents)
 
 	if af.Crash && af.ANR {
 		stmt.Having("uniqMerge(crash_count) >= 1 or uniqMerge(anr_count) >= 1")
