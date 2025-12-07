@@ -47,13 +47,13 @@ export interface IUserTriggeredEventCollector {
     method: string;
     startTime: number;
     endTime: number;
-    client?: string;
-    statusCode?: number;
-    error?: string;
-    requestHeaders?: Record<string, string>;
-    responseHeaders?: Record<string, string>;
-    requestBody?: string;
-    responseBody?: string;
+    client?: string | null;
+    statusCode?: number | null;
+    error?: string | null;
+    requestHeaders?: Record<string, string> | null;
+    responseHeaders?: Record<string, string> | null;
+    requestBody?: string | null;
+    responseBody?: string | null;
   }): Promise<void>;
 }
 
@@ -131,13 +131,13 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   method: string;
   startTime: number;
   endTime: number;
-  client?: string;
-  statusCode?: number;
-  error?: string;
-  requestHeaders?: Record<string, string>;
-  responseHeaders?: Record<string, string>;
-  requestBody?: string;
-  responseBody?: string;
+  client?: string | null;
+  statusCode?: number | null;
+  error?: string | null;
+  requestHeaders?: Record<string, string> | null;
+  responseHeaders?: Record<string, string> | null;
+  requestBody?: string | null;
+  responseBody?: string | null;
 }): Promise<void> {
   if (!this.enabled) return;
 
@@ -168,11 +168,11 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
       endTime,
       statusCode,
       error ?? null,
-      requestHeaders,
-      responseHeaders,
+      requestHeaders ?? {},
+      responseHeaders ?? {},
       requestBody ?? null,
       responseBody ?? null,
-      client
+      client ?? undefined
     );
 
     this.logger.log('info', `Tracked HTTP event: ${method} ${url}`);
