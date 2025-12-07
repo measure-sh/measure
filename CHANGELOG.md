@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve robustness of ingestion de-duplication (#2891) by @detj in #2891
 - (**backend**): Delete pending alerts older than 24 hours by @anupcowkur in #2902
 - (**backend**): Stop Slack channel removal on `channel_not_found` by @anupcowkur in #2900
+- (**frontend**): Handle nan for delta & value separately in launch metrics by @anupcowkur in #2989
 - (**frontend**): Rename DangerConfirmationModal to DangerConfirmationDialog by @anupcowkur in #2901
 
 ### :books: Documentation
