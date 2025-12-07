@@ -1,6 +1,8 @@
 package metrics
 
-import "math"
+import (
+	"math"
+)
 
 // SessionAdoption represents computation result of an
 // app's session adoption metrics.
@@ -55,15 +57,47 @@ type PerceivedANRFreeSession struct {
 // LaunchMetric represents compute result of an app's cold,
 // warm and hot launch timings.
 type LaunchMetric struct {
+	// ColdLaunchP95 is the computed p95 cold launch.
 	ColdLaunchP95 float64 `json:"cold_launch_p95"`
+
+	// WarmLaunchP95 is the computed p95 warm launch.
 	WarmLaunchP95 float64 `json:"warm_launch_p95"`
-	HotLaunchP95  float64 `json:"hot_launch_p95"`
-	ColdDelta     float64 `json:"cold_delta"`
-	WarmDelta     float64 `json:"warm_delta"`
-	HotDelta      float64 `json:"hot_delta"`
-	ColdNaN       bool    `json:"cold_nan"`
-	WarmNaN       bool    `json:"warm_nan"`
-	HotNaN        bool    `json:"hot_nan"`
+
+	// HotLaunchP95 is the computed p95 hot launch.
+	HotLaunchP95 float64 `json:"hot_launch_p95"`
+
+	// ColdDelta is the computed delta for cold launch.
+	ColdDelta float64 `json:"cold_delta"`
+
+	// WarmDelta is the computed delta for warm launch.
+	WarmDelta float64 `json:"warm_delta"`
+
+	// HotDelta is the computed delta for hot launch.
+	HotDelta float64 `json:"hot_delta"`
+
+	// ColdNaN is true if p95 cold launch is
+	// not a number.
+	ColdNaN bool `json:"cold_nan"`
+
+	// WarmNaN is true if p95 warm launch is
+	// not a number.
+	WarmNaN bool `json:"warm_nan"`
+
+	// HotNaN is true if p95 hot launch is
+	// not a number.
+	HotNaN bool `json:"hot_nan"`
+
+	// ColdDeltaNaN is true if delta for cold launch
+	// is not a number.
+	ColdDeltaNaN bool `json:"cold_delta_nan"`
+
+	// WarmDeltaNaN is true if delta for warm launch
+	// is not a number.
+	WarmDeltaNaN bool `json:"warm_delta_nan"`
+
+	// HotDeltaNaN is true if delta for hot launch
+	// is not a number.
+	HotDeltaNaN bool `json:"hot_delta_nan"`
 }
 
 // SetNaNs sets the NaN bit if adoption
@@ -131,7 +165,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.ColdLaunchP95 = 0
 	}
 	if math.IsNaN(lm.ColdDelta) || math.IsInf(lm.ColdDelta, 0) {
-		lm.ColdNaN = true
+		lm.ColdDeltaNaN = true
 		lm.ColdDelta = 0
 	}
 	if math.IsNaN(lm.WarmLaunchP95) {
@@ -139,7 +173,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.WarmLaunchP95 = 0
 	}
 	if math.IsNaN(lm.WarmDelta) || math.IsInf(lm.WarmDelta, 0) {
-		lm.WarmNaN = true
+		lm.WarmDeltaNaN = true
 		lm.WarmDelta = 0
 	}
 	if math.IsNaN(lm.HotLaunchP95) {
@@ -147,7 +181,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.HotLaunchP95 = 0
 	}
 	if math.IsNaN(lm.HotDelta) || math.IsInf(lm.HotDelta, 0) {
-		lm.HotNaN = true
+		lm.HotDeltaNaN = true
 		lm.HotDelta = 0
 	}
 }

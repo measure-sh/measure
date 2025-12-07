@@ -174,8 +174,13 @@ func main() {
 	<-quit
 	fmt.Println("Shutting down API service...")
 
+	shutdownTimeout := 9 * time.Second
+	if gin.Mode() == gin.DebugMode {
+		shutdownTimeout = 0 * time.Second
+	}
+
 	// Graceful shutdown with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 9*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
