@@ -126,6 +126,7 @@ describe('MetricsCard', () => {
         type: 'app_start_time',
         status: MetricsApiStatus.Success,
         noData: false,
+        noDelta: false,
         value: 1200,
         delta: 0.8,
         launchType: 'Cold',
@@ -327,6 +328,24 @@ describe('MetricsCard', () => {
             expect(trendingDownIcon).toHaveClass('text-green-600')
             const trendingTextFaster = screen.getByText('0.7x faster')
             expect(trendingTextFaster).toHaveClass('text-green-600')
+        })
+
+        it('should not show delta trend when noDelta is true', () => {
+            // Test slower performance (delta > 1)
+            const slowerProps = createAppStartTimeProps({ delta: 1.3, noDelta: true })
+            const { rerender } = render(<MetricsCard {...slowerProps} />)
+            const trendingUpIcon = screen.queryByTestId('trending-up-icon')
+            expect(trendingUpIcon).toBeNull()
+            const trendingText = screen.queryByText('1.3x slower')
+            expect(trendingText).toBeNull()
+
+            // Test faster performance (0 < delta < 1)
+            const fasterProps = createAppStartTimeProps({ delta: 0.7, noDelta: true })
+            rerender(<MetricsCard {...fasterProps} />)
+            const trendingDownIcon = screen.queryByTestId('trending-down-icon')
+            expect(trendingDownIcon).toBeNull()
+            const trendingTextFaster = screen.queryByText('0.7x faster')
+            expect(trendingTextFaster).toBeNull()
         })
     })
 

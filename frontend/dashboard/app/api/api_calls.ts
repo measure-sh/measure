@@ -469,6 +469,7 @@ export const emptyMetrics = {
     delta: 0,
     nan: false,
     p95: 0,
+    delta_nan: false,
   },
   crash_free_sessions: {
     crash_free_sessions: 0,
@@ -479,6 +480,7 @@ export const emptyMetrics = {
     delta: 0,
     nan: false,
     p95: 0,
+    delta_nan: false,
   },
   perceived_anr_free_sessions: {
     perceived_anr_free_sessions: 0,
@@ -500,6 +502,7 @@ export const emptyMetrics = {
     delta: 0,
     nan: false,
     p95: 0,
+    delta_nan: false,
   },
 }
 

@@ -86,6 +86,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
         status={metricsApiStatus}
         launchType="Cold"
         noData={metrics.cold_launch.nan}
+        noDelta={metrics.cold_launch.delta_nan}
         value={metrics.cold_launch.p95}
         delta={metrics.cold_launch.delta}
       />
@@ -95,6 +96,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
         status={metricsApiStatus}
         launchType="Warm"
         noData={metrics.warm_launch.nan}
+        noDelta={metrics.warm_launch.delta_nan}
         value={metrics.warm_launch.p95}
         delta={metrics.warm_launch.delta}
       />
@@ -104,6 +106,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
         status={metricsApiStatus}
         launchType="Hot"
         noData={metrics.hot_launch.nan}
+        noDelta={metrics.hot_launch.delta_nan}
         value={metrics.hot_launch.p95}
         delta={metrics.hot_launch.delta}
       />
