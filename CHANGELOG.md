@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Improve handling of launch metrics delta nans by @detj in #2985
 - (**backend**): Only show sessions having many events (#2979) by @detj in #2979
 - (**backend**): Fix broken remember query (#2971) by @detj in #2971
 - (**backend**): Some attachments were not getting uploaded (#2967) by @detj in #2967
