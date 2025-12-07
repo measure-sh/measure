@@ -79,6 +79,7 @@ export interface AppStartTimeProps extends BaseMetricsCardProps {
     type: 'app_start_time'
     value: number
     delta: number
+    noDelta: boolean
     launchType: string
 }
 
@@ -273,7 +274,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                     <>
                         <p className={STYLES.text.mainValue}> {startTimeProps.value}ms</p>
                         <div className={STYLES.layout.spacer} />
-                        {getAppStartTimeDeltaWithTrendIcon(startTimeProps.delta)}
+                        {!startTimeProps.noDelta && getAppStartTimeDeltaWithTrendIcon(startTimeProps.delta)}
                     </>
                 )
 
