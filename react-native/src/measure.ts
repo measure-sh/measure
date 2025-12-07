@@ -286,4 +286,41 @@ export const Measure = {
 
     _measureInternal.clearUserId();
   },
+
+    /**
+   * Tracks an HTTP event manually.
+   *
+   * @param url - The URL to which the request was made
+   * @param method - The HTTP method used for the request
+   * @param startTime - The time when the HTTP request started (recommended to use a monotonic time source)
+   * @param endTime - The time when the HTTP request ended (recommended to use a monotonic time source)
+   * @param client - The name of the HTTP client used, optional (defaults to "unknown")
+   * @param statusCode - The HTTP status code of the response received
+   * @param error - The error if the request fails.
+   * @param requestHeaders - The HTTP headers in the request
+   * @param responseHeaders - The HTTP headers in the response
+   * @param requestBody - An optional request body
+   * @param responseBody - An optional response body
+   */
+  trackHttpEvent(params: {
+    url: string;
+    method: string;
+    startTime: number;
+    endTime: number;
+    client?: string | null;
+    statusCode?: number | null;
+    error?: string | null;
+    requestHeaders?: Record<string, string> | null;
+    responseHeaders?: Record<string, string> | null;
+    requestBody?: string | null;
+    responseBody?: string | null;
+  }): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.trackHttpEvent(params);
+  },
 };

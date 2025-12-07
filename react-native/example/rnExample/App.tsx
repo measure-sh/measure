@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {Measure, ClientInfo, MeasureConfig, ScreenshotMaskLevel} from '@measuresh/react-native';
+import {
+  Measure,
+  ClientInfo,
+  MeasureConfig,
+  ScreenshotMaskLevel,
+} from '@measuresh/react-native';
 
 type ActionItem = {
   id: string;
@@ -33,22 +38,22 @@ const App = (): React.JSX.Element => {
     );
 
     const measureConfig = new MeasureConfig({
-        enableLogging: true,
-        samplingRateForErrorFreeSessions: 1.0,
-        coldLaunchSamplingRate: 1.0,
-        warmLaunchSamplingRate: 1.0,
-        hotLaunchSamplingRate: 1.0,
-        userJourneysSamplingRate: 1.0,
-        traceSamplingRate: 1.0,
-        trackHttpHeaders: true,
-        trackHttpBody: true,
-        httpHeadersBlocklist: [],
-        httpUrlBlocklist: [],
-        httpUrlAllowlist: [],
-        autoStart: true,
-        screenshotMaskLevel: ScreenshotMaskLevel.allText,
-        maxDiskUsageInMb: 50,
-      });
+      enableLogging: true,
+      samplingRateForErrorFreeSessions: 1.0,
+      coldLaunchSamplingRate: 1.0,
+      warmLaunchSamplingRate: 1.0,
+      hotLaunchSamplingRate: 1.0,
+      userJourneysSamplingRate: 1.0,
+      traceSamplingRate: 1.0,
+      trackHttpHeaders: true,
+      trackHttpBody: true,
+      httpHeadersBlocklist: [],
+      httpUrlBlocklist: [],
+      httpUrlAllowlist: [],
+      autoStart: true,
+      screenshotMaskLevel: ScreenshotMaskLevel.allText,
+      maxDiskUsageInMb: 50,
+    });
 
     Measure.init(clientInfo, measureConfig);
   };
@@ -80,6 +85,30 @@ const App = (): React.JSX.Element => {
       action: 'Track Custom Event',
       timestamped: true,
     });
+  };
+
+  const trackHttpEventManually = () => {
+    const startTime = Date.now();
+    const endTime = startTime + 180;
+
+    Measure.trackHttpEvent({
+      url: 'https://api.example.com/manual',
+      method: 'post',
+      startTime,
+      endTime,
+      statusCode: 201,
+      client: 'manual-test',
+      requestHeaders: {
+        'Content-Type': 'application/json',
+      },
+      responseHeaders: {
+        'Content-Type': 'application/json',
+      },
+      requestBody: JSON.stringify({hello: 'world'}),
+      responseBody: JSON.stringify({success: true}),
+    })
+      .then(() => console.log('Manual HTTP Event Tracked'))
+      .catch(err => console.error('Failed to track HTTP event:', err));
   };
 
   /** === Simulation Helpers === */
@@ -115,12 +144,12 @@ const App = (): React.JSX.Element => {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => trackCustomEvent(),
+          onPress: trackCustomEvent,
         },
         {
-          id: 'crash',
-          title: 'Simulate Crash',
-          onPress: () => console.log('Simulate crash'),
+          id: 'track-http',
+          title: 'Track HTTP Event Manually',
+          onPress: trackHttpEventManually,
         },
       ],
     },
