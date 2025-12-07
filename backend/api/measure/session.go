@@ -39,8 +39,7 @@ const (
 	sessionMinEvents = 3
 )
 
-// firstEvent returns a pointer to the first event
-// from the session's event slice.
+// GetID returns the ID of session.
 func (s Session) GetID() uuid.UUID {
 	return s.SessionID
 }
