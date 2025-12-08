@@ -558,7 +558,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 
 	avgSizeStmt := sqlf.PostgreSQL.
 		From("build_sizes").
-		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
+		Select("round(avg(build_size), 0) as average_size").
 		Where("app_id = ?", af.AppID)
 
 	if versions.HasVersions() {
@@ -583,7 +583,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 		Select("t1.average_size as average_app_size").
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
-		From("avg_size as t1, build_sizes as t2").
+		From("avg_size as t1 cross join build_sizes as t2").
 		Where("app_id = ?", af.AppID).
 		Where("version_name = ?", af.Versions[0]).
 		Where("version_code = ?", af.VersionCodes[0])

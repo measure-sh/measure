@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-react'
 import React from 'react'
 import { MetricsApiStatus } from '../api/api_calls'
-import { numberToKMB } from '../utils/number_utils'
+import { numberToKMB, toKiloBytes, toMegaBytes } from '../utils/number_utils'
 import { Card, CardContent, CardFooter } from './card'
 import LoadingSpinner from './loading_spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
@@ -219,23 +219,42 @@ function getAppStartTimeDeltaWithTrendIcon(delta: number) {
 }
 
 function getAppSizeDeltaWithTrendIcon(deltaInBytes: number) {
-    if (deltaInBytes < 0) {
-        return (
-            <div className={STYLES.layout.trendContainer}>
-                <TrendingDown className={`${STYLES.icon.trend} ${STYLES.icon.green}`} />
-                <p className={`${STYLES.text.trendText} ${STYLES.icon.green}`}>{(deltaInBytes / (1024 * 1024)).toPrecision(3)} MB</p>
-            </div>
-        )
-    }
-    if (deltaInBytes > 0) {
-        return (
-            <div className={STYLES.layout.trendContainer}>
-                <TrendingUp className={`${STYLES.icon.trend} ${STYLES.icon.yellow}`} />
-                <p className={`${STYLES.text.trendText} ${STYLES.icon.yellow}`}>+{(deltaInBytes / (1024 * 1024)).toPrecision(3)} MB</p>
-            </div>
-        )
-    }
-    return null
+  if (deltaInBytes === 0) {
+    return null;
+  }
+
+  const isNegative = deltaInBytes < 0;
+  const absBytes = Math.abs(deltaInBytes);
+
+  let value: string;
+  let unit: string;
+
+  if (absBytes >= 1024 * 1024) {
+    // ≥ 1 MB → show in MB with 3 significant digits
+    value = toMegaBytes(deltaInBytes).toPrecision(3);
+    unit = 'MB';
+  } else if (absBytes >= 1024) {
+    // ≥ 1 KB → show in KB with 2 significant digits
+    value = toKiloBytes(deltaInBytes).toFixed(2);
+    unit = 'KB';
+  } else {
+    // < 1 KB → show raw bytes (no decimal)
+    value = deltaInBytes.toString();
+    unit = 'B';
+  }
+
+  const Icon = isNegative ? TrendingDown : TrendingUp;
+  const colorClass = isNegative ? STYLES.icon.green : STYLES.icon.yellow;
+  const sign = isNegative ? '' : '+';
+
+  return (
+    <div className={STYLES.layout.trendContainer}>
+      <Icon className={`${STYLES.icon.trend} ${colorClass}`} />
+      <p className={`${STYLES.text.trendText} ${colorClass}`}>
+        {sign}{value} {unit}
+      </p>
+    </div>
+  );
 }
 
 const MetricsCard: React.FC<MetricsCardProps> = (props) => {

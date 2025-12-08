@@ -404,6 +404,26 @@ describe('MetricsCard', () => {
             expect(screen.queryByText(/MB/)).toBeInTheDocument() // Main value should still show
             expect(screen.queryByText(/\+.*MB|-.*MB/)).not.toBeInTheDocument() // No delta
         })
+
+        it('should handle small size delta trends in kilobytes', () => {
+          // Test small size changes, in bytes or kilobytes
+          const smallDecreaseProps = createAppSizeProps({ deltaInBytes: -2286 })
+          render(<MetricsCard {...smallDecreaseProps} />)
+          const trendingIcon = screen.getByTestId('trending-down-icon')
+          expect(trendingIcon).toHaveClass('text-green-600')
+          const trendingText = screen.getByText('-2.23 KB')
+          expect(trendingText).toHaveClass('text-green-600')
+        })
+
+        it('should handle small size delta trends in bytes', () => {
+          // Test small size changes, in bytes or bytes
+          const smallIncreaseProps = createAppSizeProps({ deltaInBytes: 220 })
+          render(<MetricsCard {...smallIncreaseProps} />)
+          const trendingIcon = screen.getByTestId('trending-up-icon')
+          expect(trendingIcon).toHaveClass('text-yellow-600')
+          const trendingTextUp = screen.getByText('+220 B')
+          expect(trendingTextUp).toHaveClass('text-yellow-600')
+        })
     })
 
     describe('App Adoption', () => {

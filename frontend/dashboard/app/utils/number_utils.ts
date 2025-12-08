@@ -2,6 +2,14 @@ export function kilobytesToMegabytes(bytes: number): number {
   return bytes / 1024
 }
 
+export function toKiloBytes(bytes: number): number {
+  return bytes / 1024
+}
+
+export function toMegaBytes(bytes: number): number {
+  return bytes / 1024 / 1024
+}
+
 export function numberToKMB(value: number): string {
   const absValue = Math.abs(value)
   const sign = value < 0 ? '-' : ''
