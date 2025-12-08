@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-react'
 import React from 'react'
 import { MetricsApiStatus } from '../api/api_calls'
-import { numberToKMB } from '../utils/number_utils'
+import { numberToKMB, toKiloBytes, toMegaBytes } from '../utils/number_utils'
 import { Card, CardContent, CardFooter } from './card'
 import LoadingSpinner from './loading_spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
@@ -231,11 +231,11 @@ function getAppSizeDeltaWithTrendIcon(deltaInBytes: number) {
 
   if (absBytes >= 1024 * 1024) {
     // ≥ 1 MB → show in MB with 3 significant digits
-    value = (deltaInBytes / (1024 * 1024)).toPrecision(3);
+    value = toMegaBytes(deltaInBytes).toPrecision(3);
     unit = 'MB';
   } else if (absBytes >= 1024) {
-    // ≥ 1 KB → show in KB with 3 significant digits
-    value = (deltaInBytes / 1024).toFixed(2);
+    // ≥ 1 KB → show in KB with 2 significant digits
+    value = toKiloBytes(deltaInBytes).toFixed(2);
     unit = 'KB';
   } else {
     // < 1 KB → show raw bytes (no decimal)
