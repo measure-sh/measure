@@ -36,7 +36,8 @@ class DeleteScreenshotButton extends StatelessWidget {
     return CupertinoButton(
       onPressed: onDelete,
       padding: EdgeInsets.zero,
-      minimumSize: Size(28, 44),
+      // ignore: deprecated_member_use
+      minSize: 44,
       child: Container(
         width: 28,
         height: 28,
