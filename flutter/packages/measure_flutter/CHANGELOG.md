@@ -5,10 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.3.0] - 2025-12-09
+
+### :bug: Bug fixes
+
+- (**flutter**): Compatibility with older flutter versions (#3001)
+
+### :hammer: Misc
+
+- (**flutter**): Update measure config and default event collection (#2933)
+
 ## [measure_flutter-v0.2.1] - 2025-10-29
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter-v0.2.1 (#2864)
 - (**flutter**): Expose measure-android SDK as api dependency (#2828)
 
 ## [measure_flutter-v0.2.0] - 2025-10-22
