@@ -3,7 +3,7 @@ repository: https://github.com/measure-sh/measure/tree/main/flutter/packages/mea
 issue_tracker: https://github.com/measure-sh/measure/issues
 description: Flutter SDK to track crashes, bug reports, performance traces and more using measure.sh, an
   open-source monitoring tool.
-version: 0.2.1
+version: 0.3.0
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -23,7 +23,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0
   mocktail: ^1.0.4
   build_runner: ^2.4.15
   json_serializable: ^6.9.4
