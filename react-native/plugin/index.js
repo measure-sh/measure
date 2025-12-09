@@ -2,6 +2,8 @@ const {
   withPodfile,
   withSettingsGradle,
   withMainApplication,
+  withAppBuildGradle,
+  withProjectBuildGradle,
 } = require('@expo/config-plugins');
 
 const MEASURE_POD_TAG = `# @measure/react-native`;
@@ -44,13 +46,59 @@ function withMeasureAndroidSettings(config) {
   });
 }
 
-function withMeasureMainApplication(config) {
-  return withMainApplication(config, (mod) => {
-    console.log('[Measure Plugin] modifying MainApplication.kt');
-
+/* ANDROID: Add plugin + classpath to project build.gradle */
+function withMeasureProjectBuildGradle(config) {
+  return withProjectBuildGradle(config, (mod) => {
     let contents = mod.modResults.contents;
 
-    // 1. Ensure the import is present
+    // Add classpath
+    if (!contents.includes('sh.measure.android.gradle')) {
+      contents = contents.replace(
+        /dependencies\s?{/,
+        `dependencies {
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.11.0")`
+      );
+    }
+
+    // Add apply plugin at bottom
+    if (!contents.includes(`apply plugin: "sh.measure.android.gradle"`)) {
+      contents += `\napply plugin: "sh.measure.android.gradle"\n`;
+    }
+
+    mod.modResults.contents = contents;
+    return mod;
+  });
+}
+
+/* ANDROID: Add dependency + plugin to app/build.gradle */
+function withMeasureAppBuildGradle(config) {
+  return withAppBuildGradle(config, (mod) => {
+    let contents = mod.modResults.contents;
+
+    // 1. Add implementation dependency
+    if (!contents.includes('sh.measure:measure-android')) {
+      contents = contents.replace(
+        /dependencies\s?{/,
+        `dependencies {
+        implementation("sh.measure:measure-android:0.15.0")`
+      );
+    }
+
+    // 2. Add apply plugin at top
+    if (!contents.includes(`apply plugin: "sh.measure.android.gradle"`)) {
+      contents = `apply plugin: "sh.measure.android.gradle"\n` + contents;
+    }
+
+    mod.modResults.contents = contents;
+    return mod;
+  });
+}
+
+/* ANDROID: Add MeasurePackage to MainApplication */
+function withMeasureMainApplication(config) {
+  return withMainApplication(config, (mod) => {
+    let contents = mod.modResults.contents;
+
     if (!contents.includes('import sh.measure.rn.MeasurePackage')) {
       contents = contents.replace(
         /(package .*?\n)/,
@@ -58,7 +106,6 @@ function withMeasureMainApplication(config) {
       );
     }
 
-    // 2. Inject packages.add(...) just before "return packages"
     if (!contents.includes('packages.add(MeasurePackage())')) {
       contents = contents.replace(
         /(return\s+packages;?)/,
@@ -74,6 +121,8 @@ function withMeasureMainApplication(config) {
 module.exports = function withMeasurePlugin(config) {
   config = withMeasureIos(config);
   config = withMeasureAndroidSettings(config);
+  config = withMeasureProjectBuildGradle(config);
+  config = withMeasureAppBuildGradle(config);
   config = withMeasureMainApplication(config);
   return config;
 };

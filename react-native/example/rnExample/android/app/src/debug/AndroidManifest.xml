@@ -6,4 +6,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="28"
         tools:ignore="GoogleAppIndexingWarning"/>
+    <meta-data android:name="sh.measure.android.API_KEY" android:value="msrsh_368b5f192cdb17c7735a3171b22f62446d8327ed931ad5375df824f822162a67_ca2c69c7"/>
+    <meta-data android:name="sh.measure.android.API_URL" android:value="http://localhost:8080"/>
 </manifest>

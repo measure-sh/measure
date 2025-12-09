@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {Measure, ClientInfo, MeasureConfig, ScreenshotMaskLevel} from '@measuresh/react-native';
+import {
+  Measure,
+  ClientInfo,
+  MeasureConfig,
+  ScreenshotMaskLevel,
+} from '@measuresh/react-native';
 
 type ActionItem = {
   id: string;
@@ -29,26 +34,26 @@ const App = (): React.JSX.Element => {
     const clientInfo = new ClientInfo(
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-      'https://api.measure.sh',
+      'http://localhost:8080',
     );
 
     const measureConfig = new MeasureConfig({
-        enableLogging: true,
-        samplingRateForErrorFreeSessions: 1.0,
-        coldLaunchSamplingRate: 1.0,
-        warmLaunchSamplingRate: 1.0,
-        hotLaunchSamplingRate: 1.0,
-        userJourneysSamplingRate: 1.0,
-        traceSamplingRate: 1.0,
-        trackHttpHeaders: true,
-        trackHttpBody: true,
-        httpHeadersBlocklist: [],
-        httpUrlBlocklist: [],
-        httpUrlAllowlist: [],
-        autoStart: true,
-        screenshotMaskLevel: ScreenshotMaskLevel.allText,
-        maxDiskUsageInMb: 50,
-      });
+      enableLogging: true,
+      samplingRateForErrorFreeSessions: 1.0,
+      coldLaunchSamplingRate: 1.0,
+      warmLaunchSamplingRate: 1.0,
+      hotLaunchSamplingRate: 1.0,
+      userJourneysSamplingRate: 1.0,
+      traceSamplingRate: 1.0,
+      trackHttpHeaders: true,
+      trackHttpBody: true,
+      httpHeadersBlocklist: [],
+      httpUrlBlocklist: [],
+      httpUrlAllowlist: [],
+      autoStart: true,
+      screenshotMaskLevel: ScreenshotMaskLevel.allText,
+      maxDiskUsageInMb: 50,
+    });
 
     Measure.init(clientInfo, measureConfig);
   };
@@ -100,6 +105,35 @@ const App = (): React.JSX.Element => {
     while (true) {}
   };
 
+  const testFetchApi = async () => {
+    try {
+      console.log('Making fetch API call...');
+      const response = await fetch(
+        'https://jsonplaceholder.typicode.com/posts/1',
+      );
+      const json = await response.json();
+      console.log('Fetch response:', json);
+    } catch (e) {
+      console.error('Fetch API call failed:', e);
+    }
+  };
+
+  const testXhrApi = () => {
+    console.log('Making XHR API call...');
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.github.com/repos/facebook/react-native', true);
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        console.log('XHR status:', xhr.status);
+        console.log('XHR status:', xhr.getResponseHeader('Content-Type'));
+        console.log('XHR response:', xhr.responseText);
+      }
+    };
+
+    xhr.send();
+  };
+
   /** === UI Sections === */
   const sections = [
     {
@@ -121,6 +155,21 @@ const App = (): React.JSX.Element => {
           id: 'crash',
           title: 'Simulate Crash',
           onPress: () => console.log('Simulate crash'),
+        },
+      ],
+    },
+    {
+      title: 'HTTP Tests',
+      data: [
+        {
+          id: 'fetch-test',
+          title: 'Test Fetch API Call',
+          onPress: testFetchApi,
+        },
+        {
+          id: 'xhr-test',
+          title: 'Test XHR API Call',
+          onPress: testXhrApi,
         },
       ],
     },
