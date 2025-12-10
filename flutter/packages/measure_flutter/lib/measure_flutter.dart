@@ -11,7 +11,7 @@
 ///
 /// ```yaml
 /// dependencies:
-///   measure_flutter: ^0.2.1
+///   measure_flutter: ^0.3.1
 /// ```
 ///
 /// ### Initialize the SDK
