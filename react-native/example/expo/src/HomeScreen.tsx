@@ -168,15 +168,15 @@ export default function HomeScreen() {
     {
       title: 'Session & Init',
       data: [
-        { id: 'start', title: 'Start SDK', onPress: startMeasure },
-        { id: 'stop', title: 'Stop SDK', onPress: stopMeasure },
+        { id: 'start-sdk', title: 'Start SDK', onPress: startMeasure },
+        { id: 'stop-sdk', title: 'Stop SDK', onPress: stopMeasure },
       ],
     },
     {
       title: 'User Actions',
       data: [
         {
-          id: 'event-1',
+          id: 'event-custom',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
         },
@@ -185,26 +185,16 @@ export default function HomeScreen() {
           title: 'Track HTTP Event Manually',
           onPress: trackHttpEventManually,
         },
-        {
-          id: 'set-user',
-          title: 'Set User ID',
-          onPress: setUserIdExample,
-        },
-        {
-          id: 'bugReport-ui',
-          title: 'Launch Bug Report UI',
-          onPress: trackBugReportWithUI,
-        },
-        {
-          id: 'event-2',
-          title: 'Track Custom Event',
-          onPress: trackCustomEvent,
-        },
         { id: 'set-user', title: 'Set User ID', onPress: setUserIdExample },
         {
           id: 'clear-user',
           title: 'Clear User ID',
           onPress: clearUserIdExample,
+        },
+        {
+          id: 'bugReport-ui',
+          title: 'Launch Bug Report UI',
+          onPress: trackBugReportWithUI,
         },
         {
           id: 'bugReport-track',

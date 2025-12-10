@@ -215,7 +215,8 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
 
         promise.resolve("ok")
     }
-    
+
+    @ReactMethod
     fun launchBugReport(
         takeScreenshot: Boolean,
         bugReportConfig: ReadableMap?,
@@ -265,22 +266,19 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
 
                         try {
                             val map = Arguments.createMap().apply {
-                                putString("id", attachment.name) // or generate your own if needed
+                                putString("id", attachment.name)
                                 putString("name", attachment.name)
                                 putString("type", attachment.type)
 
-                                // If Android returns path
                                 attachment.path?.let { filePath ->
                                     putString("path", filePath)
 
-                                    // Add size
                                     val file = File(filePath)
                                     if (file.exists()) {
                                         putInt("size", file.length().toInt())
                                     }
                                 }
 
-                                // If Android returns bytes instead
                                 attachment.bytes?.let { bytes ->
                                     val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
                                     putString("bytes", base64)
@@ -379,27 +377,34 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
-    internal fun getMsrAttachments(attachments: ReadableArray?): List<MsrAttachment> {
+    private fun getMsrAttachments(attachments: ReadableArray?): List<MsrAttachment> {
         if (attachments == null || attachments.size() == 0) return emptyList()
 
         val list = mutableListOf<MsrAttachment>()
 
         for (i in 0 until attachments.size()) {
-            val map = attachments.getMap(i) ?: continue
+            val map: ReadableMap? = attachments.getMap(i)
+            if (map == null) continue  // <-- FIXED NULL CHECK
 
             val name = map.getString("name") ?: continue
             val type = map.getString("type") ?: continue
             val path = map.getString("path")
             val base64 = map.getString("bytes")
 
+            // If 'path' exists, use it.
+            // If 'bytes' exists, decode & write to temp file.
             val finalPath = when {
                 path != null -> path
 
                 base64 != null -> {
-                    val bytes = Base64.decode(base64, Base64.DEFAULT)
-                    val tempFile = File(reactContext.cacheDir, name)
-                    tempFile.writeBytes(bytes)
-                    tempFile.absolutePath
+                    try {
+                        val bytes = Base64.decode(base64, Base64.DEFAULT)
+                        val tempFile = File(reactContext.cacheDir, name)
+                        tempFile.writeBytes(bytes)
+                        tempFile.absolutePath
+                    } catch (_: Exception) {
+                        null
+                    }
                 }
 
                 else -> null
