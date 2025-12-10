@@ -21,8 +21,15 @@ const MeasureModule = NativeModules.MeasureModule
       }
     );
 
-const { MeasureOnShake } = NativeModules;
-const MeasureEventEmitter = new NativeEventEmitter(MeasureOnShake);
+let ShakeEmitter: NativeEventEmitter | null = null;
+
+function getShakeEmitter() {
+  if (!ShakeEmitter) {
+    const native = NativeModules.MeasureOnShake || {};
+    ShakeEmitter = new NativeEventEmitter(native);
+  }
+  return ShakeEmitter;
+}
 
 export function initializeNativeSDK(
   client: Client,
@@ -145,7 +152,9 @@ export function setUserId(userId: string): Promise<any> {
 
 export function clearUserId(): Promise<any> {
   if (!MeasureModule.clearUserId) {
-    return Promise.reject(new Error('clearUserId native method not available.'));
+    return Promise.reject(
+      new Error('clearUserId native method not available.')
+    );
   }
   return MeasureModule.clearUserId();
 }
@@ -195,7 +204,11 @@ export function launchBugReport(
     );
   }
 
-  return MeasureModule.launchBugReport(takeScreenshot, bugReportConfig, attributes);
+  return MeasureModule.launchBugReport(
+    takeScreenshot,
+    bugReportConfig,
+    attributes
+  );
 }
 
 export function setShakeListener(enable: boolean, handler?: () => void): void {
@@ -203,7 +216,8 @@ export function setShakeListener(enable: boolean, handler?: () => void): void {
     throw new Error('setShakeListener native method not available.');
   }
 
-  MeasureEventEmitter.removeAllListeners('MeasureOnShake');
+  const emitter = getShakeEmitter();
+  emitter.removeAllListeners('MeasureOnShake');
 
   if (!enable || !handler) {
     MeasureModule.setShakeListener(false);
@@ -211,8 +225,7 @@ export function setShakeListener(enable: boolean, handler?: () => void): void {
   }
 
   MeasureModule.setShakeListener(true);
-
-  MeasureEventEmitter.addListener('MeasureOnShake', handler);
+  emitter.addListener('MeasureOnShake', handler);
 }
 
 export function captureScreenshot(): Promise<{

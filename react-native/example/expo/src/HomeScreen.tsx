@@ -97,14 +97,6 @@ const trackBugReport = () => {
   );
 };
 
-const trackBugReportWithUI = () => {
-  Measure.launchBugReport(
-    true,
-    { theme: 'dark' },
-    { userId: '123', screen: 'Home' }
-  );
-};
-
 const trackManualBugReport = async () => {
   try {
     const screenshot = await Measure.captureScreenshot();
@@ -190,11 +182,6 @@ export default function HomeScreen() {
           id: 'clear-user',
           title: 'Clear User ID',
           onPress: clearUserIdExample,
-        },
-        {
-          id: 'bugReport-ui',
-          title: 'Launch Bug Report UI',
-          onPress: trackBugReportWithUI,
         },
         {
           id: 'bugReport-track',
