@@ -173,4 +173,38 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             promise.reject("CLEAR_USER_ID_ERROR", "Failed to clear userId", e)
         }
     }
+
+    @ReactMethod
+    fun trackHttpEvent(
+        url: String,
+        method: String,
+        startTime: Double,
+        endTime: Double,
+        statusCode: Int?,
+        error: String?,
+        requestHeaders: ReadableMap?,
+        responseHeaders: ReadableMap?,
+        requestBody: String?,
+        responseBody: String?,
+        client: String,
+        promise: Promise
+    ) {
+        val errObj = error?.let { Exception(it) }
+
+        Measure.trackHttpEvent(
+            url,
+            method,
+            startTime.toLong(),
+            endTime.toLong(),
+            statusCode,
+            errObj,
+            requestHeaders?.toHashMap()?.mapValues { it.value.toString() }?.toMutableMap(),
+            responseHeaders?.toHashMap()?.mapValues { it.value.toString() }?.toMutableMap(),
+            requestBody,
+            responseBody,
+            client
+        )
+
+        promise.resolve("ok")
+    }
 }

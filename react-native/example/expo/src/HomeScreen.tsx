@@ -12,22 +12,14 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 const stopMeasure = () => {
   Measure.stop()
-    .then(() => {
-      console.log('Measure SDK stopped successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to stop Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK stopped successfully'))
+    .catch((error) => console.error('Failed to stop Measure SDK:', error));
 };
 
 const startMeasure = () => {
   Measure.start()
-    .then(() => {
-      console.log('Measure SDK started successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to start Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK started successfully'))
+    .catch((error) => console.error('Failed to start Measure SDK:', error));
 };
 
 const simulateJSException = () => {
@@ -39,8 +31,6 @@ const simulateUnhandledPromiseRejection = () => {
 };
 
 const simulateNativeCrash = () => {
-  // Intentionally call something invalid to crash native bridge
-  // (you’ll only see this on device/emulator, not in web preview)
   // @ts-ignore
   Measure.triggerNativeCrash();
 };
@@ -64,6 +54,30 @@ const setUserIdExample = () => {
 
 const clearUserIdExample = () => {
   Measure.clearUserId();
+};
+
+const trackHttpEventManually = () => {
+  const startTime = Measure.getCurrentTime();
+  const endTime = startTime + 123;
+
+  Measure.trackHttpEvent({
+    url: 'https://api.example.com/test',
+    method: 'get',
+    startTime,
+    endTime,
+    statusCode: 200,
+    client: 'manual-example',
+    requestHeaders: { Accept: 'application/json' },
+    responseHeaders: { 'Content-Type': 'application/json' },
+    requestBody: null,
+    responseBody: '{"result": "success"}',
+  })
+    .then(() => {
+      console.log('Manual HTTP event tracked successfully');
+    })
+    .catch((err) => {
+      console.error('Failed to track manual HTTP event:', err);
+    });
 };
 
 export default function HomeScreen() {
@@ -92,6 +106,11 @@ export default function HomeScreen() {
           id: 'event',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
+        },
+        {
+          id: 'track-http',
+          title: 'Track HTTP Event Manually',
+          onPress: trackHttpEventManually,
         },
         {
           id: 'set-user',

@@ -129,4 +129,20 @@ export class MeasureInternal {
   clearUserId(): void {
     return this.measureInitializer.nativeApiProcessor.clearUserId();
   }
+
+  trackHttpEvent(params: {
+    url: string;
+    method: string;
+    startTime: number;
+    endTime: number;
+    client?: string | null;
+    statusCode?: number | null;
+    error?: string | null;
+    requestHeaders?: Record<string, string> | null;
+    responseHeaders?: Record<string, string> | null;
+    requestBody?: string | null;
+    responseBody?: string | null;
+  }): Promise<void> {
+    return this.measureInitializer.userTriggeredEventCollector.trackHttpEvent(params);
+  }
 }

@@ -145,3 +145,37 @@ export function clearUserId(): Promise<any> {
   }
   return MeasureModule.clearUserId();
 }
+
+export function trackHttpEvent(
+  url: string,
+  method: string,
+  startTime: number,
+  endTime: number,
+  statusCode?: number | null,
+  error?: string | null,
+  requestHeaders: Record<string, string> = {},
+  responseHeaders: Record<string, string> = {},
+  requestBody?: string | null,
+  responseBody?: string | null,
+  client: string = 'unknown'
+): Promise<any> {
+  if (!MeasureModule.trackHttpEvent) {
+    return Promise.reject(
+      new Error('trackHttpEvent native method not available.')
+    );
+  }
+
+  return MeasureModule.trackHttpEvent(
+    url,
+    method,
+    startTime,
+    endTime,
+    statusCode,
+    error,
+    requestHeaders,
+    responseHeaders,
+    requestBody,
+    responseBody,
+    client
+  );
+}
