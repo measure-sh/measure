@@ -34,7 +34,7 @@ const App = (): React.JSX.Element => {
     const clientInfo = new ClientInfo(
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-      'https://api.measure.sh',
+      'http://localhost:8080',
     );
 
     const measureConfig = new MeasureConfig({
@@ -129,6 +129,35 @@ const App = (): React.JSX.Element => {
     while (true) {}
   };
 
+  const testFetchApi = async () => {
+    try {
+      console.log('Making fetch API call...');
+      const response = await fetch(
+        'https://jsonplaceholder.typicode.com/posts/1',
+      );
+      const json = await response.json();
+      console.log('Fetch response:', json);
+    } catch (e) {
+      console.error('Fetch API call failed:', e);
+    }
+  };
+
+  const testXhrApi = () => {
+    console.log('Making XHR API call...');
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.github.com/repos/facebook/react-native', true);
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        console.log('XHR status:', xhr.status);
+        console.log('XHR status:', xhr.getResponseHeader('Content-Type'));
+        console.log('XHR response:', xhr.responseText);
+      }
+    };
+
+    xhr.send();
+  };
+
   /** === UI Sections === */
   const sections = [
     {
@@ -150,6 +179,21 @@ const App = (): React.JSX.Element => {
           id: 'track-http',
           title: 'Track HTTP Event Manually',
           onPress: trackHttpEventManually,
+        },
+      ],
+    },
+    {
+      title: 'HTTP Tests',
+      data: [
+        {
+          id: 'fetch-test',
+          title: 'Test Fetch API Call',
+          onPress: testFetchApi,
+        },
+        {
+          id: 'xhr-test',
+          title: 'Test XHR API Call',
+          onPress: testXhrApi,
         },
       ],
     },

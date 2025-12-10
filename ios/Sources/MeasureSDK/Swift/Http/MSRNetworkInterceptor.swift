@@ -8,7 +8,7 @@
 import Foundation
 
 /// A network interceptor that enables monitoring network requests.
-public struct MSRNetworkInterceptor {
+@objc public class MSRNetworkInterceptor: NSObject {
     static var isEnabled = false
     private static let lock = NSLock()
 
@@ -37,6 +37,7 @@ public struct MSRNetworkInterceptor {
     ///   NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
     ///   ```
     ///
+    @objc(enableOn:)
     public static func enable(on sessionConfiguration: URLSessionConfiguration) {
         lock.lock()
         defer { lock.unlock() }
