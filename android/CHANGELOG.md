@@ -5,10 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.15.1] - 2025-12-10
+
+### :bug: Bug fixes
+
+- (**android**): Remove debug assertion for cold launch sampling (#3010) by @abhaysood in #3010
+- (**android**): Remove unnecessary consumer-rules.pro keep attribute (#2936) by @Shabinder in #2936
+
 ## [android-v0.15.0] - 2025-11-24
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.15.0 (#2934) by @abhaysood in #2934
 - (**android**): Fix event insertion error for cleaned up session (#2932) by @abhaysood in #2932
 - (**android**): Update measure config and default event collection (#2924) by @abhaysood in #2924
 - (**android**): Prepare next development version (#2863) by @abhaysood in #2863
@@ -814,6 +822,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.15.1]: https://github.com/measure-sh/measure/compare/android-v0.15.0..android-v0.15.1
 [android-v0.15.0]: https://github.com/measure-sh/measure/compare/android-v0.14.0..android-v0.15.0
 [android-v0.14.0]: https://github.com/measure-sh/measure/compare/android-v0.13.0..android-v0.14.0
 [android-v0.13.0]: https://github.com/measure-sh/measure/compare/android-v0.12.0..android-v0.13.0
