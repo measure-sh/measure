@@ -72,9 +72,6 @@ Future<void> main() async {
       httpHeadersBlocklist: ["Authorization"],
       httpUrlBlocklist: ["example.api.com"],
       httpUrlAllowlist: ["api.example.com"],
-      trackViewControllerLoadTime: true,
-      trackActivityLoadTime: true,
-      trackFragmentLoadTime: true,
       autoInitializeNativeSDK: true,
       autoStart: true,
       traceSamplingRate: 1,
@@ -98,9 +95,6 @@ Future<void> main() async {
 * [**enableLogging**](#enableLogging)
 * [**traceSamplingRate**](#traceSamplingRate)
 * [**autoStart**](#autoStart)
-* [**trackViewControllerLoadTime**](#trackViewControllerLoadTime)
-* [**trackActivityLoadTime**](#trackActivityLoadTime)
-* [**trackFragmentLoadTime**](#trackFragmentLoadTime)
 * [**requestHeadersProvider**](#requestHeadersProvider)
 * [**maxDiskUsageInMb**](#maxDiskUsageInMb)
 ## `trackScreenshotOnCrash`
@@ -245,7 +239,7 @@ Note that sessions with a crash or a bug report are collected regardless of this
 
 ## `traceSamplingRate`
 
-Measure SDK collects traces at a sampled rate of 0.1%. Meaning 0.1% of all traces will be sent to the server. To modify
+Measure SDK collects traces at a sampled rate of 0.0001. Meaning 0.01% of all traces will be sent to the server. To modify
 this rate use `traceSamplingRate`.
 
 The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export only 10%
@@ -268,50 +262,6 @@ Defaults to `true`.
 
 Use `Measure.start` to start the SDK at a different point and `Measure.stop` to stop the SDK from tracking
 data.
-
-## `trackViewControllerLoadTime`
-
-Enables or disables automatic collection of ViewController load time.
-
-Defaults to `true`.
-
-ViewController load time measures the time between when the ViewController's view is loaded and the first frame is drawn
-on the screen. This is also known as **Time to First Frame (TTF)** or **Time to Initial Display (TTID)**.
-
-A large TTID value means users are waiting too long before any content appears on screen during app navigation.
-
-Each ViewController load time is captured as a `Span` with the name `VC TTID <class name>`. For example, for a
-class `MainViewController`, the span name would be: `VC TTID MainViewController`.
-
-## `trackActivityLoadTime`
-
-Enables or disables automatic collection of Activity load time.
-
-Defaults to `true`.
-
-Activity load time measures the time between when the Activity is created and the first frame is drawn on the screen.
-This is also known as **Time to First Frame (TTF)** or **Time to Initial Display (TTID)**.
-
-A large TTID value means users are waiting too long before any content appears on screen during app navigation.
-
-Each Activity load time is captured as a `Span` with the name `Activity TTID <class name>`. For example, for an
-fully qualified Activity class `com.example.MainActivity`, the span name would
-be: `Activity TTID com.example.MainActivity`.
-
-## `trackFragmentLoadTime`
-
-Enables or disables automatic collection of Fragment load time.
-
-Defaults to `true`.
-
-Fragment load time measures the time between when the Fragment is created and the first frame is drawn on the screen.
-This is also known as **Time to First Frame (TTF)** or **Time to Initial Display (TTID)**.
-
-A large TTID value means users are waiting too long before any content appears on screen during app navigation.
-
-Each Fragment load time is captured as a `Span` with the name `Fragment TTID <class name>`. For example, for a
-fully qualified Fragment class `com.example.MainFragment`, the span name would
-be: `Fragment TTID com.example.MainFragment`.
 
 ## `requestHeadersProvider`
 
