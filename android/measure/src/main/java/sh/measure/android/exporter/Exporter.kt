@@ -1,8 +1,6 @@
 package sh.measure.android.exporter
 
-import android.util.Log
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.serialization.jsonSerializer
@@ -48,9 +46,6 @@ internal class ExporterImpl(
         batchIdsInTransit.add(batch.batchId)
         try {
             val events = database.getEventPackets(batch.eventIds)
-            if (events.find { it.type == EventType.COLD_LAUNCH } != null) {
-                throw IllegalStateException("WTF cold launch got sampled")
-            }
             val spans = database.getSpanPackets(batch.spanIds)
             if (events.isEmpty() && spans.isEmpty()) {
                 // shouldn't happen, but just in case it does we'd like to know.
