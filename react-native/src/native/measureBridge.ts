@@ -231,6 +231,22 @@ export function captureScreenshot(): Promise<{
   return MeasureModule.captureScreenshot();
 }
 
+export function captureLayoutSnapshot(): Promise<{
+  name: string;
+  type: 'layout_snapshot';
+  path: string;
+  size: number;
+  id: string;
+}> {
+  if (!MeasureModule.captureLayoutSnapshot) {
+    return Promise.reject(
+      new Error('captureLayoutSnapshot native method not available.')
+    );
+  }
+
+  return MeasureModule.captureLayoutSnapshot();
+}
+
 export function trackBugReport(
   description: string,
   attachments: any[] = [],

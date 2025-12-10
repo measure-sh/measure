@@ -91,11 +91,11 @@ const trackHttpEventManually = () => {
 
 const trackBugReport = () => {
   Measure.launchBugReport(
-    false,
+    true,
     { theme: 'light' },
     { userId: '123', screen: 'Home' }
   );
-}
+};
 
 const trackBugReportWithUI = () => {
   Measure.launchBugReport(
@@ -103,15 +103,20 @@ const trackBugReportWithUI = () => {
     { theme: 'dark' },
     { userId: '123', screen: 'Home' }
   );
-}
+};
 
 const trackManualBugReport = async () => {
   try {
-    const attachment = await Measure.captureScreenshot();
+    const screenshot = await Measure.captureScreenshot();
+    const layoutSnapshot = await Measure.captureLayoutSnapshot();
+
+    const attachments = [screenshot, layoutSnapshot].filter(
+      (attachment) => attachment !== null
+    );
 
     await Measure.trackBugReport(
       'Manual bug report triggered from example app',
-      attachment ? [attachment] : [],
+      attachments,
       { source: 'example_app', screen: 'Home' }
     );
 
@@ -139,7 +144,6 @@ export default function HomeScreen() {
       if (result.path) {
         setImageUri('file://' + result.path);
       } else if (result.bytes) {
-        // Convert base64 bytes → image source
         setImageUri(`data:image/png;base64,${result.bytes}`);
       } else {
         console.warn('No path or bytes found in screenshot');
@@ -171,10 +175,8 @@ export default function HomeScreen() {
     {
       title: 'User Actions',
       data: [
-        { id: 'event', title: 'Track Custom Event', onPress: trackCustomEvent },
-        { id: 'bugReport', title: 'Launch Bug Report UI', onPress: trackBugReportWithUI },
         {
-          id: 'event',
+          id: 'event-1',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
         },
@@ -189,12 +191,23 @@ export default function HomeScreen() {
           onPress: setUserIdExample,
         },
         {
+          id: 'bugReport-ui',
+          title: 'Launch Bug Report UI',
+          onPress: trackBugReportWithUI,
+        },
+        {
+          id: 'event-2',
+          title: 'Track Custom Event',
+          onPress: trackCustomEvent,
+        },
+        { id: 'set-user', title: 'Set User ID', onPress: setUserIdExample },
+        {
           id: 'clear-user',
           title: 'Clear User ID',
           onPress: clearUserIdExample,
         },
         {
-          id: 'bugReport',
+          id: 'bugReport-track',
           title: 'Track Bug Report',
           onPress: trackBugReport,
         },
@@ -213,21 +226,41 @@ export default function HomeScreen() {
     {
       title: 'Crash & Exception Simulation',
       data: [
-        { id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException },
+        {
+          id: 'js-exception',
+          title: 'Throw JS Exception',
+          onPress: simulateJSException,
+        },
         {
           id: 'unhandled-rejection',
           title: 'Unhandled Promise Rejection',
           onPress: simulateUnhandledPromiseRejection,
         },
-        { id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash },
-        { id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop },
+        {
+          id: 'native-crash',
+          title: 'Trigger Native Crash',
+          onPress: simulateNativeCrash,
+        },
+        {
+          id: 'infinite-loop',
+          title: 'UI Freeze (Infinite Loop)',
+          onPress: simulateInfiniteLoop,
+        },
       ],
     },
     {
       title: 'Navigation',
       data: [
-        { id: 'navigate', title: 'Component Screen', onPress: navigateToComponentScreen },
-        { id: 'navigate-traces', title: 'Traces Screen', onPress: navigateToTracesScreen },
+        {
+          id: 'navigate-components',
+          title: 'Component Screen',
+          onPress: navigateToComponentScreen,
+        },
+        {
+          id: 'navigate-traces',
+          title: 'Traces Screen',
+          onPress: navigateToTracesScreen,
+        },
       ],
     },
   ];
@@ -300,7 +333,6 @@ const styles = StyleSheet.create({
     color: '#1e1e1e',
     fontSize: 16,
   },
-
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

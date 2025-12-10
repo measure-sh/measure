@@ -304,6 +304,57 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun captureLayoutSnapshot(promise: Promise) {
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("NO_ACTIVITY", "No current activity available")
+            return
+        }
+
+        UiThreadUtil.runOnUiThread {
+            try {
+                Measure.captureLayoutSnapshot(
+                    activity,
+                    onComplete = { attachment ->
+                        try {
+                            val map = Arguments.createMap().apply {
+                                putString("id", attachment.name)
+                                putString("name", attachment.name)
+                                putString("type", attachment.type)
+
+                                attachment.path?.let { filePath ->
+                                    putString("path", filePath)
+
+                                    val file = File(filePath)
+                                    if (file.exists()) {
+                                        putInt("size", file.length().toInt())
+                                    }
+                                }
+
+                                attachment.bytes?.let { bytes ->
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                    putString("bytes", base64)
+                                    putInt("size", bytes.size)
+                                }
+                            }
+
+                            promise.resolve(map)
+
+                        } catch (e: Exception) {
+                            promise.reject("MAP_ERROR", "Failed building snapshot map", e)
+                        }
+                    },
+                    onError = {
+                        promise.reject("LAYOUT_SNAPSHOT_FAIL", "Failed to capture layout snapshot")
+                    }
+                )
+            } catch (e: Exception) {
+                promise.reject("LAYOUT_SNAPSHOT_EXCEPTION", e)
+            }
+        }
+    }
+
+    @ReactMethod
     fun trackBugReport(
         description: String,
         attachments: ReadableArray?,
@@ -339,14 +390,30 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             val name = map.getString("name") ?: continue
             val type = map.getString("type") ?: continue
             val path = map.getString("path")
+            val base64 = map.getString("bytes")
 
-            list.add(
-                MsrAttachment(
-                    name = name,
-                    path = path,
-                    type = type,
+            val finalPath = when {
+                path != null -> path
+
+                base64 != null -> {
+                    val bytes = Base64.decode(base64, Base64.DEFAULT)
+                    val tempFile = File(reactContext.cacheDir, name)
+                    tempFile.writeBytes(bytes)
+                    tempFile.absolutePath
+                }
+
+                else -> null
+            }
+
+            if (finalPath != null) {
+                list.add(
+                    MsrAttachment(
+                        name = name,
+                        path = finalPath,
+                        type = type,
+                    )
                 )
-            )
+            }
         }
 
         return list

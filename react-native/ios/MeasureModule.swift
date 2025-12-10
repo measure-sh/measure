@@ -229,6 +229,42 @@ class MeasureModule: NSObject, RCTBridgeModule {
             }
         }
     }
+
+    @objc
+    func captureLayoutSnapshot(_ resolve: @escaping RCTPromiseResolveBlock,
+                               rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            guard let rootVC = RCTPresentedViewController() else {
+                reject("NO_VIEW_CONTROLLER", "Unable to find current view controller", nil)
+                return
+            }
+
+            Measure.captureLayoutSnapshot(for: rootVC) { attachment in
+                guard let att = attachment else {
+                    reject("CAPTURE_FAIL", "Failed to capture layout snapshot", nil)
+                    return
+                }
+
+                var dict: [String: Any] = [
+                    "name": att.name,
+                    "type": att.type.rawValue,
+                    "id": att.id,
+                    "size": att.size
+                ]
+
+                if let path = att.path {
+                    dict["path"] = path
+                }
+
+                if let bytes = att.bytes {
+                    let base64String = bytes.base64EncodedString()
+                    dict["bytes"] = base64String
+                }
+
+                resolve(dict)
+            }
+        }
+    }
     
     @objc
     func trackBugReport(_ description: NSString,

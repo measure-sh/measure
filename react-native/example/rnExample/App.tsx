@@ -64,7 +64,7 @@ const App = (): React.JSX.Element => {
 
     Measure.onShake(() => {
       console.log('Shake detected — launching bug report flow!');
-      Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
+      Measure.launchBugReport(true, {source: 'shake'}, {screen: 'Home'});
     });
   };
 
@@ -123,7 +123,28 @@ const App = (): React.JSX.Element => {
   /** === Simulation Helpers === */
   const launchBugReport = () => {
     console.log('Launching bug report flow manually');
-    Measure.launchBugReport(true, { source: 'manual' }, { screen: 'Home' });
+    Measure.launchBugReport(true, {source: 'manual'}, {screen: 'Home'});
+  };
+
+  const trackManualBugReport = async () => {
+    try {
+      const screenshot = await Measure.captureScreenshot();
+      const layoutSnapshot = await Measure.captureLayoutSnapshot();
+
+      const attachments = [screenshot, layoutSnapshot].filter(
+        attachment => attachment !== null,
+      );
+
+      await Measure.trackBugReport(
+        'Manual bug report triggered from example app',
+        attachments,
+        {source: 'example_app', screen: 'Home'},
+      );
+
+      console.log('Manual bug report with attachments sent!');
+    } catch (err) {
+      console.error('Failed to send manual bug report:', err);
+    }
   };
 
   const captureScreenshot = async () => {
@@ -234,6 +255,11 @@ const App = (): React.JSX.Element => {
           onPress: testXhrApi,
         },
         {
+          id: 'manual-bug-report',
+          title: 'Send Manual Bug Report',
+          onPress: trackManualBugReport,
+        },
+        {
           id: 'screenshot',
           title: 'Capture Screenshot',
           onPress: captureScreenshot,
@@ -304,10 +330,9 @@ const App = (): React.JSX.Element => {
       {showScreenshot && screenshotPath && (
         <Pressable
           style={styles.screenshotOverlay}
-          onPress={() => setShowScreenshot(false)}
-        >
+          onPress={() => setShowScreenshot(false)}>
           <Image
-            source={{ uri: screenshotPath }}
+            source={{uri: screenshotPath}}
             style={styles.screenshotImage}
             resizeMode="contain"
           />
@@ -318,8 +343,8 @@ const App = (): React.JSX.Element => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 16 },
+  container: {flex: 1},
+  content: {padding: 16},
   title: {
     fontSize: 24,
     fontWeight: '600',
