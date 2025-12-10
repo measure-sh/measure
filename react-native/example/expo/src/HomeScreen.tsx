@@ -1,5 +1,14 @@
-import React from 'react';
-import { SectionList, Text, View, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  SectionList,
+  Text,
+  View,
+  Pressable,
+  StyleSheet,
+  Modal,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import { Measure } from '@measuresh/react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -80,8 +89,64 @@ const trackHttpEventManually = () => {
     });
 };
 
+const trackBugReport = () => {
+  Measure.launchBugReport(
+    true,
+    { theme: 'light' },
+    { userId: '123', screen: 'Home' }
+  );
+};
+
+const trackManualBugReport = async () => {
+  try {
+    const screenshot = await Measure.captureScreenshot();
+    const layoutSnapshot = await Measure.captureLayoutSnapshot();
+
+    const attachments = [screenshot, layoutSnapshot].filter(
+      (attachment) => attachment !== null
+    );
+
+    await Measure.trackBugReport(
+      'Manual bug report triggered from example app',
+      attachments,
+      { source: 'example_app', screen: 'Home' }
+    );
+
+    console.log('Manual bug report with screenshot sent!');
+  } catch (err) {
+    console.error('Failed to send manual bug report:', err);
+  }
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const captureScreenshot = async () => {
+    try {
+      const result = await Measure.captureScreenshot();
+
+      if (!result) {
+        console.warn('No screenshot returned');
+        return;
+      }
+
+      if (result.path) {
+        setImageUri('file://' + result.path);
+      } else if (result.bytes) {
+        setImageUri(`data:image/png;base64,${result.bytes}`);
+      } else {
+        console.warn('No path or bytes found in screenshot');
+        return;
+      }
+
+      setModalVisible(true);
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error);
+    }
+  };
 
   const navigateToComponentScreen = () => {
     navigation.navigate('ComponentScreen');
@@ -95,15 +160,15 @@ export default function HomeScreen() {
     {
       title: 'Session & Init',
       data: [
-        { id: 'start', title: 'Start SDK', onPress: startMeasure },
-        { id: 'stop', title: 'Stop SDK', onPress: stopMeasure },
+        { id: 'start-sdk', title: 'Start SDK', onPress: startMeasure },
+        { id: 'stop-sdk', title: 'Stop SDK', onPress: stopMeasure },
       ],
     },
     {
       title: 'User Actions',
       data: [
         {
-          id: 'event',
+          id: 'event-custom',
           title: 'Track Custom Event',
           onPress: trackCustomEvent,
         },
@@ -112,15 +177,26 @@ export default function HomeScreen() {
           title: 'Track HTTP Event Manually',
           onPress: trackHttpEventManually,
         },
-        {
-          id: 'set-user',
-          title: 'Set User ID',
-          onPress: setUserIdExample,
-        },
+        { id: 'set-user', title: 'Set User ID', onPress: setUserIdExample },
         {
           id: 'clear-user',
           title: 'Clear User ID',
           onPress: clearUserIdExample,
+        },
+        {
+          id: 'bugReport-track',
+          title: 'Track Bug Report',
+          onPress: trackBugReport,
+        },
+        {
+          id: 'manual-bug-report',
+          title: 'Track Bug Report (Manual)',
+          onPress: trackManualBugReport,
+        },
+        {
+          id: 'screenshot',
+          title: 'Capture Screenshot',
+          onPress: captureScreenshot,
         },
       ],
     },
@@ -153,7 +229,7 @@ export default function HomeScreen() {
       title: 'Navigation',
       data: [
         {
-          id: 'navigate',
+          id: 'navigate-components',
           title: 'Component Screen',
           onPress: navigateToComponentScreen,
         },
@@ -168,6 +244,33 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Screenshot Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            {imageUri && (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.screenshotImage}
+                resizeMode="contain"
+              />
+            )}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Main UI */}
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -206,6 +309,36 @@ const styles = StyleSheet.create({
   itemText: {
     color: '#1e1e1e',
     fontSize: 16,
-    textAlign: 'left',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  screenshotImage: {
+    width: '100%',
+    height: 400,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+  },
+  closeButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#333',
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -3,7 +3,6 @@ import { SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
-import ComponentScreen from './ComponentScreen'; // Create this screen if not already
 import {
   Measure,
   ClientInfo,
@@ -12,6 +11,7 @@ import {
 } from '@measuresh/react-native';
 import TracesScreen from './TracesScreen';
 import { Screen } from 'react-native-screens';
+import ComponentScreen from './ComponentScreen';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -47,8 +47,12 @@ export default function App() {
         maxDiskUsageInMb: 50,
       });
 
-      // Initialize Measure SDK
-      Measure.init(clientInfo, measureConfig);
+      await Measure.init(clientInfo, measureConfig);
+
+      Measure.onShake(() => {
+        console.log('Shake detected — launching bug report flow!');
+        Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
+      });
     } catch (error) {
       console.error('Failed to initialize Measure:', error);
     }

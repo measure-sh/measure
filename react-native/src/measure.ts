@@ -1,5 +1,6 @@
 import type { Client } from './config/clientInfo';
 import { MeasureConfig } from './config/measureConfig';
+import type { MsrAttachment } from './events/msrAttachment';
 import {
   BaseMeasureInitializer,
   type MeasureInitializer,
@@ -271,8 +272,6 @@ export const Measure = {
       console.warn('Measure.setUserId requires a non-empty string.');
       return;
     }
-
-    _measureInternal.setUserId(userId);
   },
 
   /**
@@ -322,5 +321,148 @@ export const Measure = {
     }
 
     return _measureInternal.trackHttpEvent(params);
+  },
+
+  /**
+   * Launches the bug report flow, optionally taking a screenshot and attaching metadata.
+   *
+   * This can be used to allow users or QA testers to report issues directly
+   * from within the app, optionally including a screenshot and additional attributes.
+   *
+   * @param takeScreenshot - Set to false to disable screenshot capture. Defaults to true.
+   * @param bugReportConfig - Optional configuration for customizing the bug report UI.
+   * @param attributes - Optional metadata key-value pairs describing the context of the report.
+   *
+   * @example
+   * ```ts
+   * Measure.launchBugReport(true, { theme: "dark" }, { userId: "123", screen: "Home" });
+   * ```
+   */
+  launchBugReport(
+    takeScreenshot: boolean = true,
+    bugReportConfig: Record<string, any> = {},
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> {
+    return _measureInternal.launchBugReport(
+      takeScreenshot,
+      bugReportConfig,
+      attributes
+    );
+  },
+
+   /**
+   * Registers a shake listener that triggers a callback when a shake gesture is detected.
+   *
+   * Calling this method with a function enables shake detection.
+   * Calling it with `null` or `undefined` disables shake detection.
+   *
+   * Internally, this delegates to the native SDK’s shake listener support
+   * (`Measure.shared.onShake` on iOS and `setShakeListener` on Android).
+   *
+   * @param handler - A callback function to invoke when a shake is detected, or `null` to disable.
+   *
+   * @example
+   * ```ts
+   * import { Measure } from '@measure/react-native';
+   *
+   * Measure.onShake(() => {
+   *   console.log('Shake detected! Opening bug report...');
+   *   Measure.launchBugReport();
+   * });
+   * ```
+   */
+  onShake(handler?: (() => void) | null): void {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Call init() first.');
+      return;
+    }
+
+    _measureInternal.onShake(handler);
+  },
+
+  /**
+   * Captures a screenshot of the current app UI.
+   *
+   * This method must be called after Measure has been initialized.
+   * The screenshot will be redacted based on the privacy level defined in the
+   * Measure configuration value `screenshotMaskLevel`
+   *
+   * The screenshot is captured asynchronously and returned as an `MsrAttachment`.
+   * If the capture fails, `null` is returned.
+   *
+   * @returns A Promise resolving to an `MsrAttachment` containing the redacted screenshot,
+   *          or `null` if the screenshot could not be captured.
+   */
+  captureScreenshot(): Promise<MsrAttachment | null> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.captureScreenshot();
+  },
+
+  /**
+   * Captures a layout snapshot of the current UI hierarchy.
+   *
+   * A layout snapshot is a lightweight representation of the visible UI,
+   * including information such as element positions, sizes, and the view hierarchy.
+   * Unlike screenshots, layout snapshots do not include pixel data and are more
+   * storage-efficient, making them ideal for debugging UI issues and visual analysis.
+   *
+   * This method must be called after Measure has been initialized.
+   * The snapshot is captured asynchronously and returned as an `MsrAttachment`.
+   * If the capture fails, `null` is returned.
+   *
+   * @returns A Promise resolving to an `MsrAttachment` containing the layout snapshot data,
+   *          or `null` if the snapshot could not be captured.
+   */
+  captureLayoutSnapshot(): Promise<MsrAttachment | null> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.captureLayoutSnapshot();
+  },
+
+  /**
+   * Tracks a custom bug report.
+   *
+   * This method allows programmatic bug report tracking without showing
+   * the default Measure bug report UI.
+   *
+   * Attachments may include screenshots, layout snapshots, or any files
+   * captured via the Measure attachment APIs.
+   *
+   * @param description - A human-readable description of the bug (max 4000 chars).
+   * @param attachments - Optional list of MsrAttachment objects (max 5).
+   * @param attributes - Optional metadata describing the bug context.
+   *
+   * @example
+   * ```ts
+   * const screenshot = await Measure.captureScreenshot();
+   *
+   * Measure.trackBugReport(
+   *   "Something broke on the Home screen",
+   *   screenshot ? [screenshot] : [],
+   *   { userId: "123", screen: "Home" }
+   * );
+   * ```
+   */
+  trackBugReport(
+    description: string,
+    attachments: MsrAttachment[] = [],
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error("Measure is not initialized. Call init() first.")
+      );
+    }
+
+    return _measureInternal.trackBugReport(description, attachments, attributes);
   },
 };

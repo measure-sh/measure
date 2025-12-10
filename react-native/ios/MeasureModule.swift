@@ -9,7 +9,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     static func requiresMainQueueSetup() -> Bool {
-        return false
+        return true
     }
     
     @objc
@@ -162,4 +162,173 @@ class MeasureModule: NSObject, RCTBridgeModule {
         )
         resolve("ok")
     }
+    
+    @objc
+    func launchBugReport(_ takeScreenshot: Bool,
+                         bugReportConfig: [String: Any],
+                         attributes: [String: Any],
+                         resolver: RCTPromiseResolveBlock,
+                         rejecter: RCTPromiseRejectBlock) {
+        Measure.launchBugReport(
+            takeScreenshot: takeScreenshot,
+            bugReportConfig: .default,
+            attributes: attributes
+        )
+        resolver("Bug report launched")
+    }
+    
+    @objc
+    func setShakeListener(_ enable: Bool) {
+        if enable {
+            Measure.onShake {
+                DispatchQueue.main.async {
+                    if let bridge = RCTBridge.current(),
+                       let emitter = bridge.module(for: MeasureOnShake.self) as? MeasureOnShake {
+                        emitter.triggerShakeEvent()
+                    }
+                }
+            }
+        } else {
+            Measure.onShake(nil)
+        }
+    }
+    
+    @objc
+    func captureScreenshot(_ resolve: @escaping RCTPromiseResolveBlock,
+                        rejecter reject: @escaping RCTPromiseRejectBlock) {
+        
+        DispatchQueue.main.async {
+            guard let rootVC = RCTPresentedViewController() else {
+                reject("NO_VIEW_CONTROLLER", "Unable to find current view controller", nil)
+                return
+            }
+
+            Measure.captureScreenshot(for: rootVC) { attachment in
+                guard let att = attachment else {
+                    reject("CAPTURE_FAIL", "Failed to capture screenshot", nil)
+                    return
+                }
+
+                var dict: [String: Any] = [
+                    "name": att.name,
+                    "type": att.type.rawValue,
+                    "id": att.id,
+                    "size": att.size
+                ]
+
+                if let path = att.path {
+                    dict["path"] = path
+                }
+
+                if let bytes = att.bytes {
+                    let base64String = bytes.base64EncodedString()
+                    dict["bytes"] = base64String
+                }
+
+                resolve(dict)
+            }
+        }
+    }
+
+    @objc
+    func captureLayoutSnapshot(_ resolve: @escaping RCTPromiseResolveBlock,
+                               rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            guard let rootVC = RCTPresentedViewController() else {
+                reject("NO_VIEW_CONTROLLER", "Unable to find current view controller", nil)
+                return
+            }
+
+            Measure.captureLayoutSnapshot(for: rootVC) { attachment in
+                guard let att = attachment else {
+                    reject("CAPTURE_FAIL", "Failed to capture layout snapshot", nil)
+                    return
+                }
+
+                var dict: [String: Any] = [
+                    "name": att.name,
+                    "type": att.type.rawValue,
+                    "id": att.id,
+                    "size": att.size
+                ]
+
+                if let path = att.path {
+                    dict["path"] = path
+                }
+
+                if let bytes = att.bytes {
+                    let base64String = bytes.base64EncodedString()
+                    dict["bytes"] = base64String
+                }
+
+                resolve(dict)
+            }
+        }
+    }
+    
+    @objc
+    func trackBugReport(_ description: NSString,
+                        attachments: NSArray,
+                        attributes: NSDictionary,
+                        resolver resolve: @escaping RCTPromiseResolveBlock,
+                        rejecter reject: @escaping RCTPromiseRejectBlock) {
+
+        let attrDict = attributes as? [String: Any] ?? [:]
+        
+        let msrAttachments = getMsrAttachments(attachments)
+        
+        Measure.trackBugReport(
+            description: description as String,
+            attachments: msrAttachments,
+            attributes: attrDict
+        )
+        
+        resolve("Bug report tracked")
+    }
+    
+    func getMsrAttachments(_ attachments: NSArray) -> [MsrAttachment] {
+            return attachments.compactMap { any in
+                guard let dict = any as? [String: Any] else { return nil }
+
+                guard
+                    let name = dict["name"] as? String,
+                    let typeStr = dict["type"] as? String,
+                    let size = dict["size"] as? NSNumber,
+                    let id = dict["id"] as? String
+                else {
+                    return nil
+                }
+
+                guard let type = AttachmentType(rawValue: typeStr) else {
+                    return nil
+                }
+
+                var bytesData: Data? = nil
+                var pathValue: String? = nil
+
+                if let path = dict["path"] as? String {
+                    pathValue = path
+                }
+
+                if let base64 = dict["bytes"] as? String,
+                   let decoded = Data(base64Encoded: base64) {
+                    bytesData = decoded
+                }
+
+                // Respect initializer preconditions
+                if (bytesData == nil && pathValue == nil) ||
+                   (bytesData != nil && pathValue != nil) {
+                    return nil
+                }
+
+                return MsrAttachment(
+                    name: name,
+                    type: type,
+                    size: size.int64Value,
+                    id: id,
+                    bytes: bytesData,
+                    path: pathValue
+                )
+            }
+        }
 }
