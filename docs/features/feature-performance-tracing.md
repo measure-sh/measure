@@ -718,17 +718,6 @@ A large TTID means users wait too long to see content while navigating the app.
 
 > Note that the fully qualified activity name may be truncated to fit within the 64 character limits for span names.
 
-This feature is enabled by default and can be disabled during SDK initialization
-using the following configurations:
-
-```kotlin
-// Disable activity load time traces
-`MeasureConfig(trackActivityLoadTime = false)`
-
-// Disable fragment load time traces
-`MeasureConfig(trackFragmentLoadTime = false)`
-```
-
 #### How it works
 
 **Activity load time** a span starts in the `onCreate` callback of the Activity. The span ends
