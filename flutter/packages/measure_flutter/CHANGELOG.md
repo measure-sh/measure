@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.3.1] - 2025-12-10
+
+### :hammer: Misc
+
+- (**flutter**): Upgrade to measure-android v0.15.1 (#3013)
+
+### :books: Documentation
+
+- Update outdated sdk docs (#3004)
+
 ## [measure_flutter-v0.3.0] - 2025-12-09
 
 ### :bug: Bug fixes
@@ -13,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter-v0.3.0 (#3002)
 - (**flutter**): Update measure config and default event collection (#2933)
 
 ## [measure_flutter-v0.2.1] - 2025-10-29
