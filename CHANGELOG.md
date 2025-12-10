@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Update outdated sdk docs (#3004) by @abhaysood in #3004
 - Fix placeholder key for API URL (#2896) by @Shabinder in #2896
 
 ## [0.9.2] - 2025-10-30
