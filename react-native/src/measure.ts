@@ -263,12 +263,15 @@ export const Measure = {
    * @param userId - A non-empty string identifier.
    */
   setUserId(userId: string): void {
-    if (typeof userId !== 'string' || userId.trim().length === 0 || !_measureInternal) {
-      console.warn('Measure.setUserId requires a non-empty string.');
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Call init() first.');
       return;
     }
 
-    _measureInternal.setUserId(userId);
+    if (typeof userId !== 'string' || userId.trim().length === 0) {
+      console.warn('Measure.setUserId requires a non-empty string.');
+      return;
+    }
   },
 
   /**
