@@ -8,6 +8,7 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import Link from "next/link"
@@ -213,7 +214,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Created at</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>}
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
-                <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
+                <p className="font-body text-sm">Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
             </div>
             <div className="py-10" />
             <p className="font-display text-xl max-w-6xl">Copy SDK variables</p>

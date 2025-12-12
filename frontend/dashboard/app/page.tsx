@@ -1,296 +1,426 @@
 "use client"
 
-import { KeyRound } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import landingHeroAnim from "./animations/landing_hero.json"
 import { buttonVariants } from './components/button'
 import LandingHeader from './components/landing_header'
-import VideoPlayButton from './components/video_play_button'
 import { cn } from './utils/shadcn_utils'
-import { isMeasureHost } from './utils/url_utils'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
-type VideoName = 'session' | 'bugReport' | 'perf' | 'journey' | 'appHealth' | 'exceptions'
 
-type IsPlayingState = {
-  [K in VideoName]: boolean;
-}
+import { Badge } from './components/badge'
+import LandingFooter from './components/landing_footer'
 
-type VideoRefs = {
-  [K in VideoName]: React.RefObject<HTMLVideoElement>;
-}
+import AdaptiveCaptureDemo from './components/adaptive_capture_demo'
+import TabSelect, { TabSize, TabVariant } from './components/tab_select'
+import Typewriter from './components/typewriter'
+import { underlineLinkStyle } from './utils/shared_styles'
+
+const BugReport = dynamic(() => import('./components/bug_report'), { ssr: false })
+const UserJourneys = dynamic(() => import('./components/user_journeys'), { ssr: false })
+const Overview = dynamic(() => import('./components/overview'), { ssr: false })
+const TraceDetails = dynamic(() => import('./components/trace_details'), { ssr: false })
+const SessionTimeline = dynamic(() => import('./components/session_timeline'), { ssr: false })
+const ExceptionsDetails = dynamic(
+  () => import('./components/exceptions_details').then((mod) => (mod.ExceptionsDetails as unknown) as React.ComponentType<any>),
+  { ssr: false }
+)
 
 export default function Home() {
-
-  const [isPlaying, setIsPlaying] = useState<IsPlayingState>({
-    session: false,
-    bugReport: false,
-    perf: false,
-    journey: false,
-    appHealth: false,
-    exceptions: false,
-  })
-
-  const videoRefs: VideoRefs = {
-    session: useRef<HTMLVideoElement>(null),
-    bugReport: useRef<HTMLVideoElement>(null),
-    perf: useRef<HTMLVideoElement>(null),
-    journey: useRef<HTMLVideoElement>(null),
-    appHealth: useRef<HTMLVideoElement>(null),
-    exceptions: useRef<HTMLVideoElement>(null),
-  }
-
-  const handlePlay = (videoName: VideoName) => {
-    const video = videoRefs[videoName].current;
-    if (video) {
-      if (video.paused) {
-        video.play();
-        setIsPlaying(prev => ({ ...prev, [videoName]: true }));
-      } else {
-        video.pause();
-        setIsPlaying(prev => ({ ...prev, [videoName]: false }));
-      }
+  const testimonials = [
+    {
+      name: "Hussain Mustafa",
+      profile_pic_url: "https://pbs.twimg.com/profile_images/1873625136902938624/XWNETMu9_400x400.jpg",
+      content: "I've been using measure.sh lately to monitor my mobile apps and host it myself and it has been a delight. Definitely recommend it to anyone looking for an open source mobile app monitoring tool.",
+      url: 'https://x.com/husslingaround/status/1855983892294983980',
+      logo: '/images/x_logo.png',
+      platform: 'x',
+    },
+    {
+      name: "Aditya Pahilwani",
+      profile_pic_url: "https://pbs.twimg.com/profile_images/1766383204477632512/V5Ssi4MV_400x400.jpg",
+      content: "I'm surprised this hasn't gained more attention yet—it's incredibly exciting for the mobile space, where we definitely lack observability and measure addresses so many of those gaps.",
+      url: 'https://x.com/AdityaPahilwani/status/1843561672188821520',
+      logo: '/images/x_logo.png',
+      platform: 'x',
+    },
+    {
+      name: "Sutirth Chakravarty",
+      profile_pic_url: "https://media.licdn.com/dms/image/v2/C5103AQEXCzL8p2F8Gg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1567075379494?e=1764806400&v=beta&t=z3ZIzwGbl1MAyvpK4JggnFBPtUgJYCHEZZGBO81soR4",
+      content: "When I stumbled upon measure.sh, I was blown away!\n\n🚀Crash-free sessions improved dramatically—now hitting a mythical 99.99% consistently.\n📊 Logs, metrics, traces—finally stitched together in one view.\n⚡️ Our hot & warm app startup times? Looking great!",
+      url: 'https://www.linkedin.com/posts/sutirthchakravarty_circa-early-2024-i-had-the-chance-to-attend-activity-7317570327520124928-yo1s',
+      logo: '/images/linkedin_logo_blue.png',
+      platform: 'linkedin',
+    },
+    {
+      name: "Ragunath Jawahar",
+      profile_pic_url: "https://pbs.twimg.com/profile_images/1929191891888902144/g5JkSuvu_400x400.jpg",
+      content: "The good folks at measure.sh have been working on a mobile app monitoring platform for several months now and have open-sourced it. Do check it out and show it some love!\n\nThis is quite a strong team that led several mobile platform initiatives at Gojek.",
+      url: 'https://x.com/ragunathjawahar/status/1825490936857522290',
+      logo: '/images/x_logo.png',
+      platform: 'x',
+    },
+    {
+      name: "Iniyan Murugavel",
+      profile_pic_url: "https://media.licdn.com/dms/image/v2/D5603AQHql-FG8K227Q/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1728183537080?e=1764806400&v=beta&t=U4n60etWuw90vpXTPtQ-HaYav0Mi3x3DkF-8sXac958",
+      content: "I'm personally a fan. Not just of the product, but of the minds behind it.\n\nIt's built by some of the sharpest mobile engineers I've admired for years. Folks who live and breathe performance, scaling, and observability.\n\nThis isn't just another tool. It's crafted with intent, care, and deep expertise.",
+      url: 'https://www.linkedin.com/posts/iniyanarul_crashes-were-observed-first-on-measure-activity-7316853914589413377-gFd_/',
+      logo: '/images/linkedin_logo_blue.png',
+      platform: 'linkedin',
+    },
+    {
+      name: "Tuist",
+      profile_pic_url: "https://media.licdn.com/dms/image/v2/D4D0BAQHDR_OdN87RZg/company-logo_200_200/company-logo_200_200/0/1707303330062/tuistio_logo?e=1764806400&v=beta&t=39JNAEMTBVydaL5IEXnXSBFs8MdDe4API5DGxaMCaBo",
+      content: "Looking for a way to keep tabs on your mobile apps? How about using a free and open-source solution? Consider exploring measure.sh!",
+      url: 'https://www.linkedin.com/posts/tuistio_github-measure-shmeasure-measure-is-an-activity-7312413362292719616-DUlU',
+      logo: '/images/linkedin_logo_blue.png',
+      platform: 'linkedin',
     }
-  }
+  ];
+
+  const features = [
+    {
+      title: "App Health",
+      description: "Monitor important metrics to stay on top of app health 📈. From app adoption to crash rates, launch times to app size, quickly see the most important metrics to make sure you're moving in the right direction."
+    },
+    {
+      title: "Session Timelines",
+      description: "Debug issues easily with full session timelines 🎥. Get rich, complete context with automatic tracking for clicks, navigations, logs, http calls, memory usage, cpu usage, stacktraces and more."
+    },
+    {
+      title: "Crashes and ANRs",
+      description: "Automatically track Crashes and ANRs 💥. Dive deeper with detailed stacktraces, common path analysis,  complete session timelines, distribution graphs and screenshots."
+    },
+    {
+      title: "Performance Traces",
+      description: "Analyze app performance with traces and spans 🔍. Break down complex operations with parent - child hierarchies to figure out bottlenecks and intelligently smooth them out."
+    },
+    {
+      title: "Bug Reports",
+      description: "Capture bug reports 🐞 with a device shake or SDK function call. Get full history of user actions leading to the bug along with detailed context of device, network and environment. Easily close bug reports when resolved or re-open them if needed.",
+    },
+    {
+      title: "User Journeys",
+      description: "Understand how users move through your app 🧭. Use it to prioritize performance fixes in the most popular paths, see which routes are most affected by issues or see if that new feature you built is gaining traction."
+    },
+  ];
+
+  const [featureIndex, setFeatureIndex] = useState(0);
 
   return (
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
       <LandingHeader />
-      <div className="flex flex-col items-center md:w-4/5 px-16">
+      <div className="flex flex-col items-center w-full">
+        {/* Hero */}
         <div className="py-16" />
-        <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
-        <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body text-black max-w-4xl text-center">open source tool to monitor mobile apps</p>
+        <h1 className="text-4xl leading-relaxed font-body text-black md:w-4xl text-center px-4">
+          <span className="font-medium">Open Source Mobile App Monitoring to&nbsp;</span>
+          <br />
+          <Typewriter
+            phrases={[
+              { normal: 'upgrade from', highlighted: 'Firebase Crashlytics' },
+              { normal: 'track', highlighted: 'Crashes' },
+              { normal: 'track', highlighted: 'ANRs' },
+              { normal: 'trace', highlighted: 'Performance' },
+              { normal: 'collect', highlighted: 'Bug Reports' },
+              { normal: 'analyze', highlighted: 'User Journeys' },
+              { normal: 'debug with', highlighted: 'Complete Context' },
+            ]}
+            typingSpeed={180}
+            deletingSpeed={10}
+            pause={1200}
+          />
+        </h1>
         <div className="py-8" />
-        <div className='w-80 h-80 md:w-[56rem] md:h-[40rem]'>
+        <div className='w-80 h-80 md:w-[28rem] md:h-[20rem]'>
           <Lottie animationData={landingHeroAnim} />
         </div>
-        <div className="py-12 md:py-32" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.session}
-                src="/videos/session.webm"
-                poster='/images/session_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, session: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, session: false }))}
-              />
-              {!isPlaying.session &&
-                <VideoPlayButton onClick={() => handlePlay('session')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Bug Reports</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-amber-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-amber-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-amber-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.bugReport}
-                src="/videos/bug_report.webm"
-                poster='/images/bug_report_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, bugReport: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, bugReport: false }))}
-              />
-              {!isPlaying.bugReport &&
-                <VideoPlayButton onClick={() => handlePlay('bugReport')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Performance Traces</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.perf}
-                src="/videos/perf.webm"
-                poster='/images/perf_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, perf: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, perf: false }))}
-              />
-              {!isPlaying.perf &&
-                <VideoPlayButton onClick={() => handlePlay('perf')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">User Journeys</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Understand how users move through your app. Easily visualise screens most affected by issues.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-emerald-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-emerald-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.journey}
-                src="/videos/journey.webm"
-                poster='/images/journey_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, journey: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, journey: false }))}
-              />
-              {!isPlaying.journey &&
-                <VideoPlayButton onClick={() => handlePlay('journey')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">App Health</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you&apos;re moving in the right direction.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-violet-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-violet-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-violet-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.appHealth}
-                src="/videos/app_health.webm"
-                poster='/images/app_health_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, appHealth: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, appHealth: false }))}
-              />
-              {!isPlaying.appHealth &&
-                <VideoPlayButton onClick={() => handlePlay('appHealth')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Crashes and ANRs</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-body text-black">Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-rose-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-rose-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-rose-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.exceptions}
-                src="/videos/exceptions.webm"
-                poster='/images/exceptions_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, exceptions: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, exceptions: false }))}
-              />
-              {!isPlaying.exceptions &&
-                <VideoPlayButton onClick={() => handlePlay('exceptions')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source</p>
-        <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Full transparency with a welcoming community led by experienced mobile devs who have shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
-        <div className="py-12 md:py-16" />
-        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Self host or Cloud</p>
-        <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Self host for full data privacy or use our cloud offering and avoid infra headaches.</p>
-        <div className="py-16" />
-        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
-        <div className="py-4 md:py-8" />
-        <div className="flex flex-col md:flex-row items-center">
-          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
-            <p className="text-center">Android</p>
-          </div>
-          <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
-            <p className="text-center">iOS</p>
-          </div>
-          <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
-            <p className="text-center">Flutter</p>
-          </div>
-          <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
-            <p className="text-center">React Native</p>
-            <p className="text-xs text-center">In progress</p>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause...</p>
+
+        {/* Main description */}
+        <div className="py-8 md:py-16" />
+        <h2 className="text-4xl leading-relaxed font-display text-black md:w-3xl text-center px-4">
+          Stop stitching context. Fix issues faster.
+        </h2>
         <div className="py-2" />
-        <div className='flex flex-row items-center'>
-          {isMeasureHost() && <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
-            <Image
-              src='/images/github_logo.svg'
-              width={16}
-              height={16}
-              alt={'Github logo'} />
-            <p className='mt-1'>Self Host</p>
-          </Link>}
-          {isMeasureHost() && <div className="px-2" />}
-          <Link
-            href="/auth/login"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "font-display border border-black rounded-md select-none w-32",
-            )}
-          >
-            <KeyRound />Login
-          </Link>
+        <p className="text-lg leading-relaxed font-body text-black md:w-3xl text-justify px-4">
+          Crashes, bug reports, performance signals and logs shouldn&apos;t be scattered across tools. Measure automatically captures all the info you need to get you the full picture.
+        </p>
+
+        {/* CTA 1 */}
+        <div className="py-4 md:py-8" />
+        <Link
+          href="/auth/login"
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "font-display border border-black rounded-md select-none text-2xl px-8 py-8",
+          )}
+        >
+          Get To The Root Cause
+        </Link>
+
+
+        {/* Trusted By */}
+        <div className="py-12" />
+        <div className="flex flex-col md:w-full items-center">
+          <div className="flex flex-col items-center max-w-4xl">
+            <p className="text-sm text-black font-display text-center">TRUSTED BY HIGH GROWTH MOBILE TEAMS</p>
+          </div>
+          <div className="py-2" />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-16 items-center justify-items-center p-8">
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/turtlemint_logo.svg"
+                alt="Turtelmint Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/varaha_logo.jpeg"
+                alt="Varaha Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/kuku_fm_logo.svg"
+                alt="Kuku FM Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/country_delight_logo.webp"
+                alt="Country Delight Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/hoichoi_logo.svg"
+                alt="Hoichoi Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/even_logo.png"
+                alt="Even Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/vance_logo.svg"
+                alt="Vance Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/probo_logo.avif"
+                alt="Probo Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/kolo_logo.svg"
+                alt="Kolo Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="w-[100px] h-[50px] relative flex items-center justify-center">
+              <Image
+                src="/images/alticelabs_logo.png"
+                alt="Altice Labs Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
         </div>
-        <div className="py-24" />
+        <div className="py-8" />
+
+        {/* Feature Demos */}
+        <div className='w-full flex flex-col items-center bg-yellow-100/60 py-16 md:py-24'>
+          <h2 className="font-display font-regular text-black text-4xl md:w-4xl text-center px-4">One dashboard, Complete context</h2>
+          <div className="py-2 md:py-4" />
+          <div className='w-full scale-65 md:scale-100 flex items-center justify-center'>
+            <TabSelect size={TabSize.Large} variant={TabVariant.Underline} items={Object.values(features.map(f => f.title))} selected={features[featureIndex].title}
+              onChangeSelected={(item) => {
+                setFeatureIndex(features.findIndex(f => f.title === item))
+              }} />
+          </div>
+          <div className="py-2 md:py-4" />
+          <p className="text-lg leading-relaxed font-body text-black md:w-5xl text-justify px-4">{features[featureIndex].description}</p>
+          <div className="py-2 md:py-4" />
+
+          {/* MAIN DEMO CONTAINER */}
+          {/* 1. mx-auto centers it. 
+              2. relative keeps it in flow (below text). 
+              3. overflow-hidden clips the "large" inner content.
+           */}
+          <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[500px] md:h-[1000px] mx-auto bg-white border border-neutral-300 rounded-lg shadow-xl overflow-hidden">
+            {[
+              <Overview demo={true} hideDemoTitle={false} key={`demo-overview`} />,
+              <SessionTimeline demo={true} hideDemoTitle={false} key={`demo-session-timeline`} />,
+              <ExceptionsDetails demo={true} hideDemoTitle={false} key={`demo-exceptions`} />,
+              <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
+              <BugReport demo={true} hideDemoTitle={false} key={`demo-bugreport`} />,
+              <UserJourneys demo={true} hideDemoTitle={false} key={`demo-journeys`} />,
+            ].map((DemoComponent, idx) => (
+              <div
+                key={idx}
+                aria-hidden={featureIndex !== idx}
+                // Fade transition wrapper
+                className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${featureIndex === idx ? 'opacity-100 z-20' : 'opacity-0 pointer-events-none z-10'
+                  }`}
+              >
+                {/* SCALING WRAPPER */}
+                {/* Mobile: Scale 0.4 (40%) -> requires Width 250% (100/0.4) */}
+                {/* Desktop: Scale 0.8 (80%) -> requires Width 125% (100/0.8) */}
+                <div className="w-[250%] h-[250%] md:w-[125%] md:h-[125%] origin-top-left transform scale-[0.4] md:scale-[0.8]">
+                  <div className="w-full h-full bg-white px-8 py-12 overflow-y-auto">
+                    {DemoComponent}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Smart Capture */}
+        <div className='w-full flex items-center flex-col bg-white py-16 md:py-24'>
+          <h2 className="font-display font-regular text-black text-4xl max-w-4xl text-center px-4">Collect what you need, Only when you need it</h2>
+          <div className="py-4" />
+          <p className="text-lg leading-relaxed font-body text-black text-justify max-w-4xl px-4">Most monitoring data rots away in a warehouse and runs up your costs 💰. Our <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link> feature lets you control and dynamically change what data to collect without needing to roll out app updates.</p>
+          <div className="py-8" />
+          <div className='max-w-6xl'>
+            <AdaptiveCaptureDemo showTitle={false} />
+          </div>
+        </div>
+
+        {/* Testimonials */}
+        <div className='w-full flex items-center flex-col bg-yellow-100/60 py-16 md:py-24'>
+          <h2 className="font-display font-regular text-black text-4xl max-w-4xl text-center px-4">Tried it, Loved it ❤️</h2>
+          <div className="py-4" />
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4 md:gap-6 lg:gap-8 p-4 md:p-6 lg:p-8 w-full max-w-6xl">
+            {testimonials.map((testimonial, index) => (
+              <Link href={testimonial.url} key={index} target="_blank" rel="noopener noreferrer" className="h-full">
+                <div className="flex flex-col h-full border border-neutral-800 p-8 rounded-md bg-white shadow-sm">
+                  <div className='flex flex-row items-center gap-1 pt-2'>
+                    <Image
+                      src={testimonial.profile_pic_url}
+                      alt={`${testimonial.name} Profile Picture`}
+                      width={32}
+                      height={32}
+                      className="rounded-full border border-gray-300"
+                    />
+                    <p className='font-body text-sm'>{testimonial.name}</p>
+                    <div className='flex grow' />
+                    <Image
+                      src={testimonial.logo}
+                      alt={`Social platform logo`}
+                      width={32}
+                      height={32}
+                      className={`object-contain ${testimonial.platform === 'x' ? 'w-5 h-5' : 'w-8 h-8'}`}
+                    />
+                  </div>
+                  <p className='mt-8 mb-4 font-sans flex-1 whitespace-pre-line'>{testimonial.content}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* For Mobile Developers */}
+        <div className='w-full flex items-center flex-col bg-white py-16 md:py-24'>
+          <h2 className="font-display font-regular text-black text-4xl max-w-4xl text-center px-4">Built For Mobile Devs</h2>
+          <div className="py-2" />
+          <p className="text-lg leading-relaxed font-body text-black md:w-3xl text-justify px-4">
+            For us, Mobile is not an add-on to an observability product. It <b>is</b> the product. Measure is built by mobile engineers, for mobile engineers.
+          </p>
+          <div className="py-8" />
+          <div className="flex flex-col md:flex-row items-center justify-items-center w-full max-w-6xl">
+            <div className='flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-r md:border-r-0 border-l border-t border-gray-300'>
+              <p className='text-4xl font-body text-center'>Open Source</p>
+              <div className="py-2" />
+              <iframe src="https://ghbtns.com/github-btn.html?user=measure-sh&repo=measure&type=star&count=true" width="150" height="20" title="GitHub"></iframe>
+            </div>
+            <div className='flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-gray-300'>
+              <p className='text-4xl font-body text-center'>Flexible Hosting</p>
+              <p className='text-sm font-display text-center mt-4'><Link href="/auth/login" className={underlineLinkStyle}>Measure Cloud</Link> for convenience or <Link href="https://github.com/measure-sh/measure/blob/main/docs/hosting/README.md" target='_blank' className={underlineLinkStyle}>Self Host</Link></p>
+            </div>
+          </div>
+          <div className='w-full border border-gray-300 p-12 max-w-6xl'>
+            <p className='text-4xl font-body text-center'>Every mobile platform</p>
+            <div className="py-4" />
+            <div className='flex flex-row gap-16 items-center justify-center flex-wrap'>
+              <div className="w-[64px] h-[64px] relative flex items-center justify-center">
+                <Image
+                  src="/images/android_logo.svg"
+                  alt="Android Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="w-[64px] h-[64px] relative flex items-center justify-center">
+                <Image
+                  src="/images/ios_logo.svg"
+                  alt="iOS Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="w-[64px] h-[48px] relative flex items-center justify-center">
+                <Image
+                  src="/images/flutter_logo.svg"
+                  alt="Flutter Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="w-[64px] h-[48px] relative flex items-center justify-center">
+                <Badge variant="outline" className='select-none absolute -bottom-8 font-body text-[10px]'>Coming Soon</Badge>
+                <Image
+                  src="/images/react_native_logo.png"
+                  alt="React Native Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA 2 */}
+        <div className="py-8 md:py-12" />
+        <Link
+          href="/auth/login"
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "font-display border border-black rounded-md select-none text-2xl px-8 py-8",
+          )}
+        >
+          Get To The Root Cause
+        </Link>
+        <div className="py-12 md:py-18" />
       </div>
+      <LandingFooter />
     </main>
   )
 }

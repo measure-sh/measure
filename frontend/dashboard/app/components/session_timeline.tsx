@@ -1,6 +1,6 @@
 "use client"
 
-import { LineCanvas } from '@nivo/line'
+import { ResponsiveLineCanvas } from '@nivo/line'
 import { DateTime, Duration } from 'luxon'
 import React, { useEffect, useRef, useState } from 'react'
 import { emptySessionTimeline } from '../api/api_calls'
@@ -13,14 +13,176 @@ import SessionTimelineEventCell from './session_timeline_event_cell'
 import SessionTimelineEventDetails from './session_timeline_event_details'
 import SessionTimelineSeekBar from './session_timeline_seekbar'
 
+const demoTimelineLastEventTime = DateTime.now().toUTC()
+const demoTimeline: typeof emptySessionTimeline = {
+  app_id: "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+  attribute: {
+    installation_id: "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+    app_version: "2.0.0",
+    app_build: "200",
+    app_unique_id: "sh.measure.sample",
+    measure_sdk_version: "1.0.0",
+    platform: "android",
+    thread_name: "msr-default",
+    user_id: "dummy-user-id",
+    device_name: "sunfish",
+    device_model: "Pixel 7 Pro",
+    device_manufacturer: "Google",
+    device_type: "phone",
+    device_is_foldable: false,
+    device_is_physical: true,
+    device_density_dpi: 440,
+    device_width_px: 1080,
+    device_height_px: 2138,
+    device_density: 2.75,
+    device_locale: "en-US",
+    device_low_power_mode: false,
+    device_thermal_throttling_enabled: false,
+    device_cpu_arch: "",
+    os_name: "android",
+    os_version: "33",
+    os_page_size: 0,
+    network_type: "Wifi",
+    network_provider: "unknown",
+    network_generation: "unknown"
+  },
+  cpu_usage: [
+    { timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).toISO(), value: 5 },
+    { timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 3 }).toISO(), value: 15.625 },
+    { timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 6 }).toISO(), value: 12.314 },
+    { timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 9 }).toISO(), value: 35.742 },
+    { timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 12 }).toISO(), value: 38.923 },
+  ],
+  duration: 150000,
+  memory_usage: [
+    {
+      java_max_heap: 262144,
+      java_total_heap: 262144,
+      java_free_heap: 259685,
+      total_pss: 10846,
+      rss: 105040,
+      native_total_heap: 12612,
+      native_free_heap: 1170,
+      interval: 0,
+      timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).toISO()
+    },
+    {
+      java_max_heap: 262144,
+      java_total_heap: 65536,
+      java_free_heap: 58687,
+      total_pss: 57496,
+      rss: 135104,
+      native_total_heap: 17752,
+      native_free_heap: 1259,
+      interval: 2056,
+      timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 3 }).toISO()
+    },
+    {
+      java_max_heap: 262144,
+      java_total_heap: 65536,
+      java_free_heap: 58391,
+      total_pss: 57572,
+      rss: 135240,
+      native_total_heap: 17752,
+      native_free_heap: 1229,
+      interval: 2043,
+      timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 6 }).toISO()
+    },
+    {
+      java_max_heap: 262144,
+      java_total_heap: 65536,
+      java_free_heap: 57931,
+      total_pss: 59015,
+      rss: 136396,
+      native_total_heap: 18520,
+      native_free_heap: 1314,
+      interval: 2055,
+      timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 9 }).toISO()
+    },
+    {
+      java_max_heap: 262144,
+      java_total_heap: 65536,
+      java_free_heap: 57162,
+      total_pss: 59904,
+      rss: 137996,
+      native_total_heap: 19544,
+      native_free_heap: 1307,
+      interval: 2032,
+      timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 12 }).toISO()
+    }
+  ],
+  memory_usage_absolute: null,
+  session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
+  threads: {
+    main: [
+      { event_type: "hot_launch", user_defined_attribute: null, thread_name: "main", duration: 28, timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).toISO() },
+      { event_type: "lifecycle_app", user_defined_attribute: null, thread_name: "main", type: "foreground", timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ milliseconds: 43 }).toISO() },
+      { event_type: "lifecycle_activity", user_defined_attribute: null, thread_name: "main", type: "resumed", class_name: "sh.measure.demo.CheckoutActivity", timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ milliseconds: 91 }).toISO() },
+      { event_type: "custom", user_defined_attribute: { payment_methods: "{\"payment_methods\":[{\"name\": \"personal\", \"type\":\"credit_card\", \"currency\": \"GBP\", \"balance\": 1000}]}" }, thread_name: "main", user_triggered: true, name: "Payment Methods Fetched", timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 1 }).toISO() },
+      {
+        event_type: "gesture_click", user_defined_attribute: null, thread_name: "main", target: "com.google.android.material.button.MaterialButton", target_id: "btn_discount_1", width: 125, height: 200, x: 102, y: 403, timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 6 }).toISO(), "attachments": [
+          {
+            "id": "125df6e5-1e45-4380-bcc6-8c13e50439f8",
+            "name": "snapshot.svg",
+            "type": "layout_snapshot_json",
+            "key": "demo_snapshot_discount_click",
+            "location": "/snapshots/demo_snapshot_discount_click.json"
+          }
+        ]
+      },
+      {
+        event_type: "gesture_click", user_defined_attribute: null, thread_name: "main", target: "com.google.android.material.button.MaterialButton", target_id: "btn_pay", width: 1080, height: 200, x: 125, y: 1674, timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 13 }).toISO(), "attachments": [
+          {
+            "id": "125df6e5-1e45-4380-bcc6-8c13e50439f8",
+            "name": "snapshot.svg",
+            "type": "layout_snapshot_json",
+            "key": "demo_snapshot_pay_click",
+            "location": "/snapshots/demo_snapshot_pay_click.json"
+          }
+        ]
+      },
+      { event_type: "exception", user_defined_attribute: null, user_triggered: false, group_id: "9b71282275e88a68b38fe69a1bda0ea7", type: "java.lang.IllegalStateException", message: "Payment method must be specified", method_name: "onClick", file_name: "CheckoutActivity.kt", line_number: 102, thread_name: "main", handled: false, timestamp: demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 13 }).toISO(), stacktrace: "java.lang.IllegalStateException: Payment method must be specified\n\tat MaterialButton.onClick(CheckoutActivity.kt:102)" }
+    ],
+    "okhttp": [
+      {
+        "event_type": "http",
+        "user_defined_attribute": null,
+        "thread_name": "okhttp",
+        "user_triggered": false,
+        "url": "https://payments.demo-provider.com/demo-user-id/payment-methods",
+        "method": "GET",
+        "status_code": 200,
+        "request_body": "",
+        "response_body": "{\"payment_methods\":[{\"name\": \"personal\", \"type\":\"credit_card\", \"currency\": \"GBP\", \"balance\": 1000}]}",
+        "failure_reason": "",
+        "failure_description": "",
+        "client": "okhttp",
+        "duration": 742,
+        "timestamp": demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ milliseconds: 143 }).toISO()
+      }
+    ],
+  },
+  traces: [
+    {
+      "trace_id": "14f94d4e346a4bb36cf7eb06dae727ff",
+      "trace_name": "CheckoutActivity Time to Full Display",
+      "thread_name": "main",
+      "start_time": demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ milliseconds: 43 }).toISO(),
+      "end_time": demoTimelineLastEventTime.minus({ minutes: 7.5 }).plus({ seconds: 1, milliseconds: 230 }).toISO(),
+      "duration": 1187
+    },
+  ]
+} as any
+
 interface SessionTimelineProps {
-  teamId: string
-  appId: string
-  sessionTimeline: typeof emptySessionTimeline
+  teamId?: string
+  appId?: string
+  sessionTimeline?: typeof emptySessionTimeline
+  demo?: boolean
+  hideDemoTitle?: boolean
 }
 
-const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessionTimeline }) => {
-
+const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId = 'demo-team', appId = 'demo-app', sessionTimeline = demoTimeline, demo = false, hideDemoTitle = false }) => {
   function parseEventsThreadsAndEventTypesFromSessionTimeline() {
     let events: { eventType: string, timestamp: string, thread: string, details: any }[] = []
     let threads = new Set<string>()
@@ -379,7 +541,13 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   })
 
   return (
-    <div className="flex flex-col w-[1100px] font-body text-black">
+    <div className={`flex flex-col w-full font-body text-black`}>
+      {demo && !hideDemoTitle &&
+        <>
+          <p className="font-display text-4xl max-w-6xl text-start">Session Timeline</p>
+          <div className="py-4" />
+        </>
+      }
       {/* Graphs container */}
       {(cpuData != null || memoryData != null || memoryAbsData != null) &&
         <div className="relative"
@@ -387,10 +555,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
         >
           {/* Memory line */}
           {memoryData != null &&
-            <div className="select-none">
-              <LineCanvas
-                width={1100}
-                height={200}
+            <div className="select-none w-full h-[200px]">
+              <ResponsiveLineCanvas
                 data={memoryData}
                 curve="monotoneX"
                 crosshairType="cross"
@@ -414,7 +580,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 axisBottom={{
                   format: '%-I:%M:%S %p',
                   legendPosition: 'middle',
-                  tickRotation: 45
+                  tickRotation: 70
                 }}
                 axisLeft={{
                   tickSize: 1,
@@ -463,10 +629,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
           }
           {/* Memory Absolute line */}
           {memoryAbsData != null &&
-            <div className="select-none">
-              <LineCanvas
-                width={1100}
-                height={200}
+            <div className="select-none w-full h-[200px]">
+              <ResponsiveLineCanvas
                 data={memoryAbsData}
                 curve="monotoneX"
                 crosshairType="cross"
@@ -490,7 +654,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 axisBottom={{
                   format: '%-I:%M:%S %p',
                   legendPosition: 'middle',
-                  tickRotation: 45
+                  tickRotation: 70
                 }}
                 axisLeft={{
                   tickSize: 1,
@@ -539,10 +703,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
           }
           {/* CPU line */}
           {cpuData != null &&
-            <div className="select-none">
-              <LineCanvas
-                width={1100}
-                height={200}
+            <div className="select-none w-full h-[200px]">
+              <ResponsiveLineCanvas
                 data={cpuData}
                 curve="monotoneX"
                 crosshairType="cross"
@@ -567,7 +729,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 axisBottom={{
                   format: '%-I:%M:%S %p',
                   legendPosition: 'middle',
-                  tickRotation: 45
+                  tickRotation: 70
                 }}
                 axisLeft={{
                   tickSize: 1,
@@ -619,7 +781,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
       </div>
       {/* Events*/}
       <div className='flex flex-row mt-4 border border-black rounded-md w-full h-[600px]'>
-        <div className='h-full w-2/3 overflow-auto overscroll-y-contain divide-y' ref={eventListContainerRef}
+        <div className='h-full w-2/3 overflow-auto divide-y' ref={eventListContainerRef}
           onScroll={handleEventsScroll}
         >
           {filteredEvents.length > 0 && filteredEvents.map((e, index) => (
@@ -633,7 +795,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
         <div className='w-0.5 h-full bg-neutral-950' />
         <div className='h-full w-1/3'
         >
-          {filteredEvents.length > 0 && <SessionTimelineEventDetails teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />}
+          {filteredEvents.length > 0 && <SessionTimelineEventDetails demo={demo} teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />}
         </div>
       </div>
     </div>

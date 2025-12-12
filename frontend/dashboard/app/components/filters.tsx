@@ -25,6 +25,7 @@ import {
   SpanStatus,
   UserDefAttr,
 } from "../api/api_calls"
+import { underlineLinkStyle } from "../utils/shared_styles"
 import {
   formatDateToHumanReadableDateTime,
   formatIsoDateForDateTimeInputField,
@@ -1223,7 +1224,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
               "creating your first app!"
             ) : (
               <Link
-                className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+                className={underlineLinkStyle}
                 href={`apps`}
               >
                 creating your first app!
@@ -1276,7 +1277,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     Follow our{" "}
                     <Link
                       target="_blank"
-                      className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+                      className={underlineLinkStyle}
                       href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
                     >
                       docs

@@ -10,9 +10,11 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import LoadingSpinner from "@/app/components/loading_spinner"
 import { Switch } from "@/app/components/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/table"
+import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatToCamelCase } from "@/app/utils/string_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -645,13 +647,19 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* error creating slack url or fetching team slack status */}
           {(fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Error || fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Error) &&
-            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md'>guide</Link> to set it up if you haven&apos;t done so.</p>
+            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md'>guide</Link> to set it up if you haven&apos;t done so.</p>
           }
 
           {/* slack not connected, show add to slack button */}
           {fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Success && fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Success && teamSlack === null ? <a
             href={teamSlackConnectUrl!}>
-            <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
+            <Image
+              alt="Add to Slack"
+              height={40}
+              width={139}
+              src="https://platform.slack-edge.com/img/add_to_slack@2x.png"
+              unoptimized
+            />
           </a> : ""}
 
           {/* slack connected, show switch */}
