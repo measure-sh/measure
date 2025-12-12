@@ -20,6 +20,8 @@ import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.Config
+import sh.measure.android.config.ConfigLoader
+import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
@@ -158,6 +160,14 @@ internal class MeasureInitializerImpl(
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
         context = application,
+    ),
+    override val configLoader: ConfigLoader = ConfigLoaderImpl(
+        logger = logger,
+        networkClient = networkClient,
+        fileStorage = fileStorage,
+        prefsStorage = prefsStorage,
+        timeProvider = timeProvider,
+        executorService = executorServiceRegistry.ioExecutor()
     ),
     private val packageInfoProvider: PackageInfoProviderImpl = PackageInfoProviderImpl(application),
     override val sessionManager: SessionManager = SessionManagerImpl(
@@ -330,7 +340,6 @@ internal class MeasureInitializerImpl(
     ),
     private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(logger),
     override val anrCollector: AnrCollector = AnrCollector(
-        logger = logger,
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
@@ -480,6 +489,7 @@ internal interface MeasureInitializer {
     val logger: Logger
     val timeProvider: TimeProvider
     val networkClient: NetworkClient
+    val configLoader: ConfigLoader
     val configProvider: ConfigProvider
     val manifestReader: ManifestReader
     val resumedActivityProvider: ResumedActivityProvider

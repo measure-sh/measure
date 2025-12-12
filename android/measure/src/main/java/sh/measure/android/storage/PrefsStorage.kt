@@ -10,6 +10,12 @@ internal interface PrefsStorage {
     fun setInstallationId(installationId: String)
     fun getUserId(): String?
     fun setUserId(userId: String?)
+    fun getConfigFetchTimestamp(): Long
+    fun getConfigCacheControl(): Long
+    fun getConfigEtag(): String?
+    fun setConfigFetchTimestamp(timestamp: Long)
+    fun setConfigCacheControl(cacheControl: Long)
+    fun setConfigEtag(etag: String)
 }
 
 internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
@@ -17,6 +23,9 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
 
     private companion object {
         private const val USER_ID_KEY = "user_id"
+        private const val CONFIG_FETCH_TIMESTAMP = "config_fetch_timestamp"
+        private const val CONFIG_CACHE_CONTROL = "config_cache_control"
+        private const val CONFIG_ETAG = "config_etag"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -37,5 +46,29 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
         } else {
             sharedPreferences.edit { putString(USER_ID_KEY, userId) }
         }
+    }
+
+    override fun getConfigFetchTimestamp(): Long {
+        return sharedPreferences.getLong(CONFIG_FETCH_TIMESTAMP, 0)
+    }
+
+    override fun getConfigCacheControl(): Long {
+        return sharedPreferences.getLong(CONFIG_CACHE_CONTROL, 0)
+    }
+
+    override fun getConfigEtag(): String? {
+        return sharedPreferences.getString(CONFIG_ETAG, null)
+    }
+
+    override fun setConfigFetchTimestamp(timestamp: Long) {
+        sharedPreferences.edit { putLong(CONFIG_FETCH_TIMESTAMP, timestamp) }
+    }
+
+    override fun setConfigCacheControl(cacheControl: Long) {
+        sharedPreferences.edit { putLong(CONFIG_CACHE_CONTROL, cacheControl) }
+    }
+
+    override fun setConfigEtag(etag: String) {
+        sharedPreferences.edit { putString(CONFIG_ETAG, etag) }
     }
 }

@@ -2,18 +2,10 @@ package sh.measure.android.config
 
 import org.junit.Assert
 import org.junit.Test
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 
 class ConfigProviderTest {
-    private val configLoader = mock<ConfigLoader>()
     private val defaultConfig = Config()
     private val configProvider = ConfigProviderImpl(defaultConfig = defaultConfig)
-
-    @Test
-    fun `loads cached config on initialization`() {
-        verify(configLoader).getCachedConfig()
-    }
 
     @Test
     fun `shouldTrackHttpBody returns false if trackHttpBody is set to false`() {

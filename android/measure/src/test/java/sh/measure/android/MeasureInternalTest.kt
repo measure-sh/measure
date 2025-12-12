@@ -65,6 +65,7 @@ class MeasureInternalTest {
         `when`(initializer.shakeBugReportCollector).thenReturn(mock())
         `when`(initializer.internalSignalCollector).thenReturn(mock())
         `when`(initializer.attachmentExporter).thenReturn(mock())
+        `when`(initializer.configLoader).thenReturn(mock())
 
         return initializer
     }
@@ -121,7 +122,6 @@ class MeasureInternalTest {
         verify(initializer.networkChangesCollector).unregister()
         verify(initializer.httpEventCollector).unregister()
         verify(initializer.powerStateProvider).unregister()
-        verify(initializer.periodicExporter).unregister()
         verify(initializer.spanCollector).unregister()
         verify(initializer.customEventCollector).unregister()
         verify(initializer.periodicSignalStoreScheduler).unregister()
@@ -156,12 +156,21 @@ class MeasureInternalTest {
         measureInternal.start()
         measureInternal.onAppForeground()
 
-        // called twice as start also calls register
-        verify(initializer.powerStateProvider, times(2)).register()
+        // Twice as it's called once on start and
+        // then on app foreground
+        verify(initializer.unhandledExceptionCollector).register()
+        verify(initializer.anrCollector).register()
+        verify(initializer.userTriggeredEventCollector, times(2)).register()
+        verify(initializer.appLifecycleCollector, times(2)).register()
+        verify(initializer.cpuUsageCollector, times(2)).register()
+        verify(initializer.memoryUsageCollector, times(2)).register()
+        verify(initializer.componentCallbacksCollector, times(2)).register()
+        verify(initializer.gestureCollector, times(2)).register()
         verify(initializer.networkChangesCollector, times(2)).register()
-        verify(initializer.periodicExporter, times(2)).resume()
-        // called once as start calls register
-        verify(initializer.cpuUsageCollector, times(1)).resume()
-        verify(initializer.memoryUsageCollector, times(1)).resume()
+        verify(initializer.httpEventCollector, times(2)).register()
+        verify(initializer.powerStateProvider, times(2)).register()
+        verify(initializer.spanCollector, times(2)).register()
+        verify(initializer.customEventCollector, times(2)).register()
+        verify(initializer.periodicSignalStoreScheduler, times(2)).register()
     }
 }

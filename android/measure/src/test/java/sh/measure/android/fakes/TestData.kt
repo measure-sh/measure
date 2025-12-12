@@ -7,6 +7,8 @@ import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
+import sh.measure.android.config.DynamicConfig
+import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.Event
@@ -544,4 +546,47 @@ internal object TestData {
         content: ByteArray = "content".toByteArray(),
         type: String = AttachmentType.SCREENSHOT,
     ): MsrAttachment = MsrAttachment(name, bytes = content, type = type)
+
+    fun getDynamicConfig(
+        maxEventsInBatch: Int = 500,
+        crashTimelineDuration: Long = 30_000L,
+        anrTimelineDuration: Long = 30_000L,
+        bugReportTimelineDuration: Long = 30_000L,
+        traceSamplingRate: Float = 1.0f,
+        journeySamplingRate: Float = 1.0f,
+        screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllText,
+        cpuUsageInterval: Long = 3000L,
+        memoryUsageInterval: Long = 3000L,
+        crashTakeScreenshot: Boolean = false,
+        crashTimelineSamplingRate: Float = 1.0f,
+        anrTakeScreenshot: Boolean = false,
+        anrTimelineSamplingRate: Float = 1.0f,
+        launchSamplingRate: Float = 1.0f,
+        gestureClickTakeSnapshot: Boolean = false,
+        httpDisableEventForUrls: MutableList<String> = mutableListOf(),
+        httpTrackRequestForUrls: List<String> = emptyList(),
+        httpTrackResponseForUrls: List<String> = emptyList(),
+        httpBlockedHeaders: List<String> = emptyList(),
+    ) = DynamicConfig(
+        maxEventsInBatch = maxEventsInBatch,
+        crashTimelineDuration = crashTimelineDuration,
+        anrTimelineDuration = anrTimelineDuration,
+        bugReportTimelineDuration = bugReportTimelineDuration,
+        traceSamplingRate = traceSamplingRate,
+        journeySamplingRate = journeySamplingRate,
+        screenshotMaskLevel = screenshotMaskLevel,
+        cpuUsageInterval = cpuUsageInterval,
+        memoryUsageInterval = memoryUsageInterval,
+        crashTakeScreenshot = crashTakeScreenshot,
+        crashTimelineSamplingRate = crashTimelineSamplingRate,
+        anrTakeScreenshot = anrTakeScreenshot,
+        anrTimelineSamplingRate = anrTimelineSamplingRate,
+        launchSamplingRate = launchSamplingRate,
+        gestureClickTakeSnapshot = gestureClickTakeSnapshot,
+        httpDisableEventForUrls = httpDisableEventForUrls,
+        httpTrackRequestForUrls = httpTrackRequestForUrls,
+        httpTrackResponseForUrls = httpTrackResponseForUrls,
+        httpBlockedHeaders = httpBlockedHeaders,
+    )
+
 }

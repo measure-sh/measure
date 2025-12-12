@@ -84,10 +84,16 @@ internal interface FileStorage {
      * Deletes attachments with given IDs.
      */
     fun deleteAttachmentsIfExist(attachmentIds: List<String>?)
+
+    /**
+     * Returns the file where the [sh.measure.android.config.DynamicConfig] is stored.
+     */
+    fun getConfigFile(): File?
 }
 
 private const val MEASURE_DIR = "measure"
 private const val BUG_REPORTS_DIR = "bug_reports"
+private const val CONFIG_FILE_NAME = "config.json"
 
 internal class FileStorageImpl(
     private val rootDir: String,
@@ -176,6 +182,21 @@ internal class FileStorageImpl(
     override fun deleteAttachmentsIfExist(attachmentIds: List<String>?) {
         attachmentIds?.forEach { id ->
             getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
+        }
+    }
+
+    override fun getConfigFile(): File? {
+        val filePath = "$rootDir/$MEASURE_DIR/$CONFIG_FILE_NAME"
+        val file = File(filePath)
+
+        try {
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+            return file
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Failed to get config file", e)
+            return null
         }
     }
 

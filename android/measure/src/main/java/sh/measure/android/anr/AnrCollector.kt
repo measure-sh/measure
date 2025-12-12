@@ -7,20 +7,28 @@ import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
-import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.utils.ProcessInfoProvider
 
 internal class AnrCollector(
-    private val logger: Logger,
     private val processInfo: ProcessInfoProvider,
     private val signalProcessor: SignalProcessor,
     private val nativeBridge: NativeBridge,
     private val mainLooper: Looper = mainHandler.looper,
 ) : AnrListener {
 
+    private var isRegistered = false
+
     fun register() {
+        if (isRegistered) return
         nativeBridge.enableAnrReporting(anrListener = this)
+        isRegistered = true
+    }
+
+    fun unregister() {
+        if (!isRegistered) return
+        nativeBridge.disableAnrReporting()
+        isRegistered = false
     }
 
     override fun onAnrDetected(timestamp: Long) {
@@ -35,11 +43,6 @@ internal class AnrCollector(
             type = EventType.ANR,
             takeScreenshot = true,
         )
-    }
-
-    @Suppress("unused")
-    fun unregister() {
-        nativeBridge.disableAnrReporting()
     }
 
     private fun toMeasureException(anr: AnrError): ExceptionData = ExceptionFactory.createMeasureException(

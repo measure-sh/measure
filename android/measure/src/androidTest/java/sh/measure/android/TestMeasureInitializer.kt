@@ -302,7 +302,6 @@ internal class TestMeasureInitializer(
     ),
     private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(logger),
     override val anrCollector: AnrCollector = AnrCollector(
-        logger = logger,
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,

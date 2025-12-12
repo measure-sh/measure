@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
@@ -30,8 +29,9 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
     val httpEventCollector = measure.httpEventCollector
     val signalProcessor = measure.signalProcessor
 
+    @Volatile
     private var isStarted: Boolean = false
-    private var startLock = Any()
+    private val lock = Any()
 
     fun init(clientInfo: ClientInfo? = null) {
         if (!setupNetworkClient(clientInfo)) {
@@ -66,28 +66,36 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             enableCrashTracking()
         }
 
+        measure.configLoader.loadDynamicConfig { config ->
+            // TODO: improve this API async behaviour
+            mainHandler.post {
+                if (measure.configProvider.autoStart) {
+                    start()
+                }
+            }
+        }
         measure.logger.log(LogLevel.Debug, "Initialization complete")
     }
 
     fun start() {
-        synchronized(startLock) {
-            if (!isStarted) {
-                enableCrashTracking()
-                registerCollectors()
-                isStarted = true
-                measure.logger.log(LogLevel.Debug, "Started")
+        synchronized(lock) {
+            if (isStarted) {
+                return
             }
+            enableCrashTracking()
+            registerCollectors()
+            isStarted = true
         }
     }
 
     fun stop() {
-        synchronized(startLock) {
-            if (isStarted) {
-                disableCrashTracking()
-                unregisterCollectors()
-                isStarted = false
-                measure.logger.log(LogLevel.Debug, "Stopped")
+        synchronized(lock) {
+            if (!isStarted) {
+                return
             }
+            disableCrashTracking()
+            unregisterCollectors()
+            isStarted = false
         }
     }
 
@@ -95,30 +103,19 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         measure.sessionManager.onAppForeground()
-        synchronized(startLock) {
+        synchronized(lock) {
             if (isStarted) {
-                measure.powerStateProvider.register()
-                measure.networkChangesCollector.register()
-                measure.cpuUsageCollector.resume()
-                measure.memoryUsageCollector.resume()
-                measure.periodicExporter.resume()
-                measure.attachmentExporter.register()
+                registerCollectors()
             }
         }
     }
 
     override fun onAppBackground() {
         measure.sessionManager.onAppBackground()
-        synchronized(startLock) {
+        synchronized(lock) {
             if (isStarted) {
-                measure.cpuUsageCollector.pause()
-                measure.memoryUsageCollector.pause()
-                measure.periodicExporter.pause()
-                measure.attachmentExporter.unregister()
-                measure.powerStateProvider.unregister()
-                measure.networkChangesCollector.unregister()
-                measure.periodicSignalStoreScheduler.onAppBackground()
-                measure.dataCleanupService.clearStaleData()
+                unregisterCollectors()
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     measure.appExitCollector.collect()
                 }
@@ -156,7 +153,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         return try {
             measure.sessionManager.getSessionId()
         } catch (_: IllegalArgumentException) {
-            return null
+            null
         }
     }
 
@@ -179,7 +176,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
     }
 
-    @MainThread
     fun captureScreenshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
@@ -192,7 +188,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         ).captureScreenshot(activity, onComplete, onError)
     }
 
-    @MainThread
     fun takeLayoutSnapshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
@@ -238,19 +233,18 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         sessionId: String?,
         threadName: String?,
     ) {
-        if (isStarted) {
-            measure.internalSignalCollector.trackEvent(
-                data = data,
-                type = type,
-                timestamp = timestamp,
-                attributes = attributes,
-                userDefinedAttrs = userDefinedAttrs,
-                attachments = attachments,
-                userTriggered = userTriggerEvent,
-                sessionId = sessionId,
-                threadName = threadName,
-            )
-        }
+        if (!isStarted) return
+        measure.internalSignalCollector.trackEvent(
+            data = data,
+            type = type,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggerEvent,
+            sessionId = sessionId,
+            threadName = threadName,
+        )
     }
 
     fun internalTrackSpan(
@@ -268,23 +262,22 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         hasEnded: Boolean,
         isSampled: Boolean,
     ) {
-        if (isStarted) {
-            measure.internalSignalCollector.trackSpan(
-                name = name,
-                traceId = traceId,
-                spanId = spanId,
-                parentId = parentId,
-                startTime = startTime,
-                endTime = endTime,
-                duration = duration,
-                status = status,
-                attributes = attributes,
-                userDefinedAttrs = userDefinedAttrs,
-                checkpoints = checkpoints,
-                hasEnded = hasEnded,
-                isSampled = isSampled,
-            )
-        }
+        if (!isStarted) return
+        measure.internalSignalCollector.trackSpan(
+            name = name,
+            traceId = traceId,
+            spanId = spanId,
+            parentId = parentId,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            status = status,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            checkpoints = checkpoints,
+            hasEnded = hasEnded,
+            isSampled = isSampled,
+        )
     }
 
     fun getAttachmentDirectory(): String? = measure.fileStorage.getAttachmentDirectory()
@@ -302,6 +295,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         responseBody: String?,
         client: String,
     ) {
+        if (!isStarted) return
         measure.userTriggeredEventCollector.trackHttp(
             url,
             method,
@@ -318,8 +312,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         )
     }
 
-    // Validates and initializes the network client, returns true if initialization was successful,
-    // false otherwise.
     private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
         initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
     } else {
@@ -369,8 +361,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.networkChangesCollector.register()
         measure.httpEventCollector.register()
         measure.powerStateProvider.register()
-        measure.periodicExporter.resume()
-        measure.attachmentExporter.register()
         measure.spanCollector.register()
         measure.customEventCollector.register()
         measure.periodicSignalStoreScheduler.register()
@@ -387,8 +377,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.networkChangesCollector.unregister()
         measure.httpEventCollector.unregister()
         measure.powerStateProvider.unregister()
-        measure.periodicExporter.unregister()
-        measure.attachmentExporter.unregister()
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()
         measure.periodicSignalStoreScheduler.unregister()
