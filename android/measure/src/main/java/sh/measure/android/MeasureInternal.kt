@@ -90,45 +90,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             }
         }
     }
-    // Validates and initializes the network client, returns true if initialization was successful,
-    // false otherwise.
-    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
-        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
-    } else {
-        initializeFromManifest()
-    }
-
-    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
-        apiUrl.isNullOrEmpty() -> "API URL is missing"
-        apiKey.isNullOrEmpty() -> "API Key is missing"
-        !apiKey.startsWith("msrsh") -> "invalid API Key"
-        else -> null
-    }
-
-    private fun initializeFromManifest(): Boolean {
-        val manifest = measure.manifestReader.load()
-        if (manifest == null) {
-            return false
-        }
-
-        return initializeWithCredentials(manifest.url, manifest.apiKey)
-    }
-
-    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
-        val validationError = validateApiCredentials(apiUrl, apiKey)
-
-        return if (validationError != null) {
-            measure.logger.log(
-                LogLevel.Error,
-                "Failed to initialize Measure SDK, $validationError",
-            )
-            false
-        } else {
-            measure.configProvider.setMeasureUrl(apiUrl!!)
-            measure.networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
-            true
-        }
-    }
 
     override fun onAppForeground() {
         // session manager must be the first to be notified about app foreground to ensure that
@@ -355,6 +316,46 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             requestBody,
             responseBody,
         )
+    }
+
+    // Validates and initializes the network client, returns true if initialization was successful,
+    // false otherwise.
+    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
+        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
+    } else {
+        initializeFromManifest()
+    }
+
+    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
+        apiUrl.isNullOrEmpty() -> "API URL is missing"
+        apiKey.isNullOrEmpty() -> "API Key is missing"
+        !apiKey.startsWith("msrsh") -> "invalid API Key"
+        else -> null
+    }
+
+    private fun initializeFromManifest(): Boolean {
+        val manifest = measure.manifestReader.load()
+        if (manifest == null) {
+            return false
+        }
+
+        return initializeWithCredentials(manifest.url, manifest.apiKey)
+    }
+
+    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
+        val validationError = validateApiCredentials(apiUrl, apiKey)
+
+        return if (validationError != null) {
+            measure.logger.log(
+                LogLevel.Error,
+                "Failed to initialize Measure SDK, $validationError",
+            )
+            false
+        } else {
+            measure.configProvider.setMeasureUrl(apiUrl!!)
+            measure.networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
+            true
+        }
     }
 
     private fun registerCollectors() {
