@@ -40,7 +40,7 @@ internal data class Config(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-    override val sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
+    override val sessionBackgroundTimeoutThresholdMs: Long = 30_000 // 30 seconds
     override val maxEventNameLength: Int = 64 // 64 chars
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100

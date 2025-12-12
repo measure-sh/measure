@@ -97,13 +97,6 @@ internal interface Database : Closeable {
      */
     fun insertSession(session: SessionEntity): Boolean
 
-    fun updateSessionPid(
-        sessionId: String,
-        pid: Int,
-        createdAt: Long,
-        supportsAppExit: Boolean,
-    ): Boolean
-
     /**
      * Deletes the sessions with the given IDs.
      *
@@ -685,54 +678,6 @@ internal class DatabaseImpl(
             return true
         } catch (e: Exception) {
             logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})", e)
-            return false
-        } finally {
-            writableDatabase.endTransaction()
-        }
-    }
-
-    @SuppressLint("UseKtx")
-    override fun updateSessionPid(
-        sessionId: String,
-        pid: Int,
-        createdAt: Long,
-        supportsAppExit: Boolean,
-    ): Boolean {
-        writableDatabase.beginTransaction()
-
-        try {
-            val sessionValues = ContentValues().apply {
-                put(SessionsTable.COL_PID, pid)
-            }
-            val sessionResult = writableDatabase.updateWithOnConflict(
-                SessionsTable.TABLE_NAME,
-                sessionValues,
-                "${SessionsTable.COL_SESSION_ID} = ?",
-                arrayOf(sessionId),
-                SQLiteDatabase.CONFLICT_IGNORE,
-            )
-            if (supportsAppExit) {
-                val appExitValues = ContentValues().apply {
-                    put(AppExitTable.COL_SESSION_ID, sessionId)
-                    put(AppExitTable.COL_PID, pid)
-                    put(AppExitTable.COL_CREATED_AT, createdAt)
-                }
-                writableDatabase.insertWithOnConflict(
-                    AppExitTable.TABLE_NAME,
-                    null,
-                    appExitValues,
-                    SQLiteDatabase.CONFLICT_IGNORE,
-                )
-            }
-
-            if (sessionResult <= 0) {
-                logger.log(LogLevel.Debug, "Failed to update session($sessionId)")
-                return false
-            }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } catch (e: Exception) {
-            logger.log(LogLevel.Debug, "Failed to update session($sessionId)", e)
             return false
         } finally {
             writableDatabase.endTransaction()

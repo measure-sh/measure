@@ -903,14 +903,10 @@ class DatabaseTest {
 
     @Test
     fun `updateSession creates new entry in app exit table`() {
+        // TODO: review
         val session = TestData.getSessionEntity(pid = 1, supportsAppExit = true)
         database.insertSession(session)
-        database.updateSessionPid(
-            sessionId = session.sessionId,
-            pid = 2,
-            createdAt = session.createdAt,
-            true,
-        )
+
         database.readableDatabase.rawQuery("SELECT * FROM ${AppExitTable.TABLE_NAME}", null).use {
             assertEquals(2, it.count)
         }

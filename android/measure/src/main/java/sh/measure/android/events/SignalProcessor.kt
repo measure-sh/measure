@@ -159,9 +159,6 @@ internal class SignalProcessorImpl(
                             signalStore.store(event)
                             onEventTracked(event)
                         })
-                        if (type == EventType.BUG_REPORT) {
-                            sessionManager.markSessionWithBugReport()
-                        }
                     },
                 )
             }
@@ -231,7 +228,6 @@ internal class SignalProcessorImpl(
         applyAttributes(attributes, event, threadName)
         signalStore.store(event)
         onEventTracked(event)
-        sessionManager.markCrashedSession(event.sessionId)
         exceptionExporter.export(event.sessionId)
     }
 
@@ -256,7 +252,6 @@ internal class SignalProcessorImpl(
         if (logger.enabled) {
             logger.log(LogLevel.Debug, "Event processed: ${event.type}, ${event.data}")
         }
-        sessionManager.onEventTracked(event)
     }
 
     private fun <T> createEvent(

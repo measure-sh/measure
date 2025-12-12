@@ -35,9 +35,10 @@ internal interface InternalConfig {
     val defaultHttpHeadersBlocklist: List<String>
 
     /**
-     * The threshold after which a session is considered ended. Defaults to 3 minutes.
+     * Starts a new session when app comes back to foreground after this threshold.
+     * Defaults to 30 seconds.
      */
-    val sessionEndLastEventThresholdMs: Long
+    val sessionBackgroundTimeoutThresholdMs: Long
 
     /**
      * The maximum length of a custom event. Defaults to 64 chars.

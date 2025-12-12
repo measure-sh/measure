@@ -12,7 +12,6 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
-import sh.measure.android.RecentSession
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -27,7 +26,6 @@ class DataCleanupServiceTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val sessionManager = FakeSessionManager()
     private val configProvider = FakeConfigProvider()
-    private val prefsStorage = mock<PrefsStorage>()
     private val dataCleanupService = DataCleanupServiceImpl(
         logger,
         fileStorage,
@@ -35,7 +33,6 @@ class DataCleanupServiceTest {
         executorService,
         sessionManager,
         configProvider,
-        prefsStorage,
     )
 
     private var tempTestDir: File? = null
@@ -64,9 +61,6 @@ class DataCleanupServiceTest {
         `when`(database.getEventsForSessions(sessionIds)).thenReturn(eventIds)
         `when`(database.getAttachmentsForEvents(eventIds)).thenReturn(attachmentIds)
         `when`(database.deleteSessions(sessionIds)).thenReturn(true)
-        `when`(prefsStorage.getRecentSession()).thenReturn(
-            RecentSession("session1", 1000L, 1200L, false, "1"),
-        )
 
         // report lower number of events than threshold to avoid triggering deletion of oldest
         // session due to exceeding the max limit of events in db.
@@ -77,7 +71,6 @@ class DataCleanupServiceTest {
         verify(fileStorage, times(1)).deleteEventsIfExist(eventIds)
         verify(fileStorage, times(1)).deleteAttachmentsIfExist(attachmentIds)
         verify(database, times(1)).deleteSessions(sessionIds)
-        verify(prefsStorage, times(1)).deleteRecentSession()
     }
 
     @Test
@@ -118,7 +111,7 @@ class DataCleanupServiceTest {
         File(oldSessionDir1, "report.json").writeText("{}")
         File(oldSessionDir2, "screenshot.png").writeBytes(byteArrayOf(1, 2, 3))
 
-        sessionManager.session = "current-session"
+        sessionManager.id = "current-session"
 
         // Setup mocks to avoid triggering other cleanup operations
         `when`(database.getSessionIds(any(), any(), any())).thenReturn(emptyList())

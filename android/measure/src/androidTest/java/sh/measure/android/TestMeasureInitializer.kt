@@ -155,7 +155,6 @@ internal class TestMeasureInitializer(
         logger = logger,
         idProvider = idProvider,
         database = database,
-        prefs = prefsStorage,
         processInfo = processInfoProvider,
         timeProvider = timeProvider,
         configProvider = configProvider,

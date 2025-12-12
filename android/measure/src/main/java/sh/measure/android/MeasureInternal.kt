@@ -38,14 +38,19 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             return
         }
 
-        // initialize a session
-        val sessionInitResult = measure.sessionManager.init()
+        // start a session
+        val sessionId = measure.sessionManager.init()
 
         // All events are processed on a single thread in a queue.
         // So, the first event will always be a session start event
         // as we initialize all other collectors after this event
         // is triggered.
-        trackSessionStart(sessionInitResult)
+        measure.signalProcessor.track(
+            SessionStartData,
+            timestamp = measure.timeProvider.now(),
+            type = EventType.SESSION_START,
+            sessionId = sessionId,
+        )
 
         // setup lifecycle state
         measure.appLifecycleManager.addListener(this)
@@ -55,7 +60,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         // always collect app launch events
         measure.appLaunchCollector.register()
 
-        // start SDK
+        // start collectors
         if (measure.configProvider.autoStart) {
             start()
         }
@@ -149,12 +154,12 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.sessionManager.onAppForeground()
         synchronized(startLock) {
             if (isStarted) {
-               measure.powerStateProvider.register()
-               measure.networkChangesCollector.register()
-               measure.cpuUsageCollector.resume()
-               measure.memoryUsageCollector.resume()
-               measure.periodicExporter.resume()
-               measure.attachmentExporter.register()
+                measure.powerStateProvider.register()
+                measure.networkChangesCollector.register()
+                measure.cpuUsageCollector.resume()
+                measure.memoryUsageCollector.resume()
+                measure.periodicExporter.resume()
+                measure.attachmentExporter.register()
             }
         }
     }
@@ -196,11 +201,9 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
 
     fun createSpan(name: String): SpanBuilder? = measure.spanCollector.createSpan(name)
 
-    fun startSpan(name: String, timestamp: Long? = null): Span =
-        measure.spanCollector.startSpan(name, timestamp)
+    fun startSpan(name: String, timestamp: Long? = null): Span = measure.spanCollector.startSpan(name, timestamp)
 
-    fun getTraceParentHeaderValue(span: Span): String =
-        measure.spanCollector.getTraceParentHeaderValue(span)
+    fun getTraceParentHeaderValue(span: Span): String = measure.spanCollector.getTraceParentHeaderValue(span)
 
     fun getTraceParentHeaderKey(): String = measure.spanCollector.getTraceParentHeaderKey()
 
@@ -368,30 +371,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             requestBody,
             responseBody,
         )
-    }
-
-    private fun trackSessionStart(sessionInitResult: SessionInitResult) {
-        when (sessionInitResult) {
-            is SessionInitResult.NewSessionCreated -> {
-                measure.signalProcessor.track(
-                    SessionStartData,
-                    timestamp = measure.timeProvider.now(),
-                    type = EventType.SESSION_START,
-                    sessionId = sessionInitResult.sessionId,
-                )
-                measure.logger.log(
-                    LogLevel.Debug,
-                    "New session created with ID: ${sessionInitResult.sessionId}",
-                )
-            }
-
-            is SessionInitResult.SessionResumed -> {
-                measure.logger.log(
-                    LogLevel.Debug,
-                    "Session resumed with ID: ${sessionInitResult.sessionId}",
-                )
-            }
-        }
     }
 
     private fun unregisterCollectors() {

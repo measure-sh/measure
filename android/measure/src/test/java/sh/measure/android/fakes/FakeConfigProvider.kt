@@ -30,7 +30,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
+    override var sessionBackgroundTimeoutThresholdMs: Long = 30_000 // 30 seconds
     override var maxEventNameLength: Int = 64
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100

@@ -183,7 +183,7 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given an event of type exception, stores it, marks current session as crashed, and triggers export`() {
+    fun `given an event of type exception, stores it, and triggers export`() {
         // Given
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
@@ -198,13 +198,12 @@ internal class SignalProcessorTest {
         )
 
         // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, signalStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test
-    fun `given an event of type ANR,  stores it, marks current session as crashed, and triggers export`() {
+    fun `given an event of type ANR, stores it, and triggers export`() {
         // Given
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
@@ -219,7 +218,6 @@ internal class SignalProcessorTest {
         )
 
         // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, signalStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
@@ -343,26 +341,6 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given an event of type bug_report, marks session with bug report`() {
-        // Given
-        val bugReportData = TestData.getBugReportData()
-        val timestamp = 1710746412L
-        val type = EventType.BUG_REPORT
-        val sessionId = "session-id-bug-report"
-
-        // When
-        signalProcessor.track(
-            data = bugReportData,
-            timestamp = timestamp,
-            type = type,
-            sessionId = sessionId,
-        )
-
-        // Then
-        assertTrue(sessionManager.markedSessionWithBugReport)
-    }
-
-    @Test
     fun `given a user triggered event, then stores the event`() {
         val data = TestData.getScreenViewData()
         val timestamp = 1710746412L
@@ -386,43 +364,6 @@ internal class SignalProcessorTest {
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
-    }
-
-    @Test
-    fun `calls onEventTracked on session manager when crash is stored`() {
-        // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        // When
-        signalProcessor.trackCrash(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-            takeScreenshot = false,
-        )
-
-        // Then
-        assertTrue(sessionManager.onEventTracked)
-    }
-
-    @Test
-    fun `calls onEventTracked on session manager when event is stored`() {
-        // Given
-        val data = TestData.getScreenViewData()
-        val timestamp = 9856564654L
-        val type = EventType.SCREEN_VIEW
-
-        // When
-        signalProcessor.track(
-            data = data,
-            timestamp = timestamp,
-            type = type,
-        )
-
-        // Then
-        assertTrue(sessionManager.onEventTracked)
     }
 
     @Test

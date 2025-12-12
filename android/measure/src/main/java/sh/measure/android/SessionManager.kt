@@ -2,14 +2,10 @@ package sh.measure.android
 
 import android.os.Build
 import sh.measure.android.config.ConfigProvider
-import sh.measure.android.events.Event
-import sh.measure.android.events.EventType
-import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
-import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PackageInfoProvider
@@ -21,37 +17,19 @@ import java.util.concurrent.RejectedExecutionException
 internal interface SessionManager {
     /**
      * Creates a new session, to be used only when the SDK is initialized.
+     *
+     * @return the session ID
      */
-    fun init(): SessionInitResult
+    fun init(): String
 
     /**
-     * Returns a session ID.
+     * Returns the current session ID.
+     *
+     * @throws IllegalArgumentException if the SDK has not been initialized and the session id
+     * has not been created.
      */
+    @Throws(IllegalArgumentException::class)
     fun getSessionId(): String
-
-    /**
-     * Marks the session as crashed.
-     *
-     * @param sessionId The session ID that crashed.
-     */
-    fun markCrashedSession(sessionId: String)
-
-    /**
-     * Marks multiple sessions as crashed.
-     *
-     * @param sessionIds The session IDs that crashed.
-     */
-    fun markCrashedSessions(sessionIds: List<String>)
-
-    /**
-     * Marks that current session contains a bug report.
-     */
-    fun markSessionWithBugReport()
-
-    /**
-     * Call when an event is tracked.
-     */
-    fun <T> onEventTracked(event: Event<T>)
 
     /**
      * Call when app comes to foreground
@@ -69,22 +47,16 @@ internal interface SessionManager {
     fun clearAppExitSessionsBefore(timestamp: Long)
 }
 
-internal sealed interface SessionInitResult {
-    data class NewSessionCreated(val sessionId: String) : SessionInitResult
-    data class SessionResumed(val sessionId: String) : SessionInitResult
-}
-
 /**
  * Manages creation of sessions.
  *
  * A new session is created when [getSessionId] is first called. A session ends when the app comes
- * back to foreground after being in background for more than [ConfigProvider.sessionEndLastEventThresholdMs].
+ * back to foreground after being in background for more than [ConfigProvider.sessionBackgroundTimeoutThresholdMs].
  */
 internal class SessionManagerImpl(
     private val logger: Logger,
     private val idProvider: IdProvider,
     private val database: Database,
-    private val prefs: PrefsStorage,
     private val ioExecutor: MeasureExecutorService,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
@@ -92,170 +64,49 @@ internal class SessionManagerImpl(
     private val packageInfoProvider: PackageInfoProvider,
     private val randomizer: Randomizer,
 ) : SessionManager {
-    private var currentSession: RecentSession? = null
+    private var sessionId: String? = null
     private var appBackgroundTime: Long = 0
 
-    override fun init(): SessionInitResult {
-        val recentSession = prefs.getRecentSession()
-        return when {
-            recentSession != null && shouldContinue(recentSession) -> {
-                updateSessionPid(recentSession.id, processInfo.getPid(), recentSession.createdAt)
-                currentSession = recentSession
-                SessionInitResult.SessionResumed(recentSession.id)
-            }
-
-            else -> {
-                val newSession = createNewSession()
-                currentSession = newSession
-                SessionInitResult.NewSessionCreated(newSession.id)
-            }
-        }
-    }
-
-    override fun getSessionId(): String {
-        val sessionId = this.currentSession?.id
-        requireNotNull(sessionId) {
-            "Session manager must be initialized before accessing current session id"
-        }
-        return sessionId
-    }
-
-    override fun <T> onEventTracked(event: Event<T>) {
-        val currentSessionId = this.currentSession?.id ?: return
-
-        if (event.sessionId != currentSessionId) {
-            // tracking event for an older session should not update the recent session.
-            return
-        }
-
-        prefs.setRecentSessionEventTime(timeProvider.now())
-        val crashed = event.isUnhandledException() || event.isAnr()
-        if (crashed) {
-            prefs.setRecentSessionCrashed()
-        }
-    }
+    override fun init(): String = createNewSession()
 
     override fun onAppForeground() {
         if (appBackgroundTime == 0L) {
-            // app hasn't gone to background yet, it's coming to foreground for the first time.
+            // happens when app hasn't gone to background yet
+            // it's coming to foreground for the first time.
             return
         }
+        if (shouldStartNewSession()) {
+            createNewSession()
+        }
+
+        // reset state
         appBackgroundTime = 0
-        // re-initialize session if needed
-        init()
     }
 
     override fun onAppBackground() {
-        appBackgroundTime = timeProvider.elapsedRealtime
+        appBackgroundTime = timeProvider.now()
+    }
+
+    override fun getSessionId(): String {
+        val sessionId = this.sessionId
+        requireNotNull(sessionId) {
+            "SDK must be initialized before accessing current session id"
+        }
+        return sessionId
     }
 
     override fun clearAppExitSessionsBefore(timestamp: Long) {
         database.clearAppExitSessionsBefore(timestamp)
     }
 
-    override fun markCrashedSession(sessionId: String) {
-        database.markCrashedSession(sessionId)
-    }
-
-    override fun markSessionWithBugReport() {
-        database.markSessionWithBugReport(sessionId = getSessionId())
-    }
-
-    private fun createNewSession(): RecentSession {
-        val newSessionId = idProvider.uuid()
+    private fun createNewSession(): String {
+        val id = idProvider.uuid()
         val needsReporting = shouldMarkSessionForExport()
         val trackJourney = shouldTrackJourneyForSession()
-        val createdAt = timeProvider.now()
-        val session = RecentSession(
-            newSessionId,
-            createdAt,
-            versionCode = packageInfoProvider.getVersionCode(),
-        )
-        storeSession(session, needsReporting, trackJourney)
-        return session
-    }
-
-    private fun storeSession(
-        session: RecentSession,
-        needsReporting: Boolean,
-        trackJourney: Boolean,
-    ) {
-        try {
-            ioExecutor.submit {
-                val success = database.insertSession(
-                    SessionEntity(
-                        session.id,
-                        processInfo.getPid(),
-                        session.createdAt,
-                        needsReporting = needsReporting,
-                        supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
-                        appVersion = packageInfoProvider.appVersion,
-                        appBuild = packageInfoProvider.getVersionCode(),
-                        trackJourney = trackJourney,
-                    ),
-                )
-                if (success) {
-                    prefs.setRecentSession(session)
-                } else {
-                    logger.log(
-                        LogLevel.Debug,
-                        "Failed to store session",
-                    )
-                }
-            }
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to store session", e)
-        }
-    }
-
-    private fun updateSessionPid(sessionId: String, pid: Int, createdAt: Long) {
-        try {
-            ioExecutor.submit {
-                database.updateSessionPid(
-                    sessionId,
-                    pid,
-                    createdAt,
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
-                )
-            }
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to update session", e)
-        }
-    }
-
-    private fun shouldContinue(recentSession: RecentSession): Boolean {
-        if (recentSession.crashed) {
-            return false
-        }
-
-        val sessionDuration = timeProvider.now() - recentSession.createdAt
-        if (sessionDuration < 0) {
-            // Session duration can be negative due to clock skewness. In such a case create a new
-            // session.
-            return false
-        }
-
-        if (packageInfoProvider.getVersionCode() != recentSession.versionCode) {
-            // The app version has changed since last session, create a new session.
-            return false
-        }
-
-        if (recentSession.hasTrackedEvent()) {
-            val elapsedTime = timeProvider.now() - recentSession.lastEventTime
-
-            if (elapsedTime < 0) {
-                // Elapsed time can be negative due to clock skewness. In such a case create a new
-                // session.
-                return false
-            }
-
-            return elapsedTime <= configProvider.sessionEndLastEventThresholdMs
-        }
-        return true
-    }
-
-    override fun markCrashedSessions(sessionIds: List<String>) {
-        database.markCrashedSessions(sessionIds)
+        this.sessionId = id
+        storeSession(id, needsReporting, trackJourney)
+        logger.log(LogLevel.Debug, "SessionManager: New session created $id")
+        return id
     }
 
     private fun shouldMarkSessionForExport(): Boolean {
@@ -278,7 +129,38 @@ internal class SessionManagerImpl(
         return randomizer.random() < configProvider.journeySamplingRate
     }
 
-    private fun <T> Event<T>.isUnhandledException(): Boolean = type == EventType.EXCEPTION && data is ExceptionData && !data.handled
+    private fun storeSession(
+        id: String,
+        needsReporting: Boolean,
+        trackJourney: Boolean,
+    ) {
+        try {
+            ioExecutor.submit {
+                val success = database.insertSession(
+                    SessionEntity(
+                        id,
+                        processInfo.getPid(),
+                        timeProvider.now(),
+                        needsReporting = needsReporting,
+                        supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                        appVersion = packageInfoProvider.appVersion,
+                        appBuild = packageInfoProvider.getVersionCode(),
+                        trackJourney = trackJourney,
+                    ),
+                )
+                if (!success) {
+                    logger.log(LogLevel.Debug, "SessionManager: Failed to store session")
+                } else {
+                    logger.log(
+                        LogLevel.Debug,
+                        "SessionManager: Session ID stored successfully in DB",
+                    )
+                }
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Debug, "SessionManager: Failed to store session", e)
+        }
+    }
 
-    private fun <T> Event<T>.isAnr(): Boolean = type == EventType.ANR
+    private fun shouldStartNewSession(): Boolean = timeProvider.now() - appBackgroundTime > configProvider.sessionBackgroundTimeoutThresholdMs
 }

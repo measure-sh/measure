@@ -1,8 +1,5 @@
 package sh.measure.android.appexit
 
-import android.app.ApplicationExitInfo.REASON_ANR
-import android.app.ApplicationExitInfo.REASON_CRASH
-import android.app.ApplicationExitInfo.REASON_CRASH_NATIVE
 import android.os.Build
 import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
@@ -55,9 +52,6 @@ internal class AppExitCollector(
                             appBuild = session.appBuild,
                             threadName = Thread.currentThread().name,
                         )
-                        if (isReasonCrashOrAnr(appExit)) {
-                            sessionManager.markCrashedSession(session.id)
-                        }
                         trackedSessions.add(session)
                     }
                 }
@@ -68,12 +62,6 @@ internal class AppExitCollector(
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Debug, "Unable to track app exit events", e)
         }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun isReasonCrashOrAnr(appExit: AppExit): Boolean {
-        val reasonId = appExit.reasonId
-        return reasonId == REASON_CRASH || reasonId == REASON_ANR || reasonId == REASON_CRASH_NATIVE
     }
 
     private fun getSessionForAppExit(pid: Int): Session? = database.getSessionForAppExit(pid)

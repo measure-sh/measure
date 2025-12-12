@@ -1,13 +1,11 @@
 package sh.measure.android.appexit
 
-import android.app.ApplicationExitInfo
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import sh.measure.android.SessionManager
@@ -98,70 +96,6 @@ class AppExitCollectorTest {
             appVersion = eq(session2.appVersion),
             appBuild = eq(session2.appBuild),
         )
-    }
-
-    @Test
-    fun `marks session as crashed if app exit has crashed reason`() {
-        // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_CRASH)
-        val session1 = getSession(sessionId = "session-1", pid = 1)
-
-        appExitProvider.appExits = mapOf(1 to appExit1)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-
-        // When
-        appExitCollector.collect()
-
-        // Then
-        verify(sessionManager).markCrashedSession(session1.id)
-    }
-
-    @Test
-    fun `marks session as crashed if app exit has ANR reason`() {
-        // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
-        val session1 = getSession(sessionId = "session-1", pid = 1)
-
-        appExitProvider.appExits = mapOf(1 to appExit1)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-
-        // When
-        appExitCollector.collect()
-
-        // Then
-        verify(sessionManager).markCrashedSession(session1.id)
-    }
-
-    @Test
-    fun `marks session as crashed if app exit has crash native reason`() {
-        // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_CRASH_NATIVE)
-        val session1 = getSession(sessionId = "session-1", pid = 1)
-
-        appExitProvider.appExits = mapOf(1 to appExit1)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-
-        // When
-        appExitCollector.collect()
-
-        // Then
-        verify(sessionManager).markCrashedSession(session1.id)
-    }
-
-    @Test
-    fun `does not mark session as crashed if app exit has non-crashed reason`() {
-        // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_EXIT_SELF)
-        val session1 = getSession(sessionId = "session-1", pid = 1)
-
-        appExitProvider.appExits = mapOf(1 to appExit1)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-
-        // When
-        appExitCollector.collect()
-
-        // Then
-        verify(sessionManager, never()).markCrashedSession(any())
     }
 
     @Test
