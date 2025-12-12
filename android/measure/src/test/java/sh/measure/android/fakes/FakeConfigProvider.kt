@@ -7,10 +7,6 @@ import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
-    override fun loadNetworkConfig() {
-        // no-op
-    }
-
     override val enableLogging: Boolean = false
     override var trackScreenshotOnCrash: Boolean = false
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
@@ -60,13 +56,15 @@ internal class FakeConfigProvider : ConfigProvider {
 
     var shouldTrackHttpBodyResult = true
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = shouldTrackHttpBodyResult
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean =
+        shouldTrackHttpBodyResult
 
     var shouldTrackHttpUrl = true
 
     override fun shouldTrackHttpUrl(url: String): Boolean = shouldTrackHttpUrl
 
-    override fun shouldTrackHttpHeader(key: String): Boolean = !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
+    override fun shouldTrackHttpHeader(key: String): Boolean =
+        !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
 
     override fun setMeasureUrl(url: String) {
         // no-op

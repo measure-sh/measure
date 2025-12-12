@@ -20,7 +20,6 @@ import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.Config
-import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
@@ -139,7 +138,6 @@ internal class MeasureInitializerImpl(
             hotLaunchSamplingRate = inputConfig.hotLaunchSamplingRate,
             journeySamplingRate = inputConfig.journeySamplingRate,
         ),
-        configLoader = ConfigLoaderImpl(),
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),

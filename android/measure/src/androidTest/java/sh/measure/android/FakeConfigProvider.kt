@@ -7,10 +7,6 @@ import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
-    override fun loadNetworkConfig() {
-        // no-op
-    }
-
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = false
 
     override fun shouldTrackHttpUrl(url: String): Boolean = false
