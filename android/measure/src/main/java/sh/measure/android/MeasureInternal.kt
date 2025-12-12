@@ -57,12 +57,13 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.resumedActivityProvider.register()
         measure.appLifecycleManager.register()
 
-        // always collect app launch events
+        // delaying this can lead to initial
+        // launch events to not get collected
         measure.appLaunchCollector.register()
 
-        // start collectors
+        // enable crash tracking early
         if (measure.configProvider.autoStart) {
-            start()
+            enableCrashTracking()
         }
 
         measure.logger.log(LogLevel.Debug, "Initialization complete")
@@ -71,6 +72,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
     fun start() {
         synchronized(startLock) {
             if (!isStarted) {
+                enableCrashTracking()
                 registerCollectors()
                 isStarted = true
                 measure.logger.log(LogLevel.Debug, "Started")
@@ -81,13 +83,13 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
     fun stop() {
         synchronized(startLock) {
             if (isStarted) {
+                disableCrashTracking()
                 unregisterCollectors()
                 isStarted = false
                 measure.logger.log(LogLevel.Debug, "Stopped")
             }
         }
     }
-
     // Validates and initializes the network client, returns true if initialization was successful,
     // false otherwise.
     private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
@@ -126,26 +128,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             measure.networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
             true
         }
-    }
-
-    private fun registerCollectors() {
-        measure.unhandledExceptionCollector.register()
-        measure.anrCollector.register()
-        measure.userTriggeredEventCollector.register()
-        measure.activityLifecycleCollector.register()
-        measure.appLifecycleCollector.register()
-        measure.cpuUsageCollector.register()
-        measure.memoryUsageCollector.register()
-        measure.componentCallbacksCollector.register()
-        measure.gestureCollector.register()
-        measure.networkChangesCollector.register()
-        measure.httpEventCollector.register()
-        measure.powerStateProvider.register()
-        measure.periodicExporter.resume()
-        measure.attachmentExporter.register()
-        measure.spanCollector.register()
-        measure.customEventCollector.register()
-        measure.periodicSignalStoreScheduler.register()
     }
 
     override fun onAppForeground() {
@@ -201,9 +183,11 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
 
     fun createSpan(name: String): SpanBuilder? = measure.spanCollector.createSpan(name)
 
-    fun startSpan(name: String, timestamp: Long? = null): Span = measure.spanCollector.startSpan(name, timestamp)
+    fun startSpan(name: String, timestamp: Long? = null): Span =
+        measure.spanCollector.startSpan(name, timestamp)
 
-    fun getTraceParentHeaderValue(span: Span): String = measure.spanCollector.getTraceParentHeaderValue(span)
+    fun getTraceParentHeaderValue(span: Span): String =
+        measure.spanCollector.getTraceParentHeaderValue(span)
 
     fun getTraceParentHeaderKey(): String = measure.spanCollector.getTraceParentHeaderKey()
 
@@ -373,9 +357,25 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         )
     }
 
+    private fun registerCollectors() {
+        measure.userTriggeredEventCollector.register()
+        measure.activityLifecycleCollector.register()
+        measure.appLifecycleCollector.register()
+        measure.cpuUsageCollector.register()
+        measure.memoryUsageCollector.register()
+        measure.componentCallbacksCollector.register()
+        measure.gestureCollector.register()
+        measure.networkChangesCollector.register()
+        measure.httpEventCollector.register()
+        measure.powerStateProvider.register()
+        measure.periodicExporter.resume()
+        measure.attachmentExporter.register()
+        measure.spanCollector.register()
+        measure.customEventCollector.register()
+        measure.periodicSignalStoreScheduler.register()
+    }
+
     private fun unregisterCollectors() {
-        measure.unhandledExceptionCollector.unregister()
-        measure.anrCollector.unregister()
         measure.userTriggeredEventCollector.unregister()
         measure.activityLifecycleCollector.unregister()
         measure.appLifecycleCollector.unregister()
@@ -391,5 +391,15 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()
         measure.periodicSignalStoreScheduler.unregister()
+    }
+
+    private fun enableCrashTracking() {
+        measure.unhandledExceptionCollector.register()
+        measure.anrCollector.register()
+    }
+
+    private fun disableCrashTracking() {
+        measure.unhandledExceptionCollector.unregister()
+        measure.anrCollector.unregister()
     }
 }

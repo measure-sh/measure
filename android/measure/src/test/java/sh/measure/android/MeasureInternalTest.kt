@@ -112,8 +112,6 @@ class MeasureInternalTest {
 
         verify(initializer.unhandledExceptionCollector).unregister()
         verify(initializer.anrCollector).unregister()
-        verify(initializer.unhandledExceptionCollector).unregister()
-        verify(initializer.anrCollector).unregister()
         verify(initializer.userTriggeredEventCollector).unregister()
         verify(initializer.appLifecycleCollector).unregister()
         verify(initializer.cpuUsageCollector).pause()
