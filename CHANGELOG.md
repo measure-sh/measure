@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve robustness of ingestion de-duplication (#2891) by @detj in #2891
 - (**backend**): Delete pending alerts older than 24 hours by @anupcowkur in #2902
 - (**backend**): Stop Slack channel removal on `channel_not_found` by @anupcowkur in #2900
+- (**deps**): Bump golang.org/x/crypto in /backend/api (#3023) by @dependabot[bot] in #3023
 - (**deps**): Bump golang.org/x/crypto in /self-host/sessionator (#3022) by @dependabot[bot] in #3022
 - (**deps**): Bump golang.org/x/crypto in /backend/alerts (#3021) by @dependabot[bot] in #3021
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
