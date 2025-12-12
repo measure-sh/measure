@@ -3,6 +3,7 @@ package sh.measure.android.tracing
 import sh.measure.android.SessionManager
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.TimeProvider
 
 internal class MsrTracer(
@@ -11,7 +12,7 @@ internal class MsrTracer(
     private val timeProvider: TimeProvider,
     private val spanProcessor: SpanProcessor,
     private val sessionManager: SessionManager,
-    private val traceSampler: TraceSampler,
+    private val sampler: Sampler,
 ) : Tracer {
     override fun spanBuilder(name: String): SpanBuilder = MsrSpanBuilder(
         name,
@@ -19,7 +20,7 @@ internal class MsrTracer(
         timeProvider,
         spanProcessor,
         sessionManager,
-        traceSampler,
+        sampler,
         logger,
     )
 

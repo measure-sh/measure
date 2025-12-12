@@ -1,17 +1,14 @@
 package sh.measure.android.config
 
-import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventType
-import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.read
-import kotlin.concurrent.write
 
 internal interface ConfigProvider :
     IMeasureConfig,
-    InternalConfig {
-    fun loadNetworkConfig()
-    fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
-    fun shouldTrackHttpUrl(url: String): Boolean
+    InternalConfig,
+    IDynamicConfig {
+    fun shouldTrackHttpEvent(url: String): Boolean
+    fun shouldTrackHttpRequestBody(url: String): Boolean
+    fun shouldTrackHttpResponseBody(url: String): Boolean
     fun shouldTrackHttpHeader(key: String): Boolean
 
     /**
@@ -19,169 +16,202 @@ internal interface ConfigProvider :
      * URL when the SDK is running in self-hosted mode.
      */
     fun setMeasureUrl(url: String)
+    fun setDynamicConfig(config: DynamicConfig)
 }
 
-internal class ConfigProviderImpl(
-    private val defaultConfig: Config,
-    private val configLoader: ConfigLoader,
-) : ConfigProvider {
-    private var cachedConfig: Config? = null
+/**
+ * Implementation of [ConfigProvider] that manages both static and dynamic configuration.
+ *
+ * ## Configuration Types
+ *
+ * **Static configuration** is provided at initialization via [Config] and remains constant
+ * throughout the SDK's lifecycle. These values are accessed directly as properties.
+ *
+ * **Dynamic configuration** is loaded asynchronously and updated via [ConfigProvider.setDynamicConfig].
+ *
+ * ## Thread Safety
+ *
+ * This class is designed for concurrent access from multiple threads:
+ *
+ * - **Writes** ([setMeasureUrl], [setDynamicConfig]) are synchronized via a lock to ensure
+ *   atomic updates of related fields.
+ *
+ * - **Reads** ([shouldTrackHttpEvent], [shouldTrackHttpRequestBody], etc.) are lock-free
+ *   and use a single volatile reference to [HttpPatternState].
+ *
+ * ## HTTP Pattern Matching
+ *
+ * URL patterns support `*` as a wildcard matching any sequence of characters. Patterns are
+ * pre-compiled to [Regex] objects when configuration is loaded to avoid repeated compilation
+ * on every HTTP event. For example, `https://api.example.com/\*` compiles to
+ * `^https://api\.example\.com/.*$`.
+ *
+ * The SDK's own endpoint URL is excluded from tracking via [setMeasureUrl] to prevent
+ * recursive tracking of export requests.
+ */
+internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
+    private data class HttpPatternState(
+        val disableEventPatterns: List<Regex>,
+        val trackRequestPatterns: List<Regex>,
+        val trackResponsePatterns: List<Regex>,
+        val blockedHeaders: List<String>,
+        val measureUrl: String?,
+    )
 
-    @VisibleForTesting
-    internal var networkConfig: Config? = null
-    private val networkConfigLock = ReentrantReadWriteLock()
+    private val lock = Any()
 
-    // The combined url blocklist of [defaultHttpUrlBlocklist] and [httpUrlBlocklist].
-    private val combinedHttpUrlBlocklist: MutableList<String?> = httpUrlBlocklist.toMutableList()
-    private val combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + httpHeadersBlocklist
+    @Volatile
+    private var dynamicConfig: DynamicConfig = DynamicConfig.default()
 
-    init {
-        // Synchronously load the cached config. This allows the SDK to start with a previously
-        // fetched config. The trade-off is the SDK will make a synchronous disk read.
-        cachedConfig = configLoader.getCachedConfig()
-    }
+    @Volatile
+    private var httpPatternState: HttpPatternState = HttpPatternState(
+        disableEventPatterns = emptyList(),
+        trackRequestPatterns = emptyList(),
+        trackResponsePatterns = emptyList(),
+        blockedHeaders = emptyList(),
+        measureUrl = null,
+    )
 
-    override fun loadNetworkConfig() {
-        configLoader.getNetworkConfig {
-            networkConfigLock.write {
-                networkConfig = it
-            }
-        }
-    }
+    override val enableLogging: Boolean = defaultConfig.enableLogging
+    override val screenshotMaskHexColor: String = defaultConfig.screenshotMaskHexColor
+    override val screenshotCompressionQuality: Int = defaultConfig.screenshotCompressionQuality
+    override val eventTypeExportAllowList: List<EventType> = defaultConfig.eventTypeExportAllowList
+    override val batchExportIntervalMs: Long = defaultConfig.batchExportIntervalMs
+    override val attachmentExportIntervalMs: Long = defaultConfig.attachmentExportIntervalMs
+    override val defaultHttpHeadersBlocklist: List<String> =
+        defaultConfig.defaultHttpHeadersBlocklist
+    override val sessionBackgroundTimeoutThresholdMs: Long =
+        defaultConfig.sessionBackgroundTimeoutThresholdMs
+    override val maxEventNameLength: Int = defaultConfig.maxEventNameLength
+    override val maxUserDefinedAttributeKeyLength: Int =
+        defaultConfig.maxUserDefinedAttributeKeyLength
+    override val maxUserDefinedAttributeValueLength: Int =
+        defaultConfig.maxUserDefinedAttributeValueLength
+    override val maxSpanNameLength: Int = defaultConfig.maxSpanNameLength
+    override val maxCheckpointNameLength: Int = defaultConfig.maxCheckpointNameLength
+    override val maxCheckpointsPerSpan: Int = defaultConfig.maxCheckpointsPerSpan
+    override val customEventNameRegex: String = defaultConfig.customEventNameRegex
+    override val maxUserDefinedAttributesPerEvent: Int =
+        defaultConfig.maxUserDefinedAttributesPerEvent
+    override val maxInMemorySignalsQueueSize: Int = defaultConfig.maxInMemorySignalsQueueSize
+    override val inMemorySignalsQueueFlushRateMs: Long =
+        defaultConfig.inMemorySignalsQueueFlushRateMs
+    override val maxAttachmentsInBugReport: Int = defaultConfig.maxAttachmentsInBugReport
+    override val maxDescriptionLengthInBugReport: Int =
+        defaultConfig.maxDescriptionLengthInBugReport
+    override val shakeMinTimeIntervalMs: Long = defaultConfig.shakeMinTimeIntervalMs
+    override val shakeAccelerationThreshold: Float = defaultConfig.shakeAccelerationThreshold
+    override val shakeSlop: Int = defaultConfig.shakeSlop
+    override val disallowedCustomHeaders: List<String> = defaultConfig.disallowedCustomHeaders
+    override val estimatedEventSizeInKb: Int = defaultConfig.estimatedEventSizeInKb
+    override val autoStart: Boolean = defaultConfig.autoStart
+    override val maxDiskUsageInMb: Int = defaultConfig.maxDiskUsageInMb
+    override val trackActivityIntentData: Boolean = defaultConfig.trackActivityIntentData
+    override val requestHeadersProvider: MsrRequestHeadersProvider? =
+        defaultConfig.requestHeadersProvider
+    override val enableFullCollectionMode: Boolean = defaultConfig.enableFullCollectionMode
 
-    override val enableLogging: Boolean
-        get() = getMergedConfig { enableLogging }
-    override val trackScreenshotOnCrash: Boolean
-        get() = getMergedConfig { trackScreenshotOnCrash }
-    override val screenshotMaskLevel: ScreenshotMaskLevel
-        get() = getMergedConfig { screenshotMaskLevel }
-    override val screenshotMaskHexColor: String
-        get() = getMergedConfig { screenshotMaskHexColor }
-    override val screenshotCompressionQuality: Int
-        get() = getMergedConfig { screenshotCompressionQuality }
-    override val eventTypeExportAllowList: List<EventType>
-        get() = getMergedConfig { eventTypeExportAllowList }
-    override val trackHttpHeaders: Boolean
-        get() = getMergedConfig { trackHttpHeaders }
-    override val trackHttpBody: Boolean
-        get() = getMergedConfig { trackHttpBody }
-    override val httpHeadersBlocklist: List<String>
-        get() = getMergedConfig { httpHeadersBlocklist }
-    override val httpUrlBlocklist: List<String>
-        get() = getMergedConfig { httpUrlBlocklist }
-    override val httpUrlAllowlist: List<String>
-        get() = getMergedConfig { httpUrlAllowlist }
-    override val trackActivityIntentData: Boolean
-        get() = getMergedConfig { trackActivityIntentData }
-    override val samplingRateForErrorFreeSessions: Float
-        get() = getMergedConfig { samplingRateForErrorFreeSessions }
-    override val traceSamplingRate: Float
-        get() = getMergedConfig { traceSamplingRate }
-    override val eventsBatchingIntervalMs: Long
-        get() = getMergedConfig { eventsBatchingIntervalMs }
-    override val eventsBatchingJitterMs: Long
-        get() = getMergedConfig { eventsBatchingJitterMs }
+    // Dynamic config properties - use getters so they reflect current dynamicConfig state
     override val maxEventsInBatch: Int
-        get() = getMergedConfig { maxEventsInBatch }
-    override val httpContentTypeAllowlist: List<String>
-        get() = getMergedConfig { httpContentTypeAllowlist }
-    override val defaultHttpHeadersBlocklist: List<String>
-        get() = getMergedConfig { defaultHttpHeadersBlocklist }
-    override val sessionEndLastEventThresholdMs: Long
-        get() = getMergedConfig { sessionEndLastEventThresholdMs }
-    override val maxAttachmentSizeInEventsBatchInBytes: Int
-        get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
-    override val maxEventNameLength: Int
-        get() = getMergedConfig { maxEventNameLength }
-    override val maxUserDefinedAttributeKeyLength: Int
-        get() = getMergedConfig { maxUserDefinedAttributeKeyLength }
-    override val maxUserDefinedAttributeValueLength: Int
-        get() = getMergedConfig { maxUserDefinedAttributeValueLength }
-    override val autoStart: Boolean
-        get() = getMergedConfig { autoStart }
-    override val maxSpanNameLength: Int
-        get() = getMergedConfig { maxSpanNameLength }
-    override val maxCheckpointNameLength: Int
-        get() = getMergedConfig { maxCheckpointNameLength }
-    override val maxCheckpointsPerSpan: Int
-        get() = getMergedConfig { maxCheckpointsPerSpan }
-    override val customEventNameRegex: String
-        get() = getMergedConfig { customEventNameRegex }
-    override val maxUserDefinedAttributesPerEvent: Int
-        get() = getMergedConfig { maxUserDefinedAttributesPerEvent }
-    override val maxInMemorySignalsQueueSize: Int
-        get() = getMergedConfig { maxInMemorySignalsQueueSize }
-    override val inMemorySignalsQueueFlushRateMs: Long
-        get() = getMergedConfig { inMemorySignalsQueueFlushRateMs }
-    override val maxAttachmentsInBugReport: Int
-        get() = getMergedConfig { maxAttachmentsInBugReport }
-    override val maxDescriptionLengthInBugReport: Int
-        get() = getMergedConfig { maxDescriptionLengthInBugReport }
-    override val shakeMinTimeIntervalMs: Long
-        get() = getMergedConfig { shakeMinTimeIntervalMs }
-    override val shakeAccelerationThreshold: Float
-        get() = getMergedConfig { shakeAccelerationThreshold }
-    override val shakeSlop: Int
-        get() = getMergedConfig { shakeSlop }
-    override val disallowedCustomHeaders: List<String>
-        get() = getMergedConfig { disallowedCustomHeaders }
-    override val requestHeadersProvider: MsrRequestHeadersProvider?
-        get() = getMergedConfig { requestHeadersProvider }
-    override val maxDiskUsageInMb: Int
-        get() = getMergedConfig { maxDiskUsageInMb }
-    override val estimatedEventSizeInKb: Int
-        get() = getMergedConfig { estimatedEventSizeInKb }
-    override val coldLaunchSamplingRate: Float
-        get() = getMergedConfig { coldLaunchSamplingRate }
-    override val warmLaunchSamplingRate: Float
-        get() = getMergedConfig { warmLaunchSamplingRate }
-    override val hotLaunchSamplingRate: Float
-        get() = getMergedConfig { hotLaunchSamplingRate }
+        get() = dynamicConfig.maxEventsInBatch
+    override val crashTimelineDurationSeconds: Int
+        get() = dynamicConfig.crashTimelineDurationSeconds
+    override val anrTimelineDurationSeconds: Int
+        get() = dynamicConfig.anrTimelineDurationSeconds
+    override val bugReportTimelineDurationSeconds: Int
+        get() = dynamicConfig.bugReportTimelineDurationSeconds
+    override val traceSamplingRate: Float
+        get() = dynamicConfig.traceSamplingRate
     override val journeySamplingRate: Float
-        get() = getMergedConfig { journeySamplingRate }
+        get() = dynamicConfig.journeySamplingRate
+    override val screenshotMaskLevel: ScreenshotMaskLevel
+        get() = dynamicConfig.screenshotMaskLevel
+    override val cpuUsageInterval: Long
+        get() = dynamicConfig.cpuUsageInterval
+    override val memoryUsageInterval: Long
+        get() = dynamicConfig.memoryUsageInterval
+    override val crashTakeScreenshot: Boolean
+        get() = dynamicConfig.crashTakeScreenshot
+    override val anrTakeScreenshot: Boolean
+        get() = dynamicConfig.anrTakeScreenshot
+    override val launchSamplingRate: Float
+        get() = dynamicConfig.launchSamplingRate
+    override val gestureClickTakeSnapshot: Boolean
+        get() = dynamicConfig.gestureClickTakeSnapshot
+    override val httpDisableEventForUrls: List<String>
+        get() = dynamicConfig.httpDisableEventForUrls.toList()
+    override val httpTrackRequestForUrls: List<String>
+        get() = dynamicConfig.httpTrackRequestForUrls.toList()
+    override val httpTrackResponseForUrls: List<String>
+        get() = dynamicConfig.httpTrackResponseForUrls.toList()
+    override val httpBlockedHeaders: List<String>
+        get() = dynamicConfig.httpBlockedHeaders.toList()
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
-        if (!trackHttpBody) {
-            return false
-        }
-
-        if (contentType.isNullOrEmpty()) {
-            return false
-        }
-
-        // make sure no body is tracked if the URL is not tracked
-        if (!shouldTrackHttpUrl(url)) {
-            return false
-        }
-
-        return httpContentTypeAllowlist.any { contentType.startsWith(it, ignoreCase = true) }
+    override fun shouldTrackHttpEvent(url: String): Boolean {
+        val state = httpPatternState
+        return !state.disableEventPatterns.any { it.matches(url) }
     }
 
-    override fun shouldTrackHttpUrl(url: String): Boolean {
-        // If the allowlist is not empty, then only allow the URLs that are in the allowlist.
-        if (httpUrlAllowlist.isNotEmpty()) {
-            return httpUrlAllowlist.any { url.contains(it, ignoreCase = true) }
-        }
-
-        // If the allowlist is empty, then block the URLs that are in the blocklist.
-        return !combinedHttpUrlBlocklist.any { value ->
-            value?.let { url.contains(it, ignoreCase = true) } == true
-        }
+    override fun shouldTrackHttpRequestBody(url: String): Boolean {
+        val state = httpPatternState
+        return state.trackRequestPatterns.any { it.matches(url) }
     }
 
-    override fun shouldTrackHttpHeader(key: String): Boolean = !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
+    override fun shouldTrackHttpResponseBody(url: String): Boolean {
+        val state = httpPatternState
+        return state.trackResponsePatterns.any { it.matches(url) }
+    }
+
+    override fun shouldTrackHttpHeader(key: String): Boolean {
+        val state = httpPatternState
+        return defaultHttpHeadersBlocklist.none { it.equals(key, ignoreCase = true) } &&
+            state.blockedHeaders.none { it.equals(key, ignoreCase = true) }
+    }
 
     override fun setMeasureUrl(url: String) {
-        combinedHttpUrlBlocklist.add(url)
+        synchronized(lock) {
+            val currentState = httpPatternState
+            httpPatternState = currentState.copy(
+                disableEventPatterns = buildDisableEventPatterns(
+                    dynamicConfig.httpDisableEventForUrls,
+                    url,
+                ),
+                measureUrl = url,
+            )
+        }
     }
 
-    private fun <T> getMergedConfig(selector: Config.() -> T): T {
-        if (networkConfig != null) {
-            networkConfigLock.read {
-                return networkConfig?.selector() ?: cachedConfig?.selector()
-                    ?: defaultConfig.selector()
-            }
+    override fun setDynamicConfig(config: DynamicConfig) {
+        synchronized(lock) {
+            dynamicConfig = config
+            val currentMeasureUrl = httpPatternState.measureUrl
+            httpPatternState = HttpPatternState(
+                disableEventPatterns = buildDisableEventPatterns(
+                    config.httpDisableEventForUrls,
+                    currentMeasureUrl,
+                ),
+                trackRequestPatterns = config.httpTrackRequestForUrls.map { compilePattern(it) },
+                trackResponsePatterns = config.httpTrackResponseForUrls.map { compilePattern(it) },
+                blockedHeaders = config.httpBlockedHeaders.toList(),
+                measureUrl = currentMeasureUrl,
+            )
         }
-        return cachedConfig?.selector() ?: defaultConfig.selector()
+    }
+
+    private fun buildDisableEventPatterns(
+        configUrls: List<String>,
+        measureUrl: String?,
+    ): List<Regex> {
+        val urls = if (measureUrl != null) configUrls + measureUrl else configUrls
+        return urls.map { compilePattern(it) }
+    }
+
+    private fun compilePattern(pattern: String): Regex {
+        val regexPattern = if (pattern.contains("*")) {
+            pattern.split("*").joinToString(".*") { Regex.escape(it) }
+        } else {
+            Regex.escape(pattern)
+        }
+        return Regex("^$regexPattern$", RegexOption.IGNORE_CASE)
     }
 }

@@ -7,10 +7,12 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.attributes.appendAttributes
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.DefaultConfig
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.exporter.ExceptionExporter
+import sh.measure.android.exporter.Exporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.screenshot.ScreenshotCollector
@@ -18,6 +20,7 @@ import sh.measure.android.storage.SignalStore
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.iso8601Timestamp
 import java.util.concurrent.RejectedExecutionException
 
@@ -49,6 +52,7 @@ internal interface SignalProcessor {
         threadName: String? = null,
         sessionId: String? = null,
         userTriggered: Boolean = false,
+        isSampled: Boolean = false,
     )
 
     /**
@@ -63,6 +67,7 @@ internal interface SignalProcessor {
         sessionId: String,
         appVersion: String?,
         appBuild: String?,
+        isSampled: Boolean = true,
     )
 
     /**
@@ -93,6 +98,14 @@ internal interface SignalProcessor {
     )
 
     fun trackSpan(spanData: SpanData)
+    fun trackBugReport(
+        data: BugReportData,
+        type: EventType,
+        timestamp: Long,
+        attachments: MutableList<Attachment>,
+        userDefinedAttributes: MutableMap<String, AttributeValue>,
+        userTriggered: Boolean,
+    )
 }
 
 internal class SignalProcessorImpl(
@@ -102,9 +115,10 @@ internal class SignalProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val exceptionExporter: ExceptionExporter,
+    private val exporter: Exporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
+    private val sampler: Sampler,
 ) : SignalProcessor {
 
     override fun <T> trackUserTriggered(
@@ -137,6 +151,7 @@ internal class SignalProcessorImpl(
         threadName: String?,
         sessionId: String?,
         userTriggered: Boolean,
+        isSampled: Boolean,
     ) {
         val resolvedThreadName = threadName ?: Thread.currentThread().name
         try {
@@ -153,15 +168,13 @@ internal class SignalProcessorImpl(
                             userTriggered = userTriggered,
                             userDefinedAttributes = userDefinedAttributes,
                             sessionId = sessionId,
+                            isSampled = isSampled,
                         ) ?: return@trace
                         applyAttributes(attributes, event, resolvedThreadName)
                         InternalTrace.trace(label = { "msr-store-event" }, block = {
                             signalStore.store(event)
                             onEventTracked(event)
                         })
-                        if (type == EventType.BUG_REPORT) {
-                            sessionManager.markSessionWithBugReport()
-                        }
                     },
                 )
             }
@@ -170,9 +183,6 @@ internal class SignalProcessorImpl(
         }
     }
 
-    // This method does not apply event transformer or trigger onEventTracked callback as the
-    // app exit event is triggered for a previous session and doesn't need to update state
-    // or transform the event.
     override fun trackAppExit(
         data: AppExit,
         timestamp: Long,
@@ -181,6 +191,7 @@ internal class SignalProcessorImpl(
         sessionId: String,
         appVersion: String?,
         appBuild: String?,
+        isSampled: Boolean,
     ) {
         InternalTrace.trace(
             label = { "msr-trackEvent" },
@@ -195,6 +206,7 @@ internal class SignalProcessorImpl(
                     userTriggered = false,
                     userDefinedAttributes = mutableMapOf(),
                     sessionId = sessionId,
+                    isSampled = isSampled,
                 ) ?: return@trace
                 applyAttributes(attributes, event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
@@ -215,7 +227,7 @@ internal class SignalProcessorImpl(
         threadName: String?,
         takeScreenshot: Boolean,
     ) {
-        val threadName = threadName ?: Thread.currentThread().name
+        val thread = threadName ?: Thread.currentThread().name
         val event = createEvent(
             data = data,
             timestamp = timestamp,
@@ -224,15 +236,23 @@ internal class SignalProcessorImpl(
             attributes = attributes,
             userTriggered = false,
             userDefinedAttributes = userDefinedAttributes,
+            isSampled = true,
         ) ?: return
-        if (configProvider.trackScreenshotOnCrash && takeScreenshot) {
-            addScreenshotAsAttachment(event)
+        if (event.type == EventType.EXCEPTION) {
+            if (configProvider.crashTakeScreenshot && takeScreenshot) {
+                addScreenshotAsAttachment(event)
+            }
         }
-        applyAttributes(attributes, event, threadName)
+        if (event.type == EventType.ANR) {
+            if (configProvider.anrTakeScreenshot && takeScreenshot) {
+                addScreenshotAsAttachment(event)
+            }
+        }
+
+        applyAttributes(attributes, event, thread)
         signalStore.store(event)
         onEventTracked(event)
-        sessionManager.markCrashedSession(event.sessionId)
-        exceptionExporter.export(event.sessionId)
+        exporter.export()
     }
 
     override fun trackSpan(spanData: SpanData) {
@@ -252,11 +272,38 @@ internal class SignalProcessorImpl(
         }
     }
 
+    override fun trackBugReport(
+        data: BugReportData,
+        type: EventType,
+        timestamp: Long,
+        attachments: MutableList<Attachment>,
+        userDefinedAttributes: MutableMap<String, AttributeValue>,
+        userTriggered: Boolean,
+    ) {
+        val thread = Thread.currentThread().name
+        ioExecutor.submit {
+            val attributes = mutableMapOf<String, Any?>()
+            val event = createEvent(
+                data = data,
+                timestamp = timestamp,
+                type = type,
+                attachments = attachments,
+                attributes = attributes,
+                userTriggered = true,
+                userDefinedAttributes = userDefinedAttributes,
+                isSampled = true,
+            ) ?: return@submit
+            applyAttributes(attributes, event, thread)
+            signalStore.store(event)
+            onEventTracked(event)
+            exporter.export()
+        }
+    }
+
     private fun <T> onEventTracked(event: Event<T>) {
         if (logger.enabled) {
-            logger.log(LogLevel.Debug, "Event processed: ${event.type}, ${event.data}")
+            logger.log(LogLevel.Debug, "EventProcessor: ${event.type}, ${event.data}")
         }
-        sessionManager.onEventTracked(event)
     }
 
     private fun <T> createEvent(
@@ -268,6 +315,7 @@ internal class SignalProcessorImpl(
         userDefinedAttributes: Map<String, AttributeValue> = mutableMapOf(),
         userTriggered: Boolean,
         sessionId: String? = null,
+        isSampled: Boolean = false,
     ): Event<T>? {
         if (!validateUserDefinedAttributes(type.value, userDefinedAttributes)) {
             return null
@@ -284,6 +332,7 @@ internal class SignalProcessorImpl(
             attributes = attributes,
             userTriggered = userTriggered,
             userDefinedAttributes = userDefinedAttributes,
+            isSampled = applyEventSampling(type, resolvedSessionId, isSampled),
         )
     }
 
@@ -358,6 +407,19 @@ internal class SignalProcessorImpl(
             }
             isKeyValid && isValueValid
         }
+    }
+
+    private fun applyEventSampling(
+        eventType: EventType,
+        sessionId: String,
+        isSampled: Boolean,
+    ): Boolean = when {
+        configProvider.enableFullCollectionMode -> true
+        eventType in DefaultConfig.JOURNEY_EVENTS -> {
+            sampler.shouldTrackJourneyForSession(sessionId)
+        }
+
+        else -> isSampled
     }
 
     private fun isKeyValid(key: String): Boolean = key.length <= configProvider.maxUserDefinedAttributeKeyLength

@@ -105,12 +105,13 @@ class UserTriggeredEventCollectorImplTest {
             screenshots = listOf(screenshot),
             attributes = mutableMapOf(),
         )
-        verify(signalProcessor).trackUserTriggered(
+        verify(signalProcessor).trackBugReport(
             data = eq(data),
-            timestamp = eq(timeProvider.now()),
             type = eq(EventType.BUG_REPORT),
+            timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
             userDefinedAttributes = any(),
+            userTriggered = eq(true),
         )
         Assert.assertEquals(1, attachmentsCaptor.firstValue.size)
     }
@@ -125,11 +126,13 @@ class UserTriggeredEventCollectorImplTest {
             screenshots = listOf(),
             attributes = mutableMapOf(),
         )
-        verify(signalProcessor).trackUserTriggered(
+        verify(signalProcessor).trackBugReport(
             data = data,
-            timestamp = timeProvider.now(),
             type = EventType.BUG_REPORT,
+            timestamp = timeProvider.now(),
             attachments = mutableListOf(),
+            userDefinedAttributes = mutableMapOf(),
+            userTriggered = true,
         )
     }
 
@@ -182,6 +185,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
     }
 
@@ -224,6 +228,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
     }
 
@@ -254,6 +259,7 @@ class UserTriggeredEventCollectorImplTest {
             any(),
             anyOrNull(),
             anyOrNull(),
+            any(),
             any(),
         )
     }
@@ -286,6 +292,7 @@ class UserTriggeredEventCollectorImplTest {
             anyOrNull(),
             anyOrNull(),
             any(),
+            any(),
         )
     }
 
@@ -316,6 +323,7 @@ class UserTriggeredEventCollectorImplTest {
             any(),
             anyOrNull(),
             anyOrNull(),
+            any(),
             any(),
         )
     }
@@ -348,6 +356,7 @@ class UserTriggeredEventCollectorImplTest {
             anyOrNull(),
             anyOrNull(),
             any(),
+            any(),
         )
     }
 
@@ -378,6 +387,7 @@ class UserTriggeredEventCollectorImplTest {
             any(),
             anyOrNull(),
             anyOrNull(),
+            any(),
             any(),
         )
     }
@@ -410,6 +420,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
     }
 
@@ -445,13 +456,14 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = any(),
+            isSampled = any(),
         )
     }
 
     @Test
     fun `tracks http event but discards request body when body tracking is disabled`() {
         val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = false
+        configProvider.shouldTrackHttpRequestBodyResult = false
         val collector = UserTriggeredEventCollectorImpl(
             logger,
             signalProcessor,
@@ -487,6 +499,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
         Assert.assertNull("Request body should be null when tracking is disabled", httpDataCaptor.firstValue.request_body)
     }
@@ -494,7 +507,7 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `tracks http event but discards response body when body tracking is disabled`() {
         val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = false
+        configProvider.shouldTrackHttpResponseBodyResult = false
         val collector = UserTriggeredEventCollectorImpl(
             logger,
             signalProcessor,
@@ -530,6 +543,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
         Assert.assertNull("Response body should be null when tracking is disabled", httpDataCaptor.firstValue.response_body)
     }
@@ -537,7 +551,7 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `tracks http event with request body when body tracking is enabled`() {
         val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = true
+        configProvider.shouldTrackHttpRequestBodyResult = true
         val collector = UserTriggeredEventCollectorImpl(
             logger,
             signalProcessor,
@@ -574,6 +588,7 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
         Assert.assertEquals("Request body should be included when tracking is enabled", requestBody, httpDataCaptor.firstValue.request_body)
     }
@@ -581,7 +596,7 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `tracks http event with response body when body tracking is enabled`() {
         val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = true
+        configProvider.shouldTrackHttpResponseBodyResult = true
         val collector = UserTriggeredEventCollectorImpl(
             logger,
             signalProcessor,
@@ -618,89 +633,8 @@ class UserTriggeredEventCollectorImplTest {
             threadName = anyOrNull(),
             sessionId = anyOrNull(),
             userTriggered = eq(true),
+            isSampled = any(),
         )
         Assert.assertEquals("Response body should be included when tracking is enabled", responseBody, httpDataCaptor.firstValue.response_body)
-    }
-
-    @Test
-    fun `tracks http event with capitalized Content-Type header`() {
-        val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = true
-        val collector = UserTriggeredEventCollectorImpl(
-            logger,
-            signalProcessor,
-            timeProvider,
-            processInfoProvider,
-            configProvider,
-        )
-
-        collector.register()
-        collector.trackHttp(
-            url = "https://api.example.com/users",
-            method = "post",
-            startTime = 1000L,
-            endTime = 2000L,
-            client = "okhttp",
-            statusCode = 201,
-            failureReason = null,
-            failureDescription = null,
-            requestHeaders = mutableMapOf("Content-Type" to "application/json; charset=utf-8"),
-            responseHeaders = null,
-            requestBody = "{\"name\":\"test\"}",
-            responseBody = null,
-        )
-
-        verify(signalProcessor).track(
-            data = any<HttpData>(),
-            timestamp = eq(timeProvider.now()),
-            type = eq(EventType.HTTP),
-            attributes = any(),
-            userDefinedAttributes = any(),
-            attachments = any(),
-            threadName = anyOrNull(),
-            sessionId = anyOrNull(),
-            userTriggered = eq(true),
-        )
-    }
-
-    @Test
-    fun `tracks http event with lowercase content-type header`() {
-        val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = true
-        val collector = UserTriggeredEventCollectorImpl(
-            logger,
-            signalProcessor,
-            timeProvider,
-            processInfoProvider,
-            configProvider,
-        )
-
-        collector.register()
-        collector.trackHttp(
-            url = "https://api.example.com/users",
-            method = "post",
-            startTime = 1000L,
-            endTime = 2000L,
-            client = "okhttp",
-            statusCode = 201,
-            failureReason = null,
-            failureDescription = null,
-            requestHeaders = mutableMapOf("content-type" to "application/json"),
-            responseHeaders = null,
-            requestBody = "{\"name\":\"test\"}",
-            responseBody = null,
-        )
-
-        verify(signalProcessor).track(
-            data = any<HttpData>(),
-            timestamp = eq(timeProvider.now()),
-            type = eq(EventType.HTTP),
-            attributes = any(),
-            userDefinedAttributes = any(),
-            attachments = any(),
-            threadName = anyOrNull(),
-            sessionId = anyOrNull(),
-            userTriggered = eq(true),
-        )
     }
 }

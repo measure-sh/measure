@@ -568,9 +568,9 @@ object Measure {
         data: MutableMap<String, Any?>,
         type: String,
         timestamp: Long,
-        attributes: MutableMap<String, Any?> = mutableMapOf<String, Any?>(),
-        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),
-        attachments: MutableList<MsrAttachment> = mutableListOf<MsrAttachment>(),
+        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf(),
+        attachments: MutableList<MsrAttachment> = mutableListOf(),
         userTriggered: Boolean,
         sessionId: String?,
         threadName: String?,
@@ -719,7 +719,7 @@ object Measure {
             type = EventType.ANR,
             attributes = attributes,
             attachments = attachments,
-            takeScreenshot = false,
+            takeScreenshot = true,
         )
     }
 

@@ -71,14 +71,14 @@ internal class UserTriggeredEventCollectorImpl(
         val attachments =
             screenshots.take(configProvider.maxAttachmentsInBugReport)
                 .map { it.toEventAttachment(AttachmentType.SCREENSHOT) }.toMutableList()
-        signalProcessor.trackUserTriggered(
+        signalProcessor.trackBugReport(
             data = bugReportData,
             type = EventType.BUG_REPORT,
             timestamp = timestamp,
             attachments = attachments,
             userDefinedAttributes = attributes,
+            userTriggered = true,
         )
-        logger.log(LogLevel.Debug, "Bug report event received")
     }
 
     override fun trackHttp(
@@ -128,30 +128,18 @@ internal class UserTriggeredEventCollectorImpl(
         }
 
         // apply URL configs
-        if (!configProvider.shouldTrackHttpUrl(url)) {
+        if (!configProvider.shouldTrackHttpEvent(url)) {
             logger.log(LogLevel.Debug, "Discarding HTTP event, URL is not allowed for tracking")
             return
         }
 
-        // apply headers config
-        if (!configProvider.trackHttpHeaders && (!responseHeaders.isNullOrEmpty() || !requestHeaders.isNullOrEmpty())) {
-            logger.log(
-                LogLevel.Debug,
-                "Discarding HTTP event, request or response headers were present but not configured for tracking in Measure.init",
-            )
-            return
-        }
-
-        // sanitize headers
-        if (configProvider.trackHttpHeaders) {
-            requestHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
-            responseHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
-        }
+        requestHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
+        responseHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
 
         val shouldTrackRequestHttpBody =
-            configProvider.shouldTrackHttpBody(url, getContentType(requestHeaders))
+            configProvider.shouldTrackHttpRequestBody(url)
         val shouldTrackResponseHttpBody =
-            configProvider.shouldTrackHttpBody(url, getContentType(responseHeaders))
+            configProvider.shouldTrackHttpResponseBody(url)
 
         val data = HttpData(
             url = url,
@@ -212,6 +200,4 @@ internal class UserTriggeredEventCollectorImpl(
         )
         logger.log(LogLevel.Debug, "Screen view event received")
     }
-
-    private fun getContentType(headers: MutableMap<String, String>?): String? = headers?.get("Content-Type") ?: headers?.get("content-type")
 }

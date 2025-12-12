@@ -10,6 +10,7 @@ import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import okhttp3.Headers
 import sh.measure.android.attributes.AttributesBuilder
+import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MeasureConfig
 
 /**
@@ -21,13 +22,16 @@ class EventsTestRobot {
     private val context = instrumentation.context.applicationContext
     private val device = UiDevice.getInstance(instrumentation)
 
-    fun initializeMeasure(config: MeasureConfig = MeasureConfig()) {
-        Measure.initForInstrumentationTest(
-            TestMeasureInitializer(
-                application = context as Application,
-                inputConfig = config,
-            ),
+    internal fun initializeMeasure(
+        config: MeasureConfig = MeasureConfig(),
+        dynamicConfig: DynamicConfig? = null,
+    ) {
+        val initializer = TestMeasureInitializer(
+            application = context as Application,
+            inputConfig = config,
         )
+        Measure.initForInstrumentationTest(initializer)
+        initializer.configProvider.setDynamicConfig(dynamicConfig ?: DynamicConfig.default())
     }
 
     fun clickButton() {

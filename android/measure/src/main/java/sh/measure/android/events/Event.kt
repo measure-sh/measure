@@ -54,6 +54,11 @@ internal data class Event<T>(
      * however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
      */
     val userDefinedAttributes: Map<String, AttributeValue>,
+
+    /**
+     * A flag to indicate if the event is sampled.
+     */
+    val isSampled: Boolean,
 ) {
     /**
      * Adds an attribute to the event.

@@ -1,13 +1,11 @@
 package sh.measure.android
 
 import android.Manifest
-import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
-import okhttp3.Headers
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -17,6 +15,7 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
@@ -73,7 +72,7 @@ class EventsTest {
     fun tracksExceptionEvent() {
         // Given
         robot.disableDefaultExceptionHandler()
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
             it.onActivity {
@@ -89,7 +88,10 @@ class EventsTest {
     fun givenScreenshotOnCrashEnabledThenTracksExceptionEventWithScreenshot() {
         // Given
         robot.disableDefaultExceptionHandler()
-        robot.initializeMeasure(MeasureConfig(enableLogging = true, trackScreenshotOnCrash = true))
+        robot.initializeMeasure(
+            MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
+            dynamicConfig = DynamicConfig.default().copy(crashTakeScreenshot = true),
+        )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
             it.onActivity {
@@ -108,7 +110,10 @@ class EventsTest {
     fun givenScreenshotOnCrashDisabledThenTracksExceptionEventWithoutScreenshot() {
         // Given
         robot.disableDefaultExceptionHandler()
-        robot.initializeMeasure(MeasureConfig(enableLogging = true, trackScreenshotOnCrash = false))
+        robot.initializeMeasure(
+            MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
+            dynamicConfig = DynamicConfig.default().copy(crashTakeScreenshot = false),
+        )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
             it.onActivity {
@@ -126,7 +131,7 @@ class EventsTest {
     @Test
     fun tracksAnrEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -141,7 +146,10 @@ class EventsTest {
     @Test
     fun givenScreenshotOnCrashEnabledThenTracksAnrEventWithScreenshot() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true, trackScreenshotOnCrash = true))
+        robot.initializeMeasure(
+            MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
+            dynamicConfig = DynamicConfig.default().copy(anrTakeScreenshot = true),
+        )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -158,7 +166,10 @@ class EventsTest {
     @Test
     fun givenScreenshotOnCrashDisabledThenTracksAnrEventWithoutScreenshot() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true, trackScreenshotOnCrash = false))
+        robot.initializeMeasure(
+            MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
+            dynamicConfig = DynamicConfig.default().copy(anrTakeScreenshot = false),
+        )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -175,7 +186,7 @@ class EventsTest {
     @Test
     fun tracksGestureViewClickEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -191,7 +202,7 @@ class EventsTest {
     @Test
     fun tracksGestureComposeClickEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -212,7 +223,7 @@ class EventsTest {
     @Test
     fun tracksGestureLongClickEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -228,7 +239,7 @@ class EventsTest {
     @Test
     fun tracksGestureScrollEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -244,7 +255,7 @@ class EventsTest {
     @Test
     fun tracksGestureComposeScrollEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -260,7 +271,7 @@ class EventsTest {
     @Test
     fun tracksLifecycleActivityEvents() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
@@ -281,13 +292,12 @@ class EventsTest {
     @Test
     fun tracksLifecycleApplicationEvents() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
 
             // When
             robot.pressHomeButton()
-            triggerExport()
             val body = getLastRequestBody()
 
             // Then
@@ -305,7 +315,7 @@ class EventsTest {
 
     @Test
     fun tracksWarmLaunchEvent() {
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.recreate()
             triggerExport()
@@ -323,7 +333,7 @@ class EventsTest {
     @Ignore("Changing network requires a real internet connection to be available")
     fun tracksNetworkChangeEvent() {
         robot.grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             val networkEnabled = robot.isInternetAvailable()
             robot.enableWiFi(!networkEnabled)
@@ -343,7 +353,7 @@ class EventsTest {
     @Test
     fun givenDefaultConfigThenTracksHttpEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
             it.onActivity { activity ->
@@ -363,228 +373,9 @@ class EventsTest {
     }
 
     @Test
-    fun givenUrlAllowlistContainsUrlThenTracksHttpEvent() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                httpUrlAllowlist = listOf("allowed"),
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(activity, "http://allowed.com")
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    assertEventTracked(EventType.HTTP)
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenUrlAllowlistDoesNotContainUrlThenDoesNotTrackHttpEvent() {
-        // GIven
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                httpUrlAllowlist = listOf("allowed.com"),
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(activity, "http://notallowed.com")
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    assertEventNotTracked(EventType.HTTP)
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenUrlBlocklistContainsUrlThenDoesNotTrackHttpEvent() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                httpUrlBlocklist = listOf("disallowed"),
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(activity, "http://disallowed.com")
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    assertEventNotTracked(EventType.HTTP)
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenTrackBodyAndTrackHeadersAreEnabledThenTracksHeaders() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                trackHttpBody = true,
-                trackHttpHeaders = true,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(
-                    activity,
-                    "http://example.com",
-                    headers = Headers.Builder().add("x-header-key", "x-header-value").build(),
-                )
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    val body = getLastRequestBody()
-                    assertEventTracked(body, EventType.HTTP)
-                    Assert.assertTrue(body.contains("x-header-key"))
-                    Assert.assertTrue(body.contains("x-header-value"))
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenTrackHeadersIsDisabledThenDoesNotTrackHeaders() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                trackHttpBody = true,
-                trackHttpHeaders = false,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(
-                    activity,
-                    "http://example.com",
-                    headers = Headers.Builder().add("x-header-key", "x-header-value").build(),
-                )
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    val body = getLastRequestBody()
-                    assertEventTracked(body, EventType.HTTP)
-                    Assert.assertFalse(body.contains("x-header-key"))
-                    Assert.assertFalse(body.contains("x-header-value"))
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenTrackBodyIsDisabledThenDoesNotTrackBody() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                trackHttpBody = false,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(
-                    activity,
-                    "http://example.com",
-                    headers = Headers.Builder().add("x-header-key", "x-header-value").build(),
-                    requestBody = "request_body",
-                )
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-                    val body = getLastRequestBody()
-
-                    // Then
-                    assertEventTracked(body, EventType.HTTP)
-                    Assert.assertFalse(body.contains("request_body"))
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
-    fun givenTrackBodyIsEnabledThenTracksBody() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                trackHttpBody = true,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-            it.onActivity { activity ->
-                IdlingRegistry.getInstance().register(activity.httpIdlingResource)
-
-                // When
-                robot.makeNetworkRequest(
-                    activity,
-                    "http://example.com",
-                    headers = Headers.Builder().add("x-header-key", "x-header-value").build(),
-                    requestBody = "request_body",
-                )
-                activity.httpIdlingResource.registerIdleTransitionCallback {
-                    triggerExport()
-
-                    // Then
-                    val body = getLastRequestBody()
-                    assertEventTracked(body, EventType.HTTP)
-                    Assert.assertTrue(body.contains("request_body"))
-                }
-                IdlingRegistry.getInstance().unregister(activity.httpIdlingResource)
-            }
-        }
-    }
-
-    @Test
     fun tracksMemoryUsageEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             // When
             it.moveToState(Lifecycle.State.RESUMED)
@@ -598,7 +389,7 @@ class EventsTest {
     @Test
     fun tracksCpuUsageEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             // When
             it.moveToState(Lifecycle.State.RESUMED)
@@ -617,28 +408,22 @@ class EventsTest {
 
     @Test
     fun tracksCustomEvent() {
-        Log.d("Test", "Starting tracksCustomEvent test")
-        try {
-            // Given
-            robot.initializeMeasure(MeasureConfig(enableLogging = true))
-            ActivityScenario.launch(TestActivity::class.java).use {
-                // When
-                robot.trackCustomEvent()
-                triggerExport()
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            robot.trackCustomEvent()
+            triggerExport()
 
-                // Then
-                assertEventTracked(EventType.CUSTOM)
-            }
-            Log.d("Test", "Completed tracksCustomEvent test")
-        } catch (e: Exception) {
-            Log.e("Test", "Error tracksCustomEvent", e)
+            // Then
+            assertEventTracked(EventType.CUSTOM)
         }
     }
 
     @Test
     fun tracksBugReportEvent() {
         // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        robot.initializeMeasure(MeasureConfig(enableLogging = true, enableFullCollectionMode = true))
         ActivityScenario.launch(TestActivity::class.java).use {
             // When
             it.moveToState(Lifecycle.State.RESUMED)
@@ -653,8 +438,6 @@ class EventsTest {
     }
 
     private fun String.containsEvent(eventType: EventType): Boolean = contains("\"type\":\"${eventType.value}\"")
-
-    private fun String.containsAttribute(key: String, value: String): Boolean = contains("\"$key\":\"$value\"")
 
     private fun triggerExport() {
         Measure.simulateAppCrash(
@@ -700,11 +483,6 @@ class EventsTest {
     private fun assertEventTracked(eventType: EventType) {
         val body = getLastRequestBody()
         Assert.assertTrue(body.containsEvent(eventType))
-    }
-
-    private fun assertEventNotTracked(eventType: EventType) {
-        val body = getLastRequestBody()
-        Assert.assertFalse(body.containsEvent(eventType))
     }
 
     private fun getLastRequestBody(): String {

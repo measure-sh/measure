@@ -77,23 +77,4 @@ class SessionTest {
             Assert.assertEquals(1, sessionCount)
         }
     }
-
-    @Test
-    fun createsNewSessionWhenAppComesBackToForegroundIfLastSessionCrashed() {
-        // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
-        ActivityScenario.launch(TestActivity::class.java).use {
-            // When
-            it.moveToState(Lifecycle.State.RESUMED)
-            robot.simulateAppCrash()
-            robot.moveAppToBackground()
-            robot.incrementTimeWithinSessionThreshold()
-            robot.openAppFromRecent()
-            it.moveToState(Lifecycle.State.RESUMED)
-
-            // Then
-            val sessionCount = robot.getSessionCount()
-            Assert.assertEquals(2, sessionCount)
-        }
-    }
 }

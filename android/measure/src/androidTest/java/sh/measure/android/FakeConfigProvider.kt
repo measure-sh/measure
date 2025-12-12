@@ -2,43 +2,27 @@ package sh.measure.android
 
 import android.hardware.SensorManager
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
-    override fun loadNetworkConfig() {
-        // no-op
-    }
-
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = false
-
-    override fun shouldTrackHttpUrl(url: String): Boolean = false
-
-    override fun shouldTrackHttpHeader(key: String): Boolean = false
+    override fun shouldTrackHttpEvent(url: String): Boolean = false
 
     override fun setMeasureUrl(url: String) {
         // No-op
     }
 
     override var enableLogging: Boolean = true
-    override var trackScreenshotOnCrash: Boolean = true
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllText
-    override var trackHttpHeaders: Boolean = true
-    override var trackHttpBody: Boolean = true
-    override var httpHeadersBlocklist: List<String> = emptyList()
-    override var httpUrlBlocklist: List<String> = emptyList()
-    override var httpUrlAllowlist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = true
-    override var samplingRateForErrorFreeSessions: Float = 1f
     override val traceSamplingRate: Float = 1f
-    override var maxAttachmentSizeInEventsBatchInBytes: Int = 1_000_000
-    override var eventsBatchingIntervalMs: Long = 1_000_000
-    override var eventsBatchingJitterMs: Long = 1_000_000
+    override var batchExportIntervalMs: Long = 1_000_000
+    override val attachmentExportIntervalMs: Long = 500
     override var maxEventsInBatch: Int = 1_000_000
-    override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var sessionEndLastEventThresholdMs: Long = 1_000_000
+    override var sessionBackgroundTimeoutThresholdMs: Long = 30_000
     override var maxEventNameLength: Int = 64
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
@@ -59,11 +43,32 @@ internal class FakeConfigProvider : ConfigProvider {
     override val shakeMinTimeIntervalMs: Long = 5000
     override val shakeSlop: Int = 2
     override val disallowedCustomHeaders: List<String> = mutableListOf()
-    override val estimatedEventSizeInKb: Int = 10
+    override val estimatedEventSizeInKb: Int = 2
     override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
-    override val coldLaunchSamplingRate: Float = 0.01f
-    override val warmLaunchSamplingRate: Float = 0.01f
-    override val hotLaunchSamplingRate: Float = 0.01f
     override val journeySamplingRate: Float = 0.01f
+    override val enableFullCollectionMode: Boolean = true
+
+    override val crashTimelineDurationSeconds: Int = 300
+    override val anrTimelineDurationSeconds: Int = 300
+    override val bugReportTimelineDurationSeconds: Int = 300
+    override val cpuUsageInterval: Long = 3000
+    override val memoryUsageInterval: Long = 3000
+    override val crashTakeScreenshot: Boolean = true
+    override val crashTimelineSamplingRate: Float = 1f
+    override val anrTakeScreenshot: Boolean = true
+    override val anrTimelineSamplingRate: Float = 1f
+    override val launchSamplingRate: Float = 1f
+    override val gestureClickTakeSnapshot: Boolean = true
+    override val httpDisableEventForUrls: List<String> = emptyList()
+    override val httpTrackRequestForUrls: List<String> = emptyList()
+    override val httpTrackResponseForUrls: List<String> = emptyList()
+    override val httpBlockedHeaders: List<String> = emptyList()
+    override fun shouldTrackHttpHeader(key: String): Boolean = true
+    override fun shouldTrackHttpRequestBody(url: String): Boolean = true
+    override fun shouldTrackHttpResponseBody(url: String): Boolean = true
+
+    override fun setDynamicConfig(config: DynamicConfig) {
+        // No-op
+    }
 }

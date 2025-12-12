@@ -18,8 +18,20 @@ internal class TestTracer(
     private val sessionManager: SessionManager,
 ) : Tracer {
     private val idProvider = IdProviderImpl(RandomizerImpl())
-    private val traceSampler = FakeTraceSampler()
-    private val spanProcessor = MsrSpanProcessor(logger, signalProcessor, listOf(), configProvider)
+    private val sampler = FakeSampler()
+    private val spanProcessor = MsrSpanProcessor(
+        logger,
+        signalProcessor,
+        listOf(),
+        configProvider,
+        sampler,
+    )
+
+    init {
+        // Ensure config is loaded so that spans
+        // are processed immediately
+        spanProcessor.onConfigLoaded()
+    }
 
     override fun spanBuilder(name: String): SpanBuilder = MsrSpanBuilder(
         name,
@@ -27,7 +39,7 @@ internal class TestTracer(
         timeProvider = timeProvider,
         idProvider = idProvider,
         sessionManager = sessionManager,
-        traceSampler = traceSampler,
+        sampler = sampler,
         logger = logger,
     )
 

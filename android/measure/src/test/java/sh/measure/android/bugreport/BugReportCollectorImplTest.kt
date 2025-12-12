@@ -83,6 +83,7 @@ class BugReportCollectorImplTest {
             threadName = any(),
             sessionId = isNull(),
             userTriggered = eq(false),
+            isSampled = eq(true),
         )
         assertEquals(5, attachmentsCaptor.firstValue.size)
     }

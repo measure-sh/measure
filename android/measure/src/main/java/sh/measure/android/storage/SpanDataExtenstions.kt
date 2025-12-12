@@ -27,6 +27,7 @@ internal fun SpanData.toSpanEntity(): SpanEntity = SpanEntity(
         userDefinedAttrs.toJsonElement(),
     ),
     hasEnded = hasEnded,
+    sampled = isSampled,
 )
 
 private fun SpanData.serializeCheckpoints(): String = checkpoints.joinToString(",", prefix = "[", postfix = "]") { it.serialize() }

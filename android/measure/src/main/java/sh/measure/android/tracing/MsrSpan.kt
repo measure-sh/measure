@@ -5,6 +5,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.TimeProvider
 
 /**
@@ -14,7 +15,7 @@ internal class MsrSpan(
     private val logger: Logger,
     private val timeProvider: TimeProvider,
     private val spanProcessor: SpanProcessor,
-    override val isSampled: Boolean,
+    override var isSampled: Boolean,
     override var name: String,
     override val spanId: String,
     override var traceId: String,
@@ -38,7 +39,7 @@ internal class MsrSpan(
             spanProcessor: SpanProcessor,
             sessionManager: SessionManager,
             idProvider: IdProvider,
-            traceSampler: TraceSampler,
+            sampler: Sampler,
             parentSpan: Span?,
             timestamp: Long? = null,
         ): Span = InternalTrace.trace(
@@ -48,7 +49,7 @@ internal class MsrSpan(
                 val spanId: String = idProvider.spanId()
                 val traceId = parentSpan?.traceId ?: idProvider.traceId()
                 val sessionId = sessionManager.getSessionId()
-                val isSampled = parentSpan?.isSampled ?: traceSampler.shouldSample()
+                val isSampled = parentSpan?.isSampled ?: sampler.shouldSampleTrace(traceId)
                 val span = MsrSpan(
                     logger = logger,
                     timeProvider = timeProvider,
@@ -129,6 +130,15 @@ internal class MsrSpan(
             this.name = name
         }
         return this
+    }
+
+    override fun setSamplingRate(sampled: Boolean) {
+        synchronized(lock) {
+            // Allow updating ended spans too
+            // to account for lazy sampling
+            // config loading.
+            this.isSampled = sampled
+        }
     }
 
     override fun setAttribute(key: String, value: String): Span {

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
@@ -17,237 +16,157 @@ import sh.measure.android.utils.AttachmentHelper
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
- *
- * All the dependencies are lazy initialized which allows tests to only setup the
- * dependencies required by them and ignore the rest. See [Measure.initForInstrumentationTest]
- * for more details.
  */
-internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLifecycleListener {
-    val logger by lazy { measureInitializer.logger }
-    val signalProcessor by lazy { measureInitializer.signalProcessor }
-    val httpEventCollector by lazy { measureInitializer.httpEventCollector }
-    val processInfoProvider by lazy { measureInitializer.processInfoProvider }
-    val timeProvider by lazy { measureInitializer.timeProvider }
-    val bugReportCollector by lazy { measureInitializer.bugReportCollector }
-    private val spanCollector by lazy { measureInitializer.spanCollector }
-    private val customEventCollector by lazy { measureInitializer.customEventCollector }
-    private val sessionManager by lazy { measureInitializer.sessionManager }
-    private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
-    private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
-    private val networkClient by lazy { measureInitializer.networkClient }
-    private val manifestReader by lazy { measureInitializer.manifestReader }
-    private val unhandledExceptionCollector by lazy { measureInitializer.unhandledExceptionCollector }
-    private val anrCollector by lazy { measureInitializer.anrCollector }
-    private val cpuUsageCollector by lazy { measureInitializer.cpuUsageCollector }
-    private val memoryUsageCollector by lazy { measureInitializer.memoryUsageCollector }
-    private val componentCallbacksCollector by lazy { measureInitializer.componentCallbacksCollector }
-    private val appLifecycleManager by lazy { measureInitializer.appLifecycleManager }
-    private val activityLifecycleCollector by lazy { measureInitializer.activityLifecycleCollector }
-    private val appLifecycleCollector by lazy { measureInitializer.appLifecycleCollector }
-    private val gestureCollector by lazy { measureInitializer.gestureCollector }
-    private val appLaunchCollector by lazy { measureInitializer.appLaunchCollector }
-    private val networkChangesCollector by lazy { measureInitializer.networkChangesCollector }
-    private val appExitCollector by lazy { measureInitializer.appExitCollector }
-    private val periodicExporter by lazy { measureInitializer.periodicExporter }
-    private val attachmentExporter by lazy { measureInitializer.attachmentExporter }
-    private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
-    private val configProvider by lazy { measureInitializer.configProvider }
-    private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
-    private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
-    private val periodicSignalStoreScheduler by lazy { measureInitializer.periodicSignalStoreScheduler }
-    private val executorServiceRegistry by lazy { measureInitializer.executorServiceRegistry }
-    private val shakeBugReportCollector by lazy { measureInitializer.shakeBugReportCollector }
-    private val internalSignalCollector by lazy { measureInitializer.internalSignalCollector }
-    private val fileStorage by lazy { measureInitializer.fileStorage }
+internal class MeasureInternal(private val measure: MeasureInitializer) : AppLifecycleListener {
+    val timeProvider = measure.timeProvider
+    val processInfoProvider = measure.processInfoProvider
+    val logger = measure.logger
+    val bugReportCollector = measure.bugReportCollector
+    val httpEventCollector = measure.httpEventCollector
+    val signalProcessor = measure.signalProcessor
+
+    @Volatile
     private var isStarted: Boolean = false
-    private var startLock = Any()
+    private val lock = Any()
 
     fun init(clientInfo: ClientInfo? = null) {
         if (!setupNetworkClient(clientInfo)) {
             return
         }
 
-        // initialize a session
-        val sessionInitResult = sessionManager.init()
+        // start a session
+        val sessionId = measure.sessionManager.init()
 
         // All events are processed on a single thread in a queue.
         // So, the first event will always be a session start event
         // as we initialize all other collectors after this event
         // is triggered.
-        trackSessionStart(sessionInitResult)
+        measure.signalProcessor.track(
+            SessionStartData,
+            timestamp = measure.timeProvider.now(),
+            type = EventType.SESSION_START,
+            sessionId = sessionId,
+            // always sample session start event
+            isSampled = true,
+        )
 
         // setup lifecycle state
-        appLifecycleManager.addListener(this)
-        resumedActivityProvider.register()
-        appLifecycleManager.register()
+        measure.resumedActivityProvider.register()
+        measure.appLifecycleManager.addListener(this)
+        measure.appLifecycleManager.register()
 
-        // always collect app launch events
-        appLaunchCollector.register()
+        // delaying this can lead to initial
+        // launch events to not get collected
+        measure.appLaunchCollector.register()
 
-        // start SDK
-        if (configProvider.autoStart) {
+        // enable crash tracking early
+        if (measure.configProvider.autoStart) {
             start()
         }
 
-        logger.log(LogLevel.Debug, "Initialization complete")
+        measure.configLoader.loadDynamicConfig { config ->
+            // Callback on msr-io thread
+            if (config != null) {
+                measure.configProvider.setDynamicConfig(config)
+            }
+            measure.sessionManager.onConfigLoaded()
+            measure.spanProcessor.onConfigLoaded()
+            measure.appLaunchCollector.onConfigLoaded()
+            mainHandler.post {
+                measure.cpuUsageCollector.onConfigLoaded()
+                measure.memoryUsageCollector.onConfigLoaded()
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Must be called on msr-io thread
+                measure.appExitCollector.collect()
+            }
+
+            // must be called last
+            measure.exporter.export()
+        }
+        measure.logger.log(LogLevel.Debug, "Initialization complete")
     }
 
     fun start() {
-        synchronized(startLock) {
-            if (!isStarted) {
-                registerCollectors()
-                isStarted = true
-                logger.log(LogLevel.Debug, "Started")
+        synchronized(lock) {
+            if (isStarted) {
+                return
             }
+            enableCrashTracking()
+            registerCollectors()
+            isStarted = true
         }
     }
 
     fun stop() {
-        synchronized(startLock) {
-            if (isStarted) {
-                unregisterCollectors()
-                isStarted = false
-                logger.log(LogLevel.Debug, "Stopped")
+        synchronized(lock) {
+            if (!isStarted) {
+                return
             }
+            disableCrashTracking()
+            unregisterCollectors()
+            isStarted = false
         }
-    }
-
-    // Validates and initializes the network client, returns true if initialization was successful,
-    // false otherwise.
-    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
-        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
-    } else {
-        initializeFromManifest()
-    }
-
-    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
-        apiUrl.isNullOrEmpty() -> "API URL is missing"
-        apiKey.isNullOrEmpty() -> "API Key is missing"
-        !apiKey.startsWith("msrsh") -> "invalid API Key"
-        else -> null
-    }
-
-    private fun initializeFromManifest(): Boolean {
-        val manifest = manifestReader.load()
-        if (manifest == null) {
-            return false
-        }
-
-        return initializeWithCredentials(manifest.url, manifest.apiKey)
-    }
-
-    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
-        val validationError = validateApiCredentials(apiUrl, apiKey)
-
-        return if (validationError != null) {
-            logger.log(
-                LogLevel.Error,
-                "Failed to initialize Measure SDK, $validationError",
-            )
-            false
-        } else {
-            configProvider.setMeasureUrl(apiUrl!!)
-            networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
-            true
-        }
-    }
-
-    private fun registerCollectors() {
-        unhandledExceptionCollector.register()
-        anrCollector.register()
-        userTriggeredEventCollector.register()
-        activityLifecycleCollector.register()
-        appLifecycleCollector.register()
-        cpuUsageCollector.register()
-        memoryUsageCollector.register()
-        componentCallbacksCollector.register()
-        gestureCollector.register()
-        networkChangesCollector.register()
-        httpEventCollector.register()
-        powerStateProvider.register()
-        periodicExporter.resume()
-        attachmentExporter.register()
-        spanCollector.register()
-        customEventCollector.register()
-        periodicSignalStoreScheduler.register()
     }
 
     override fun onAppForeground() {
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
-        sessionManager.onAppForeground()
-        synchronized(startLock) {
-            if (isStarted) {
-                powerStateProvider.register()
-                networkChangesCollector.register()
-                cpuUsageCollector.resume()
-                memoryUsageCollector.resume()
-                periodicExporter.resume()
-                attachmentExporter.register()
-            }
+        measure.sessionManager.onAppForeground()
+        if (isStarted) {
+            resumeCollectorsOnForeground()
         }
     }
 
     override fun onAppBackground() {
-        sessionManager.onAppBackground()
-        synchronized(startLock) {
-            if (isStarted) {
-                cpuUsageCollector.pause()
-                memoryUsageCollector.pause()
-                periodicExporter.pause()
-                attachmentExporter.unregister()
-                powerStateProvider.unregister()
-                networkChangesCollector.unregister()
-                periodicSignalStoreScheduler.onAppBackground()
-                dataCleanupService.clearStaleData()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    appExitCollector.collect()
-                }
-            }
+        measure.sessionManager.onAppBackground()
+        if (isStarted) {
+            measure.periodicSignalStoreScheduler.onAppBackground()
+            pauseCollectorsOnBackground()
+            measure.exporter.export()
+            measure.dataCleanupService.cleanup()
         }
     }
 
     fun setUserId(userId: String) {
-        userAttributeProcessor.setUserId(userId)
+        measure.userAttributeProcessor.setUserId(userId)
     }
 
     fun clearUserId() {
-        userAttributeProcessor.clearUserId()
+        measure.userAttributeProcessor.clearUserId()
     }
 
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
-        userTriggeredEventCollector.trackScreenView(screenName, attributes)
+        measure.userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
     fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
-        userTriggeredEventCollector.trackHandledException(throwable, attributes)
+        measure.userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }
 
-    fun createSpan(name: String): SpanBuilder? = spanCollector.createSpan(name)
+    fun createSpan(name: String): SpanBuilder? = measure.spanCollector.createSpan(name)
 
-    fun startSpan(name: String, timestamp: Long? = null): Span = spanCollector.startSpan(name, timestamp)
+    fun startSpan(name: String, timestamp: Long? = null): Span = measure.spanCollector.startSpan(name, timestamp)
 
-    fun getTraceParentHeaderValue(span: Span): String = spanCollector.getTraceParentHeaderValue(span)
+    fun getTraceParentHeaderValue(span: Span): String = measure.spanCollector.getTraceParentHeaderValue(span)
 
-    fun getTraceParentHeaderKey(): String = spanCollector.getTraceParentHeaderKey()
+    fun getTraceParentHeaderKey(): String = measure.spanCollector.getTraceParentHeaderKey()
 
-    fun getSessionId(): String? {
-        return try {
-            sessionManager.getSessionId()
-        } catch (_: IllegalArgumentException) {
-            return null
-        }
+    fun getSessionId(): String? = try {
+        measure.sessionManager.getSessionId()
+    } catch (_: IllegalArgumentException) {
+        null
     }
 
     fun trackEvent(name: String, attributes: Map<String, AttributeValue>, timestamp: Long?) {
-        customEventCollector.trackEvent(name, attributes, timestamp)
+        measure.customEventCollector.trackEvent(name, attributes, timestamp)
     }
 
     fun startBugReportFlow(
         takeScreenshot: Boolean,
         attributes: MutableMap<String, AttributeValue>,
     ) {
-        bugReportCollector.startBugReportFlow(takeScreenshot, attributes)
+        measure.bugReportCollector.startBugReportFlow(takeScreenshot, attributes)
     }
 
     fun trackBugReport(
@@ -255,32 +174,30 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         screenshots: List<MsrAttachment>,
         attributes: MutableMap<String, AttributeValue>,
     ) {
-        userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
+        measure.userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
     }
 
-    @MainThread
     fun captureScreenshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
         onError: (() -> Unit)?,
     ) {
         AttachmentHelper(
-            logger,
-            executorServiceRegistry.ioExecutor(),
-            configProvider,
+            measure.logger,
+            measure.executorServiceRegistry.ioExecutor(),
+            measure.configProvider,
         ).captureScreenshot(activity, onComplete, onError)
     }
 
-    @MainThread
     fun takeLayoutSnapshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
         onError: (() -> Unit)?,
     ) {
         AttachmentHelper(
-            logger,
-            executorServiceRegistry.ioExecutor(),
-            configProvider,
+            measure.logger,
+            measure.executorServiceRegistry.ioExecutor(),
+            measure.configProvider,
         ).captureLayoutSnapshot(activity, onComplete, onError)
     }
 
@@ -291,9 +208,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         onError: () -> Unit,
     ) {
         AttachmentHelper(
-            logger,
-            executorServiceRegistry.ioExecutor(),
-            configProvider,
+            measure.logger,
+            measure.executorServiceRegistry.ioExecutor(),
+            measure.configProvider,
         ).imageUriToAttachment(
             context,
             uri,
@@ -303,7 +220,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     }
 
     fun setShakeListener(shakeListener: MsrShakeListener?) {
-        shakeBugReportCollector.setShakeListener(shakeListener)
+        measure.shakeBugReportCollector.setShakeListener(shakeListener)
     }
 
     fun internalTrackEvent(
@@ -317,19 +234,17 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         sessionId: String?,
         threadName: String?,
     ) {
-        if (isStarted) {
-            internalSignalCollector.trackEvent(
-                data = data,
-                type = type,
-                timestamp = timestamp,
-                attributes = attributes,
-                userDefinedAttrs = userDefinedAttrs,
-                attachments = attachments,
-                userTriggered = userTriggerEvent,
-                sessionId = sessionId,
-                threadName = threadName,
-            )
-        }
+        measure.internalSignalCollector.trackEvent(
+            data = data,
+            type = type,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggerEvent,
+            sessionId = sessionId,
+            threadName = threadName,
+        )
     }
 
     fun internalTrackSpan(
@@ -347,26 +262,24 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         hasEnded: Boolean,
         isSampled: Boolean,
     ) {
-        if (isStarted) {
-            internalSignalCollector.trackSpan(
-                name = name,
-                traceId = traceId,
-                spanId = spanId,
-                parentId = parentId,
-                startTime = startTime,
-                endTime = endTime,
-                duration = duration,
-                status = status,
-                attributes = attributes,
-                userDefinedAttrs = userDefinedAttrs,
-                checkpoints = checkpoints,
-                hasEnded = hasEnded,
-                isSampled = isSampled,
-            )
-        }
+        measure.internalSignalCollector.trackSpan(
+            name = name,
+            traceId = traceId,
+            spanId = spanId,
+            parentId = parentId,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            status = status,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            checkpoints = checkpoints,
+            hasEnded = hasEnded,
+            isSampled = isSampled,
+        )
     }
 
-    fun getAttachmentDirectory(): String? = fileStorage.getAttachmentDirectory()
+    fun getAttachmentDirectory(): String? = measure.fileStorage.getAttachmentDirectory()
 
     fun trackHttpEvent(
         url: String,
@@ -381,7 +294,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         responseBody: String?,
         client: String,
     ) {
-        userTriggeredEventCollector.trackHttp(
+        measure.userTriggeredEventCollector.trackHttp(
             url,
             method,
             startTime,
@@ -397,47 +310,93 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         )
     }
 
-    private fun trackSessionStart(sessionInitResult: SessionInitResult) {
-        when (sessionInitResult) {
-            is SessionInitResult.NewSessionCreated -> {
-                signalProcessor.track(
-                    SessionStartData,
-                    timestamp = timeProvider.now(),
-                    type = EventType.SESSION_START,
-                    sessionId = sessionInitResult.sessionId,
-                )
-                logger.log(
-                    LogLevel.Debug,
-                    "New session created with ID: ${sessionInitResult.sessionId}",
-                )
-            }
+    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
+        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
+    } else {
+        initializeFromManifest()
+    }
 
-            is SessionInitResult.SessionResumed -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Session resumed with ID: ${sessionInitResult.sessionId}",
-                )
-            }
+    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
+        apiUrl.isNullOrEmpty() -> "API URL is missing"
+        apiKey.isNullOrEmpty() -> "API Key is missing"
+        !apiKey.startsWith("msrsh") -> "invalid API Key"
+        else -> null
+    }
+
+    private fun initializeFromManifest(): Boolean {
+        val manifest = measure.manifestReader.load()
+        if (manifest == null) {
+            return false
+        }
+
+        return initializeWithCredentials(manifest.url, manifest.apiKey)
+    }
+
+    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
+        val validationError = validateApiCredentials(apiUrl, apiKey)
+
+        return if (validationError != null) {
+            measure.logger.log(
+                LogLevel.Error,
+                "Failed to initialize Measure SDK, $validationError",
+            )
+            false
+        } else {
+            measure.configProvider.setMeasureUrl(apiUrl!!)
+            measure.networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
+            true
         }
     }
 
+    private fun registerCollectors() {
+        measure.userTriggeredEventCollector.register()
+        measure.activityLifecycleCollector.register()
+        measure.appLifecycleCollector.register()
+        measure.cpuUsageCollector.register()
+        measure.memoryUsageCollector.register()
+        measure.componentCallbacksCollector.register()
+        measure.gestureCollector.register()
+        measure.networkChangesCollector.register()
+        measure.httpEventCollector.register()
+        measure.powerStateProvider.register()
+        measure.spanCollector.register()
+        measure.customEventCollector.register()
+        measure.periodicSignalStoreScheduler.register()
+    }
+
     private fun unregisterCollectors() {
-        unhandledExceptionCollector.unregister()
-        anrCollector.unregister()
-        userTriggeredEventCollector.unregister()
-        activityLifecycleCollector.unregister()
-        appLifecycleCollector.unregister()
-        cpuUsageCollector.pause()
-        memoryUsageCollector.pause()
-        componentCallbacksCollector.unregister()
-        gestureCollector.unregister()
-        networkChangesCollector.unregister()
-        httpEventCollector.unregister()
-        powerStateProvider.unregister()
-        periodicExporter.unregister()
-        attachmentExporter.unregister()
-        spanCollector.unregister()
-        customEventCollector.unregister()
-        periodicSignalStoreScheduler.unregister()
+        measure.userTriggeredEventCollector.unregister()
+        measure.activityLifecycleCollector.unregister()
+        measure.appLifecycleCollector.unregister()
+        measure.cpuUsageCollector.unregister()
+        measure.memoryUsageCollector.unregister()
+        measure.componentCallbacksCollector.unregister()
+        measure.gestureCollector.unregister()
+        measure.networkChangesCollector.unregister()
+        measure.httpEventCollector.unregister()
+        measure.powerStateProvider.unregister()
+        measure.spanCollector.unregister()
+        measure.customEventCollector.unregister()
+        measure.periodicSignalStoreScheduler.unregister()
+    }
+
+    private fun pauseCollectorsOnBackground() {
+        measure.cpuUsageCollector.unregister()
+        measure.memoryUsageCollector.unregister()
+    }
+
+    private fun resumeCollectorsOnForeground() {
+        measure.cpuUsageCollector.register()
+        measure.memoryUsageCollector.register()
+    }
+
+    private fun enableCrashTracking() {
+        measure.unhandledExceptionCollector.register()
+        measure.anrCollector.register()
+    }
+
+    private fun disableCrashTracking() {
+        measure.unhandledExceptionCollector.unregister()
+        measure.anrCollector.unregister()
     }
 }
