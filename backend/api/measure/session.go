@@ -419,26 +419,26 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		matches := []string{
 			"user_id like ?",
 			"toString(session_id) like ?",
-			"arrayExists(x -> x ilike ?, unique_types)",
-			"arrayExists(x -> x ilike ?, unique_strings)",
-			"arrayExists(x -> x ilike ?, unique_view_classnames)",
-			"arrayExists(x -> x ilike ?, unique_subview_classnames)",
-			"arrayExists(x -> x.type ilike ?, unique_exceptions)",
-			"arrayExists(x -> x.message ilike ?, unique_exceptions)",
-			"arrayExists(x -> x.file_name ilike ?, unique_exceptions)",
-			"arrayExists(x -> x.class_name ilike ?, unique_exceptions)",
-			"arrayExists(x -> x.method_name ilike ?, unique_exceptions)",
-			"arrayExists(x -> x.type ilike ?, unique_anrs)",
-			"arrayExists(x -> x.message ilike ?, unique_anrs)",
-			"arrayExists(x -> x.file_name ilike ?, unique_anrs)",
-			"arrayExists(x -> x.class_name ilike ?, unique_anrs)",
-			"arrayExists(x -> x.method_name ilike ?, unique_anrs)",
-			"arrayExists(x -> x.1 ilike ?, unique_click_targets)",
-			"arrayExists(x -> x.2 ilike ?, unique_click_targets)",
-			"arrayExists(x -> x.1 ilike ?, unique_longclick_targets)",
-			"arrayExists(x -> x.2 ilike ?, unique_longclick_targets)",
-			"arrayExists(x -> x.1 ilike ?, unique_scroll_targets)",
-			"arrayExists(x -> x.2 ilike ?, unique_scroll_targets)",
+			"arrayFirst(x -> x ilike ?, unique_types)",
+			"arrayFirst(x -> x ilike ?, unique_strings)",
+			"arrayFirst(x -> x ilike ?, unique_view_classnames)",
+			"arrayFirst(x -> x ilike ?, unique_subview_classnames)",
+			"arrayFirst(x -> x.type ilike ?, unique_exceptions)",
+			"arrayFirst(x -> x.message ilike ?, unique_exceptions)",
+			"arrayFirst(x -> x.file_name ilike ?, unique_exceptions)",
+			"arrayFirst(x -> x.class_name ilike ?, unique_exceptions)",
+			"arrayFirst(x -> x.method_name ilike ?, unique_exceptions)",
+			"arrayFirst(x -> x.type ilike ?, unique_anrs)",
+			"arrayFirst(x -> x.message ilike ?, unique_anrs)",
+			"arrayFirst(x -> x.file_name ilike ?, unique_anrs)",
+			"arrayFirst(x -> x.class_name ilike ?, unique_anrs)",
+			"arrayFirst(x -> x.method_name ilike ?, unique_anrs)",
+			"arrayFirst(x -> x.1 ilike ?, unique_click_targets)",
+			"arrayFirst(x -> x.2 ilike ?, unique_click_targets)",
+			"arrayFirst(x -> x.1 ilike ?, unique_longclick_targets)",
+			"arrayFirst(x -> x.2 ilike ?, unique_longclick_targets)",
+			"arrayFirst(x -> x.1 ilike ?, unique_scroll_targets)",
+			"arrayFirst(x -> x.2 ilike ?, unique_scroll_targets)",
 		}
 
 		argsMatch := []any{}
@@ -446,21 +446,23 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			argsMatch = append(argsMatch, freeText)
 		}
 
-		stmt.Select("any(user_id)").
-			Select("any(unique_types)").
-			Select("any(unique_strings)").
-			Select("any(unique_view_classnames)").
-			Select("any(unique_subview_classnames)").
-			Select("any(unique_exceptions)").
-			Select("any(unique_anrs)").
-			Select("any(unique_click_targets)").
-			Select("any(unique_longclick_targets)").
-			Select("any(unique_scroll_targets)")
+		stmt.Select("argMin(user_id, ?)", freeText).
+			Select("argMin(unique_types, ?)", freeText).
+			Select("argMin(unique_strings, ?)", freeText).
+			Select("argMin(unique_view_classnames, ?)", freeText).
+			Select("argMin(unique_subview_classnames, ?)", freeText).
+			Select("argMin(unique_exceptions, ?)", freeText).
+			Select("argMin(unique_anrs, ?)", freeText).
+			Select("argMin(unique_click_targets, ?)", freeText).
+			Select("argMin(unique_longclick_targets, ?)", freeText).
+			Select("argMin(unique_scroll_targets, ?)", freeText)
 
 		// run complex text matching with multiple 'OR's
 		stmt.Where(fmt.Sprintf("(%s)", strings.Join(matches, " or ")), argsMatch...)
 		stmt.GroupBy("user_id")
 	}
+
+	fmt.Println("stmt:", stmt.String(), stmt.Args())
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -495,6 +497,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 		if af.FreeText != "" {
 			dest = append(dest, &sess.Attribute.UserID, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
+			// dest = append(dest, &sess.Attribute.UserID)
 		}
 
 		if err = rows.Scan(dest...); err != nil {
