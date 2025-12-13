@@ -758,6 +758,12 @@ ensure() {
   if ! check_env_variable "POSTHOG_API_KEY"; then
     add_env_variable "POSTHOG_API_KEY" ""
   fi
+
+  # remove `frontend/dashboard/.env.local` file
+  # if found
+  if [[ -f "../frontend/dashboard/.env.local" ]]; then
+    rm "../frontend/dashboard/.env.local"
+  fi
 }
 
 # Set the environment by accessing the
