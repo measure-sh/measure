@@ -7,7 +7,7 @@
 ENV_FILE=.env
 
 # Path to dashboard environment file
-ENV_WEB_FILE=../frontend/dashboard/.env.local
+# ENV_WEB_FILE=../frontend/dashboard/.env.local
 
 # Measure insignia
 ENV_HEADER=$(
@@ -488,7 +488,7 @@ END
     OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
     OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
     write_dev_env
-    write_web_dev_env
+    # write_web_dev_env
   elif [[ "$SETUP_ENV" == "production" ]]; then
     cat <<END
 
@@ -615,11 +615,11 @@ END
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
     write_prod_env
-    write_web_prod_env
+    # write_web_prod_env
   fi
 
   echo -e "\nWrote config to $ENV_FILE"
-  echo -e "Wrote config to $ENV_WEB_FILE"
+  # echo -e "Wrote config to $ENV_WEB_FILE"
 }
 
 # ------------------------------------------------------------------------------
