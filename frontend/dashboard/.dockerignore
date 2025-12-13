@@ -6,7 +6,6 @@ dockerfile.prod
 .next
 .swc
 coverage
-.env.local.example
 README.md
 __tests__
 .DS_Store

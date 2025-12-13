@@ -469,12 +469,7 @@ server {
 
 ### Q. How to add or update environment variables?
 
-There are 2 dotenv files that define all environment variables.
-
-- **`self-host/.env`** Contains all backend service environment variables
-- **`frontend/dashboard/.env.local`** Contains nextjs environment variables
-
-You would need to shutdown existing compose services and then start them again for the updated environment variables to take effect.
+All configuration variables are defined in the `self-host/.env` file. For the updated configuration to take effect, shutdown & start compose services.
 
 To do that, run from inside the `self-host` directory.
 
