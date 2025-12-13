@@ -6,9 +6,6 @@
 # Path to universal environment file
 ENV_FILE=.env
 
-# Path to dashboard environment file
-ENV_WEB_FILE=../frontend/dashboard/.env.local
-
 # Measure insignia
 ENV_HEADER=$(
   cat <<'EOF'
@@ -282,43 +279,6 @@ OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 EOF
 }
 
-write_web_dev_env() {
-  cat <<EOF >"$ENV_WEB_FILE"
-$ENV_HEADER
-
-# 🚨 Attention 🚨
-#
-# This configuration file was generated via an automated script.
-# Generated at $ENV_TIMESTAMP
-
-# Measure Dashboard App Configuration
-# Contains environment variables for measure dashboard app
-
-########
-# Next #
-########
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-
-########
-# Auth #
-########
-NEXT_PUBLIC_OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
-NEXT_PUBLIC_OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
-
-###############
-# MEASURE API #
-###############
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-
-###############
-#  Telemetry  #
-###############
-NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=4g8nqy9g
-NEXT_PUBLIC_FRONTEND_SERVICE_NAME=$NAMESPACE
-
-EOF
-}
-
 # Writes environment file for production
 write_prod_env() {
   cat <<EOF >"$ENV_FILE"
@@ -432,43 +392,6 @@ OTEL_EXPORTER_OTLP_ENDPOINT=signoz.measure.sh:4317
 EOF
 }
 
-write_web_prod_env() {
-  cat <<EOF >"$ENV_WEB_FILE"
-$ENV_HEADER
-
-# 🚨 Attention 🚨
-#
-# This configuration file was generated via an automated script.
-# Generated at $ENV_TIMESTAMP
-
-# Measure Dashboard App Configuration
-# Contains environment variables for measure dashboard app
-
-########
-# Next #
-########
-NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-
-########
-# Auth #
-########
-NEXT_PUBLIC_OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
-NEXT_PUBLIC_OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
-
-###############
-# MEASURE API #
-###############
-NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-
-###############
-#  Telemetry  #
-###############
-NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=4g8nqy9g
-NEXT_PUBLIC_FRONTEND_SERVICE_NAME=$NAMESPACE
-
-EOF
-}
-
 # ------------------------------------------------------------------------------
 # Interactive wizard
 # ------------------------------------------------------------------------------
@@ -488,7 +411,6 @@ END
     OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
     OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
     write_dev_env
-    write_web_dev_env
   elif [[ "$SETUP_ENV" == "production" ]]; then
     cat <<END
 
@@ -615,11 +537,9 @@ END
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
     write_prod_env
-    write_web_prod_env
   fi
 
   echo -e "\nWrote config to $ENV_FILE"
-  echo -e "Wrote config to $ENV_WEB_FILE"
 }
 
 # ------------------------------------------------------------------------------
@@ -837,6 +757,12 @@ ensure() {
 
   if ! check_env_variable "POSTHOG_API_KEY"; then
     add_env_variable "POSTHOG_API_KEY" ""
+  fi
+
+  # remove `frontend/dashboard/.env.local` file
+  # if found
+  if [[ -f "../frontend/dashboard/.env.local" ]]; then
+    rm "../frontend/dashboard/.env.local"
   fi
 }
 

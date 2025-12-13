@@ -42,7 +42,7 @@
     "lottie-react": "^2.4.0",
     "lucide-react": "^0.508.0",
     "luxon": "^3.4.4",
-    "next": "^14.2.26",
+    "next": "^14.2.35",
     "postcss": "^8.4.39",
     "posthog-js": "^1.275.1",
     "posthog-node": "^5.9.5",
