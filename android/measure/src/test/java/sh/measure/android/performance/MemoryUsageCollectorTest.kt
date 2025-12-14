@@ -1,7 +1,6 @@
 package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
-import org.junit.Assert
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -49,16 +48,6 @@ internal class MemoryUsageCollectorTest {
                 interval = 0,
             ),
         )
-    }
-
-    @Test
-    fun `MemoryUsageCollector pauses and resumes`() {
-        memoryUsageCollector.register()
-        Assert.assertNotNull(memoryUsageCollector.future)
-        memoryUsageCollector.pause()
-        Assert.assertNull(memoryUsageCollector.future)
-        memoryUsageCollector.resume()
-        Assert.assertNotNull(memoryUsageCollector.future)
     }
 
     @Test

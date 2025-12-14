@@ -169,16 +169,6 @@ internal class CpuUsageCollectorTest {
     }
 
     @Test
-    fun `CpuUsageCollector pauses and resumes`() {
-        cpuUsageCollector.register()
-        Assert.assertNotNull(cpuUsageCollector.future)
-        cpuUsageCollector.pause()
-        Assert.assertNull(cpuUsageCollector.future)
-        cpuUsageCollector.resume()
-        Assert.assertNotNull(cpuUsageCollector.future)
-    }
-
-    @Test
     fun `CpuUsageCollector does not track if not foreground process`() {
         processInfo.foregroundProcess = false
         cpuUsageCollector.register()

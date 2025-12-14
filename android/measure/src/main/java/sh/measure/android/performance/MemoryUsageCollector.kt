@@ -50,11 +50,7 @@ internal class MemoryUsageCollector(
         }
     }
 
-    fun resume() {
-        if (future == null) register()
-    }
-
-    fun pause() {
+    fun unregister() {
         future?.cancel(false)
         future = null
     }
