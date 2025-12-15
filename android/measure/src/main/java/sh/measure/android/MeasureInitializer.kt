@@ -34,21 +34,11 @@ import sh.measure.android.events.UserTriggeredEventCollectorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistry
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
-import sh.measure.android.exporter.AttachmentExporter
-import sh.measure.android.exporter.BatchCreator
-import sh.measure.android.exporter.BatchCreatorImpl
-import sh.measure.android.exporter.DefaultAttachmentExporter
-import sh.measure.android.exporter.ExceptionExporter
-import sh.measure.android.exporter.ExceptionExporterImpl
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.exporter.ExporterImpl
-import sh.measure.android.exporter.Heartbeat
-import sh.measure.android.exporter.HeartbeatImpl
 import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
-import sh.measure.android.exporter.PeriodicExporter
-import sh.measure.android.exporter.PeriodicExporterImpl
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.ActivityLifecycleCollector
@@ -181,6 +171,19 @@ internal class MeasureInitializerImpl(
         packageInfoProvider = packageInfoProvider,
         randomizer = randomizer,
     ),
+    override val exporter: Exporter = ExporterImpl(
+        logger = logger,
+        idProvider = idProvider,
+        timeProvider = timeProvider,
+        randomizer = randomizer,
+        fileStorage = fileStorage,
+        database = database,
+        networkClient = networkClient,
+        httpClient = HttpUrlConnectionClient(logger),
+        configProvider = configProvider,
+        eventExportService = executorServiceRegistry.ioExecutor(),
+        attachmentExportService = executorServiceRegistry.ioExecutor(),
+    ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
@@ -266,34 +269,6 @@ internal class MeasureInitializerImpl(
         lowMemoryCheck = lowMemoryCheck,
         config = configProvider,
     ),
-    private val batchCreator: BatchCreator = BatchCreatorImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        database = database,
-        configProvider = configProvider,
-        idProvider = idProvider,
-    ),
-    override val attachmentExporter: AttachmentExporter = DefaultAttachmentExporter(
-        logger = logger,
-        database = database,
-        executorService = executorServiceRegistry.attachmentExportExecutor(),
-        randomizer = randomizer,
-        fileStorage = fileStorage,
-        httpClient = HttpUrlConnectionClient(logger),
-    ),
-    private val exporter: Exporter = ExporterImpl(
-        logger = logger,
-        database = database,
-        networkClient = networkClient,
-        fileStorage = fileStorage,
-        batchCreator = batchCreator,
-        attachmentExporter = attachmentExporter,
-    ),
-    private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
-        logger = logger,
-        exportExecutor = executorServiceRegistry.eventExportExecutor(),
-        exporter = exporter,
-    ),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,
         ioExecutor = executorServiceRegistry.ioExecutor(),
@@ -301,9 +276,9 @@ internal class MeasureInitializerImpl(
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = attributeProcessors,
-        exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
+        exporter = exporter,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         logger = logger,
@@ -311,19 +286,6 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
         configProvider = configProvider,
-    ),
-    private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
-        logger,
-        executorServiceRegistry.defaultExecutor(),
-        randomizer,
-    ),
-    override val periodicExporter: PeriodicExporter = PeriodicExporterImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        configProvider = configProvider,
-        exportExecutor = executorServiceRegistry.eventExportExecutor(),
-        heartbeat = periodicHeartbeat,
-        exporter = exporter,
     ),
     private val httpEventCollectorFactory: HttpEventCollectorFactory = HttpEventCollectorFactory(
         logger = logger,
@@ -509,9 +471,8 @@ internal interface MeasureInitializer {
     val gestureCollector: GestureCollector
     val appLaunchCollector: AppLaunchCollector
     val networkChangesCollector: NetworkChangesCollector
-    val periodicExporter: PeriodicExporter
-    val attachmentExporter: AttachmentExporter
     val userAttributeProcessor: UserAttributeProcessor
+    val exporter: Exporter
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider

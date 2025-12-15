@@ -82,7 +82,7 @@ internal interface Database : Closeable {
     fun getSpanPackets(spanIds: List<String>): List<SpanPacket>
 
     /**
-     * Returns a map of batch IDs to event IDs that have not been synced with the server in
+     * Returns batches that have not been synced with the server in
      * ascending order of creation time.
      *
      * @param maxBatches The maximum number of batches to return.

@@ -72,6 +72,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
                 if (measure.configProvider.autoStart) {
                     start()
                 }
+                measure.exporter.export()
             }
         }
         measure.logger.log(LogLevel.Debug, "Initialization complete")

@@ -10,7 +10,7 @@ import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.exporter.ExceptionExporter
+import sh.measure.android.exporter.Exporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.screenshot.ScreenshotCollector
@@ -102,7 +102,7 @@ internal class SignalProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val exceptionExporter: ExceptionExporter,
+    private val exporter: Exporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
 ) : SignalProcessor {
@@ -228,7 +228,7 @@ internal class SignalProcessorImpl(
         applyAttributes(attributes, event, threadName)
         signalStore.store(event)
         onEventTracked(event)
-        exceptionExporter.export(event.sessionId)
+        exporter.forceImmediateEventExport(event.id)
     }
 
     override fun trackSpan(spanData: SpanData) {
