@@ -316,8 +316,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		Select("any(device_manufacturer)").
 		Select("any(tupleElement(os_version, 1))").
 		Select("any(tupleElement(os_version, 2))").
-		Select("start_time").
-		Select("end_time").
+		Select("min(start_time) start_time").
+		Select("max(end_time) end_time").
 		// Prefer start_time over first_event_timestamp
 		//
 		// Modify this query later to only query using
@@ -328,7 +328,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			Select("*").
 			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
 			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").String()+") as sessions").
-		Where("app_id = toUUID(?) and start_time >= ? and end_time <= ?", af.AppID, af.From, af.To).
+		Where("app_id = toUUID(?)", af.AppID).
+		Having("start_time >= ? and end_time <= ?", af.From, af.To).
 		OrderBy("start_time desc")
 
 	if af.Limit > 0 {
@@ -418,8 +419,6 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	if applyGroupBy {
 		stmt.GroupBy("session_id")
-		stmt.GroupBy("start_time")
-		stmt.GroupBy("end_time")
 	}
 
 	defer stmt.Close()
