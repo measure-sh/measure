@@ -270,6 +270,11 @@
 		CFB8382F2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
 		CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */; };
 		CFBF62712DB7B38100D5ADFB /* SwizzlingUtilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */; };
+		CFC7CFD82EF1A0EF00F569AA /* MeasureSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = CFC7CFD62EF1A0EF00F569AA /* MeasureSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		CFC7CFD92EF1A0EF00F569AA /* MeasureSDK.m in Sources */ = {isa = PBXBuildFile; fileRef = CFC7CFD72EF1A0EF00F569AA /* MeasureSDK.m */; };
+		CFC7CFE02EF1A21D00F569AA /* MSRConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = CFC7CFDE2EF1A21D00F569AA /* MSRConfig.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		CFC7CFE12EF1A21D00F569AA /* MSRConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = CFC7CFDF2EF1A21D00F569AA /* MSRConfig.m */; };
+		CFC7CFE32EF1A2CC00F569AA /* ScreenshotMaskingLevel.h in Headers */ = {isa = PBXBuildFile; fileRef = CFC7CFE22EF1A2CC00F569AA /* ScreenshotMaskingLevel.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */; };
 		CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C692D9E94B40095115E /* MsrSpan.swift */; };
 		CFD88C702D9E94B40095115E /* Span.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6A2D9E94B40095115E /* Span.swift */; };
@@ -617,6 +622,11 @@
 		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwizzlingUtility.swift; sourceTree = "<group>"; };
 		CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwizzlingUtilityTests.swift; sourceTree = "<group>"; };
+		CFC7CFD62EF1A0EF00F569AA /* MeasureSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeasureSDK.h; sourceTree = "<group>"; };
+		CFC7CFD72EF1A0EF00F569AA /* MeasureSDK.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MeasureSDK.m; sourceTree = "<group>"; };
+		CFC7CFDE2EF1A21D00F569AA /* MSRConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSRConfig.h; sourceTree = "<group>"; };
+		CFC7CFDF2EF1A21D00F569AA /* MSRConfig.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSRConfig.m; sourceTree = "<group>"; };
+		CFC7CFE22EF1A2CC00F569AA /* ScreenshotMaskingLevel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenshotMaskingLevel.h; sourceTree = "<group>"; };
 		CFD88C692D9E94B40095115E /* MsrSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpan.swift; sourceTree = "<group>"; };
 		CFD88C6A2D9E94B40095115E /* Span.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Span.swift; sourceTree = "<group>"; };
 		CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessor.swift; sourceTree = "<group>"; };
@@ -698,6 +708,9 @@
 			isa = PBXGroup;
 			children = (
 				526D17922D5A1913009A2E90 /* MSRViewController.h */,
+				CFC7CFDE2EF1A21D00F569AA /* MSRConfig.h */,
+				CFC7CFD62EF1A0EF00F569AA /* MeasureSDK.h */,
+				CFC7CFE22EF1A2CC00F569AA /* ScreenshotMaskingLevel.h */,
 			);
 			path = include;
 			sourceTree = "<group>";
@@ -709,6 +722,8 @@
 				526D17942D5A1913009A2E90 /* MSRViewController.m */,
 				CF5AA0682E5ED97A008993F9 /* LifecycleEvent.h */,
 				52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */,
+				CFC7CFD72EF1A0EF00F569AA /* MeasureSDK.m */,
+				CFC7CFDF2EF1A21D00F569AA /* MSRConfig.m */,
 			);
 			path = ObjC;
 			sourceTree = "<group>";
@@ -1385,7 +1400,10 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFC7CFE02EF1A21D00F569AA /* MSRConfig.h in Headers */,
 				52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */,
+				CFC7CFD82EF1A0EF00F569AA /* MeasureSDK.h in Headers */,
+				CFC7CFE32EF1A2CC00F569AA /* ScreenshotMaskingLevel.h in Headers */,
 				CF5AA0692E5ED97A008993F9 /* LifecycleEvent.h in Headers */,
 				526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */,
 			);
@@ -1648,6 +1666,7 @@
 				526D18512D5A1913009A2E90 /* StackFrame.swift in Sources */,
 				526D184C2D5A1913009A2E90 /* EventType.swift in Sources */,
 				526D187C2D5A1913009A2E90 /* String+Extension.swift in Sources */,
+				CFC7CFD92EF1A0EF00F569AA /* MeasureSDK.m in Sources */,
 				526D187E2D5A1913009A2E90 /* UIDevice+Extension.swift in Sources */,
 				CF1BB4962DCC7FE300588506 /* BugReportCollector.swift in Sources */,
 				CFD88D0D2DA7968E0095115E /* SpanBuilder.swift in Sources */,
@@ -1692,6 +1711,7 @@
 				526D18882D5A1913009A2E90 /* SignPost.swift in Sources */,
 				529B319B2D5B85FC007A8E45 /* BinaryImage.swift in Sources */,
 				CF1BB4ED2DDB474100588506 /* ScreenshotMaskLevel.swift in Sources */,
+				CFC7CFE12EF1A21D00F569AA /* MSRConfig.m in Sources */,
 				526D18842D5A1913009A2E90 /* LifecycleObserver.swift in Sources */,
 				526D18502D5A1913009A2E90 /* ExceptionDetail.swift in Sources */,
 				526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */,
@@ -1937,7 +1957,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -2005,7 +2025,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -2045,6 +2065,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -2091,6 +2112,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -2228,7 +2250,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -2275,6 +2297,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
