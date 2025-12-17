@@ -1,7 +1,8 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, NativeEventEmitter } from 'react-native';
 import type { Logger } from '../utils/logger';
 import { ClientInfoInternal, type Client } from '../config/clientInfo';
 import type { MeasureConfig } from '../config/measureConfig';
+import type { ValidAttributeValue } from '../utils/attributeValueValidator';
 
 const LINKING_ERROR =
   `The package '@measuresh/react-native' doesn't seem to be linked properly.` +
@@ -19,6 +20,16 @@ const MeasureModule = NativeModules.MeasureModule
         },
       }
     );
+
+let ShakeEmitter: NativeEventEmitter | null = null;
+
+function getShakeEmitter() {
+  if (!ShakeEmitter) {
+    const native = NativeModules.MeasureOnShake || {};
+    ShakeEmitter = new NativeEventEmitter(native);
+  }
+  return ShakeEmitter;
+}
 
 export function initializeNativeSDK(
   client: Client,
@@ -141,7 +152,9 @@ export function setUserId(userId: string): Promise<any> {
 
 export function clearUserId(): Promise<any> {
   if (!MeasureModule.clearUserId) {
-    return Promise.reject(new Error('clearUserId native method not available.'));
+    return Promise.reject(
+      new Error('clearUserId native method not available.')
+    );
   }
   return MeasureModule.clearUserId();
 }
@@ -178,4 +191,85 @@ export function trackHttpEvent(
     responseBody,
     client
   );
+}
+
+export function launchBugReport(
+  takeScreenshot: boolean = true,
+  bugReportConfig: Record<string, any> = {},
+  attributes: Record<string, ValidAttributeValue> = {}
+): Promise<void> {
+  if (!MeasureModule.launchBugReport) {
+    return Promise.reject(
+      new Error('launchBugReport native method not available.')
+    );
+  }
+
+  return MeasureModule.launchBugReport(
+    takeScreenshot,
+    bugReportConfig,
+    attributes
+  );
+}
+
+export function setShakeListener(enable: boolean, handler?: () => void): void {
+  if (!MeasureModule.setShakeListener) {
+    throw new Error('setShakeListener native method not available.');
+  }
+
+  const emitter = getShakeEmitter();
+  emitter.removeAllListeners('MeasureOnShake');
+
+  if (!enable || !handler) {
+    MeasureModule.setShakeListener(false);
+    return;
+  }
+
+  MeasureModule.setShakeListener(true);
+  emitter.addListener('MeasureOnShake', handler);
+}
+
+export function captureScreenshot(): Promise<{
+  name: string;
+  type: 'screenshot';
+  path: string;
+  size: number;
+  id: string;
+}> {
+  if (!MeasureModule.captureScreenshot) {
+    return Promise.reject(
+      new Error('captureScreenshot native method not available.')
+    );
+  }
+
+  return MeasureModule.captureScreenshot();
+}
+
+export function captureLayoutSnapshot(): Promise<{
+  name: string;
+  type: 'layout_snapshot';
+  path: string;
+  size: number;
+  id: string;
+}> {
+  if (!MeasureModule.captureLayoutSnapshot) {
+    return Promise.reject(
+      new Error('captureLayoutSnapshot native method not available.')
+    );
+  }
+
+  return MeasureModule.captureLayoutSnapshot();
+}
+
+export function trackBugReport(
+  description: string,
+  attachments: any[] = [],
+  attributes: Record<string, ValidAttributeValue> = {}
+): Promise<void> {
+  if (!MeasureModule.trackBugReport) {
+    return Promise.reject(
+      new Error('trackBugReport native method not available.')
+    );
+  }
+
+  return MeasureModule.trackBugReport(description, attachments, attributes);
 }

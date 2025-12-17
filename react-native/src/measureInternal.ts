@@ -1,15 +1,17 @@
 import type { Client } from './config/clientInfo';
 import { DefaultConfig } from './config/defaultConfig';
 import { MeasureConfig } from './config/measureConfig';
+import type { MsrAttachment } from './events/msrAttachment';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
-import { initializeNativeSDK, start, stop } from './native/measureBridge';
+import { initializeNativeSDK, setShakeListener, start, stop } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
+  private shakeHandler?: (() => void) | null;
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
@@ -27,6 +29,20 @@ export class MeasureInternal {
       'info',
       'React Native error handlers installed.'
     );
+  }
+
+  registerCollectors(): void {
+    this.measureInitializer.customEventCollector.register();
+    this.measureInitializer.userTriggeredEventCollector.register();
+    this.measureInitializer.spanCollector.register();
+    this.measureInitializer.bugReportCollector.register();
+  }
+
+  unregisterCollectors(): void {
+    this.measureInitializer.customEventCollector.unregister();
+    this.measureInitializer.userTriggeredEventCollector.unregister();
+    this.measureInitializer.spanCollector.unregister();
+    this.measureInitializer.bugReportCollector.unregister();
   }
 
   init(client: Client, config: MeasureConfig | null): Promise<any> {
@@ -62,21 +78,18 @@ export class MeasureInternal {
     return start();
   };
 
-  stop = (): Promise<any> => {
-    return stop();
-  };
+  stop = (): Promise<any> => stop();
 
   trackEvent = (
     name: string,
     attributes?: Record<string, ValidAttributeValue>,
     timestamp?: number
-  ): Promise<void> => {
-    return this.measureInitializer.customEventCollector.trackCustomEvent(
+  ): Promise<void> =>
+    this.measureInitializer.customEventCollector.trackCustomEvent(
       name,
       attributes ?? {},
       timestamp
     );
-  };
 
   getCurrentTime(): number {
     return this.measureInitializer.timeProvider.now();
@@ -85,23 +98,40 @@ export class MeasureInternal {
   trackScreenView = (
     screenName: string,
     attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void> => {
-    return this.measureInitializer.userTriggeredEventCollector.trackScreenView(
+  ): Promise<void> =>
+    this.measureInitializer.userTriggeredEventCollector.trackScreenView(
       screenName,
       attributes ?? {}
     );
-  };
 
-  registerCollectors(): void {
-    this.measureInitializer.customEventCollector.register();
-    this.measureInitializer.userTriggeredEventCollector.register();
-    this.measureInitializer.spanCollector.register();
+  launchBugReport = (
+    takeScreenshot: boolean = true,
+    bugReportConfig: Record<string, any> = {},
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> =>
+    this.measureInitializer.bugReportCollector.launchBugReport(
+      takeScreenshot,
+      bugReportConfig,
+      attributes
+    );
+
+  onShake(handler?: (() => void) | null): void {
+    this.shakeHandler = handler;
+    const enable = !!handler;
+    setShakeListener(enable, handler ?? undefined);
+
+    this.measureInitializer.logger.internalLog(
+      'info',
+      enable ? 'Shake listener enabled.' : 'Shake listener disabled.'
+    );
   }
 
-  unregisterCollectors(): void {
-    this.measureInitializer.customEventCollector.unregister();
-    this.measureInitializer.userTriggeredEventCollector.unregister();
-    this.measureInitializer.spanCollector.unregister();
+  async captureScreenshot(): Promise<MsrAttachment | null> {
+    return this.measureInitializer.screenshotCollector.capture();
+  }
+
+  async captureLayoutSnapshot(): Promise<MsrAttachment | null> {
+    return this.measureInitializer.layoutSnapshotCollector.capture();
   }
 
   createSpan(name: string): SpanBuilder | undefined {
@@ -144,5 +174,17 @@ export class MeasureInternal {
     responseBody?: string | null;
   }): Promise<void> {
     return this.measureInitializer.userTriggeredEventCollector.trackHttpEvent(params);
+  }
+  
+  trackBugReport(
+    description: string,
+    attachments: MsrAttachment[] = [],
+    attributes: Record<string, ValidAttributeValue> = {}
+  ): Promise<void> {
+    return this.measureInitializer.bugReportCollector.trackBugReport(
+      description,
+      attachments,
+      attributes
+    );
   }
 }

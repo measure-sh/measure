@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SectionList,
   SafeAreaView,
@@ -7,6 +7,7 @@ import {
   useColorScheme,
   Pressable,
   StyleSheet,
+  Image,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -30,7 +31,11 @@ const App = (): React.JSX.Element => {
   const contentBackgroundColor = isDarkMode ? Colors.black : Colors.white;
   const textColor = isDarkMode ? Colors.white : Colors.black;
 
-  const initializeMeasure = () => {
+  // Screenshot state
+  const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
+  const [showScreenshot, setShowScreenshot] = useState(false);
+
+  const initializeMeasure = async () => {
     const clientInfo = new ClientInfo(
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
@@ -55,14 +60,18 @@ const App = (): React.JSX.Element => {
       maxDiskUsageInMb: 50,
     });
 
-    Measure.init(clientInfo, measureConfig);
+    await Measure.init(clientInfo, measureConfig);
+
+    Measure.onShake(() => {
+      console.log('Shake detected — launching bug report flow!');
+      Measure.launchBugReport(true, {source: 'shake'}, {screen: 'Home'});
+    });
   };
 
   useEffect(() => {
     initializeMeasure();
   }, []);
 
-  /** === SDK Actions === */
   const startMeasure = () => {
     Measure.start()
       .then(() => console.log('Measure SDK started successfully'))
@@ -112,6 +121,51 @@ const App = (): React.JSX.Element => {
   };
 
   /** === Simulation Helpers === */
+  const launchBugReport = () => {
+    console.log('Launching bug report flow manually');
+    Measure.launchBugReport(true, {source: 'manual'}, {screen: 'Home'});
+  };
+
+  const trackManualBugReport = async () => {
+    try {
+      const screenshot = await Measure.captureScreenshot();
+      const layoutSnapshot = await Measure.captureLayoutSnapshot();
+
+      const attachments = [screenshot, layoutSnapshot].filter(
+        attachment => attachment !== null,
+      );
+
+      await Measure.trackBugReport(
+        'Manual bug report triggered from example app',
+        attachments,
+        {source: 'example_app', screen: 'Home'},
+      );
+
+      console.log('Manual bug report with attachments sent!');
+    } catch (err) {
+      console.error('Failed to send manual bug report:', err);
+    }
+  };
+
+  const captureScreenshot = async () => {
+    try {
+      const attachment = await Measure.captureScreenshot();
+
+      if (attachment?.path) {
+        const path = attachment.path.startsWith('file://')
+          ? attachment.path
+          : `file://${attachment.path}`;
+
+        setScreenshotPath(path);
+        setShowScreenshot(true);
+      }
+
+      console.log('Screenshot captured:', attachment);
+    } catch (e) {
+      console.error('Screenshot failed:', e);
+    }
+  };
+
   const simulateJSException = () => {
     throw new Error('Simulated JavaScript exception');
   };
@@ -176,6 +230,11 @@ const App = (): React.JSX.Element => {
           onPress: trackCustomEvent,
         },
         {
+          id: 'bug-report',
+          title: 'Open Bug Report',
+          onPress: launchBugReport,
+        },
+        {
           id: 'track-http',
           title: 'Track HTTP Event Manually',
           onPress: trackHttpEventManually,
@@ -194,6 +253,21 @@ const App = (): React.JSX.Element => {
           id: 'xhr-test',
           title: 'Test XHR API Call',
           onPress: testXhrApi,
+        },
+        {
+          id: 'manual-bug-report',
+          title: 'Send Manual Bug Report',
+          onPress: trackManualBugReport,
+        },
+        {
+          id: 'screenshot',
+          title: 'Capture Screenshot',
+          onPress: captureScreenshot,
+        },
+        {
+          id: 'crash',
+          title: 'Simulate Crash',
+          onPress: () => console.log('Simulate crash'),
         },
       ],
     },
@@ -230,7 +304,9 @@ const App = (): React.JSX.Element => {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundColor}
       />
+
       <Text style={styles.title}>Measure SDK Actions</Text>
+
       <SectionList
         sections={sections}
         keyExtractor={item => item.id}
@@ -249,17 +325,26 @@ const App = (): React.JSX.Element => {
           </Text>
         )}
       />
+
+      {/* Screenshot Popup */}
+      {showScreenshot && screenshotPath && (
+        <Pressable
+          style={styles.screenshotOverlay}
+          onPress={() => setShowScreenshot(false)}>
+          <Image
+            source={{uri: screenshotPath}}
+            style={styles.screenshotImage}
+            resizeMode="contain"
+          />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
+  container: {flex: 1},
+  content: {padding: 16},
   title: {
     fontSize: 24,
     fontWeight: '600',
@@ -282,6 +367,22 @@ const styles = StyleSheet.create({
     color: '#1e1e1e',
     fontSize: 16,
     textAlign: 'left',
+  },
+  screenshotOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  screenshotImage: {
+    width: '100%',
+    height: '80%',
+    borderRadius: 12,
   },
 });
 

@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.ViewManager
 
 class MeasurePackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    return listOf(MeasureModule(reactContext))
+    return listOf(MeasureModule(reactContext), MeasureOnShakeModule(reactContext))
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {

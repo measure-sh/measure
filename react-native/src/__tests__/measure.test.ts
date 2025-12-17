@@ -1,12 +1,13 @@
-import { Measure } from "../measure";
-import { MeasureInternal } from "../measureInternal";
-import { MeasureConfig } from "../config/measureConfig";
-import { ClientInfo, type Client } from "../config/clientInfo";
+import { Measure } from '../measure';
+import { MeasureInternal } from '../measureInternal';
+import { MeasureConfig } from '../config/measureConfig';
+import { ClientInfo, type Client } from '../config/clientInfo';
+import { ScreenshotMaskLevel } from '../config/screenshotMaskLevel';
 
-jest.mock("../measureInitializer");
-jest.mock("../measureInternal");
+jest.mock('../measureInitializer');
+jest.mock('../measureInternal');
 
-describe("Measure.init", () => {
+describe('Measure.init', () => {
   let client: Client;
   let config: MeasureConfig;
   let mockInit: jest.Mock;
@@ -15,14 +16,28 @@ describe("Measure.init", () => {
     jest.clearAllMocks();
 
     client = new ClientInfo(
-      "test-client-id-ios",
-      "test-client-id-android",
-      "https://api.example.com"
+      'test-client-id-ios',
+      'test-client-id-android',
+      'https://api.example.com'
     );
 
-    config = new MeasureConfig(
-      true, 1, 1, false, false, [], [], [], false, true
-    );
+    config = new MeasureConfig({
+      enableLogging: true,
+      samplingRateForErrorFreeSessions: 1.0,
+      coldLaunchSamplingRate: 1.0,
+      warmLaunchSamplingRate: 1.0,
+      hotLaunchSamplingRate: 1.0,
+      journeySamplingRate: 1.0,
+      traceSamplingRate: 1.0,
+      trackHttpHeaders: true,
+      trackHttpBody: true,
+      httpHeadersBlocklist: [],
+      httpUrlBlocklist: [],
+      httpUrlAllowlist: [],
+      autoStart: true,
+      screenshotMaskLevel: ScreenshotMaskLevel.allText,
+      maxDiskUsageInMb: 50,
+    });
 
     // Make init return a real resolved promise
     mockInit = jest.fn(() => Promise.resolve());
@@ -35,7 +50,7 @@ describe("Measure.init", () => {
     }));
   });
 
-  it("should only initialize once", async () => {
+  it('should only initialize once', async () => {
     // First call to init
     const firstPromise = Measure.init(client, config);
     expect(mockInit).toHaveBeenCalledTimes(1);

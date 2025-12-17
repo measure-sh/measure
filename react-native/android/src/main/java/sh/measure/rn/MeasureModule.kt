@@ -2,6 +2,8 @@
 
 package sh.measure.rn
 
+import android.util.Base64
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -11,8 +13,10 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
 import sh.measure.android.Measure
 import sh.measure.android.MsrAttachment
+import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
+import java.io.File
 
 class MeasureModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -31,10 +35,14 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             val config = MeasureConfig.fromJson(configJson)
 
             UiThreadUtil.runOnUiThread {
-                Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+                try {
+                    Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+                    promise.resolve("Native Measure SDK initialized successfully")
+                } catch (e: Exception) {
+                    promise.reject(ErrorCode.INIT_ERROR, e)
+                }
             }
 
-            promise.resolve("Native Measure SDK initialized successfully")
         } catch (e: Exception) {
             promise.reject(ErrorCode.INIT_ERROR, "Failed to initialize Measure SDK", e)
         }
@@ -115,7 +123,8 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
                 if (attributes != null) MapUtils.toMutableMap(attributes) else mutableMapOf<String, Any?>()
 
             val userAttrs =
-                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf<String, Any>()
+                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) }
+                    ?: mutableMapOf<String, Any>()
 
             val checkpointsMap = mutableMapOf<String, Long>()
 
@@ -206,5 +215,217 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         )
 
         promise.resolve("ok")
+    }
+
+    @ReactMethod
+    fun launchBugReport(
+        takeScreenshot: Boolean,
+        bugReportConfig: ReadableMap?,
+        attributes: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            val userAttrs =
+                attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+            Measure.launchBugReportActivity(takeScreenshot, userAttrs)
+
+            promise.resolve("Bug report launched successfully")
+        } catch (e: Exception) {
+            promise.reject("LAUNCH_BUG_REPORT_FAILED", e)
+        }
+    }
+
+    @ReactMethod
+    fun setShakeListener(enable: Boolean) {
+        val shakeEmitter = reactApplicationContext
+            .getNativeModule(MeasureOnShakeModule::class.java)
+
+        if (enable) {
+            Measure.setShakeListener(object : MsrShakeListener {
+                override fun onShake() {
+                    shakeEmitter?.triggerShakeEvent()
+                }
+            })
+        } else {
+            Measure.setShakeListener(null)
+        }
+    }
+
+    @ReactMethod
+    fun captureScreenshot(promise: Promise) {
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("NO_ACTIVITY", "No current activity available")
+            return
+        }
+
+        UiThreadUtil.runOnUiThread {
+            try {
+                Measure.captureScreenshot(
+                    activity,
+                    onComplete = { attachment ->
+
+                        try {
+                            val map = Arguments.createMap().apply {
+                                putString("id", attachment.name)
+                                putString("name", attachment.name)
+                                putString("type", attachment.type)
+
+                                attachment.path?.let { filePath ->
+                                    putString("path", filePath)
+
+                                    val file = File(filePath)
+                                    if (file.exists()) {
+                                        putInt("size", file.length().toInt())
+                                    }
+                                }
+
+                                attachment.bytes?.let { bytes ->
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                    putString("bytes", base64)
+                                    putInt("size", bytes.size)
+                                }
+                            }
+
+                            promise.resolve(map)
+                        } catch (e: Exception) {
+                            promise.reject("MAP_ERROR", "Failed building result map", e)
+                        }
+                    },
+                    onError = {
+                        promise.reject("CAPTURE_FAIL", "Failed to capture screenshot")
+                    }
+                )
+            } catch (e: Exception) {
+                promise.reject("SCREENSHOT_CAPTURE_FAILED", e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun captureLayoutSnapshot(promise: Promise) {
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("NO_ACTIVITY", "No current activity available")
+            return
+        }
+
+        UiThreadUtil.runOnUiThread {
+            try {
+                Measure.captureLayoutSnapshot(
+                    activity,
+                    onComplete = { attachment ->
+                        try {
+                            val map = Arguments.createMap().apply {
+                                putString("id", attachment.name)
+                                putString("name", attachment.name)
+                                putString("type", attachment.type)
+
+                                attachment.path?.let { filePath ->
+                                    putString("path", filePath)
+
+                                    val file = File(filePath)
+                                    if (file.exists()) {
+                                        putInt("size", file.length().toInt())
+                                    }
+                                }
+
+                                attachment.bytes?.let { bytes ->
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                    putString("bytes", base64)
+                                    putInt("size", bytes.size)
+                                }
+                            }
+
+                            promise.resolve(map)
+
+                        } catch (e: Exception) {
+                            promise.reject("MAP_ERROR", "Failed building snapshot map", e)
+                        }
+                    },
+                    onError = {
+                        promise.reject("LAYOUT_SNAPSHOT_FAIL", "Failed to capture layout snapshot")
+                    }
+                )
+            } catch (e: Exception) {
+                promise.reject("LAYOUT_SNAPSHOT_EXCEPTION", e)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun trackBugReport(
+        description: String,
+        attachments: ReadableArray?,
+        attributes: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            val attrs =
+                attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+
+            val msrAttachments = getMsrAttachments(attachments)
+
+            Measure.trackBugReport(
+                description,
+                msrAttachments,
+                attrs
+            )
+
+            promise.resolve("Bug report tracked successfully")
+        } catch (e: Exception) {
+            promise.reject("TRACK_BUG_REPORT_FAILED", e)
+        }
+    }
+
+    private fun getMsrAttachments(attachments: ReadableArray?): List<MsrAttachment> {
+        if (attachments == null || attachments.size() == 0) return emptyList()
+
+        val list = mutableListOf<MsrAttachment>()
+
+        val attachmentDirPath = Measure.internalGetAttachmentDirectory()
+        val attachmentDir = attachmentDirPath?.let { File(it) }
+
+        for (i in 0 until attachments.size()) {
+            val map = attachments.getMap(i) ?: continue
+
+            val name = map.getString("name") ?: continue
+            val type = map.getString("type") ?: continue
+            val path = map.getString("path")
+            val base64 = map.getString("bytes")
+
+            val finalPath = when {
+                path != null -> path
+
+                base64 != null && attachmentDir != null -> {
+                    try {
+                        if (!attachmentDir.exists()) {
+                            attachmentDir.mkdirs()
+                        }
+
+                        val bytes = Base64.decode(base64, Base64.DEFAULT)
+                        val file = File(attachmentDir, name)
+                        file.writeBytes(bytes)
+                        file.absolutePath
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                else -> null
+            }
+
+            if (finalPath != null) {
+                list.add(
+                    MsrAttachment(
+                        name = name,
+                        path = finalPath,
+                        type = type,
+                    )
+                )
+            }
+        }
+
+        return list
     }
 }
