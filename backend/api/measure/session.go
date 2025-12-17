@@ -131,12 +131,22 @@ func (s Session) DurationFromEvents() time.Duration {
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching various filters.
 func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
-	base := sqlf.From("sessions").
+	base := sqlf.
 		Select("session_id").
-		Select("first_event_timestamp").
-		Select("last_event_timestamp").
+		Select("start_time").
+		Select("end_time").
 		Select("app_version").
-		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
+		// Prefer start_time over first_event_timestamp
+		//
+		// Modify this query later to only query using
+		// start_time. Windowing like this at query time
+		// is a crutch. Removing windowing once all sessions
+		// use start_time/end_time.
+		From("("+sqlf.From("sessions").
+			Select("*").
+			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").String()+") as sessions").
+		Where("app_id = toUUID(?) and start_time >= ? and end_time <= ?", af.AppID, af.From, af.To)
 
 	// Don't return boring sessions that has less than n events, so filter
 	// those out. Many sessions may have just a `session_start`
@@ -230,7 +240,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 
 		// compute arguments automatically
 		args := []any{}
-		for i := 0; i < len(matches); i++ {
+		for range len(matches) {
 			args = append(args, freeText)
 		}
 
@@ -260,15 +270,15 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 	if applyGroupBy {
 		base.GroupBy("session_id")
 		base.GroupBy("app_version")
-		base.GroupBy("first_event_timestamp")
-		base.GroupBy("last_event_timestamp")
+		base.GroupBy("start_time")
+		base.GroupBy("end_time")
 	}
 
 	stmt := sqlf.
 		With("base", base).
 		From("base").
 		Select("uniq(session_id) instances").
-		Select("formatDateTime(first_event_timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select("formatDateTime(start_time, '%Y-%m-%d', ?) datetime", af.Timezone).
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		GroupBy("app_version, datetime").
 		OrderBy("datetime, tupleElement(app_version, 2) desc")
@@ -306,16 +316,20 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		Select("any(device_manufacturer)").
 		Select("any(tupleElement(os_version, 1))").
 		Select("any(tupleElement(os_version, 2))").
-		// avoid duplicates using window functions
+		Select("start_time").
+		Select("end_time").
+		// Prefer start_time over first_event_timestamp
 		//
-		// we choose the least first_event_timestamp
-		// and most last_event_timestamp otherwise
-		// duplicate sessions will be selected
-		Select("first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)").
-		Select("last_value(last_event_timestamp) over (partition by session_id)").
-		From("sessions").
-		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To).
-		OrderBy("first_event_timestamp desc")
+		// Modify this query later to only query using
+		// start_time. Windowing like this at query time
+		// is a crutch. Removing windowing once all sessions
+		// use start_time/end_time.
+		From("("+sqlf.From("sessions").
+			Select("*").
+			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").String()+") as sessions").
+		Where("app_id = toUUID(?) and start_time >= ? and end_time <= ?", af.AppID, af.From, af.To).
+		OrderBy("start_time desc")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
@@ -404,8 +418,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	if applyGroupBy {
 		stmt.GroupBy("session_id")
-		stmt.GroupBy("first_event_timestamp")
-		stmt.GroupBy("last_event_timestamp")
+		stmt.GroupBy("start_time")
+		stmt.GroupBy("end_time")
 	}
 
 	defer stmt.Close()
@@ -419,26 +433,26 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		matches := []string{
 			"user_id like ?",
 			"toString(session_id) like ?",
-			"arrayFirst(x -> x ilike ?, unique_types)",
-			"arrayFirst(x -> x ilike ?, unique_strings)",
-			"arrayFirst(x -> x ilike ?, unique_view_classnames)",
-			"arrayFirst(x -> x ilike ?, unique_subview_classnames)",
-			"arrayFirst(x -> x.type ilike ?, unique_exceptions)",
-			"arrayFirst(x -> x.message ilike ?, unique_exceptions)",
-			"arrayFirst(x -> x.file_name ilike ?, unique_exceptions)",
-			"arrayFirst(x -> x.class_name ilike ?, unique_exceptions)",
-			"arrayFirst(x -> x.method_name ilike ?, unique_exceptions)",
-			"arrayFirst(x -> x.type ilike ?, unique_anrs)",
-			"arrayFirst(x -> x.message ilike ?, unique_anrs)",
-			"arrayFirst(x -> x.file_name ilike ?, unique_anrs)",
-			"arrayFirst(x -> x.class_name ilike ?, unique_anrs)",
-			"arrayFirst(x -> x.method_name ilike ?, unique_anrs)",
-			"arrayFirst(x -> x.1 ilike ?, unique_click_targets)",
-			"arrayFirst(x -> x.2 ilike ?, unique_click_targets)",
-			"arrayFirst(x -> x.1 ilike ?, unique_longclick_targets)",
-			"arrayFirst(x -> x.2 ilike ?, unique_longclick_targets)",
-			"arrayFirst(x -> x.1 ilike ?, unique_scroll_targets)",
-			"arrayFirst(x -> x.2 ilike ?, unique_scroll_targets)",
+			"arrayExists(x -> x ilike ?, unique_types)",
+			"arrayExists(x -> x ilike ?, unique_strings)",
+			"arrayExists(x -> x ilike ?, unique_view_classnames)",
+			"arrayExists(x -> x ilike ?, unique_subview_classnames)",
+			"arrayExists(x -> x.type ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.message ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.file_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.class_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.method_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.type ilike ?, unique_anrs)",
+			"arrayExists(x -> x.message ilike ?, unique_anrs)",
+			"arrayExists(x -> x.file_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.class_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.method_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.1 ilike ?, unique_click_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_click_targets)",
+			"arrayExists(x -> x.1 ilike ?, unique_longclick_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_longclick_targets)",
+			"arrayExists(x -> x.1 ilike ?, unique_scroll_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_scroll_targets)",
 		}
 
 		argsMatch := []any{}
@@ -446,23 +460,21 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			argsMatch = append(argsMatch, freeText)
 		}
 
-		stmt.Select("argMin(user_id, ?)", freeText).
-			Select("argMin(unique_types, ?)", freeText).
-			Select("argMin(unique_strings, ?)", freeText).
-			Select("argMin(unique_view_classnames, ?)", freeText).
-			Select("argMin(unique_subview_classnames, ?)", freeText).
-			Select("argMin(unique_exceptions, ?)", freeText).
-			Select("argMin(unique_anrs, ?)", freeText).
-			Select("argMin(unique_click_targets, ?)", freeText).
-			Select("argMin(unique_longclick_targets, ?)", freeText).
-			Select("argMin(unique_scroll_targets, ?)", freeText)
+		stmt.Select("any(user_id)").
+			Select("any(unique_types)").
+			Select("any(unique_strings)").
+			Select("any(unique_view_classnames)").
+			Select("any(unique_subview_classnames)").
+			Select("any(unique_exceptions)").
+			Select("any(unique_anrs)").
+			Select("any(unique_click_targets)").
+			Select("any(unique_longclick_targets)").
+			Select("any(unique_scroll_targets)")
 
 		// run complex text matching with multiple 'OR's
 		stmt.Where(fmt.Sprintf("(%s)", strings.Join(matches, " or ")), argsMatch...)
 		stmt.GroupBy("user_id")
 	}
-
-	fmt.Println("stmt:", stmt.String(), stmt.Args())
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -497,7 +509,6 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 		if af.FreeText != "" {
 			dest = append(dest, &sess.Attribute.UserID, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
-			// dest = append(dest, &sess.Attribute.UserID)
 		}
 
 		if err = rows.Scan(dest...); err != nil {
