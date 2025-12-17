@@ -398,6 +398,28 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 	for i := range payload.Events {
 		ev := payload.Events[i]
 
+		// debug null exception in payload cases
+		//
+		// suspicion: this happens for the payload
+		// {
+		//   "id": "<uuid>,
+		//   "session_id: "<uuid>",
+		//   "type": "exception",
+		//   "exception": null,
+		// }
+		//
+		// to better track what's going on, for now
+		// handle the condition to prevent panic
+		// downstream. if we don't see any more panics
+		// then that means it's an SDK side issue.
+		//
+		// FIXME: improve & refactor later.
+		//
+		// see: https://github.com/measure-sh/measure/issues/2965
+		if ev.IsException() && ev.Exception == nil {
+			return fmt.Errorf(`%q must not be null`, `exception`)
+		}
+
 		// discard batch if duplicate event ids found
 		_, ok := dupEvent[ev.ID]
 		if ok {
