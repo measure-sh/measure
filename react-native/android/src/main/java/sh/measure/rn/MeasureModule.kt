@@ -123,7 +123,8 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
                 if (attributes != null) MapUtils.toMutableMap(attributes) else mutableMapOf<String, Any?>()
 
             val userAttrs =
-                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf<String, Any>()
+                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) }
+                    ?: mutableMapOf<String, Any>()
 
             val checkpointsMap = mutableMapOf<String, Long>()
 
@@ -250,7 +251,7 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
-   @ReactMethod
+    @ReactMethod
     fun captureScreenshot(promise: Promise) {
         val activity = currentActivity
         if (activity == null) {
@@ -382,26 +383,30 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
 
         val list = mutableListOf<MsrAttachment>()
 
+        val attachmentDirPath = Measure.internalGetAttachmentDirectory()
+        val attachmentDir = attachmentDirPath?.let { File(it) }
+
         for (i in 0 until attachments.size()) {
-            val map: ReadableMap? = attachments.getMap(i)
-            if (map == null) continue  // <-- FIXED NULL CHECK
+            val map = attachments.getMap(i) ?: continue
 
             val name = map.getString("name") ?: continue
             val type = map.getString("type") ?: continue
             val path = map.getString("path")
             val base64 = map.getString("bytes")
 
-            // If 'path' exists, use it.
-            // If 'bytes' exists, decode & write to temp file.
             val finalPath = when {
                 path != null -> path
 
-                base64 != null -> {
+                base64 != null && attachmentDir != null -> {
                     try {
+                        if (!attachmentDir.exists()) {
+                            attachmentDir.mkdirs()
+                        }
+
                         val bytes = Base64.decode(base64, Base64.DEFAULT)
-                        val tempFile = File(reactContext.cacheDir, name)
-                        tempFile.writeBytes(bytes)
-                        tempFile.absolutePath
+                        val file = File(attachmentDir, name)
+                        file.writeBytes(bytes)
+                        file.absolutePath
                     } catch (_: Exception) {
                         null
                     }
