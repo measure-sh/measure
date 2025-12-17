@@ -145,8 +145,9 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		From("("+sqlf.From("sessions").
 			Select("*").
 			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
-			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").String()+") as sessions").
-		Where("app_id = toUUID(?) and start_time >= ? and end_time <= ?", af.AppID, af.From, af.To)
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").
+			Where("app_id = toUUID(?)").String()+") as sessions", af.AppID).
+		Where("start_time >= ? and end_time <= ?", af.From, af.To)
 
 	// Don't return boring sessions that has less than n events, so filter
 	// those out. Many sessions may have just a `session_start`
@@ -327,8 +328,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		From("("+sqlf.From("sessions").
 			Select("*").
 			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
-			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").String()+") as sessions").
-		Where("app_id = toUUID(?)", af.AppID).
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").
+			Where("app_id = toUUID(?)").String()+") as sessions", af.AppID).
 		Having("start_time >= ? and end_time <= ?", af.From, af.To).
 		OrderBy("start_time desc")
 
