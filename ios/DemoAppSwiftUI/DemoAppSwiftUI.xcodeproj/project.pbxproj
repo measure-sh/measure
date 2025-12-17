@@ -38,6 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				CF9234982E5F3D8D00815D9E /* DemoAppSwiftUI */,
+				CFA732262EF1D1130092CBCF /* Frameworks */,
 				CF9234972E5F3D8D00815D9E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +49,13 @@
 				CF9234962E5F3D8D00815D9E /* DemoAppSwiftUI.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CFA732262EF1D1130092CBCF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -101,7 +109,6 @@
 			mainGroup = CF92348D2E5F3D8D00815D9E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CF9234A42E5F3DF600815D9E /* XCLocalSwiftPackageReference "../../../measure" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CF9234972E5F3D8D00815D9E /* Products */;
@@ -333,13 +340,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		CF9234A42E5F3DF600815D9E /* XCLocalSwiftPackageReference "../../../measure" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../measure;
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		CF9234A52E5F3DF600815D9E /* Measure */ = {
