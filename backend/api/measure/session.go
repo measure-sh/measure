@@ -131,12 +131,23 @@ func (s Session) DurationFromEvents() time.Duration {
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching various filters.
 func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
-	base := sqlf.From("sessions").
+	base := sqlf.
 		Select("session_id").
-		Select("first_event_timestamp").
-		Select("last_event_timestamp").
+		Select("start_time").
+		Select("end_time").
 		Select("app_version").
-		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
+		// Prefer start_time over first_event_timestamp
+		//
+		// Modify this query later to only query using
+		// start_time. Windowing like this at query time
+		// is a crutch. Removing windowing once all sessions
+		// use start_time/end_time.
+		From("("+sqlf.From("sessions").
+			Select("*").
+			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").
+			Where("app_id = toUUID(?)").String()+") as sessions", af.AppID).
+		Where("start_time >= ? and end_time <= ?", af.From, af.To)
 
 	// Don't return boring sessions that has less than n events, so filter
 	// those out. Many sessions may have just a `session_start`
@@ -230,7 +241,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 
 		// compute arguments automatically
 		args := []any{}
-		for i := 0; i < len(matches); i++ {
+		for range len(matches) {
 			args = append(args, freeText)
 		}
 
@@ -260,15 +271,15 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 	if applyGroupBy {
 		base.GroupBy("session_id")
 		base.GroupBy("app_version")
-		base.GroupBy("first_event_timestamp")
-		base.GroupBy("last_event_timestamp")
+		base.GroupBy("start_time")
+		base.GroupBy("end_time")
 	}
 
 	stmt := sqlf.
 		With("base", base).
 		From("base").
 		Select("uniq(session_id) instances").
-		Select("formatDateTime(first_event_timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select("formatDateTime(start_time, '%Y-%m-%d', ?) datetime", af.Timezone).
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		GroupBy("app_version, datetime").
 		OrderBy("datetime, tupleElement(app_version, 2) desc")
@@ -306,16 +317,21 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		Select("any(device_manufacturer)").
 		Select("any(tupleElement(os_version, 1))").
 		Select("any(tupleElement(os_version, 2))").
-		// avoid duplicates using window functions
+		Select("min(start_time) start_time").
+		Select("max(end_time) end_time").
+		// Prefer start_time over first_event_timestamp
 		//
-		// we choose the least first_event_timestamp
-		// and most last_event_timestamp otherwise
-		// duplicate sessions will be selected
-		Select("first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)").
-		Select("last_value(last_event_timestamp) over (partition by session_id)").
-		From("sessions").
-		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To).
-		OrderBy("first_event_timestamp desc")
+		// Modify this query later to only query using
+		// start_time. Windowing like this at query time
+		// is a crutch. Removing windowing once all sessions
+		// use start_time/end_time.
+		From("("+sqlf.From("sessions").
+			Select("*").
+			Select("if(start_time != 0, start_time, first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)) start_time").
+			Select("if(end_time != 0, end_time, last_value(last_event_timestamp) over (partition by session_id)) end_time").
+			Where("app_id = toUUID(?)").String()+") as sessions", af.AppID).
+		Having("start_time >= ? and end_time <= ?", af.From, af.To).
+		OrderBy("start_time desc")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
@@ -404,8 +420,6 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	if applyGroupBy {
 		stmt.GroupBy("session_id")
-		stmt.GroupBy("first_event_timestamp")
-		stmt.GroupBy("last_event_timestamp")
 	}
 
 	defer stmt.Close()
