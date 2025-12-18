@@ -96,7 +96,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
             <Filters
                 teamId={params.teamId}
                 filterSource={FilterSource.Spans}
-                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}

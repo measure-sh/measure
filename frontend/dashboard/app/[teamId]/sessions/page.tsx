@@ -97,7 +97,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             <Filters
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
-                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
