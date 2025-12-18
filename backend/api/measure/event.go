@@ -253,10 +253,33 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		if events[i] == "" {
 			return fmt.Errorf(`any event field must not be empty`)
 		}
+
 		var ev event.EventField
 		bytes := []byte(events[i])
 		if err := json.Unmarshal(bytes, &ev); err != nil {
 			return err
+		}
+
+		// debug null exception in payload cases
+		//
+		// suspicion: this happens for the payload
+		// {
+		//   "id": "<uuid>,
+		//   "session_id: "<uuid>",
+		//   "type": "exception",
+		//   "exception": null,
+		// }
+		//
+		// to better track what's going on, for now
+		// handle the condition to prevent panic
+		// downstream. if we don't see any more panics
+		// then that means it's an SDK side issue.
+		//
+		// FIXME: improve & refactor later.
+		//
+		// see: https://github.com/measure-sh/measure/issues/2965
+		if ev.IsException() && ev.Exception == nil {
+			return fmt.Errorf(`%q must not be null`, `exception`)
 		}
 
 		// discard batch if duplicate
