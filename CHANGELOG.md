@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update go image tag (#3032) by @detj in #3032
 - (**backend**): Handle an invalid payload condition to debug panics (#3029) by @detj in #3029
 - (**backend**): Fix a code comment (#2981) by @detj in #2981
 - (**backend**): No waiting for background tasks in debug (#2980) by @detj in #2980
