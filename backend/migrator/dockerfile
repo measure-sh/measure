@@ -1,4 +1,4 @@
-#build stage
+# build stage
 FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
   GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/app -v .
 
-#final stage
+# final stage
 FROM public.ecr.aws/docker/library/alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
