@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Default to latest app version filter by @anupcowkur in #3034
 - (**frontend**): Update next js to 14.2.35 (#3024) by @anupcowkur in #3024
 - (**frontend**): Show app size delta using appropriate size units (#2997) by @detj in #2997
 - (**frontend**): Handle nan for delta & value separately in launch metrics by @anupcowkur in #2989
