@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
 - (**backend**): Handle panic on invalid exception payload (#3031) by @detj in #3031
 - (**backend**): Prevent duplicate sessions on search (#3026) by @detj in #3026
 - (**backend**): Improve handling of launch metrics delta nans by @detj in #2985
