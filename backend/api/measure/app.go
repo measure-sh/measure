@@ -536,8 +536,9 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 // version.
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
-	stmt := sqlf.Select("count(id) as count").
-		From("events final").
+
+	stmt := sqlf.From("events").
+		Select("count() as count").
 		Where("app_id = ?", af.AppID).
 		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
