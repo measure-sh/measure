@@ -171,7 +171,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.
-		From("unhandled_exception_groups as g final").
+		From("unhandled_exception_groups as g").
 		Select("g.app_id").
 		Select("g.id").
 		Select(`g.type`).
@@ -182,7 +182,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		Select("g.updated_at").
 		Select("count(e.id) as event_count").
 		Clause("prewhere g.app_id = toUUID(?)", a.ID).
-		LeftJoin("events as e final", "g.id = e.exception.fingerprint").
+		LeftJoin("events as e", "g.id = e.exception.fingerprint").
 		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
 		Where("e.type = ?", event.TypeException).
 		Where("e.exception.handled = false").
@@ -355,7 +355,7 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.
-		From("anr_groups as g final").
+		From("anr_groups as g").
 		Select("g.app_id").
 		Select("g.id").
 		Select(`g.type`).
@@ -366,7 +366,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("g.updated_at").
 		Select("count(e.id) as event_count").
 		Clause("prewhere g.app_id = toUUID(?)", a.ID).
-		LeftJoin("events as e final", "g.id = e.anr.fingerprint").
+		LeftJoin("events as e", "g.id = e.anr.fingerprint").
 		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
 		Where("e.type = ?", event.TypeANR).
 		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
