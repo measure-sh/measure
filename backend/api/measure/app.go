@@ -107,13 +107,13 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 
 	defer stmt.Close()
 
-	row := group.ExceptionGroup{}
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	row := group.ExceptionGroup{}
 	if rows.Next() {
 		if err := rows.Scan(
 			&row.AppID,
@@ -136,9 +136,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.ID).
-		Where("type = 'exception'").
-		Where("exception.handled = false").
+		Clause("prewhere app_id = toUUID(?) and type = ? and exception.fingerprint = ? and exception.handled = false", a.ID, event.TypeException, exceptionGroup.ID).
 		GroupBy("id")
 
 	defer eventDataStmt.Close()
@@ -159,12 +157,12 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 		eventIds = append(eventIds, eventID)
 	}
 
-	if eventDataRows.Err() != nil {
+	if err = eventDataRows.Err(); err != nil {
 		return
 	}
 
 	exceptionGroup.EventIDs = eventIds
-	exceptionGroup.Count = len(eventIds)
+	exceptionGroup.Count = uint64(len(eventIds))
 
 	return
 }
@@ -172,6 +170,66 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
+	countStmt := sqlf.From("events final").
+		Select("count()").
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = false").
+		Where("exception.fingerprint = unhandled_exception_groups.id")
+
+	if len(af.Versions) > 0 {
+		countStmt.Where("attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		countStmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		countStmt.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		countStmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		countStmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		countStmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		countStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		countStmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		countStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		countStmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		countStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("exception = true")
+		af.UDExpression.Augment(subQuery)
+		countStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
 	stmt := sqlf.
 		From("unhandled_exception_groups final").
 		Select("app_id").
@@ -182,7 +240,9 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("updated_at").
-		Where("app_id = ?", a.ID)
+		SubQuery("(", ") as event_count", countStmt).
+		Where("app_id = ?", a.ID).
+		Where("event_count > 0")
 
 	defer stmt.Close()
 
@@ -190,11 +250,16 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 	if err != nil {
 		return
 	}
+
 	defer rows.Close()
+
+	if err = rows.Err(); err != nil {
+		return
+	}
 
 	for rows.Next() {
 		var g group.ExceptionGroup
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&g.AppID,
 			&g.ID,
 			&g.Type,
@@ -203,110 +268,12 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			&g.FileName,
 			&g.LineNumber,
 			&g.UpdatedAt,
+			&g.Count,
 		); err != nil {
-			return nil, err
+			return
 		}
+
 		groups = append(groups, g)
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	var exceptionGroup *group.ExceptionGroup
-	for i := range groups {
-		exceptionGroup = &groups[i]
-
-		eventDataStmt := sqlf.
-			From("events final").
-			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.ID).
-			Where("type = ?", event.TypeException).
-			Where("exception.handled = ?", false)
-
-		defer eventDataStmt.Close()
-
-		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs final").
-				Select("event_id id").
-				Where("app_id = toUUID(?)", af.AppID).
-				Where("exception = true")
-			af.UDExpression.Augment(subQuery)
-			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-		}
-
-		eventDataStmt.GroupBy("id")
-
-		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
-		}
-
-		if len(af.OsNames) > 0 {
-			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
-		}
-
-		if len(af.OsVersions) > 0 {
-			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
-		}
-
-		if len(af.Countries) > 0 {
-			eventDataStmt.Where("inet.country_code").In(af.Countries)
-		}
-
-		if len(af.DeviceNames) > 0 {
-			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
-		}
-
-		if len(af.DeviceManufacturers) > 0 {
-			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-		}
-
-		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		var ids []uuid.UUID
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				return nil, err
-			}
-
-			ids = append(ids, id)
-		}
-
-		if rows.Err() != nil {
-			return nil, err
-		}
-
-		exceptionGroup.EventIDs = ids
-		exceptionGroup.Count = len(ids)
 	}
 
 	return
@@ -358,8 +325,7 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.ID).
-		Where("type = ?", event.TypeANR).
+		Clause("prewhere app_id = toUUID(?) and type = ? and anr.fingerprint = ?", a.ID, event.TypeANR, anrGroup.ID).
 		GroupBy("id")
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
@@ -378,20 +344,78 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 		eventIds = append(eventIds, eventID)
 	}
 
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
+	if err = eventDataRows.Err(); err != nil {
+		return
 	}
 
 	anrGroup.EventIDs = eventIds
-	anrGroup.Count = len(eventIds)
+	anrGroup.Count = uint64(len(eventIds))
 
-	return anrGroup, nil
+	return
 }
 
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
+	countStmt := sqlf.From("events final").
+		Select("count()").
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To).
+		Where("type = ?", event.TypeANR).
+		Where("anr.fingerprint = anr_groups.id")
+
+	if len(af.Versions) > 0 {
+		countStmt.Where("attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		countStmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		countStmt.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		countStmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		countStmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		countStmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		countStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		countStmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		countStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		countStmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		countStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID)
+		af.UDExpression.Augment(subQuery)
+		countStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
 	stmt := sqlf.
-		From("anr_groups final").
+		From("anr_groups").
 		Select("app_id").
 		Select("id").
 		Select(`type`).
@@ -400,7 +424,9 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("updated_at").
-		Where("app_id = ?", a.ID)
+		SubQuery("(", ") as event_count", countStmt).
+		Where("app_id = ?", a.ID).
+		Where("event_count > 0")
 
 	defer stmt.Close()
 
@@ -408,11 +434,12 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 	if err != nil {
 		return
 	}
+
 	defer rows.Close()
 
 	for rows.Next() {
 		var g group.ANRGroup
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&g.AppID,
 			&g.ID,
 			&g.Type,
@@ -421,109 +448,60 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			&g.FileName,
 			&g.LineNumber,
 			&g.UpdatedAt,
+			&g.Count,
 		); err != nil {
-			return nil, err
+			return
 		}
+
 		groups = append(groups, g)
 	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
 
-	var anrGroup *group.ANRGroup
-	for i := range groups {
-		anrGroup = &groups[i]
+	// if rows.Err() != nil {
+	// 	return nil, rows.Err()
+	// }
 
-		eventDataStmt := sqlf.
-			From("events final").
-			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
-			Where("type = ?", event.TypeANR)
+	// var anrGroup *group.ANRGroup
+	// for i := range groups {
+	// 	anrGroup = &groups[i]
 
-		defer eventDataStmt.Close()
+	// 	eventDataStmt := sqlf.
+	// 		From("events").
+	// 		Select("distinct id").
+	// 		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
+	// 		Where("type = ?", event.TypeANR)
 
-		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs final").
-				Select("event_id id").
-				Where("app_id = toUUID(?)", af.AppID)
-			af.UDExpression.Augment(subQuery)
-			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-		}
+	// 	defer eventDataStmt.Close()
 
-		eventDataStmt.GroupBy("id")
+	// 	eventDataStmt.GroupBy("id")
 
-		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
-		}
+	// 	if af.HasTimeRange() {
+	// 		eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	// 	}
 
-		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
-		}
+	// 	rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		if len(af.OsNames) > 0 {
-			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
-		}
+	// 	defer rows.Close()
 
-		if len(af.OsVersions) > 0 {
-			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
-		}
+	// 	var ids []uuid.UUID
+	// 	for rows.Next() {
+	// 		var id uuid.UUID
+	// 		if err := rows.Scan(&id); err != nil {
+	// 			return nil, err
+	// 		}
 
-		if len(af.Countries) > 0 {
-			eventDataStmt.Where("inet.country_code").In(af.Countries)
-		}
+	// 		ids = append(ids, id)
+	// 	}
 
-		if len(af.DeviceNames) > 0 {
-			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
-		}
+	// 	if rows.Err() != nil {
+	// 		return nil, err
+	// 	}
 
-		if len(af.DeviceManufacturers) > 0 {
-			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-		}
-
-		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		var ids []uuid.UUID
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				return nil, err
-			}
-
-			ids = append(ids, id)
-		}
-
-		if rows.Err() != nil {
-			return nil, err
-		}
-
-		anrGroup.EventIDs = ids
-		anrGroup.Count = len(ids)
-	}
+	// 	anrGroup.EventIDs = ids
+	// 	anrGroup.Count = len(ids)
+	// }
 
 	return
 }
@@ -540,8 +518,8 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	stmt := sqlf.From("events").
 		Select("count() as count").
 		Where("app_id = ?", af.AppID).
-		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0])
 
 	defer stmt.Close()
 
@@ -924,7 +902,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`events final`).
+		From(`events`).
 		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
@@ -1500,7 +1478,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	}
 
-	stmt := sqlf.From("events final")
+	stmt := sqlf.From("events")
 	defer stmt.Close()
 
 	for i := range cols {
@@ -2837,7 +2815,7 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
+	crashGroups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"
 		fmt.Println(msg, err)
@@ -2845,19 +2823,6 @@ func GetCrashOverview(c *gin.Context) {
 			"error": msg,
 		})
 		return
-	}
-
-	var crashGroups []group.ExceptionGroup
-	for i := range groups {
-		// only consider those groups that have at least 1 exception
-		// event
-		if groups[i].Count > 0 {
-			// omit `event_ids` field from JSON
-			// response, because these can get really huge
-			groups[i].EventIDs = nil
-
-			crashGroups = append(crashGroups, groups[i])
-		}
 	}
 
 	group.ComputeCrashContribution(crashGroups)

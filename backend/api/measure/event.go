@@ -1564,7 +1564,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
-// GetExceptionsWithFilter fetchs a slice of EventException for an
+// GetExceptionsWithFilter fetches a slice of EventException for an
 // ExceptionGroup matching AppFilter. Also computes pagination meta
 // values for keyset pagination.
 func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
@@ -1631,7 +1631,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
@@ -1747,7 +1747,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("uniq(session_id) as total_sessions").
 		Select("uniqIf(session_id, type = ? and exception.handled = false) as exception_sessions", event.TypeException).
-		Clause("prewhere app_id = toUUID(?)", af.AppID)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To)
 
 	defer stmt.Close()
 
@@ -1795,12 +1795,8 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
 	}
 
-	if af.HasTimeRange() {
-		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
@@ -1835,7 +1831,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	return
 }
 
-// GetANRsWithFilter fetchs a slice of EventException for an
+// GetANRsWithFilter fetches a slice of EventException for an
 // ANRGroup matching AppFilter. Also computes pagination meta
 // values for keyset pagination.
 func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
@@ -1872,7 +1868,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 
 	prewhere := "prewhere app_id = toUUID(?) and anr.fingerprint = ?"
 
-	substmt := sqlf.From("events final").
+	substmt := sqlf.From("events").
 		Select("distinct id").
 		Select("type").
 		Select("timestamp").
@@ -1900,7 +1896,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
@@ -2016,7 +2012,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
 		Select("uniq(session_id) as total_sessions").
 		Select("uniqIf(session_id, type = ?) as anr_sessions", event.TypeANR).
-		Clause("prewhere app_id = toUUID(?)", af.AppID)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To)
 
 	defer stmt.Close()
 
@@ -2064,12 +2060,8 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
 	}
 
-	if af.HasTimeRange() {
-		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
@@ -2175,7 +2167,7 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
@@ -2253,7 +2245,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	}
 
 	stmt := sqlf.
-		From(`events final`).
+		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("uniq(id) as instances").
@@ -2264,7 +2256,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))

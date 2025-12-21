@@ -32,7 +32,7 @@ type ExceptionGroup struct {
 	MethodName      string                 `json:"method_name" db:"method_name"`
 	FileName        string                 `json:"file_name" db:"file_name"`
 	LineNumber      int32                  `json:"line_number" db:"line_number"`
-	Count           int                    `json:"count"`
+	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
 	Percentage      float32                `json:"percentage_contribution"`
@@ -47,7 +47,7 @@ type ANRGroup struct {
 	MethodName string           `json:"method_name" db:"method_name"`
 	FileName   string           `json:"file_name" db:"file_name"`
 	LineNumber int32            `json:"line_number" db:"line_number"`
-	Count      int              `json:"count"`
+	Count      uint64           `json:"count"`
 	EventIDs   []uuid.UUID      `json:"event_ids,omitempty"`
 	EventANRs  []event.EventANR `json:"anr_events,omitempty"`
 	Percentage float32          `json:"percentage_contribution"`
@@ -145,7 +145,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 // ComputeCrashContribution computes percentage of crash contribution from
 // given slice of ExceptionGroup.
 func ComputeCrashContribution(groups []ExceptionGroup) {
-	total := 0
+	total := uint64(0)
 
 	for _, group := range groups {
 		total = total + group.Count
@@ -160,7 +160,7 @@ func ComputeCrashContribution(groups []ExceptionGroup) {
 // ComputeANRContribution computes percentage of anr contribution from
 // given slice of ANRGroup.
 func ComputeANRContribution(groups []ANRGroup) {
-	total := 0
+	total := uint64(0)
 
 	for _, group := range groups {
 		total = total + group.Count
@@ -192,7 +192,7 @@ func SortANRGroups(groups []ANRGroup) {
 // matched by app filter(s) and exception event ids.
 func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events final`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, exception.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("id in ?", eventIds)
@@ -230,7 +230,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.
-		From(`unhandled_exception_groups final`).
+		From(`unhandled_exception_groups`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
@@ -289,7 +289,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 // matched by app filter(s) and ANR event ids.
 func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events final`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, anr.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where(`id in ?`, eventIds)
@@ -328,7 +328,6 @@ func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.
 		From(`anr_groups`).
-		Clause(`FINAL`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
