@@ -170,55 +170,67 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
-	countStmt := sqlf.From("events final").
-		Select("count()").
-		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To).
-		Where("type = ?", event.TypeException).
-		Where("exception.handled = false").
-		Where("exception.fingerprint = unhandled_exception_groups.id")
+	stmt := sqlf.
+		From("unhandled_exception_groups as g final").
+		Select("g.app_id").
+		Select("g.id").
+		Select(`g.type`).
+		Select(`g.message`).
+		Select(`g.method_name`).
+		Select(`g.file_name`).
+		Select(`g.line_number`).
+		Select("g.updated_at").
+		Select("count(e.id) as event_count").
+		Clause("prewhere g.app_id = toUUID(?)", a.ID).
+		LeftJoin("events as e final", "g.id = e.exception.fingerprint").
+		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
+		Where("e.type = ?", event.TypeException).
+		Where("e.exception.handled = false").
+		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
+		Having("event_count > 0")
 
 	if len(af.Versions) > 0 {
-		countStmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("e.attribute.app_version").In(af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		countStmt.Where("attribute.app_build").In(af.VersionCodes)
+		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
 	}
 
 	if len(af.OsNames) > 0 {
-		countStmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("e.attribute.os_name").In(af.OsNames)
 	}
 
 	if len(af.OsVersions) > 0 {
-		countStmt.Where("attribute.os_version").In(af.OsVersions)
+		stmt.Where("e.attribute.os_version").In(af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
-		countStmt.Where("inet.country_code").In(af.Countries)
+		stmt.Where("e.inet.country_code").In(af.Countries)
 	}
 
 	if len(af.DeviceNames) > 0 {
-		countStmt.Where("attribute.device_name").In(af.DeviceNames)
+		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
-		countStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
 	}
 
 	if len(af.Locales) > 0 {
-		countStmt.Where("attribute.device_locale").In(af.Locales)
+		stmt.Where("e.attribute.device_locale").In(af.Locales)
 	}
 
 	if len(af.NetworkProviders) > 0 {
-		countStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
 	}
 
 	if len(af.NetworkTypes) > 0 {
-		countStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
 	}
 
 	if len(af.NetworkGenerations) > 0 {
-		countStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
@@ -227,23 +239,8 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
-		countStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
-
-	stmt := sqlf.
-		From("unhandled_exception_groups final").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		SubQuery("(", ") as event_count", countStmt).
-		Where("app_id = ?", a.ID).
-		Where("event_count > 0").
-		Clause("settings allow_experimental_correlated_subqueries = 1")
 
 	defer stmt.Close()
 
@@ -427,8 +424,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("updated_at").
 		SubQuery("(", ") as event_count", countStmt).
 		Where("app_id = ?", a.ID).
-		Where("event_count > 0").
-		Clause("settings allow_experimental_correlated_subqueries = 1")
+		Where("event_count > 0")
 
 	defer stmt.Close()
 
