@@ -189,6 +189,8 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
 		Having("event_count > 0")
 
+	defer stmt.Close()
+
 	if len(af.Versions) > 0 {
 		stmt.Where("e.attribute.app_version").In(af.Versions)
 	}
@@ -241,8 +243,6 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		af.UDExpression.Augment(subQuery)
 		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
-
-	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -354,79 +354,78 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
-	countStmt := sqlf.From("events final").
-		Select("count()").
-		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To).
-		Where("type = ?", event.TypeANR).
-		Where("anr.fingerprint = anr_groups.id")
+	stmt := sqlf.
+		From("anr_groups as g final").
+		Select("g.app_id").
+		Select("g.id").
+		Select(`g.type`).
+		Select(`g.message`).
+		Select(`g.method_name`).
+		Select(`g.file_name`).
+		Select(`g.line_number`).
+		Select("g.updated_at").
+		Select("count(e.id) as event_count").
+		Clause("prewhere g.app_id = toUUID(?)", a.ID).
+		LeftJoin("events as e final", "g.id = e.anr.fingerprint").
+		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
+		Where("e.type = ?", event.TypeANR).
+		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
+		Having("event_count > 0")
+
+	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
-		countStmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("e.attribute.app_version").In(af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		countStmt.Where("attribute.app_build").In(af.VersionCodes)
+		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
 	}
 
 	if len(af.OsNames) > 0 {
-		countStmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("e.attribute.os_name").In(af.OsNames)
 	}
 
 	if len(af.OsVersions) > 0 {
-		countStmt.Where("attribute.os_version").In(af.OsVersions)
+		stmt.Where("e.attribute.os_version").In(af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
-		countStmt.Where("inet.country_code").In(af.Countries)
+		stmt.Where("e.inet.country_code").In(af.Countries)
 	}
 
 	if len(af.DeviceNames) > 0 {
-		countStmt.Where("attribute.device_name").In(af.DeviceNames)
+		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
-		countStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
 	}
 
 	if len(af.Locales) > 0 {
-		countStmt.Where("attribute.device_locale").In(af.Locales)
+		stmt.Where("e.attribute.device_locale").In(af.Locales)
 	}
 
 	if len(af.NetworkProviders) > 0 {
-		countStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
 	}
 
 	if len(af.NetworkTypes) > 0 {
-		countStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
 	}
 
 	if len(af.NetworkGenerations) > 0 {
-		countStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
-			Where("app_id = toUUID(?)", af.AppID)
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
-		countStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
-
-	stmt := sqlf.
-		From("anr_groups").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		SubQuery("(", ") as event_count", countStmt).
-		Where("app_id = ?", a.ID).
-		Where("event_count > 0")
-
-	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
