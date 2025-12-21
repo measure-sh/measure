@@ -62,6 +62,11 @@ This provides an estimate of how much CPU time the app is consuming relative to 
 CPU usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
 
+## React Native
+
+CPU usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
+
 #### Further reading
 
 * [Task Info](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html)

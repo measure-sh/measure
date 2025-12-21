@@ -66,3 +66,13 @@ Measure.instance.start();
 // Stop collecting
 Measure.instance.stop();
 ```
+
+### React Native
+
+```js
+// Start collecting
+Measure.start()
+
+// Stop collecting
+Measure.stop()
+```

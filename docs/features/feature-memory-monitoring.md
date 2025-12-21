@@ -76,6 +76,11 @@ readings may suggest this fallback occurred.
 Memory usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
 
+## React Native
+
+Memory usage is collected for React native apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
+
 ## Data collected
 
 Check out the data collected by Measure in the [Memory Usage Absolute](../api/sdk/README.md#memory_usage_absolute)

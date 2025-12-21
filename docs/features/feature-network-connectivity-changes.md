@@ -40,6 +40,11 @@ To detect network changes, Measure relies on NWPathMonitor's `pathUpdateHandler`
 Network changes are collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
 
+## React Native
+
+Network changes are collected for React Native apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
+
 ## Data collected
 
 Checkout the data collected by Measure for each network change in the [Network Event](../../api/sdk/README.md#networkchange) section.

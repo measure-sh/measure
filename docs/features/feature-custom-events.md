@@ -51,6 +51,12 @@ Using ObjC:
 Measure.instance.trackEvent(name: "event_name");
 ```
 
+#### React Native
+
+```js
+Measure.trackEvent('event_name');
+```
+
 ### Custom Event Attributes
 
 A custom event can also contain attributes, which are key-value pairs.

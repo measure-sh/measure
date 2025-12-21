@@ -97,6 +97,40 @@ Future<http.Response> _trackRequest(
 }
 ```
 
+
+#### React Native
+
+On React Native, `fetch` and `XHR` http clients use `URLSession` and `OkHttp` clients internally to manage requests.
+Measure already provides interceptors for both native http clients, which can be reused.
+
+To track http request for iOS, enable MSRNetworkInterceptor for the URLSessionConfiguration provided by React Native.
+
+```swift
+RCTSetCustomNSURLSessionConfigurationProvider { () -> URLSessionConfiguration in
+        let configuration = URLSessionConfiguration.default
+        MSRNetworkInterceptor.enable(on: configuration)
+        return configuration
+    }
+```
+
+To track http request for Android, add MeasureOkHttpApplicationInterceptor to the OkHttp client provided by React Native.
+
+```kotlin
+OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
+      override fun createNewNetworkModuleClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+          .cookieJar(ReactCookieJarContainer())
+          .addInterceptor(MeasureOkHttpApplicationInterceptor())
+          .build()
+      }
+    })
+```
+
+> [!NOTE]
+> The MeasureOkHttpApplicationInterceptor only needs to be added manually if you havn't added OkHttp as a dependancy in your Android project.
+> If you have added OkHttp as a dependancy to your Android app, Measure Gradle Plugin will 
+> automatically add the MeasureOkHttpApplicationInterceptor to the OkHttp client.
+
 ## Configuration Options
 
 By default, all network requests are tracked with key information like the URL, HTTP method, response status code,

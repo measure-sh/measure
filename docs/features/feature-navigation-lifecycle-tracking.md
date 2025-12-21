@@ -197,6 +197,18 @@ Measure.instance.trackScreenView("Home");
 > [!Note]
 > All Android/iOS lifecycle events are also automatically tracked for Flutter.
 
+#### React Native
+
+To manually track screen views in a React Native application, you can use the `trackScreenView` method from the Measure SDK:
+
+```js
+Measure.trackScreenView('Home');
+```
+
+> [!Note]
+> All Android/iOS lifecycle events are also automatically tracked for React Native.
+
+
 ## Data collected
 
 Check the following sections for the data collected by Measure for each lifecycle event:

@@ -185,6 +185,10 @@ widgets, while for scrolls, it looks for scrollable widgets.
 | `PageView`              |
 | `SingleChildScrollView` |
 
+### React Native
+
+Measure SDK tracks gestures in React Native applications by leveraging the underlying native platforms.
+All gesture detection, target identification and layout snapshot capture are handled natively on Android and iOS by the Measure SDKs.
 
 ## Benchmark results
 
