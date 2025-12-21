@@ -2767,7 +2767,7 @@ func GetCrashOverview(c *gin.Context) {
 	}
 
 	settings := clickhouse.Settings{
-		"max_threads": 10,
+		"max_threads": 12,
 	}
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
@@ -2899,7 +2899,7 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	}
 
 	settings := clickhouse.Settings{
-		"max_threads": 10,
+		"max_threads": 12,
 	}
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
@@ -3691,7 +3691,7 @@ func GetANROverview(c *gin.Context) {
 	}
 
 	settings := clickhouse.Settings{
-		"max_threads": 10,
+		"max_threads": 12,
 	}
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
@@ -3820,7 +3820,7 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 	}
 
 	settings := clickhouse.Settings{
-		"max_threads": 10,
+		"max_threads": 12,
 	}
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
@@ -4654,6 +4654,11 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 16,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
@@ -4784,6 +4789,11 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 16,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
