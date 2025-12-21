@@ -3679,7 +3679,7 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetANRGroupsWithFilter(ctx, &af)
+	anrGroups, err := app.GetANRGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's anr groups matching filter"
 		fmt.Println(msg, err)
@@ -3687,25 +3687,15 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	var anrGroups []group.ANRGroup
-	for i := range groups {
-		// only consider those groups that have at least 1 anr
-		// event
-		if groups[i].Count > 0 {
-			// omit `event_ids` field from JSON
-			// response, because these can get really huge
-			groups[i].EventIDs = nil
-
-			anrGroups = append(anrGroups, groups[i])
-		}
-	}
-
 	group.ComputeANRContribution(anrGroups)
 	group.SortANRGroups(anrGroups)
 	anrGroups, next, previous := paginate.Paginate(anrGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
+	c.JSON(http.StatusOK, gin.H{
+		"results": anrGroups,
+		"meta":    meta,
+	})
 }
 
 func GetANROverviewPlotInstances(c *gin.Context) {
