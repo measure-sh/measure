@@ -242,7 +242,8 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		Select("updated_at").
 		SubQuery("(", ") as event_count", countStmt).
 		Where("app_id = ?", a.ID).
-		Where("event_count > 0")
+		Where("event_count > 0").
+		Clause("settings allow_experimental_correlated_subqueries = 1")
 
 	defer stmt.Close()
 
