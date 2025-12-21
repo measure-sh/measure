@@ -30,6 +30,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
+	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
@@ -2426,47 +2427,57 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	adoption, err := app.GetAdoptionMetrics(ctx, &af)
-	if err != nil {
-		msg := `failed to fetch adoption metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
+	var metricsGroup errgroup.Group
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		msg := `failed to fetch issue free metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
+	var adoption *metrics.SessionAdoption
+	metricsGroup.Go(func() (err error) {
+		adoption, err = app.GetAdoptionMetrics(ctx, &af)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch adoption metrics: %w\n", err)
+		}
 		return
-	}
+	})
 
-	launch, err := app.GetLaunchMetrics(ctx, &af)
-	if err != nil {
-		msg := `failed to fetch launch metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
+	var crashFree *metrics.CrashFreeSession
+	var perceivedCrashFree *metrics.PerceivedCrashFreeSession
+	var anrFree *metrics.ANRFreeSession
+	var perceivedANRFree *metrics.PerceivedANRFreeSession
+	metricsGroup.Go(func() (err error) {
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch issue free metrics: %w\n", err)
+		}
 		return
-	}
+	})
+
+	var launch *metrics.LaunchMetric
+	metricsGroup.Go(func() (err error) {
+		launch, err = app.GetLaunchMetrics(ctx, &af)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch launch metrics: %w\n", err)
+		}
+		return
+	})
 
 	var sizes *metrics.SizeMetric = nil
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
-		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
-		if err != nil {
-			msg := `failed to fetch size metrics`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+		metricsGroup.Go(func() (err error) {
+			sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
+			if err != nil {
+				err = fmt.Errorf("failed to fetch size metrics: %w\n", err)
+			}
 			return
-		}
+		})
+	}
+
+	if err = metricsGroup.Wait(); err != nil {
+		err = fmt.Errorf("failed to fetch metrics: %w\n", err)
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

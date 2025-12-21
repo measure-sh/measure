@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"golang.org/x/sync/errgroup"
 )
 
 // DefaultDuration is the default time duration used
@@ -536,61 +537,103 @@ func (af *AppFilter) SetDefaultTimeRange() {
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
 func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
-	versions, versionCodes, err := af.getAppVersions(ctx)
-	if err != nil {
-		return err
-	}
-	fl.Versions = append(fl.Versions, versions...)
-	fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
+	var filterGroup errgroup.Group
 
-	osNames, osVersions, err := af.getOsVersions(ctx)
-	if err != nil {
-		return err
-	}
-	fl.OsNames = append(fl.OsNames, osNames...)
-	fl.OsVersions = append(fl.OsVersions, osVersions...)
+	filterGroup.Go(func() error {
+		versions, versionCodes, err := af.getAppVersions(ctx)
+		if err != nil {
+			return err
+		}
+		fl.Versions = append(fl.Versions, versions...)
+		fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
 
-	countries, err := af.getCountries(ctx)
-	if err != nil {
-		return err
-	}
-	fl.Countries = append(fl.Countries, countries...)
+		return nil
+	})
 
-	networkProviders, err := af.getNetworkProviders(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
+	filterGroup.Go(func() error {
+		osNames, osVersions, err := af.getOsVersions(ctx)
+		if err != nil {
+			return err
+		}
+		fl.OsNames = append(fl.OsNames, osNames...)
+		fl.OsVersions = append(fl.OsVersions, osVersions...)
 
-	networkTypes, err := af.getNetworkTypes(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
+		return nil
+	})
 
-	networkGenerations, err := af.getNetworkGenerations(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
+	filterGroup.Go(func() error {
+		countries, err := af.getCountries(ctx)
+		if err != nil {
+			return err
+		}
+		fl.Countries = append(fl.Countries, countries...)
 
-	deviceLocales, err := af.getDeviceLocales(ctx)
-	if err != nil {
-		return err
-	}
-	fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
+		return nil
+	})
 
-	deviceManufacturers, err := af.getDeviceManufacturers(ctx)
-	if err != nil {
-		return err
-	}
-	fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
+	filterGroup.Go(func() error {
+		networkProviders, err := af.getNetworkProviders(ctx)
+		if err != nil {
+			return err
+		}
+		fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
 
-	deviceNames, err := af.getDeviceNames(ctx)
-	if err != nil {
+		return nil
+	})
+
+	filterGroup.Go(func() error {
+		networkTypes, err := af.getNetworkTypes(ctx)
+		if err != nil {
+			return err
+		}
+		fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
+
+		return nil
+	})
+
+	filterGroup.Go(func() error {
+		networkGenerations, err := af.getNetworkGenerations(ctx)
+		if err != nil {
+			return err
+		}
+		fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
+
+		return nil
+	})
+
+	filterGroup.Go(func() error {
+		deviceLocales, err := af.getDeviceLocales(ctx)
+		if err != nil {
+			return err
+		}
+		fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
+
+		return nil
+	})
+
+	filterGroup.Go(func() error {
+		deviceManufacturers, err := af.getDeviceManufacturers(ctx)
+		if err != nil {
+			return err
+		}
+		fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
+
+		return nil
+	})
+
+	filterGroup.Go(func() error {
+		deviceNames, err := af.getDeviceNames(ctx)
+		if err != nil {
+			return err
+		}
+		fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
+
+		return nil
+	})
+
+	if err := filterGroup.Wait(); err != nil {
 		return err
 	}
-	fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
 
 	return nil
 }
