@@ -24,6 +24,7 @@ import (
 	"backend/api/span"
 	"backend/api/timeline"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -2765,6 +2766,11 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 10,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	crashGroups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"
@@ -2892,6 +2898,11 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 10,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	crashInstances, err := GetExceptionPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
@@ -3679,6 +3690,11 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 10,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	anrGroups, err := app.GetANRGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's anr groups matching filter"
@@ -3803,6 +3819,11 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	settings := clickhouse.Settings{
+		"max_threads": 10,
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	anrInstances, err := GetANRPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
