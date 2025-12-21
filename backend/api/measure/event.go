@@ -1740,7 +1740,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
@@ -2005,7 +2005,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	stmt := sqlf.
-		From("events").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
