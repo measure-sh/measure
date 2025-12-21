@@ -427,7 +427,8 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("updated_at").
 		SubQuery("(", ") as event_count", countStmt).
 		Where("app_id = ?", a.ID).
-		Where("event_count > 0")
+		Where("event_count > 0").
+		Clause("settings allow_experimental_correlated_subqueries = 1")
 
 	defer stmt.Close()
 
@@ -456,53 +457,6 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 		groups = append(groups, g)
 	}
-
-	// if rows.Err() != nil {
-	// 	return nil, rows.Err()
-	// }
-
-	// var anrGroup *group.ANRGroup
-	// for i := range groups {
-	// 	anrGroup = &groups[i]
-
-	// 	eventDataStmt := sqlf.
-	// 		From("events").
-	// 		Select("distinct id").
-	// 		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
-	// 		Where("type = ?", event.TypeANR)
-
-	// 	defer eventDataStmt.Close()
-
-	// 	eventDataStmt.GroupBy("id")
-
-	// 	if af.HasTimeRange() {
-	// 		eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	// 	}
-
-	// 	rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	defer rows.Close()
-
-	// 	var ids []uuid.UUID
-	// 	for rows.Next() {
-	// 		var id uuid.UUID
-	// 		if err := rows.Scan(&id); err != nil {
-	// 			return nil, err
-	// 		}
-
-	// 		ids = append(ids, id)
-	// 	}
-
-	// 	if rows.Err() != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	anrGroup.EventIDs = ids
-	// 	anrGroup.Count = len(ids)
-	// }
 
 	return
 }
