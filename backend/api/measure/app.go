@@ -2444,15 +2444,16 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	var metricsGroup errgroup.Group
-	lc := logcomment.New(2)
-	lc.MustPut(logcomment.Root, logcomment.Metrics)
 
-	settings := clickhouse.Settings{
-		"log_comment": lc.String(),
-	}
+	// each go routine isolates log comment &
+	// clickhouse settings for safe concurrency
 
 	var adoption *metrics.SessionAdoption
 	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "adoption")
 
 		adoption, err = app.GetAdoptionMetrics(ctx, &af)
@@ -2467,6 +2468,10 @@ func GetAppMetrics(c *gin.Context) {
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
 	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "issue_free")
 
 		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
@@ -2478,6 +2483,10 @@ func GetAppMetrics(c *gin.Context) {
 
 	var launch *metrics.LaunchMetric
 	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "launch")
 
 		launch, err = app.GetLaunchMetrics(ctx, &af)
@@ -2490,6 +2499,10 @@ func GetAppMetrics(c *gin.Context) {
 	var sizes *metrics.SizeMetric = nil
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
 		metricsGroup.Go(func() (err error) {
+			lc := logcomment.New(2)
+			settings := clickhouse.Settings{
+				"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			}
 			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sizes")
 
 			sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)

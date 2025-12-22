@@ -541,110 +541,154 @@ func (af *AppFilter) SetDefaultTimeRange() {
 // with appropriate filters applied.
 func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
 	var filterGroup errgroup.Group
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-	}
 
-	filterGroup.Go(func() error {
+	// each go routine isolates log comment &
+	// clickhouse settings for safe concurrency
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
+
 		versions, versionCodes, err := af.getAppVersions(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.Versions = append(fl.Versions, versions...)
 		fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
+
 		osNames, osVersions, err := af.getOsVersions(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.OsNames = append(fl.OsNames, osNames...)
 		fl.OsVersions = append(fl.OsVersions, osVersions...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
+
 		countries, err := af.getCountries(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.Countries = append(fl.Countries, countries...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
+
 		networkProviders, err := af.getNetworkProviders(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
+
 		networkTypes, err := af.getNetworkTypes(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
+
 		networkGenerations, err := af.getNetworkGenerations(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
+
 		deviceLocales, err := af.getDeviceLocales(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
+
 		deviceManufacturers, err := af.getDeviceManufacturers(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
 
-		return nil
+		return
 	})
 
-	filterGroup.Go(func() error {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
+
 		deviceNames, err := af.getDeviceNames(ctx)
 		if err != nil {
-			return err
+			return
 		}
 		fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
 
-		return nil
+		return
 	})
 
 	if err := filterGroup.Wait(); err != nil {
