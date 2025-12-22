@@ -1071,15 +1071,15 @@ export type UserDefAttr = {
 
 export const saveListFiltersToServer = async (filters: Filters) => {
   if (
-    filters.versions.length === 0 &&
-    filters.osVersions.length === 0 &&
-    filters.countries.length === 0 &&
-    filters.networkProviders.length === 0 &&
-    filters.networkTypes.length === 0 &&
-    filters.networkGenerations.length === 0 &&
-    filters.locales.length === 0 &&
-    filters.deviceManufacturers.length === 0 &&
-    filters.deviceNames.length === 0 &&
+    filters.versions.selected.length === 0 &&
+    filters.osVersions.selected.length === 0 &&
+    filters.countries.selected.length === 0 &&
+    filters.networkProviders.selected.length === 0 &&
+    filters.networkTypes.selected.length === 0 &&
+    filters.networkGenerations.selected.length === 0 &&
+    filters.locales.selected.length === 0 &&
+    filters.deviceManufacturers.selected.length === 0 &&
+    filters.deviceNames.selected.length === 0 &&
     filters.udAttrMatchers.length === 0
   ) {
     return null
@@ -1099,17 +1099,17 @@ export const saveListFiltersToServer = async (filters: Filters) => {
   }
 
   const bodyFilters: any = {
-    versions: filters.versions.map((v) => v.name),
-    version_codes: filters.versions.map((v) => v.code),
-    os_names: filters.osVersions.map((v) => v.name),
-    os_versions: filters.osVersions.map((v) => v.version),
-    countries: filters.countries,
-    network_providers: filters.networkProviders,
-    network_types: filters.networkTypes,
-    network_generations: filters.networkGenerations,
-    locales: filters.locales,
-    device_manufacturers: filters.deviceManufacturers,
-    device_names: filters.deviceNames,
+    versions: filters.versions.all ? [] : filters.versions.selected.map((v) => v.name),
+    version_codes: filters.versions.all ? [] : filters.versions.selected.map((v) => v.code),
+    os_names: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.name),
+    os_versions: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.version),
+    countries: filters.countries.all ? [] : filters.countries.selected,
+    network_providers: filters.networkProviders.all ? [] : filters.networkProviders.selected,
+    network_types: filters.networkTypes.all ? [] : filters.networkTypes.selected,
+    network_generations: filters.networkGenerations.all ? [] : filters.networkGenerations.selected,
+    locales: filters.locales.all ? [] : filters.locales.selected,
+    device_manufacturers: filters.deviceManufacturers.all ? [] : filters.deviceManufacturers.selected,
+    device_names: filters.deviceNames.all ? [] : filters.deviceNames.selected,
   }
 
   if (filters.udAttrMatchers.length > 0) {
@@ -1182,8 +1182,8 @@ async function applyGenericFiltersToUrl(
   }
 
   // Append span statuses if needed
-  if (filters.spanStatuses.length > 0) {
-    filters.spanStatuses.forEach((v) => {
+  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
+    filters.spanStatuses.selected.forEach((v) => {
       if (v === SpanStatus.Unset) {
         searchParams.append("span_statuses", "0")
       } else if (v === SpanStatus.Ok) {
@@ -1195,8 +1195,8 @@ async function applyGenericFiltersToUrl(
   }
 
   // Append bug report statuses if needed
-  if (filters.bugReportStatuses.length > 0) {
-    filters.bugReportStatuses.forEach((v) => {
+  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+    filters.bugReportStatuses.selected.forEach((v) => {
       if (v === BugReportStatus.Open) {
         searchParams.append("bug_report_statuses", "0")
       } else if (v === BugReportStatus.Closed) {
