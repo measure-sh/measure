@@ -1583,23 +1583,11 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		return
 	}
 
-	selectedVersions, err := af.VersionPairs()
-	if err != nil {
-		return
-	}
-
-	selectedOSVersions, err := af.OSVersionPairs()
-	if err != nil {
-		return
-	}
-
 	timeformat := "2006-01-02T15:04:05.000"
 	var keyTimestamp string
 	if !af.KeyTimestamp.IsZero() {
 		keyTimestamp = af.KeyTimestamp.Format(timeformat)
 	}
-
-	prewhere := "prewhere app_id = toUUID(?) and exception.fingerprint = ?"
 
 	substmt := sqlf.From("events final").
 		Select("distinct id").
@@ -1616,19 +1604,55 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.ID).
-		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
-		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
-		Where("type = ?", event.TypeException).
-		Where("exception.handled = false").
-		Where("inet.country_code in ?", af.Countries).
-		Where("attribute.device_name in ?", af.DeviceNames).
-		Where("attribute.device_manufacturer in ?", af.DeviceManufacturers).
-		Where("attribute.device_locale in ?", af.Locales).
-		Where("attribute.network_type in ?", af.NetworkTypes).
-		Where("attribute.network_provider in ?", af.NetworkProviders).
-		Where("attribute.network_generation in ?", af.NetworkGenerations).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and exception.fingerprint = ? and exception.handled = false", af.AppID, af.From, af.To, event.TypeException, group.ID)
+
+	if af.HasVersions() {
+		selectedVersions, errVersions := af.VersionPairs()
+		if errVersions != nil {
+			err = errVersions
+			return
+		}
+
+		substmt.Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize())
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, errOSVersions := af.OSVersionPairs()
+		if errOSVersions != nil {
+			err = errOSVersions
+			return
+		}
+
+		substmt.Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		substmt.Where("inet.country_code in ?", af.Countries)
+	}
+
+	if af.HasDeviceNames() {
+		substmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasDeviceManufacturers() {
+		substmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		substmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+
+	if af.HasNetworkTypes() {
+		substmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		substmt.Where("attribute.network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		substmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs final").
@@ -1854,23 +1878,11 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		return
 	}
 
-	selectedVersions, err := af.VersionPairs()
-	if err != nil {
-		return
-	}
-
-	selectedOSVersions, err := af.OSVersionPairs()
-	if err != nil {
-		return
-	}
-
 	timeformat := "2006-01-02T15:04:05.000"
 	var keyTimestamp string
 	if !af.KeyTimestamp.IsZero() {
 		keyTimestamp = af.KeyTimestamp.Format(timeformat)
 	}
-
-	prewhere := "prewhere app_id = toUUID(?) and anr.fingerprint = ?"
 
 	substmt := sqlf.From("events final").
 		Select("distinct id").
@@ -1886,18 +1898,55 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Select("anr.threads threads").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.ID).
-		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
-		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
-		Where("type = ?", event.TypeANR).
-		Where("inet.country_code in ?", af.Countries).
-		Where("attribute.device_name in ?", af.DeviceNames).
-		Where("attribute.device_manufacturer in ?", af.DeviceManufacturers).
-		Where("attribute.device_locale in ?", af.Locales).
-		Where("attribute.network_type in ?", af.NetworkTypes).
-		Where("attribute.network_provider in ?", af.NetworkProviders).
-		Where("attribute.network_generation in ?", af.NetworkGenerations).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and anr.fingerprint = ?", af.AppID, af.From, af.To, event.TypeANR, group.ID)
+
+	if af.HasVersions() {
+		selectedVersions, errVersions := af.VersionPairs()
+		if err != nil {
+			err = errVersions
+			return
+		}
+
+		substmt.Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize())
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, errOSVersions := af.OSVersionPairs()
+		if err != nil {
+			err = errOSVersions
+			return
+		}
+
+		substmt.Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		substmt.Where("inet.country_code in ?", af.Countries)
+	}
+
+	if af.HasDeviceNames() {
+		substmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasDeviceManufacturers() {
+		substmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		substmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+
+	if af.HasNetworkTypes() {
+		substmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		substmt.Where("attribute.network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		substmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs final").

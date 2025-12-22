@@ -258,22 +258,10 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		base.SubQuery("session_id in (", ")", subQuery)
 	}
 
-	applyGroupBy := af.Crash ||
-		af.ANR ||
-		af.HasCountries() ||
-		af.HasNetworkProviders() ||
-		af.HasNetworkTypes() ||
-		af.HasNetworkGenerations() ||
-		af.HasDeviceLocales() ||
-		af.HasDeviceManufacturers() ||
-		af.HasDeviceNames()
-
-	if applyGroupBy {
-		base.GroupBy("session_id")
-		base.GroupBy("app_version")
-		base.GroupBy("start_time")
-		base.GroupBy("end_time")
-	}
+	base.GroupBy("session_id")
+	base.GroupBy("start_time")
+	base.GroupBy("end_time")
+	base.GroupBy("app_version")
 
 	stmt := sqlf.
 		With("base", base).
@@ -408,19 +396,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		stmt.SubQuery("session_id in (", ")", subQuery)
 	}
 
-	applyGroupBy := af.Crash ||
-		af.ANR ||
-		af.HasCountries() ||
-		af.HasNetworkProviders() ||
-		af.HasNetworkTypes() ||
-		af.HasNetworkGenerations() ||
-		af.HasDeviceLocales() ||
-		af.HasDeviceManufacturers() ||
-		af.HasDeviceNames()
-
-	if applyGroupBy {
-		stmt.GroupBy("session_id")
-	}
+	stmt.GroupBy("session_id")
 
 	defer stmt.Close()
 
