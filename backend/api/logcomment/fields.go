@@ -6,16 +6,20 @@ import (
 	"strings"
 )
 
+// Fields represents the log comment
+// field set.
 type Fields struct {
 	m map[string]string
 }
 
-// New creates a field set with optional initial capacity.
+// New creates a field set with fixed capacity.
 func New(capacity int) *Fields {
 	return &Fields{m: make(map[string]string, capacity)}
 }
 
-// isValidKey: [A-Za-z0-9_]+
+// isValidKey validates the field's key
+//
+// condition: [A-Za-z0-9_]+
 func isValidKey(s string) bool {
 	if len(s) == 0 {
 		return false
@@ -32,7 +36,9 @@ func isValidKey(s string) bool {
 	return true
 }
 
-// isValidValue: no space, no '='
+// isValidValue validates the field's value
+//
+// condition: no space, no '='
 func isValidValue(s string) bool {
 	if len(s) == 0 {
 		return false
@@ -50,8 +56,8 @@ var (
 	ErrInvalidValue = errors.New("invalid value")
 )
 
-// Add inserts or overwrites a key=value.
-func (f *Fields) Add(key, value string) error {
+// Put inserts or overwrites a field's key=value.
+func (f *Fields) Put(key, value string) error {
 	if !isValidKey(key) {
 		return ErrInvalidKey
 	}
@@ -62,14 +68,15 @@ func (f *Fields) Add(key, value string) error {
 	return nil
 }
 
-// MustAdd panics on invalid input.
-func (f *Fields) MustAdd(key, value string) *Fields {
-	if err := f.Add(key, value); err != nil {
+// MustPut puts or panics on invalid input.
+func (f *Fields) MustPut(key, value string) *Fields {
+	if err := f.Put(key, value); err != nil {
 		panic(err)
 	}
 	return f
 }
 
+// Get gets the field's value for key.
 func (f *Fields) Get(key string) (string, bool) {
 	v, ok := f.m[key]
 	return v, ok
@@ -122,7 +129,7 @@ func (f *Fields) StringSorted() string {
 	return b.String()
 }
 
-// Parse parses "k=v k=v" without allocations from strings.Split.
+// Parse parses "k=v k=v" with minimal allocation.
 func Parse(s string, capacity int) (*Fields, error) {
 	f := New(capacity)
 	n := len(s)
@@ -160,7 +167,7 @@ func Parse(s string, capacity int) (*Fields, error) {
 		}
 		val := s[start:i]
 
-		if err := f.Add(key, val); err != nil {
+		if err := f.Put(key, val); err != nil {
 			return nil, err
 		}
 	}

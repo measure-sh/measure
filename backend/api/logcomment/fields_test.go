@@ -49,13 +49,13 @@ func TestIsValidValue(t *testing.T) {
 	}
 }
 
-func TestAddAndGet(t *testing.T) {
+func TestPutAndGet(t *testing.T) {
 	f := New(2)
 
-	if err := f.Add("team", "42"); err != nil {
+	if err := f.Put("team", "42"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := f.Add("feat", "funnels"); err != nil {
+	if err := f.Put("feat", "funnels"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -63,29 +63,29 @@ func TestAddAndGet(t *testing.T) {
 		t.Fatalf("Get(team) = %q,%v", v, ok)
 	}
 
-	if err := f.Add("bad-key", "x"); err == nil {
+	if err := f.Put("bad-key", "x"); err == nil {
 		t.Fatal("expected error for invalid key")
 	}
-	if err := f.Add("ok", "bad value"); err == nil {
+	if err := f.Put("ok", "bad value"); err == nil {
 		t.Fatal("expected error for invalid value")
 	}
 }
 
-func TestMustAddPanics(t *testing.T) {
+func TestMustPutPanics(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("expected panic")
 		}
 	}()
 
-	New(1).MustAdd("bad key", "x")
+	New(1).MustPut("bad key", "x")
 }
 
 func TestStringSorted(t *testing.T) {
 	f := New(3).
-		MustAdd("team", "42").
-		MustAdd("feat", "funnels").
-		MustAdd("route", "/api")
+		MustPut("team", "42").
+		MustPut("feat", "funnels").
+		MustPut("route", "/api")
 
 	s := f.StringSorted()
 	want := "feat=funnels route=/api team=42"
@@ -97,8 +97,8 @@ func TestStringSorted(t *testing.T) {
 
 func TestStringFastContainsAll(t *testing.T) {
 	f := New(2).
-		MustAdd("a", "1").
-		MustAdd("b", "2")
+		MustPut("a", "1").
+		MustPut("b", "2")
 
 	s := f.String()
 
@@ -147,9 +147,9 @@ func TestParseInvalid(t *testing.T) {
 
 func TestRoundTripSorted(t *testing.T) {
 	orig := New(3).
-		MustAdd("team", "42").
-		MustAdd("feat", "funnels").
-		MustAdd("req", "abc123")
+		MustPut("team", "42").
+		MustPut("feat", "funnels").
+		MustPut("req", "abc123")
 
 	s := orig.StringSorted()
 
@@ -168,10 +168,10 @@ func TestRoundTripSorted(t *testing.T) {
 func BenchmarkAddAndString(b *testing.B) {
 	for b.Loop() {
 		f := New(4)
-		_ = f.Add("team", "42")
-		_ = f.Add("feat", "funnels")
-		_ = f.Add("route", "/api/events")
-		_ = f.Add("req", "abc123")
+		_ = f.Put("team", "42")
+		_ = f.Put("feat", "funnels")
+		_ = f.Put("route", "/api/events")
+		_ = f.Put("req", "abc123")
 		_ = f.String()
 	}
 }

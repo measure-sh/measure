@@ -2082,14 +2082,14 @@ func GetAppJourney(c *gin.Context) {
 		All: true,
 	}
 
-	lc := logcomment.New(1)
-	lc.MustAdd("name", "journey_events")
+	lc := logcomment.New(2)
+	lc.MustPut(logcomment.Root, logcomment.Journeys)
 
 	settings := clickhouse.Settings{
 		"log_comment": lc.String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "journey_events")
 	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
 	if err != nil {
 		fmt.Println(msg, err)
@@ -2151,6 +2151,8 @@ func GetAppJourney(c *gin.Context) {
 				return
 			}
 
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
+
 			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
 			if err != nil {
 				return
@@ -2171,6 +2173,8 @@ func GetAppJourney(c *gin.Context) {
 			if len(eventIds) == 0 {
 				return
 			}
+
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups_from_ids")
 
 			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
 			if err != nil {
@@ -2248,6 +2252,8 @@ func GetAppJourney(c *gin.Context) {
 			if len(eventIds) == 0 {
 				return
 			}
+
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
 
 			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
 			if err != nil {
@@ -2438,9 +2444,17 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	var metricsGroup errgroup.Group
+	lc := logcomment.New(2)
+	lc.MustPut(logcomment.Root, logcomment.Metrics)
+
+	settings := clickhouse.Settings{
+		"log_comment": lc.String(),
+	}
 
 	var adoption *metrics.SessionAdoption
 	metricsGroup.Go(func() (err error) {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "adoption")
+
 		adoption, err = app.GetAdoptionMetrics(ctx, &af)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch adoption metrics: %w\n", err)
@@ -2453,6 +2467,8 @@ func GetAppMetrics(c *gin.Context) {
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
 	metricsGroup.Go(func() (err error) {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "issue_free")
+
 		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w\n", err)
@@ -2462,6 +2478,8 @@ func GetAppMetrics(c *gin.Context) {
 
 	var launch *metrics.LaunchMetric
 	metricsGroup.Go(func() (err error) {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "launch")
+
 		launch, err = app.GetLaunchMetrics(ctx, &af)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch launch metrics: %w\n", err)
@@ -2472,6 +2490,8 @@ func GetAppMetrics(c *gin.Context) {
 	var sizes *metrics.SizeMetric = nil
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
 		metricsGroup.Go(func() (err error) {
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sizes")
+
 			sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 			if err != nil {
 				err = fmt.Errorf("failed to fetch size metrics: %w\n", err)
@@ -2787,11 +2807,12 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 12,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "crashes_list")
 	crashGroups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"
@@ -2919,11 +2940,12 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 12,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	crashInstances, err := GetExceptionPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
@@ -3711,11 +3733,12 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 12,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anrs_list")
 	anrGroups, err := app.GetANRGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's anr groups matching filter"
@@ -3840,11 +3863,12 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 12,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	anrInstances, err := GetANRPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
@@ -4675,11 +4699,12 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 16,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sessions_list")
 	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
@@ -4810,11 +4835,12 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"max_threads": 16,
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
-	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`

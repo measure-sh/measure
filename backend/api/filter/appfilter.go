@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/event"
+	"backend/api/logcomment"
 	"backend/api/opsys"
 	"backend/api/pairs"
 	"backend/api/server"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/blang/semver/v4"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -70,7 +72,8 @@ type AppFilter struct {
 	// client
 	Timezone string `form:"timezone"`
 
-	// Represents a short code for list filters
+	// FilterShortCode represents a short code for list
+	// filters.
 	FilterShortCode string `form:"filter_short_code"`
 
 	// Versions is the list of version string
@@ -538,8 +541,13 @@ func (af *AppFilter) SetDefaultTimeRange() {
 // with appropriate filters applied.
 func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
 	var filterGroup errgroup.Group
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+	}
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 		versions, versionCodes, err := af.getAppVersions(ctx)
 		if err != nil {
 			return err
@@ -551,6 +559,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 		osNames, osVersions, err := af.getOsVersions(ctx)
 		if err != nil {
 			return err
@@ -562,6 +571,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
 		countries, err := af.getCountries(ctx)
 		if err != nil {
 			return err
@@ -572,6 +582,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
 		networkProviders, err := af.getNetworkProviders(ctx)
 		if err != nil {
 			return err
@@ -582,6 +593,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
 		networkTypes, err := af.getNetworkTypes(ctx)
 		if err != nil {
 			return err
@@ -592,6 +604,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
 		networkGenerations, err := af.getNetworkGenerations(ctx)
 		if err != nil {
 			return err
@@ -602,6 +615,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
 		deviceLocales, err := af.getDeviceLocales(ctx)
 		if err != nil {
 			return err
@@ -612,6 +626,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
 		deviceManufacturers, err := af.getDeviceManufacturers(ctx)
 		if err != nil {
 			return err
@@ -622,6 +637,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	})
 
 	filterGroup.Go(func() error {
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
 		deviceNames, err := af.getDeviceNames(ctx)
 		if err != nil {
 			return err
@@ -666,7 +682,7 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 }
 
 // getAppVersions finds distinct pairs of app versions &
-// app build no from available events.
+// app build no from available filters.
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
@@ -733,7 +749,7 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 }
 
 // getOsVersions finds distinct values of os versions
-// from available events.
+// from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
@@ -782,7 +798,7 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 }
 
 // getCountries finds distinct values of country codes
-// from available events.
+// from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
@@ -828,7 +844,7 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 }
 
 // getNetworkProviders finds distinct values of app network
-// providers from available events.
+// providers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
@@ -874,7 +890,7 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 }
 
 // getNetworkTypes finds distinct values of app network
-// types from available events.
+// types from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
@@ -920,7 +936,7 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 }
 
 // getNetworkGenerations finds distinct values of app network
-// generations from available events.
+// generations from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
@@ -969,7 +985,7 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 }
 
 // getDeviceLocales finds distinct values of app device
-// locales from available events.
+// locales from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
@@ -1015,7 +1031,7 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 }
 
 // getDeviceManufacturers finds distinct values of app device
-// manufacturers from available events.
+// manufacturers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
@@ -1061,7 +1077,7 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 }
 
 // getDeviceNames finds distinct values of app device
-// names from available events.
+// names from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
