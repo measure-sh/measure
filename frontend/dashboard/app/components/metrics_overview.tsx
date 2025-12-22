@@ -112,7 +112,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
       />
 
       {/* show app size metrics only on single app version selection && only when app size is available */}
-      {filters.versions.length === 1 && metrics.sizes !== null && (
+      {filters.versions.selected.length === 1 && metrics.sizes !== null && (
         <MetricsCard
           type="app_size"
           status={metricsApiStatus}
