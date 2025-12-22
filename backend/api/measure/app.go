@@ -16,6 +16,7 @@ import (
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/journey"
+	"backend/api/logcomment"
 	"backend/api/metrics"
 	"backend/api/numeric"
 	"backend/api/opsys"
@@ -2081,8 +2082,11 @@ func GetAppJourney(c *gin.Context) {
 		All: true,
 	}
 
+	lc := logcomment.New(1)
+	lc.MustAdd("name", "journey_events")
+
 	settings := clickhouse.Settings{
-		"log_comment": "journey_events",
+		"log_comment": lc.String(),
 	}
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
