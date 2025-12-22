@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Support empty filters in certain dashboard apis by @detj in #3043
 - (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
 - (**backend**): Handle panic on invalid exception payload (#3031) by @detj in #3031
 - (**backend**): Prevent duplicate sessions on search (#3026) by @detj in #3026
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Send empty filters when all values are selected by @anupcowkur
 - (**frontend**): Default to latest app version filter by @anupcowkur in #3034
 - (**frontend**): Update next js to 14.2.35 (#3024) by @anupcowkur in #3024
 - (**frontend**): Show app size delta using appropriate size units (#2997) by @detj in #2997
