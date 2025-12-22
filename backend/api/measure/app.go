@@ -2080,6 +2080,12 @@ func GetAppJourney(c *gin.Context) {
 	opts := filter.JourneyOpts{
 		All: true,
 	}
+
+	settings := clickhouse.Settings{
+		"log_comment": "journey_events",
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
 	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
 	if err != nil {
 		fmt.Println(msg, err)
