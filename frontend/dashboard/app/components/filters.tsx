@@ -93,18 +93,18 @@ export type Filters = {
   rootSpanName: string
   startDate: string
   endDate: string
-  versions: AppVersion[]
+  versions: { selected: AppVersion[], all: boolean }
   sessionType: SessionType
-  spanStatuses: SpanStatus[]
-  bugReportStatuses: BugReportStatus[]
-  osVersions: OsVersion[]
-  countries: string[]
-  networkProviders: string[]
-  networkTypes: string[]
-  networkGenerations: string[]
-  locales: string[]
-  deviceManufacturers: string[]
-  deviceNames: string[]
+  spanStatuses: { selected: SpanStatus[], all: boolean }
+  bugReportStatuses: { selected: BugReportStatus[], all: boolean }
+  osVersions: { selected: OsVersion[], all: boolean }
+  countries: { selected: string[], all: boolean }
+  networkProviders: { selected: string[], all: boolean }
+  networkTypes: { selected: string[], all: boolean }
+  networkGenerations: { selected: string[], all: boolean }
+  locales: { selected: string[], all: boolean }
+  deviceManufacturers: { selected: string[], all: boolean }
+  deviceNames: { selected: string[], all: boolean }
   udAttrMatchers: UdAttrMatcher[]
   freeText: string
   serialisedFilters: string | null
@@ -145,18 +145,18 @@ export const defaultFilters: Filters = {
   rootSpanName: "",
   startDate: "",
   endDate: "",
-  versions: [],
+  versions: { selected: [], all: false },
   sessionType: SessionType.All,
-  spanStatuses: [],
-  bugReportStatuses: [],
-  osVersions: [],
-  countries: [],
-  networkProviders: [],
-  networkTypes: [],
-  networkGenerations: [],
-  locales: [],
-  deviceManufacturers: [],
-  deviceNames: [],
+  spanStatuses: { selected: [], all: false },
+  bugReportStatuses: { selected: [], all: false },
+  osVersions: { selected: [], all: false },
+  countries: { selected: [], all: false },
+  networkProviders: { selected: [], all: false },
+  networkTypes: { selected: [], all: false },
+  networkGenerations: { selected: [], all: false },
+  locales: { selected: [], all: false },
+  deviceManufacturers: { selected: [], all: false },
+  deviceNames: { selected: [], all: false },
   udAttrMatchers: [],
   freeText: "",
   serialisedFilters: null,
@@ -541,12 +541,14 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
     const [rootSpanNames, setRootSpanNames] = useState([] as string[])
     const [selectedRootSpanName, setSelectedRootSpanName] = useState("")
 
+    const spanStatuses = [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
     const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(
       filterSource === FilterSource.Spans
-        ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
+        ? spanStatuses
         : [],
     )
 
+    const bugReportStatuses = [BugReportStatus.Open, BugReportStatus.Closed]
     const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([
       BugReportStatus.Open,
     ])
@@ -760,20 +762,20 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
 
     const clearFiltersOnFilterApiFail = () => {
       console.log("Filters API failed, clearing filters")
-      setSelectedVersions(defaultFilters.versions)
+      setSelectedVersions(defaultFilters.versions.selected)
       setSelectedSessionType(defaultFilters.sessionType)
-      setSelectedOsVersions(defaultFilters.osVersions)
-      setSelectedCountries(defaultFilters.countries)
-      setSelectedNetworkProviders(defaultFilters.networkProviders)
-      setSelectedNetworkTypes(defaultFilters.networkTypes)
-      setSelectedNetworkGenerations(defaultFilters.networkGenerations)
-      setSelectedLocales(defaultFilters.locales)
-      setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
-      setSelectedDeviceNames(defaultFilters.deviceNames)
+      setSelectedOsVersions(defaultFilters.osVersions.selected)
+      setSelectedCountries(defaultFilters.countries.selected)
+      setSelectedNetworkProviders(defaultFilters.networkProviders.selected)
+      setSelectedNetworkTypes(defaultFilters.networkTypes.selected)
+      setSelectedNetworkGenerations(defaultFilters.networkGenerations.selected)
+      setSelectedLocales(defaultFilters.locales.selected)
+      setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers.selected)
+      setSelectedDeviceNames(defaultFilters.deviceNames.selected)
       setSelectedFreeText(defaultFilters.freeText)
-      setSelectedSpanStatuses(defaultFilters.spanStatuses)
+      setSelectedSpanStatuses(defaultFilters.spanStatuses.selected)
       setSelectedRootSpanName(defaultFilters.rootSpanName)
-      setSelectedBugReportStatuses(defaultFilters.bugReportStatuses)
+      setSelectedBugReportStatuses(defaultFilters.bugReportStatuses.selected)
       setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
     }
 
@@ -1153,18 +1155,18 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         rootSpanName: selectedRootSpanName,
         startDate: selectedStartDate,
         endDate: selectedEndDate,
-        versions: selectedVersions,
+        versions: { selected: selectedVersions, all: versions.length === selectedVersions.length },
         sessionType: selectedSessionType,
-        spanStatuses: selectedSpanStatuses,
-        bugReportStatuses: selectedBugReportStatuses,
-        osVersions: selectedOsVersions,
-        countries: selectedCountries,
-        networkProviders: selectedNetworkProviders,
-        networkTypes: selectedNetworkTypes,
-        networkGenerations: selectedNetworkGenerations,
-        locales: selectedLocales,
-        deviceManufacturers: selectedDeviceManufacturers,
-        deviceNames: selectedDeviceNames,
+        spanStatuses: { selected: selectedSpanStatuses, all: selectedSpanStatuses.length === spanStatuses.length },
+        bugReportStatuses: { selected: selectedBugReportStatuses, all: selectedBugReportStatuses.length === bugReportStatuses.length },
+        osVersions: { selected: selectedOsVersions, all: selectedOsVersions.length === osVersions.length },
+        countries: { selected: selectedCountries, all: selectedCountries.length === countries.length },
+        networkProviders: { selected: selectedNetworkProviders, all: selectedNetworkProviders.length === networkProviders.length },
+        networkTypes: { selected: selectedNetworkTypes, all: selectedNetworkTypes.length === networkTypes.length },
+        networkGenerations: { selected: selectedNetworkGenerations, all: selectedNetworkGenerations.length === networkGenerations.length },
+        locales: { selected: selectedLocales, all: selectedLocales.length === locales.length },
+        deviceManufacturers: { selected: selectedDeviceManufacturers, all: selectedDeviceManufacturers.length === deviceManufacturers.length },
+        deviceNames: { selected: selectedDeviceNames, all: selectedDeviceNames.length === deviceNames.length },
         udAttrMatchers: selectedUdAttrMatchers,
         freeText: selectedFreeText,
         serialisedFilters: serializeUrlFilters(updatedUrlFilters),
