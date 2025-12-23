@@ -24,7 +24,7 @@ import (
 )
 
 // DefaultDuration is the default time duration used
-// for all filtering oprations when an explicit
+// for all filtering operations when an explicit
 // duration is not provided.
 const DefaultDuration = time.Hour * 24 * 7
 
@@ -61,7 +61,7 @@ type AppFilter struct {
 	// ID is the unique id of the app.
 	AppID uuid.UUID
 
-	// AppOSName is the OSName vaue of the app.
+	// AppOSName is the OSName value of the app.
 	AppOSName string
 
 	// From represents the lower time bound of
@@ -88,11 +88,11 @@ type AppFilter struct {
 	// to be matched & filtered on.
 	VersionCodes []string `form:"version_codes"`
 
-	// OsNames is the list of os names
+	// OsNames is the list of OS names
 	// to be matched on & filtered on.
 	OsNames []string `form:"os_names"`
 
-	// OsVersions is the list of os versions
+	// OsVersions is the list of OS versions
 	// to be matched on & filtered on.
 	OsVersions []string `form:"os_versions"`
 
@@ -281,7 +281,7 @@ func (af *AppFilter) ValidateVersions() error {
 	return nil
 }
 
-// VersionPairs provides a convinient wrapper over versions
+// VersionPairs provides a convenient wrapper over versions
 // and version codes representing them in paired-up way, like
 // tuples. For many cases, a paired up version is more useful
 // than individual version names and codes.
@@ -293,7 +293,7 @@ func (af *AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err 
 	return
 }
 
-// OSVersionPairs provides a convinient wrapper over OS name
+// OSVersionPairs provides a convenient wrapper over OS name
 // and OS version representing them in paired-up way, like
 // tuples. For many cases, a paired up version is more useful
 // than individual OS names and versions.
