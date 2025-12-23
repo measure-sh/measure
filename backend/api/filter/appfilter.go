@@ -549,6 +549,11 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			// only query level caching is supported in ClickHouse Cloud,
+			// not at session level.
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": 600,
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
