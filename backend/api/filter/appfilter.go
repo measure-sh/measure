@@ -36,6 +36,10 @@ const MaxPaginationLimit = 1000
 // as default for paginating items.
 const DefaultPaginationLimit = 10
 
+// defaultQueryCacheTTL is the default query cache
+// TTL duration.
+const defaultQueryCacheTTL = time.Minute * 10
+
 // Operator represents a comparison operator
 // like `eq` for `equal` or `gte` for `greater
 // than or equal` used for filtering various
@@ -552,8 +556,8 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 			// only query level caching is supported in ClickHouse Cloud,
 			// not at session level.
 			"use_query_cache": 1,
-			// cache filters for 10 mins
-			"query_cache_ttl": 600,
+			// cache for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
@@ -570,7 +574,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 
@@ -587,7 +594,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
 
@@ -603,7 +613,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
 
@@ -619,7 +632,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
 
@@ -635,7 +651,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
 
@@ -651,7 +670,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
 
@@ -667,7 +689,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
 
@@ -683,7 +708,10 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
 
