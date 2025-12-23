@@ -273,3 +273,13 @@ export function trackBugReport(
 
   return MeasureModule.trackBugReport(description, attachments, attributes);
 }
+
+export function getSessionId(): Promise<string | null> {
+  if (!MeasureModule.getSessionId) {
+    return Promise.reject(
+      new Error('getSessionId native method not available.')
+    );
+  }
+
+  return MeasureModule.getSessionId();
+}

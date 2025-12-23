@@ -4,7 +4,13 @@ import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
-import { initializeNativeSDK, setShakeListener, start, stop } from './native/measureBridge';
+import {
+  initializeNativeSDK,
+  setShakeListener,
+  start,
+  stop,
+  getSessionId as getNativeSessionId,
+} from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
@@ -53,22 +59,22 @@ export class MeasureInternal {
       client,
       config ??
         new MeasureConfig({
-                enableLogging: DefaultConfig.enableLogging,
-                samplingRateForErrorFreeSessions: DefaultConfig.sessionSamplingRate,
-                coldLaunchSamplingRate: DefaultConfig.coldLaunchSamplingRate,
-                warmLaunchSamplingRate: DefaultConfig.warmLaunchSamplingRate,
-                hotLaunchSamplingRate: DefaultConfig.hotLaunchSamplingRate,
-                journeySamplingRate: DefaultConfig.journeySamplingRate,
-                traceSamplingRate: DefaultConfig.traceSamplingRate,
-                trackHttpHeaders: DefaultConfig.trackHttpHeaders,
-                trackHttpBody: DefaultConfig.trackHttpBody,
-                httpHeadersBlocklist: DefaultConfig.httpHeadersBlocklist,
-                httpUrlBlocklist: DefaultConfig.httpUrlBlocklist,
-                httpUrlAllowlist: DefaultConfig.httpUrlAllowlist,
-                autoStart: DefaultConfig.autoStart,
-                screenshotMaskLevel: DefaultConfig.screenshotMaskLevel,
-                maxDiskUsageInMb: DefaultConfig.maxDiskUsageInMb,
-              }),
+          enableLogging: DefaultConfig.enableLogging,
+          samplingRateForErrorFreeSessions: DefaultConfig.sessionSamplingRate,
+          coldLaunchSamplingRate: DefaultConfig.coldLaunchSamplingRate,
+          warmLaunchSamplingRate: DefaultConfig.warmLaunchSamplingRate,
+          hotLaunchSamplingRate: DefaultConfig.hotLaunchSamplingRate,
+          journeySamplingRate: DefaultConfig.journeySamplingRate,
+          traceSamplingRate: DefaultConfig.traceSamplingRate,
+          trackHttpHeaders: DefaultConfig.trackHttpHeaders,
+          trackHttpBody: DefaultConfig.trackHttpBody,
+          httpHeadersBlocklist: DefaultConfig.httpHeadersBlocklist,
+          httpUrlBlocklist: DefaultConfig.httpUrlBlocklist,
+          httpUrlAllowlist: DefaultConfig.httpUrlAllowlist,
+          autoStart: DefaultConfig.autoStart,
+          screenshotMaskLevel: DefaultConfig.screenshotMaskLevel,
+          maxDiskUsageInMb: DefaultConfig.maxDiskUsageInMb,
+        }),
       this.measureInitializer.logger
     );
   }
@@ -173,9 +179,11 @@ export class MeasureInternal {
     requestBody?: string | null;
     responseBody?: string | null;
   }): Promise<void> {
-    return this.measureInitializer.userTriggeredEventCollector.trackHttpEvent(params);
+    return this.measureInitializer.userTriggeredEventCollector.trackHttpEvent(
+      params
+    );
   }
-  
+
   trackBugReport(
     description: string,
     attachments: MsrAttachment[] = [],
@@ -186,5 +194,16 @@ export class MeasureInternal {
       attachments,
       attributes
     );
+  }
+
+  getSessionId(): Promise<string | null> {
+    return getNativeSessionId()
+      .catch(() => {
+        this.measureInitializer.logger.internalLog(
+          'warning',
+          'Failed to fetch session ID from native layer.'
+        );
+        return null;
+      });
   }
 }

@@ -265,6 +265,18 @@ class MeasureModule: NSObject, RCTBridgeModule {
             }
         }
     }
+
+    @objc
+    func getSessionId(_ resolve: @escaping RCTPromiseResolveBlock,
+                     rejecter reject: @escaping RCTPromiseRejectBlock) {
+        let sessionId = Measure.getSessionId()
+
+        if let sessionId = sessionId {
+            resolve(sessionId)
+        } else {
+            resolve(nil)
+        }
+    }
     
     @objc
     func trackBugReport(_ description: NSString,

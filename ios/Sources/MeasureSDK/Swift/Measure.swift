@@ -367,7 +367,7 @@ extension Measure {
 
     /// Returns the session ID for the current session, or nil if the SDK has not been initialized.
     ///
-    /// A session represents a continuous period of activity in the app. A new session begins when the app is launched for the first time, or when there's been no activity for a 20-minute period.
+    /// A session represents a continuous period of activity in the app. A new session begins when the app is launched for the first time, or when there's been no activity for a 5-minute period.
     /// A single session can continue across multiple app background and foreground events; brief interruptions will not cause a new session to be created.
     /// - Returns: The session ID if the SDK is initialized, or nil otherwise.
     @objc public static func getSessionId() -> String? {

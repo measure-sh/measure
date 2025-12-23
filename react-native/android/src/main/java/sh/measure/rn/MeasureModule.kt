@@ -184,6 +184,21 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun getSessionId(promise: Promise) {
+        try {
+            val sessionId = Measure.getSessionId()
+
+            if (sessionId != null) {
+                promise.resolve(sessionId)
+            } else {
+                promise.resolve(null)
+            }
+        } catch (e: Exception) {
+            promise.reject("GET_SESSION_ID_FAILED", e)
+        }
+    }
+
+    @ReactMethod
     fun trackHttpEvent(
         url: String,
         method: String,
