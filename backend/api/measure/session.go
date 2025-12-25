@@ -149,11 +149,6 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 			Where("app_id = toUUID(?)").String()+") as sessions", af.AppID).
 		Where("start_time >= ? and end_time <= ?", af.From, af.To)
 
-	// Don't return boring sessions that has less than n events, so filter
-	// those out. Many sessions may have just a `session_start`
-	// event & nothing else.
-	base.Having("uniqMerge(event_count) >= ?", sessionMinEvents)
-
 	if af.Crash && af.ANR {
 		base.Having("uniqMerge(crash_count) >= 1 or uniqMerge(anr_count) >= 1")
 	} else if af.Crash {
@@ -251,7 +246,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct session_id").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
@@ -389,7 +384,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct session_id").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)

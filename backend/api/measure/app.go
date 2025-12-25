@@ -16,6 +16,7 @@ import (
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/journey"
+	"backend/api/logcomment"
 	"backend/api/metrics"
 	"backend/api/numeric"
 	"backend/api/opsys"
@@ -24,11 +25,13 @@ import (
 	"backend/api/span"
 	"backend/api/timeline"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
+	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
@@ -107,13 +110,13 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 
 	defer stmt.Close()
 
-	row := group.ExceptionGroup{}
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	row := group.ExceptionGroup{}
 	if rows.Next() {
 		if err := rows.Scan(
 			&row.AppID,
@@ -136,9 +139,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.ID).
-		Where("type = 'exception'").
-		Where("exception.handled = false").
+		Clause("prewhere app_id = toUUID(?) and type = ? and exception.fingerprint = ? and exception.handled = false", a.ID, event.TypeException, exceptionGroup.ID).
 		GroupBy("id")
 
 	defer eventDataStmt.Close()
@@ -159,12 +160,12 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 		eventIds = append(eventIds, eventID)
 	}
 
-	if eventDataRows.Err() != nil {
+	if err = eventDataRows.Err(); err != nil {
 		return
 	}
 
 	exceptionGroup.EventIDs = eventIds
-	exceptionGroup.Count = len(eventIds)
+	exceptionGroup.Count = uint64(len(eventIds))
 
 	return
 }
@@ -173,28 +174,93 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.
-		From("unhandled_exception_groups final").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		Where("app_id = ?", a.ID)
+		From("unhandled_exception_groups as g final").
+		Select("g.app_id").
+		Select("g.id").
+		Select(`g.type`).
+		Select(`g.message`).
+		Select(`g.method_name`).
+		Select(`g.file_name`).
+		Select(`g.line_number`).
+		Select("g.updated_at").
+		Select("count(e.id) as event_count").
+		Clause("prewhere g.app_id = toUUID(?)", a.ID).
+		LeftJoin("events as e final", "g.id = e.exception.fingerprint").
+		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
+		Where("e.type = ?", event.TypeException).
+		Where("e.exception.handled = false").
+		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
+		Having("event_count > 0")
 
 	defer stmt.Close()
+
+	if len(af.Versions) > 0 {
+		stmt.Where("e.attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("e.attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("e.attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("e.inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("e.attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("exception = true")
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
+
 	defer rows.Close()
+
+	if err = rows.Err(); err != nil {
+		return
+	}
 
 	for rows.Next() {
 		var g group.ExceptionGroup
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&g.AppID,
 			&g.ID,
 			&g.Type,
@@ -203,110 +269,12 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			&g.FileName,
 			&g.LineNumber,
 			&g.UpdatedAt,
+			&g.Count,
 		); err != nil {
-			return nil, err
+			return
 		}
+
 		groups = append(groups, g)
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	var exceptionGroup *group.ExceptionGroup
-	for i := range groups {
-		exceptionGroup = &groups[i]
-
-		eventDataStmt := sqlf.
-			From("events final").
-			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.ID).
-			Where("type = ?", event.TypeException).
-			Where("exception.handled = ?", false)
-
-		defer eventDataStmt.Close()
-
-		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs final").
-				Select("event_id id").
-				Where("app_id = toUUID(?)", af.AppID).
-				Where("exception = true")
-			af.UDExpression.Augment(subQuery)
-			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-		}
-
-		eventDataStmt.GroupBy("id")
-
-		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
-		}
-
-		if len(af.OsNames) > 0 {
-			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
-		}
-
-		if len(af.OsVersions) > 0 {
-			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
-		}
-
-		if len(af.Countries) > 0 {
-			eventDataStmt.Where("inet.country_code").In(af.Countries)
-		}
-
-		if len(af.DeviceNames) > 0 {
-			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
-		}
-
-		if len(af.DeviceManufacturers) > 0 {
-			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-		}
-
-		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		var ids []uuid.UUID
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				return nil, err
-			}
-
-			ids = append(ids, id)
-		}
-
-		if rows.Err() != nil {
-			return nil, err
-		}
-
-		exceptionGroup.EventIDs = ids
-		exceptionGroup.Count = len(ids)
 	}
 
 	return
@@ -358,8 +326,7 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events final`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.ID).
-		Where("type = ?", event.TypeANR).
+		Clause("prewhere app_id = toUUID(?) and type = ? and anr.fingerprint = ?", a.ID, event.TypeANR, anrGroup.ID).
 		GroupBy("id")
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
@@ -378,41 +345,101 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 		eventIds = append(eventIds, eventID)
 	}
 
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
+	if err = eventDataRows.Err(); err != nil {
+		return
 	}
 
 	anrGroup.EventIDs = eventIds
-	anrGroup.Count = len(eventIds)
+	anrGroup.Count = uint64(len(eventIds))
 
-	return anrGroup, nil
+	return
 }
 
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.
-		From("anr_groups final").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		Where("app_id = ?", a.ID)
+		From("anr_groups as g final").
+		Select("g.app_id").
+		Select("g.id").
+		Select(`g.type`).
+		Select(`g.message`).
+		Select(`g.method_name`).
+		Select(`g.file_name`).
+		Select(`g.line_number`).
+		Select("g.updated_at").
+		Select("count(e.id) as event_count").
+		Clause("prewhere g.app_id = toUUID(?)", a.ID).
+		LeftJoin("events as e final", "g.id = e.anr.fingerprint").
+		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
+		Where("e.type = ?", event.TypeANR).
+		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
+		Having("event_count > 0")
 
 	defer stmt.Close()
+
+	if len(af.Versions) > 0 {
+		stmt.Where("e.attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("e.attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("e.attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("e.inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("e.attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("anr = true")
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
+
 	defer rows.Close()
 
 	for rows.Next() {
 		var g group.ANRGroup
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&g.AppID,
 			&g.ID,
 			&g.Type,
@@ -421,108 +448,12 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			&g.FileName,
 			&g.LineNumber,
 			&g.UpdatedAt,
+			&g.Count,
 		); err != nil {
-			return nil, err
+			return
 		}
+
 		groups = append(groups, g)
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	var anrGroup *group.ANRGroup
-	for i := range groups {
-		anrGroup = &groups[i]
-
-		eventDataStmt := sqlf.
-			From("events final").
-			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
-			Where("type = ?", event.TypeANR)
-
-		defer eventDataStmt.Close()
-
-		if af.HasUDExpression() && !af.UDExpression.Empty() {
-			subQuery := sqlf.From("user_def_attrs final").
-				Select("event_id id").
-				Where("app_id = toUUID(?)", af.AppID)
-			af.UDExpression.Augment(subQuery)
-			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-		}
-
-		eventDataStmt.GroupBy("id")
-
-		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
-		}
-
-		if len(af.OsNames) > 0 {
-			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
-		}
-
-		if len(af.OsVersions) > 0 {
-			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
-		}
-
-		if len(af.Countries) > 0 {
-			eventDataStmt.Where("inet.country_code").In(af.Countries)
-		}
-
-		if len(af.DeviceNames) > 0 {
-			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
-		}
-
-		if len(af.DeviceManufacturers) > 0 {
-			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-		}
-
-		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		var ids []uuid.UUID
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				return nil, err
-			}
-
-			ids = append(ids, id)
-		}
-
-		if rows.Err() != nil {
-			return nil, err
-		}
-
-		anrGroup.EventIDs = ids
-		anrGroup.Count = len(ids)
 	}
 
 	return
@@ -536,11 +467,12 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 // version.
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
-	stmt := sqlf.Select("count(id) as count").
-		From("events final").
+
+	stmt := sqlf.From("events").
+		Select("count() as count").
 		Where("app_id = ?", af.AppID).
-		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0])
 
 	defer stmt.Close()
 
@@ -923,7 +855,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`events final`).
+		From(`events`).
 		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
@@ -1499,7 +1431,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	}
 
-	stmt := sqlf.From("events final")
+	stmt := sqlf.From("events")
 	defer stmt.Close()
 
 	for i := range cols {
@@ -2149,6 +2081,15 @@ func GetAppJourney(c *gin.Context) {
 	opts := filter.JourneyOpts{
 		All: true,
 	}
+
+	lc := logcomment.New(2)
+	lc.MustPut(logcomment.Root, logcomment.Journeys)
+
+	settings := clickhouse.Settings{
+		"log_comment": lc.String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "journey_events")
 	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
 	if err != nil {
 		fmt.Println(msg, err)
@@ -2210,6 +2151,8 @@ func GetAppJourney(c *gin.Context) {
 				return
 			}
 
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
+
 			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
 			if err != nil {
 				return
@@ -2230,6 +2173,8 @@ func GetAppJourney(c *gin.Context) {
 			if len(eventIds) == 0 {
 				return
 			}
+
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups_from_ids")
 
 			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
 			if err != nil {
@@ -2307,6 +2252,8 @@ func GetAppJourney(c *gin.Context) {
 			if len(eventIds) == 0 {
 				return
 			}
+
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
 
 			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
 			if err != nil {
@@ -2496,47 +2443,84 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	adoption, err := app.GetAdoptionMetrics(ctx, &af)
-	if err != nil {
-		msg := `failed to fetch adoption metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
+	var metricsGroup errgroup.Group
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		msg := `failed to fetch issue free metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
+	// each go routine isolates log comment &
+	// clickhouse settings for safe concurrency
 
-	launch, err := app.GetLaunchMetrics(ctx, &af)
-	if err != nil {
-		msg := `failed to fetch launch metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
+	var adoption *metrics.SessionAdoption
+	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "adoption")
+
+		adoption, err = app.GetAdoptionMetrics(ctx, &af)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch adoption metrics: %w\n", err)
+		}
 		return
-	}
+	})
+
+	var crashFree *metrics.CrashFreeSession
+	var perceivedCrashFree *metrics.PerceivedCrashFreeSession
+	var anrFree *metrics.ANRFreeSession
+	var perceivedANRFree *metrics.PerceivedANRFreeSession
+	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "issue_free")
+
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch issue free metrics: %w\n", err)
+		}
+		return
+	})
+
+	var launch *metrics.LaunchMetric
+	metricsGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "launch")
+
+		launch, err = app.GetLaunchMetrics(ctx, &af)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch launch metrics: %w\n", err)
+		}
+		return
+	})
 
 	var sizes *metrics.SizeMetric = nil
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
-		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
-		if err != nil {
-			msg := `failed to fetch size metrics`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+		metricsGroup.Go(func() (err error) {
+			lc := logcomment.New(2)
+			settings := clickhouse.Settings{
+				"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			}
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sizes")
+
+			sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
+			if err != nil {
+				err = fmt.Errorf("failed to fetch size metrics: %w\n", err)
+			}
 			return
-		}
+		})
+	}
+
+	if err = metricsGroup.Wait(); err != nil {
+		err = fmt.Errorf("failed to fetch metrics: %w\n", err)
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -2836,7 +2820,13 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "crashes_list")
+	crashGroups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"
 		fmt.Println(msg, err)
@@ -2844,19 +2834,6 @@ func GetCrashOverview(c *gin.Context) {
 			"error": msg,
 		})
 		return
-	}
-
-	var crashGroups []group.ExceptionGroup
-	for i := range groups {
-		// only consider those groups that have at least 1 exception
-		// event
-		if groups[i].Count > 0 {
-			// omit `event_ids` field from JSON
-			// response, because these can get really huge
-			groups[i].EventIDs = nil
-
-			crashGroups = append(crashGroups, groups[i])
-		}
 	}
 
 	group.ComputeCrashContribution(crashGroups)
@@ -2976,6 +2953,12 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	crashInstances, err := GetExceptionPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
@@ -3763,7 +3746,13 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetANRGroupsWithFilter(ctx, &af)
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anrs_list")
+	anrGroups, err := app.GetANRGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's anr groups matching filter"
 		fmt.Println(msg, err)
@@ -3771,25 +3760,15 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	var anrGroups []group.ANRGroup
-	for i := range groups {
-		// only consider those groups that have at least 1 anr
-		// event
-		if groups[i].Count > 0 {
-			// omit `event_ids` field from JSON
-			// response, because these can get really huge
-			groups[i].EventIDs = nil
-
-			anrGroups = append(anrGroups, groups[i])
-		}
-	}
-
 	group.ComputeANRContribution(anrGroups)
 	group.SortANRGroups(anrGroups)
 	anrGroups, next, previous := paginate.Paginate(anrGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
+	c.JSON(http.StatusOK, gin.H{
+		"results": anrGroups,
+		"meta":    meta,
+	})
 }
 
 func GetANROverviewPlotInstances(c *gin.Context) {
@@ -3897,6 +3876,12 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	anrInstances, err := GetANRPlotInstances(ctx, &af)
 	if err != nil {
 		msg := `failed to query exception instances`
@@ -4727,6 +4712,12 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sessions_list")
 	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
@@ -4857,6 +4848,12 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`

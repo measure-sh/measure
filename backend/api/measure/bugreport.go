@@ -133,7 +133,7 @@ func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugRe
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct event_id").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
@@ -254,7 +254,7 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs final").
+		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct event_id").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)

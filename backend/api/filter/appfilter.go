@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/event"
+	"backend/api/logcomment"
 	"backend/api/opsys"
 	"backend/api/pairs"
 	"backend/api/server"
@@ -14,14 +15,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/blang/semver/v4"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"golang.org/x/sync/errgroup"
 )
 
 // DefaultDuration is the default time duration used
-// for all filtering oprations when an explicit
+// for all filtering operations when an explicit
 // duration is not provided.
 const DefaultDuration = time.Hour * 24 * 7
 
@@ -32,6 +35,10 @@ const MaxPaginationLimit = 1000
 // DefaultPaginationLimit is the number of items used
 // as default for paginating items.
 const DefaultPaginationLimit = 10
+
+// defaultQueryCacheTTL is the default query cache
+// TTL duration.
+const defaultQueryCacheTTL = time.Minute * 10
 
 // Operator represents a comparison operator
 // like `eq` for `equal` or `gte` for `greater
@@ -54,7 +61,7 @@ type AppFilter struct {
 	// ID is the unique id of the app.
 	AppID uuid.UUID
 
-	// AppOSName is the OSName vaue of the app.
+	// AppOSName is the OSName value of the app.
 	AppOSName string
 
 	// From represents the lower time bound of
@@ -69,7 +76,8 @@ type AppFilter struct {
 	// client
 	Timezone string `form:"timezone"`
 
-	// Represents a short code for list filters
+	// FilterShortCode represents a short code for list
+	// filters.
 	FilterShortCode string `form:"filter_short_code"`
 
 	// Versions is the list of version string
@@ -80,11 +88,11 @@ type AppFilter struct {
 	// to be matched & filtered on.
 	VersionCodes []string `form:"version_codes"`
 
-	// OsNames is the list of os names
+	// OsNames is the list of OS names
 	// to be matched on & filtered on.
 	OsNames []string `form:"os_names"`
 
-	// OsVersions is the list of os versions
+	// OsVersions is the list of OS versions
 	// to be matched on & filtered on.
 	OsVersions []string `form:"os_versions"`
 
@@ -273,7 +281,7 @@ func (af *AppFilter) ValidateVersions() error {
 	return nil
 }
 
-// VersionPairs provides a convinient wrapper over versions
+// VersionPairs provides a convenient wrapper over versions
 // and version codes representing them in paired-up way, like
 // tuples. For many cases, a paired up version is more useful
 // than individual version names and codes.
@@ -285,7 +293,7 @@ func (af *AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err 
 	return
 }
 
-// OSVersionPairs provides a convinient wrapper over OS name
+// OSVersionPairs provides a convenient wrapper over OS name
 // and OS version representing them in paired-up way, like
 // tuples. For many cases, a paired up version is more useful
 // than individual OS names and versions.
@@ -536,61 +544,189 @@ func (af *AppFilter) SetDefaultTimeRange() {
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
 func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
-	versions, versionCodes, err := af.getAppVersions(ctx)
-	if err != nil {
-		return err
-	}
-	fl.Versions = append(fl.Versions, versions...)
-	fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
+	var filterGroup errgroup.Group
 
-	osNames, osVersions, err := af.getOsVersions(ctx)
-	if err != nil {
-		return err
-	}
-	fl.OsNames = append(fl.OsNames, osNames...)
-	fl.OsVersions = append(fl.OsVersions, osVersions...)
+	// each go routine isolates log comment &
+	// clickhouse settings for safe concurrency
 
-	countries, err := af.getCountries(ctx)
-	if err != nil {
-		return err
-	}
-	fl.Countries = append(fl.Countries, countries...)
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			// only query level caching is supported in ClickHouse Cloud,
+			// not at session level.
+			"use_query_cache": 1,
+			// cache for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
-	networkProviders, err := af.getNetworkProviders(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
+		versions, versionCodes, err := af.getAppVersions(ctx)
+		if err != nil {
+			return
+		}
+		fl.Versions = append(fl.Versions, versions...)
+		fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
 
-	networkTypes, err := af.getNetworkTypes(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
+		return
+	})
 
-	networkGenerations, err := af.getNetworkGenerations(ctx)
-	if err != nil {
-		return err
-	}
-	fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 
-	deviceLocales, err := af.getDeviceLocales(ctx)
-	if err != nil {
-		return err
-	}
-	fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
+		osNames, osVersions, err := af.getOsVersions(ctx)
+		if err != nil {
+			return
+		}
+		fl.OsNames = append(fl.OsNames, osNames...)
+		fl.OsVersions = append(fl.OsVersions, osVersions...)
 
-	deviceManufacturers, err := af.getDeviceManufacturers(ctx)
-	if err != nil {
-		return err
-	}
-	fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
+		return
+	})
 
-	deviceNames, err := af.getDeviceNames(ctx)
-	if err != nil {
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
+
+		countries, err := af.getCountries(ctx)
+		if err != nil {
+			return
+		}
+		fl.Countries = append(fl.Countries, countries...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
+
+		networkProviders, err := af.getNetworkProviders(ctx)
+		if err != nil {
+			return
+		}
+		fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
+
+		networkTypes, err := af.getNetworkTypes(ctx)
+		if err != nil {
+			return
+		}
+		fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
+
+		networkGenerations, err := af.getNetworkGenerations(ctx)
+		if err != nil {
+			return
+		}
+		fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
+
+		deviceLocales, err := af.getDeviceLocales(ctx)
+		if err != nil {
+			return
+		}
+		fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
+
+		deviceManufacturers, err := af.getDeviceManufacturers(ctx)
+		if err != nil {
+			return
+		}
+		fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
+
+		return
+	})
+
+	filterGroup.Go(func() (err error) {
+		lc := logcomment.New(2)
+		settings := clickhouse.Settings{
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+			"use_query_cache": 1,
+			// cache filters for 10 mins
+			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+		}
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
+
+		deviceNames, err := af.getDeviceNames(ctx)
+		if err != nil {
+			return
+		}
+		fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
+
+		return
+	})
+
+	if err := filterGroup.Wait(); err != nil {
 		return err
 	}
-	fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
 
 	return nil
 }
@@ -623,7 +759,7 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 }
 
 // getAppVersions finds distinct pairs of app versions &
-// app build no from available events.
+// app build no from available filters.
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
@@ -690,7 +826,7 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 }
 
 // getOsVersions finds distinct values of os versions
-// from available events.
+// from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
@@ -739,7 +875,7 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 }
 
 // getCountries finds distinct values of country codes
-// from available events.
+// from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
@@ -785,15 +921,15 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 }
 
 // getNetworkProviders finds distinct values of app network
-// providers from available events.
+// providers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
@@ -831,15 +967,15 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 }
 
 // getNetworkTypes finds distinct values of app network
-// types from available events.
+// types from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
@@ -877,15 +1013,15 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 }
 
 // getNetworkGenerations finds distinct values of app network
-// generations from available events.
+// generations from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
@@ -926,15 +1062,15 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 }
 
 // getDeviceLocales finds distinct values of app device
-// locales from available events.
+// locales from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
@@ -972,15 +1108,15 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 }
 
 // getDeviceManufacturers finds distinct values of app device
-// manufacturers from available events.
+// manufacturers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
@@ -1018,15 +1154,15 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 }
 
 // getDeviceNames finds distinct values of app device
-// names from available events.
+// names from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters final"
+		table_name = "span_filters"
 	} else {
-		table_name = "app_filters final"
+		table_name = "app_filters"
 	}
 
 	stmt := sqlf.
