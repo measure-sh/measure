@@ -143,11 +143,16 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                     </div>
                     <div className="py-4" />
                     <Table className="font-display">
-                        <TableHeader>
+                        <TableHeader className="[&_tr]:!border-b-0">
                             <TableRow>
                                 <TableHead className="w-[60%]">Session</TableHead>
                                 <TableHead className="w-[20%] text-center">Start Time</TableHead>
                                 <TableHead className="w-[20%] text-center">Duration</TableHead>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell colSpan={3} className="p-0 border-b-1 pointer-events-none">
+                                    <p className='px-4 pt-1 pb-4 text-xs font-body'>Note: Low-activity sessions are filtered out to avoid clutter</p>
+                                </TableCell>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
