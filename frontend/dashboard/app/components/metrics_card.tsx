@@ -85,6 +85,7 @@ export interface AppStartTimeProps extends BaseMetricsCardProps {
 
 export interface AppSizeProps extends BaseMetricsCardProps {
     type: 'app_size'
+    multiVersion: boolean
     valueInBytes: number
     deltaInBytes: number
 }
@@ -169,7 +170,10 @@ function getAppStartTimeStatusIcon(delta: number) {
     }
 }
 
-function getAppSizeStatusIcon(deltaInBytes: number) {
+function getAppSizeStatusIcon(multiVersion: boolean, deltaInBytes: number) {
+    if (multiVersion) {
+        return null;
+    }
     const iconClasses = `${STYLES.icon.status}`
     if (deltaInBytes <= 0) {
         return <CheckCircle className={`${iconClasses} ${STYLES.icon.green}`} />
@@ -219,42 +223,42 @@ function getAppStartTimeDeltaWithTrendIcon(delta: number) {
 }
 
 function getAppSizeDeltaWithTrendIcon(deltaInBytes: number) {
-  if (deltaInBytes === 0) {
-    return null;
-  }
+    if (deltaInBytes === 0) {
+        return null;
+    }
 
-  const isNegative = deltaInBytes < 0;
-  const absBytes = Math.abs(deltaInBytes);
+    const isNegative = deltaInBytes < 0;
+    const absBytes = Math.abs(deltaInBytes);
 
-  let value: string;
-  let unit: string;
+    let value: string;
+    let unit: string;
 
-  if (absBytes >= 1024 * 1024) {
-    // ≥ 1 MB → show in MB with 3 significant digits
-    value = toMegaBytes(deltaInBytes).toPrecision(3);
-    unit = 'MB';
-  } else if (absBytes >= 1024) {
-    // ≥ 1 KB → show in KB with 2 significant digits
-    value = toKiloBytes(deltaInBytes).toFixed(2);
-    unit = 'KB';
-  } else {
-    // < 1 KB → show raw bytes (no decimal)
-    value = deltaInBytes.toString();
-    unit = 'B';
-  }
+    if (absBytes >= 1024 * 1024) {
+        // ≥ 1 MB → show in MB with 3 significant digits
+        value = toMegaBytes(deltaInBytes).toPrecision(3);
+        unit = 'MB';
+    } else if (absBytes >= 1024) {
+        // ≥ 1 KB → show in KB with 2 significant digits
+        value = toKiloBytes(deltaInBytes).toFixed(2);
+        unit = 'KB';
+    } else {
+        // < 1 KB → show raw bytes (no decimal)
+        value = deltaInBytes.toString();
+        unit = 'B';
+    }
 
-  const Icon = isNegative ? TrendingDown : TrendingUp;
-  const colorClass = isNegative ? STYLES.icon.green : STYLES.icon.yellow;
-  const sign = isNegative ? '' : '+';
+    const Icon = isNegative ? TrendingDown : TrendingUp;
+    const colorClass = isNegative ? STYLES.icon.green : STYLES.icon.yellow;
+    const sign = isNegative ? '' : '+';
 
-  return (
-    <div className={STYLES.layout.trendContainer}>
-      <Icon className={`${STYLES.icon.trend} ${colorClass}`} />
-      <p className={`${STYLES.text.trendText} ${colorClass}`}>
-        {sign}{value} {unit}
-      </p>
-    </div>
-  );
+    return (
+        <div className={STYLES.layout.trendContainer}>
+            <Icon className={`${STYLES.icon.trend} ${colorClass}`} />
+            <p className={`${STYLES.text.trendText} ${colorClass}`}>
+                {sign}{value} {unit}
+            </p>
+        </div>
+    );
 }
 
 const MetricsCard: React.FC<MetricsCardProps> = (props) => {
@@ -299,13 +303,21 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
 
             case 'app_size':
                 const sizeProps = props as AppSizeProps
-                return (
-                    <>
+                if (sizeProps.multiVersion) {
+                    return (<>
+                        <p className={STYLES.text.mainValue}> N/A</p>
+                        <div className={STYLES.layout.spacer} />
+                        <p className={`text-xs font-code`}>
+                            App size metric is only available when a single app version is selected.
+                        </p>
+                    </>)
+                } else {
+                    return (<>
                         <p className={STYLES.text.mainValue}> {(sizeProps.valueInBytes / (1024 * 1024)).toPrecision(3)} MB</p>
                         <div className={STYLES.layout.spacer} />
                         {getAppSizeDeltaWithTrendIcon(sizeProps.deltaInBytes)}
-                    </>
-                )
+                    </>)
+                }
 
             case 'app_adoption':
                 const adoptionProps = props as AppAdoptionProps
@@ -446,7 +458,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
             case 'app_start_time':
                 return getAppStartTimeStatusIcon((props as AppStartTimeProps).delta)
             case 'app_size':
-                return getAppSizeStatusIcon((props as AppSizeProps).deltaInBytes)
+                return getAppSizeStatusIcon((props as AppSizeProps).multiVersion, (props as AppSizeProps).deltaInBytes)
             default:
                 return null
         }
