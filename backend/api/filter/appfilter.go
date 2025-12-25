@@ -766,9 +766,9 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -832,9 +832,9 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -881,9 +881,9 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
 	var table_name string
 	if af.Span {
-		table_name = "span_filters"
+		table_name = "span_filters final"
 	} else {
-		table_name = "app_filters"
+		table_name = "app_filters final"
 	}
 
 	stmt := sqlf.
@@ -1204,9 +1204,9 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
 	var table string
 	if af.Span {
-		table = "span_user_def_attrs"
+		table = "span_user_def_attrs final"
 	} else {
-		table = "user_def_attrs"
+		table = "user_def_attrs final"
 	}
 
 	stmt := sqlf.From(table).
