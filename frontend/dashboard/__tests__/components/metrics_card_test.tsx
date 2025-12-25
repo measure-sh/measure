@@ -137,6 +137,7 @@ describe('MetricsCard', () => {
         type: 'app_size',
         status: MetricsApiStatus.Success,
         noData: false,
+        multiVersion: false,
         valueInBytes: 52428800, // 50MB
         deltaInBytes: -1048576, // -1MB
         ...overrides,
@@ -406,23 +407,36 @@ describe('MetricsCard', () => {
         })
 
         it('should handle small size delta trends in kilobytes', () => {
-          // Test small size changes, in bytes or kilobytes
-          const smallDecreaseProps = createAppSizeProps({ deltaInBytes: -2286 })
-          render(<MetricsCard {...smallDecreaseProps} />)
-          const trendingIcon = screen.getByTestId('trending-down-icon')
-          expect(trendingIcon).toHaveClass('text-green-600')
-          const trendingText = screen.getByText('-2.23 KB')
-          expect(trendingText).toHaveClass('text-green-600')
+            // Test small size changes, in bytes or kilobytes
+            const smallDecreaseProps = createAppSizeProps({ deltaInBytes: -2286 })
+            render(<MetricsCard {...smallDecreaseProps} />)
+            const trendingIcon = screen.getByTestId('trending-down-icon')
+            expect(trendingIcon).toHaveClass('text-green-600')
+            const trendingText = screen.getByText('-2.23 KB')
+            expect(trendingText).toHaveClass('text-green-600')
         })
 
         it('should handle small size delta trends in bytes', () => {
-          // Test small size changes, in bytes or bytes
-          const smallIncreaseProps = createAppSizeProps({ deltaInBytes: 220 })
-          render(<MetricsCard {...smallIncreaseProps} />)
-          const trendingIcon = screen.getByTestId('trending-up-icon')
-          expect(trendingIcon).toHaveClass('text-yellow-600')
-          const trendingTextUp = screen.getByText('+220 B')
-          expect(trendingTextUp).toHaveClass('text-yellow-600')
+            // Test small size changes, in bytes or bytes
+            const smallIncreaseProps = createAppSizeProps({ deltaInBytes: 220 })
+            render(<MetricsCard {...smallIncreaseProps} />)
+            const trendingIcon = screen.getByTestId('trending-up-icon')
+            expect(trendingIcon).toHaveClass('text-yellow-600')
+            const trendingTextUp = screen.getByText('+220 B')
+            expect(trendingTextUp).toHaveClass('text-yellow-600')
+        })
+
+        it('should show disclaimer when multiple app versions are selected', () => {
+            const appSizeProps = createAppSizeProps({ deltaInBytes: 220, multiVersion: true })
+            render(<MetricsCard {...appSizeProps} />)
+            const trendingIcon = screen.queryByTestId('trending-up-icon')
+            expect(trendingIcon).not.toBeInTheDocument()
+            const trendingTextUp = screen.queryByText('+220 B')
+            expect(trendingTextUp).not.toBeInTheDocument()
+            const cardContent2 = screen.getByTestId('card-content')
+            const alertTriangleIcon = within(cardContent2).queryByTestId('alert-triangle-icon')
+            expect(alertTriangleIcon).not.toBeInTheDocument()
+            expect(screen.getByText('App size metric is only available when a single app version is selected.')).toBeInTheDocument()
         })
     })
 
