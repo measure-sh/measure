@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Add note to session list about filtering by @anupcowkur in #3049
 - (**frontend**): Show size metric with disclaimer on multi app version select by @anupcowkur in #3048
 - (**frontend**): Send empty filters when all values are selected by @anupcowkur
 - (**frontend**): Default to latest app version filter by @anupcowkur in #3034
