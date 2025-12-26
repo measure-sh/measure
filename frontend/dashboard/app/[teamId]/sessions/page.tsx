@@ -90,7 +90,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+        <div className="flex flex-col items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Sessions</p>
             <div className="py-4" />
 
@@ -142,7 +142,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                         <LoadingBar />
                     </div>
                     <div className="py-4" />
-                    <Table className="font-display">
+                    <Table className="font-display select-none">
                         <TableHeader className="[&_tr]:!border-b-0">
                             <TableRow>
                                 <TableHead className="w-[60%]">Session</TableHead>
@@ -161,7 +161,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                 return (
                                     <TableRow
                                         key={`${idx}-${session_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        className="font-body"
                                         tabIndex={0}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -181,8 +181,8 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>ID: {session_id}</p>
                                                 <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                                <p className='text-xs truncate text-muted-foreground select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-border bg-accent rounded-md '>{"Matched " + matched_free_text}</p>}
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">

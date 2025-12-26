@@ -221,7 +221,7 @@ describe('MetricsCard', () => {
             rerender(<MetricsCard {...poorProps} />)
             const cardContent3 = screen.getByTestId('card-content')
             const alertTriangleIconRed = within(cardContent3).getByTestId('alert-triangle-icon')
-            expect(alertTriangleIconRed).toHaveClass('text-red-600')
+            expect(alertTriangleIconRed).toHaveClass('text-red-500')
         })
 
         it('should handle delta trends correctly and their colors', () => {
@@ -436,7 +436,7 @@ describe('MetricsCard', () => {
             const cardContent2 = screen.getByTestId('card-content')
             const alertTriangleIcon = within(cardContent2).queryByTestId('alert-triangle-icon')
             expect(alertTriangleIcon).not.toBeInTheDocument()
-            expect(screen.getByText('App size metric is only available when a single app version is selected.')).toBeInTheDocument()
+            expect(screen.getByText('App size metric is only available when a single app version is selected')).toBeInTheDocument()
         })
     })
 

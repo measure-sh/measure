@@ -1,8 +1,10 @@
 "use client"
 
 import { ResponsiveLine } from '@nivo/line'
+import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
+import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
@@ -26,6 +28,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsOverviewPlot>()
   const [pointIdToInstanceMap, setPointIdToInstanceMap] = useState(new Map<String, number>())
+  const { theme } = useTheme()
 
   const getExceptionsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -85,9 +88,10 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: 'nivo' }}
+          colors={{ scheme: theme === 'dark' ? 'dark2' : 'nivo' }}
           margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
@@ -122,7 +126,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           }}
           pointSize={6}
           pointBorderWidth={1.5}
-          pointColor={"rgba(255, 255, 255, 255)"}
+          pointColor={theme === 'dark' ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"}
           pointBorderColor={{
             from: 'serieColor',
             modifiers: [
@@ -139,7 +143,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>

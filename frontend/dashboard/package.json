@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "generate:sitemap": "node ./scripts/generate-sitemap.js",
     "test": "jest",
     "test:update-snapshot": "jest --updateSnapshot",
     "test:watch": "jest --watch"
@@ -43,6 +44,7 @@
     "lucide-react": "^0.508.0",
     "luxon": "^3.4.4",
     "next": "^14.2.35",
+    "next-themes": "^0.4.6",
     "postcss": "^8.4.39",
     "posthog-js": "^1.275.1",
     "posthog-node": "^5.9.5",

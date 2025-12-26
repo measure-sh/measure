@@ -17,7 +17,8 @@ export type LayoutElementType =
     | "slider"
     | "progress"
 
-export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, #fef08a 0, #fef08a 1px, transparent 5px, transparent 10px)`
+// have to hardcode colours here. Should map to primary in globals.css
+export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, oklch(0.8790 0.1690 91.6050) 0, oklch(0.8790 0.1690 91.6050) 1px, transparent 5px, transparent 10px)`
 
 type LayoutElement = {
     id: string
@@ -60,10 +61,10 @@ function LayoutElementNode({
         }
         : {}
     const borderClass = element.highlighted
-        ? 'border-yellow-200'
+        ? 'border-primary'
         : isHovered
-            ? 'border-yellow-200'
-            : 'border-gray-400'
+            ? 'border-primary'
+            : 'border-background/60 dark:border-foreground/50 '
 
     return (
         <div

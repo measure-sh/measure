@@ -94,7 +94,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
 
   const renderValueInput = (attr: UserDefAttr) => {
     const value = selectedKeyValMap.get(attr.key)
-    const valueClass = "sm:ml-2 ml-0 p-1 text-sm border rounded-md w-full bg-background focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-yellow-300"
+    const valueClass = "sm:ml-2 ml-0 p-1 text-sm bg-background border border-border rounded-md w-full transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 
     switch (attr.type) {
       case 'bool':
@@ -153,7 +153,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex justify-between font-display border border-black"
+          className="flex justify-between"
           style={{ width: 'fit-content', minWidth: '150px' }}
         >
           <span className="truncate">User Defined Attrs</span>
@@ -174,14 +174,14 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
               variant="outline"
               size="sm"
               onClick={clearAll}
-              className="font-display text-xs flex-1"
+              className="text-xs flex-1"
             >
               Clear
             </Button>
           </div>
 
           <CommandEmpty>
-            <div className="text-center py-2 text-sm text-gray-500">No attributes found</div>
+            <div className="text-center py-2 text-sm font-display text-accent-foreground">No attributes found</div>
           </CommandEmpty>
 
           <CommandGroup className="max-h-96 overflow-auto">
@@ -189,7 +189,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
               <CommandItem
                 key={attr.key}
                 onSelect={() => toggleAttr(attr)}
-                className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit focus-visible:ring-3 focus-visible:ring-yellow-300"
+                className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === 'Enter') {
@@ -212,7 +212,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
                     <span
                       className={cn(
                         "sm:ml-2 ml-0 text-xs rounded-md px-2 py-1 whitespace-nowrap",
-                        isAttrSelected(attr) ? "bg-yellow-200" : "bg-white border border-neutral-400"
+                        isAttrSelected(attr) ? "bg-primary text-primary-foreground" : "bg-background border border-border text-accent-foreground"
                       )}
                     >
                       {attr.type}
@@ -224,7 +224,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
                       value={selectedKeyOpMap.get(attr.key)}
                       onChange={(e) => updateSelectedOp(attr.key, e.target.value)}
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1 text-sm border rounded-md bg-background w-full focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-yellow-300"
+                      className="p-1 text-sm bg-background outline-none border border-border rounded-md w-full focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                     >
                       {ops.get(attr.type)!.map((op) => (
                         <option key={op} value={op}>{op}</option>

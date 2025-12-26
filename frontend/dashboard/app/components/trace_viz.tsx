@@ -3,6 +3,7 @@
 import { DateTime } from 'luxon'
 import React, { useState } from 'react'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
+import { Button } from './button'
 
 enum SpanVisibility {
   Expanded,
@@ -13,7 +14,7 @@ enum SpanVisibility {
 interface Checkpoint {
   name: string
   timestamp: string
-  leftOffset?: number
+  leftPercent?: number
 }
 
 interface Span {
@@ -27,8 +28,8 @@ interface Span {
   thread_name: string
   depth?: number
   numberOfChildren?: number
-  leftOffset?: number
-  width?: number
+  leftPercent?: number
+  widthPercent?: number
   visibility?: SpanVisibility
   user_defined_attributes?: Map<string, string> | null
   checkpoints: Checkpoint[] | null
@@ -91,6 +92,7 @@ const borderColors = [
 ]
 
 const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
+  const marginPercent = 0.5 // 0.5% margin on each side
 
   const childrenMap = new Map<string, Span[]>()
   inputTrace.spans.forEach(span => {
@@ -129,22 +131,20 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   })
 
   const traceStartTime = DateTime.fromISO(inputTrace.start_time)
-  const vizWidth = 800
-  const minSpanWidth = 8
-  const margin = 8
 
   const orderedSpans: Span[] = []
   const addSpanAndChildren = (span: Span, depth: number) => {
     span.depth = depth
 
     const spanStart = DateTime.fromISO(span.start_time)
-    span.leftOffset = (spanStart.diff(traceStartTime).milliseconds / inputTrace.duration) * vizWidth + margin
-    span.width = Math.max((span.duration / inputTrace.duration) * vizWidth - margin * 2, minSpanWidth)
+    span.leftPercent = (spanStart.diff(traceStartTime).milliseconds / inputTrace.duration) * 100 + marginPercent
+    span.widthPercent = Math.max((span.duration / inputTrace.duration) * 100 - marginPercent * 2, 1) // min 1%
     span.visibility = SpanVisibility.Expanded
 
     span.checkpoints?.forEach((c) => {
       const checkPointTime = DateTime.fromISO(c.timestamp)
-      c.leftOffset = (checkPointTime.diff(traceStartTime).milliseconds / inputTrace.duration) * vizWidth + margin - span.leftOffset!
+      const checkpointPercent = (checkPointTime.diff(traceStartTime).milliseconds / inputTrace.duration) * 100 + marginPercent
+      c.leftPercent = ((checkpointPercent - span.leftPercent!) / span.widthPercent!) * 100
     })
 
     orderedSpans.push(span)
@@ -166,13 +166,12 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   const [selectedSpan, setSelectedSpan] = useState<Span>()
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<Checkpoint>()
 
-  const keyStyle = "text-gray-400 w-1/3 select-none"
-  const valueStyle = "w-2/3 pl-2"
+  const keyStyle = "text-accent-foreground/60 w-1/4 select-none"
+  const valueStyle = "w-3/4 pl-1 text-start"
 
   const toggleSpanVisibility = (targetSpanId: string) => {
     const updatedSpans = new Map<string, Span>()
 
-    // Helper function to recursively update visibility of children
     function updateChildrenVisibility(
       parentId: string,
       parentVisibility: SpanVisibility
@@ -186,13 +185,10 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
       for (const child of children) {
         const updatedChild = { ...child, visibility: newVisibility }
         updatedSpans.set(child.span_id, updatedChild)
-
-        // Recursively update children
         updateChildrenVisibility(child.span_id, newVisibility)
       }
     }
 
-    // Update the target span's visibility
     const targetSpan = trace.spans.find(s => s.span_id === targetSpanId)!
 
     const newTargetVisibility =
@@ -203,10 +199,8 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
     const updatedTargetSpan = { ...targetSpan, visibility: newTargetVisibility }
     updatedSpans.set(targetSpanId, updatedTargetSpan)
 
-    // Update children visibility based on the new target visibility
     updateChildrenVisibility(targetSpanId, newTargetVisibility)
 
-    // Create a new trace with updated spans
     const newSpans = trace.spans.map(span =>
       updatedSpans.has(span.span_id) ? updatedSpans.get(span.span_id)! : span
     )
@@ -216,22 +210,22 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   }
 
   return (
-    <div className="flex flex-col w-[1100px] h-[600px] relative font-body text-black border border-black rounded-md overflow-hidden">
+    <div className="flex flex-col w-full h-[600px] relative font-body text-foreground rounded-md overflow-hidden">
 
       {/* Panel */}
       <div
-        className={`absolute overflow-auto z-50 top-0 left-0 h-full w-1/4 bg-neutral-800 p-4 text-white text-xs break-words transform transition-transform duration-300 ease-in-out ${selectedSpan !== undefined ? 'translate-x-0' : '-translate-x-full'
+        className={`absolute overflow-auto z-50 top-0 left-0 h-full w-64 md:w-72 lg:w-80 bg-accent p-4 text-accent-foreground text-xs break-words transform transition-transform duration-300 ease-in-out ${selectedSpan !== undefined ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         {selectedSpan !== undefined &&
           <div>
-            <button className="outline-hidden select-none flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4"
+            <Button variant="secondary" className="py-2 px-4"
               onClick={() => {
                 setSelectedSpan(undefined)
                 setSelectedCheckpoint(undefined)
               }}>
               Close
-            </button>
+            </Button>
             <div className='flex flex-row mt-4'>
               <p className={keyStyle}>Span Name</p>
               <p className={valueStyle}> {selectedSpan.span_name}</p>
@@ -262,7 +256,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
             </div>
             <div className='flex flex-row mt-1'>
               <p className={keyStyle}>Span Status</p>
-              <p className={`${valueStyle} ${selectedSpan.status === 1 ? "text-green-300" : selectedSpan.status === 2 ? "text-red-300" : ""}`}> {selectedSpan.status === 0 ? "Unset" : selectedSpan.status === 1 ? "Okay" : "Error"}</p>
+              <p className={`${valueStyle} ${selectedSpan.status === 1 ? "text-green-600 dark:text-green-500" : selectedSpan.status === 2 ? "text-red-600 dark:text-red-400" : ""}`}> {selectedSpan.status === 0 ? "Unset" : selectedSpan.status === 1 ? "Okay" : "Error"}</p>
             </div>
             {selectedSpan.user_defined_attributes !== null && selectedSpan.user_defined_attributes !== undefined && Object.entries(selectedSpan.user_defined_attributes!).map(([attrKey, attrValue]) => (
               <div className="flex flex-row mt-1" key={attrKey}>
@@ -275,14 +269,14 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
               <p className={`${valueStyle}`}>{selectedSpan.checkpoints !== null && selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>
             </div>
             {selectedSpan.checkpoints?.map((checkpoint, _) => (
-              <button className={`flex flex-col mt-1 p-1 pl-4 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selectedCheckpoint === checkpoint ? "bg-neutral-950" : "hover:bg-neutral-950"}`}
+              <button className={`flex flex-col mt-1 py-2 px-2 w-full focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selectedCheckpoint === checkpoint ? "bg-background text-foreground" : "hover:bg-background text-foreground"}`}
                 key={checkpoint.name}
                 onClick={() => setSelectedCheckpoint(checkpoint)}>
                 <div className='flex flex-row mt-1'>
                   <p className={keyStyle}>Name</p>
                   <p className={valueStyle}> {checkpoint.name}</p>
                 </div>
-                <div className='flex flex-row mt-1'>
+                <div className='flex flex-row mt-2'>
                   <p className={keyStyle}>Time</p>
                   <p className={valueStyle}> {formatDateToHumanReadableDateTime(checkpoint.timestamp)}</p>
                 </div>
@@ -292,12 +286,12 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
         }
       </div>
 
-      <div className="flex flex-row w-full h-full items-start pt-4 pb-8 overflow-x-hidden overflow-y-auto">
+      <div className="flex flex-row w-full h-full items-start pt-4 pb-8 bg-background text-foreground overflow-x-hidden overflow-y-auto">
 
         {/* span names column */}
-        <div className='flex flex-col w-[300px] pl-2 mt-12 overflow-x-auto select-none'>
+        <div className='flex flex-col w-1/4 min-w-[200px] max-w-[300px] pl-2 mt-12 overflow-x-auto select-none shrink-0'>
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, index) => (
-            <button key={span.span_id} className={`flex flex-row items-center h-12 w-fit min-w-[300px] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${index % 2 === 0 ? 'bg-zinc-50' : ''} ${span.numberOfChildren! > 0 ? 'hover:bg-zinc-100' : ''}`}
+            <button key={span.span_id} className={`flex flex-row items-center h-12 w-fit min-w-full focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${index % 2 === 0 ? 'bg-secondary' : ''} ${span.numberOfChildren! > 0 ? index % 2 === 0 ? 'hover:bg-secondary/50' : 'hover:bg-accent' : ''}`}
               onClick={() => toggleSpanVisibility(span.span_id)} >
               {/* vertical connecting line */}
               {Array.from({ length: span.depth || 0 }).map((_, index) => (
@@ -318,76 +312,75 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
                 {span.numberOfChildren! > 0 && <div className={`h-5 w-[0.5px] ${bgLineColorMap.get(span.span_id)}`} />}
               </div>
               <p className={`text-[10px] border py-0.1 px-1 ml-1 rounded-[2px] ${borderColorMap.get(span.span_id)}`}>{span.numberOfChildren!} </p>
-              <p className={`text-xs mb-1 text-nowrap ml-2`}>{span.span_name}</p>
-              <p className={`text-[8px] ml-2 mr-2 text-gray-400`}>{span.visibility === SpanVisibility.Expanded && span.numberOfChildren! > 0 ? "\u02c5" : span.visibility === SpanVisibility.Collapsed && span.numberOfChildren! > 0 ? "\u02c3" : ""}</p>
+              <p className={`text-xs mb-1 text-nowrap ml-2 truncate max-w-[150px]`}>{span.span_name}</p>
+              <p className={`text-[8px] ml-2 mr-2 text-muted-foreground`}>{span.visibility === SpanVisibility.Expanded && span.numberOfChildren! > 0 ? "\u02c5" : span.visibility === SpanVisibility.Collapsed && span.numberOfChildren! > 0 ? "\u02c3" : ""}</p>
             </button>
           ))}
         </div>
 
         {/* spans column */}
-        <div className='flex flex-col w-[800px] overflow-x-auto select-none'>
+        <div className="flex flex-col w-full select-none">
 
           {/* timing indicator - values */}
-          <div className='w-full flex flex-row justify-between px-[8px] pt-[8px]'>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(0)}</p>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.2)}</p>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.4)}</p>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.6)}</p>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.8)}</p>
-            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration)}</p>
+          <div className='w-full flex flex-row justify-between px-2 pt-2'>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(0)}</p>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(trace.duration * 0.2)}</p>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(trace.duration * 0.4)}</p>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(trace.duration * 0.6)}</p>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(trace.duration * 0.8)}</p>
+            <p className='text-[10px] truncate'>{formatMillisToHumanReadable(trace.duration)}</p>
           </div>
 
           {/* timing indicator - markers */}
-          <div className='w-full flex flex-row justify-between p-[8px]'>
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
-            <div className='w-[0.5px] h-2 bg-neutral-950' />
+          <div className='w-full flex flex-row justify-between px-2 pt-2 pb-[9px]'>
+            <div className='w-[0.5px] h-2 bg-foreground' />
+            <div className='w-[0.5px] h-2 bg-foreground' />
+            <div className='w-[0.5px] h-2 bg-foreground' />
+            <div className='w-[0.5px] h-2 bg-foreground' />
+            <div className='w-[0.5px] h-2 bg-foreground' />
+            <div className='w-[0.5px] h-2 bg-foreground' />
           </div>
 
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, spanIndex) => (
-            <div key={span.span_id} className={`w-full h-12 ${spanIndex % 2 === 0 ? 'bg-zinc-50' : ''}`}>
-              {/* span and duration container */}
-              <div className='w-fit'>
-                {/* duration */}
-                <p className={`text-xs mt-1 pr-1 overflow-x-auto`} tabIndex={-1}
-                  style={{
-                    marginLeft: `${span.leftOffset}px`,
-                  }}>
-                  {formatMillisToHumanReadable(span.duration)}
-                </p>
+            <div key={span.span_id} className={`relative w-full h-12 ${spanIndex % 2 === 0 ? 'bg-secondary' : ''}`}>
+              {/* duration label */}
+              <p
+                className="absolute text-xs mt-1 whitespace-nowrap"
+                style={{ left: `${span.leftPercent}%` }}
+              >
+                {formatMillisToHumanReadable(span.duration)}
+              </p>
 
-                {/* span */}
-                <button style={{
-                  marginLeft: `${span.leftOffset}px`,
-                  width: `${span.width}px`,
+              {/* span bar */}
+              <button
+                className={`absolute top-6 h-3 min-w-[8px] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${span === selectedSpan ? "bg-primary hover:bg-primary" : bgSpanColorMap.get(span.span_id)} select-none`}
+                style={{
+                  left: `${span.leftPercent}%`,
+                  width: `${span.widthPercent}%`,
                 }}
-                  className={`h-3 mt-1 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${bgSpanColorMap.get(span.span_id)} ${span === selectedSpan ? "bg-neutral-800 hover:bg-neutral-950" : ""} select-none`}
-                  onClick={() => {
-                    if (selectedSpan === undefined || selectedSpan !== span) {
-                      setSelectedSpan(span)
-                    } else {
-                      setSelectedSpan(undefined)
-                      setSelectedCheckpoint(undefined)
-                    }
-                  }}
-                />
-              </div>
+                onClick={() => {
+                  if (selectedSpan === undefined || selectedSpan !== span) {
+                    setSelectedSpan(span)
+                  } else {
+                    setSelectedSpan(undefined)
+                    setSelectedCheckpoint(undefined)
+                  }
+                }}
+              />
 
-              {/* checkpoints */}
-              <div style={{
-                marginLeft: `${span.leftOffset}px`,
-                width: `${span.width}px`,
-              }} className="relative">
-                {span.checkpoints?.map((checkpoint, _) => (
+              {/* checkpoints container */}
+              <div
+                className="absolute top-9 h-2"
+                style={{
+                  left: `${span.leftPercent}%`,
+                  width: `${span.widthPercent}%`,
+                }}
+              >
+                {span.checkpoints?.map((checkpoint) => (
                   <button
                     key={span.span_id + checkpoint.name}
-                    style={{
-                      left: `${checkpoint.leftOffset}px`,
-                      top: '0px'
-                    }} className={`w-0.5 h-2 rounded-full absolute mt-0.5 mb-0.5 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${bgCheckPointColorMap.get(span.span_id)} ${checkpoint === selectedCheckpoint ? "bg-neutral-800 hover:bg-neutral-950" : ""}`}
+                    className={`absolute w-0.5 h-2 rounded-full mt-0.5 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${checkpoint === selectedCheckpoint ? "bg-primary hover:bg-primary" : bgCheckPointColorMap.get(span.span_id)}`}
+                    style={{ left: `${checkpoint.leftPercent}%` }}
                     onClick={() => {
                       if (selectedCheckpoint === undefined) {
                         setSelectedSpan(span)
@@ -399,14 +392,15 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
                         setSelectedSpan(span)
                         setSelectedCheckpoint(checkpoint)
                       }
-                    }} />
+                    }}
+                  />
                 ))}
               </div>
             </div>
           ))}
         </div>
-      </div >
-    </div >
+      </div>
+    </div>
   )
 }
 

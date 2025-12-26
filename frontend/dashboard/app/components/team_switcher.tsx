@@ -36,7 +36,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
       <DropdownMenuTrigger asChild className='w-full select-none'>
         <Button
           variant="outline"
-          className="flex justify-between w-full font-display border border-black select-none"
+          className="flex justify-between w-full"
           disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
         >
           {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <LoadingSpinner />}
