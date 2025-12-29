@@ -202,7 +202,6 @@ internal object BitmapHelper {
         val canvas = Canvas(bitmap)
         rectsToMask.forEach { rect ->
             val rectF = RectF(rect)
-            canvas.clipRect(rectF)
             canvas.drawRoundRect(rectF, DEFAULT_MASK_RADIUS, DEFAULT_MASK_RADIUS, maskPaint)
         }
     }
