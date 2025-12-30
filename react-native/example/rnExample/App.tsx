@@ -149,20 +149,36 @@ const App = (): React.JSX.Element => {
 
   const captureScreenshot = async () => {
     try {
-      const attachment = await Measure.captureScreenshot();
+      const result = await Measure.captureScreenshot();
 
-      if (attachment?.path) {
-        const path = attachment.path.startsWith('file://')
-          ? attachment.path
-          : `file://${attachment.path}`;
-
-        setScreenshotPath(path);
-        setShowScreenshot(true);
+      if (!result) {
+        console.warn('No screenshot returned');
+        return;
       }
 
-      console.log('Screenshot captured:', attachment);
-    } catch (e) {
-      console.error('Screenshot failed:', e);
+      // Prefer file path when available
+      if (result.path) {
+        const uri = result.path.startsWith('file://')
+          ? result.path
+          : `file://${result.path}`;
+
+        setScreenshotPath(uri);
+        setShowScreenshot(true);
+      }
+      // Fallback to base64 bytes
+      else if (result.bytes) {
+        const uri = `data:image/png;base64,${result.bytes}`;
+
+        setScreenshotPath(uri);
+        setShowScreenshot(true);
+      } else {
+        console.warn('No path or bytes found in screenshot result');
+        return;
+      }
+
+      console.log('Screenshot captured successfully:', result);
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error);
     }
   };
 
