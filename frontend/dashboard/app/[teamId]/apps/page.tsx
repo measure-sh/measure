@@ -1,6 +1,6 @@
 "use client"
 
-import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
+import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
@@ -8,10 +8,19 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import SdkConfigSection from "@/app/components/sdk_config_section"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import Link from "next/link"
 import { useEffect, useRef, useState } from 'react'
+
+// Combined loading state for both APIs
+enum PageLoadStatus {
+  Init = "Init",
+  Loading = "Loading",
+  Success = "Success",
+  Error = "Error"
+}
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const [filters, setFilters] = useState(defaultFilters)
@@ -19,7 +28,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
 
   const [appRetentionPeriodConfirmationDialogOpen, setAppRetentionPeriodConfirmationDialogOpen] = useState(false)
-  const [fetchAppSettingsApiStatus, setFetchAppSettingsApiStatus] = useState(FetchAppSettingsApiStatus.Loading)
+  const [pageLoadStatus, setPageLoadStatus] = useState(PageLoadStatus.Init)
   const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
   const [appSettings, setAppSettings] = useState(emptyAppSettings)
   const [updatedAppSettings, setUpdatedAppSettings] = useState(emptyAppSettings)
@@ -30,6 +39,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init)
   const [appName, setAppName] = useState('')
 
+  // SDK configuration state - null until loaded from server
+  const [sdkConfig, setSdkConfig] = useState<SdkConfig | null>(null)
 
   const filtersRef = useRef<any>(null)
 
@@ -60,20 +71,30 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     getCurrentUserCanChangeAppSettings()
   }, [params.teamId])
 
-  const getAppSettings = async () => {
-    setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Loading)
+  const loadPageData = async () => {
+    setPageLoadStatus(PageLoadStatus.Loading)
 
-    const result = await fetchAppSettingsFromServer(filters.app!.id)
+    // Fetch both APIs in parallel
+    const [appSettingsResult, sdkConfigResult] = await Promise.all([
+      fetchAppSettingsFromServer(filters.app!.id),
+      fetchSdkConfigFromServer(filters.app!.id)
+    ])
 
-    switch (result.status) {
-      case FetchAppSettingsApiStatus.Error:
-        setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Error)
-        break
-      case FetchAppSettingsApiStatus.Success:
-        setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Success)
-        setAppSettings(result.data)
-        setUpdatedAppSettings(result.data)
-        break
+    // Check if both succeeded
+    if (
+      appSettingsResult.status === FetchAppSettingsApiStatus.Success &&
+      sdkConfigResult.status === SdkConfigApiStatus.Success
+    ) {
+      setPageLoadStatus(PageLoadStatus.Success)
+
+      // Set app settings
+      setAppSettings(appSettingsResult.data)
+      setUpdatedAppSettings(appSettingsResult.data)
+
+      // Set SDK config directly from API response - no manual mapping needed
+      setSdkConfig(sdkConfigResult.data)
+    } else {
+      setPageLoadStatus(PageLoadStatus.Error)
     }
   }
 
@@ -84,7 +105,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     }
 
     setAppName(filters.app!.name)
-    getAppSettings()
+    loadPageData()
   }, [filters])
 
   const saveAppSettings = async () => {
@@ -93,13 +114,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings)
 
     switch (result.status) {
-
       case UpdateAppSettingsApiStatus.Error:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
         toastNegative("Error saving app settings", result.error)
         break
       case UpdateAppSettingsApiStatus.Success:
-        setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
+        setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Success)
         setAppSettings(updatedAppSettings)
         toastPositive("Your app settings have been saved")
         break
@@ -183,9 +203,23 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
-      {/* Main UI*/}
-      {filters.ready &&
-        <div>
+      {/* Loading State */}
+      {pageLoadStatus === PageLoadStatus.Loading && filters.ready && (
+        <div className="flex items-center justify-center w-full py-20">
+          <LoadingSpinner />
+        </div>
+      )}
+
+      {/* Error State */}
+      {pageLoadStatus === PageLoadStatus.Error && filters.ready && (
+        <span className="text-xs font-body">
+          Error fetching app settings. Please refresh page to try again.
+        </span>
+      )}
+
+      {/* Main UI - Only show when both APIs succeed and SDK config is loaded */}
+      {filters.ready && pageLoadStatus === PageLoadStatus.Success && sdkConfig && (
+        <div className="w-full max-w-6xl">
           {/* Dialog for confirming app name change */}
           <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
@@ -246,21 +280,28 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               </Button>
             </div>
             <div className="py-8" />
+
+            <SdkConfigSection
+              appId={filters.app!.id}
+              appName={filters.app!.name}
+              osName={filters.app!.os_name}
+              initialConfig={sdkConfig}
+              currentUserCanChangeAppSettings={currentUserCanChangeAppSettings}
+
+/>
+
+            <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Configure data rentention</p>
             <div className="flex flex-row items-center mt-2">
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p className="font-body text-sm">: Unable to fetch retention period. Please refresh page to try again.</p>}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
-                <Button
-                  variant="outline"
-                  className="m-4 font-display border border-black select-none"
-                  disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
-                  loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
-                  onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
-                  Save
-                </Button>
-              }
+              <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
+              <Button
+                variant="outline"
+                className="m-4 font-display border border-black select-none"
+                disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
+                loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
+                onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
+                Save
+              </Button>
             </div>
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Change App Name</p>
@@ -283,7 +324,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             </div>
           </div>
         </div>
-      }
+      )}
     </div>
   )
-}
+} 

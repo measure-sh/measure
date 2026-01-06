@@ -42,11 +42,11 @@ func main() {
 
 	r := gin.Default()
 
-	closeTracer := config.InitTracer()
+	closeTracer := config.InitTracing()
 	// Close OTel tracer
 	defer func() {
 		if err := closeTracer(context.Background()); err != nil {
-			log.Fatalf("Unable to close otel tracer: %v", err)
+			log.Fatalf("Unable to close OTel tracer: %v", err)
 		}
 	}()
 
@@ -63,6 +63,7 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
+	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfigForSdk)
 
 	// Proxy routes
 	r.GET("/proxy/attachments", measure.ProxyAttachment)
@@ -120,6 +121,8 @@ func main() {
 		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
 		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
+		apps.GET(":id/config", measure.GetConfig)
+		apps.PATCH(":id/config", measure.PatchConfig)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

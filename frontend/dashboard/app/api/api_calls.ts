@@ -368,6 +368,21 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum SdkConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateSdkConfigApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1040,6 +1055,21 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
+export type SdkConfig = {
+  trace_sampling_rate: number
+  crash_timeline_duration: number
+  crash_take_screenshot: boolean
+  anr_timeline_duration: number
+  anr_take_screenshot: boolean
+  bug_report_timeline_duration: number
+  launch_sampling_rate: number
+  journey_sampling_rate: number
+  http_disable_event_for_urls: string[]
+  http_track_request_for_urls: string[]
+  http_track_response_for_urls: string[]
+  http_blocked_headers: string[]
+  screenshot_mask_level: string
+}
 export class AppVersion {
   name: string
   code: string
@@ -2424,5 +2454,52 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSdkConfigFromServer = async (appId: String) => {
+  const url = `/api/apps/${appId}/config`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SdkConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SdkConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: SdkConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const updateSdkConfigFromServer = async (appId: string, config: Partial<SdkConfig>) => {
+  const url = `/api/apps/${appId}/config`
+
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(config),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return {
+        status: UpdateSdkConfigApiStatus.Error,
+        data: null,
+        error: data?.error,
+      }
+    }
+
+    return {
+      status: UpdateSdkConfigApiStatus.Success,
+      data,
+    }
+  } catch {
+    return {
+      status: UpdateSdkConfigApiStatus.Cancelled,
+      data: null,
+    }
   }
 }

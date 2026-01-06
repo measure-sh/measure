@@ -1041,18 +1041,11 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	return
 }
 
-func (a *App) add() (*APIKey, error) {
+func (a *App) add(tx pgx.Tx) (*APIKey, error) {
 	id := uuid.New()
 	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -1065,10 +1058,6 @@ func (a *App) add() (*APIKey, error) {
 	}
 
 	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -4595,16 +4584,43 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := app.add()
+	tx, err := server.Server.PgPool.Begin(context.Background())
+	if err != nil {
+		msg := `failed to start transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer tx.Rollback(context.Background()) // Rollback if not committed
 
+	apiKey, err := app.add(tx)
 	if err != nil {
 		msg := "failed to create app"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-
 	app.APIKey = apiKey
+
+	// Create default config for the app
+	userUUID, _ := uuid.Parse(userId)
+	appUUID, _ := uuid.Parse(app.ID.String())
+
+	err = CreateConfig(c.Request.Context(), tx, teamId, appUUID, &userUUID)
+	if err != nil {
+		msg := "failed to create default config for app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		msg := "failed to commit transaction"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusCreated, app)
 }
@@ -6461,4 +6477,113 @@ func GetAlertsOverview(c *gin.Context) {
 			"previous": previous,
 		},
 	})
+}
+
+func GetConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	GetConfigForDashboard(c, id)
+}
+
+func PatchConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+
+	appId, err := uuid.Parse(idParam)
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = PatchConfigForApp(c, appId, userId)
+	if err != nil {
+		msg := "failed to update SDK config"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "config updated successfully"})
 }
