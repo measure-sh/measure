@@ -12,7 +12,7 @@ protocol InternalConfig {
     /// The interval at which to create a batch for export.
     var eventsBatchingIntervalMs: Number { get }
 
-    /// The threshold after which a session is considered ended. Defaults to 20 minute.
+    /// The threshold after which a session is considered ended. Defaults to 30 seconds.
     var sessionEndLastEventThresholdMs: Number { get }
 
     /// The threshold to determine long press. Defaults to 500 ms.
