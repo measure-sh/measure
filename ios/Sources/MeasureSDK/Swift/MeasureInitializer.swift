@@ -56,7 +56,6 @@ protocol MeasureInitializer {
     var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
     var userPermissionManager: UserPermissionManager { get }
     var svgGenerator: SvgGenerator { get }
-    var appVersionInfo: AppVersionInfo { get }
     var httpEventValidator: HttpEventValidator { get }
     var randomizer: Randomizer { get }
     var spanProcessor: SpanProcessor { get }
@@ -130,7 +129,6 @@ protocol MeasureInitializer {
 /// - `svgGenerator`: `SvgGenerator` object responsible for generating layout snapshot svg.
 /// - `layoutSnapshotGenerator`: `LayoutSnapshotGenerator` object responsible for generating a layout snapshot.
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
-/// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
 /// - `randomizer`: `Randomizer` object that generates random numbers.
 /// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
@@ -192,7 +190,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
     let userPermissionManager: UserPermissionManager
     let svgGenerator: SvgGenerator
-    let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
@@ -233,7 +230,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
         self.timeProvider = BaseTimeProvider()
-        self.appVersionInfo = BaseAppVersionInfo()
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
@@ -253,7 +249,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
                                                  versionCode: FrameworkInfo.version,
-                                                 appVersionInfo: appVersionInfo,
                                                  signalSampler: signalSampler)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()

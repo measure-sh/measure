@@ -57,7 +57,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
     let userPermissionManager: UserPermissionManager
     let svgGenerator: SvgGenerator
-    let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
@@ -80,7 +79,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          logger: Logger? = nil,
          idProvider: IdProvider? = nil,
          timeProvider: TimeProvider? = nil,
-         appVersionInfo: AppVersionInfo? = nil,
          userDefaultStorage: UserDefaultStorage? = nil,
          coreDataManager: CoreDataManager? = nil,
          sessionStore: SessionStore? = nil,
@@ -141,7 +139,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.signalSampler = signalSampler ?? BaseSignalSampler(configProvider: self.configProvider,
                                                                 randomizer: self.randomizer)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
-        self.appVersionInfo = appVersionInfo ?? BaseAppVersionInfo()
         self.logger = logger ?? MockLogger()
         self.idProvider = idProvider ?? UUIDProvider()
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
@@ -162,7 +159,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    eventStore: self.eventStore,
                                                                    userDefaultStorage: self.userDefaultStorage,
                                                                    versionCode: FrameworkInfo.version,
-                                                                   appVersionInfo: self.appVersionInfo,
                                                                    signalSampler: self.signalSampler)
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
