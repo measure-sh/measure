@@ -9,6 +9,7 @@ import Foundation
 
 protocol NetworkClient {
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse
+    func getConfig(eTag: String?) -> DynamicConfig?
 }
 
 final class BaseNetworkClient: NetworkClient {
@@ -50,6 +51,28 @@ final class BaseNetworkClient: NetworkClient {
                                             msrRequestId: batchId
                                           ],
                                           jsonBody: jsonBody)
+    }
+
+    func getConfig(eTag: String?) -> DynamicConfig? {
+        let dynamicConfig = BaseDynamicConfig(maxEventsInBatch: 10_000,
+                                              crashTimelineDurationSeconds: 300,
+                                              anrTimelineDurationSeconds: 300,
+                                              bugReportTimelineDurationSeconds: 300,
+                                              traceSamplingRate: 0.01,
+                                              journeySamplingRate: 0.01,
+                                              screenshotMaskLevel: .allTextAndMedia,
+                                              cpuUsageInterval: 5,
+                                              memoryUsageInterval: 5,
+                                              crashTakeScreenshot: true,
+                                              anrTakeScreenshot: true,
+                                              launchSamplingRate: 0.01,
+                                              gestureClickTakeSnapshot: true,
+                                              httpDisableEventForUrls: [],
+                                              httpTrackRequestForUrls: [],
+                                              httpTrackResponseForUrls: [],
+                                              httpBlockedHeaders: [])
+
+        return dynamicConfig
     }
 
     private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {

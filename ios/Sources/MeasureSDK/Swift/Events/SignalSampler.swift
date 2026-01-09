@@ -24,21 +24,23 @@ final class BaseSignalSampler: SignalSampler {
         self.randomizer = randomizer
     }
 
+    // TODO: use dynamic config property here
     func shouldTrackLaunchEvents(type: EventType) -> Bool {
         switch type {
         case .coldLaunch:
-            return shouldTrack(configProvider.coldLaunchSamplingRate)
+            return shouldTrack(1)
         case .warmLaunch:
-            return shouldTrack(configProvider.warmLaunchSamplingRate)
+            return shouldTrack(1)
         case .hotLaunch:
-            return shouldTrack(configProvider.hotLaunchSamplingRate)
+            return shouldTrack(1)
         default :
             return true
         }
     }
 
+    // TODO: use dynamic config property here
     func shouldMarkSessionForExport() -> Bool {
-        return shouldTrack(configProvider.samplingRateForErrorFreeSessions)
+        return shouldTrack(1)
     }
 
     func shouldTrackTrace() -> Bool {

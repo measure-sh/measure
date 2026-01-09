@@ -24,23 +24,11 @@
 
     BaseMeasureConfig *swiftConfig = nil;
     if (config != nil) {
-        swiftConfig = [[BaseMeasureConfig alloc]
-            initWithEnableLogging:config.enableLogging
-            samplingRateForErrorFreeSessions:config.samplingRateForErrorFreeSessions
-            traceSamplingRate:config.traceSamplingRate
-            coldLaunchSamplingRate:config.coldLaunchSamplingRate
-            warmLaunchSamplingRate:config.warmLaunchSamplingRate
-            hotLaunchSamplingRate:config.hotLaunchSamplingRate
-            journeySamplingRate:config.journeySamplingRate
-            trackHttpHeaders:config.trackHttpHeaders
-            trackHttpBody:config.trackHttpBody
-            httpHeadersBlocklist:config.httpHeadersBlocklist
-            httpUrlBlocklist:config.httpUrlBlocklist
-            httpUrlAllowlist:config.httpUrlAllowlist
-            autoStart:config.autoStart
-            screenshotMaskLevel:config.screenshotMaskLevel
-            requestHeadersProvider:config.requestHeadersProvider
-            maxDiskUsageInMb:config.maxDiskUsageInMb];
+        swiftConfig = [[BaseMeasureConfig alloc] initWithEnableLogging:config.enableLogging
+                                                             autoStart:config.autoStart
+                                                requestHeadersProvider:config.requestHeadersProvider
+                                                      maxDiskUsageInMb:config.maxDiskUsageInMb
+                                              enableFullCollectionMode:config.enableFullCollectionMode];
     }
 
     [Measure initializeWith:client config:swiftConfig];

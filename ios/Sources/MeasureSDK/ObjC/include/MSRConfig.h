@@ -24,73 +24,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// Whether to enable internal SDK logging. Defaults to `false`.
 @property (nonatomic) BOOL enableLogging;
 
-/// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 0.
-@property (nonatomic) float samplingRateForErrorFreeSessions;
-
-/// The sampling rate for traces. Must be between 0.0 and 1.0. Defaults to 0.0001.
-/// For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
-@property (nonatomic) float traceSamplingRate;
-
-/// The sampling rate for cold launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
-@property (nonatomic) float coldLaunchSamplingRate;
-
-/// The sampling rate for warm launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
-@property (nonatomic) float warmLaunchSamplingRate;
-
-/// The sampling rate for hot launch times. Must be between 0.0 and 1.0. Defaults to 0.01.
-@property (nonatomic) float hotLaunchSamplingRate;
-
-/// Configures sampling rate for sessions that track "user journeys". This feature shows traffic of users across different screens of the app.
-/// When set to 0, the journey will only be generated from crashed sessions or sessions collected using `samplingRateForErrorFreeSessions`
-///
-/// Defaults to 0.
-///
-/// If a value of 0.1 is set, then 10% of the sessions will contain events required to build the journey which includes screen view, lifecycle view controller.
-@property (nonatomic) float journeySamplingRate;
-
 /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
 @property (nonatomic) BOOL autoStart;
 
-/// Whether to capture http headers of a network request and response. Defaults to `false`.
-@property (nonatomic) BOOL trackHttpHeaders;
-
-/// Whether to capture http body of a network request and response. Defaults to `false`.
-@property (nonatomic) BOOL trackHttpBody;
-
-/// List of HTTP headers to not collect with the `http` event for both request and response.
-/// Defaults to an empty list. The following headers are always excluded:
-/// - * Authorization
-/// - * Cookie
-/// - * Set-Cookie
-/// - * Proxy-Authorization
-/// - * WWW-Authenticate
-/// - * X-Api-Key
-///
-@property (nonatomic, copy) NSArray<NSString *> *httpHeadersBlocklist;
-
-/// Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not want to collect data for certain endpoints.
-///
-/// Note that this config is ignored if [httpUrlAllowlist] is set.
-///
-/// You can:
-/// - Disables a domain, eg. example.com
-/// - Disable a subdomain, eg. api.example.com
-/// - Disable a particular path, eg. example.com/order
-///
-@property (nonatomic, copy) NSArray<NSString *> *httpUrlBlocklist;
-
-/// Allows enabling collection of `http` events for only certain URLs. This is useful to setup if you do not want to collect data for all endpoints except for a few.
-///
-/// You can:
-/// - Disables a domain, eg. example.com
-/// - Disable a subdomain, eg. api.example.com
-/// - Disable a particular path, eg. example.com/order
-///
-@property (nonatomic, copy) NSArray<NSString *> *httpUrlAllowlist;
-
-/// Allows changing the masking level of screenshots to prevent sensitive information from leaking.
-/// Defaults to [ScreenshotMaskLevel.allTextAndMedia].
-@property (nonatomic) ScreenshotMaskingLevel screenshotMaskLevel;
+/// Override all sampling configs and track all events and traces.
+/// **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+@property (nonatomic) BOOL enableFullCollectionMode;
 
 /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
 ///
@@ -117,19 +56,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
-        samplingRateForErrorFreeSessions:(float)samplingRateForErrorFreeSessions
-                     traceSamplingRate:(float)traceSamplingRate
-              coldLaunchSamplingRate:(float)coldLaunchSamplingRate
-              warmLaunchSamplingRate:(float)warmLaunchSamplingRate
-                hotLaunchSamplingRate:(float)hotLaunchSamplingRate
-                  journeySamplingRate:(float)journeySamplingRate
-                    trackHttpHeaders:(BOOL)trackHttpHeaders
-                       trackHttpBody:(BOOL)trackHttpBody
-               httpHeadersBlocklist:(NSArray<NSString *> *)httpHeadersBlocklist
-                    httpUrlBlocklist:(NSArray<NSString *> *)httpUrlBlocklist
-                   httpUrlAllowlist:(NSArray<NSString *> *)httpUrlAllowlist
                            autoStart:(BOOL)autoStart
-                screenshotMaskLevel:(ScreenshotMaskingLevel)screenshotMaskLevel
+             enableFullCollectionMode:(BOOL)enableFullCollectionMode
              requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
                  maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb NS_DESIGNATED_INITIALIZER;
 

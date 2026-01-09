@@ -10,6 +10,7 @@ import UIKit
 
 /// Protocol defining the requirements for initializing the Measure SDK.
 protocol MeasureInitializer {
+    var configLoader: ConfigLoader { get }
     var configProvider: ConfigProvider { get }
     var client: Client { get }
     var logger: Logger { get }
@@ -79,6 +80,7 @@ protocol MeasureInitializer {
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
 ///
 /// Properties:
+/// - `configLoader`: `ConfigLoader` object responsible for fetching and managing dynamic config.
 /// - `configProvider`: `ConfigProvider` object managing the `Config` for the Measure.
 /// - `client`: `Client` object managing the `Config` for the Measure.
 /// - `logger`: `Logger` object used for logging messages and errors within the Measure.
@@ -144,6 +146,7 @@ protocol MeasureInitializer {
 /// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
+    let configLoader: ConfigLoader
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -212,25 +215,16 @@ final class BaseMeasureInitializer: MeasureInitializer {
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
-                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
-                                   traceSamplingRate: config.traceSamplingRate,
-                                   coldLaunchSamplingRate: config.coldLaunchSamplingRate,
-                                   warmLaunchSamplingRate: config.warmLaunchSamplingRate,
-                                   hotLaunchSamplingRate: config.hotLaunchSamplingRate,
-                                   journeySamplingRate: config.journeySamplingRate,
-                                   trackHttpHeaders: config.trackHttpHeaders,
-                                   trackHttpBody: config.trackHttpBody,
-                                   httpHeadersBlocklist: config.httpHeadersBlocklist,
-                                   httpUrlBlocklist: config.httpUrlBlocklist,
-                                   httpUrlAllowlist: config.httpUrlAllowlist,
                                    autoStart: config.autoStart,
-                                   screenshotMaskLevel: config.screenshotMaskLevel,
+                                   enableFullCollectionMode: config.enableFullCollectionMode,
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
+        self.logger = MeasureLogger(enabled: config.enableLogging)
+        self.systemFileManager = BaseSystemFileManager(logger: logger)
+        self.configLoader = BaseConfigLoader(fileManager: systemFileManager)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
-                                                 configLoader: BaseConfigLoader())
+                                                 configLoader: configLoader)
         self.timeProvider = BaseTimeProvider()
-        self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
@@ -263,7 +257,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                     installationIdAttributeProcessor,
                                     networkStateAttributeProcessor,
                                     userAttributeProcessor]
-        self.systemFileManager = BaseSystemFileManager(logger: logger)
         self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
                                                              systemFileManager: systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)

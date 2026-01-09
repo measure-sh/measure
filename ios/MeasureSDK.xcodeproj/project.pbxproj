@@ -26,7 +26,7 @@
 		526D182D2D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */; };
 		526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */; };
 		526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */; };
-		526D18302D5A1913009A2E90 /* BaseConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A52D5A1913009A2E90 /* BaseConfigProvider.swift */; };
+		526D18302D5A1913009A2E90 /* ConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A52D5A1913009A2E90 /* ConfigProvider.swift */; };
 		526D18312D5A1913009A2E90 /* ClientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A62D5A1913009A2E90 /* ClientInfo.swift */; };
 		526D18322D5A1913009A2E90 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A72D5A1913009A2E90 /* Config.swift */; };
 		526D18332D5A1913009A2E90 /* ConfigLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A82D5A1913009A2E90 /* ConfigLoader.swift */; };
@@ -261,6 +261,7 @@
 		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
 		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CF9EDCFA2F0E2BAA00029281 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */; };
+		CF9EDD062F0E6DE100029281 /* DynamicConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9EDD052F0E6DE100029281 /* DynamicConfig.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
 		CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
 		CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
@@ -380,7 +381,7 @@
 		526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallationIdAttributeProcessor.swift; sourceTree = "<group>"; };
 		526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkStateAttributeProcessor.swift; sourceTree = "<group>"; };
 		526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserAttributeProcessor.swift; sourceTree = "<group>"; };
-		526D17A52D5A1913009A2E90 /* BaseConfigProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseConfigProvider.swift; sourceTree = "<group>"; };
+		526D17A52D5A1913009A2E90 /* ConfigProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfigProvider.swift; sourceTree = "<group>"; };
 		526D17A62D5A1913009A2E90 /* ClientInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClientInfo.swift; sourceTree = "<group>"; };
 		526D17A72D5A1913009A2E90 /* Config.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		526D17A82D5A1913009A2E90 /* ConfigLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfigLoader.swift; sourceTree = "<group>"; };
@@ -613,6 +614,7 @@
 		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
 		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
+		CF9EDD052F0E6DE100029281 /* DynamicConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicConfig.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
 		CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -755,11 +757,12 @@
 		526D17AC2D5A1913009A2E90 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				526D17A52D5A1913009A2E90 /* BaseConfigProvider.swift */,
 				526D17A62D5A1913009A2E90 /* ClientInfo.swift */,
 				526D17A72D5A1913009A2E90 /* Config.swift */,
 				526D17A82D5A1913009A2E90 /* ConfigLoader.swift */,
+				526D17A52D5A1913009A2E90 /* ConfigProvider.swift */,
 				526D17A92D5A1913009A2E90 /* DefaultConfig.swift */,
+				CF9EDD052F0E6DE100029281 /* DynamicConfig.swift */,
 				526D17AA2D5A1913009A2E90 /* InternalConfig.swift */,
 				526D17AB2D5A1913009A2E90 /* MeasureConfig.swift */,
 				CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */,
@@ -1763,7 +1766,7 @@
 				526D18832D5A1913009A2E90 /* IdProvider.swift in Sources */,
 				526D18652D5A1913009A2E90 /* URLSessionTaskSwizzler.swift in Sources */,
 				526D18742D5A1913009A2E90 /* MemoryUsageCalculator.swift in Sources */,
-				526D18302D5A1913009A2E90 /* BaseConfigProvider.swift in Sources */,
+				526D18302D5A1913009A2E90 /* ConfigProvider.swift in Sources */,
 				526D18902D5A1913009A2E90 /* Measure.swift in Sources */,
 				CF9EDCFA2F0E2BAA00029281 /* RecentSession.swift in Sources */,
 				526D18782D5A1913009A2E90 /* ScreenshotGenerator.swift in Sources */,
@@ -1788,6 +1791,7 @@
 				526D188A2D5A1913009A2E90 /* SystemFileManager.swift in Sources */,
 				526D187A2D5A1913009A2E90 /* NSManagedObjectContext+Extension.swift in Sources */,
 				CF12A7682E99318F001C8112 /* AttachmentExporter.swift in Sources */,
+				CF9EDD062F0E6DE100029281 /* DynamicConfig.swift in Sources */,
 				CF3095292E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift in Sources */,
 				CF30952A2E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift in Sources */,
 				526D18372D5A1913009A2E90 /* BatchEntity.swift in Sources */,

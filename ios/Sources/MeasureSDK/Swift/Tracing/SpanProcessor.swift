@@ -104,7 +104,7 @@ final class BaseSpanProcessor: SpanProcessor {
                        message: "Invalid span: \(spanData.name), max checkpoints exceeded, some checkpoints will be dropped",
                        error: nil,
                        data: nil)
-            sanitizedCheckpoints = Array(sanitizedCheckpoints.prefix(configProvider.maxCheckpointsPerSpan))
+            sanitizedCheckpoints = Array(sanitizedCheckpoints.prefix(Int(configProvider.maxCheckpointsPerSpan)))
         }
 
         // All validations passed, return a sanitized copy

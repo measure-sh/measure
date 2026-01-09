@@ -68,7 +68,8 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     }
 
     private func initializeTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: Double(configProvider.memoryTrackingIntervalMs) / 1000.0, repeats: true) { [weak self] _ in
+        // TODO: use dynamic config property here
+        timer = Timer.scheduledTimer(withTimeInterval: Double(3000) / 1000.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.trackMemoryUsage()
         }
@@ -79,10 +80,11 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
         isTrackingInProgress = true
         defer { isTrackingInProgress = false }
 
+        // TODO: use dynamic config property here
         if let memoryUsage = self.memoryUsageCalculator.getCurrentMemoryUsage() {
             let memoryUsageData = MemoryUsageData(maxMemory: sysCtl.getMaximumAvailableRam(),
                                                   usedMemory: memoryUsage,
-                                                  interval: configProvider.memoryTrackingIntervalMs)
+                                                  interval: 3000)
 
             self.signalProcessor.track(data: memoryUsageData,
                                        timestamp: timeProvider.now(),
