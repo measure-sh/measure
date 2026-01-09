@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add migration guide entry for v0.10.x (#3074) by @abhaysood in #3074
 - (**backend**): Sync go.work (#3050) by @detj in #3050
 - (**backend**): Update go image tag (#3032) by @detj in #3032
 - (**backend**): Handle an invalid payload condition to debug panics (#3029) by @detj in #3029
