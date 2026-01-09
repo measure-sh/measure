@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add test Slack alerts by @anupcowkur in #2898
 - (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
+- (**frontend**): Implement dynamic config (#3007) by @abhaysood in #3007
 
 ### :bug: Bug fixes
 
