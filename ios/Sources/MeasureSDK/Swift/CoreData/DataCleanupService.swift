@@ -83,9 +83,9 @@ final class BaseDataCleanupService: DataCleanupService {
             }
 
             let totalSignals = eventsCount + spansCount
-            let estimatedSizeInMb = (totalSignals * self.configProvider.estimatedEventSizeInKb) / 1024
+            let estimatedSizeInMb = (totalSignals * Int(self.configProvider.estimatedEventSizeInKb)) / 1024
 
-            let maxDiskMb = min(max(configProvider.maxDiskUsageInMb, minDiskLimitMb), maxDiskLimitMb)
+            let maxDiskMb = min(max(Int(configProvider.maxDiskUsageInMb), minDiskLimitMb), maxDiskLimitMb)
 
             if estimatedSizeInMb > maxDiskMb {
                 self.deleteOldestSession(excluding: currentSessionId, completion: completion)

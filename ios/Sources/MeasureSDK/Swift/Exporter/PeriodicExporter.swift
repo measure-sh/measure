@@ -72,7 +72,7 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
 
         isExportInProgress = true
 
-        let jitterSeconds = Int.random(in: 0...configProvider.maxExportJitterInterval)
+        let jitterSeconds = Int.random(in: 0...Int(configProvider.maxExportJitterInterval))
         let jitterTimeInterval = DispatchTimeInterval.seconds(jitterSeconds)
 
         logger.log(level: .debug, message: "Applying jitter of \(jitterSeconds) seconds before processing batches", error: nil, data: nil)

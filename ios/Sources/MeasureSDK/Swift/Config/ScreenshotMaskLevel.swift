@@ -10,17 +10,17 @@ import Foundation
 /// The level of masking to apply to the screenshot.
 public enum ScreenshotMaskLevel: String, Codable, CaseIterable {
     /// The strictest level of masking which masks all text, input fields, images and videos.
-    case allTextAndMedia = "AllTextAndMedia"
+    case allTextAndMedia = "all_text_and_media"
 
     /// Masks all text and input fields, including clickable elements.
-    case allText = "AllText"
+    case allText = "all_text"
 
     /// Masks all text and input fields, excluding clickable elements.
-    case allTextExceptClickable = "AllTextExceptClickable"
+    case allTextExceptClickable = "all_text_except_clickable"
 
     /// The most lenient level of masking which only masks sensitive input fields like passwords,
     /// email and phone number fields.
-    case sensitiveFieldsOnly = "SensitveFieldsOnly"
+    case sensitiveFieldsOnly = "sensitive_fields_only"
 }
 
 /// The level of masking to apply to the screenshot.

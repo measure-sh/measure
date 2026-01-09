@@ -68,7 +68,8 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
     }
 
     private func initializeTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: Double(configProvider.cpuTrackingIntervalMs) / 1000.0, repeats: true) { [weak self] _ in
+        // TODO: use values from dynamic config
+        timer = Timer.scheduledTimer(withTimeInterval: Double(5000) / 1000.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.trackCpuUsage()
         }
@@ -81,6 +82,7 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
 
         let cpuUsageData = self.cpuUsageCalculator.getCurrentCpuUsage()
 
+        // TODO: use values from dynamic config
         if cpuUsageData != -1 {
             let cpuUsageData = CpuUsageData(numCores: sysCtl.getCpuCores(),
                                             clockSpeed: sysCtl.getCpuFrequency(),
@@ -90,7 +92,7 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
                                             cutime: 0,
                                             cstime: 0,
                                             stime: 0,
-                                            interval: configProvider.cpuTrackingIntervalMs,
+                                            interval: 5000,
                                             percentageUsage: FloatNumber64(cpuUsageData))
 
             signalProcessor.track(data: cpuUsageData,

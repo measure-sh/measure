@@ -103,7 +103,21 @@ final class URLSessionTaskInterceptor {
             let startTime = taskStartTimes[task]
 
             let client = "URLSession"
-
+            // TODO: update http filter logic
+//            let httpData = HttpData(
+//                url: url.removeHttpPrefix(),
+//                method: method,
+//                statusCode: statusCode,
+//                startTime: startTime,
+//                endTime: UnsignedNumber(endTime),
+//                failureReason: failureReason,
+//                failureDescription: failureDescription,
+//                requestHeaders: configProvider.trackHttpHeaders ? requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+//                responseHeaders: configProvider.trackHttpHeaders ? responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+//                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+//                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+//                client: client)
+            
             let httpData = HttpData(
                 url: url.removeHttpPrefix(),
                 method: method,
@@ -112,10 +126,10 @@ final class URLSessionTaskInterceptor {
                 endTime: UnsignedNumber(endTime),
                 failureReason: failureReason,
                 failureDescription: failureDescription,
-                requestHeaders: configProvider.trackHttpHeaders ? requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                responseHeaders: configProvider.trackHttpHeaders ? responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
-                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                requestHeaders: true ? requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                responseHeaders: true ? responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                requestBody: true ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                responseBody: true ? httpEventValidator.validateAndTrimBody(responseBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
                 client: client)
 
             taskStartTimes.removeValue(forKey: task)

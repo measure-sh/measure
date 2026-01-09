@@ -9,14 +9,14 @@ import Foundation
 
 struct RecentSession {
     let id: String
-    let createdAt: Int64
-    var lastEventTime: Int64
+    let createdAt: Number
+    var lastEventTime: Number
     var crashed: Bool
     let versionCode: String
 
     init(id: String,
-         createdAt: Int64,
-         lastEventTime: Int64 = 0,
+         createdAt: Number,
+         lastEventTime: Number = 0,
          crashed: Bool = false,
          versionCode: String) {
         self.id = id

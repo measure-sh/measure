@@ -148,7 +148,20 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
             }
 
             let responseString = responseBody.map { String(data: $0, encoding: .utf8) } ?? nil
-
+            // TODO: update http filter logic
+//            let httpData = HttpData(
+//                url: url.removeHttpPrefix(),
+//                method: request.httpMethod?.lowercased() ?? "",
+//                statusCode: httpResponse?.statusCode,
+//                startTime: startTime,
+//                endTime: endTime,
+//                failureReason: error.map { String(describing: type(of: $0)) },
+//                failureDescription: error?.localizedDescription,
+//                requestHeaders: configProvider.trackHttpHeaders ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+//                responseHeaders: configProvider.trackHttpHeaders ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+//                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+//                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseString?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+//                client: "URLSession")
             let httpData = HttpData(
                 url: url.removeHttpPrefix(),
                 method: request.httpMethod?.lowercased() ?? "",
@@ -157,10 +170,10 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
                 endTime: endTime,
                 failureReason: error.map { String(describing: type(of: $0)) },
                 failureDescription: error?.localizedDescription,
-                requestHeaders: configProvider.trackHttpHeaders ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                responseHeaders: configProvider.trackHttpHeaders ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
-                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseString?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                requestHeaders: true ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                responseHeaders: true ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                requestBody: true ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                responseBody: true ? httpEventValidator.validateAndTrimBody(responseString?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
                 client: "URLSession")
 
             httpInterceptorCallbacks.onHttpCompletion(data: httpData)

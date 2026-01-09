@@ -12,7 +12,7 @@ protocol AttachmentStore {
     func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void)
     func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void)
     func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void)
-    func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void)
+    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void)
     func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void)
 }
 
@@ -87,13 +87,13 @@ final class BaseAttachmentStore: AttachmentStore {
         }
     }
 
-    func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void) {
+    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else { completion([]); return }
 
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil AND uploadUrl != ''")
-            fetchRequest.fetchLimit = batchSize
+            fetchRequest.fetchLimit = Int(batchSize)
 
             do {
                 let attachments = try context.fetch(fetchRequest)

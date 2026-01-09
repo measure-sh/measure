@@ -10,7 +10,7 @@ import Foundation
 protocol CustomEventCollector {
     func enable()
     func disable()
-    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?)
+    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Number?)
 }
 
 final class BaseCustomEventCollector: CustomEventCollector {
@@ -48,7 +48,7 @@ final class BaseCustomEventCollector: CustomEventCollector {
         }
     }
 
-    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
+    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Number?) {
         guard isEnabled.get() else { return }
         guard validateName(name) else { return }
         guard attributeValueValidator.validateAttributes(name: name, attributes: attributes) else { return }

@@ -29,6 +29,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var idProvider: IdProvider {
         return measureInitializer.idProvider
     }
+    private var configLoader: ConfigLoader {
+        return measureInitializer.configLoader
+    }
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
     }
@@ -175,6 +178,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
+        }
+        configLoader.loadDynamicConfig { dynamicConfig in
+            self.configProvider.setDynamicConfig(dynamicConfig)
         }
     }
 
