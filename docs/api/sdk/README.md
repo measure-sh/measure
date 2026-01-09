@@ -18,6 +18,12 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Body](#request-body-1)
       - [Mappings](#mappings)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
+- [GET `/config`](#get-config)
+  - [Usage Notes](#usage-notes-2)
+  - [Authorization \& Content Type](#authorization--content-type-1)
+  - [Response Body](#response-body-2)
+  - [Cache Headers](#cache-headers)
+  - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
 - [References](#references)
   - [Attributes](#attributes)
   - [User Defined Attributes](#user-defined-attributes)
@@ -415,6 +421,106 @@ List of HTTP status codes for success and failures.
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `413 Content Too Large`     | Build/mapping file size exceeded maximum allowed limit.                                                                 |
+| `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
+
+</details>
+
+### GET `/config`
+
+Fetches the latest SDK configuration for the app.
+
+| Config                       | Description                                                                                                                                          |
+|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| max_events_in_batch          | Maximum number of events and spans in a batch                                                                                                        |
+| crash_timeline_duration      | The duration of session timeline collected with crashes                                                                                              |
+| anr_timeline_duration        | The duration of session timeline collected with ANRs                                                                                                 |
+| bug_report_timeline_duration | The duration of session timeline collected with bug reports                                                                                          |
+| trace_sampling_rate          | Sampling rate for all traces                                                                                                                         |
+| journey_sampling_rate        | Sampling rate sessions that should report journey events - `lifecycle_activity`, `lifecycle_fragment`, `lifecycle_view_controller` and `screen_view` |
+| screenshot_mask_level        | Screenshot masking level. One of `all_text_and_media`, `all_text`, `all_text_except_clickable` and `sensitive_fields_only`                           |
+| cpu_usage_interval           | CPU usage measurement interval                                                                                                                       |
+| memory_usage_interval        | Memory usage measurement interval                                                                                                                    |
+| crash_take_screenshot        | Whether to take screenshot on crash                                                                                                                  |
+| anr_take_screenshot          | Whether to take screenshot on ANR                                                                                                                    |
+| launch_sampling_rate         | Sampling rate for launch events - cold_launch, warm_launch and hot_launch                                                                            |
+| gesture_click_take_snapshot  | Whether to take snapshot with gesture_click event                                                                                                    |
+| http_disable_event_for_urls  | URLs to disable HTTP event tracking                                                                                                                  |
+| http_track_request_for_urls  | URLs to capture full HTTP request (body and headers)                                                                                                 |
+| http_track_response_for_urls | URLs to capture full HTTP response (body and headers)                                                                                                |
+| http_blocked_headers         | HTTP header names to never capture                                                                                                                   |
+
+#### Usage Notes
+- Successful response returns `200 OK`.
+- The response contains `Etag` header which **must** be used for caching. The client must send the `If-None-Match`
+  header with the same `Etag` value in subsequent requests to this endpoint.
+- If the configuration has not changed, the server returns `304 Not Modified` response with no body.
+- The response contains a `Cache-Control` header which indicates how long the client can cache the configuration
+  response. Once the cache expires, the client must revalidate the configuration by sending a request with the
+  `If-None-Match` header.
+
+#### Authorization \& Content Type
+
+1. Set the Measure API key in `Authorization: Bearer <api-key>` format
+
+2. Set the content type as `Content-Type: application/json`.
+
+#### Response Body
+
+- A successful response has the following shape.
+
+  ```json
+  {
+    "max_events_in_batch": 1000,
+    "crash_timeline_duration": 300,
+    "anr_timeline_duration": 300,
+    "bug_report_timeline_duration": 300,
+    "trace_sampling_rate": 0.001,
+    "journey_sampling_rate": 0.001,
+    "screenshot_mask_level": "all_text",
+    "cpu_usage_interval": 5,
+    "memory_usage_interval": 5,
+    "crash_take_screenshot": true,
+    "anr_take_screenshot": true,
+    "anr_timeline_sampling_rate": 0.01,
+    "launch_sampling_rate": 1,
+    "gesture_click_take_snapshot": true,
+    "http_disable_event_for_urls": [],
+    "http_track_request_for_urls": [],
+    "http_track_response_for_urls": [],
+    "http_blocked_headers": []
+  }
+  ```
+
+- Requests where `If-None-Match` matches the current `Etag` value. Then no response body is returned with `304 Not Modified`.
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "error message appears here"
+  }
+  ```
+
+#### Cache Headers
+
+- `Etag`: The Etag value representing the current configuration version.
+- `Cache-Control`: Indicates how long the client can cache the configuration response.
+
+#### Status Codes \& Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                             |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `200 Ok`                    | Successfully retrieved a config                                                                                         |
+| `304 Not Modified`          | The config has not changed, the body will be empty.                                                                     |
+| `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
 | `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |

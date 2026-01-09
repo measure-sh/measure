@@ -21,9 +21,11 @@ import (
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/credentials"
@@ -454,32 +456,16 @@ func Init(config *ServerConfig) {
 	}
 }
 
-func (sc ServerConfig) InitTracer() func(context.Context) error {
+func (sc ServerConfig) InitTracing() func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
 	otelServiceName := sc.OtelServiceName
 
-	var client otlptrace.Client
-	if strings.Contains(otelProtocol, "http") {
-		client = otlptracehttp.NewClient()
-	} else {
-		var secureOption otlptracegrpc.Option
+	isInsecure := strings.ToLower(otelInsecureMode) != "false" &&
+		otelInsecureMode != "0" &&
+		strings.ToLower(otelInsecureMode) != "f"
 
-		if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-			secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
-		} else {
-			secureOption = otlptracegrpc.WithInsecure()
-		}
-
-		client = otlptracegrpc.NewClient(secureOption, otlptracegrpc.WithEndpoint(otelCollectorURL))
-	}
-
-	exporter, err := otlptrace.New(context.Background(), client)
-
-	if err != nil {
-		log.Printf("Failed to create exporter: %v\n", err)
-	}
 	resources, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(
@@ -491,13 +477,60 @@ func (sc ServerConfig) InitTracer() func(context.Context) error {
 		log.Printf("Could not set resources: %v\n", err)
 	}
 
-	otel.SetTracerProvider(
-		trace.NewTracerProvider(
-			trace.WithSampler(trace.AlwaysSample()),
-			trace.WithBatcher(exporter),
-			trace.WithResource(resources),
-		),
-	)
+	// Traces
+	var tracesClient otlptrace.Client
+	if strings.Contains(otelProtocol, "http") {
+		tracesClient = otlptracehttp.NewClient()
+	} else {
+		var opts []otlptracegrpc.Option
+		opts = append(opts, otlptracegrpc.WithEndpoint(otelCollectorURL))
+		if isInsecure {
+			opts = append(opts, otlptracegrpc.WithInsecure())
+		} else {
+			opts = append(opts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+		}
+		tracesClient = otlptracegrpc.NewClient(opts...)
+	}
 
-	return exporter.Shutdown
+	tracesExporter, err := otlptrace.New(context.Background(), tracesClient)
+	if err != nil {
+		log.Printf("Failed to create traces exporter: %v\n", err)
+	}
+
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithBatcher(tracesExporter),
+		trace.WithResource(resources),
+	)
+	otel.SetTracerProvider(tracerProvider)
+
+	// Metrics
+	var metricsOpts []otlpmetricgrpc.Option
+	metricsOpts = append(metricsOpts, otlpmetricgrpc.WithEndpoint(otelCollectorURL))
+	if isInsecure {
+		metricsOpts = append(metricsOpts, otlpmetricgrpc.WithInsecure())
+	} else {
+		metricsOpts = append(metricsOpts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+	}
+
+	metricsExporter, err := otlpmetricgrpc.New(context.Background(), metricsOpts...)
+	if err != nil {
+		log.Printf("Failed to create metrics exporter: %v\n", err)
+	}
+
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(resources),
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricsExporter)),
+	)
+	otel.SetMeterProvider(meterProvider)
+
+	return func(ctx context.Context) error {
+		if err := tracesExporter.Shutdown(ctx); err != nil {
+			log.Printf("Failed to shutdown traces exporter: %v\n", err)
+		}
+		if err := metricsExporter.Shutdown(ctx); err != nil {
+			log.Printf("Failed to shutdown metrics exporter: %v\n", err)
+		}
+		return nil
+	}
 }

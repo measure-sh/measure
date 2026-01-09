@@ -300,6 +300,16 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
+  - [GET `/teams/:id/config`](#get-teamsidconfig)
+    - [Usage Notes](#usage-notes-55)
+    - [Authorization \& Content Type](#authorization--content-type-53)
+    - [Response Body](#response-body-56)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
+  - [PATCH `/teams/:id/config`](#patch-teamsidconfig)
+    - [Usage Notes](#usage-notes-56)
+    - [Authorization \& Content Type](#authorization--content-type-54)
+    - [Response Body](#response-body-57)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
 
 ## Auth
 
@@ -7068,9 +7078,10 @@ The required headers must be present in each request.
     <summary>Click to expand</summary>
 
   ```json
-  {
-    "ok" : "done"
-  }
+    {
+      "slack_team_name":"Measure",
+      "is_active":true
+    }
   ```
 
   </details>
@@ -7151,6 +7162,168 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/config`
+
+Fetch an app's config.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "max_events_in_batch": 1000,
+    "crash_timeline_duration": 300,
+    "anr_timeline_duration": 300,
+    "bug_report_timeline_duration": 300,
+    "trace_sampling_rate": 0.001,
+    "journey_sampling_rate": 0.001,
+    "screenshot_mask_level": "all_text",
+    "cpu_usage_interval": 5,
+    "memory_usage_interval": 5,
+    "crash_take_screenshot": true,
+    "anr_take_screenshot": true,
+    "launch_sampling_rate": 1,
+    "gesture_click_take_snapshot": true,
+    "http_disable_event_for_urls": [],
+    "http_track_request_for_urls": [],
+    "http_track_response_for_urls": [],
+    "http_blocked_headers": []
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### PATCH `/apps/:id/config`
+
+Update an app's config using a PATCH request.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- One or more config fields must be passed in the request body. Only the fields present in the request body will be updated.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Request
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    {
+      screenshot_mask_level: "all_text"
+    }
+  ```
+
+  </details>
+
+- Response
+  <details>
+    <summary>Click to expand</summary>
+    
+    ```json
+    {
+      "message":"config updated successfully"
+    }
+    ```
+  </details>
+
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 
