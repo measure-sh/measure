@@ -89,6 +89,11 @@ internal interface FileStorage {
      * Returns the file where the [sh.measure.android.config.DynamicConfig] is stored.
      */
     fun getConfigFile(): File?
+
+    /**
+     * Validates that the file exists.
+     */
+    fun validateFile(path: String): Boolean
 }
 
 private const val MEASURE_DIR = "measure"
@@ -186,6 +191,11 @@ internal class FileStorageImpl(
     }
 
     override fun getConfigFile(): File? = getOrCreateFile(CONFIG_FILE_NAME)
+
+    override fun validateFile(path: String): Boolean {
+        val file = getFile(path)
+        return file != null && file.exists() && file.length() > 0
+    }
 
     override fun getFile(path: String): File? {
         val file = File(path)
