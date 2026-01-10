@@ -405,6 +405,7 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
+        logger = logger,
     ),
     override val customEventCollector: CustomEventCollector = CustomEventCollector(
         logger = logger,
