@@ -21,13 +21,16 @@ class SampleApp : Application() {
         )
         val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)
         Measure.startSpan("Measure.init", timestamp = startTime).setParent(appOnCreateSpan).end()
+        appOnCreateSpan.setAttribute("a".repeat(257), "value")
+        appOnCreateSpan.setAttribute("key", "a".repeat(257))
         appOnCreateSpan.end()
 
         val attributes = AttributesBuilder().put(
             "string",
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
         ).put("integer", Int.MAX_VALUE).put("long", Long.MAX_VALUE).put("double", Double.MAX_VALUE)
-            .put("float", Float.MAX_VALUE).put("boolean", false).build()
+            .put("float", Float.MAX_VALUE).put("boolean", false)
+            .build()
         Measure.trackEvent(name = "custom-app-start", attributes = attributes)
     }
 }
