@@ -1,3 +1,5 @@
+@file:Suppress("SameParameterValue")
+
 package sh.measure.android.exporter
 
 import android.os.Build
@@ -375,6 +377,53 @@ internal class ExporterTest {
     }
 
     @Test
+    fun `includes events with valid serialized data file path`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        val dataFile = createTempDataFile("event2")
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event2",
+            sampled = true,
+            serializedDataFilePath = dataFile.absolutePath,
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1", "event2"))
+
+        exporter.export()
+
+        verify(networkClient).execute(
+            eq("batch1"),
+            argThat { size == 2 },
+            any(),
+        )
+    }
+
+    @Test
+    fun `filters out events with invalid serialized data file path`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event2",
+            sampled = true,
+            serializedDataFilePath = "/nonexistent/path/data.json",
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1", "event2"))
+
+        exporter.export()
+
+        verify(networkClient).execute(
+            eq("batch1"),
+            argThat { size == 1 && first().eventId == "event1" },
+            any(),
+        )
+    }
+
+    @Test
     fun `uploads attachments after events export`() {
         val responseJson = attachmentResponseJson("attachment-1")
         whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(responseJson))
@@ -668,6 +717,7 @@ internal class ExporterTest {
         eventId: String,
         sampled: Boolean = true,
         attachments: List<AttachmentEntity> = emptyList(),
+        serializedDataFilePath: String? = null,
     ) {
         database.insertEvent(
             EventEntity(
@@ -675,7 +725,8 @@ internal class ExporterTest {
                 timestamp = "23456789",
                 type = EventType.STRING,
                 userTriggered = false,
-                serializedData = "data",
+                serializedData = if (serializedDataFilePath == null) "data" else null,
+                filePath = serializedDataFilePath,
                 sessionId = sessionId,
                 attachmentEntities = attachments,
                 attachmentsSize = attachments.sumOf { File(it.path).length() },
@@ -714,5 +765,12 @@ internal class ExporterTest {
                 isSampled = sampled,
             ),
         )
+    }
+
+    private fun createTempDataFile(name: String): File {
+        val file = File(rootDir, "$name-data.json")
+        file.parentFile?.mkdirs()
+        file.writeText("""{"key": "value"}""")
+        return file
     }
 }

@@ -144,8 +144,24 @@ internal class ExporterImpl(
             "Exporter: exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans",
         )
 
-        val response = networkClient.execute(batch.batchId, events, spans)
-        handleEventsExportResponse(response, batch.batchId, events, spans)
+        // Remove events that have an invalid file path
+        val validEvents = events.filter {
+            if (it.serializedDataFilePath != null) {
+                val isValid = fileStorage.validateFile(it.serializedDataFilePath)
+                if (!isValid) {
+                    logger.log(
+                        LogLevel.Error,
+                        "Exporter: failed to read event data, discarding event ${it.eventId}",
+                    )
+                }
+                isValid
+            } else {
+                true
+            }
+        }
+
+        val response = networkClient.execute(batch.batchId, validEvents, spans)
+        handleEventsExportResponse(response, batch.batchId, validEvents, spans)
 
         return response is HttpResponse.Success
     }
