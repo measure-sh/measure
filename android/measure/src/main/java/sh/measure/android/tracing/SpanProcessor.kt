@@ -155,6 +155,36 @@ internal class MsrSpanProcessor(
             checkpoints.subList(configProvider.maxCheckpointsPerSpan, checkpoints.size).clear()
         }
 
+        // remove invalid user-defined attributes
+        val attrsIterator = userDefinedAttrs.entries.iterator()
+        var droppedAttrsCount = 0
+        while (attrsIterator.hasNext()) {
+            val (key, value) = attrsIterator.next()
+            if (key.length > configProvider.maxUserDefinedAttributeKeyLength ||
+                (value is String && value.length > configProvider.maxUserDefinedAttributeValueLength)
+            ) {
+                attrsIterator.remove()
+                droppedAttrsCount++
+            }
+        }
+        if (droppedAttrsCount > 0) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid span: $name, dropped $droppedAttrsCount attributes due to invalid key or value length",
+            )
+        }
+
+        // limit number of user-defined attributes per span
+        if (userDefinedAttrs.size > configProvider.maxUserDefinedAttributesPerEvent) {
+            val excessCount = userDefinedAttrs.size - configProvider.maxUserDefinedAttributesPerEvent
+            logger.log(
+                LogLevel.Error,
+                "Invalid span: $name, max attributes exceeded, $excessCount attributes will be dropped",
+            )
+            val keysToKeep = userDefinedAttrs.keys.take(configProvider.maxUserDefinedAttributesPerEvent)
+            userDefinedAttrs.keys.retainAll(keysToKeep)
+        }
+
         // validation passed
         return true
     }

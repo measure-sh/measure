@@ -173,7 +173,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks successful http event`() {
-        val data = mutableMapOf<String, Any?>(
+        val data = mutableMapOf(
             "url" to "https://example.com",
             "method" to "POST",
             "status_code" to 200,
@@ -485,7 +485,7 @@ class InternalSignalCollectorTest {
         val timestamp = 1234567890L
         val attributes = mutableMapOf<String, Any?>()
         val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
-        val attachments = mutableListOf<MsrAttachment>(
+        val attachments = mutableListOf(
             MsrAttachment(
                 name = "screenshot",
                 path = "fake/path",
@@ -533,7 +533,7 @@ class InternalSignalCollectorTest {
             duration = 1000,
             status = SpanStatus.Ok,
             attributes = mapOf("key" to "value", "key-processor" to "value-processor"),
-            userDefinedAttrs = mapOf("key" to "value"),
+            userDefinedAttrs = mutableMapOf("key" to "value"),
             checkpoints = mutableListOf(
                 Checkpoint("checkpoint_name", 1234567890L),
             ),
@@ -552,7 +552,7 @@ class InternalSignalCollectorTest {
             duration = 1000,
             status = SpanStatus.Ok.value,
             attributes = mutableMapOf("key" to "value"),
-            userDefinedAttrs = mapOf("key" to "value"),
+            userDefinedAttrs = mutableMapOf("key" to "value"),
             checkpoints = mapOf("checkpoint_name" to 1234567890L),
             hasEnded = true,
             isSampled = true,

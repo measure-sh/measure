@@ -257,7 +257,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         duration: Long,
         status: Int,
         attributes: MutableMap<String, Any?>,
-        userDefinedAttrs: Map<String, Any>,
+        userDefinedAttrs: MutableMap<String, Any?>,
         checkpoints: Map<String, Long>,
         hasEnded: Boolean,
         isSampled: Boolean,
