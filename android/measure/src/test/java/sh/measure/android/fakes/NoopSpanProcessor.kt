@@ -15,4 +15,8 @@ internal class NoopSpanProcessor : SpanProcessor {
     override fun onEnded(span: InternalSpan) {
         // No-op
     }
+
+    override fun onConfigLoaded() {
+        // No-op
+    }
 }

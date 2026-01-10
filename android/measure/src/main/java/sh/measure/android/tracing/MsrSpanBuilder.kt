@@ -3,6 +3,7 @@ package sh.measure.android.tracing
 import sh.measure.android.SessionManager
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.TimeProvider
 
 internal class MsrSpanBuilder(
@@ -11,7 +12,7 @@ internal class MsrSpanBuilder(
     private val timeProvider: TimeProvider,
     private val spanProcessor: SpanProcessor,
     private val sessionManager: SessionManager,
-    private val traceSampler: TraceSampler,
+    private val sampler: Sampler,
     private val logger: Logger,
 ) : SpanBuilder {
     private var parentSpan: Span? = null
@@ -29,7 +30,7 @@ internal class MsrSpanBuilder(
         sessionManager = sessionManager,
         idProvider = idProvider,
         parentSpan = parentSpan,
-        traceSampler = traceSampler,
+        sampler = sampler,
     )
 
     override fun startSpan(timeMs: Long): Span {
@@ -42,7 +43,7 @@ internal class MsrSpanBuilder(
             sessionManager = sessionManager,
             parentSpan = parentSpan,
             timestamp = timeMs,
-            traceSampler = traceSampler,
+            sampler = sampler,
         )
         return span
     }

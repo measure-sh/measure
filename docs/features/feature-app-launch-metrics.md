@@ -1,6 +1,7 @@
 # App Launch Metrics
 
 * [**Introduction**](#introduction)
+* [**Sampling**](#sampling)
 * [**Data Collected**](#data-collected)
 * [**How It Works**](#how-it-works)
     * [**Android**](#android)
@@ -17,6 +18,11 @@ Measure automatically tracks cold, warm, and hot app launches along with the tim
 You can easily track these metrics in the dashboard, allowing you to monitor the performance of your app's launch.
 
 ![App Launch Metrics](assets/app-launch-metrics.png)
+
+## Sampling
+
+See [Configuration Options](configuration-options.md)  for details on how to configure sampling for launch 
+metrics.
 
 ## Data Collected
 

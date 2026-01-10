@@ -60,6 +60,11 @@ internal data class EventEntity(
      * List of attachments associated with the event. Can be null if there are no attachments.
      */
     val attachmentEntities: List<AttachmentEntity>? = null,
+
+    /**
+     * Whether the event needs to be reported to the server.
+     */
+    val isSampled: Boolean = false,
 ) {
     init {
         require(filePath != null || serializedData != null) {
@@ -101,18 +106,20 @@ internal data class SessionEntity(
     val sessionId: String,
     val pid: Int,
     val createdAt: Long,
-    val needsReporting: Boolean = false,
+    val prioritySession: Boolean = false,
+    @Deprecated("No longer used")
     val crashed: Boolean = false,
     val supportsAppExit: Boolean,
     val appVersion: String?,
     val appBuild: String?,
-    val trackJourney: Boolean?,
+    @Deprecated("No longer used")
+    val trackJourney: Boolean = false,
 )
 
 internal data class BatchEntity(
     val batchId: String,
-    val eventIds: List<String>,
-    val spanIds: List<String>,
+    val eventIds: Set<String>,
+    val spanIds: Set<String>,
     val createdAt: Long,
 )
 

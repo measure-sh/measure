@@ -4,6 +4,7 @@ import android.os.Looper
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
@@ -24,7 +25,7 @@ class AnrCollectorTest {
     private val nativeBridge = mock<NativeBridge>()
     private val looper = mock<Looper>()
     private val anrCollector =
-        AnrCollector(logger, processInfo, signalProcessor, nativeBridge, looper)
+        AnrCollector(processInfo, signalProcessor, nativeBridge, looper)
 
     @Test
     fun `register enables anr reporting and registers itself as listener`() {
@@ -34,6 +35,8 @@ class AnrCollectorTest {
 
     @Test
     fun `unregister disables anr reporting`() {
+        anrCollector.register()
+        verify(nativeBridge).enableAnrReporting(any())
         anrCollector.unregister()
         verify(nativeBridge).disableAnrReporting()
     }

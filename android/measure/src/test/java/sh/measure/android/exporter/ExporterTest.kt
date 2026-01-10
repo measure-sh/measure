@@ -1,22 +1,28 @@
 package sh.measure.android.exporter
 
-import android.database.Cursor
 import android.os.Build
+import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertTrue
 import kotlinx.serialization.encodeToString
-import org.junit.Assert
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
+import org.mockito.Mockito.never
 import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.never
+import org.mockito.kotlin.argThat
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
+import org.mockito.kotlin.whenever
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.serialization.jsonSerializer
@@ -26,15 +32,14 @@ import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.SessionEntity
-import sh.measure.android.storage.SpansTable
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
+import java.io.File
 
-// This test uses robolectric and a real instance of batch creator to ensure that the batch creator
-// and exporter work together correctly with a real database.
 @RunWith(AndroidJUnit4::class)
 internal class ExporterTest {
     private val logger = NoopLogger()
+    private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
     private val context =
         InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
@@ -44,317 +49,625 @@ internal class ExporterTest {
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val configProvider = FakeConfigProvider()
     private val networkClient = mock<NetworkClient>()
-    private val attachmentExporter = mock<AttachmentExporter>()
-    private val batchCreator = BatchCreatorImpl(
-        logger,
-        idProvider = idProvider,
-        database = database,
-        timeProvider = timeProvider,
-        configProvider = configProvider,
-    )
+    private val httpClient = mock<HttpClient>()
+    private val sleeper = FakeSleeper()
+
     private val exporter = ExporterImpl(
-        batchCreator = batchCreator,
         fileStorage = fileStorage,
         networkClient = networkClient,
         database = database,
         logger = logger,
-        attachmentExporter = attachmentExporter,
+        timeProvider = timeProvider,
+        configProvider = configProvider,
+        idProvider = idProvider,
+        httpClient = httpClient,
+        sleeper = sleeper,
+        attachmentExportService = executorService,
+        eventExportService = executorService,
     )
 
     @Test
-    fun `exports a batch`() {
-        // seed the db with two events in 1 batch
-        insertSessionInDb("session-id")
-        insertEventInDb("session-id", "event1")
-        insertEventInDb("session-id", "event2")
-        insertBatchInDb(
-            Batch(
-                "batch1",
-                eventIds = listOf("event1", "event2"),
-                spanIds = emptyList(),
-            ),
-        )
+    fun `skips export when already in progress`() {
+        exporter.isExporting.set(true)
 
-        exporter.export(
-            Batch(
-                "batch1",
-                eventIds = listOf("event1", "event2"),
-                spanIds = emptyList(),
-            ),
-        )
-
-        val batchIdCaptor = argumentCaptor<String>()
-        val eventPacketsCaptor = argumentCaptor<List<EventPacket>>()
-        val spanPacketsCaptor = argumentCaptor<List<SpanPacket>>()
-        verify(networkClient).execute(
-            batchIdCaptor.capture(),
-            eventPacketsCaptor.capture(),
-            spanPacketsCaptor.capture(),
-        )
-        Assert.assertEquals("batch1", batchIdCaptor.firstValue)
-        Assert.assertEquals(2, eventPacketsCaptor.firstValue.size)
-        Assert.assertEquals("event1", eventPacketsCaptor.firstValue[0].eventId)
-        Assert.assertEquals("event2", eventPacketsCaptor.firstValue[1].eventId)
-        Assert.assertEquals(0, spanPacketsCaptor.firstValue.size)
-    }
-
-    @Test
-    fun `does not trigger export if no events are found in a batch`() {
-        exporter.export(
-            Batch(
-                "batch1",
-                eventIds = listOf("event-id"),
-                spanIds = listOf("span-id"),
-            ),
-        )
+        exporter.export()
 
         verify(networkClient, never()).execute(any(), any(), any())
-        Assert.assertEquals(0, exporter.batchIdsInTransit.size)
     }
 
     @Test
-    fun `returns existing batches from the database`() {
-        insertSessionInDb("sessionId")
-        insertEventInDb("sessionId", "event1")
-        insertEventInDb("sessionId", "event2")
-        insertEventInDb("sessionId", "event3")
-        insertEventInDb("sessionId", "event4")
+    fun `exports existing batches in order`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        insertSessionInDb("session2")
+        insertEventInDb("session2", "event2", sampled = true)
+        insertBatchInDb("batch2", eventIds = setOf("event2"))
+
+        exporter.export()
+
+        val inOrder = inOrder(networkClient)
+
+        inOrder.verify(networkClient).execute(
+            eq("batch1"),
+            any(),
+            any(),
+        )
+
+        inOrder.verify(networkClient).execute(
+            eq("batch2"),
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `creates and exports new batches after existing batches`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        insertSessionInDb("session2")
+        insertEventInDb("session2", "event2", sampled = true)
+
+        exporter.export()
+
+        val inOrder = inOrder(networkClient)
+
+        inOrder.verify(networkClient).execute(
+            eq("batch1"),
+            any(),
+            any(),
+        )
+
+        inOrder.verify(networkClient).execute(
+            argThat { this != "batch1" },
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `stops exporting new batches if existing batch export fails`() {
+        whenever(networkClient.execute(any(), any(), any()))
+            .thenReturn(HttpResponse.Error.ServerError(500))
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        insertSessionInDb("session2")
+        insertEventInDb("session2", "event2", sampled = true)
+
+        exporter.export()
+
+        verify(networkClient).execute(
+            eq("batch1"),
+            any(),
+            any(),
+        )
+
+        verifyNoMoreInteractions(networkClient)
+    }
+
+    @Test
+    fun `exports batch with events and spans`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertSpanInDb("session1", "span1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"), spanIds = setOf("span1"))
+
+        exporter.export()
+
+        verify(networkClient).execute(
+            eq("batch1"),
+            argThat { size == 1 && first().eventId == "event1" },
+            argThat { size == 1 && first().spanId == "span1" },
+        )
+    }
+
+    @Test
+    fun `deletes invalid batch with no events or spans`() {
+        insertSessionInDb("session1")
+        insertBatchInDb("batch1", eventIds = emptySet(), spanIds = emptySet())
+
+        exporter.export()
+
+        verify(networkClient, never()).execute(any(), any(), any())
+        assertEquals(0, database.getBatchIds().size)
+    }
+
+    @Test
+    fun `deletes invalid batch when no packets found in database`() {
+        insertSessionInDb("session1")
         insertBatchInDb(
-            Batch(
-                "batch1",
-                eventIds = listOf("event1", "event2"),
-                spanIds = emptyList(),
-            ),
-        )
-        insertBatchInDb(
-            Batch(
-                "batch2",
-                eventIds = listOf("event3", "event4"),
-                spanIds = emptyList(),
-            ),
+            "batch1",
+            eventIds = setOf("nonexistent-event"),
+            spanIds = setOf("nonexistent-span"),
         )
 
-        val batches = exporter.getExistingBatches()
+        exporter.export()
 
-        Assert.assertEquals(2, batches.size)
-        Assert.assertEquals(
-            batches,
-            listOf(
-                Batch(
-                    "batch1",
-                    eventIds = listOf("event1", "event2"),
-                    spanIds = emptyList(),
-                ),
-                Batch(
-                    "batch2",
-                    eventIds = listOf("event3", "event4"),
-                    spanIds = emptyList(),
-                ),
-            ),
-        )
+        verify(networkClient, never()).execute(any(), any(), any())
+        assertEquals(0, database.getBatchIds().size)
     }
 
     @Test
-    fun `returns empty map if no batches exist in database`() {
-        val batches = exporter.getExistingBatches()
-        Assert.assertEquals(0, batches.size)
+    fun `sleeps between batch exports`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+        configProvider.batchExportIntervalMs = 100L
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        insertSessionInDb("session2")
+        insertEventInDb("session2", "event2", sampled = true)
+        insertBatchInDb("batch2", eventIds = setOf("event2"))
+
+        exporter.export()
+
+        assertEquals(listOf(100L), sleeper.sleepCalls)
     }
 
     @Test
-    fun `deletes events in a batch on successful export`() {
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
-        insertSessionInDb("sessionId")
+    fun `deletes batch on successful export`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        assertEquals(1, database.getBatchIds().size)
+
+        exporter.export()
+
+        assertEquals(0, database.getBatchIds().size)
+        assertEquals(0, database.getEventPackets(listOf("event1")).size)
+    }
+
+    @Test
+    fun `updates attachment URLs on successful export`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
+        )
+
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
         insertEventInDb(
-            "sessionId",
-            "event1",
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                ),
+            ),
         )
-        insertEventInDb("sessionId", "event2")
-        val eventIds = listOf("event1", "event2")
-        insertBatchInDb(
-            Batch("batch1", eventIds = eventIds, spanIds = emptyList()),
-        )
-        // ensure events are in storage
-        val eventsBeforeExport = database.getEvents(eventIds)
-        Assert.assertEquals(2, eventsBeforeExport.size)
-        Assert.assertEquals(1, database.getBatches(1).size)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        exporter.export()
 
-        // ensure events are deleted from storage
-        Assert.assertEquals(0, database.getEvents(eventIds).size)
-        Assert.assertEquals(0, database.getBatches(1).size)
+        val attachments = database.getAttachmentsToUpload(10)
+        assertEquals(1, attachments.size)
+        assertEquals("https://example.com/upload/attachment-1", attachments.first().url)
     }
 
     @Test
-    fun `deletes the batch, events and spans on client error`() {
-        `when`(
+    fun `handles empty attachments list in response`() {
+        val responseJson = """{"attachments": []}"""
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
+        )
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        assertEquals(0, database.getBatchIds().size)
+    }
+
+    @Test
+    fun `handles null response body gracefully`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(null))
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        assertEquals(0, database.getBatchIds().size)
+    }
+
+    @Test
+    fun `handles malformed response body gracefully`() {
+        whenever(
+            networkClient.execute(
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Success("invalid json"))
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        assertEquals(0, database.getBatchIds().size)
+    }
+
+    @Test
+    fun `deletes batch on client error`() {
+        whenever(
             networkClient.execute(
                 any(),
                 any(),
                 any(),
             ),
         ).thenReturn(HttpResponse.Error.ClientError(400))
-        insertSessionInDb("sessionId")
-        insertEventInDb("sessionId", "event1")
-        insertEventInDb("sessionId", "event2")
-        insertSpanInDb("sessionId", "span1")
-        val eventIds = listOf("event1", "event2")
-        val spanIds = listOf("span1")
-        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = spanIds))
 
-        // ensure batch, events are in storage
-        val eventsBeforeExport = database.getEvents(eventIds)
-        Assert.assertEquals(2, eventsBeforeExport.size)
-        Assert.assertEquals(1, database.getBatches(1).size)
-        queryAllSpans().use {
-            Assert.assertEquals(1, it.count)
-        }
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = spanIds))
+        assertEquals(1, database.getBatchIds().size)
 
-        // ensure batch, events are deleted from storage
-        Assert.assertEquals(
-            0,
-            database.getEvents(eventIds).size,
-        )
-        Assert.assertEquals(0, database.getBatches(1).size)
-        queryAllSpans().use {
-            Assert.assertEquals(0, it.count)
-        }
+        exporter.export()
+
+        assertEquals(0, database.getBatchIds().size)
+        assertEquals(0, database.getEventPackets(listOf("event1")).size)
     }
 
     @Test
-    fun `updates attachment table with signed URLs from events response on successful export`() {
-        val attachment1 = AttachmentEntity(
-            id = "attachment-1",
-            type = "screenshot",
-            path = "path/to/attachment1",
-            name = "screenshot.png",
-        )
-        val attachment2 = AttachmentEntity(
-            id = "attachment-2",
-            type = "layout_snapshot",
-            path = "path/to/attachment2",
-            name = "layout.json",
-        )
-        val eventsResponseJson = """
-            {
-                "attachments": [
-                    {
-                        "id": "attachment-1",
-                        "type": "screenshot",
-                        "filename": "screenshot.png",
-                        "upload_url": "https://example.com/upload/attachment-1?signed=true",
-                        "expires_at": "2025-08-13T01:59:45.577889184Z",
-                        "headers": {
-                            "key": "value"
-                        }
-                    },
-                    {
-                        "id": "attachment-2",
-                        "type": "layout_snapshot",
-                        "filename": "layout.json",
-                        "upload_url": "https://example.com/upload/attachment-2?signed=true",
-                        "expires_at": "2025-08-13T01:59:45.577889184Z",
-                        "headers": {
-                            "key": "value"
-                        }
-                    }
-                ]
-            }
-        """.trimIndent()
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(
-            HttpResponse.Success(eventsResponseJson),
+    fun `does not delete batch on server error`() {
+        whenever(
+            networkClient.execute(
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Error.ServerError(500))
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        assertEquals(1, database.getBatchIds().size)
+        assertEquals(1, database.getEventPackets(listOf("event1")).size)
+    }
+
+    @Test
+    fun `does not delete batch on unknown error`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Error.UnknownError(RuntimeException("network failure")),
         )
 
-        insertSessionInDb("sessionId")
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        assertEquals(1, database.getBatchIds().size)
+        assertEquals(1, database.getEventPackets(listOf("event1")).size)
+    }
+
+    @Test
+    fun `uploads attachments after events export`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(responseJson))
+        whenever(httpClient.uploadFile(any(), any(), any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
         insertEventInDb(
-            "sessionId",
-            "event1",
-            attachmentEntities = listOf(attachment1, attachment2),
-            attachmentSize = 1000,
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                ),
+            ),
         )
-        val eventIds = listOf("event1")
-        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        exporter.export()
 
-        // Verify attachment URLs were updated in database
-        val attachmentPackets = database.getAttachmentsToUpload(maxCount = 100, emptyList())
-        Assert.assertEquals(2, attachmentPackets.size)
+        verify(httpClient).uploadFile(
+            eq("https://example.com/upload/attachment-1"),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
     }
 
     @Test
-    fun `handles empty attachments list in events response`() {
-        val eventsResponseJson = """
-            {
-                "attachments": []
-            }
-        """.trimIndent()
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(
-            HttpResponse.Success(eventsResponseJson),
+    fun `deletes attachment file and DB entry on successful upload`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
         )
+        whenever(
+            httpClient.uploadFile(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Success())
 
-        insertSessionInDb("sessionId")
-        insertEventInDb("sessionId", "event1")
-        val eventIds = listOf("event1")
-        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        exporter.export()
 
-        // Should complete successfully without errors
-        Assert.assertEquals(0, database.getEvents(eventIds).size)
+        assertEquals(0, database.getAttachmentsToUpload(10).size)
+        assertFalse(attachmentFile.exists())
     }
 
     @Test
-    fun `handles null response body gracefully`() {
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(
-            HttpResponse.Success(null),
+    fun `deletes attachment file and DB entry on client error`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
         )
+        whenever(
+            httpClient.uploadFile(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Error.ClientError(400))
 
-        insertSessionInDb("sessionId")
-        insertEventInDb("sessionId", "event1")
-        val eventIds = listOf("event1")
-        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        exporter.export()
 
-        // Should complete successfully without errors
-        Assert.assertEquals(0, database.getEvents(eventIds).size)
+        assertEquals(0, database.getAttachmentsToUpload(10).size)
+        assertFalse(attachmentFile.exists())
     }
 
     @Test
-    fun `handles malformed events response body`() {
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(
-            HttpResponse.Success("invalid json"),
+    fun `does not delete attachment on server error`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
         )
+        whenever(
+            httpClient.uploadFile(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Error.ServerError(500))
 
-        insertSessionInDb("sessionId")
-        insertEventInDb("sessionId", "event1")
-        val eventIds = listOf("event1")
-        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
 
-        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+        exporter.export()
 
-        // Should complete successfully without errors, events should still be deleted
-        Assert.assertEquals(0, database.getEvents(eventIds).size)
+        assertEquals(1, database.getAttachmentsToUpload(10).size)
+        assertTrue(attachmentFile.exists())
     }
 
-    private fun queryAllSpans(): Cursor = database.writableDatabase.query(
-        SpansTable.TABLE_NAME,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-    )
+    @Test
+    fun `deletes unreadable attachment file and skips upload`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
+        )
+
+        val nonExistentPath = "$rootDir/nonexistent-attachment.png"
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = nonExistentPath,
+                    name = "screenshot.png",
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any())
+        assertEquals(0, database.getAttachmentsToUpload(10).size)
+    }
+
+    @Test
+    fun `stops uploading when no attachments remain`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `sleeps between attachment uploads`() {
+        val responseJson = attachmentResponseJson("attachment-1", "attachment-2")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(
+                responseJson,
+            ),
+        )
+        whenever(
+            httpClient.uploadFile(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+            ),
+        ).thenReturn(HttpResponse.Success())
+        configProvider.attachmentExportIntervalMs = 200L
+
+        val attachmentFile1 = createTempAttachmentFile("attachment-1")
+        val attachmentFile2 = createTempAttachmentFile("attachment-2")
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile1.absolutePath,
+                    name = "screenshot1.png",
+                ),
+                AttachmentEntity(
+                    id = "attachment-2",
+                    type = "screenshot",
+                    path = attachmentFile2.absolutePath,
+                    name = "screenshot2.png",
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.export()
+
+        // Sleep happens between uploads (not after last one)
+        assertEquals(listOf(200L), sleeper.sleepCalls)
+    }
+
+    private fun attachmentResponseJson(vararg ids: String): String {
+        val attachments = ids.joinToString(",") { id ->
+            """
+        {
+            "id": "$id",
+            "type": "screenshot",
+            "filename": "screenshot.png",
+            "upload_url": "https://example.com/upload/$id",
+            "expires_at": "2025-08-13T01:59:45.577889184Z",
+            "headers": {}
+        }
+        """
+        }
+        return """{"attachments": [$attachments]}"""
+    }
+
+    private fun createTempAttachmentFile(name: String): File {
+        val file = File(rootDir, "$name.png")
+        file.parentFile?.mkdirs()
+        file.writeBytes(byteArrayOf(1, 2, 3, 4))
+        return file
+    }
+
+    private fun insertSessionInDb(sessionId: String, prioritySession: Boolean = false) {
+        database.insertSession(
+            SessionEntity(
+                sessionId,
+                pid = 12345,
+                createdAt = 12345,
+                prioritySession = prioritySession,
+                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                appVersion = "1.0.0",
+                appBuild = "100",
+                trackJourney = false,
+            ),
+        )
+    }
 
     private fun insertEventInDb(
         sessionId: String,
         eventId: String,
-        attachmentEntities: List<AttachmentEntity> = emptyList(),
-        attachmentSize: Long = 0,
+        sampled: Boolean = true,
+        attachments: List<AttachmentEntity> = emptyList(),
     ) {
         database.insertEvent(
             EventEntity(
@@ -364,42 +677,42 @@ internal class ExporterTest {
                 userTriggered = false,
                 serializedData = "data",
                 sessionId = sessionId,
-                attachmentEntities = attachmentEntities,
-                attachmentsSize = attachmentSize,
-                serializedAttachments = jsonSerializer.encodeToString(attachmentEntities),
+                attachmentEntities = attachments,
+                attachmentsSize = attachments.sumOf { File(it.path).length() },
+                serializedAttachments = if (attachments.isNotEmpty()) {
+                    jsonSerializer.encodeToString(attachments)
+                } else {
+                    null
+                },
                 serializedAttributes = "attributes",
                 serializedUserDefAttributes = null,
+                isSampled = sampled,
             ),
         )
     }
 
-    private fun insertBatchInDb(batch: Batch) {
+    private fun insertBatchInDb(
+        batchId: String,
+        eventIds: Set<String> = emptySet(),
+        spanIds: Set<String> = emptySet(),
+    ) {
         database.insertBatch(
             BatchEntity(
-                batchId = batch.batchId,
-                eventIds = batch.eventIds,
-                spanIds = batch.spanIds,
+                batchId = batchId,
+                eventIds = eventIds,
+                spanIds = spanIds,
                 createdAt = 12345,
             ),
         )
     }
 
-    private fun insertSessionInDb(sessionId: String) {
-        database.insertSession(
-            SessionEntity(
-                sessionId,
-                12345,
-                12345,
-                needsReporting = false,
-                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
-                appVersion = "1.0.0",
-                appBuild = "100",
-                trackJourney = false,
+    private fun insertSpanInDb(sessionId: String, spanId: String, sampled: Boolean = true) {
+        database.insertSpan(
+            TestData.getSpanEntity(
+                sessionId = sessionId,
+                spanId = spanId,
+                isSampled = sampled,
             ),
         )
-    }
-
-    private fun insertSpanInDb(sessionId: String, spanId: String) {
-        database.insertSpan(TestData.getSpanEntity(sessionId = sessionId, spanId = spanId))
     }
 }

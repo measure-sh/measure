@@ -131,6 +131,7 @@ internal class BugReportCollectorImpl internal constructor(
                             attachments = eventAttachments.toMutableList(),
                             threadName = threadName,
                             userDefinedAttributes = attributes ?: mutableMapOf(),
+                            isSampled = true,
                         )
                     },
                 )

@@ -210,6 +210,7 @@ class ActivityLifecycleCollectorTest {
             sessionId = any(),
             userTriggered = any(),
             userDefinedAttributes = any(),
+            isSampled = any(),
         )
     }
 

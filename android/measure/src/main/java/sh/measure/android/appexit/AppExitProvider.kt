@@ -40,6 +40,7 @@ internal class AppExitProviderImpl(
     @RequiresApi(Build.VERSION_CODES.R)
     fun ApplicationExitInfo.toAppExit(): AppExit = AppExit(
         reason = getReasonName(reason),
+        reasonId = reason,
         importance = getImportanceName(importance),
         trace = getTraceString(traceInputStream),
         process_name = processName,

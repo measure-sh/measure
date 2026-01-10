@@ -5,33 +5,17 @@ import sh.measure.android.events.EventType
 
 internal data class Config(
     override val enableLogging: Boolean = DefaultConfig.ENABLE_LOGGING,
-    override val trackScreenshotOnCrash: Boolean = DefaultConfig.TRACK_SCREENSHOT_ON_CRASH,
-    override val screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.SCREENSHOT_MASK_LEVEL,
-    override val trackHttpHeaders: Boolean = DefaultConfig.TRACK_HTTP_HEADERS,
-    override val trackHttpBody: Boolean = DefaultConfig.TRACK_HTTP_BODY,
-    override val httpHeadersBlocklist: List<String> = DefaultConfig.HTTP_HEADERS_BLOCKLIST,
-    override val httpUrlBlocklist: List<String> = DefaultConfig.HTTP_URL_BLOCKLIST,
-    override val httpUrlAllowlist: List<String> = DefaultConfig.HTTP_URL_ALLOWLIST,
-    override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
-    override val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
-    override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
-    override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
     override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
+    override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
-    override val coldLaunchSamplingRate: Float = DefaultConfig.COLD_LAUNCH_SAMPLING_RATE,
-    override val warmLaunchSamplingRate: Float = DefaultConfig.WARM_LAUNCH_SAMPLING_RATE,
-    override val hotLaunchSamplingRate: Float = DefaultConfig.HOT_LAUNCH_SAMPLING_RATE,
-    override val journeySamplingRate: Float = DefaultConfig.JOURNEY_EVENTS_SAMPLING_RATE,
+    override val enableFullCollectionMode: Boolean = DefaultConfig.ENABLE_FULL_COLLECTION_MODE,
 ) : InternalConfig,
     IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
-    override val maxAttachmentSizeInEventsBatchInBytes: Int = 3_000_000 // 3 MB
-    override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
-    override val eventsBatchingJitterMs: Long = 20_000 // 20 seconds
-    override val maxEventsInBatch: Int = 500
-    override val httpContentTypeAllowlist: List<String> = listOf("application/json")
+    override val batchExportIntervalMs: Long = 3_000 // 3 seconds
+    override val attachmentExportIntervalMs: Long = 500 // 500 ms
     override val defaultHttpHeadersBlocklist: List<String> = listOf(
         "Authorization",
         "Cookie",
@@ -40,7 +24,7 @@ internal data class Config(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-    override val sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
+    override val sessionBackgroundTimeoutThresholdMs: Long = 30_000 // 30 seconds
     override val maxEventNameLength: Int = 64 // 64 chars
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
@@ -57,5 +41,6 @@ internal data class Config(
     override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
     override val shakeMinTimeIntervalMs: Long = 5000
     override val shakeSlop: Int = 2
-    override val estimatedEventSizeInKb: Int = 10 // 10KB
+    override val estimatedEventSizeInKb: Int = 2 // 2KB
+    override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS
 }

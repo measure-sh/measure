@@ -590,6 +590,10 @@ final value = Measure.instance.getTraceParentHeaderValue(span);
 
 </details>
 
+## Sampling
+
+See [Configuration Options](configuration-options.md) for details on how to configure sampling for performance traces.
+
 ## Recipes
 
 ### Distributed Tracing with OkHttp Interceptor

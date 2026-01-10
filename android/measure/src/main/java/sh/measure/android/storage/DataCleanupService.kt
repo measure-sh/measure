@@ -5,11 +5,13 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import java.util.concurrent.RejectedExecutionException
+import sh.measure.android.tracing.InternalTrace
 
 internal interface DataCleanupService {
-    fun clearStaleData()
+    fun cleanup()
 }
+
+private const val DB_DELETION_BATCH_SIZE = 1000
 
 /**
  * Cleans up stale data from the database and file storage.
@@ -25,26 +27,20 @@ internal class DataCleanupServiceImpl(
     private val ioExecutor: MeasureExecutorService,
     private val sessionManager: SessionManager,
     private val configProvider: ConfigProvider,
-    private val prefsStorage: PrefsStorage,
 ) : DataCleanupService {
-    private companion object {
-        // The maximum number of sessions to query for deletion.
-        // Keeping this to 1 as deleting too many sessions and events at once can lock
-        // the db for other operations for too long. Each session can potentially
-        // contain thousands of events, spans and attachments.
-        const val MAX_SESSIONS_TO_QUERY = 1
-    }
-
-    override fun clearStaleData() {
-        try {
-            ioExecutor.submit {
-                val currentSessionId = sessionManager.getSessionId()
-                deleteSessionsNotMarkedForReporting(currentSessionId)
-                trimEventsAndSpans(currentSessionId)
-                deleteBugReports(currentSessionId)
-            }
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to submit data cleanup task to executor", e)
+    override fun cleanup() {
+        val currentSessionId = sessionManager.getSessionId()
+        ioExecutor.submit {
+            InternalTrace.trace(
+                { "msr-cleanup" },
+                {
+                    deleteEvents(currentSessionId)
+                    deleteSpans(currentSessionId)
+                    deleteBugReports(currentSessionId)
+                    deleteEmptySessions(currentSessionId)
+                    trimMemoryUsage(currentSessionId)
+                },
+            )
         }
     }
 
@@ -55,17 +51,98 @@ internal class DataCleanupServiceImpl(
                 return
             }
 
-            bugReportsDir.listFiles()?.forEach { sessionDir ->
-                if (sessionDir.isDirectory && sessionDir.name != currentSessionId) {
-                    sessionDir.deleteRecursively()
+            val files = bugReportsDir.listFiles()
+            if (files != null) {
+                logger.log(LogLevel.Debug, "Cleanup: Cleaning up ${files.size} bug reports")
+                files.forEach { sessionDir ->
+                    if (sessionDir.isDirectory && sessionDir.name != currentSessionId) {
+                        sessionDir.deleteRecursively()
+                    }
                 }
             }
         } catch (e: Exception) {
-            logger.log(LogLevel.Debug, "Failed to clean up stale bug reports", e)
+            logger.log(LogLevel.Debug, "Cleanup: Failed to clean up stale bug reports", e)
         }
     }
 
-    private fun trimEventsAndSpans(currentSessionId: String) {
+    private fun deleteEvents(currentSessionId: String) {
+        InternalTrace.trace(
+            { "msr-deleteEvents" },
+            {
+                while (true) {
+                    val deletedEventIds = database.deleteEvents(
+                        excludeSessionId = currentSessionId,
+                        batchSize = DB_DELETION_BATCH_SIZE,
+                    )
+
+                    if (deletedEventIds.isNotEmpty()) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Cleanup: Deleted ${deletedEventIds.size} events",
+                        )
+                    }
+
+                    if (deletedEventIds.isEmpty()) break
+
+                    fileStorage.deleteEventsIfExist(deletedEventIds)
+                    fileStorage.deleteAttachmentsIfExist(deletedEventIds)
+
+                    if (deletedEventIds.size < DB_DELETION_BATCH_SIZE) break
+                }
+            },
+        )
+    }
+
+    private fun deleteSpans(currentSessionId: String) {
+        InternalTrace.trace(
+            { "msr-deleteSpans" },
+            {
+                while (true) {
+                    val deletedSpanIds = database.deleteSpans(
+                        excludeSessionId = currentSessionId,
+                        batchSize = DB_DELETION_BATCH_SIZE,
+                    )
+                    if (deletedSpanIds.isNotEmpty()) {
+                        logger.log(LogLevel.Debug, "Cleanup: Deleted ${deletedSpanIds.size} spans")
+                    }
+                    if (deletedSpanIds.isEmpty()) break
+                    if (deletedSpanIds.size < DB_DELETION_BATCH_SIZE) break
+                }
+            },
+        )
+    }
+
+    private fun deleteEmptySessions(currentSessionId: String) {
+        InternalTrace.trace(
+            { "msr-deleteEmptySessions" },
+            {
+                val sessionIds = database.getSessionIds(excludeSessionId = currentSessionId)
+                val sessionsToDelete = mutableListOf<String>()
+                for (sessionId in sessionIds) {
+                    val events = database.getEventsCount(sessionId)
+                    val spans = database.getSpansCount(sessionId)
+
+                    if (events + spans == 0) {
+                        sessionsToDelete.add(sessionId)
+                    }
+                }
+
+                if (sessionsToDelete.isEmpty()) {
+                    return@trace
+                }
+
+                logger.log(
+                    LogLevel.Debug,
+                    "Cleanup: Deleting ${sessionsToDelete.size} sessions with no events or spans",
+                )
+                sessionsToDelete.forEach {
+                    database.deleteSession(it)
+                }
+            },
+        )
+    }
+
+    private fun trimMemoryUsage(currentSessionId: String) {
         val eventsCount = database.getEventsCount()
         val spansCount = database.getSpansCount()
         val totalSignals = eventsCount + spansCount
@@ -76,53 +153,18 @@ internal class DataCleanupServiceImpl(
         }
         database.getOldestSession()?.let {
             if (it != currentSessionId) {
-                deleteSessions(listOf(it))
+                val eventIds = database.getEventsForSession(it)
+                fileStorage.deleteEventsIfExist(eventIds)
+                val attachmentIds = database.getAttachmentsForEvents(eventIds)
+                fileStorage.deleteAttachmentsIfExist(attachmentIds)
+
+                // deleting sessions from db will also delete events, spans and attachments for the session
+                // as they are cascaded deletes.
+                database.deleteSession(it)
                 logger.log(
                     LogLevel.Debug,
                     "DataCleanup: deleted session $it estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
                 )
-            }
-        }
-    }
-
-    private fun deleteSessionsNotMarkedForReporting(currentSessionId: String) {
-        val sessionIds = database.getSessionIds(
-            needReporting = false,
-            filterSessionIds = listOf(currentSessionId),
-            maxCount = MAX_SESSIONS_TO_QUERY,
-        )
-        if (sessionIds.isNotEmpty()) {
-            deleteSessions(sessionIds)
-            logger.log(
-                LogLevel.Debug,
-                "DataCleanup: deleted sessions not marked for reporting ${sessionIds.joinToString()}",
-            )
-        }
-    }
-
-    private fun deleteSessions(sessionIds: List<String>) {
-        if (sessionIds.isEmpty()) {
-            return
-        }
-        val eventIds = database.getEventsForSessions(sessionIds)
-        fileStorage.deleteEventsIfExist(eventIds)
-        val attachmentIds = database.getAttachmentsForEvents(eventIds)
-        fileStorage.deleteAttachmentsIfExist(attachmentIds)
-        deleteRecentSessionPrefsIfRequired(sessionIds)
-
-        // deleting sessions from db will also delete events, spans and attachments for the session
-        // as they are cascaded deletes.
-        database.deleteSessions(sessionIds)
-    }
-
-    // Deletes the recent session prefs if it is being deleted from DB.
-    // AppExit event relies on the session ID from recent session,
-    // but if cleanup has deleted it, Database will throw an exception
-    // as it tries to insert an event for a sessio that no longer exists.
-    private fun deleteRecentSessionPrefsIfRequired(sessionIds: List<String>) {
-        sessionIds.forEach {
-            if (prefsStorage.getRecentSession()?.id == it) {
-                prefsStorage.deleteRecentSession()
             }
         }
     }

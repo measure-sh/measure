@@ -1,15 +1,38 @@
 # Configuration Options
 
-Measure provides a number of configuration options to customize the data collected and the behavior of the SDK. These
-options are set at the time of SDK initialization and can be adjusted based on your app's requirements.
+Measure provides a number of configuration options to customize data collection and SDK behavior. These options are
+available in two ways:
 
-* [**Set Configuration Options**](#set-configuration-options)
-    * [**Android**](#android)
-    * [**iOS**](#ios)
-    * [**Flutter**](#flutter)
-* [**Explore all Configuration Options**](#configuration-options-1)
+* **SDK Options** — Set at initialization time in your app's code.
+* **Remote Configuration Options** — Configured remotely from the Measure dashboard. Changes take effect without
+  releasing a new
+  app version.
 
-## Set Configuration Options
+# Table of Contents
+
+* [**SDK Configuration Options**](#sdk-configuration-options)
+    * [**API Reference**](#api-reference)
+        * [**Android**](#android)
+        * [**iOS**](#ios)
+        * [**Flutter**](#flutter)
+    * [**trackActivityIntentData**](#trackActivityIntentData)
+    * [**enableLogging**](#enableLogging)
+    * [**autoStart**](#autoStart)
+    * [**requestHeadersProvider**](#requestHeadersProvider)
+    * [**maxDiskUsageInMb**](#maxDiskUsageInMb)
+    * [**enableFullCollectionMode**](#enableFullCollectionMode)
+* [**Remote Configuration Options**](#remote-configuration-options)
+    * [**Crash Reporting**](#crash-reporting)
+    * [**ANR Reporting**](#anr-reporting)
+    * [**Trace Sampling**](#trace-sampling)
+    * [**Launch Metrics Sampling**](#launch-metrics-sampling)
+    * [**Journey Sampling**](#journey-sampling)
+    * [**HTTP Events**](#http-events)
+    * [**Screenshot Mask Level**](#screenshot-mask-level)
+
+# SDK Configuration Options
+
+## API Reference
 
 #### Android
 
@@ -19,21 +42,11 @@ For Android, options can be set in the `MeasureConfig` object which is passed to
 Measure.init(
     context, MeasureConfig(
         enableLogging = true,
-        trackScreenshotOnCrash = true,
-        screenshotMaskLevel = if (BuildConfig.DEBUG) {
-            ScreenshotMaskLevel.SensitiveFieldsOnly
-        } else {
-            ScreenshotMaskLevel.AllTextAndMedia
-        },
-        trackHttpHeaders = true,
-        trackHttpBody = true,
+        autoStart = true,
+        maxDiskUsageInMb = 50,
         trackActivityIntentData = true,
-        httpUrlBlocklist = listOf("example.com"),
-        httpUrlAllowlist = listOf("api.example.com"),
-        httpHeadersBlocklist = listOf("X-USER-EMAIL"),
-        samplingRateForErrorFreeSessions = 0.5f,
-        autoStart = false,
-        traceSamplingRate = 0.001f,
+        requestHeadersProvider = customRequestHeadersProvider,
+        enableFullCollectionMode = false,
     )
 )
 ```
@@ -45,14 +58,10 @@ method. Example:
 
 ```swift
 let config = BaseMeasureConfig(enableLogging: true,
-                               samplingRateForErrorFreeSessions: 1.0,
-                               trackHttpHeaders: true,
-                               trackHttpBody: true,
-                               httpHeadersBlocklist: ["Authorization"],
-                               httpUrlBlocklist: ["example.api.com"],
-                               httpUrlAllowlist: ["api.example.com"],
                                autoStart: true,
-                               trackViewControllerLoadTime: true)
+                               maxDiskUsageInMb: 50,
+                               requestHeadersProvider: customRequestHeadersProvider,
+                               enableFullCollectionMode: false)
 Measure.initialize(with: clientInfo, config: config)
 ```
 
@@ -66,144 +75,13 @@ Future<void> main() async {
         () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
-      trackScreenshotOnCrash: true,
-      trackHttpHeaders: true,
-      trackHttpBody: true,
-      httpHeadersBlocklist: ["Authorization"],
-      httpUrlBlocklist: ["example.api.com"],
-      httpUrlAllowlist: ["api.example.com"],
-      autoInitializeNativeSDK: true,
       autoStart: true,
-      traceSamplingRate: 1,
-      samplingRateForErrorFreeSessions: 1,
+      maxDiskUsageInMb: 50,
+      enableFullCollectionMode: false,
     ),
   );
 }
 ```
-
-## Configuration Options
-
-* [**trackScreenshotOnCrash**](#trackScreenshotOnCrash)
-* [**screenshotMaskLevel**](#screenshotMaskLevel)
-* [**httpUrlBlocklist**](#httpUrlBlocklist)
-* [**httpUrlAllowlist**](#httpUrlAllowlist)
-* [**trackHttpHeaders**](#trackHttpHeaders)
-* [**httpHeadersBlocklist**](#httpHeadersBlocklist)
-* [**trackHttpBody**](#trackHttpBody)
-* [**trackActivityIntentData**](#trackActivityIntentData)
-* [**samplingRateForErrorFreeSessions**](#samplingRateForErrorFreeSessions)
-* [**enableLogging**](#enableLogging)
-* [**traceSamplingRate**](#traceSamplingRate)
-* [**autoStart**](#autoStart)
-* [**requestHeadersProvider**](#requestHeadersProvider)
-* [**maxDiskUsageInMb**](#maxDiskUsageInMb)
-## `trackScreenshotOnCrash`
-
-Applies only to Android.
-
-Whether to capture a screenshot of the app when it crashes due to a crash.
-
-Defaults to `true`.
-
-## `screenshotMaskLevel`
-
-Allows changing the masking level of screenshots if `trackScreenshotOnCrash` is enabled to prevent sensitive
-information from leaking. Defaults to `ScreenshotMaskLevel.AllTextAndMedia`. Applies only to Android.
-
-The following levels of masking can be applied to the screenshots:
-
-* [Mask All Text And Media](#maskalltextandmedia)
-* [Mask All Text](#maskalltext)
-* [Mask Text Except Clickable](#masktextexceptclickable)
-* [Mask Sensitive Input Fields](#masksensitiveinputfields)
-
-#### maskAllTextAndMedia
-
-Masks all text, buttons, input fields, image views and video.
-
-For View based UI, video masking is performed on VideoView and Exoplayer's `androidx.media3.ui.PlayerView`
-and image masking is performed on `ImageView`. Image and video masking is currently not supported for Compose based UI.
-
-Example:
-
-![Mask All Text And Media](assets/screenshot-mask-all-text-and-media.png)
-
-#### maskAllText
-
-Masks all text, buttons & input fields.
-
-Example:
-
-![Mask All Text](assets/screenshot-mask-all-text.png)
-
-#### maskTextExceptClickable
-
-Masks all text & input fields except clickable views like buttons.
-
-Example:
-
-![Mask Text Except Clickable](assets/screenshot-mask-text-except-clickable.png)
-
-#### maskSensitiveInputFields
-
-Masks sensitive input fields like password, email & phone fields.
-
-For View based UI, all input fields
-with [inputType](https://developer.android.com/reference/android/text/InputType)
-set to `textPassword`, `textVisiblePassword`, `textWebPassword`, `numberPassword`, `textEmailAddress`, `textEmail`
-and `phone` are masked in the screenshot.
-
-For compose based UI, all input fields with KeyboardOptions set
-to `KeyboardOptions(keyboardType = KeyboardType.Password)`
-are masked in the screenshot by default.
-
-Example:
-
-![Mask Sensitive Input Fields](assets/screenshot-mask-sensitive-input-fields-2.png)
-
-#### Mask an entire screen from screenshot
-
-If these options do not satisfy your requirements, consider
-using [FLAG_SECURE](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE) to hide
-an entire screen with potential sensitive information from screenshots.
-
-## `trackHttpHeaders`
-
-Allows enabling/disabling capturing of HTTP request and response headers. Disabled by default.
-
-## `httpHeadersBlocklist`
-
-Allows specifying HTTP headers which should not be captured.
-See [HTTP headers blocklist](features/feature_network_monitoring.md#httpHeadersBlocklist)
-
-By default, the following headers are always disallowed to prevent sensitive information from
-leaking:
-
-* Authorization
-* Cookie
-* Set-Cookie
-* Proxy-Authorization
-* WWW-Authenticate
-* X-Api-Key
-
-## `trackHttpBody`
-
-Allows enabling/disabling capturing of HTTP request and response body.
-
-Defaults to `false`.
-
-## `httpUrlBlocklist`
-
-Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
-want to collect data for certain endpoints or third party domains. By default, no URLs are blocked.
-
-Note that this list is used only if `httpUrlAllowlist` is empty.
-
-## `httpUrlAllowlist`
-
-Allows enabling collection of `http` events only for certain URLs. This is useful to setup if you want
-to collect data only for certain endpoints or third party domains. If this list is empty, `httpUrlBlocklist` is
-considered. By default, this list is empty.
 
 ## `trackActivityIntentData`
 
@@ -222,30 +100,6 @@ checking what data was passed as part of the bundle, it might also contain sensi
 * `hot_launch` event, which is collected when the app is launched from a hot start.
 
 Defaults to `false`.
-
-## `samplingRateForErrorFreeSessions`
-
-Controls sampling rate for non-crashed sessions.
-
-A value between 0.0 and 1.0 can be set:
-
-* 0.0 (default): Only collect crashed sessions
-* 0.1: Collect 10% of non-crashed sessions
-* 1.0: Collect all sessions
-
-Defaults to `0`.
-
-Note that sessions with a crash or a bug report are collected regardless of this setting.
-
-## `traceSamplingRate`
-
-Measure SDK collects traces at a sampled rate of 0.0001. Meaning 0.01% of all traces will be sent to the server. To modify
-this rate use `traceSamplingRate`.
-
-The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export only 10%
-of the traces, a value of `0` will disable exporting of traces completely.
-
-Defaults to `0.1` (10%).
 
 ## `enableLogging`
 
@@ -368,3 +222,206 @@ to the nearest limit.
 Note that the storage usage is not exact and works on estimates and typically the SDK will use much less disk space than
 the configured limit. When the SDK reaches the maximum disk usage limit, it will start deleting the oldest data to make
 space for new data.
+
+# `enableFullCollectionMode`
+
+Overrides all sampling configurations and enables full data collection for all sessions. Use this option for debugging
+and testing purposes. Defaults to `false`. Use this option with caution as it can lead to high data collection and
+storage costs if done at scale in production.
+
+# Remote Configuration Options
+
+A number of configuration options are available remotely from the Measure dashboard. Changes take effect without
+releasing a new app version. To change the remote configuration settings, navigate to the "Apps" tab in the
+Measure dashboard.
+
+The SDK requests this configuration and caches it locally. For a new configuration to take effect, it takes
+two app launches. First, the SDK fetches the new configuration and caches it locally. On the next app launch, the new
+configuration takes effect.
+
+#### Defaults
+
+The following defaults are set for each app:
+
+| Configuration                        | Default Value                                                                       |
+|--------------------------------------|-------------------------------------------------------------------------------------|
+| Take screenshot on Crash             | true                                                                                |
+| Crash session timeline duration      | 300 seconds (5 minutes)                                                             |
+| Take screenshot on ANR               | true                                                                                |
+| ANR session timeline duration        | 300 seconds (5 minutes)                                                             |
+| Bug Report session timeline duration | 300                                                                                 |
+| Trace sampling rate                  | 0.01%                                                                               |
+| Journey sampling rate                | 0.01%                                                                               |
+| Launch Metrics sampling rate         | 0.01%                                                                               |
+| Disable HTTP event for URLs          | (empty)                                                                             |
+| Track HTTP request body for URLs     | (empty)                                                                             |
+| Track HTTP response body for URLs    | (empty)                                                                             |
+| Blocked HTTP headers                 | Authorization, Cookie, Set-Cookie, Proxy-Authorization, WWW-Authenticate, X-Api-Key |
+| Screenshot mask level                | AllTextAndMedia                                                                     |
+
+## Crash Reporting
+
+### Enable/Disable Screenshots
+
+Each Crash, by default comes with a screenshot of the app at the time of the crash. You can choose to disable
+this feature if you do not want screenshots to be captured.
+
+### Session timeline duration
+
+When a crash occurs, a session timeline _up to a few minutes_ leading up to the crash is captured. You can configure
+this duration to control the number of events collected in each session timeline.
+
+By default, _5 minutes_ of events before the crash are captured in the session timeline. You can adjust this duration
+to control the amount of data collected.
+
+## ANR Reporting
+
+### Enable/Disable Screenshots
+
+Each ANR, by default comes with a screenshot of the app at the time of the ANR. You can choose to disable
+this feature if you do not want screenshots to be captured.
+
+### Session timeline duration
+
+When an ANR occurs, a session timeline _up to a few minutes_ leading up to the ANR is captured. You can configure
+this duration to control the number of events collected in each session timeline.
+
+By default, _5 minutes_ of events before the ANR are captured in the session timeline. You can adjust this duration
+to control the amount of data collected.
+
+## Bug Reports
+
+### Session timeline duration
+
+When a bug report is submitted, a session timeline _up to a few minutes_ leading up to the bug report is captured.
+You can configure this duration to control the number of events collected in each session timeline.
+
+By default, _5 minutes_ of events before the bug report are captured in the session timeline. You can adjust this
+duration to control the amount of data collected.
+
+## Trace Sampling
+
+By default, 0.01% (1 in 10000) traces are reported. You can adjust this percentage from 0.001% to 100% to control
+the amount of data collected.
+
+## Launch Metrics Sampling
+
+Launch metrics include Cold Launch, Warm Launch, and Hot Launch metrics shown on the Overview page on the dashboard. A
+sampling rate can be configured to control the number of sessions for whom these launch metrics are collected.
+
+By default, 0.01% (1 in 10000) of sessions will have launch metrics collected. You can adjust this percentage
+from 0.001% to 100% to control the amount of data collected.
+
+## Journey Sampling
+
+Journey events are used to construct the Journey view in the Measure dashboard. Journey events include Activity
+Lifecycle events, Fragment Lifecycle events, and Screen View events. A sampling rate can be configured to control
+the number of sessions for whom these Journey events are collected.
+
+By default, 0.01% (1 in 10000) of sessions will have Journey events collected. You can adjust this percentage from
+0.001% to 100% to control the amount of data collected.
+
+## HTTP Events
+
+HTTP events contain information about network requests made by your app. The following configuration options are
+available
+for HTTP events:
+
+### Enable/Disable HTTP events
+
+You can choose to enable or disable the collection of HTTP events by providing a URL. We support both exact URL matches
+and wildcard URL matches (using `*` as a wildcard character).
+
+Examples:
+
+- Disable a specific endpoint: `https://example.com/api/v1/users`
+- Disable a domain and all its endpoints: `https://example.com/*`
+- Disable a specific path across all domains: `*/api/v1/orders`
+- Disable a specific URL path: `https://example.com/api/*/payments`
+
+### Enable Request Body Collection
+
+By default, request body and headers are not collected for HTTP events. Note that enabling request body collection
+should only be done for very specific URLs which do not contain sensitive information and the payload size is not too
+large.
+
+You can provide a list of URLs with wildcards for which request body and headers should be collected. We support both
+exact URL matches and wildcard URL matches (using `*` as a wildcard character).
+
+### Enable Response Body Collection
+
+By default, response body and headers are not collected for HTTP events. Note that enabling response body collection
+should only be done for very specific URLs which do not contain sensitive information and the payload size is not too
+large.
+
+You can provide a list of URLs with wildcards for which response body and headers should be collected. We support both
+exact URL matches and wildcard URL matches (using `*` as a wildcard character).
+
+### Headers Blocklist
+
+Request and response headers are only collected if Request or Response Body Collection is enabled for a URL. By default,
+no headers are collected.
+
+This configuration allows you to specify which headers should be not collected for requests and responses. You can
+provide a list of header names to be blocked. Header name matching is case-insensitive.
+
+By default, the following headers are never collected, even if not specified in the blocklist:
+
+- Authorization
+- Cookie
+- Set-Cookie
+- Proxy-Authorization
+- WWW-Authenticate
+- X-Api-Key
+
+## Screenshot Mask Level
+
+Change the masking level of screenshots collected with Crashes and ANRs. It helps prevent sensitive
+information from leaking.
+
+The following levels of masking can be applied to the screenshots:
+
+#### Mask all text and media
+
+Masks all text, buttons, input fields, image views and video.
+
+For View based UI, video masking is performed on VideoView and Exoplayer's `androidx.media3.ui.PlayerView`
+and image masking is performed on `ImageView`. Image and video masking is currently not supported for Compose based UI.
+
+Example:
+
+![Mask All Text And Media](assets/screenshot-mask-all-text-and-media.png)
+
+#### Mask all text
+
+Masks all text, buttons & input fields.
+
+Example:
+
+![Mask All Text](assets/screenshot-mask-all-text.png)
+
+#### Mask text except clickable
+
+Masks all text & input fields except clickable views like buttons.
+
+Example:
+
+![Mask Text Except Clickable](assets/screenshot-mask-text-except-clickable.png)
+
+#### Mask sensitive input fields
+
+Masks sensitive input fields like password, email & phone fields.
+
+For View based UI, all input fields
+with [inputType](https://developer.android.com/reference/android/text/InputType)
+set to `textPassword`, `textVisiblePassword`, `textWebPassword`, `numberPassword`, `textEmailAddress`, `textEmail`
+and `phone` are masked in the screenshot.
+
+For compose based UI, all input fields with KeyboardOptions set
+to `KeyboardOptions(keyboardType = KeyboardType.Password)`
+are masked in the screenshot by default.
+
+Example:
+
+![Mask Sensitive Input Fields](assets/screenshot-mask-sensitive-input-fields-2.png)
+

@@ -1,135 +1,217 @@
 package sh.measure.android.exporter
 
 import androidx.annotation.VisibleForTesting
+import okio.IOException
+import okio.source
+import sh.measure.android.config.ConfigProvider
+import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
-import java.util.concurrent.CopyOnWriteArrayList
+import sh.measure.android.utils.DefaultSleeper
+import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sleeper
+import sh.measure.android.utils.TimeProvider
+import java.io.File
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Abstraction to run common functions for exporting of events and synchronizing different
- * exporters like [PeriodicExporter] and [ExceptionExporter].
- */
 internal interface Exporter {
-    fun createBatch(sessionId: String? = null): Batch?
-    fun getExistingBatches(): List<Batch>
-
-    /**
-     * Exports the events and spans in a given [batch].
-     *
-     * @return the response of the export operation.
-     */
-    fun export(batch: Batch): HttpResponse?
+    fun export()
 }
 
 internal class ExporterImpl(
     private val logger: Logger,
-    private val database: Database,
+    private val idProvider: IdProvider,
+    private val timeProvider: TimeProvider,
+    private val sleeper: Sleeper = DefaultSleeper(),
     private val fileStorage: FileStorage,
+    private val database: Database,
     private val networkClient: NetworkClient,
-    private val batchCreator: BatchCreator,
-    private val attachmentExporter: AttachmentExporter,
+    private val httpClient: HttpClient,
+    private val configProvider: ConfigProvider,
+    private val eventExportService: MeasureExecutorService,
+    private val attachmentExportService: MeasureExecutorService,
 ) : Exporter {
-    private companion object {
-        const val MAX_EXISTING_BATCHES_TO_EXPORT = 5
-    }
-
     @VisibleForTesting
-    internal val batchIdsInTransit = CopyOnWriteArrayList<String>()
+    internal val isExporting = AtomicBoolean(false)
 
-    override fun export(batch: Batch): HttpResponse? {
-        if (batchIdsInTransit.contains(batch.batchId)) {
-            return null
-        }
-        batchIdsInTransit.add(batch.batchId)
-        try {
-            val events = database.getEventPackets(batch.eventIds)
-            val spans = database.getSpanPackets(batch.spanIds)
-            if (events.isEmpty() && spans.isEmpty()) {
-                // shouldn't happen, but just in case it does we'd like to know.
-                logger.log(
-                    LogLevel.Debug,
-                    "Invalid export request: no events or spans found for batch",
-                )
-                return null
+    override fun export() {
+        if (isExporting.compareAndSet(false, true)) {
+            try {
+                exportEvents()
+                exportAttachments()
+            } catch (e: Exception) {
+                logger.log(LogLevel.Error, "Exporter: failed to export", e)
+            } finally {
+                isExporting.set(false)
             }
-            logger.log(
-                LogLevel.Debug,
-                "Exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans",
-            )
-            val response = networkClient.execute(batch.batchId, events, spans)
-            handleBatchProcessingResult(response, batch.batchId, events, spans)
-            return response
-        } finally {
-            // always remove the batch from the list of batches in transit
-            batchIdsInTransit.remove(batch.batchId)
+        } else {
+            logger.log(LogLevel.Debug, "Exporter: export already in progress, skipping")
         }
     }
 
-    override fun createBatch(sessionId: String?): Batch? = batchCreator.create(sessionId)
-
-    override fun getExistingBatches(): List<Batch> = database.getBatches(MAX_EXISTING_BATCHES_TO_EXPORT)
-
-    private fun handleBatchProcessingResult(
-        response: HttpResponse,
-        batchId: String,
-        events: List<EventPacket>,
-        spans: List<SpanPacket>,
-    ) {
-        when (response) {
-            is HttpResponse.Success -> {
-                logger.log(LogLevel.Debug, "Successfully exported batch $batchId")
-                val eventsResponse = parseEventsResponse(response.body)
-                val attachments = eventsResponse?.attachments
-                if (eventsResponse != null && attachments != null && attachments.isNotEmpty()) {
-                    val success =
-                        database.updateAttachmentUrls(attachments)
-                    if (!success) {
+    private fun exportEvents() {
+        try {
+            eventExportService.submit {
+                try {
+                    // First export existing batches
+                    val existingBatches = database.getBatchIds()
+                    if (existingBatches.isNotEmpty()) {
                         logger.log(
                             LogLevel.Debug,
-                            "Failed to update attachment table with signed URLs",
+                            "Exporter: found ${existingBatches.size} existing batches, exporting",
                         )
-                        // Delete attachments as there is no way to retry as of now
-                        database.deleteAttachments(eventsResponse.attachments.map { it.id })
+
+                        val success = exportBatches(existingBatches)
+                        if (!success) {
+                            // abort if no batches found or export failed
+                            return@submit
+                        }
+                    }
+
+                    // Then create new batches and export
+                    val batchesCreatedCount = database.batchSessions(
+                        idProvider,
+                        timeProvider,
+                        configProvider.maxEventsInBatch,
+                        1000,
+                    )
+                    if (batchesCreatedCount > 0) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Exporter: created $batchesCreatedCount new batches, exporting",
+                        )
+                        val newBatches = database.getBatchIds()
+                        if (newBatches.isNotEmpty()) {
+                            exportBatches(newBatches)
+                        }
                     } else {
-                        logger.log(
-                            LogLevel.Debug,
-                            "Successfully updated attachment table with signed URLs",
-                        )
-                        attachmentExporter.onNewAttachmentsAvailable()
+                        logger.log(LogLevel.Debug, "Exporter: no batches to export")
+                    }
+                } catch (e: Exception) {
+                    logger.log(LogLevel.Error, "Exporter: failed to export", e)
+                }
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Exporter: failed to submit export task", e)
+        }
+    }
+
+    private fun exportBatches(batches: List<String>): Boolean {
+        var success = true
+        batches.forEachIndexed { index, batch ->
+            val batch = database.getBatch(batch)
+
+            if (!exportBatch(batch)) {
+                success = false
+                return@forEachIndexed
+            }
+
+            if (index < batches.size - 1) {
+                sleeper.sleep(configProvider.batchExportIntervalMs)
+            }
+        }
+        return success
+    }
+
+    private fun exportBatch(batch: Batch): Boolean {
+        if (batch.eventIds.isEmpty() && batch.spanIds.isEmpty()) {
+            logger.log(
+                LogLevel.Error,
+                "Exporter: invalid batch, no events or spans found for batch ${batch.batchId}",
+            )
+            database.deleteBatch(batch.batchId, emptyList(), emptyList())
+            return false
+        }
+
+        val events = database.getEventPackets(batch.eventIds)
+        val spans = database.getSpanPackets(batch.spanIds)
+
+        if (events.isEmpty() && spans.isEmpty()) {
+            logger.log(
+                LogLevel.Error,
+                "Exporter: invalid export request, no events or spans found for batch",
+            )
+            database.deleteBatch(batch.batchId, emptyList(), emptyList())
+            return false
+        }
+
+        logger.log(
+            LogLevel.Debug,
+            "Exporter: exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans",
+        )
+
+        val response = networkClient.execute(batch.batchId, events, spans)
+        handleEventsExportResponse(response, batch.batchId, events, spans)
+
+        return response is HttpResponse.Success
+    }
+
+    private fun exportAttachments() {
+        attachmentExportService.submit {
+            while (true) {
+                val attachments = database.getAttachmentsToUpload(5)
+
+                if (attachments.isEmpty()) {
+                    logger.log(
+                        LogLevel.Debug,
+                        "Exporter: no attachments to upload, exiting",
+                    )
+                    return@submit
+                }
+
+                attachments.forEachIndexed { index, attachment ->
+                    logger.log(
+                        LogLevel.Debug,
+                        "Exporter: attachment uploading ${attachment.id}",
+                    )
+                    val success = uploadAttachment(attachment)
+                    if (!success) {
+                        return@submit
+                    }
+
+                    if (index < attachments.size - 1) {
+                        sleeper.sleep(configProvider.attachmentExportIntervalMs)
                     }
                 }
-                deleteBatch(events, spans, batchId)
             }
+        }
+    }
 
-            is HttpResponse.Error.ClientError -> {
-                deleteBatch(events, spans, batchId)
+    private fun uploadAttachment(attachment: AttachmentPacket): Boolean {
+        return try {
+            val file = File(attachment.path)
+            if (!validateFile(file, attachment)) {
                 logger.log(
-                    LogLevel.Debug,
-                    "Failed to export batch $batchId, response code: ${response.code}",
+                    LogLevel.Error,
+                    "Exporter: attachment failed to read attachment file ${attachment.id}, this file will be deleted",
                 )
+                fileStorage.deleteFiles(listOf(file))
+                database.deleteAttachment(attachment.id)
+                return false
             }
-
-            is HttpResponse.Error.ServerError -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Failed to export batch $batchId, response code: ${response.code}",
-                )
+            val response = httpClient.uploadFile(
+                url = attachment.url,
+                contentType = attachment.contentType,
+                headers = attachment.headers,
+                fileSize = file.length(),
+            ) { sink ->
+                sink.writeAll(file.source())
             }
-
-            is HttpResponse.Error.UnknownError -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Failed to export batch $batchId",
-                    response.exception,
-                )
-            }
-
-            else -> {
-                // No-op
-            }
+            handleAttachmentUploadResponse(response, attachment)
+        } catch (_: IOException) {
+            // do nothing
+            false
+        } catch (e: Exception) {
+            logger.log(
+                LogLevel.Error,
+                "Exporter: attachment failed to upload ${attachment.name} (${attachment.id})",
+                e,
+            )
+            false
         }
     }
 
@@ -143,8 +225,126 @@ internal class ExporterImpl(
                 body,
             )
         } catch (e: Exception) {
-            logger.log(LogLevel.Debug, "Failed to parse /events response", e)
+            logger.log(LogLevel.Debug, "Exporter: failed to parse /events response", e)
             null
+        }
+    }
+
+    private fun handleEventsExportResponse(
+        response: HttpResponse,
+        batchId: String,
+        events: List<EventPacket>,
+        spans: List<SpanPacket>,
+    ) {
+        when (response) {
+            is HttpResponse.Success -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: successfully exported batch $batchId with ${events.size} events and ${spans.size} spans",
+                )
+                val eventsResponse = parseEventsResponse(response.body)
+                val attachments = eventsResponse?.attachments
+                if (eventsResponse != null && attachments != null && attachments.isNotEmpty()) {
+                    val success =
+                        database.updateAttachmentUrls(attachments)
+                    if (!success) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Exporter: failed to update attachment table with signed URLs",
+                        )
+                        // Delete attachments as there is no way to retry as of now
+                        database.deleteAttachments(eventsResponse.attachments.map { it.id })
+                    } else {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Exporter: successfully updated attachment table with signed URLs",
+                        )
+                        // Trigger a attachment export
+                        // so that the freshly attachments
+                        // with freshly received signed URLs
+                        // are uploaded.
+                        exportAttachments()
+                    }
+                }
+                deleteBatch(events, spans, batchId)
+            }
+
+            is HttpResponse.Error.ClientError -> {
+                deleteBatch(events, spans, batchId)
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: failed to export batch $batchId, response code: ${response.code}",
+                )
+            }
+
+            is HttpResponse.Error.ServerError -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: failed to export batch $batchId, response code: ${response.code}",
+                )
+            }
+
+            is HttpResponse.Error.UnknownError -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: failed to export batch $batchId",
+                    response.exception,
+                )
+            }
+
+            else -> {
+                // No-op
+            }
+        }
+    }
+
+    private fun handleAttachmentUploadResponse(
+        response: HttpResponse,
+        attachment: AttachmentPacket,
+    ): Boolean = when (response) {
+        is HttpResponse.Success -> {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: attachment successfully uploaded and deleted ${attachment.id}",
+            )
+            fileStorage.deleteFilePaths(listOf(attachment.path))
+            database.deleteAttachment(attachment.id)
+            true
+        }
+
+        is HttpResponse.Error.ClientError -> {
+            logger.log(
+                LogLevel.Error,
+                "Exporter: attachment upload failed for (${attachment.id}), status code: ${response.code}, deleting attachment",
+            )
+            fileStorage.deleteFilePaths(listOf(attachment.path))
+            database.deleteAttachment(attachment.id)
+            false
+        }
+
+        is HttpResponse.Error.ServerError -> {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: attachment upload failed for (${attachment.id}, status code: ${response.code})",
+            )
+            false
+        }
+
+        is HttpResponse.Error.UnknownError -> {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: attachment upload failed for (${attachment.id})",
+                response.exception,
+            )
+            false
+        }
+
+        else -> {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: attachment upload failed for (${attachment.id})",
+            )
+            false
         }
     }
 
@@ -157,5 +357,17 @@ internal class ExporterImpl(
         val spanIds = spans.map { it.spanId }
         database.deleteBatch(batchId, eventIds = eventIds, spanIds = spanIds)
         fileStorage.deleteEventsIfExist(eventIds)
+        fileStorage.deleteAttachmentsIfExist(eventIds)
+    }
+
+    private fun validateFile(file: File, attachment: AttachmentPacket): Boolean {
+        if (!file.exists() || !file.canRead()) {
+            logger.log(
+                LogLevel.Error,
+                "Exporter: attachment file not found or not readable: ${attachment.path}",
+            )
+            return false
+        }
+        return true
     }
 }

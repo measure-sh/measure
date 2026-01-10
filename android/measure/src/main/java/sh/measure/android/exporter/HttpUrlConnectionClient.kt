@@ -4,6 +4,7 @@ import okio.BufferedSink
 import okio.buffer
 import okio.sink
 import okio.source
+import sh.measure.android.config.ConfigResponse
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.IOException
@@ -26,6 +27,8 @@ internal interface HttpClient {
         fileSize: Long,
         fileWriter: (BufferedSink) -> Unit,
     ): HttpResponse
+
+    fun getConfig(url: String, eTag: String?, headers: Map<String, String>): ConfigResponse
 }
 
 /**
@@ -106,6 +109,68 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             HttpResponse.Error.UnknownError(e)
         } finally {
             connection?.disconnect()
+        }
+    }
+
+    override fun getConfig(
+        url: String,
+        eTag: String?,
+        headers: Map<String, String>,
+    ): ConfigResponse {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = connectionTimeoutMs
+                readTimeout = readTimeoutMs
+                headers.forEach { (key, value) ->
+                    setRequestProperty(key, value)
+                }
+                eTag?.let { setRequestProperty("If-None-Match", it) }
+            }
+
+            logger.log(LogLevel.Debug, "Fetching config from: $url")
+
+            when (val responseCode = connection.responseCode) {
+                HttpURLConnection.HTTP_OK -> {
+                    val body = connection.inputStream.source().buffer().readString(Charsets.UTF_8)
+                    val newETag = connection.getHeaderField("ETag")
+                    val cacheControl = parseCacheControlMaxAge(connection.getHeaderField("Cache-Control"))
+
+                    ConfigResponse.Success(
+                        body = body,
+                        eTag = newETag,
+                        cacheControl = cacheControl,
+                    )
+                }
+
+                HttpURLConnection.HTTP_NOT_MODIFIED -> {
+                    ConfigResponse.NotModified
+                }
+
+                else -> {
+                    logger.log(LogLevel.Error, "Config fetch failed with status: $responseCode")
+                    ConfigResponse.Error()
+                }
+            }
+        } catch (e: IOException) {
+            logger.log(LogLevel.Debug, "Config fetch failed", e)
+            ConfigResponse.Error(e)
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun parseCacheControlMaxAge(cacheControlHeader: String?): Long {
+        if (cacheControlHeader == null) return 0
+
+        return try {
+            val maxAgeRegex = "max-age=(\\d+)".toRegex()
+            val matchResult = maxAgeRegex.find(cacheControlHeader)
+            matchResult?.groupValues?.get(1)?.toLong() ?: 0
+        } catch (e: NumberFormatException) {
+            logger.log(LogLevel.Error, "Failed to parse Cache-Control max-age", e)
+            0
         }
     }
 

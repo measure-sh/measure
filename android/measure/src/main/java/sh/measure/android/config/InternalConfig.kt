@@ -4,30 +4,14 @@ import sh.measure.android.events.EventType
 
 internal interface InternalConfig {
     /**
-     * The maximum size of attachments allowed in a single batch. Defaults to 3MB
+     * The interval between consecutive requests for batch export.
      */
-    val maxAttachmentSizeInEventsBatchInBytes: Int
+    val batchExportIntervalMs: Long
 
     /**
-     * The interval at which to create a batch for export.
+     * The interval between consecutive requests for attachment export.
      */
-    val eventsBatchingIntervalMs: Long
-
-    /**
-     * The jitter to add to [eventsBatchingIntervalMs]. Defaults to 20000ms.
-     */
-    val eventsBatchingJitterMs: Long
-
-    /**
-     * The maximum number of events to export in /events API. Defaults to 500.
-     */
-    val maxEventsInBatch: Int
-
-    /**
-     * When `httpBodyCapture` is enabled, this determines whether to capture the body or not based
-     * on the content type of the request/response. Defaults to `application/json`.
-     */
-    val httpContentTypeAllowlist: List<String>
+    val attachmentExportIntervalMs: Long
 
     /**
      * Default list of HTTP headers to not capture for network request and response.
@@ -35,9 +19,10 @@ internal interface InternalConfig {
     val defaultHttpHeadersBlocklist: List<String>
 
     /**
-     * The threshold after which a session is considered ended. Defaults to 3 minutes.
+     * Starts a new session when app comes back to foreground after this threshold.
+     * Defaults to 30 seconds.
      */
-    val sessionEndLastEventThresholdMs: Long
+    val sessionBackgroundTimeoutThresholdMs: Long
 
     /**
      * The maximum length of a custom event. Defaults to 64 chars.

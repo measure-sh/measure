@@ -46,6 +46,10 @@ class TestActivity : ComponentActivity() {
         findViewById<Button>(R.id.button).setOnClickListener {
             Toast.makeText(this, "Button clicked", Toast.LENGTH_LONG).show()
         }
+        findViewById<Button>(R.id.button).setOnLongClickListener {
+            Toast.makeText(this, "Button long clicked", Toast.LENGTH_LONG).show()
+            return@setOnLongClickListener true
+        }
         findViewById<ComposeView>(R.id.compose_view).setContent {
             Box(
                 modifier = Modifier

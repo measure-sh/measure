@@ -12,8 +12,7 @@ class MeasureEnabledApp : Application() {
             this,
             MeasureConfig(
                 enableLogging = true,
-                samplingRateForErrorFreeSessions = 1f,
-                traceSamplingRate = 1f,
+                trackActivityIntentData = true,
             )
         )
     }

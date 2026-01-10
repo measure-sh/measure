@@ -7,8 +7,6 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import sh.measure.android.RecentSession
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PrefsStorageTest {
@@ -56,28 +54,6 @@ class PrefsStorageTest {
         prefsStorage.setUserId("user-123")
         prefsStorage.setUserId(null)
         val result = prefsStorage.getUserId()
-
-        assertNull(result)
-    }
-
-    @Test
-    fun `allows setting and retrieving recent session`() {
-        val recentSession = RecentSession(
-            id = UUID.randomUUID().toString(),
-            lastEventTime = 1000,
-            createdAt = 98765432,
-            crashed = false,
-            versionCode = "app-version",
-        )
-        prefsStorage.setRecentSession(recentSession)
-        val result = prefsStorage.getRecentSession()
-
-        assertEquals(recentSession, result)
-    }
-
-    @Test
-    fun `returns null recent session when it has not been set`() {
-        val result = prefsStorage.getRecentSession()
 
         assertNull(result)
     }

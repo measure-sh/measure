@@ -18,6 +18,7 @@ internal object DbMigrations {
                             DbVersion.V4 -> migrateToV4(this)
                             DbVersion.V5 -> migrateToV5(this)
                             DbVersion.V6 -> migrateToV6(this)
+                            DbVersion.V7 -> migrateToV7(this)
                             else -> logger.log(
                                 LogLevel.Debug,
                                 "Db migration failed: $version not found ",
@@ -100,5 +101,10 @@ internal object DbMigrations {
 
     private fun migrateToV6(db: SQLiteDatabase) {
         db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_TRACK_JOURNEY} INTEGER DEFAULT NULL;")
+    }
+
+    private fun migrateToV7(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${EventTable.TABLE_NAME} ADD COLUMN ${EventTable.COL_SAMPLED} INTEGER DEFAULT 0;")
+        db.execSQL("DROP INDEX IF EXISTS sessions_needs_reporting_index")
     }
 }

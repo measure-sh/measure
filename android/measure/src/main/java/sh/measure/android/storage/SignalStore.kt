@@ -5,12 +5,14 @@ import sh.measure.android.appexit.AppExit
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
+import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.Sampler
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,6 +40,7 @@ internal class SignalStoreImpl(
     private val database: Database,
     private val idProvider: IdProvider,
     private val configProvider: ConfigProvider,
+    private val sampler: Sampler,
 ) : SignalStore {
     private val eventQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         LinkedBlockingQueue<EventEntity>(configProvider.maxInMemorySignalsQueueSize)
@@ -75,10 +78,12 @@ internal class SignalStoreImpl(
                 return
             }
             val isCrashEvent =
-                eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
+                eventEntity.type == EventType.EXCEPTION && !(event.data as ExceptionData).handled
+            val isAnrEvent = eventEntity.type == EventType.ANR
+            val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
 
             when {
-                isCrashEvent -> {
+                isCrashEvent || isAnrEvent || isBugReportEvent -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
@@ -96,6 +101,20 @@ internal class SignalStoreImpl(
                         }
                     }
                 }
+            }
+
+            if (isCrashEvent || isAnrEvent || isBugReportEvent) {
+                val timelineDuration = when {
+                    isCrashEvent -> configProvider.crashTimelineDurationSeconds
+                    isAnrEvent -> configProvider.anrTimelineDurationSeconds
+                    else -> configProvider.bugReportTimelineDurationSeconds
+                }
+
+                database.markTimelineForReporting(
+                    event.timestamp,
+                    timelineDuration,
+                    event.sessionId,
+                )
             }
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to store event ${event.type}", e)
@@ -169,6 +188,7 @@ internal class SignalStoreImpl(
             attachmentsSize,
             filePath,
             serializedData,
+            isSampled,
         )
     }
 
@@ -181,6 +201,7 @@ internal class SignalStoreImpl(
         attachmentsSize: Long,
         filePath: String?,
         serializedData: String,
+        isSampled: Boolean,
     ): EventEntity {
         if (filePath != null) {
             return EventEntity(
@@ -196,6 +217,7 @@ internal class SignalStoreImpl(
                 serializedData = null,
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
+                isSampled = isSampled,
             )
         } else {
             return EventEntity(
@@ -211,6 +233,7 @@ internal class SignalStoreImpl(
                 serializedData = serializedData,
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
+                isSampled = isSampled,
             )
         }
     }

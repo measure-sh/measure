@@ -3,6 +3,7 @@ package sh.measure.android.lifecycle
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import androidx.compose.ui.util.fastForEachReversed
 
 internal interface AppLifecycleListener {
     fun onAppForeground()
@@ -78,7 +79,12 @@ internal class AppLifecycleManager(
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.remove(hash)
         if (startedActivities.isEmpty()) {
-            appLifecycleListeners.forEach { it.onAppBackground() }
+            // Reversed listeners so that the one that
+            // registered first, gets called first.
+            // Not doing so can lead to App Lifecycle
+            // background event to be called after export
+            // and cleanup have occurred.
+            appLifecycleListeners.fastForEachReversed { it.onAppBackground() }
         }
     }
 

@@ -4,7 +4,6 @@ import android.app.Application
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.config.MeasureConfig
-import sh.measure.android.config.ScreenshotMaskLevel
 
 class SampleApp : Application() {
     override fun onCreate() {
@@ -14,24 +13,10 @@ class SampleApp : Application() {
             this,
             measureConfig = MeasureConfig(
                 enableLogging = true,
-                trackScreenshotOnCrash = true,
-                screenshotMaskLevel = if (BuildConfig.DEBUG) {
-                    ScreenshotMaskLevel.SensitiveFieldsOnly
-                } else {
-                    ScreenshotMaskLevel.AllTextAndMedia
-                },
-                trackHttpHeaders = true,
-                trackHttpBody = true,
                 trackActivityIntentData = true,
-                httpUrlBlocklist = listOf("http://localhost:8080"),
-                samplingRateForErrorFreeSessions = 0f,
                 autoStart = true,
-                traceSamplingRate = 1.0f,
                 maxDiskUsageInMb = 1500,
-                hotLaunchSamplingRate = 0.01f,
-                warmLaunchSamplingRate = 0.01f,
-                coldLaunchSamplingRate = 0.01f,
-                journeySamplingRate = 1f,
+                enableFullCollectionMode = false,
             )
         )
         val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)

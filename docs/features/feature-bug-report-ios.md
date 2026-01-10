@@ -7,11 +7,17 @@ Bug reports enable users to report issues directly from the app. There are two w
 
 Additionally, the SDK supports using shake gestures to launch the bug reporting flow, allowing users to report bugs quickly and easily without having to navigate through the app.
 
+* [**Session Timeline**](#session-timeline)
 * [**Built-in Experience**](#built-in-experience)
 * [**Theming**](#theming)
 * [**Custom Experience**](#custom-experience)
 * [**Add Attributes**](#add-attributes)
 * [**Shake to Report Bug**](#shake-to-report-bug)
+
+## Session Timeline
+
+When a bug report is captured, it automatically comes with a session timeline that includes all events that occurred 5
+minutes before the bug report was submitted. This provides rich context to help diagnose and fix the reported issue.
 
 ## Built-in Experience
 
