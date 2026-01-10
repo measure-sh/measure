@@ -22,12 +22,6 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.RejectedExecutionException
 
-internal interface GestureListener {
-    fun onClick(clickData: ClickData)
-    fun onLongClick(longClickData: LongClickData)
-    fun onScroll(scrollData: ScrollData)
-}
-
 internal class GestureCollector(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
@@ -35,7 +29,6 @@ internal class GestureCollector(
     private val defaultExecutor: MeasureExecutorService,
     private val layoutSnapshotThrottler: LayoutSnapshotThrottler,
 ) {
-    private var listener: GestureListener? = null
     private val touchListeners = mutableMapOf<Window, OnTouchEventListener>()
     private var rootViewsChangedListener: OnRootViewsChangedListener? = null
 
@@ -125,7 +118,6 @@ internal class GestureCollector(
     ) {
         val (width, height) = getScreenWidthHeight(window)
         val data = ClickData.fromTargetNode(gesture, targetNode)
-        listener?.onClick(data)
         if (layoutSnapshotThrottler.shouldTakeSnapshot()) {
             trackClickWithSnapshotAsync(gesture, data, layoutSnapshot, targetNode, width, height)
         } else {
@@ -169,7 +161,6 @@ internal class GestureCollector(
 
     private fun handleLongClick(gesture: DetectedGesture.LongClick, targetNode: Node) {
         val data = LongClickData.fromTargetNode(gesture, targetNode)
-        listener?.onLongClick(data)
         signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.LONG_CLICK,
@@ -179,7 +170,6 @@ internal class GestureCollector(
 
     private fun handleScroll(gesture: DetectedGesture.Scroll, targetNode: Node) {
         val data = ScrollData.fromTargetNode(gesture, targetNode)
-        listener?.onScroll(data)
         signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.SCROLL,

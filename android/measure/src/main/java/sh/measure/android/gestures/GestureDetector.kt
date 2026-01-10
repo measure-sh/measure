@@ -57,6 +57,14 @@ internal object GestureDetector {
         if (motionEvent.pointerCount > 1) {
             return null
         }
+
+        if (motionEvent.x < 0 || motionEvent.y < 0) {
+            // There are very rare reports from server where
+            // the coordinates are negative. We discard such
+            // events.
+            return null
+        }
+
         if (touchSlopPx <= 0) {
             touchSlopPx = ViewConfiguration.get(context).scaledTouchSlop
         }

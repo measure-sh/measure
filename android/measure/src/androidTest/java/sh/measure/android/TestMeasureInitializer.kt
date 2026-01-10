@@ -373,6 +373,7 @@ internal class TestMeasureInitializer(
         systemServiceProvider = systemServiceProvider,
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
+        logger = logger,
     ),
     override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
         logger = logger,
