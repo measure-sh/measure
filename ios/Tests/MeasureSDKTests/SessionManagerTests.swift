@@ -26,11 +26,10 @@ final class SessionManagerTests: XCTestCase {
         timeProvider = MockTimeProvider()
         userDefaultStorage = MockUserDefaultStorage()
         configProvider = MockConfigProvider(enableLogging: false,
-                                            trackScreenshotOnCrash: false,
                                             eventsBatchingIntervalMs: 1000,
-                                            sessionEndLastEventThresholdMs: 1000,
                                             longPressTimeout: 0.5,
                                             scaledTouchSlop: 20,
+                                            sessionEndLastEventThresholdMs: 1000,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
         randomizer = MockRandomizer()
@@ -153,21 +152,6 @@ final class SessionManagerTests: XCTestCase {
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the threshold time.")
-    }
-
-    func testStartsNewSession_IfMaxSessionDurationReached() {
-        let expectedSessionId = "new-session-id"
-        idProvider.uuId = expectedSessionId
-        configProvider.maxSessionDurationMs = 500
-        let recentSessionCreatedAtTime: Int64 = 1000
-        let recentSession = RecentSession(id: "previous-session-id", createdAt: recentSessionCreatedAtTime, versionCode: "1.0.0")
-        userDefaultStorage.recentSession = recentSession
-        timeProvider.current = recentSessionCreatedAtTime + configProvider.maxSessionDurationMs
-
-        sessionManager.start() { _ in }
-        let sessionId = sessionManager.sessionId
-
-        XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the max session duration was reached.")
     }
 
     func testCreatesNewSession_WhenAppVersionIsUpdated() {

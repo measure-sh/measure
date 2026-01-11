@@ -59,12 +59,10 @@ final class SignalProcessorTests: XCTestCase {
         logger = MockLogger()
         timeProvider = BaseTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
-                                            trackScreenshotOnCrash: false,
-                                            samplingRateForErrorFreeSessions: 1.0,
                                             eventsBatchingIntervalMs: 1000,
-                                            sessionEndLastEventThresholdMs: 1000,
                                             longPressTimeout: 0.5,
                                             scaledTouchSlop: 20,
+                                            sessionEndLastEventThresholdMs: 1000,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
         randomizer = MockRandomizer()

@@ -219,11 +219,15 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    enableFullCollectionMode: config.enableFullCollectionMode,
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
+        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
         self.logger = MeasureLogger(enabled: config.enableLogging)
         self.systemFileManager = BaseSystemFileManager(logger: logger)
-        self.configLoader = BaseConfigLoader(fileManager: systemFileManager)
-        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
-                                                 configLoader: configLoader)
+        self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
+        self.networkClient = BaseNetworkClient(client: client,
+                                               httpClient: httpClient,
+                                               eventSerializer: EventSerializer(),
+                                               systemFileManager: systemFileManager)
+        self.configLoader = BaseConfigLoader(fileManager: systemFileManager, networkClient: networkClient)
         self.timeProvider = BaseTimeProvider()
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
@@ -299,11 +303,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      gestureTargetFinder: gestureTargetFinder,
                                                      layoutSnapshotGenerator: layoutSnapshotGenerator,
                                                      systemFileManager: systemFileManager)
-        self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
-        self.networkClient = BaseNetworkClient(client: client,
-                                               httpClient: httpClient,
-                                               eventSerializer: EventSerializer(),
-                                               systemFileManager: systemFileManager)
         self.heartbeat = BaseHeartbeat()
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)
