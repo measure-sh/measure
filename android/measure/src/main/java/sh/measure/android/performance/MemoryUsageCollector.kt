@@ -105,7 +105,7 @@ internal class MemoryUsageCollector(
         if (value < 0) {
             logger.log(
                 LogLevel.Debug,
-                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0"
+                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0",
             )
             return 0
         }
@@ -116,7 +116,7 @@ internal class MemoryUsageCollector(
         if (value < 0) {
             logger.log(
                 LogLevel.Debug,
-                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0"
+                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0",
             )
             return 0
         }

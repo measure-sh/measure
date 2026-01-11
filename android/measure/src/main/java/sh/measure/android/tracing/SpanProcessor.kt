@@ -170,7 +170,7 @@ internal class MsrSpanProcessor(
         if (droppedAttrsCount > 0) {
             logger.log(
                 LogLevel.Error,
-                "SpanProcessor: invalid span $name attributes, dropped $droppedAttrsCount attributes due to invalid key or value length",
+                "SpanProcessor: invalid span ($name) attributes, dropped $droppedAttrsCount attributes due to invalid key or value length",
             )
         }
 
@@ -179,7 +179,7 @@ internal class MsrSpanProcessor(
             val excessCount = userDefinedAttrs.size - configProvider.maxUserDefinedAttributesPerEvent
             logger.log(
                 LogLevel.Error,
-                "SpanProcessor: invalid span $name attributes, max attributes exceeded, $excessCount attributes will be dropped",
+                "SpanProcessor: invalid span ($name) attributes, max attributes exceeded, $excessCount attributes will be dropped",
             )
             val keysToKeep = userDefinedAttrs.keys.take(configProvider.maxUserDefinedAttributesPerEvent)
             userDefinedAttrs.keys.retainAll(keysToKeep)
