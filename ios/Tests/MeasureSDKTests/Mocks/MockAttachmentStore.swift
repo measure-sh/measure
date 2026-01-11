@@ -68,8 +68,8 @@ final class MockAttachmentStore: AttachmentStore {
         completion(attachmentsToReturn)
     }
 
-    func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void) {
-        let result = attachmentsToReturn.prefix(batchSize).map { $0 }
+    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void) {
+        let result = attachmentsToReturn.prefix(Int(batchSize)).map { $0 }
         completion(Array(result))
     }
 

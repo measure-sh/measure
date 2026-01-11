@@ -137,7 +137,7 @@ final class BaseSpanProcessorTests: XCTestCase {
     }
 
     func test_onEnded_discardsSpanWithLongName() {
-        let longName = String(repeating: "a", count: configProvider.maxSpanNameLength + 1)
+        let longName = String(repeating: "a", count: Int(configProvider.maxSpanNameLength) + 1)
         let timeProvider = MockTimeProvider()
         timeProvider.current = 1000
         let spanProcessor = BaseSpanProcessor(
@@ -159,7 +159,7 @@ final class BaseSpanProcessorTests: XCTestCase {
     }
 
     func test_onEnded_discardsCheckpointsWithLongNames() {
-        let longName = String(repeating: "a", count: configProvider.maxCheckpointNameLength + 1)
+        let longName = String(repeating: "a", count: Int(configProvider.maxCheckpointNameLength) + 1)
         let spanProcessor = BaseSpanProcessor(
             logger: logger,
             signalProcessor: signalProcessor,
@@ -195,11 +195,12 @@ final class BaseSpanProcessorTests: XCTestCase {
             startTime: 1000
         )
 
-        for _ in 0...(configProvider.maxCheckpointsPerSpan + 5) {
+        for _ in 0...(Int(configProvider.maxCheckpointsPerSpan) + 5) {
             span.setCheckpoint("checkpoint")
         }
 
         span.end(timestamp: 3000)
-        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, configProvider.maxCheckpointsPerSpan)
+        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, Int(configProvider.maxCheckpointsPerSpan))
     }
 }
+

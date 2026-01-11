@@ -21,11 +21,13 @@ protocol ConfigLoader {
 /// A base implementation of the `ConfigLoader` protocol.
 struct BaseConfigLoader: ConfigLoader {
     private let fileManager: SystemFileManager
+    private let networkClient: NetworkClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    init(fileManager: SystemFileManager) {
+    init(fileManager: SystemFileManager, networkClient: NetworkClient) {
         self.fileManager = fileManager
+        self.networkClient = networkClient
 
         let decoder = JSONDecoder()
         self.decoder = decoder
@@ -72,42 +74,10 @@ struct BaseConfigLoader: ConfigLoader {
     }
 
     private func refreshConfigFromServer() {
-        DispatchQueue.global(qos: .background).async {
-            guard let jsonData = self.dummyServerResponse() else {
-                return
-            }
-
-            do {
-                let config = try self.decoder.decode(BaseDynamicConfig.self, from: jsonData)
-                self.saveConfigToDisk(config)
-            } catch {
-                // Ignore malformed response
-            }
+        guard let config = networkClient.getConfig(eTag: nil), let dynamicConfig = config as? BaseDynamicConfig else {
+            return
         }
-    }
 
-    private func dummyServerResponse() -> Data? {
-        let json = """
-        {
-          "max_events_in_batch": 10000,
-          "crash_timeline_duration": 300,
-          "anr_timeline_duration": 300,
-          "bug_report_timeline_duration": 300,
-          "trace_sampling_rate": 0.01,
-          "journey_sampling_rate": 0.01,
-          "screenshot_mask_level": "all_text_and_media",
-          "cpu_usage_interval": 5,
-          "memory_usage_interval": 5,
-          "crash_take_screenshot": true,
-          "anr_take_screenshot": true,
-          "launch_sampling_rate": 0.01,
-          "gesture_click_take_snapshot": true,
-          "http_disable_event_for_urls": [],
-          "http_track_request_for_urls": [],
-          "http_track_response_for_urls": [],
-          "http_blocked_headers": []
-        }
-        """
-        return json.data(using: .utf8)
+        self.saveConfigToDisk(dynamicConfig)
     }
 }

@@ -33,16 +33,13 @@ protocol ConfigProvider: MeasureConfig, InternalConfig, DynamicConfig {
 /// 
 final class BaseConfigProvider: ConfigProvider {
     private let defaultConfig: Config
-    private let configLoader: ConfigLoader
 
     private let lockQueue = DispatchQueue(label: "sh.measure.config-provider")
 
     private var dynamicConfig: DynamicConfig = BaseDynamicConfig.default()
 
-    init(defaultConfig: Config,
-        configLoader: ConfigLoader) {
+    init(defaultConfig: Config) {
         self.defaultConfig = defaultConfig
-        self.configLoader = configLoader
     }
 
     func setDynamicConfig(_ config: DynamicConfig) {

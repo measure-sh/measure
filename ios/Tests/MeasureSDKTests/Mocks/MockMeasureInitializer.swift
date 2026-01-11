@@ -8,7 +8,9 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
+final class MockMeasureInitializer: MeasureInitializer {
+    // swiftlint:disable:this type_body_length
+    let configLoader: ConfigLoader
     let signalSampler: SignalSampler
     let configProvider: ConfigProvider
     let client: Client
@@ -75,6 +77,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let attachmentExporter: AttachmentExporter
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
+         configLoader: ConfigLoader? = nil,
          configProvider: ConfigProvider? = nil,
          logger: Logger? = nil,
          idProvider: IdProvider? = nil,
@@ -133,13 +136,20 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          attachmentExporter: AttachmentExporter? = nil,
          signalSampler: SignalSampler? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
-        self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
-                                                                   configLoader: BaseConfigLoader())
+        self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config())
+        self.logger = logger ?? MockLogger()
+        self.systemFileManager = systemFileManager ?? BaseSystemFileManager(logger: self.logger)
+        self.httpClient = httpClient ?? BaseHttpClient(logger: self.logger, configProvider: self.configProvider)
+        self.networkClient = networkClient ?? BaseNetworkClient(client: self.client,
+                                                                httpClient: self.httpClient,
+                                                                eventSerializer: EventSerializer(),
+                                                                systemFileManager: self.systemFileManager)
+        self.configLoader = configLoader ?? BaseConfigLoader(fileManager: self.systemFileManager,
+                                                             networkClient: self.networkClient)
         self.randomizer = randomizer ?? BaseRandomizer()
         self.signalSampler = signalSampler ?? BaseSignalSampler(configProvider: self.configProvider,
                                                                 randomizer: self.randomizer)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
-        self.logger = logger ?? MockLogger()
         self.idProvider = idProvider ?? UUIDProvider()
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
         self.sessionStore = sessionStore ?? BaseSessionStore(coreDataManager: self.coreDataManager,
@@ -173,7 +183,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                     self.installationIdAttributeProcessor,
                                     self.networkStateAttributeProcessor,
                                     self.userAttributeProcessor]
-        self.systemFileManager = systemFileManager ?? BaseSystemFileManager(logger: self.logger)
         self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: self.logger,
                                                                                      systemFileManager: self.systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(self.crashDataPersistence)
@@ -214,11 +223,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                          gestureTargetFinder: self.gestureTargetFinder,
                                                                          layoutSnapshotGenerator: self.layoutSnapshotGenerator,
                                                                          systemFileManager: self.systemFileManager)
-        self.httpClient = httpClient ?? BaseHttpClient(logger: self.logger, configProvider: self.configProvider)
-        self.networkClient = networkClient ?? BaseNetworkClient(client: self.client,
-                                                                httpClient: self.httpClient,
-                                                                eventSerializer: EventSerializer(),
-                                                                systemFileManager: self.systemFileManager)
         self.attachmentExporter = attachmentExporter ?? BaseAttachmentExporter(logger: self.logger,
                                                                                attachmentStore: self.attachmentStore,
                                                                                httpClient: self.httpClient,

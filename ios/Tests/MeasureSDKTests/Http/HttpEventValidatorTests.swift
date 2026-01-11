@@ -54,19 +54,19 @@ class HttpEventValidatorTests: XCTestCase {
     }
 
     func test_validateAndTrimBody_nilBody() {
-        let result = validator.validateAndTrimBody(nil, maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody(nil, maxBodySizeBytes: Number(maxBodySize))
         XCTAssertNil(result, "Nil body should return nil")
     }
 
     func test_validateAndTrimBody_emptyBody() {
-        let result = validator.validateAndTrimBody("", maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody("", maxBodySizeBytes: Number(maxBodySize))
         XCTAssertNil(result, "Empty body should return nil")
     }
 
     func test_validateAndTrimBody_atLimit() {
         let bodyAtLimit = String(repeating: "a", count: maxBodySize)
 
-        let result = validator.validateAndTrimBody(bodyAtLimit, maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody(bodyAtLimit, maxBodySizeBytes: Number(maxBodySize))
 
         XCTAssertEqual(result, bodyAtLimit, "Body at the limit should not be truncated")
         XCTAssertEqual(result?.data(using: .utf8)?.count, maxBodySize, "Byte count should be max size")
@@ -75,7 +75,7 @@ class HttpEventValidatorTests: XCTestCase {
     func test_validateAndTrimBody_underLimit() {
         let bodyUnderLimit = String(repeating: "b", count: maxBodySize - 1)
 
-        let result = validator.validateAndTrimBody(bodyUnderLimit, maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody(bodyUnderLimit, maxBodySizeBytes: Number(maxBodySize))
 
         XCTAssertEqual(result, bodyUnderLimit, "Body under the limit should not be truncated")
         XCTAssertEqual(result?.data(using: .utf8)?.count, maxBodySize - 1, "Byte count should be correct")
@@ -83,7 +83,7 @@ class HttpEventValidatorTests: XCTestCase {
 
     func test_validateAndTrimBody_overLimit_singleByte() {
         let bodyOverLimit = String(repeating: "c", count: maxBodySize + 1)
-        let result = validator.validateAndTrimBody(bodyOverLimit, maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody(bodyOverLimit, maxBodySizeBytes: Number(maxBodySize))
 
         XCTAssertNotNil(result, "Trimming an oversized body should not return nil")
 
@@ -100,7 +100,7 @@ class HttpEventValidatorTests: XCTestCase {
         let baseBody = String(repeating: "a", count: maxBodySize - 1)
         let bodyWithMultiByteCutoff = baseBody + threeByteChar
 
-        let result = validator.validateAndTrimBody(bodyWithMultiByteCutoff, maxBodySizeBytes: maxBodySize)
+        let result = validator.validateAndTrimBody(bodyWithMultiByteCutoff, maxBodySizeBytes: Number(maxBodySize))
         XCTAssertNotNil(result, "Trimming multi-byte body should not return nil")
 
         let truncationNotice = "\n... [Body truncated - exceeded 256KB limit]"
