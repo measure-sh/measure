@@ -456,7 +456,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
-        userDefinedAttrs: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = true,
     ): SpanData = SpanData(
@@ -512,7 +512,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
-        userDefinedAttrs: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = false,
     ): SpanEntity = getSpanData(
@@ -551,9 +551,7 @@ internal object TestData {
         cpuUsageInterval: Long = 3000L,
         memoryUsageInterval: Long = 3000L,
         crashTakeScreenshot: Boolean = false,
-        crashTimelineSamplingRate: Float = 1.0f,
         anrTakeScreenshot: Boolean = false,
-        anrTimelineSamplingRate: Float = 1.0f,
         launchSamplingRate: Float = 1.0f,
         gestureClickTakeSnapshot: Boolean = false,
         httpDisableEventForUrls: MutableList<String> = mutableListOf(),

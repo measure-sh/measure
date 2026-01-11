@@ -9,6 +9,7 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.events.SignalProcessorImpl
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeSampler
@@ -180,6 +181,69 @@ class MsrSpanProcessorTest {
         }
 
         verify(signalProcessor, never()).trackSpan(any())
+    }
+
+    @Test
+    fun `discards attributes if key exceeds max length`() {
+        val spanProcessor =
+            MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider, sampler)
+        spanProcessor.onConfigLoaded()
+
+        val span = TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            startTime = timeProvider.now() - 1000,
+        )
+        span.setAttribute("k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1), "value")
+        span.setAttribute("valid-key", "value")
+        span.end()
+
+        val spanData = span.toSpanData()
+        Assert.assertEquals(1, spanData.userDefinedAttrs.size)
+        Assert.assertEquals("value", spanData.userDefinedAttrs["valid-key"])
+    }
+
+    @Test
+    fun `discards attributes if value exceeds max length`() {
+        val spanProcessor =
+            MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider, sampler)
+        spanProcessor.onConfigLoaded()
+
+        val span = TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            startTime = timeProvider.now() - 1000,
+        )
+        span.setAttribute("invalid-value", "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1))
+        span.setAttribute("valid-key", "value")
+        span.end()
+
+        val spanData = span.toSpanData()
+        Assert.assertEquals(1, spanData.userDefinedAttrs.size)
+        Assert.assertEquals("value", spanData.userDefinedAttrs["valid-key"])
+    }
+
+    @Test
+    fun `discards attributes to keep them within max attributes per span limit`() {
+        val spanProcessor =
+            MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider, sampler)
+        spanProcessor.onConfigLoaded()
+
+        val span = TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            startTime = timeProvider.now() - 1000,
+        )
+        repeat(configProvider.maxUserDefinedAttributesPerEvent + 5) { i ->
+            span.setAttribute("key-$i", "value-$i")
+        }
+        span.end()
+
+        val spanData = span.toSpanData()
+        Assert.assertEquals(configProvider.maxUserDefinedAttributesPerEvent, spanData.userDefinedAttrs.size)
     }
 
     @Test

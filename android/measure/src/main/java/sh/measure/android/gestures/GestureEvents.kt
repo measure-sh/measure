@@ -11,8 +11,8 @@ internal data class ClickData(
     val target_id: String?,
     val width: Int?,
     val height: Int?,
-    val x: Float?,
-    val y: Float?,
+    val x: Float,
+    val y: Float,
     val touch_down_time: Long?,
     val touch_up_time: Long?,
 ) {

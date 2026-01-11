@@ -111,7 +111,7 @@ internal class MsrSpanProcessor(
         if (duration < 0) {
             logger.log(
                 LogLevel.Error,
-                "Invalid span: $name, duration is negative, span will be dropped",
+                "SpanProcessor: invalid span $name, duration is negative, span will be dropped",
             )
             return false
         }
@@ -120,7 +120,7 @@ internal class MsrSpanProcessor(
         if (name.isBlank()) {
             logger.log(
                 LogLevel.Error,
-                "Span name is does not contain any characters, span will be dropped",
+                "SpanProcessor: span name is does not contain any characters, span will be dropped",
             )
             return false
         }
@@ -129,7 +129,7 @@ internal class MsrSpanProcessor(
         if (name.length > configProvider.maxSpanNameLength) {
             logger.log(
                 LogLevel.Error,
-                "Invalid span: $name, length ${name.length} exceeded max allowed, span will be dropped",
+                "SpanProcessor: invalid span: $name, length ${name.length} exceeded max allowed, span will be dropped",
             )
             return false
         }
@@ -142,7 +142,7 @@ internal class MsrSpanProcessor(
         if (checkpoints.size < initialSize) {
             logger.log(
                 LogLevel.Error,
-                "Invalid span: $name, dropped ${initialSize - checkpoints.size} checkpoints due to invalid name",
+                "SpanProcessor: invalid span $name, dropped ${initialSize - checkpoints.size} checkpoints due to invalid name",
             )
         }
 
@@ -150,9 +150,39 @@ internal class MsrSpanProcessor(
         if (checkpoints.size > configProvider.maxCheckpointsPerSpan) {
             logger.log(
                 LogLevel.Error,
-                "Invalid span: $name, max checkpoints exceeded, some checkpoints will be dropped",
+                "SpanProcessor: invalid span $name, max checkpoints exceeded, some checkpoints will be dropped",
             )
             checkpoints.subList(configProvider.maxCheckpointsPerSpan, checkpoints.size).clear()
+        }
+
+        // remove invalid user-defined attributes
+        val attrsIterator = userDefinedAttrs.entries.iterator()
+        var droppedAttrsCount = 0
+        while (attrsIterator.hasNext()) {
+            val (key, value) = attrsIterator.next()
+            if (key.length > configProvider.maxUserDefinedAttributeKeyLength ||
+                (value is String && value.length > configProvider.maxUserDefinedAttributeValueLength)
+            ) {
+                attrsIterator.remove()
+                droppedAttrsCount++
+            }
+        }
+        if (droppedAttrsCount > 0) {
+            logger.log(
+                LogLevel.Error,
+                "SpanProcessor: invalid span ($name) attributes, dropped $droppedAttrsCount attributes due to invalid key or value length",
+            )
+        }
+
+        // limit number of user-defined attributes per span
+        if (userDefinedAttrs.size > configProvider.maxUserDefinedAttributesPerEvent) {
+            val excessCount = userDefinedAttrs.size - configProvider.maxUserDefinedAttributesPerEvent
+            logger.log(
+                LogLevel.Error,
+                "SpanProcessor: invalid span ($name) attributes, max attributes exceeded, $excessCount attributes will be dropped",
+            )
+            val keysToKeep = userDefinedAttrs.keys.take(configProvider.maxUserDefinedAttributesPerEvent)
+            userDefinedAttrs.keys.retainAll(keysToKeep)
         }
 
         // validation passed

@@ -55,9 +55,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val cpuUsageInterval: Long = 3000
     override val memoryUsageInterval: Long = 3000
     override val crashTakeScreenshot: Boolean = true
-    override val crashTimelineSamplingRate: Float = 1f
     override val anrTakeScreenshot: Boolean = true
-    override val anrTimelineSamplingRate: Float = 1f
     override val launchSamplingRate: Float = 1f
     override val gestureClickTakeSnapshot: Boolean = true
     override val httpDisableEventForUrls: List<String> = emptyList()

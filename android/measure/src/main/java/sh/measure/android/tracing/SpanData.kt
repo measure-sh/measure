@@ -11,7 +11,7 @@ internal data class SpanData(
     val duration: Long,
     val status: SpanStatus,
     val attributes: Map<String, Any?> = emptyMap(),
-    val userDefinedAttrs: Map<String, Any?> = emptyMap(),
+    val userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf(),
     val checkpoints: MutableList<Checkpoint> = mutableListOf(),
     val hasEnded: Boolean,
     val isSampled: Boolean,
