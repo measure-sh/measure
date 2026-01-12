@@ -61,5 +61,6 @@ sudo ./install.sh
 Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
 
 ```sh
-sudo ./migrations/v0.10.x-data-backfills.sh
+sudo ./migrations/v0.10.x-data-backfills-1.sh
+sudo ./migrations/v0.10.x-data-backfills-2.sh
 ```
