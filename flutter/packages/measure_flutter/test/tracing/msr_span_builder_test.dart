@@ -13,7 +13,7 @@ void main() {
   final testClock = TestClock.create();
   final timeProvider = FlutterTimeProvider(testClock);
   final spanProcessor = FakeSpanProcessor();
-  final traceSampler = FakeTraceSampler();
+  final sampler = FakeSampler();
   final idProvider = FakeIdProvider();
 
   group("MsrSpanBuilder", () {
@@ -23,7 +23,7 @@ void main() {
         idProvider: idProvider,
         timeProvider: timeProvider,
         spanProcessor: spanProcessor,
-        traceSampler: traceSampler,
+        sampler: sampler,
         logger: logger,
       ).startSpan();
 
@@ -32,7 +32,7 @@ void main() {
         idProvider: idProvider,
         timeProvider: timeProvider,
         spanProcessor: spanProcessor,
-        traceSampler: traceSampler,
+        sampler: sampler,
         logger: logger,
       ).setParent(parentSpan).startSpan();
 

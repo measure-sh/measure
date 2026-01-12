@@ -262,6 +262,11 @@ import UIKit
         guard let measureInternal = self.measureInternal else { return nil }
         return measureInternal.getDocumentDirectoryPath()
     }
+    
+    func internalGetDynamicConfigPath() -> String? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.getDynamicConfigPath()
+    }
 
     func trackHttpEvent(url: String,
                         method: String,
@@ -760,6 +765,10 @@ extension Measure {
     /// This method is not intended for public usage and can change in future versions.
     public static func internalGetAttachmentDirectory() -> String? {
         return Measure.shared.internalGetAttachmentDirectory()
+    }
+    
+    public static func internalGetDynamicConfigPath() -> String? {
+        return Measure.shared.internalGetDynamicConfigPath()
     }
 
     /// Tracks a HTTP event. Note that if you're using the Measure gradle plugin,

@@ -1,41 +1,37 @@
 import 'package:measure_flutter/src/config/config_provider.dart';
+import 'package:measure_flutter/src/config/dynamic_config.dart';
+import 'package:measure_flutter/src/config/screenshot_mask_level.dart';
 
 class FakeConfigProvider implements ConfigProvider {
-  bool _autoInitializeNativeSDK = false;
   List<String> _defaultHttpContentTypeAllowlist = [];
   List<String> _defaultHttpHeadersBlocklist = [];
   bool _enableLogging = false;
-  bool _trackScreenshotOnCrash = false;
-  List<String> _httpHeadersBlocklist = [];
-  List<String> _httpUrlAllowlist = [];
-  List<String> _httpUrlBlocklist = [];
   int _maxCheckpointNameLength = 64;
   int _maxCheckpointsPerSpan = 100;
   int _maxSpanNameLength = 64;
-  double _samplingRateForErrorFreeSessions = 0.0;
-  double _traceSamplingRate = 0.0;
-  bool _trackActivityIntentData = false;
-  bool _trackHttpBody = false;
-  bool _trackHttpHeaders = false;
   bool _autoStart = true;
   int _maxAttachmentsInBugReport = 5;
   int _maxDescriptionLengthInBugReport = 1000;
   int _screenshotCompressionQuality = 20;
   int _maxEventNameLength = 64;
   String _customEventNameRegex = '^[a-zA-Z0-9_-]+\$';
-  int _maxDiskUsageInMb = 50;
   int _maxUserDefinedAttributeValueLength = 100;
   int _maxUserDefinedAttributeKeyLength = 256;
   int _maxUserDefinedAttributesPerEvent = 256;
-  double _coldLaunchSamplingRate = 0.01;
-  double _warmLaunchSamplingRate = 0.01;
-  double _hotLaunchSamplingRate = 0.01;
-  double _journeySamplingRate = 0;
+  double _traceSamplingRate = 100;
+  bool _crashTakeScreenshot = true;
+  bool _gestureClickTakeSnapshot = true;
+  ScreenshotMaskLevel _screenshotMaskLevel = ScreenshotMaskLevel.none;
+  final List<String> _httpDisableEventForUrls = [];
+  final List<String> _httpTrackRequestForUrls = [];
+  final List<String> _httpTrackResponseForUrls = [];
+  List<String> _httpBlockedHeaders = [];
+  bool shouldTrackHttpEventResult = true;
+  Map<String, bool> shouldTrackHttpHeaderResults = {};
+  bool shouldTrackHttpRequestBodyResult = true;
+  bool shouldTrackHttpResponseBodyResult = true;
 
   // Getters
-  @override
-  bool get autoInitializeNativeSDK => _autoInitializeNativeSDK;
-
   @override
   List<String> get defaultHttpContentTypeAllowlist =>
       _defaultHttpContentTypeAllowlist;
@@ -47,18 +43,6 @@ class FakeConfigProvider implements ConfigProvider {
   bool get enableLogging => _enableLogging;
 
   @override
-  bool get trackScreenshotOnCrash => _trackScreenshotOnCrash;
-
-  @override
-  List<String> get httpHeadersBlocklist => _httpHeadersBlocklist;
-
-  @override
-  List<String> get httpUrlAllowlist => _httpUrlAllowlist;
-
-  @override
-  List<String> get httpUrlBlocklist => _httpUrlBlocklist;
-
-  @override
   int get maxCheckpointNameLength => _maxCheckpointNameLength;
 
   @override
@@ -66,22 +50,6 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   int get maxSpanNameLength => _maxSpanNameLength;
-
-  @override
-  double get samplingRateForErrorFreeSessions =>
-      _samplingRateForErrorFreeSessions;
-
-  @override
-  double get traceSamplingRate => _traceSamplingRate;
-
-  @override
-  bool get trackActivityIntentData => _trackActivityIntentData;
-
-  @override
-  bool get trackHttpBody => _trackHttpBody;
-
-  @override
-  bool get trackHttpHeaders => _trackHttpHeaders;
 
   @override
   int get maxAttachmentsInBugReport => _maxAttachmentsInBugReport;
@@ -99,9 +67,6 @@ class FakeConfigProvider implements ConfigProvider {
   String get customEventNameRegex => _customEventNameRegex;
 
   @override
-  int get maxDiskUsageInMb => _maxDiskUsageInMb;
-
-  @override
   int get maxUserDefinedAttributeValueLength => _maxUserDefinedAttributeValueLength;
 
   @override
@@ -111,20 +76,60 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
 
   @override
-  double get coldLaunchSamplingRate => _coldLaunchSamplingRate;
+  bool get crashTakeScreenshot => _crashTakeScreenshot;
 
   @override
-  double get warmLaunchSamplingRate => _warmLaunchSamplingRate;
+  bool get gestureClickTakeSnapshot => _gestureClickTakeSnapshot;
 
   @override
-  double get hotLaunchSamplingRate => _hotLaunchSamplingRate;
+  List<String> get httpBlockedHeaders => _httpBlockedHeaders;
 
   @override
-  double get journeySamplingRate => _journeySamplingRate;
+  List<String> get httpDisableEventForUrls => _httpDisableEventForUrls;
+
+  @override
+  List<String> get httpTrackRequestForUrls => _httpTrackRequestForUrls;
+
+  @override
+  List<String> get httpTrackResponseForUrls => _httpTrackResponseForUrls;
+
+  @override
+  ScreenshotMaskLevel get screenshotMaskLevel => _screenshotMaskLevel;
+
+  @override
+  double get traceSamplingRate => _traceSamplingRate;
+
+  @override
+  void setDynamicConfig(DynamicConfig dynamicConfig) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void setMeasureUrl(String url) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool shouldTrackHttpEvent(String url) {
+    return shouldTrackHttpEventResult;
+  }
+
+  @override
+  bool shouldTrackHttpHeader(String key) {
+    return shouldTrackHttpHeaderResults[key] ?? true;
+  }
+
+  @override
+  bool shouldTrackHttpRequestBody(String url) {
+    return shouldTrackHttpRequestBodyResult;
+  }
+
+  @override
+  bool shouldTrackHttpResponseBody(String url) {
+    return shouldTrackHttpResponseBodyResult;
+  }
 
   // Setters
-  set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
-
   set defaultHttpContentTypeAllowlist(List<String> value) =>
       _defaultHttpContentTypeAllowlist = value;
 
@@ -133,33 +138,14 @@ class FakeConfigProvider implements ConfigProvider {
 
   set enableLogging(bool value) => _enableLogging = value;
 
-  set trackScreenshotOnCrash(bool value) => _trackScreenshotOnCrash = value;
-
-  set httpHeadersBlocklist(List<String> value) => _httpHeadersBlocklist = value;
-
-  set httpUrlAllowlist(List<String> value) => _httpUrlAllowlist = value;
-
   @override
   bool get autoStart => _autoStart;
-
-  set httpUrlBlocklist(List<String> value) => _httpUrlBlocklist = value;
 
   set maxCheckpointNameLength(int value) => _maxCheckpointNameLength = value;
 
   set maxCheckpointsPerSpan(int value) => _maxCheckpointsPerSpan = value;
 
   set maxSpanNameLength(int value) => _maxSpanNameLength = value;
-
-  set samplingRateForErrorFreeSessions(double value) =>
-      _samplingRateForErrorFreeSessions = value;
-
-  set traceSamplingRate(double value) => _traceSamplingRate = value;
-
-  set trackActivityIntentData(bool value) => _trackActivityIntentData = value;
-
-  set trackHttpBody(bool value) => _trackHttpBody = value;
-
-  set trackHttpHeaders(bool value) => _trackHttpHeaders = value;
 
   set autoStart(bool value) => _autoStart = value;
 
@@ -176,43 +162,19 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxEventNameLength(int value) => _maxEventNameLength = value;
 
-  set maxDiskUsageInMb(int value) => _maxDiskUsageInMb = value;
-
   set maxUserDefinedAttributeValueLength(int value) => _maxUserDefinedAttributeValueLength = value;
 
   set maxUserDefinedAttributeKeyLength(int value) => _maxUserDefinedAttributeKeyLength = value;
 
   set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
 
-  set coldLaunchSamplingRate(double value) => _coldLaunchSamplingRate = value;
+  set crashTakeScreenshot(bool value) => _crashTakeScreenshot = value;
 
-  set warmLaunchSamplingRate(double value) => _warmLaunchSamplingRate = value;
+  set gestureClickTakeSnapshot(bool value) => _gestureClickTakeSnapshot = value;
 
-  set hotLaunchSamplingRate(double value) => _hotLaunchSamplingRate = value;
+  set traceSamplingRate(double value) => _traceSamplingRate = value;
 
-  set journeySamplingRate(double value) => _journeySamplingRate = value;
+  set screenshotMaskLevel(ScreenshotMaskLevel value) => _screenshotMaskLevel = value;
 
-  // Methods
-  @override
-  bool shouldTrackHttpBody(String url, String? contentType) {
-    return _trackHttpBody;
-  }
-
-  @override
-  bool shouldTrackHttpHeader(String key) {
-    return _trackHttpHeaders &&
-        !_httpHeadersBlocklist.contains(key.toLowerCase());
-  }
-
-  @override
-  bool shouldTrackHttpUrl(String url) {
-    // If allowlist is empty, allow all URLs not in blocklist
-    if (_httpUrlAllowlist.isEmpty) {
-      return !_httpUrlBlocklist.any((blocked) => url.contains(blocked));
-    }
-
-    // If allowlist is not empty, only allow URLs in allowlist
-    return _httpUrlAllowlist.any((allowed) => url.contains(allowed)) &&
-        !_httpUrlBlocklist.any((blocked) => url.contains(blocked));
-  }
+  set httpBlockedHeaders(List<String> value) => _httpBlockedHeaders = value;
 }

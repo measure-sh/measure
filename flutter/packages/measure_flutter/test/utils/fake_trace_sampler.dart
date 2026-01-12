@@ -1,14 +1,14 @@
-import 'package:measure_flutter/src/tracing/trace_sampler.dart';
+import 'package:measure_flutter/src/utils/sampler.dart';
 
-class FakeTraceSampler implements TraceSampler {
-  bool _overrideShouldSample = true;
+class FakeSampler implements Sampler {
+  bool _overrideShouldSampleTrace = true;
 
-  set overrideShouldSample(bool value) {
-    _overrideShouldSample = value;
+  set overrideShouldSampleTrace(bool value) {
+    _overrideShouldSampleTrace = value;
   }
 
   @override
-  bool shouldSample() {
-    return _overrideShouldSample;
+  bool shouldSampleTrace(String traceId) {
+    return _overrideShouldSampleTrace;
   }
 }
