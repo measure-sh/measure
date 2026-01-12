@@ -433,6 +433,7 @@ internal class MeasureInitializerImpl(
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(
         logger,
+        configProvider,
         signalProcessor,
         processInfoProvider,
         sessionManager,

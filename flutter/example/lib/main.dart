@@ -9,23 +9,26 @@ Future<void> main() async {
         () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
-      trackScreenshotOnCrash: true,
-      trackHttpHeaders: true,
-      trackHttpBody: true,
-      httpUrlBlocklist: ['http://localhost'],
       autoStart: true,
-      traceSamplingRate: 1,
-      samplingRateForErrorFreeSessions: 1,
-    ),
-    clientInfo: ClientInfo(
-      apiKey: "msrsh-123",
-      apiUrl: "http://localhost:8080",
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    Measure.instance.startSpan("AppLaunch")
+        .setAttributeString("key", "value")
+        .end();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {

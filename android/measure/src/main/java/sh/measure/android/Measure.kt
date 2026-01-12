@@ -28,7 +28,6 @@ import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.MsrBugReportActivity
 import sh.measure.android.bugreport.MsrShakeListener
-import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
@@ -60,19 +59,14 @@ object Measure {
      * will use the default configuration. To understand the configuration options available
      * checkout the documentation for [MeasureConfig].
      *
-     * An optional [clientInfo] can be passed to provide the API key and API URL. If not provided,
-     * the SDK will expect it to be set in the AndroidManifest.
-     *
      * @param context The application context.
      * @param measureConfig The configuration for the Measure SDK.
-     * @param clientInfo The identifiers required to connect to Measure backend.
      */
     @JvmStatic
     @JvmOverloads
     fun init(
         context: Context,
         measureConfig: MeasureConfig = MeasureConfig(),
-        clientInfo: ClientInfo? = null,
     ) {
         if (isInitialized.compareAndSet(false, true)) {
             InternalTrace.trace(
@@ -83,7 +77,7 @@ object Measure {
                         MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
                     storeProcessImportanceState()
-                    measure.init(clientInfo)
+                    measure.init()
                 },
             )
         }
@@ -653,6 +647,17 @@ object Measure {
     fun internalGetAttachmentDirectory(): String? {
         if (isInitialized.get()) {
             return measure.getAttachmentDirectory()
+        }
+        return null
+    }
+
+    /**
+     * Returns the path to the dynamic config file if available. The SDK must be initialized
+     * before calling this method.
+     */
+    fun getDynamicConfigPath(): String? {
+        if (isInitialized.get()) {
+            return measure.getDynamicConfigPath()
         }
         return null
     }

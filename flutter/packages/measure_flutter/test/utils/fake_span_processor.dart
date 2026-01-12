@@ -26,4 +26,9 @@ class FakeSpanProcessor implements SpanProcessor {
   int get endingSpanCount => endingSpans.length;
 
   int get endedSpanCount => endedSpans.length;
+
+  @override
+  void onConfigLoaded() {
+    // No-op
+  }
 }

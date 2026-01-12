@@ -10,8 +10,6 @@ import sh.measure.android.Measure
 import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
-import sh.measure.android.config.ClientInfo
-import sh.measure.android.config.MeasureConfig
 
 class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
@@ -28,7 +26,6 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
             when (call.method) {
                 MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
                 MethodConstants.FUNCTION_TRIGGER_NATIVE_CRASH -> triggerNativeCrash()
-                MethodConstants.FUNCTION_INITIALIZE_NATIVE_SDK -> initializeNativeSdk(call, result)
                 MethodConstants.FUNCTION_START -> start(result)
                 MethodConstants.FUNCTION_STOP -> stop(result)
                 MethodConstants.FUNCTION_GET_SESSION_ID -> getSessionId(result)
@@ -38,6 +35,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_GET_ATTACHMENT_DIRECTORY -> getAttachmentDirectory(result)
                 MethodConstants.FUNCTION_ENABLE_SHAKE_DETECTOR -> enableShakeDetector()
                 MethodConstants.FUNCTION_DISABLE_SHAKE_DETECTOR -> disableShakeDetector()
+                MethodConstants.FUNCTION_GET_DYNAMIC_CONFIG_PATH -> getDynamicConfigPath(result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -69,7 +67,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val eventData = reader.requireArg<MutableMap<String, Any?>>(MethodConstants.ARG_EVENT_DATA)
         val timestamp = reader.requireArg<Long>(MethodConstants.ARG_TIMESTAMP)
         val rawAttributes =
-            reader.requireArg<Map<String, Any>>(MethodConstants.ARG_USER_DEFINED_ATTRS)
+            reader.requireArg<MutableMap<String, Any?>>(MethodConstants.ARG_USER_DEFINED_ATTRS)
         val convertedAttributes = AttributeConverter.convertAttributes(rawAttributes)
         val userTriggered = reader.requireArg<Boolean>(MethodConstants.ARG_USER_TRIGGERED)
         val threadName = reader.optionalArg<String>(MethodConstants.ARG_THREAD_NAME)
@@ -109,25 +107,6 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         )
     }
 
-    private fun initializeNativeSdk(call: MethodCall, result: MethodChannel.Result) {
-        val context = applicationContext
-        if (context == null) {
-            result.error(
-                ErrorCode.ERROR_UNKNOWN,
-                "Unexpected method channel error when calling ${call.method}",
-                "Failed to initialize native SDK. Application context is null."
-            )
-            return
-        }
-        val reader = MethodCallReader(call)
-        val configJson = reader.requireArg<Map<String, Any?>>(MethodConstants.ARG_CONFIG)
-        val clientInfoJson = reader.requireArg<Map<String, String>>(MethodConstants.ARG_CLIENT_INFO)
-        val config = MeasureConfig.fromJson(configJson)
-        val clientInfo = ClientInfo.fromJson(clientInfoJson)
-        Measure.init(context, measureConfig = config, clientInfo = clientInfo)
-        result.success(null)
-    }
-
     private fun trackSpan(call: MethodCall, result: MethodChannel.Result) {
         val reader = MethodCallReader(call)
         val name: String = reader.requireArg(MethodConstants.ARG_SPAN_NAME)
@@ -140,7 +119,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val status: Int = reader.requireArg(MethodConstants.ARG_SPAN_STATUS)
         val attributes: MutableMap<String, Any?>? =
             reader.optionalArg(MethodConstants.ARG_SPAN_ATTRIBUTES)
-        val userDefinedAttrs: Map<String, Any> =
+        val userDefinedAttrs: MutableMap<String, Any?> =
             reader.requireArg(MethodConstants.ARG_SPAN_USER_DEFINED_ATTRS)
         val checkpoints: Map<String, Long> = reader.requireArg(MethodConstants.ARG_SPAN_CHECKPOINTS)
         val hasEnded: Boolean = reader.requireArg(MethodConstants.ARG_SPAN_HAS_ENDED)
@@ -202,6 +181,10 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         Measure.setShakeListener(null)
     }
 
+    private fun getDynamicConfigPath(result: MethodChannel.Result) {
+        val path = Measure.getDynamicConfigPath()
+        result.success(path)
+    }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)

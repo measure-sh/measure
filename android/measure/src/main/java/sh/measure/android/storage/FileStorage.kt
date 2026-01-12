@@ -91,6 +91,11 @@ internal interface FileStorage {
     fun getConfigFile(): File?
 
     /**
+     * Returns the path to the file where the [sh.measure.android.config.DynamicConfig] is stored.
+     */
+    fun getConfigPath(): String
+
+    /**
      * Validates that the file exists.
      */
     fun validateFile(path: String): Boolean
@@ -191,6 +196,8 @@ internal class FileStorageImpl(
     }
 
     override fun getConfigFile(): File? = getOrCreateFile(CONFIG_FILE_NAME)
+
+    override fun getConfigPath(): String = "$rootDir/$MEASURE_DIR/$CONFIG_FILE_NAME"
 
     override fun validateFile(path: String): Boolean {
         val file = getFile(path)

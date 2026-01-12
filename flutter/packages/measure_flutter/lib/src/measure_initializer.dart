@@ -18,10 +18,11 @@ import 'package:measure_flutter/src/time/date_time_clock.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/randomizer.dart';
 import 'package:measure_flutter/src/tracing/span_processor.dart';
-import 'package:measure_flutter/src/tracing/trace_sampler.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
+import 'package:measure_flutter/src/utils/sampler.dart';
 
+import 'config/config_loader.dart';
 import 'config/config_provider.dart';
 
 final class MeasureInitializer {
@@ -43,6 +44,8 @@ final class MeasureInitializer {
   late final Tracer _tracer;
   late final FileStorage _fileStorage;
   late final ShakeDetector _shakeDetector;
+  late final ConfigLoader _configLoader;
+  late final Sampler _sampler;
 
   Logger get logger => _logger;
 
@@ -80,6 +83,8 @@ final class MeasureInitializer {
 
   ShakeDetector get shakeDetector => _shakeDetector;
 
+  ConfigLoader get configLoader => _configLoader;
+
   MeasureInitializer(MeasureConfig inputConfig) {
     _initializeDependencies(inputConfig);
   }
@@ -88,32 +93,19 @@ final class MeasureInitializer {
     _logger = FlutterLogger(enabled: inputConfig.enableLogging);
     final clock = DateTimeClock();
     _timeProvider = FlutterTimeProvider(clock);
-    _configProvider = ConfigProviderImpl(
-      defaultConfig: Config(
-        enableLogging: inputConfig.enableLogging,
-        trackScreenshotOnCrash: inputConfig.trackScreenshotOnCrash,
-        trackHttpHeaders: inputConfig.trackHttpHeaders,
-        trackHttpBody: inputConfig.trackHttpBody,
-        httpHeadersBlocklist: inputConfig.httpHeadersBlocklist,
-        httpUrlBlocklist: inputConfig.httpUrlBlocklist,
-        httpUrlAllowlist: inputConfig.httpUrlAllowlist,
-        autoInitializeNativeSDK: inputConfig.autoInitializeNativeSDK,
-        trackActivityIntentData: inputConfig.trackActivityIntentData,
-        samplingRateForErrorFreeSessions:
-            inputConfig.samplingRateForErrorFreeSessions,
-        traceSamplingRate: inputConfig.traceSamplingRate,
-        coldLaunchSamplingRate: inputConfig.coldLaunchSamplingRate,
-        warmLaunchSamplingRate: inputConfig.warmLaunchSamplingRate,
-        hotLaunchSamplingRate: inputConfig.hotLaunchSamplingRate,
-        autoStart: inputConfig.autoStart,
-      ),
-    );
     _methodChannel = MsrMethodChannel();
     final randomizer = RandomizerImpl();
     _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
-    _signalProcessor =
-        DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
+    _fileStorage = FileStorage(methodChannel, logger);
+    _configLoader = ConfigLoader(logger: _logger, fileStorage: _fileStorage);
+    _configProvider = ConfigProviderImpl(
+      defaultConfig: Config(
+        enableLogging: inputConfig.enableLogging,
+        autoStart: inputConfig.autoStart,
+      ),
+    );
+    _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
     _screenshotCollector = DefaultScreenshotCollector(
       logger: logger,
       idProvider: _idProvider,
@@ -125,7 +117,6 @@ final class MeasureInitializer {
       timeProvider: timeProvider,
       configProvider: configProvider,
     );
-    _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,
@@ -156,17 +147,19 @@ final class MeasureInitializer {
       shakeDetector: _shakeDetector,
       timeProvider: _timeProvider,
     );
+    _sampler = SamplerImpl(_configProvider);
     _spanProcessor = MsrSpanProcessor(
       _logger,
       _signalProcessor,
       _configProvider,
+      _sampler,
     );
     _tracer = MsrTracer(
       logger: logger,
       idProvider: _idProvider,
       timeProvider: _timeProvider,
       spanProcessor: _spanProcessor,
-      traceSampler: TraceSamplerImpl(randomizer, _configProvider),
+      sampler: _sampler,
     );
   }
 }

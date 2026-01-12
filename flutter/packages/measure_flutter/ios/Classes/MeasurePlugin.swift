@@ -19,8 +19,6 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try handleTrackEvent(call, result: result)
             case MethodConstants.functionTriggerNativeCrash:
                 triggerNativeCrash()
-            case MethodConstants.functionInitializeNativeSdk:
-                try initializeNativeSdk(call, result: result)
             case MethodConstants.functionStart:
                 try start(call, result: result)
             case MethodConstants.functionStop:
@@ -39,6 +37,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try enableShakeDetector()
             case MethodConstants.functionDisableShakeDetection:
                 try disableShakeDetector()
+            case MethodConstants.functionGetDynamicConfigPath:
+                try getDynamicConfigPath(result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -195,5 +195,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
 
     private func disableShakeDetector() throws {
         Measure.onShake(nil)
+    }
+
+    private func getDynamicConfigPath(result: @escaping FlutterResult) throws {
+        let path = Measure.internalGetDynamicConfigPath()
+        result(path)
     }
 }

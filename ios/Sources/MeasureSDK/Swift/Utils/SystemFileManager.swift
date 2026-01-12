@@ -13,6 +13,7 @@ protocol SystemFileManager {
     func getCrashFilePath() -> URL?
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL?
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
+    func getDynamicConfigPath(directory: FileManager.SearchPathDirectory) -> String?
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -107,5 +108,10 @@ final class BaseSystemFileManager: SystemFileManager {
             return nil
         }
         return directoryURL.path
+    }
+    
+    func getDynamicConfigPath(directory: FileManager.SearchPathDirectory) -> String? {
+        // TODO: return the dynamic path when available
+        return nil
     }
 }

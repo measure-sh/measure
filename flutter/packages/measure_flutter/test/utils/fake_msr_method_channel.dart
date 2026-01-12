@@ -34,13 +34,6 @@ class FakeMethodChannel extends MsrMethodChannel {
   Future<void> triggerNativeCrash() => throw UnimplementedError();
 
   @override
-  Future<void> initializeNativeSDK(
-    Map<String, dynamic> config,
-    Map<String, String> clientInfo,
-  ) =>
-      throw UnimplementedError();
-
-  @override
   Future<void> start() => throw UnimplementedError();
 
   @override
