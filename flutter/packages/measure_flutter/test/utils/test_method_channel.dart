@@ -37,14 +37,6 @@ class TestMethodChannel implements MsrMethodChannel {
   }
 
   @override
-  Future<void> initializeNativeSDK(
-    Map<String, dynamic> config,
-    Map<String, String> clientInfo,
-  ) async {
-    // no-op
-  }
-
-  @override
   Future<String?> getSessionId() async {
     return _sessionId;
   }
@@ -96,6 +88,11 @@ class TestMethodChannel implements MsrMethodChannel {
   @override
   void setMethodCallHandler(
       Future<void> Function(MethodCall call) handleMethodCall) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String?> getDynamicConfigPath() {
     throw UnimplementedError();
   }
 }

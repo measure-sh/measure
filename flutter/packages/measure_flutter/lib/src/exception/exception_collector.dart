@@ -58,7 +58,8 @@ final class ExceptionCollector {
     }
 
     final attachments = <MsrAttachment>[];
-    if (configProvider.trackScreenshotOnCrash && !handled) {
+
+    if (configProvider.crashTakeScreenshot && !handled) {
       await _addScreenshot(attachments);
     }
 

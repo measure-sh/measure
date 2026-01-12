@@ -15,7 +15,7 @@ void main() {
     late TestClock testClock;
     late FlutterTimeProvider timeProvider;
     late FakeSpanProcessor spanProcessor;
-    late FakeTraceSampler traceSampler;
+    late FakeSampler traceSampler;
     late FakeIdProvider idProvider;
 
     setUp(() {
@@ -23,7 +23,7 @@ void main() {
       testClock = TestClock.create();
       timeProvider = FlutterTimeProvider(testClock);
       spanProcessor = FakeSpanProcessor();
-      traceSampler = FakeTraceSampler();
+      traceSampler = FakeSampler();
       idProvider = FakeIdProvider();
     });
 
@@ -48,7 +48,7 @@ void main() {
           timeProvider: timeProvider,
           parentSpan: parentSpan,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
         );
 
         expect(span.parentId, parentSpan.spanId);
@@ -62,7 +62,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
           timestamp: null,
         ) as MsrSpan;
@@ -78,7 +78,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
           timestamp: timestamp,
         ) as MsrSpan;
@@ -93,34 +93,34 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
         );
 
         expect(spanProcessor.startedSpanCount, 1);
       });
 
       test('sets sampling state for root span based on trace sampler', () {
-        traceSampler.overrideShouldSample = true;
+        traceSampler.overrideShouldSampleTrace = true;
         final span1 = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
         expect(span1.isSampled, true);
 
-        traceSampler.overrideShouldSample = false;
+        traceSampler.overrideShouldSampleTrace = false;
         final span2 = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -128,25 +128,25 @@ void main() {
       });
 
       test('samples child span if parent span is sampled', () {
-        traceSampler.overrideShouldSample = true;
+        traceSampler.overrideShouldSampleTrace = true;
         final sampledParentSpan = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
-        traceSampler.overrideShouldSample = false;
+        traceSampler.overrideShouldSampleTrace = false;
         final childSpan = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: sampledParentSpan,
         ) as MsrSpan;
 
@@ -154,25 +154,25 @@ void main() {
       });
 
       test('does not sample child span if parent span is not sampled', () {
-        traceSampler.overrideShouldSample = false;
+        traceSampler.overrideShouldSampleTrace = false;
         final unsampledParentSpan = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
-        traceSampler.overrideShouldSample = true;
+        traceSampler.overrideShouldSampleTrace = true;
         final childSpan = MsrSpan.startSpan(
           name: 'span-name',
           logger: logger,
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: unsampledParentSpan,
         ) as MsrSpan;
 
@@ -186,7 +186,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -196,7 +196,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: parentSpan,
         ) as MsrSpan;
 
@@ -213,7 +213,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -227,7 +227,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -247,7 +247,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -266,7 +266,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -280,7 +280,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -297,7 +297,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -315,7 +315,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -332,7 +332,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -351,7 +351,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -370,7 +370,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -391,7 +391,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -409,7 +409,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -430,7 +430,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -454,7 +454,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -478,7 +478,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -494,7 +494,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 
@@ -504,7 +504,7 @@ void main() {
           spanProcessor: spanProcessor,
           timeProvider: timeProvider,
           idProvider: idProvider,
-          traceSampler: traceSampler,
+          sampler: traceSampler,
           parentSpan: null,
         ) as MsrSpan;
 

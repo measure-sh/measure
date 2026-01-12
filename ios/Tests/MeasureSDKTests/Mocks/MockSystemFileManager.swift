@@ -11,6 +11,7 @@ import Foundation
 final class MockSystemFileManager: SystemFileManager {
     var crashFilePath: URL?
     var directoryPath: String?
+    var dynamicConfigPath: String?
     var savedFiles: [String: Data] = [:]
     var dynamicConfigPath: String?
 

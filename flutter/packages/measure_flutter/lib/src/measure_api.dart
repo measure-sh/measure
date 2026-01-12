@@ -16,7 +16,6 @@ abstract class MeasureApi {
 
   Future<void> init(
     FutureOr<void> Function() action, {
-    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   });
 
@@ -37,9 +36,11 @@ abstract class MeasureApi {
     bool userTriggered = true,
   });
 
-  bool shouldTrackHttpBody(String url, String? contentType);
+  bool shouldTrackHttpRequestBody(String url);
 
-  bool shouldTrackHttpUrl(String url);
+  bool shouldTrackHttpResponseBody(String url);
+
+  bool shouldTrackHttpEvent(String url);
 
   bool shouldTrackHttpHeader(String key);
 

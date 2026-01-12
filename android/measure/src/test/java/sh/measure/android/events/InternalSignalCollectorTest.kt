@@ -23,6 +23,7 @@ import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
@@ -36,6 +37,7 @@ import sh.measure.android.tracing.SpanStatus
 
 class InternalSignalCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
+    private val configProvider = FakeConfigProvider()
     private val processInfoProvider = FakeProcessInfoProvider()
     private val sessionManager = FakeSessionManager()
     private val attributeProcessor = object : AttributeProcessor {
@@ -45,6 +47,7 @@ class InternalSignalCollectorTest {
     }
     private val internalSignalCollector = InternalSignalCollector(
         logger = NoopLogger(),
+        configProvider = configProvider,
         signalProcessor = signalProcessor,
         processInfoProvider = processInfoProvider,
         sessionManager = sessionManager,
@@ -560,6 +563,92 @@ class InternalSignalCollectorTest {
 
         // Then
         verify(signalProcessor).trackSpan(expectedSpanData)
+    }
+
+    @Test
+    fun `trackSpan samples span if enableFullConfigMode is enabled`() {
+        configProvider.enableFullCollectionMode = true
+        val spanData = TestData.getSpanData(
+            name = "span_name",
+            traceId = "trace_id",
+            spanId = "span_id",
+            sessionId = sessionManager.getSessionId(),
+            parentId = "parent_id",
+            startTime = 123456789L,
+            endTime = 123456890L,
+            duration = 1000,
+            status = SpanStatus.Ok,
+            attributes = mapOf("key" to "value", "key-processor" to "value-processor"),
+            checkpoints = mutableListOf(
+                Checkpoint("checkpoint_name", 1234567890L),
+            ),
+            hasEnded = true,
+            isSampled = true,
+        )
+
+        internalSignalCollector.trackSpan(
+            name = spanData.name,
+            traceId = spanData.traceId,
+            spanId = spanData.spanId,
+            parentId = spanData.parentId,
+            startTime = spanData.startTime,
+            endTime = spanData.endTime,
+            duration = spanData.duration,
+            status = spanData.status.value,
+            attributes = spanData.attributes.toMutableMap(),
+            userDefinedAttrs = spanData.userDefinedAttrs,
+            checkpoints = spanData.checkpoints.associate {
+                it.name to it.timestamp
+            },
+            hasEnded = spanData.hasEnded,
+            // sampling rate is false for the span
+            // but gets flipped due to enableFullCollectionMode
+            isSampled = false,
+        )
+
+        verify(signalProcessor).trackSpan(spanData)
+    }
+
+    @Test
+    fun `trackSpan keep span sampling rate if enableFullConfigMode is disabled`() {
+        configProvider.enableFullCollectionMode = false
+        val spanData = TestData.getSpanData(
+            name = "span_name",
+            traceId = "trace_id",
+            spanId = "span_id",
+            sessionId = sessionManager.getSessionId(),
+            parentId = "parent_id",
+            startTime = 123456789L,
+            endTime = 123456890L,
+            duration = 1000,
+            status = SpanStatus.Ok,
+            attributes = mapOf("key" to "value", "key-processor" to "value-processor"),
+            checkpoints = mutableListOf(
+                Checkpoint("checkpoint_name", 1234567890L),
+            ),
+            hasEnded = true,
+            isSampled = false,
+        )
+
+        internalSignalCollector.trackSpan(
+            name = spanData.name,
+            traceId = spanData.traceId,
+            spanId = spanData.spanId,
+            parentId = spanData.parentId,
+            startTime = spanData.startTime,
+            endTime = spanData.endTime,
+            duration = spanData.duration,
+            status = spanData.status.value,
+            attributes = spanData.attributes.toMutableMap(),
+            userDefinedAttrs = spanData.userDefinedAttrs,
+            checkpoints = spanData.checkpoints.associate {
+                it.name to it.timestamp
+            },
+            hasEnded = spanData.hasEnded,
+            isSampled = false,
+        )
+
+        verify(signalProcessor).trackSpan(spanData)
     }
 
     private fun jsonToMap(jsonObject: JsonObject): MutableMap<String, Any?> {

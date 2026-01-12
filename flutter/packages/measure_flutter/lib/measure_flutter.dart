@@ -106,7 +106,6 @@ export 'src/attribute_builder.dart';
 export 'src/attribute_value.dart';
 export 'src/bug_report/msr_shake_detector_mixin.dart';
 export 'src/bug_report/ui/bug_report_theme.dart';
-export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/events/attachment_type.dart';
 export 'src/events/msr_attachment.dart';
@@ -181,19 +180,16 @@ class Measure implements MeasureApi {
   @override
   Future<void> init(
     FutureOr<void> Function() action, {
-    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   }) async {
     WidgetsFlutterBinding.ensureInitialized();
-    if (_validateClientInfo(clientInfo)) {
-      try {
-        await _initializeMeasureSDK(config, clientInfo);
-        _isInitialized = true;
-        _logInitializationSuccess();
-        await _setupErrorHandling();
-      } catch (e, stackTrace) {
-        _logInitializationFailure(config.enableLogging, e, stackTrace);
-      }
+    try {
+      await _initializeMeasureSDK(config);
+      _isInitialized = true;
+      _logInitializationSuccess();
+      await _setupErrorHandling();
+    } catch (e, stackTrace) {
+      _logInitializationFailure(config.enableLogging, e, stackTrace);
     }
     return action();
   }
@@ -263,9 +259,9 @@ class Measure implements MeasureApi {
   /// See [MeasureConfig.httpUrlAllowlist] and [MeasureConfig.httpUrlBlocklist]
   /// for configuration options.
   @override
-  bool shouldTrackHttpUrl(String url) {
+  bool shouldTrackHttpEvent(String url) {
     if (isInitialized) {
-      return _measure.configProvider.shouldTrackHttpUrl(url);
+      return _measure.configProvider.shouldTrackHttpEvent(url);
     }
     return false;
   }
@@ -297,29 +293,38 @@ class Measure implements MeasureApi {
     return false;
   }
 
-  /// Determines if HTTP request/response bodies should be tracked for the given URL and content type.
+  /// Determines if HTTP request body and headers should be tracked for the given URL.
   ///
-  /// This method considers the global [MeasureConfig.trackHttpBody] setting,
-  /// URL filtering rules, and content type restrictions.
+  /// This method considers the config set on the dashboard.
   ///
   /// **Parameters:**
   /// - [url]: The request URL
-  /// - [contentType]: The content type of the request/response body (optional)
   ///
   /// **Returns:** `true` if the body should be captured, `false` otherwise
   ///
-  /// **Example:**
-  /// ```dart
-  /// if (Measure.instance.shouldTrackHttpBody('https://api.example.com', 'application/json')) {
-  ///   // Request/response bodies will be captured for this endpoint
-  /// }
-  /// ```
+  /// **Note:** Capturing HTTP bodies can significantly increase data usage.
+  @override
+  bool shouldTrackHttpRequestBody(String url) {
+    if (isInitialized) {
+      return _measure.configProvider.shouldTrackHttpRequestBody(url);
+    }
+    return false;
+  }
+
+  /// Determines if HTTP response body and headers should be tracked for the given URL.
+  ///
+  /// This method considers the config set on the dashboard.
+  ///
+  /// **Parameters:**
+  /// - [url]: The request URL
+  ///
+  /// **Returns:** `true` if the body should be captured, `false` otherwise
   ///
   /// **Note:** Capturing HTTP bodies can significantly increase data usage.
   @override
-  bool shouldTrackHttpBody(String url, String? contentType) {
+  bool shouldTrackHttpResponseBody(String url) {
     if (isInitialized) {
-      return _measure.configProvider.shouldTrackHttpBody(url, contentType);
+      return _measure.configProvider.shouldTrackHttpResponseBody(url);
     }
     return false;
   }
@@ -1001,25 +1006,9 @@ class Measure implements MeasureApi {
 
   Future<void> _initializeMeasureSDK(
     MeasureConfig config,
-    ClientInfo clientInfo,
   ) async {
     final methodChannel = _methodChannel ?? MsrMethodChannel();
-    await _initializeNativeSDK(config, clientInfo, methodChannel);
     await _initializeInternal(config, methodChannel);
-  }
-
-  Future<void> _initializeNativeSDK(
-    MeasureConfig config,
-    ClientInfo clientInfo,
-    MsrMethodChannel methodChannel,
-  ) async {
-    if (config.autoInitializeNativeSDK) {
-      var jsonConfig = config.toJson();
-      var jsonClientInfo = clientInfo.toJson();
-      _logInputConfig(config.enableLogging, jsonConfig, jsonClientInfo);
-      return methodChannel.initializeNativeSDK(jsonConfig, jsonClientInfo);
-    }
-    return Future.value();
   }
 
   Future<void> _initializeInternal(
@@ -1060,24 +1049,6 @@ class Measure implements MeasureApi {
     };
   }
 
-  bool _validateClientInfo(ClientInfo clientInfo) {
-    if (clientInfo.apiKey.isEmpty) {
-      developer.log("Failed to initialize Measure, apiKey is empty");
-      return false;
-    }
-
-    if (!clientInfo.apiKey.startsWith("msrsh")) {
-      developer.log("Failed to initialize Measure, apiKey is invalid");
-      return false;
-    }
-
-    if (clientInfo.apiUrl.toString().isEmpty) {
-      developer.log("Failed to initialize Measure, apiUrl is empty");
-      return false;
-    }
-    return true;
-  }
-
   void _logInitializationSuccess() {
     _measure.logger.log(
       LogLevel.debug,
@@ -1097,21 +1068,6 @@ class Measure implements MeasureApi {
         error: error,
         stackTrace: stackTrace,
         level: 900,
-      );
-    }
-  }
-
-  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig, Map<String, String> jsonClientInfo) {
-    if (enableLogging) {
-      developer.log(
-        'Initializing measure-flutter with config: $jsonConfig',
-        name: 'Measure',
-        level: 100,
-      );
-      developer.log(
-        'Initializing measure-flutter with client info: $jsonClientInfo',
-        name: 'Measure',
-        level: 100,
       );
     }
   }
