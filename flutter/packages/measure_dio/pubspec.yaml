@@ -5,8 +5,8 @@ description: Provides interceptors for monitoring http requests made using Dio l
 version: 0.3.0
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
-  flutter: '>=3.3.0'
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:

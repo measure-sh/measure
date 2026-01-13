@@ -257,7 +257,8 @@ class _BugReportState extends State<BugReport> {
           backgroundColor: colorScheme.surface,
           border: Border(
             bottom: BorderSide(
-              color: colorScheme.outline.withValues(alpha: 0.2),
+              // ignore: deprecated_member_use
+              color: colorScheme.outline.withOpacity(0.2),
               width: 0.5,
             ),
           ),

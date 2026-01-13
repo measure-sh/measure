@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.2.0+1
 
 environment:
-  sdk: ^3.6.1
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -16,7 +16,7 @@ dependencies:
     path: ../packages/measure_dio
   dio: ^5.8.0+1
   cupertino_icons: ^1.0.8
-  stack_trace: ^1.12.0
+  stack_trace: ^1.11.1
 
 dev_dependencies:
   integration_test:

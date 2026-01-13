@@ -22,8 +22,12 @@ env:
 
 jobs:
   flutter-checks:
-    name: Flutter checks
+    name: Flutter checks (Flutter ${{ matrix.flutter-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flutter-version: ['3.24.0', '3.38.3']
     defaults:
       run:
         working-directory: flutter
@@ -36,7 +40,7 @@ jobs:
         uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
         with:
           channel: stable
-          flutter-version: 3.35.6
+          flutter-version: ${{ matrix.flutter-version }}
 
       - name: Install Melos
         run: dart pub global activate melos 5.3.0
