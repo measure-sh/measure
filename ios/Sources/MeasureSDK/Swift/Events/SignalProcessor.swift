@@ -19,7 +19,8 @@ protocol SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?)
+        threadName: String?,
+        needsReporting: Bool?)
 
     func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -81,7 +82,8 @@ final class BaseSignalProcessor: SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?) {
+        threadName: String?,
+        needsReporting: Bool?) {
         SignPost.trace(subcategory: "Event", label: "trackEvent") {
             track(data: data,
                   timestamp: timestamp,
@@ -91,7 +93,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   attachments: attachments,
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
-                  threadName: threadName)
+                  threadName: threadName,
+                  needsReporting: needsReporting)
         }
     }
 
@@ -113,7 +116,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   attachments: attachments,
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
-                  threadName: threadName)
+                  threadName: threadName,
+                  needsReporting: nil)
         }
     }
 
@@ -147,7 +151,8 @@ final class BaseSignalProcessor: SignalProcessor {
         attachments: [MsrAttachment]?,
         sessionId: String?,
         userDefinedAttributes: String?,
-        threadName: String?
+        threadName: String?,
+        needsReporting: Bool?
     ) {
         let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
@@ -167,28 +172,25 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            var needsReporting = false
-
             // If session is marked for export everything is tracked
-            if self.sessionManager.shouldReportSession {
+//            if self.sessionManager.shouldReportSession {
+//                needsReporting = true
+//            } else {
+//                // Journey events
+//                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
+//                    needsReporting = signalSampler.shouldTrackJourneyEvents()
+//                }
+//
+//                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
+//                    needsReporting = true
+//                }
+//            }
+            var needsReporting: Bool? = needsReporting
+            if self.configProvider.eventTypeExportAllowList.contains(event.type) {
                 needsReporting = true
-            } else {
-                // Launch events
-                if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
-                    needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
-                }
-
-                // Journey events
-                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
-                    needsReporting = signalSampler.shouldTrackJourneyEvents()
-                }
-
-                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
-                    needsReporting = true
-                }
             }
 
-            let eventEntity = EventEntity(event, needsReporting: needsReporting)
+            let eventEntity = EventEntity(event, needsReporting: needsReporting ?? false)
 
             self.eventStore.insertEvent(event: eventEntity) {}
             self.sessionManager.onEventTracked(eventEntity)

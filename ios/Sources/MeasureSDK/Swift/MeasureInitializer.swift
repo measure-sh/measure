@@ -47,6 +47,8 @@ protocol MeasureInitializer {
     var cpuUsageCalculator: CpuUsageCalculator { get }
     var memoryUsageCalculator: MemoryUsageCalculator { get }
     var sysCtl: SysCtl { get }
+    var launchCallback: LaunchCallbacks { get }
+    var launchTracker: LaunchTracker { get }
     var appLaunchCollector: AppLaunchCollector { get }
     var httpEventCollector: HttpEventCollector { get }
     var networkChangeCollector: NetworkChangeCollector { get }
@@ -108,6 +110,8 @@ protocol MeasureInitializer {
 /// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
 /// - `memoryUsageCollector`: `MemoryUsageCollector` object which is responsible for detecting and saving memory usage data.
+/// - `launchCallback`: `LaunchCallbacks` object that manages communication between `LaunchTracker` and `AppLaunchCollector`.
+/// - `launchTracker`: `LaunchTracker` object responsible for collecting launch events.
 /// - `appLaunchCollector`: `AppLaunchCollector` object which is responsible for detecting and saving launch related events.
 /// - `httpEventCollector`: `HttpEventCollector` object that collects HTTP request data.
 /// - `userTriggeredEventCollector`: `UserTriggeredEventCollector` object which is responsible for tracking user triggered events.
@@ -183,6 +187,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let cpuUsageCalculator: CpuUsageCalculator
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
+    let launchCallback: LaunchCallbacks
+    let launchTracker: LaunchTracker
     let appLaunchCollector: AppLaunchCollector
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
@@ -334,10 +340,14 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      heartbeat: heartbeat,
                                                      exporter: exporter,
                                                      dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
+                                                                   logger: logger)
         self.spanProcessor = BaseSpanProcessor(logger: logger,
                                                signalProcessor: signalProcessor,
                                                attributeProcessors: attributeProcessors,
-                                               configProvider: configProvider)
+                                               configProvider: configProvider,
+                                               sampler: signalSampler,
+                                               attributeValueValidator: attributeValueValidator)
         self.tracer = MsrTracer(logger: logger,
                                 idProvider: idProvider,
                                 timeProvider: timeProvider,
@@ -366,17 +376,24 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              memoryUsageCalculator: memoryUsageCalculator,
                                                              sysCtl: sysCtl)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
+        self.launchCallback = LaunchCallbacks()
+        self.launchTracker = BaseLaunchTracker(launchCallbacks: launchCallback,
+                                               timeProvider: timeProvider,
+                                               sysCtl: sysCtl,
+                                               logger: logger,
+                                               userDefaultStorage: userDefaultStorage,
+                                               currentAppVersion: appVersion)
         self.appLaunchCollector = BaseAppLaunchCollector(logger: logger,
                                                          timeProvider: timeProvider,
                                                          signalProcessor: signalProcessor,
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
-                                                         currentAppVersion: appVersion)
+                                                         sampler: signalSampler,
+                                                         launchTracker: launchTracker,
+                                                         launchCallback: launchCallback)
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
                                                                  signalProcessor: signalProcessor,
                                                                  timeProvider: timeProvider)
-        self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
-                                                                   logger: logger)
         self.customEventCollector = BaseCustomEventCollector(logger: logger,
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,

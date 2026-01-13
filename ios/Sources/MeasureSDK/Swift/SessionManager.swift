@@ -18,6 +18,7 @@ protocol SessionManager {
     func onEventTracked(_ event: EventEntity)
     func setPreviousSessionCrashed(_ crashed: Bool)
     func markCurrentSessionAsCrashed()
+    func onConfigLoaded()
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -145,6 +146,27 @@ final class BaseSessionManager: SessionManager {
                 self.shouldReportSession = true
             }
         }
+    }
+
+    func onConfigLoaded() {
+        guard let sessionId = currentSessionId else {
+            return
+        }
+
+        let shouldReport = signalSampler.shouldTrackJourneyEvents()
+
+        guard shouldReport, !shouldReportSession else {
+            return
+        }
+
+        logger.log(level: .debug, message: "SessionManager: Marking session \(sessionId) for export after config load", error: nil, data: nil)
+
+        // TODO: check if updating session's needs reporting is needed?
+        sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
+        // TODO: update needs reporting only for journey events of this session
+        eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
+
+        shouldReportSession = true
     }
 
     private func shouldEndSession() -> Bool {

@@ -14,9 +14,11 @@ final class MockSessionManager: SessionManager {
     var isPreviousSessionCrashed = false
     var trackedEvent: EventEntity?
     var isCrashed: Bool = false
+    var onConfigLoadedHandler: (() -> Void)?
 
-    init(sessionId: String = "session-id") {
+    init(sessionId: String = "session-id", onConfigLoaded: (() -> Void)? = nil) {
         self.sessionId = sessionId
+        self.onConfigLoadedHandler = onConfigLoaded
     }
 
     func start(onNewSession: (String?) -> Void) {}
@@ -33,5 +35,9 @@ final class MockSessionManager: SessionManager {
 
     func markCurrentSessionAsCrashed() {
         isCrashed = true
+    }
+
+    func onConfigLoaded() {
+        onConfigLoadedHandler?()
     }
 }

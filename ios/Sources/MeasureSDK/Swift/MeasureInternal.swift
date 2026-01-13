@@ -118,19 +118,19 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var networkChangeCollector: NetworkChangeCollector {
         return measureInitializer.networkChangeCollector
     }
-    var customEventCollector: CustomEventCollector {
+    private var customEventCollector: CustomEventCollector {
         return measureInitializer.customEventCollector
     }
-    var userTriggeredEventCollector: UserTriggeredEventCollector {
+    private var userTriggeredEventCollector: UserTriggeredEventCollector {
         return measureInitializer.userTriggeredEventCollector
     }
-    var dataCleanupService: DataCleanupService {
+    private var dataCleanupService: DataCleanupService {
         return measureInitializer.dataCleanupService
     }
-    var attachmentProcessor: AttachmentProcessor {
+    private var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
     }
-    var spanCollector: SpanCollector {
+    private var spanCollector: SpanCollector {
         return measureInitializer.spanCollector
     }
     var internalSignalCollector: InternalSignalCollector {
@@ -141,20 +141,23 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             measureInitializer.internalSignalCollector = newValue
         }
     }
-    var bugReportCollector: BugReportCollector {
+    private var bugReportCollector: BugReportCollector {
         return measureInitializer.bugReportCollector
     }
-    var shakeBugReportCollector: ShakeBugReportCollector {
+    private var shakeBugReportCollector: ShakeBugReportCollector {
         return measureInitializer.shakeBugReportCollector
     }
-    var shakeDetector: ShakeDetector {
+    private var shakeDetector: ShakeDetector {
         return measureInitializer.shakeDetector
     }
-    var screenshotGenerator: ScreenshotGenerator {
+    private var screenshotGenerator: ScreenshotGenerator {
         return measureInitializer.screenshotGenerator
     }
-    var layoutSnapshotGenerator: LayoutSnapshotGenerator {
+    private var layoutSnapshotGenerator: LayoutSnapshotGenerator {
         return measureInitializer.layoutSnapshotGenerator
+    }
+    private var spanProcessor: SpanProcessor {
+        return measureInitializer.spanProcessor
     }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
@@ -181,6 +184,14 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
         configLoader.loadDynamicConfig { dynamicConfig in
             self.configProvider.setDynamicConfig(dynamicConfig)
+
+            self.sessionManager.onConfigLoaded()
+            self.spanProcessor.onConfigLoaded()
+            self.appLaunchCollector.onConfigLoaded()
+            self.cpuUsageCollector.onConfigLoaded()
+            self.memoryUsageCollector.onConfigLoaded()
+
+            // TODO: Implement updated export here
         }
     }
 
@@ -455,6 +466,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     private func trackSessionStart(sessionId: String?) {
+        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: SessionStartData(),
                               timestamp: timeProvider.now(),
                               type: .sessionStart,
@@ -462,6 +474,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                               sessionId: sessionId,
                               attachments: nil,
                               userDefinedAttributes: nil,
-                              threadName: nil)
+                              threadName: nil,
+                              needsReporting: true)
     }
 }

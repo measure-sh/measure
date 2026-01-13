@@ -141,13 +141,14 @@ final class SignalProcessorTests: XCTestCase {
                                               measureDispatchQueue: MockMeasureDispatchQueue(),
                                               signalSampler: signalSampler)
         signalProcessor.track(data: exception,
-                             timestamp: 1_000_000_000,
-                             type: .exception,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil,
-                             threadName: nil)
+                              timestamp: 1_000_000_000,
+                              type: .exception,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                              userDefinedAttributes: nil,
+                              threadName: nil,
+                              needsReporting: true)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
@@ -249,13 +250,14 @@ final class SignalProcessorTests: XCTestCase {
             appUniqueId: "unique-id"
         )
         signalProcessor.track(data: exception,
-                             timestamp: 1_000_000_000,
-                             type: .exception,
-                             attributes: attributes,
-                             sessionId: "session-id-2",
-                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil,
-                             threadName: nil)
+                              timestamp: 1_000_000_000,
+                              type: .exception,
+                              attributes: attributes,
+                              sessionId: "session-id-2",
+                              attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                              userDefinedAttributes: nil,
+                              threadName: nil,
+                              needsReporting: true)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)
@@ -310,7 +312,8 @@ final class SignalProcessorTests: XCTestCase {
             sessionId: nil,
             attachments: nil,
             userDefinedAttributes: nil,
-            threadName: nil
+            threadName: nil,
+            needsReporting: true
         )
 
         XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
@@ -343,7 +346,8 @@ final class SignalProcessorTests: XCTestCase {
             sessionId: nil,
             attachments: nil,
             userDefinedAttributes: nil,
-            threadName: nil
+            threadName: nil,
+            needsReporting: true
         )
 
         XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
@@ -376,7 +380,8 @@ final class SignalProcessorTests: XCTestCase {
             sessionId: nil,
             attachments: nil,
             userDefinedAttributes: nil,
-            threadName: nil
+            threadName: nil,
+            needsReporting: true
         )
 
         XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
@@ -409,45 +414,11 @@ final class SignalProcessorTests: XCTestCase {
             sessionId: nil,
             attachments: nil,
             userDefinedAttributes: nil,
-            threadName: nil
+            threadName: nil,
+            needsReporting: true
         )
 
         XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
-    }
-
-    func testEventNotTracked_whenSessionFalse_andSamplingFalse_andNotInAllowList() {
-        sessionManager.shouldReportSession = false
-        signalSampler.shouldTrackLaunchEventsReturnValue = false
-        signalSampler.shouldTrackJourneyEventsReturnValue = false
-
-        configProvider.eventTypeExportAllowList = []
-
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
-
-        signalProcessor.track(
-            data: "Test",
-            timestamp: 1234,
-            type: .coldLaunch,
-            attributes: nil,
-            sessionId: nil,
-            attachments: nil,
-            userDefinedAttributes: nil,
-            threadName: nil
-        )
-
-        XCTAssertEqual(eventStore.events.first?.needsReporting, false, "Event should NOT be tracked when session=false and sampling=false")
     }
 
     func testEventTracked_whenInAllowList_evenIfSessionFalse_andSamplingFalse() {
@@ -479,7 +450,8 @@ final class SignalProcessorTests: XCTestCase {
             sessionId: nil,
             attachments: nil,
             userDefinedAttributes: nil,
-            threadName: nil
+            threadName: nil,
+            needsReporting: true
         )
 
         XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when allowList contains eventType")

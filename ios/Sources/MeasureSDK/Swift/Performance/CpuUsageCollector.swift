@@ -12,6 +12,7 @@ protocol CpuUsageCollector {
     func disable()
     func resume()
     func pause()
+    func onConfigLoaded()
 }
 
 final class BaseCpuUsageCollector: CpuUsageCollector {
@@ -45,34 +46,50 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
 
     func disable() {
         isEnabled.setFalseIfTrue {
-            guard let timer = self.timer else { return }
+            stopTimer()
 
-            timer.invalidate()
+            self.timer?.invalidate()
             self.timer = nil
             logger.log(level: .info, message: "CpuUsageCollector disabled.", error: nil, data: nil)
         }
     }
 
     func resume() {
-        if isEnabled.get() && timer == nil {
-            initializeTimer()
-            logger.log(level: .info, message: "CpuUsageCollector resumed.", error: nil, data: nil)
-        }
+        guard isEnabled.get(), timer == nil else { return }
+
+        initializeTimer()
+        logger.log(level: .info, message: "CpuUsageCollector resumed.", error: nil, data: nil)
     }
 
     func pause() {
-        guard let timer = self.timer else { return }
+        guard timer != nil else { return }
+
+        stopTimer()
         logger.log(level: .info, message: "CpuUsageCollector paused.", error: nil, data: nil)
-        timer.invalidate()
-        self.timer = nil
+    }
+
+    func onConfigLoaded() {
+        guard isEnabled.get(), timer != nil else { return }
+
+        logger.log(level: .info, message: "CpuUsageCollector config updated, restarting timer.", error: nil, data: nil)
+
+        stopTimer()
+        initializeTimer()
     }
 
     private func initializeTimer() {
-        // TODO: use values from dynamic config
-        timer = Timer.scheduledTimer(withTimeInterval: Double(5000) / 1000.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+        let intervalSeconds = TimeInterval(configProvider.cpuUsageInterval)
+
+        timer = Timer.scheduledTimer(withTimeInterval: intervalSeconds,
+                                     repeats: true) { [weak self] _ in
+            guard let self else { return }
             self.trackCpuUsage()
         }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
 
     func trackCpuUsage() {
@@ -80,31 +97,33 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
         isTrackingInProgress = true
         defer { isTrackingInProgress = false }
 
-        let cpuUsageData = self.cpuUsageCalculator.getCurrentCpuUsage()
-
-        // TODO: use values from dynamic config
-        if cpuUsageData != -1 {
-            let cpuUsageData = CpuUsageData(numCores: sysCtl.getCpuCores(),
-                                            clockSpeed: sysCtl.getCpuFrequency(),
-                                            startTime: 0,
-                                            uptime: 0,
-                                            utime: 0,
-                                            cutime: 0,
-                                            cstime: 0,
-                                            stime: 0,
-                                            interval: 5000,
-                                            percentageUsage: FloatNumber64(cpuUsageData))
-
-            signalProcessor.track(data: cpuUsageData,
-                                  timestamp: timeProvider.now(),
-                                  type: .cpuUsage,
-                                  attributes: nil,
-                                  sessionId: nil,
-                                  attachments: nil,
-                                  userDefinedAttributes: nil,
-                                  threadName: nil)
-        } else {
+        let usage = cpuUsageCalculator.getCurrentCpuUsage()
+        guard usage >= 0 else {
             logger.internalLog(level: .error, message: "Could not get CPU usage data.", error: nil, data: nil)
+            return
         }
+
+        let intervalMs = configProvider.cpuUsageInterval * 1000
+
+        let data = CpuUsageData(numCores: sysCtl.getCpuCores(),
+                                clockSpeed: sysCtl.getCpuFrequency(),
+                                startTime: 0,
+                                uptime: 0,
+                                utime: 0,
+                                cutime: 0,
+                                cstime: 0,
+                                stime: 0,
+                                interval: UnsignedNumber(intervalMs),
+                                percentageUsage: FloatNumber64(usage))
+        // TODO: update needsReporting flag using sampler
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: .cpuUsage,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil,
+                              threadName: nil,
+                              needsReporting: true)
     }
 }

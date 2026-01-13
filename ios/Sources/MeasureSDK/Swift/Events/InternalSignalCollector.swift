@@ -101,6 +101,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         let evaluatedAttributes = Attributes(threadName: threadName)
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
 
+        // TODO: Check if needs reporting will always be true for trackEvent method.
         do {
             switch type {
             case EventType.custom.rawValue:
@@ -113,7 +114,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
 
             case EventType.exception.rawValue:
@@ -137,7 +139,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
 
             case EventType.screenView.rawValue:
@@ -150,7 +153,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
 
             case EventType.http.rawValue:
@@ -163,7 +167,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
 
             case EventType.bugReport.rawValue:
@@ -177,7 +182,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
             case EventType.gestureClick.rawValue:
                 let bugReportData = try extractClickData(data: data)
@@ -189,7 +195,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
             case EventType.gestureLongClick.rawValue:
                 let bugReportData = try extractLongClickData(data: data)
@@ -201,7 +208,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
             case EventType.gestureScroll.rawValue:
                 let bugReportData = try extractScrollData(data: data)
@@ -213,7 +221,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     sessionId: sessionId,
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName
+                    threadName: threadName,
+                    needsReporting: true
                 )
             default:
                 logger.log(

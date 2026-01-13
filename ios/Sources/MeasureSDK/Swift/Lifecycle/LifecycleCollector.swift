@@ -143,6 +143,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
     // MARK: - Event tracking
 
     private func trackEvent(_ data: Codable, type: EventType) {
+        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: type,
@@ -150,6 +151,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
                               sessionId: nil,
                               attachments: nil,
                               userDefinedAttributes: nil,
-                              threadName: nil)
+                              threadName: nil,
+                              needsReporting: true)
     }
 }

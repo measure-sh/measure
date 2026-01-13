@@ -13,10 +13,7 @@ final class MockSignalSampler: SignalSampler {
     var shouldMarkSessionForExportReturnValue: Bool = false
     var shouldTrackTraceReturnValue: Bool = false
     var shouldTrackJourneyEventsReturnValue: Bool = false
-
-    func shouldTrackLaunchEvents(type: EventType) -> Bool {
-        return shouldTrackLaunchEventsReturnValue
-    }
+    var shouldSampleTraceReturnValue: Bool = false
 
     func shouldMarkSessionForExport() -> Bool {
         return shouldMarkSessionForExportReturnValue
@@ -28,5 +25,13 @@ final class MockSignalSampler: SignalSampler {
 
     func shouldTrackJourneyEvents() -> Bool {
         return shouldTrackJourneyEventsReturnValue
+    }
+
+    func shouldTrackLaunchEvents() -> Bool {
+        return shouldTrackLaunchEventsReturnValue
+    }
+    
+    func shouldSampleTrace(_ traceId: String) -> Bool {
+        return shouldSampleTraceReturnValue
     }
 }

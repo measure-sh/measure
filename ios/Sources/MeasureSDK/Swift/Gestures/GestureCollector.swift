@@ -71,6 +71,7 @@ final class BaseGestureCollector: GestureCollector {
             logger.log(level: .error, message: "No window detected. Could not enable GestureCollector.", error: nil, data: nil)
             return
         }
+        // TODO: update needsReporting flag using sampler
         switch gesture {
         case .click(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
@@ -93,13 +94,14 @@ final class BaseGestureCollector: GestureCollector {
 
             collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
                 self.signalProcessor.track(data: data,
-                                      timestamp: self.timeProvider.now(),
-                                      type: .gestureClick,
-                                      attributes: nil,
-                                      sessionId: nil,
-                                      attachments: attachment == nil ? nil : [attachment!],
-                                      userDefinedAttributes: nil,
-                                      threadName: nil)
+                                           timestamp: self.timeProvider.now(),
+                                           type: .gestureClick,
+                                           attributes: nil,
+                                           sessionId: nil,
+                                           attachments: attachment == nil ? nil : [attachment!],
+                                           userDefinedAttributes: nil,
+                                           threadName: nil,
+                                           needsReporting: true)
             }
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
@@ -122,12 +124,13 @@ final class BaseGestureCollector: GestureCollector {
             collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
                 self.signalProcessor.track(data: data,
                                            timestamp: self.timeProvider.now(),
-                                      type: .gestureLongClick,
-                                      attributes: nil,
-                                      sessionId: nil,
-                                      attachments: attachment == nil ? nil : [attachment!],
-                                      userDefinedAttributes: nil,
-                                      threadName: nil)
+                                           type: .gestureLongClick,
+                                           attributes: nil,
+                                           sessionId: nil,
+                                           attachments: attachment == nil ? nil : [attachment!],
+                                           userDefinedAttributes: nil,
+                                           threadName: nil,
+                                           needsReporting: true)
             }
         case .scroll(let startX, let startY, let endX, let endY, let direction, let touchDownTime, let touchUpTime, let target, let targetId):
             let startScrollPoint = CGPoint(x: startX, y: startY)
@@ -150,12 +153,13 @@ final class BaseGestureCollector: GestureCollector {
                 collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) { attachment in
                     self.signalProcessor.track(data: data,
                                                timestamp: self.timeProvider.now(),
-                                          type: .gestureScroll,
-                                          attributes: nil,
-                                          sessionId: nil,
-                                          attachments: attachment == nil ? nil : [attachment!],
-                                          userDefinedAttributes: nil,
-                                          threadName: nil)
+                                               type: .gestureScroll,
+                                               attributes: nil,
+                                               sessionId: nil,
+                                               attachments: attachment == nil ? nil : [attachment!],
+                                               userDefinedAttributes: nil,
+                                               threadName: nil,
+                                               needsReporting: true)
                 }
             }
         }
