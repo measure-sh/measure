@@ -7,7 +7,7 @@ class MsrSpan: InternalSpan {
     private let spanProcessor: SpanProcessor
     private let lock = NSLock()
 
-    let isSampled: Bool
+    var isSampled: Bool
     var name: String
     let spanId: String
     var traceId: String
@@ -63,7 +63,7 @@ class MsrSpan: InternalSpan {
         let spanId = idProvider.spanId()
         let traceId = parentSpan?.traceId ?? idProvider.traceId()
         let sessionId = sessionManager.sessionId
-        let isSampled = parentSpan?.isSampled ?? signalSampler.shouldTrackTrace()
+        let isSampled = parentSpan?.isSampled ?? signalSampler.shouldSampleTrace(traceId)
 
         let span = MsrSpan(logger: logger,
                            timeProvider: timeProvider,
@@ -78,6 +78,12 @@ class MsrSpan: InternalSpan {
 
         spanProcessor.onStart(span)
         return span
+    }
+
+    func setSamplingRate(_ sampled: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        isSampled = sampled
     }
 
     func getStatus() -> SpanStatus {

@@ -49,6 +49,8 @@ final class MockMeasureInitializer: MeasureInitializer {
     let cpuUsageCalculator: CpuUsageCalculator
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
+    let launchCallback: LaunchCallbacks
+    let launchTracker: LaunchTracker
     let appLaunchCollector: AppLaunchCollector
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
@@ -109,6 +111,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          sysCtl: SysCtl? = nil,
          cpuUsageCollector: CpuUsageCollector? = nil,
          memoryUsageCollector: MemoryUsageCollector? = nil,
+         launchCallback: LaunchCallbacks? = nil,
+         launchTracker: LaunchTracker? = nil,
          appLaunchCollector: AppLaunchCollector? = nil,
          networkChangeCollector: NetworkChangeCollector? = nil,
          customEventCollector: CustomEventCollector? = nil,
@@ -252,10 +256,13 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                          heartbeat: self.heartbeat,
                                                                          exporter: self.exporter,
                                                                          dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider, logger: self.logger)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                                 signalProcessor: self.signalProcessor,
                                                                 attributeProcessors: attributeProcessors,
-                                                                configProvider: self.configProvider)
+                                                                configProvider: self.configProvider,
+                                                                sampler: self.signalSampler,
+                                                                attributeValueValidator: self.attributeValueValidator)
         self.tracer = tracer ?? MsrTracer(logger: self.logger,
                                           idProvider: self.idProvider,
                                           timeProvider: self.timeProvider,
@@ -284,16 +291,24 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                      memoryUsageCalculator: self.memoryUsageCalculator,
                                                                                      sysCtl: self.sysCtl)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
+        self.launchCallback = launchCallback ?? LaunchCallbacks()
+        self.launchTracker = launchTracker ?? BaseLaunchTracker(launchCallbacks: self.launchCallback,
+                                                                timeProvider: self.timeProvider,
+                                                                sysCtl: self.sysCtl,
+                                                                logger: self.logger,
+                                                                userDefaultStorage: self.userDefaultStorage,
+                                                                currentAppVersion: appVersion)
         self.appLaunchCollector = appLaunchCollector ?? BaseAppLaunchCollector(logger: self.logger,
                                                                                timeProvider: self.timeProvider,
                                                                                signalProcessor: self.signalProcessor,
                                                                                sysCtl: self.sysCtl,
                                                                                userDefaultStorage: self.userDefaultStorage,
-                                                                               currentAppVersion: appVersion)
+                                                                               sampler: self.signalSampler,
+                                                                               launchTracker: self.launchTracker,
+                                                                               launchCallback: self.launchCallback)
         self.networkChangeCollector = networkChangeCollector ?? BaseNetworkChangeCollector(logger: self.logger,
                                                                                            signalProcessor: self.signalProcessor,
                                                                                            timeProvider: self.timeProvider)
-        self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider, logger: self.logger)
         self.customEventCollector = customEventCollector ?? BaseCustomEventCollector(logger: self.logger,
                                                                                      signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,

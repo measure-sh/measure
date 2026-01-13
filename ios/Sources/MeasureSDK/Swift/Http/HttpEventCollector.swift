@@ -75,6 +75,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
 
     func onHttpCompletion(data: HttpData) {
         if isEnabled.get() {
+            // TODO: update needsReporting flag using sampler
             signalProcessor.track(data: data,
                                   timestamp: timeProvider.now(),
                                   type: .http,
@@ -82,7 +83,8 @@ final class BaseHttpEventCollector: HttpEventCollector {
                                   sessionId: nil,
                                   attachments: nil,
                                   userDefinedAttributes: nil,
-                                  threadName: nil)
+                                  threadName: nil,
+                                  needsReporting: true)
         }
     }
 }
