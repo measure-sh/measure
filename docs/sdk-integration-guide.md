@@ -33,7 +33,7 @@ in later steps.
 
 | Name                  | Version         |
 |-----------------------|-----------------|
-| Android Gradle Plugin | `8.0.2`         |
+| Android Gradle Plugin | `8.1.0`         |
 | Min SDK               | `21` (Lollipop) |
 | Target SDK            | `35`            |
 
@@ -315,7 +315,7 @@ Flutter SDK as well.
 
 | Name    | Version |
 |---------|---------|
-| Flutter | `3.10`  |
+| Flutter | `3.24`  |
 
 </details>
 
@@ -324,7 +324,8 @@ Flutter SDK as well.
 
 | SDK Version | Minimum Required Self-host Version |
 |-------------|------------------------------------|
-| `0.1.0`     | `0.8.0`                            |
+| >= `0.3.0`  | `0.9.0`                            |
+| >= `0.1.0`  | `0.8.0`                            |
 
 </details>
 
