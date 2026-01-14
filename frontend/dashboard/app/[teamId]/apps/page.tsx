@@ -129,8 +129,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   }
 
   const retentionPeriodToDisplayTextMap = new Map([
-    [7, '7 days'],
-    [15, '15 days'],
     [30, '1 month'],
     [90, '3 months'],
     [180, '6 months'],
@@ -138,8 +136,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   )
 
   const displayTextToRetentionPeriodMap = new Map([
-    ['7 days', 7],
-    ['15 days', 15],
     ['1 month', 30],
     ['3 months', 90],
     ['6 months', 180],

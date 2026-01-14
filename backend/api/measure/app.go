@@ -5392,6 +5392,13 @@ func UpdateAppSettings(c *gin.Context) {
 
 	appSettings.RetentionPeriod = payload.RetentionPeriod
 
+	if appSettings.RetentionPeriod < 30 || appSettings.RetentionPeriod > 365 {
+		msg := `retention period must be between 30 and 365 days`
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
 	appSettings.update()
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
