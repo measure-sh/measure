@@ -448,7 +448,8 @@ func (t *Team) changeRole(ctx context.Context, memberId *uuid.UUID, role rank) e
 // create inserts a new team into database and establishes
 // user's membership with the team.
 func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
-	id := uuid.New()
+	// id := uuid.New()
+	id := uuid.MustParse("655736a8-26ec-4a40-a127-078488ded764")
 	t.ID = &id
 	now := time.Now()
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/api/ambient"
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
@@ -33,6 +34,10 @@ import (
 	"github.com/leporo/sqlf"
 	"golang.org/x/sync/errgroup"
 )
+
+// appMetricsTable is the name of the table for app's
+// metrics.
+const appMetricsTable = "app_metrics_new final"
 
 type App struct {
 	ID           *uuid.UUID `json:"id"`
@@ -468,22 +473,8 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 
-	stmt := sqlf.From("events").
-		Select("count() as count").
-		Where("app_id = ?", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0])
-
-	defer stmt.Close()
-
-	var count uint64
-
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count); err != nil {
-		return nil, err
-	}
-
-	// no events for selected conditions found
-	if count < 1 {
+	// bail out if app has not been onboarded
+	if !a.Onboarded {
 		size.SetNaNs()
 		return
 	}
@@ -565,7 +556,7 @@ func (a App) GetIssueFreeMetrics(
 		return
 	}
 
-	stmt := sqlf.From("app_metrics").
+	stmt := sqlf.From(appMetricsTable).
 		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
@@ -583,6 +574,7 @@ func (a App) GetIssueFreeMetrics(
 	}
 
 	stmt.
+		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -735,10 +727,11 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 		return
 	}
 
-	stmt := sqlf.From("app_metrics").
+	stmt := sqlf.From(appMetricsTable).
 		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMerge(unique_sessions) as all_sessions").
 		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
+		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -762,7 +755,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 
 	selectedVersions, err := af.VersionPairs()
 
-	withStmt := sqlf.From("app_metrics").
+	withStmt := sqlf.From(appMetricsTable).
 		Select("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (?)) as cold_launch_p95", selectedVersions.Parameterize()).
 		Select("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (?)) as warm_launch_p95", selectedVersions.Parameterize()).
 		Select("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (?)) as hot_launch_p95", selectedVersions.Parameterize()).
@@ -778,7 +771,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
 		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
 		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
-		From("app_metrics").
+		From(appMetricsTable).
+		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -820,7 +814,6 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeAttached,
 				event.LifecycleFragmentTypeResumed,
 			},
-			event.TypeScreenView,
 		)
 	case opsys.AppleFamily:
 		whereVals = append(
@@ -834,9 +827,10 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			[]string{
 				event.LifecycleSwiftUITypeOnAppear,
 			},
-			event.TypeScreenView,
 		)
 	}
+
+	whereVals = append(whereVals, event.TypeScreenView)
 
 	if opts.All {
 		switch opsys.ToFamily(a.OSName) {
@@ -855,13 +849,23 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`events`).
-		Select(`distinct id`).
-		Select(`toString(type)`).
+		From(`journey_new`).
+		Select(`id`).
+		Select(`type`).
 		Select(`timestamp`).
 		Select(`session_id`).
-		Where(`app_id = toUUID(?)`, a.ID).
-		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID)
+
+	if len(af.Versions) > 0 {
+		stmt.Where("app_version.1 in ?", af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android:
@@ -871,24 +875,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_fragment.type)`).
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
-			Select(`toString(lifecycle_fragment.parent_fragment)`).
-			Select(`toString(screen_view.name)`)
+			Select(`toString(lifecycle_fragment.parent_fragment)`)
 	case opsys.AppleFamily:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
 			Select(`toString(lifecycle_swift_ui.type)`).
-			Select(`toString(lifecycle_swift_ui.class_name)`).
-			Select(`toString(screen_view.name)`)
+			Select(`toString(lifecycle_swift_ui.class_name)`)
 	}
 
-	if len(af.Versions) > 0 {
-		stmt.Where("`attribute.app_version` in ?", af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("`attribute.app_build` in ?", af.VersionCodes)
-	}
+	stmt.Select(`toString(screen_view.name)`)
 
 	if opts.All {
 		switch opsys.ToFamily(a.OSName) {
@@ -1042,7 +1038,8 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 }
 
 func (a *App) add() (*APIKey, error) {
-	id := uuid.New()
+	// id := uuid.New()
+	id := uuid.MustParse("5f1e2455-ffef-4e8e-9d68-73239753e5a0")
 	a.ID = &id
 	tx, err := server.Server.PgPool.Begin(context.Background())
 
@@ -1251,9 +1248,21 @@ func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName,
 }
 
 func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sessionAppVersion := sqlf.From("sessions_index_new").
+		Select("app_version").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("session_id = toUUID(?)", sessionId).
+		Limit(1)
+
 	cols := []string{
 		`id`,
-		`toString(type)`,
+		`type`,
 		`session_id`,
 		`app_id`,
 		`inet.ipv4`,
@@ -1263,67 +1272,67 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`user_triggered`,
 		`attachments`,
 		`attribute.installation_id`,
-		`toString(attribute.app_version)`,
-		`toString(attribute.app_build)`,
-		`toString(attribute.app_unique_id)`,
-		`toString(attribute.platform)`,
-		`toString(attribute.measure_sdk_version)`,
-		`toString(attribute.thread_name)`,
-		`toString(attribute.user_id)`,
-		`toString(attribute.device_name)`,
-		`toString(attribute.device_model)`,
-		`toString(attribute.device_manufacturer)`,
-		`toString(attribute.device_type)`,
+		`attribute.app_version`,
+		`attribute.app_build`,
+		`attribute.app_unique_id`,
+		`attribute.platform`,
+		`attribute.measure_sdk_version`,
+		`attribute.thread_name`,
+		`attribute.user_id`,
+		`attribute.device_name`,
+		`attribute.device_model`,
+		`attribute.device_manufacturer`,
+		`attribute.device_type`,
 		`attribute.device_is_foldable`,
 		`attribute.device_is_physical`,
 		`attribute.device_density_dpi`,
 		`attribute.device_width_px`,
 		`attribute.device_height_px`,
 		`attribute.device_density`,
-		`toString(attribute.device_locale)`,
-		`toString(attribute.os_name)`,
-		`toString(attribute.os_version)`,
-		`toString(attribute.network_type)`,
-		`toString(attribute.network_generation)`,
-		`toString(attribute.network_provider)`,
+		`attribute.device_locale`,
+		`attribute.os_name`,
+		`attribute.os_version`,
+		`attribute.network_type`,
+		`attribute.network_generation`,
+		`attribute.network_provider`,
 		`user_defined_attribute`,
-		`toString(gesture_long_click.target)`,
-		`toString(gesture_long_click.target_id)`,
+		`gesture_long_click.target`,
+		`gesture_long_click.target_id`,
 		`gesture_long_click.touch_down_time`,
 		`gesture_long_click.touch_up_time`,
 		`gesture_long_click.width`,
 		`gesture_long_click.height`,
 		`gesture_long_click.x`,
 		`gesture_long_click.y`,
-		`toString(gesture_click.target)`,
-		`toString(gesture_click.target_id)`,
+		`gesture_click.target`,
+		`gesture_click.target_id`,
 		`gesture_click.touch_down_time`,
 		`gesture_click.touch_up_time`,
 		`gesture_click.width`,
 		`gesture_click.height`,
 		`gesture_click.x`,
 		`gesture_click.y`,
-		`toString(gesture_scroll.target)`,
-		`toString(gesture_scroll.target_id)`,
+		`gesture_scroll.target`,
+		`gesture_scroll.target_id`,
 		`gesture_scroll.touch_down_time`,
 		`gesture_scroll.touch_up_time`,
 		`gesture_scroll.x`,
 		`gesture_scroll.y`,
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
-		`toString(gesture_scroll.direction)`,
+		`gesture_scroll.direction`,
 		`exception.handled`,
 		`exception.fingerprint`,
 		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
-		`toString(exception.framework)`,
-		`toString(lifecycle_app.type)`,
+		`exception.framework`,
+		`lifecycle_app.type`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
 		`cold_launch.content_provider_attach_uptime`,
 		`cold_launch.on_next_draw_uptime`,
-		`toString(cold_launch.launched_activity)`,
+		`cold_launch.launched_activity`,
 		`cold_launch.has_saved_state`,
 		`cold_launch.intent_data`,
 		`cold_launch.duration`,
@@ -1332,24 +1341,24 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`warm_launch.process_start_requested_uptime`,
 		`warm_launch.content_provider_attach_uptime`,
 		`warm_launch.on_next_draw_uptime`,
-		`toString(warm_launch.launched_activity)`,
+		`warm_launch.launched_activity`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
 		`warm_launch.duration`,
 		`warm_launch.is_lukewarm`,
 		`hot_launch.app_visible_uptime`,
 		`hot_launch.on_next_draw_uptime`,
-		`toString(hot_launch.launched_activity)`,
+		`hot_launch.launched_activity`,
 		`hot_launch.has_saved_state`,
 		`hot_launch.intent_data`,
 		`hot_launch.duration`,
-		`toString(network_change.network_type)`,
-		`toString(network_change.previous_network_type)`,
-		`toString(network_change.network_generation)`,
-		`toString(network_change.previous_network_generation)`,
-		`toString(network_change.network_provider)`,
+		`network_change.network_type`,
+		`network_change.previous_network_type`,
+		`network_change.network_generation`,
+		`network_change.previous_network_generation`,
+		`network_change.network_provider`,
 		`http.url`,
-		`toString(http.method)`,
+		`http.method`,
 		`http.status_code`,
 		`http.start_time`,
 		`http.end_time`,
@@ -1359,7 +1368,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`http.response_body`,
 		`http.failure_reason`,
 		`http.failure_description`,
-		`toString(http.client)`,
+		`http.client`,
 		`cpu_usage.num_cores`,
 		`cpu_usage.clock_speed`,
 		`cpu_usage.start_time`,
@@ -1370,7 +1379,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.cstime`,
 		`cpu_usage.interval`,
 		`cpu_usage.percentage_usage`,
-		`toString(screen_view.name) `,
+		`screen_view.name `,
 		`bug_report.description`,
 		`custom.name`,
 	}
@@ -1382,19 +1391,19 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`anr.foreground`,
 			`anr.exceptions`,
 			`anr.threads`,
-			`toString(app_exit.reason)`,
-			`toString(app_exit.importance)`,
+			`app_exit.reason`,
+			`app_exit.importance`,
 			`app_exit.trace`,
 			`app_exit.process_name`,
 			`app_exit.pid`,
-			`toString(string.severity_text)`,
+			`string.severity_text`,
 			`string.string`,
-			`toString(lifecycle_activity.type)`,
-			`toString(lifecycle_activity.class_name)`,
+			`lifecycle_activity.type`,
+			`lifecycle_activity.class_name`,
 			`lifecycle_activity.intent`,
 			`lifecycle_activity.saved_instance_state`,
-			`toString(lifecycle_fragment.type)`,
-			`toString(lifecycle_fragment.class_name)`,
+			`lifecycle_fragment.type`,
+			`lifecycle_fragment.class_name`,
 			`lifecycle_fragment.parent_activity`,
 			`lifecycle_fragment.parent_fragment`,
 			`lifecycle_fragment.tag`,
@@ -1413,32 +1422,43 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`low_memory.rss`,
 			`low_memory.native_total_heap`,
 			`low_memory.native_free_heap`,
-			`toString(trim_memory.level)`,
-			`toString(navigation.to)`,
-			`toString(navigation.from)`,
-			`toString(navigation.source)`,
+			`trim_memory.level`,
+			`navigation.to`,
+			`navigation.from`,
+			`navigation.source`,
 		}...)
 	case opsys.AppleFamily:
 		cols = append(cols, []string{
 			`exception.error`,
-			`toString(lifecycle_view_controller.type)`,
-			`toString(lifecycle_view_controller.class_name)`,
-			`toString(lifecycle_swift_ui.type)`,
-			`toString(lifecycle_swift_ui.class_name)`,
+			`lifecycle_view_controller.type`,
+			`lifecycle_view_controller.class_name`,
+			`lifecycle_swift_ui.type`,
+			`lifecycle_swift_ui.class_name`,
 			`memory_usage_absolute.max_memory`,
 			`memory_usage_absolute.used_memory`,
 			`memory_usage_absolute.interval`,
 		}...)
 	}
 
-	stmt := sqlf.From("events")
+	// We look up the app version from sessions_index table
+	// to speed up the query to fetch events for the session
+	//
+	// This allows us to stay on the fast binary search path
+	// using the table's native ORDER BY sequence.
+	stmt := sqlf.From("events_new").
+		With("session_app_version", sessionAppVersion)
+
 	defer stmt.Close()
 
 	for i := range cols {
 		stmt.Select(cols[i])
 	}
 
-	stmt.Where("app_id = ? and session_id = ?", a.ID, sessionId)
+	stmt.Where("team_id = toUUID(?)", teamId)
+	stmt.Where("app_id = toUUID(?)", a.ID)
+	stmt.Where("attribute.app_version in (select app_version.1 from session_app_version)")
+	stmt.Where("attribute.app_build in (select app_version.2 from session_app_version)")
+	stmt.Where("session_id = toUUID(?)", sessionId)
 	stmt.OrderBy("timestamp")
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -2087,6 +2107,7 @@ func GetAppJourney(c *gin.Context) {
 
 	settings := clickhouse.Settings{
 		"log_comment": lc.String(),
+		"max_threads": 32,
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "journey_events")
@@ -2433,6 +2454,8 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(ctx, app.TeamId)
+
 	excludedVersions, err := af.GetExcludedVersions(ctx)
 	if err != nil {
 		msg := `failed to fetch excluded versions`
@@ -2647,6 +2670,8 @@ func GetAppFilters(c *gin.Context) {
 		})
 		return
 	}
+
+	ctx = ambient.WithTeamId(ctx, *team.ID)
 
 	var fl filter.FilterList
 
@@ -4712,13 +4737,15 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(ctx, *team.ID)
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sessions_list")
-	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
+	sessions, next, previous, err := GetSessionsWithFilterTwo(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
 		fmt.Println(msg, err)
@@ -4848,13 +4875,15 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(ctx, *team.ID)
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
-	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
+	sessionInstances, err := GetSessionsInstancesPlotTwo(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
@@ -4964,6 +4993,8 @@ func GetSession(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
+
+	ctx = ambient.WithTeamId(ctx, *team.ID)
 
 	session, err := app.GetSessionEvents(ctx, sessionId)
 	if err != nil {

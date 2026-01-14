@@ -36,7 +36,7 @@ type ExceptionGroup struct {
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
 	Percentage      float32                `json:"percentage_contribution"`
-	UpdatedAt       *time.Time             `json:"updated_at" db:"updated_at"`
+	UpdatedAt       time.Time              `json:"updated_at" db:"updated_at"`
 }
 
 type ANRGroup struct {
@@ -51,7 +51,7 @@ type ANRGroup struct {
 	EventIDs   []uuid.UUID      `json:"event_ids,omitempty"`
 	EventANRs  []event.EventANR `json:"anr_events,omitempty"`
 	Percentage float32          `json:"percentage_contribution"`
-	UpdatedAt  *time.Time       `json:"updated_at" db:"updated_at"`
+	UpdatedAt  time.Time        `json:"updated_at" db:"updated_at"`
 }
 
 // GetId provides the exception's
@@ -91,6 +91,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 		Set("method_name", e.MethodName).
 		Set("file_name", e.FileName).
 		Set("line_number", e.LineNumber).
+		Set("created_at", time.Now()).
 		Set("updated_at", e.UpdatedAt.Format(chrono.NanoTimeFormat))
 
 	defer stmt.Close()
@@ -135,6 +136,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 		Set("method_name", a.MethodName).
 		Set("file_name", a.FileName).
 		Set("line_number", a.LineNumber).
+		Set("created_at", time.Now()).
 		Set("updated_at", a.UpdatedAt.Format(chrono.NanoTimeFormat))
 
 	defer stmt.Close()
@@ -392,7 +394,8 @@ func NewExceptionGroup(appId uuid.UUID, fingerprint string, exceptionType, messa
 		MethodName: methodName,
 		FileName:   fileName,
 		LineNumber: lineNumber,
-		UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
+		// UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
+		UpdatedAt: time.Now(),
 	}
 }
 
@@ -406,6 +409,7 @@ func NewANRGroup(appId uuid.UUID, fingerprint string, anrType, message, methodNa
 		MethodName: methodName,
 		FileName:   fileName,
 		LineNumber: lineNumber,
-		UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
+		// UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
+		UpdatedAt: time.Now(),
 	}
 }

@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"backend/api/ambient"
 	"backend/api/event"
 	"backend/api/logcomment"
 	"backend/api/opsys"
@@ -39,6 +40,13 @@ const DefaultPaginationLimit = 10
 // defaultQueryCacheTTL is the default query cache
 // TTL duration.
 const defaultQueryCacheTTL = time.Minute * 10
+
+// appFiltersTable is the name of the for event filters.
+const appFiltersTable = "app_filters_new final"
+
+// spanFiltersTable is the name of the table for span
+// filters.
+const spanFiltersTable = "span_filters final"
 
 // Operator represents a comparison operator
 // like `eq` for `equal` or `gte` for `greater
@@ -548,7 +556,6 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 
 	// each go routine isolates log comment &
 	// clickhouse settings for safe concurrency
-
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
@@ -557,7 +564,8 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 			// not at session level.
 			"use_query_cache": 1,
 			// cache for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":   int(defaultQueryCacheTTL.Seconds()),
+			"force_primary_key": 1,
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
@@ -764,16 +772,21 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 // Additionally, filters for `exception` and `anr` event
 // types.
 func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct toString(tupleElement(app_version, 1)) as version, toString(tupleElement(app_version, 2)) as code").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		OrderBy("code desc, version")
 
@@ -830,18 +843,23 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct toString(tupleElement(os_version, 1)) as name, toString(tupleElement(os_version, 2)) as version").
 		GroupBy("name, version").
 		OrderBy("version desc, name").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -879,16 +897,21 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct country_code").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		OrderBy("country_code")
 
@@ -925,17 +948,22 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct network_provider").
 		OrderBy("network_provider").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -971,17 +999,22 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct network_type").
 		OrderBy("network_type").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -1017,17 +1050,22 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct network_generation").
 		OrderBy("network_generation").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -1066,17 +1104,22 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct device_locale").
 		OrderBy("device_locale").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -1112,17 +1155,22 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct device_manufacturer").
 		OrderBy("device_manufacturer").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -1158,17 +1206,22 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
-	var table_name string
+	table := appFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = spanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
+		From(table).
 		Select("distinct device_name").
 		OrderBy("device_name").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
@@ -1202,11 +1255,10 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types.
 func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
-	var table string
+	table := "user_def_attrs final"
+
 	if af.Span {
 		table = "span_user_def_attrs final"
-	} else {
-		table = "user_def_attrs final"
 	}
 
 	stmt := sqlf.From(table).

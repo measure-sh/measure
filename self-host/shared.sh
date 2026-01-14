@@ -200,3 +200,19 @@ is_compose_service_up() {
   local svc="$1"
   $DOCKER_COMPOSE ps -q "$svc" 2>/dev/null | grep -q .
 }
+
+# ------------------------------------------------------------------------------
+# clickhouse_client runs clickhouse-client using docker-compose
+# ------------------------------------------------------------------------------
+clickhouse_client() {
+  if [[ -z "${DOCKER_COMPOSE+x}" ]]; then
+    set_docker_compose
+  fi
+
+  if ! is_compose_service_up clickhouse; then
+    start_clickhouse_service
+  fi
+
+  $DOCKER_COMPOSE \
+    exec clickhouse clickhouse-client "$@"
+}

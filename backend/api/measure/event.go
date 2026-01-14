@@ -830,8 +830,8 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 		}
 
 		exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.Fingerprint, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Timestamp)
-		if err := exceptionGroup.Insert(ctx); err != nil {
-			return err
+		if err = exceptionGroup.Insert(ctx); err != nil {
+			return
 		}
 	}
 
