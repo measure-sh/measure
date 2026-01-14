@@ -127,7 +127,7 @@ func (a Attribute) Validate() error {
 		maxUserIDChars             = 128
 		maxDeviceNameChars         = 32
 		maxDeviceModelChars        = 32
-		maxDeviceManufacturerChars = 32
+		maxDeviceManufacturerChars = 256
 		maxDeviceTypeChars         = 32
 		maxOSNameChars             = 32
 		maxOSVersionChars          = 32
