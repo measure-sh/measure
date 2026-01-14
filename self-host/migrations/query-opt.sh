@@ -870,7 +870,7 @@ replay_events() {
         break
       fi
 
-      echo " ✔ Replaying chunk of $chunk_count rows (offset $offset)"
+      echo "  ✔ Replaying chunk of $chunk_count rows (offset $offset)"
 
       if ! clickhouse_query --query "
         insert into events_new
@@ -910,7 +910,18 @@ replay_unhandled_exception_groups() {
   echo "  ✔ Replaying unhandled_exception_groups"
 
   if ! clickhouse_query --query "
-    insert into unhandled_exception_groups_new
+    insert into unhandled_exception_groups_new (
+      team_id,
+      app_id,
+      id,
+      type,
+      message,
+      method_name,
+      file_name,
+      line_number,
+      created_at,
+      updated_at
+    )
     select
       team_id,
       app_id,
@@ -920,7 +931,7 @@ replay_unhandled_exception_groups() {
       method_name,
       file_name,
       line_number,
-      updated_at as created_at,
+      updated_at,
       updated_at
     from unhandled_exception_groups
     order by (app_id, id)
@@ -934,7 +945,18 @@ replay_anr_groups() {
   echo "  ✔ Replaying anr_groups"
 
   if ! clickhouse_query --query "
-    insert into anr_groups_new
+    insert into anr_groups_new (
+      team_id,
+      app_id,
+      id,
+      type,
+      message,
+      method_name,
+      file_name,
+      line_number,
+      created_at,
+      updated_at
+    )
     select
       team_id,
       app_id,
@@ -944,7 +966,7 @@ replay_anr_groups() {
       method_name,
       file_name,
       line_number,
-      updated_at as created_at,
+      updated_at,
       updated_at
     from anr_groups
     order by (app_id, id)
@@ -1029,6 +1051,43 @@ drop_resources() {
   clickhouse_query --query "drop table if exists anr_groups_new sync"
 }
 
+verify_resources() {
+  clickhouse_query --query "
+  select
+    (select count() from events final) as events_count,
+    (select count() from events_new final) as events_new_count
+  format
+    PrettySpace
+  "
+  echo
+
+  clickhouse_query --query "
+  select
+    (select count() from sessions final) as sessions_count,
+    (select count() from sessions_new final) as sessions_new_count
+  format
+    PrettySpace
+  "
+  echo
+
+  clickhouse_query --query "
+  select
+    (select count() from unhandled_exception_groups final) as unhandled_exception_groups_count,
+    (select count() from unhandled_exception_groups_new final) as unhandled_exception_groups_new_count
+  format
+    PrettySpace
+  "
+  echo
+
+  clickhouse_query --query "
+  select
+    (select count() from anr_groups final) as anr_groups_count,
+    (select count() from anr_groups_new final) as anr_groups_new_count
+  format
+    PrettySpace
+  "
+}
+
 # Counts the rows for partitions
 #
 # Args:
@@ -1063,21 +1122,17 @@ set_docker_compose
 echo "Create resources..."
 create_resources
 
+echo
 echo "Replay data..."
 replay_events
+echo
 replay_unhandled_exception_groups
+echo
 replay_anr_groups
+echo
 
-# debug replay results
-echo "Sleeping for few seconds..."
-sleep 30
-
-echo "Verify count of rows with final"
-clickhouse_query --query "
-  select
-    (select count() from events final) as events_count,
-    (select count() from events_new final) as events_new_count
-"
+echo "Verify backfill..."
+verify_resources
 
 # echo "Exchange resources..."
 # exchange_resources
