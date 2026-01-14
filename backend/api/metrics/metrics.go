@@ -28,6 +28,7 @@ type CrashFreeSession struct {
 	CrashFreeSessions float64 `json:"crash_free_sessions"`
 	Delta             float64 `json:"delta"`
 	NaN               bool    `json:"nan"`
+	DeltaNaN          bool    `json:"delta_nan"`
 }
 
 // ANRFreeSesssion represents compute result of an app's
@@ -36,6 +37,7 @@ type ANRFreeSession struct {
 	ANRFreeSessions float64 `json:"anr_free_sessions"`
 	Delta           float64 `json:"delta"`
 	NaN             bool    `json:"nan"`
+	DeltaNaN        bool    `json:"delta_nan"`
 }
 
 // PerceivedCrashFreeSesssion represents compute result of an app's
@@ -44,6 +46,7 @@ type PerceivedCrashFreeSession struct {
 	CrashFreeSessions float64 `json:"perceived_crash_free_sessions"`
 	Delta             float64 `json:"delta"`
 	NaN               bool    `json:"nan"`
+	DeltaNaN          bool    `json:"delta_nan"`
 }
 
 // PerceivedANRFreeSesssion represents compute result of an app's
@@ -52,6 +55,7 @@ type PerceivedANRFreeSession struct {
 	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
 	Delta           float64 `json:"delta"`
 	NaN             bool    `json:"nan"`
+	DeltaNaN        bool    `json:"delta_nan"`
 }
 
 // LaunchMetric represents compute result of an app's cold,
@@ -118,9 +122,13 @@ func (sm *SizeMetric) SetNaNs() {
 // SetNaNs sets the NaN bit if crash
 // free sessions value(s) are NaN.
 func (cfs *CrashFreeSession) SetNaNs() {
-	if math.IsNaN(cfs.CrashFreeSessions) || math.IsNaN(cfs.Delta) {
+	if math.IsNaN(cfs.CrashFreeSessions) {
 		cfs.NaN = true
 		cfs.CrashFreeSessions = 0
+	}
+
+	if math.IsNaN(cfs.Delta) {
+		cfs.DeltaNaN = true
 		cfs.Delta = 0
 	}
 }
@@ -128,9 +136,13 @@ func (cfs *CrashFreeSession) SetNaNs() {
 // SetNaNs sets the NaN bit if ANR
 // free sessions value(s) are NaN.
 func (afs *ANRFreeSession) SetNaNs() {
-	if math.IsNaN(afs.ANRFreeSessions) || math.IsNaN(afs.Delta) {
+	if math.IsNaN(afs.ANRFreeSessions) {
 		afs.NaN = true
 		afs.ANRFreeSessions = 0
+	}
+
+	if math.IsNaN(afs.Delta) {
+		afs.DeltaNaN = true
 		afs.Delta = 0
 	}
 }
@@ -139,9 +151,13 @@ func (afs *ANRFreeSession) SetNaNs() {
 // perceived crash free sessions
 // value(s) are NaN.
 func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
-	if math.IsNaN(pcfs.CrashFreeSessions) || math.IsNaN(pcfs.Delta) {
+	if math.IsNaN(pcfs.CrashFreeSessions) {
 		pcfs.NaN = true
 		pcfs.CrashFreeSessions = 0
+	}
+
+	if math.IsNaN(pcfs.Delta) {
+		pcfs.DeltaNaN = true
 		pcfs.Delta = 0
 	}
 }
@@ -150,9 +166,13 @@ func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
 // perceived crash free sessions
 // value(s) are NaN.
 func (pafs *PerceivedANRFreeSession) SetNaNs() {
-	if math.IsNaN(pafs.ANRFreeSessions) || math.IsNaN(pafs.Delta) {
+	if math.IsNaN(pafs.ANRFreeSessions) {
 		pafs.NaN = true
 		pafs.ANRFreeSessions = 0
+	}
+
+	if math.IsNaN(pafs.Delta) {
+		pafs.DeltaNaN = true
 		pafs.Delta = 0
 	}
 }
