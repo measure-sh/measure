@@ -108,6 +108,18 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
+  function currentUserCanChangeTeamName(authzAndMembers: any, currentUserId: string | undefined): boolean {
+    if (currentUserId === undefined) {
+      return false
+    }
+    const currentUserRole = authzAndMembers.members.find((member: any) => member.id === currentUserId)?.role
+    if (currentUserRole === 'owner' || currentUserRole === 'admin') {
+      return true
+    } else {
+      return false
+    }
+  }
+
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
@@ -706,7 +718,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             <Button
               variant="outline"
               className="m-4"
-              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              disabled={!currentUserCanChangeTeamName(authzAndMembers, currentUserId) || saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               onClick={() => setTeamNameConfirmationDialogOpen(true)}>
               Save
