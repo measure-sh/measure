@@ -452,7 +452,7 @@ services:
       - type: bind
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
-        
+
   redis:
     image: valkey/valkey:9.0.0-alpine
     ports:
