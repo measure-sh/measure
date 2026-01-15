@@ -71,25 +71,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      <html lang="en">
-        <body className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <PostHogProvider>
-              <CookieBanner />
-              <div className='bg-background text-foreground'>
-                {children}
-              </div>
-            </PostHogProvider>
-            <Toaster />
-          </ThemeProvider>
-        </body>
-      </html>
-    </>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <PostHogProvider>
+            <CookieBanner />
+            <div className='bg-background text-foreground'>
+              {children}
+            </div>
+          </PostHogProvider>
+          <Toaster />
+        </ThemeProvider>
+      </body>
+    </html>
   )
 }
