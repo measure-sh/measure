@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlinx.binary.compatibility.validator)
     alias(libs.plugins.diffplug.spotless)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 private val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
@@ -196,4 +197,15 @@ dependencies {
     androidTestImplementation(libs.squareup.okhttp.mockwebserver)
     androidTestUtil(libs.androidx.orchestrator)
     androidTestImplementation(libs.androidx.benchmark.junit4)
+
+    baselineProfile(project(":benchmarks"))
+}
+
+baselineProfile {
+    saveInSrc = true
+    automaticGenerationDuringBuild = false
+    baselineProfileOutputDir = "generated/baselineProfiles"
+    filter {
+        include("sh.measure.android.**")
+    }
 }

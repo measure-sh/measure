@@ -1,0 +1,65 @@
+name: Android Baseline Profile
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/measure/src/**/*.kt'
+      - 'android/measure/src/**/*.java'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: 21
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  generate-baseline-profile:
+    name: Generate Baseline Profile
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: android
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Generate baseline profile
+        run: ./gradlew :measure:generateReleaseBaselineProfile -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect --no-daemon --stacktrace
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(android): update baseline profile"
+          branch: android-baseline-profile-update
+          delete-branch: true
+          title: "chore(android): update baseline profile"
+          body: |
+            Auto-generated baseline profile update.
+
+            Triggered by changes to `android/measure/src/`.
+          base: main
+          labels: android

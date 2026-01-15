@@ -7,4 +7,5 @@ plugins {
     alias(libs.plugins.kotlinx.binary.compatibility.validator) apply false
     alias(libs.plugins.diffplug.spotless) apply false
     alias(libs.plugins.compose) apply false
+    alias(libs.plugins.androidx.baselineprofile) apply false
 }
