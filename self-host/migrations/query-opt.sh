@@ -394,6 +394,33 @@ COMMENT 'aggregated app sessions'
 EOF
 )
 
+# unhandled_exception_groups_new_table=$(
+#   cat <<'EOF'
+# create or replace table unhandled_exception_groups_new
+# (
+#     `team_id` UUID comment 'associated team id' CODEC(ZSTD(3)),
+#     `app_id` UUID comment 'linked app id' CODEC(ZSTD(3)),
+#     `id` FixedString(32) comment 'unique fingerprint of the unhandled exception which acts as the id of the group' CODEC(ZSTD(3)),
+#     `type` String comment 'type of the exception' CODEC(ZSTD(3)),
+#     `message` String comment 'message of the exception' CODEC(ZSTD(3)),
+#     `method_name` String comment 'method name where the exception occured' CODEC(ZSTD(3)),
+#     `file_name` String comment 'file name where the exception occured' CODEC(ZSTD(3)),
+#     `line_number` Int32 comment 'line number where the exception occured' CODEC(ZSTD(3)),
+#     `count` UInt64 comment 'count of unhandled exception instances' CODEC(ZSTD(3)),
+#     `created_at` DateTime64(3, 'UTC') comment 'utc timestamp at the time of record creation' CODEC(DoubleDelta, ZSTD(3)),
+#     `updated_at` DateTime64(3, 'UTC') comment 'utc timestamp at the time of record updation' CODEC(DoubleDelta, ZSTD(3))
+# )
+# ENGINE = ReplacingMergeTree
+# PARTITION BY toYYYYMM(created_at)
+# ORDER BY (team_id, app_id, id)
+# SETTINGS
+#   index_granularity = 2048,
+#   enable_block_number_column= 1,
+#   enable_block_offset_column = 1
+# COMMENT 'unhandled exception groups'
+# EOF
+# )
+
 unhandled_exception_groups_new_table=$(
   cat <<'EOF'
 create or replace table unhandled_exception_groups_new
@@ -906,6 +933,62 @@ replay_events() {
   fi
 }
 
+# replay_unhandled_exception_groups() {
+#   echo "  ✔ Replaying unhandled_exception_groups"
+
+#   if ! clickhouse_query --query "
+#     insert into unhandled_exception_groups_new (
+#       team_id,
+#       app_id,
+#       id,
+#       type,
+#       message,
+#       method_name,
+#       file_name,
+#       line_number,
+#       count,
+#       created_at,
+#       updated_at
+#     )
+#     select
+#       g.team_id,
+#       g.app_id,
+#       g.id,
+#       g.type,
+#       g.message,
+#       g.method_name,
+#       g.file_name,
+#       g.line_number,
+#       coalesce(e.exception_count, 0) as count,
+#       g.updated_at as created_at,
+#       g.updated_at as updated_at
+#     from unhandled_exception_groups as g
+#     left join
+#     (
+#       select
+#         team_id,
+#         app_id,
+#         exception.fingerprint as id,
+#         count() as exception_count
+#       from events_new
+#       where
+#         type = 'exception'
+#         and exception.handled = false
+#       group by
+#         team_id,
+#         app_id,
+#         exception.fingerprint
+#     ) as e
+#     on g.team_id = e.team_id
+#        and g.app_id = e.app_id
+#        and g.id = e.id
+#     order by (g.app_id, g.id)
+#   "; then
+#     echo "  ✗ Insert failed while replaying unhandled_exception_groups_new"
+#     return 1
+#   fi
+# }
+
 replay_unhandled_exception_groups() {
   echo "  ✔ Replaying unhandled_exception_groups"
 
@@ -919,22 +1002,43 @@ replay_unhandled_exception_groups() {
       method_name,
       file_name,
       line_number,
+      count,
       created_at,
       updated_at
     )
     select
-      team_id,
-      app_id,
-      id,
-      type,
-      message,
-      method_name,
-      file_name,
-      line_number,
-      updated_at,
-      updated_at
-    from unhandled_exception_groups
-    order by (app_id, id)
+      g.team_id,
+      g.app_id,
+      g.id,
+      g.type,
+      g.message,
+      g.method_name,
+      g.file_name,
+      g.line_number,
+      coalesce(e.exception_count, 0) as count,
+      g.updated_at as created_at,
+      g.updated_at as updated_at
+    from unhandled_exception_groups as g
+    left join
+    (
+      select
+        team_id,
+        app_id,
+        exception.fingerprint as id,
+        count() as exception_count
+      from events_new
+      where
+        type = 'exception'
+        and exception.handled = false
+      group by
+        team_id,
+        app_id,
+        exception.fingerprint
+    ) as e
+    on g.team_id = e.team_id
+       and g.app_id = e.app_id
+       and g.id = e.id
+    order by (g.app_id, g.id)
   "; then
     echo "  ✗ Insert failed while replaying unhandled_exception_groups_new"
     return 1

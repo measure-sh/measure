@@ -92,11 +92,37 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 		Set("file_name", e.FileName).
 		Set("line_number", e.LineNumber).
 		Set("created_at", time.Now()).
-		Set("updated_at", e.UpdatedAt.Format(chrono.NanoTimeFormat))
+		Set("updated_at", e.UpdatedAt)
 
 	defer stmt.Close()
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+}
+
+func (e ExceptionGroup) Upsert(ctx context.Context) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
+	count := 0
+
+	{
+		stmt := sqlf.
+			From("unhandled_exception_groups_new").
+			Select("count").
+			Where("team_id = toUUID(?)", teamId).
+			Where("app_id = toUUID(?)", e.AppID).
+			Where("id = toUUID(?)", e.ID)
+
+		defer stmt.Close()
+
+		if err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count); err != nil {
+			return
+		}
+	}
+
+	return
 }
 
 // GetId provides the ANR's
