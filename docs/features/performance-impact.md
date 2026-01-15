@@ -20,10 +20,10 @@ macro-benchmark. For detailed methodology, see [android/benchmarks](../../androi
 > for your app to get results specific to your app. These numbers are published to provide
 > a reference point and are used internally to detect any performance regressions.
 
-Benchmarks results for v0.9.0:
+Benchmarks results for v0.16.0:
 
-* Adds 26.258ms-34.416ms to the app startup time (Time to Initial Display) for a simple app.
-* Adds 0.57ms for view-based layouts, and 0.65ms for compose based layouts to every gesture.
+* Adds 17.5ms-31.3ms (24.3ms median) to the app startup time (Time to Initial Display) for a simple app.
+* Adds 0.6-1ms to detect and create a layout snapshot for click gestures.
 
 ### Profiling
 
@@ -32,16 +32,19 @@ performance
 using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) directly.
 
-* `msr-init` — time spent on the main thread while initializing.
-* `msr-start` — time spent on the main thread when `Measure.start` is called.
-* `msr-stop` — — time spent on the main thread when `Measure.stop` is called.
-* `msr-trackEvent` — time spent in storing an event to local storage. Almost all of this time is spent _off_ the main
-  thread.
-* `msr-trackGesture` — time spent on the main thread to track a gesture.
-* `msr-generateSvgAttachment` — time spent on background thread to generate an SVG layout.
-* `msr-captureScreenshot` — time spent on main thread to capture and compress a screenshot.
-* `msr-loadImageFromFile` — time spent on main thread to load an image from a file.
-* `msr-loadImageFromUri` — time spent on main thread to load an image from a Uri.
+Here's the table:
+
+| Metric                      | Description                                                                                             |
+|-----------------------------|---------------------------------------------------------------------------------------------------------|
+| `msr-init`                  | Time spent on the **main** thread while initializing                                                    |
+| `msr-start`                 | Time spent on the **main** thread when `Measure.start` is called                                        |
+| `msr-stop`                  | Time spent on the **main** thread when `Measure.stop` is called                                         |
+| `msr-trackEvent`            | Time spent in storing an event to local storage. Almost all of this time is spent _off_ the main thread |
+| `msr-trackGesture`          | Time spent on the **main** thread to track a gesture                                                    |
+| `msr-generateSvgAttachment` | Time spent on **background** thread to generate an SVG layout                                           |
+| `msr-captureScreenshot`     | Time spent on **main** thread to capture and compress a screenshot                                      |
+| `msr-loadImageFromFile`     | Time spent on **main** thread to load an image from a file                                              |
+| `msr-loadImageFromUri`      | Time spent on **main** thread to load an image from a Uri                                               |
 
 ### Comparison to Firebase initialization
 

@@ -48,6 +48,8 @@ mockito-kotlin = "5.1.0"
 nhaarman-mockito-kotlin = "2.2.0"
 robolectric = "4.16"
 orchestrator = "1.6.1"
+androidx-baselineprofile = "1.4.1"
+androidx-profileinstaller = "1.4.1"
 kolinx-binary-compatibility-validator = "0.18.1"
 gradle-plugin-publish = "1.2.0"
 junit-platform-launcher = "1.10.2"
@@ -86,6 +88,7 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-runtime-android = { module = "androidx.compose.runtime:runtime-android", version.ref = "androidx-runtime-android" }
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-uiautomator" }
 androidx-orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "androidx-profileinstaller" }
 agp802 = { module = "com.android.tools.build:gradle", version.ref = "agp802" }
 asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm-util" }
 asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm-util" }
@@ -126,3 +129,4 @@ compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-plugin-publish" }
 autonomousapps-testkit = { id = "com.autonomousapps.testkit", version.ref = "autonomousapps-testkit" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile" }

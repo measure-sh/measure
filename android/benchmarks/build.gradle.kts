@@ -1,6 +1,9 @@
+import com.android.build.api.dsl.ManagedVirtualDevice
+
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -17,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 23
+        minSdk = 28
         targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -30,18 +33,21 @@ android {
             matchingFallbacks += listOf("release")
         }
     }
-    flavorDimensions += "measure"
-    productFlavors {
-        create("measureEnabled") {
-            dimension = "measure"
-        }
-        create("measureDisabled") {
-            dimension = "measure"
+
+    targetProjectPath = ":sample"
+
+    testOptions.managedDevices.devices {
+        create<ManagedVirtualDevice>("pixel6Api31") {
+            device = "Pixel 6"
+            apiLevel = 31
+            systemImageSource = "aosp"
         }
     }
+}
 
-    targetProjectPath = ":benchmarks:app"
-    experimentalProperties["android.experimental.self-instrumenting"] = true
+baselineProfile {
+    managedDevices += "pixel6Api31"
+    useConnectedDevices = false
 }
 
 dependencies {
@@ -52,7 +58,13 @@ dependencies {
 }
 
 androidComponents {
-    beforeVariants(selector().all()) {
-        it.enable = it.buildType == "benchmark"
+    onVariants { variant ->
+        val artifactsLoader = variant.artifacts.getBuiltArtifactsLoader()
+        variant.instrumentationRunnerArguments.put(
+            "targetAppId",
+            variant.testedApks.map { apkDir ->
+                artifactsLoader.load(apkDir)?.applicationId ?: "sh.measure.sample"
+            }
+        )
     }
 }

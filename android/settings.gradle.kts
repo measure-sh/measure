@@ -17,6 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "measure-android"
 include(":sample")
 include(":measure")
+include(":benchmarks")
 includeBuild("measure-android-gradle")
-include(":benchmarks:benchmark")
-include(":benchmarks:app")
