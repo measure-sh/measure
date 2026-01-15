@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update go dependencies (#3098) by @detj in #3098
 - (**backend**): Update retention periods by @anupcowkur in #3091
 - (**backend**): Add migration guide entry for v0.10.x (#3074) by @abhaysood in #3074
 - (**backend**): Sync go.work (#3050) by @detj in #3050
