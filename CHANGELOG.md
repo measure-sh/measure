@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Issue free metrics would not show for some cases (#3093) by @detj in #3093
 - (**backend**): Update migrations for 0.10.x release (#3084) by @abhaysood in #3084
 - (**backend**): Support empty filters in certain dashboard apis by @detj in #3043
 - (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
