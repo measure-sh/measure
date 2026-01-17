@@ -13,7 +13,6 @@ global.ResizeObserver = class ResizeObserver {
 }
 
 type LayoutElement = {
-    id: string
     label: string
     type: LayoutElementType
     x: number
@@ -26,7 +25,6 @@ type LayoutElement = {
 }
 
 const mockElement: LayoutElement = {
-    id: 'root',
     label: 'Root Container',
     type: 'container',
     x: 0,
@@ -39,7 +37,6 @@ const mockElement: LayoutElement = {
 }
 
 const mockElementWithChildren: LayoutElement = {
-    id: 'root',
     label: 'Root Container',
     type: 'container',
     x: 0,
@@ -50,7 +47,6 @@ const mockElementWithChildren: LayoutElement = {
     highlighted: false,
     children: [
         {
-            id: 'child1',
             label: 'Button Element',
             type: 'button',
             x: 100,
@@ -62,7 +58,6 @@ const mockElementWithChildren: LayoutElement = {
             children: []
         },
         {
-            id: 'child2',
             label: 'Text Element',
             type: 'text',
             x: 400,
@@ -77,7 +72,6 @@ const mockElementWithChildren: LayoutElement = {
 }
 
 const mockNestedElement: LayoutElement = {
-    id: 'root',
     label: 'Root Container',
     type: 'container',
     x: 0,
@@ -88,7 +82,6 @@ const mockNestedElement: LayoutElement = {
     highlighted: false,
     children: [
         {
-            id: 'parent',
             label: 'Parent Container',
             type: 'container',
             x: 50,
@@ -99,7 +92,6 @@ const mockNestedElement: LayoutElement = {
             highlighted: false,
             children: [
                 {
-                    id: 'nested-child',
                     label: 'Nested Input',
                     type: 'input',
                     x: 10,
@@ -116,7 +108,6 @@ const mockNestedElement: LayoutElement = {
 }
 
 const mockHorizontalElement: LayoutElement = {
-    id: 'root',
     label: 'Root Container',
     type: 'container',
     x: 0,
@@ -278,57 +269,6 @@ describe('LayoutSnapshot', () => {
         })
     })
 
-    it('applies hover styling on pointer enter', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = renderWithTooltipProvider(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.inset-0.border')
-        const firstChild = elements[1]
-
-        expect(firstChild).toHaveClass('border-background/60')
-
-        fireEvent.pointerEnter(firstChild)
-
-        expect(firstChild).toHaveClass('border-primary')
-    })
-
-    it('removes hover styling on pointer leave from container', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = renderWithTooltipProvider(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.inset-0.border')
-        const firstChild = elements[1]
-        const wrapper = container.querySelector('.relative.overflow-hidden')!
-
-        fireEvent.pointerEnter(firstChild)
-        expect(firstChild).toHaveClass('border-primary')
-
-        fireEvent.pointerLeave(wrapper)
-        expect(firstChild).toHaveClass('border-background/60')
-    })
-
     it('handles nested elements correctly', async () => {
         mockFetch(mockNestedElement)
 
@@ -344,60 +284,6 @@ describe('LayoutSnapshot', () => {
             const elements = container.querySelectorAll('.absolute.inset-0.border')
             expect(elements).toHaveLength(3) // root + parent + nested child
         })
-    })
-
-    it('only hovers the target element, not ancestors', async () => {
-        mockFetch(mockNestedElement)
-
-        const { container } = renderWithTooltipProvider(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.inset-0.border')
-        const root = elements[0]
-        const parent = elements[1]
-        const nestedChild = elements[2]
-
-        fireEvent.pointerEnter(nestedChild)
-
-        expect(nestedChild).toHaveClass('border-primary')
-        expect(parent).toHaveClass('border-background/60')
-        expect(root).toHaveClass('border-background/60')
-    })
-
-    it('switches hover between elements', async () => {
-        mockFetch(mockElementWithChildren)
-
-        const { container } = renderWithTooltipProvider(
-            <LayoutSnapshot
-                layoutUrl="http://example.com/layout.json"
-                width={800}
-                height={600}
-            />
-        )
-
-        await waitFor(() => {
-            expect(container.querySelector('.absolute.inset-0.border')).toBeInTheDocument()
-        })
-
-        const elements = container.querySelectorAll('.absolute.inset-0.border')
-        const firstChild = elements[1]
-        const secondChild = elements[2] // highlighted
-
-        fireEvent.pointerEnter(firstChild)
-        expect(firstChild).toHaveClass('border-primary')
-
-        fireEvent.pointerEnter(secondChild)
-        expect(secondChild).toHaveClass('border-primary')
-        expect(firstChild).toHaveClass('border-background/60')
     })
 
     it('maintains highlighted styling even when hovered', async () => {

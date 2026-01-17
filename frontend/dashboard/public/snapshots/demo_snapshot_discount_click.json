@@ -1,5 +1,4 @@
 {
-    "id": "screen_checkout",
     "label": "Checkout Screen",
     "type": "container",
     "x": 0,
@@ -10,7 +9,6 @@
     "highlighted": false,
     "children": [
         {
-            "id": "container_header",
             "label": "Header Bar",
             "type": "container",
             "x": 0,
@@ -21,7 +19,6 @@
             "highlighted": false,
             "children": [
                 {
-                    "id": "btn_close",
                     "label": "Close Button",
                     "type": "button",
                     "x": 16,
@@ -33,7 +30,6 @@
                     "children": []
                 },
                 {
-                    "id": "text_title",
                     "label": "Screen Title",
                     "type": "text",
                     "x": 146,
@@ -45,7 +41,6 @@
                     "children": []
                 },
                 {
-                    "id": "badge_points",
                     "label": "Points Balance",
                     "type": "container",
                     "x": 291,
@@ -59,7 +54,6 @@
             ]
         },
         {
-            "id": "card_payment_method",
             "label": "Payment Method Card",
             "type": "container",
             "x": 16,
@@ -70,7 +64,6 @@
             "highlighted": false,
             "children": [
                 {
-                    "id": "icon_currency_flag",
                     "label": "Currency Flag Icon",
                     "type": "image",
                     "x": 16,
@@ -82,7 +75,6 @@
                     "children": []
                 },
                 {
-                    "id": "text_payment_type",
                     "label": "Payment Type Info",
                     "type": "text",
                     "x": 60,
@@ -94,7 +86,6 @@
                     "children": []
                 },
                 {
-                    "id": "text_balance",
                     "label": "Balance Amount",
                     "type": "text",
                     "x": 60,
@@ -106,7 +97,6 @@
                     "children": []
                 },
                 {
-                    "id": "icon_chevron",
                     "label": "Chevron Icon",
                     "type": "image",
                     "x": 328,
@@ -120,7 +110,6 @@
             ]
         },
         {
-            "id": "container_discount_section",
             "label": "Discount Selection Section",
             "type": "container",
             "x": 16,
@@ -131,7 +120,6 @@
             "highlighted": false,
             "children": [
                 {
-                    "id": "text_discount_title",
                     "label": "Discount Section Title",
                     "type": "text",
                     "x": 0,
@@ -143,7 +131,6 @@
                     "children": []
                 },
                 {
-                    "id": "container_discount_buttons",
                     "label": "Discount Button Group",
                     "type": "container",
                     "x": 0,
@@ -154,7 +141,6 @@
                     "highlighted": false,
                     "children": [
                         {
-                            "id": "btn_discount_1",
                             "label": "Discount Option 1",
                             "type": "button",
                             "x": 0,
@@ -165,7 +151,6 @@
                             "highlighted": true,
                             "children": [
                                 {
-                                    "id": "text_discount_1_amount",
                                     "label": "Discount 1 Amount",
                                     "type": "text",
                                     "x": 19,
@@ -177,7 +162,6 @@
                                     "children": []
                                 },
                                 {
-                                    "id": "text_discount_1_points",
                                     "label": "Discount 1 Points",
                                     "type": "text",
                                     "x": 19,
@@ -191,7 +175,6 @@
                             ]
                         },
                         {
-                            "id": "btn_discount_2",
                             "label": "Discount Option 2",
                             "type": "button",
                             "x": 126,
@@ -202,7 +185,6 @@
                             "highlighted": false,
                             "children": [
                                 {
-                                    "id": "text_discount_2_amount",
                                     "label": "Discount 2 Amount",
                                     "type": "text",
                                     "x": 19,
@@ -214,7 +196,6 @@
                                     "children": []
                                 },
                                 {
-                                    "id": "text_discount_2_points",
                                     "label": "Discount 2 Points",
                                     "type": "text",
                                     "x": 19,
@@ -228,7 +209,6 @@
                             ]
                         },
                         {
-                            "id": "btn_discount_3",
                             "label": "Discount Option 3",
                             "type": "button",
                             "x": 252,
@@ -239,7 +219,6 @@
                             "highlighted": false,
                             "children": [
                                 {
-                                    "id": "text_discount_3_amount",
                                     "label": "Discount 3 Amount",
                                     "type": "text",
                                     "x": 19,
@@ -251,7 +230,6 @@
                                     "children": []
                                 },
                                 {
-                                    "id": "text_discount_3_points",
                                     "label": "Discount 3 Points",
                                     "type": "text",
                                     "x": 19,
@@ -269,7 +247,6 @@
             ]
         },
         {
-            "id": "container_order_section",
             "label": "Order Section",
             "type": "container",
             "x": 16,
@@ -280,7 +257,6 @@
             "highlighted": false,
             "children": [
                 {
-                    "id": "text_order_title",
                     "label": "Order Section Title",
                     "type": "text",
                     "x": 0,
@@ -292,7 +268,6 @@
                     "children": []
                 },
                 {
-                    "id": "card_order_summary",
                     "label": "Order Summary Card",
                     "type": "container",
                     "x": 0,
@@ -303,7 +278,6 @@
                     "highlighted": false,
                     "children": [
                         {
-                            "id": "icon_store_logo",
                             "label": "Store Logo",
                             "type": "image",
                             "x": 16,
@@ -315,7 +289,6 @@
                             "children": []
                         },
                         {
-                            "id": "text_summary_label",
                             "label": "Summary Label",
                             "type": "text",
                             "x": 68,
@@ -327,7 +300,6 @@
                             "children": []
                         },
                         {
-                            "id": "text_store_name",
                             "label": "Store Name",
                             "type": "text",
                             "x": 68,
@@ -339,7 +311,6 @@
                             "children": []
                         },
                         {
-                            "id": "text_order_amount",
                             "label": "Order Total",
                             "type": "text",
                             "x": 284,
@@ -351,7 +322,6 @@
                             "children": []
                         },
                         {
-                            "id": "icon_chevron_down",
                             "label": "Expand Icon",
                             "type": "image",
                             "x": 228,
@@ -365,7 +335,6 @@
                     ]
                 },
                 {
-                    "id": "row_pay",
                     "label": "Pay Row",
                     "type": "container",
                     "x": 0,
@@ -376,7 +345,6 @@
                     "highlighted": false,
                     "children": [
                         {
-                            "id": "text_pay_label",
                             "label": "Pay Label",
                             "type": "text",
                             "x": 16,
@@ -388,7 +356,6 @@
                             "children": []
                         },
                         {
-                            "id": "text_pay_amount",
                             "label": "Pay Amount",
                             "type": "text",
                             "x": 284,
@@ -402,7 +369,6 @@
                     ]
                 },
                 {
-                    "id": "row_earn_rate",
                     "label": "Earn Rate Row",
                     "type": "container",
                     "x": 0,
@@ -413,7 +379,6 @@
                     "highlighted": false,
                     "children": [
                         {
-                            "id": "text_earn_rate_label",
                             "label": "Earn Rate Label",
                             "type": "text",
                             "x": 16,
@@ -425,7 +390,6 @@
                             "children": []
                         },
                         {
-                            "id": "badge_earn_rate",
                             "label": "Earn Rate Badge",
                             "type": "container",
                             "x": 284,
@@ -439,7 +403,6 @@
                     ]
                 },
                 {
-                    "id": "row_points_earned",
                     "label": "Points Earned Row",
                     "type": "container",
                     "x": 0,
@@ -450,7 +413,6 @@
                     "highlighted": false,
                     "children": [
                         {
-                            "id": "text_points_earned_label",
                             "label": "Points Earned Label",
                             "type": "text",
                             "x": 16,
@@ -462,7 +424,6 @@
                             "children": []
                         },
                         {
-                            "id": "text_points_earned_amount",
                             "label": "Points Earned Amount",
                             "type": "text",
                             "x": 284,
@@ -478,7 +439,6 @@
             ]
         },
         {
-            "id": "btn_pay",
             "label": "Pay Button",
             "type": "button",
             "x": 16,

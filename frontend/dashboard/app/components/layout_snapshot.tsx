@@ -26,7 +26,6 @@ export type LayoutElementType =
 export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, oklch(0.8790 0.1690 91.6050) 0, oklch(0.8790 0.1690 91.6050) 1px, transparent 5px, transparent 10px)`
 
 type LayoutElement = {
-    id: string
     label: string
     type: LayoutElementType
     x: number
@@ -47,27 +46,20 @@ type LayoutSnapshotProps = {
 function LayoutElementNode({
     element,
     scaleX,
-    scaleY,
-    hoveredId,
-    onHover,
+    scaleY
 }: {
     element: LayoutElement
     scaleX: number
     scaleY: number
-    hoveredId: string | null
-    onHover: (id: string | null) => void
 }) {
-    const isHovered = hoveredId === element.id
     const bgStyle = element.highlighted
         ? {
             backgroundImage: LayoutSnapshotStripedBgImage
         }
         : {}
     const borderClass = element.highlighted
-        ? 'border-primary'
-        : isHovered
-            ? 'border-primary'
-            : 'border-background/60 dark:border-foreground/50'
+        ? 'border-primary hover:border-primary'
+        : 'border-background/60 dark:border-foreground/50 hover:border-primary dark:hover:border-primary'
 
     const positionStyle = {
         left: element.x * scaleX,
@@ -82,12 +74,11 @@ function LayoutElementNode({
             style={positionStyle}
         >
             {/* Hover zone - behind children */}
-            <Tooltip open={isHovered}>
+            <Tooltip>
                 <TooltipTrigger asChild>
                     <div
                         className={`absolute inset-0 border box-border ${borderClass}`}
                         style={bgStyle}
-                        onPointerEnter={() => onHover(element.id)}
                     />
                 </TooltipTrigger>
                 <TooltipContent
@@ -100,14 +91,12 @@ function LayoutElementNode({
             </Tooltip>
 
             {/* Children - on top, will intercept pointer events */}
-            {element.children?.map(child => (
+            {element.children?.map((child, index) => (
                 <LayoutElementNode
-                    key={child.id}
+                    key={`${child.label}-${index}`}
                     element={child}
                     scaleX={scaleX}
                     scaleY={scaleY}
-                    hoveredId={hoveredId}
-                    onHover={onHover}
                 />
             ))}
         </div>
@@ -121,7 +110,6 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
     const horizontalOrienationHeight = 211
 
     const [layout, setLayout] = useState<LayoutElement | null>(null)
-    const [hoveredId, setHoveredId] = useState<string | null>(null)
 
     const fetchLayout = async () => {
         try {
@@ -167,14 +155,11 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
         <div
             className="relative overflow-hidden"
             style={{ width: scaledWidth, height: scaledHeight }}
-            onPointerLeave={() => setHoveredId(null)}
         >
             <LayoutElementNode
                 element={layout}
                 scaleX={scaleX}
                 scaleY={scaleY}
-                hoveredId={hoveredId}
-                onHover={setHoveredId}
             />
         </div>
     )
