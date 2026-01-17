@@ -14,8 +14,8 @@ import '../utils/fake_id_provider.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
-import '../utils/test_png.dart';
 import '../utils/test_clock.dart';
+import '../utils/test_png.dart';
 
 void main() {
   group('BugReportCollector', () {

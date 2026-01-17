@@ -6,7 +6,6 @@ import 'package:measure_flutter/src/bug_report/ui/add_image_button.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report_input.dart';
 import 'package:measure_flutter/src/bug_report/ui/screenshot_list_item.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_id_provider.dart';
@@ -14,19 +13,16 @@ import '../utils/fake_image_picker_wrapper.dart';
 import '../utils/fake_measure.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/noop_logger.dart';
-import '../utils/test_method_channel.dart';
 
 void main() {
   group('BugReport Widget Tests', () {
     final Logger logger = NoopLogger();
     late FakeMeasure fakeMeasure;
     late FakeConfigProvider configProvider;
-    late TestMethodChannel testMethodChannel;
 
     setUp(() {
       fakeMeasure = FakeMeasure();
       configProvider = FakeConfigProvider();
-      testMethodChannel = TestMethodChannel();
     });
 
     tearDown(() {
@@ -43,8 +39,7 @@ void main() {
     }) {
       // If multiple screenshots provided, use only the first one as initial screenshot
       // since BugReport only accepts single initial screenshot
-      final initialScreenshot =
-          screenshots?.isNotEmpty == true ? screenshots!.first : screenshot;
+      final initialScreenshot = screenshots?.isNotEmpty == true ? screenshots!.first : screenshot;
 
       return MaterialApp(
         theme: ThemeData(platform: platform),
@@ -72,8 +67,7 @@ void main() {
       expect(find.byType(ListView), findsOneWidget);
     });
 
-    testWidgets('send button is disabled in empty state on Android',
-        (tester) async {
+    testWidgets('send button is disabled in empty state on Android', (tester) async {
       await tester.pumpWidget(
         createBugReportApp(platform: TargetPlatform.android),
       );
@@ -83,8 +77,7 @@ void main() {
       expect(sendButton.onPressed, isNull);
     });
 
-    testWidgets('send button is disabled in empty state on iOS',
-        (tester) async {
+    testWidgets('send button is disabled in empty state on iOS', (tester) async {
       await tester.pumpWidget(
         createBugReportApp(platform: TargetPlatform.iOS),
       );
@@ -103,8 +96,7 @@ void main() {
         size: 100,
       );
 
-      await tester
-          .pumpWidget(createBugReportApp(screenshot: initialScreenshot));
+      await tester.pumpWidget(createBugReportApp(screenshot: initialScreenshot));
 
       expect(find.byType(ScreenshotListItem), findsOneWidget);
     });
@@ -167,8 +159,7 @@ void main() {
         size: 100,
       );
 
-      await tester
-          .pumpWidget(createBugReportApp(screenshot: initialScreenshot));
+      await tester.pumpWidget(createBugReportApp(screenshot: initialScreenshot));
 
       final sendButton = tester.widget<TextButton>(
         find.widgetWithText(TextButton, 'Send'),
@@ -177,15 +168,6 @@ void main() {
     });
 
     testWidgets('closes screen after sending bug report', (tester) async {
-      final measure = Measure.withMethodChannel(testMethodChannel);
-      await measure.init(
-        () {},
-        clientInfo: ClientInfo(
-          apiKey: "msrsh-123",
-          apiUrl: "https://example.com",
-        ),
-      );
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -219,7 +201,8 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.widgetWithText(TextButton, 'Send'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Report a Bug'), findsNothing);
       expect(find.text('Open Bug Report'), findsOneWidget);
@@ -231,8 +214,7 @@ void main() {
       expect(find.byType(AddImageButton), findsOneWidget);
     });
 
-    testWidgets('hides bottom section when height is too small',
-        (tester) async {
+    testWidgets('hides bottom section when height is too small', (tester) async {
       await tester.binding.setSurfaceSize(const Size(400, 200));
 
       await tester.pumpWidget(createBugReportApp());
@@ -314,8 +296,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       // Verify button is disabled during loading
-      final addImageButton =
-          tester.widget<AddImageButton>(find.byType(AddImageButton));
+      final addImageButton = tester.widget<AddImageButton>(find.byType(AddImageButton));
       expect(addImageButton.isLoading, isTrue);
 
       // Wait for the async operation to complete
@@ -327,8 +308,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('shows loading state when picking images on iOS',
-        (tester) async {
+    testWidgets('shows loading state when picking images on iOS', (tester) async {
       final fakeImagePicker = FakeImagePickerWrapper();
       fakeImagePicker.delay = const Duration(milliseconds: 100);
 

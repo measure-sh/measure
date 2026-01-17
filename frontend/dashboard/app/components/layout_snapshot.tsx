@@ -52,13 +52,22 @@ function LayoutElementNode({
     scaleX: number
     scaleY: number
 }) {
+    const isTextElement = element.type === 'text'
+    
     const bgStyle = element.highlighted
         ? {
             backgroundImage: LayoutSnapshotStripedBgImage
         }
+        : isTextElement
+        ? {
+            backgroundColor: 'rgba(128, 128, 128, 0.45)'
+        }
         : {}
+    
     const borderClass = element.highlighted
         ? 'border-primary hover:border-primary'
+        : isTextElement
+        ? 'border-transparent hover:border-primary dark:hover:border-primary'
         : 'border-background/60 dark:border-foreground/50 hover:border-primary dark:hover:border-primary'
 
     const positionStyle = {
@@ -69,26 +78,28 @@ function LayoutElementNode({
     }
 
     return (
-        <div
-            className="absolute"
-            style={positionStyle}
-        >
+        <>
+            <div
+                className="absolute"
+                style={positionStyle}
+            >
             {/* Hover zone - behind children */}
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div
-                        className={`absolute inset-0 border box-border ${borderClass}`}
-                        style={bgStyle}
-                    />
-                </TooltipTrigger>
-                <TooltipContent
-                    side="bottom"
-                    align="start"
-                    className="font-display max-w-96 text-sm text-white fill-black bg-black pointer-events-none"
-                >
-                    {element.label}
-                </TooltipContent>
-            </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div
+                            className={`absolute inset-0 border box-border ${borderClass}`}
+                            style={bgStyle}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-white fill-black bg-black pointer-events-none"
+                    >
+                        {element.label}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
 
             {/* Children - on top, will intercept pointer events */}
             {element.children?.map((child, index) => (
@@ -99,7 +110,7 @@ function LayoutElementNode({
                     scaleY={scaleY}
                 />
             ))}
-        </div>
+        </>
     )
 }
 

@@ -11,6 +11,7 @@ import Foundation
 final class MockSystemFileManager: SystemFileManager {
     var crashFilePath: URL?
     var directoryPath: String?
+    var dynamicConfigPath: String?
     var savedFiles: [String: Data] = [:]
 
     func getCrashFilePath() -> URL? {
@@ -30,5 +31,9 @@ final class MockSystemFileManager: SystemFileManager {
 
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String? {
         return directoryPath
+    }
+    
+    func getDynamicConfigPath(directory: FileManager.SearchPathDirectory) -> String? {
+        return dynamicConfigPath
     }
 }

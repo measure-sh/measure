@@ -15,7 +15,8 @@ void main() {
     measure = FakeMeasure();
 
     // enable all tracking by default
-    measure.setShouldTrackHttpBody(true);
+    measure.setShouldTrackHttpRequestBody(true);
+    measure.setShouldTrackHttpResponseBody(true);
     measure.setShouldTrackHttpHeader(true);
     measure.setShouldTrackHttpUrl(true);
 
@@ -221,12 +222,12 @@ void main() {
       expect(httpCall.responseHeaders, isNull);
     });
 
-    test('does not track body when disabled', () async {
+    test('does not track request body when disabled', () async {
       const path = '/headers';
       final responseData = {'message': 'Success!'};
       final requestHeaders = {'x-custom-header': 'value'};
 
-      measure.setShouldTrackHttpBody(false);
+      measure.setShouldTrackHttpRequestBody(false);
 
       dioAdapter.onPost(
         path,
@@ -239,7 +240,63 @@ void main() {
       expect(measure.trackedHttp.length, 1);
       final httpCall = measure.trackedHttp.first;
       expect(httpCall.requestBody, isNull);
+    });
+
+    test('does not track response body when disabled', () async {
+      const path = '/headers';
+      final responseData = {'message': 'Success!'};
+      final requestHeaders = {'x-custom-header': 'value'};
+
+      measure.setShouldTrackHttpResponseBody(false);
+
+      dioAdapter.onPost(
+        path,
+        headers: requestHeaders,
+        (server) => server.reply(200, responseData),
+      );
+
+      await dio.post(path, options: Options(headers: requestHeaders));
+
+      expect(measure.trackedHttp.length, 1);
+      final httpCall = measure.trackedHttp.first;
       expect(httpCall.responseBody, isNull);
+    });
+
+    test('does not track headers if request body is disabled for tracking', () async {
+      const path = '/hello';
+      final responseData = {'message': 'Success!'};
+      measure.setShouldTrackHttpRequestBody(false);
+
+      dioAdapter.onGet(
+        path,
+        (server) => server.reply(200, responseData, headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        }),
+      );
+      await dio.get(path);
+
+      expect(measure.trackedHttp.length, 1);
+      final httpCall = measure.trackedHttp.first;
+      expect(httpCall.requestHeaders, isNull);
+    });
+
+    test('does not track headers if response body is disabled for tracking', () async {
+      const path = '/hello';
+      final responseData = {'message': 'Success!'};
+
+      measure.setShouldTrackHttpResponseBody(false);
+
+      dioAdapter.onGet(
+        path,
+        (server) => server.reply(200, responseData, headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        }),
+      );
+      await dio.get(path);
+
+      expect(measure.trackedHttp.length, 1);
+      final httpCall = measure.trackedHttp.first;
+      expect(httpCall.responseHeaders, isNull);
     });
   });
 }

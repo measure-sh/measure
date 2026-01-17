@@ -16,7 +16,6 @@ abstract class MeasureApi {
 
   Future<void> init(
     FutureOr<void> Function() action, {
-    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   });
 
@@ -37,13 +36,15 @@ abstract class MeasureApi {
     bool userTriggered = true,
   });
 
-  bool shouldTrackHttpBody(String url, String? contentType);
+  bool shouldTrackHttpRequestBody(String url);
 
-  bool shouldTrackHttpUrl(String url);
+  bool shouldTrackHttpResponseBody(String url);
+
+  bool shouldTrackHttpEvent(String url);
 
   bool shouldTrackHttpHeader(String key);
 
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
@@ -94,9 +95,13 @@ abstract class MeasureApi {
 
   void setShakeListener(Function? onShake);
 
-  void trackClick(ClickData clickData);
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot);
 
-  void trackLongClick(LongClickData longClickData);
+  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot);
 
-  void trackScroll(ScrollData scrollData);
+  Future<void> trackScroll(ScrollData scrollData);
+
+  Map<Type, String> getLayoutSnapshotWidgetFilter();
+
+  Logger? getLogger();
 }

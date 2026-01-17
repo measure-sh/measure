@@ -40,18 +40,6 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   }
 
   @override
-  Future<void> initializeNativeSDK(
-    Map<String, dynamic> config,
-    Map<String, String> clientInfo,
-  ) {
-    return _methodChannel
-        .invokeMethod(MethodConstants.functionInitializeNativeSDK, {
-      MethodConstants.argConfig: config,
-      MethodConstants.argClientInfo: clientInfo,
-    });
-  }
-
-  @override
   Future<void> start() {
     return _methodChannel.invokeMethod(MethodConstants.functionStart);
   }
@@ -116,6 +104,12 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   Future<void> disableShakeDetector() {
     return _methodChannel
         .invokeMethod(MethodConstants.functionDisableShakeDetector);
+  }
+
+  @override
+  Future<String?> getDynamicConfigPath() async {
+    return _methodChannel
+        .invokeMethod(MethodConstants.functionGetDynamicConfigPath);
   }
 
   void setMethodCallHandler(

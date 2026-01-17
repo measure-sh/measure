@@ -3,7 +3,7 @@ import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_data.dart';
 import 'package:measure_flutter/src/tracing/span_processor.dart';
 import 'package:measure_flutter/src/tracing/span_status.dart';
-import 'package:measure_flutter/src/tracing/trace_sampler.dart';
+import 'package:measure_flutter/src/utils/sampler.dart';
 
 import '../attribute_value.dart';
 import '../logger/log_level.dart';
@@ -19,7 +19,7 @@ class MsrSpan implements InternalSpan {
   final TimeProvider _timeProvider;
 
   @override
-  final bool isSampled;
+  bool isSampled;
 
   @override
   String name;
@@ -67,7 +67,7 @@ class MsrSpan implements InternalSpan {
     required Logger logger,
     required SpanProcessor spanProcessor,
     required IdProvider idProvider,
-    required TraceSampler traceSampler,
+    required Sampler sampler,
     required TimeProvider timeProvider,
     Span? parentSpan,
     int? timestamp,
@@ -75,7 +75,7 @@ class MsrSpan implements InternalSpan {
     final startTime = timestamp ?? timeProvider.now();
     final spanId = idProvider.spanId();
     final traceId = parentSpan?.traceId ?? idProvider.traceId();
-    final isSampled = parentSpan?.isSampled ?? traceSampler.shouldSample();
+    final isSampled = parentSpan?.isSampled ?? sampler.shouldSampleTrace(traceId);
 
     final span = MsrSpan(
       logger: logger,
@@ -279,6 +279,14 @@ class MsrSpan implements InternalSpan {
     // Attributes are set after the span ends, hence
     // no check for span status.
     attributes[attribute.key] = attribute.value;
+  }
+
+  @override
+  void setSamplingRate(bool sampled) {
+    // Allow updating ended spans too
+    // to account for lazy sampling
+    // config loading.
+    isSampled = sampled;
   }
 
   @override

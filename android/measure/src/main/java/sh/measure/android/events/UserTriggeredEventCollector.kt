@@ -78,6 +78,7 @@ internal class UserTriggeredEventCollectorImpl(
             attachments = attachments,
             userDefinedAttributes = attributes,
             userTriggered = true,
+            attributes = mutableMapOf(),
         )
     }
 

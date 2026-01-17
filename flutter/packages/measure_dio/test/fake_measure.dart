@@ -10,14 +10,14 @@ import 'http_call.dart';
 
 class FakeMeasure implements MeasureApi {
   final List<HttpCall> trackedHttp = [];
-  var _shouldTrackHttpBody = false;
+  var _shouldTrackHttpRequestBody = false;
+  var _shouldTrackHttpResponseBody = false;
   var _shouldTrackHttpUrl = false;
   var _shouldTrackHttpHeader = false;
 
   @override
   Future<void> init(
     FutureOr<void> Function() action, {
-    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   }) async {
     await action();
@@ -32,10 +32,10 @@ class FakeMeasure implements MeasureApi {
 
   @override
   Future<void> trackHandledError(
-      Object error,
-      StackTrace stack, {
-        Map<String, AttributeValue> attributes = const {},
-      }) async {
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes = const {},
+  }) async {
     throw UnimplementedError();
   }
 
@@ -83,16 +83,13 @@ class FakeMeasure implements MeasureApi {
 
   void clear() => trackedHttp.clear();
 
-  void setShouldTrackHttpBody(bool value) => _shouldTrackHttpBody = value;
+  void setShouldTrackHttpRequestBody(bool value) => _shouldTrackHttpRequestBody = value;
+
+  void setShouldTrackHttpResponseBody(bool value) => _shouldTrackHttpResponseBody = value;
 
   void setShouldTrackHttpHeader(bool value) => _shouldTrackHttpHeader = value;
 
   void setShouldTrackHttpUrl(bool value) => _shouldTrackHttpUrl = value;
-
-  @override
-  bool shouldTrackHttpBody(String url, String? contentType) {
-    return _shouldTrackHttpBody;
-  }
 
   @override
   bool shouldTrackHttpHeader(String key) {
@@ -100,7 +97,17 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  bool shouldTrackHttpUrl(String url) {
+  bool shouldTrackHttpRequestBody(String url) {
+    return _shouldTrackHttpRequestBody;
+  }
+
+  @override
+  bool shouldTrackHttpResponseBody(String url) {
+    return _shouldTrackHttpResponseBody;
+  }
+
+  @override
+  bool shouldTrackHttpEvent(String url) {
     return _shouldTrackHttpUrl;
   }
 
@@ -160,11 +167,11 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
-  }) {
+  }) async {
     throw UnimplementedError();
   }
 
@@ -184,17 +191,28 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackClick(ClickData clickData) {
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
     throw UnimplementedError();
   }
 
   @override
-  void trackLongClick(LongClickData longClickData) {
+  Future<void> trackLongClick(
+      LongClickData longClickData, SnapshotNode? snapshot) async {
     throw UnimplementedError();
   }
 
   @override
-  void trackScroll(ScrollData scrollData) {
+  Future<void> trackScroll(ScrollData scrollData) async {
     throw UnimplementedError();
+  }
+
+  @override
+  Map<Type, String> getLayoutSnapshotWidgetFilter() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Logger? getLogger() {
+    return null;
   }
 }

@@ -99,7 +99,8 @@ class AddImageButton extends StatelessWidget {
               width: 12,
               height: 12,
               child: CircularProgressIndicator(
-                color: bugReportTheme.colors.primaryColor ?? colorScheme.primary,
+                color:
+                    bugReportTheme.colors.primaryColor ?? colorScheme.primary,
                 strokeWidth: 2,
               ),
             )
