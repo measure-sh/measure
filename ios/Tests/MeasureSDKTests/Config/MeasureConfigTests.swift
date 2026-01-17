@@ -12,7 +12,7 @@ final class MeasureConfigTests: XCTestCase {
     func testAllCodingKeysDecodeCorrectly() throws {
         let json = """
         {
-            "enableLogging": true,
+            "enableDebugMode": true,
             "samplingRateForErrorFreeSessions": 0.42,
             "traceSamplingRate": 0.77,
             "coldLaunchSamplingRate": 0.12,
@@ -33,7 +33,7 @@ final class MeasureConfigTests: XCTestCase {
         let decoder = JSONDecoder()
         let config = try decoder.decode(BaseMeasureConfig.self, from: json)
 
-        XCTAssertTrue(config.enableLogging)
+        XCTAssertTrue(config.enableDebugMode)
         XCTAssertEqual(config.samplingRateForErrorFreeSessions, 0.42)
         XCTAssertEqual(config.traceSamplingRate, 0.77)
         XCTAssertEqual(config.coldLaunchSamplingRate, 0.12)

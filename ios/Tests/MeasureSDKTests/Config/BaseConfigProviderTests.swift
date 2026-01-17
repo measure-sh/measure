@@ -28,33 +28,33 @@ final class BaseConfigProviderTests: XCTestCase {
     }
 
     func testMergedConfigUsesNetworkConfigIfAvailable() {
-        let networkConfig = Config(enableLogging: false, samplingRateForErrorFreeSessions: 0.2)
+        let networkConfig = Config(enableDebugMode: false, samplingRateForErrorFreeSessions: 0.2)
         mockConfigLoader.networkConfig = networkConfig
         baseConfigProvider.loadNetworkConfig()
 
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.2)
-        XCTAssertEqual(baseConfigProvider.enableLogging, false)
+        XCTAssertEqual(baseConfigProvider.enableDebugMode, false)
     }
 
     func testMergedConfigUsesCachedConfigIfNoNetworkConfig() {
-        let cachedConfig = Config(enableLogging: true, samplingRateForErrorFreeSessions: 0.15)
+        let cachedConfig = Config(enableDebugMode: true, samplingRateForErrorFreeSessions: 0.15)
         mockConfigLoader.cachedConfig = cachedConfig
         baseConfigProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: mockConfigLoader)
 
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.15)
-        XCTAssertEqual(baseConfigProvider.enableLogging, true)
+        XCTAssertEqual(baseConfigProvider.enableDebugMode, true)
     }
 
     func testMergedConfigUsesDefaultConfigIfNoNetworkOrCachedConfig() {
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, DefaultConfig.sessionSamplingRate)
-        XCTAssertEqual(baseConfigProvider.enableLogging, DefaultConfig.enableLogging)
+        XCTAssertEqual(baseConfigProvider.enableDebugMode, DefaultConfig.enableDebugMode)
         XCTAssertEqual(baseConfigProvider.traceSamplingRate, DefaultConfig.traceSamplingRate)
         XCTAssertEqual(baseConfigProvider.trackHttpHeaders, DefaultConfig.trackHttpHeaders)
         XCTAssertEqual(baseConfigProvider.httpHeadersBlocklist, DefaultConfig.httpHeadersBlocklist)
         XCTAssertEqual(baseConfigProvider.httpUrlAllowlist, DefaultConfig.httpUrlAllowlist)
         XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 3 * 60 * 1000) // 3 minutes
-        XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
-        XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
+        XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 300000) // 5 minutes
+        XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 1000)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
         XCTAssertEqual(baseConfigProvider.longPressTimeout, 500) // 500 ms
         XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5) // 3.5 points
@@ -88,7 +88,7 @@ final class BaseConfigProviderTests: XCTestCase {
 
     func testLoadNetworkConfigUpdatesNetworkConfig() {
         let networkConfig = Config(
-            enableLogging: false,
+            enableDebugMode: false,
             samplingRateForErrorFreeSessions: 0.25
         )
 
@@ -97,10 +97,10 @@ final class BaseConfigProviderTests: XCTestCase {
         baseConfigProvider.loadNetworkConfig()
 
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.25)
-        XCTAssertEqual(baseConfigProvider.enableLogging, false)
+        XCTAssertEqual(baseConfigProvider.enableDebugMode, false)
         XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 3 * 60 * 1000) // 3 minutes
-        XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
-        XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
+        XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 300000) // 5 minutes
+        XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 1000)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
         XCTAssertEqual(baseConfigProvider.longPressTimeout, 500) // 500 seconds
         XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5) // 3.5 points

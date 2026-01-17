@@ -19,7 +19,7 @@ final class MockConfigProvider: ConfigProvider {
     var cpuTrackingIntervalMs: UnsignedNumber
     var memoryTrackingIntervalMs: UnsignedNumber
     var maxSessionDurationMs: Number
-    var enableLogging: Bool
+    var enableDebugMode: Bool
     var trackScreenshotOnCrash: Bool
     var samplingRateForErrorFreeSessions: Float
     var eventsBatchingIntervalMs: Number
@@ -64,7 +64,7 @@ final class MockConfigProvider: ConfigProvider {
     var combinedHttpHeadersBlocklist: [String]
     var combinedHttpUrlBlocklist: [String]
 
-    init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
+    init(enableDebugMode: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
          samplingRateForErrorFreeSessions: Float = 1.0,
          coldLaunchSamplingRate: Float = 1,
@@ -125,7 +125,7 @@ final class MockConfigProvider: ConfigProvider {
          maxExportJitterInterval: Int = 20,
          maxAttachmentsInBatch: Int = 10,
          maxBodySizeBytes: Int = 256 * 1024) {
-        self.enableLogging = enableLogging
+        self.enableDebugMode = enableDebugMode
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.coldLaunchSamplingRate = coldLaunchSamplingRate
