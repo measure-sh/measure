@@ -4,7 +4,7 @@ import sh.measure.android.events.EventType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V6
+    const val DATABASE_VERSION = DbVersion.V7
 }
 
 internal object DbVersion {
