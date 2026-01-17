@@ -24,6 +24,7 @@ final class SignalProcessorTests: XCTestCase {
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
     var signalSampler: MockSignalSampler!
+    var signalStore: MockSignalStore!
     let attributes = Attributes(
         threadName: "main",
         deviceName: "iPhone",
@@ -95,6 +96,7 @@ final class SignalProcessorTests: XCTestCase {
         eventStore = nil
         screenshotGenerator = nil
         signalSampler = nil
+        signalSampler = nil
     }
 
     func testTrackExceptionEventWithNilAttributesAndNilSessionId() {  // swiftlint:disable:this function_body_length
@@ -134,10 +136,9 @@ final class SignalProcessorTests: XCTestCase {
                                               sessionManager: sessionManager,
                                               attributeProcessors: [attributeProcessor],
                                               configProvider: configProvider,
-                                              timeProvider: BaseTimeProvider(),
+                                              timeProvider: timeProvider,
                                               crashDataPersistence: crashDataPersistence,
-                                              eventStore: eventStore,
-                                              spanStore: spanStore,
+                                              signalStore: signalStore,
                                               measureDispatchQueue: MockMeasureDispatchQueue(),
                                               signalSampler: signalSampler)
         signalProcessor.track(data: exception,
@@ -189,10 +190,9 @@ final class SignalProcessorTests: XCTestCase {
                                               sessionManager: sessionManager,
                                               attributeProcessors: [attributeProcessor],
                                               configProvider: configProvider,
-                                              timeProvider: BaseTimeProvider(),
+                                              timeProvider: timeProvider,
                                               crashDataPersistence: crashDataPersistence,
-                                              eventStore: eventStore,
-                                              spanStore: spanStore,
+                                              signalStore: signalStore,
                                               measureDispatchQueue: MockMeasureDispatchQueue(),
                                               signalSampler: signalSampler)
         let attributes = Attributes(
@@ -290,19 +290,16 @@ final class SignalProcessorTests: XCTestCase {
         signalSampler.shouldTrackLaunchEventsReturnValue = false
         signalSampler.shouldTrackJourneyEventsReturnValue = false
 
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [],
+                                              configProvider: configProvider,
+                                              timeProvider: timeProvider,
+                                              crashDataPersistence: crashDataPersistence,
+                                              signalStore: signalStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
 
         signalProcessor.track(
             data: "Test",
@@ -324,20 +321,16 @@ final class SignalProcessorTests: XCTestCase {
         signalSampler.shouldTrackLaunchEventsReturnValue = false
         signalSampler.shouldTrackJourneyEventsReturnValue = false
 
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
-
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [],
+                                              configProvider: configProvider,
+                                              timeProvider: timeProvider,
+                                              crashDataPersistence: crashDataPersistence,
+                                              signalStore: signalStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
         signalProcessor.track(
             data: "Test",
             timestamp: 1234,
@@ -358,19 +351,16 @@ final class SignalProcessorTests: XCTestCase {
         signalSampler.shouldTrackLaunchEventsReturnValue = true
         signalSampler.shouldTrackJourneyEventsReturnValue = false
 
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [],
+                                              configProvider: configProvider,
+                                              timeProvider: timeProvider,
+                                              crashDataPersistence: crashDataPersistence,
+                                              signalStore: signalStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
 
         signalProcessor.track(
             data: "Test",
@@ -392,19 +382,16 @@ final class SignalProcessorTests: XCTestCase {
         signalSampler.shouldTrackLaunchEventsReturnValue = false
         signalSampler.shouldTrackJourneyEventsReturnValue = true
 
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [],
+                                              configProvider: configProvider,
+                                              timeProvider: timeProvider,
+                                              crashDataPersistence: crashDataPersistence,
+                                              signalStore: signalStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
 
         signalProcessor.track(
             data: "Test",
@@ -428,19 +415,16 @@ final class SignalProcessorTests: XCTestCase {
 
         configProvider.eventTypeExportAllowList = [.sessionStart]
 
-        signalProcessor = BaseSignalProcessor(
-            logger: logger,
-            idProvider: idProvider,
-            sessionManager: sessionManager,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            timeProvider: BaseTimeProvider(),
-            crashDataPersistence: crashDataPersistence,
-            eventStore: eventStore,
-            spanStore: spanStore,
-            measureDispatchQueue: MockMeasureDispatchQueue(),
-            signalSampler: signalSampler
-        )
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [],
+                                              configProvider: configProvider,
+                                              timeProvider: timeProvider,
+                                              crashDataPersistence: crashDataPersistence,
+                                              signalStore: signalStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue(),
+                                              signalSampler: signalSampler)
 
         signalProcessor.track(
             data: "Test",

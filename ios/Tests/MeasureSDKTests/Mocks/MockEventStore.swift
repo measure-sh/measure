@@ -9,44 +9,80 @@ import Foundation
 @testable import Measure
 
 final class MockEventStore: EventStore {
-    var events = [EventEntity]()
+    var events: [EventEntity] = []
     var deleteEventsCalled = false
-    var deletedEventIds = [String]()
+    var deletedEventIds: [String] = []
+
+    func insertEvents(events: [EventEntity], completion: @escaping () -> Void) {
+        self.events.append(contentsOf: events)
+        completion()
+    }
 
     func insertEvent(event: EventEntity, completion: @escaping () -> Void) {
         events.append(event)
+        completion()
     }
 
-    func getEvents(eventIds: [String], completion: @escaping ([EventEntity]?) -> Void) {
-        let filteredEvents = events.filter { eventIds.contains($0.id) }
-        completion(filteredEvents.isEmpty ? nil : filteredEvents)
+    func getEvents(eventIds: [String]) -> [EventEntity]? {
+        let result = events.filter { eventIds.contains($0.id) }
+        return result.isEmpty ? nil : result
     }
 
-    func getEventsForSessions(sessions: [String], completion: @escaping ([EventEntity]?) -> Void) {
-        let filteredEvents = events.filter { sessions.contains($0.sessionId) }
-        completion(filteredEvents.isEmpty ? nil : filteredEvents)
-    }
-
-    func deleteEvents(eventIds: [String], completion: @escaping () -> Void) {
-        deletedEventIds = eventIds
+    func deleteEvents(eventIds: [String]) {
         deleteEventsCalled = true
+        deletedEventIds = eventIds
         events.removeAll { eventIds.contains($0.id) }
     }
 
-    func getAllEvents(completion: @escaping ([EventEntity]?) -> Void) {
-        completion(events.isEmpty ? nil : events)
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String] {
+        var filtered = events.filter {
+            $0.batchId == nil && $0.needsReporting
+        }
+
+        if let sessionId {
+            filtered = filtered.filter { $0.sessionId == sessionId }
+        }
+
+        filtered.sort { ascending ? $0.timestampInMillis < $1.timestampInMillis : $0.timestampInMillis > $1.timestampInMillis }
+
+        return filtered
+            .prefix(Int(eventCount))
+            .map(\.id)
     }
 
-    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void) {
-        let filteredEvents = sessionId == nil ? events : events.filter { $0.sessionId == sessionId }
+    func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String) {
+        let start = eventTimestampMillis
+        let end = eventTimestampMillis + durationSeconds * 1000
 
-        completion(filteredEvents.map(\.id))
+        for index in 0..<events.count where events[index].sessionId == sessionId {
+            let ts = events[index].timestampInMillis
+            if ts >= start && ts <= end {
+                events[index].needsReporting = true
+            }
+        }
+    }
+
+    func getSessionIdsWithUnBatchedEvents() -> [String] {
+        let sessionIds = events
+            .filter { $0.batchId == nil && $0.needsReporting }
+            .compactMap(\.sessionId)
+
+        return Array(Set(sessionIds))
     }
 
     func updateBatchId(_ batchId: String, for events: [String]) {
         for index in 0..<self.events.count where events.contains(self.events[index].id) {
             self.events[index].batchId = batchId
         }
+    }
+
+    func getEventsForSessions(sessions: [String], completion: @escaping ([EventEntity]?) -> Void) {
+        let filtered = events.filter { sessions.contains($0.sessionId) }
+        completion(filtered.isEmpty ? nil : filtered)
+    }
+
+    func getAllEvents(completion: @escaping ([EventEntity]?) -> Void) {
+        completion(events.isEmpty ? nil : events)
     }
 
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
@@ -56,12 +92,12 @@ final class MockEventStore: EventStore {
     }
 
     func deleteEvents(sessionIds: [String], completion: @escaping () -> Void) {
-        let eventsToDelete = events.filter { sessionIds.contains($0.sessionId) && !$0.needsReporting }
-        let eventIdsToDelete = eventsToDelete.map { $0.id }
+        let idsToDelete = events
+            .filter { sessionIds.contains($0.sessionId) && !$0.needsReporting }
+            .map(\.id)
 
-        deleteEvents(eventIds: eventIdsToDelete) {
-            completion()
-        }
+        deleteEvents(eventIds: idsToDelete)
+        completion()
     }
 
     func getEventsCount(completion: @escaping (Int) -> Void) {

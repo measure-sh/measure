@@ -11,6 +11,7 @@ protocol Exporter {
     func export()
 }
 
+// TODO: Add tests
 final class BaseExporter: Exporter {
     private let logger: Logger
     private let idProvider: IdProvider
