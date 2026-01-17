@@ -15,9 +15,10 @@ protocol SessionManager {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
-    func onEventTracked(_ event: EventEntity)
+    func onEventTracked<T: Codable>(_ event: Event<T>)
     func setPreviousSessionCrashed(_ crashed: Bool)
     func markCurrentSessionAsCrashed()
+    func onConfigLoaded()
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -36,7 +37,6 @@ final class BaseSessionManager: SessionManager {
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
     private let versionCode: String
-    private let appVersionInfo: AppVersionInfo
     private let signalSampler: SignalSampler
     var shouldReportSession: Bool
 
@@ -58,7 +58,6 @@ final class BaseSessionManager: SessionManager {
          eventStore: EventStore,
          userDefaultStorage: UserDefaultStorage,
          versionCode: String,
-         appVersionInfo: AppVersionInfo,
          signalSampler: SignalSampler) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
@@ -70,7 +69,6 @@ final class BaseSessionManager: SessionManager {
         self.userDefaultStorage = userDefaultStorage
         self.versionCode = versionCode
         self.shouldReportSession = false
-        self.appVersionInfo = appVersionInfo
         self.signalSampler = signalSampler
     }
 
@@ -90,78 +88,9 @@ final class BaseSessionManager: SessionManager {
         userDefaultStorage.setRecentSession(recentSession)
     }
 
-    private func getRecentSessionId() -> String? {
-        if previousSessionCrashed {
-            return nil
-        }
-
-        if let recentSession = userDefaultStorage.getRecentSession(), recentSession.lastEventTime != 0 {
-            let elapsedTime = timeProvider.now() - recentSession.lastEventTime
-            if elapsedTime <= configProvider.sessionEndLastEventThresholdMs && !recentSession.crashed {
-                return recentSession.id
-            }
-        }
-        return nil
-    }
-
-    private func isFrameworkVersionUpdated() -> Bool {
-        if let recentSession = userDefaultStorage.getRecentSession(),
-           recentSession.versionCode == self.versionCode {
-            return false
-        }
-        return true
-    }
-
-    func isAppVersionUpdated() -> Bool {
-        let currentVersion = appVersionInfo.getAppVersion()
-        let storedVersion = userDefaultStorage.getRecentAppVersion()
-
-        if currentVersion != storedVersion {
-            // update app version and build number if app version has changed
-            updateAppVersionAndBuildNumber()
-            return true
-        }
-        return false
-    }
-
-    func isAppBuildNumberUpdated() -> Bool {
-        let currentBuild = appVersionInfo.getBuildNumber()
-        let storedBuild = userDefaultStorage.getRecentBuildNumber()
-
-        if currentBuild != storedBuild {
-            // update app version and build number if build number has changed
-            updateAppVersionAndBuildNumber()
-            return true
-        }
-        return false
-    }
-
-    func updateAppVersionAndBuildNumber() {
-        if let currentVersion = appVersionInfo.getAppVersion() {
-            userDefaultStorage.setRecentAppVersion(currentVersion)
-        }
-
-        if let currentBuild = appVersionInfo.getBuildNumber() {
-            userDefaultStorage.setRecentBuildNumber(currentBuild)
-        }
-    }
-
     func start(onNewSession: (String?) -> Void) {
-        if isAppVersionUpdated() || isAppBuildNumberUpdated() {
-            logger.log(level: .info, message: "Ending previous session as app version or build number has been updated.", error: nil, data: nil)
-            createNewSession()
-            onNewSession(currentSessionId)
-        } else if isFrameworkVersionUpdated() {
-            logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
-            createNewSession()
-            onNewSession(currentSessionId)
-        } else if let recentSessionId = getRecentSessionId() {
-            logger.log(level: .info, message: "Continuing previous session \(recentSessionId)", error: nil, data: nil)
-            currentSessionId = recentSessionId
-        } else {
-            createNewSession()
-            onNewSession(currentSessionId)
-        }
+        createNewSession()
+        onNewSession(currentSessionId)
     }
 
     func applicationDidEnterBackground() {
@@ -184,7 +113,7 @@ final class BaseSessionManager: SessionManager {
         logger.log(level: .info, message: "applicationWillTerminate", error: nil, data: nil)
     }
 
-    func onEventTracked(_ event: EventEntity) {
+    func onEventTracked<T: Codable>(_ event: Event<T>) {
         userDefaultStorage.setRecentSessionEventTime(event.timestampInMillis)
     }
 
@@ -217,6 +146,27 @@ final class BaseSessionManager: SessionManager {
                 self.shouldReportSession = true
             }
         }
+    }
+
+    func onConfigLoaded() {
+        guard let sessionId = currentSessionId else {
+            return
+        }
+
+        let shouldReport = signalSampler.shouldTrackJourneyEvents()
+
+        guard shouldReport, !shouldReportSession else {
+            return
+        }
+
+        logger.log(level: .debug, message: "SessionManager: Marking session \(sessionId) for export after config load", error: nil, data: nil)
+
+        // TODO: check if updating session's needs reporting is needed?
+        sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
+        // TODO: update needs reporting only for journey events of this session
+        eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
+
+        shouldReportSession = true
     }
 
     private func shouldEndSession() -> Bool {

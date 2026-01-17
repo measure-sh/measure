@@ -10,12 +10,12 @@ import Foundation
 struct CpuUsageData: Codable {
     let numCores: UInt8
     let clockSpeed: UInt64
-    let startTime: Int
-    let uptime: Int
-    let utime: Int
-    let cutime: Int
-    let cstime: Int
-    let stime: Int
+    let startTime: Number
+    let uptime: Number
+    let utime: Number
+    let cutime: Number
+    let cstime: Number
+    let stime: Number
     let interval: UnsignedNumber
     let percentageUsage: FloatNumber64
 

@@ -29,6 +29,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var idProvider: IdProvider {
         return measureInitializer.idProvider
     }
+    private var configLoader: ConfigLoader {
+        return measureInitializer.configLoader
+    }
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
     }
@@ -88,12 +91,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var httpClient: HttpClient {
         return measureInitializer.httpClient
     }
-    private var heartbeat: Heartbeat {
-        return measureInitializer.heartbeat
-    }
-    private var periodicExporter: PeriodicExporter {
-        return measureInitializer.periodicExporter
-    }
     private var attachmentExporter: AttachmentExporter {
         return measureInitializer.attachmentExporter
     }
@@ -115,19 +112,19 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var networkChangeCollector: NetworkChangeCollector {
         return measureInitializer.networkChangeCollector
     }
-    var customEventCollector: CustomEventCollector {
+    private var customEventCollector: CustomEventCollector {
         return measureInitializer.customEventCollector
     }
-    var userTriggeredEventCollector: UserTriggeredEventCollector {
+    private var userTriggeredEventCollector: UserTriggeredEventCollector {
         return measureInitializer.userTriggeredEventCollector
     }
-    var dataCleanupService: DataCleanupService {
+    private var dataCleanupService: DataCleanupService {
         return measureInitializer.dataCleanupService
     }
-    var attachmentProcessor: AttachmentProcessor {
+    private var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
     }
-    var spanCollector: SpanCollector {
+    private var spanCollector: SpanCollector {
         return measureInitializer.spanCollector
     }
     var internalSignalCollector: InternalSignalCollector {
@@ -138,20 +135,29 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             measureInitializer.internalSignalCollector = newValue
         }
     }
-    var bugReportCollector: BugReportCollector {
+    private var bugReportCollector: BugReportCollector {
         return measureInitializer.bugReportCollector
     }
-    var shakeBugReportCollector: ShakeBugReportCollector {
+    private var shakeBugReportCollector: ShakeBugReportCollector {
         return measureInitializer.shakeBugReportCollector
     }
-    var shakeDetector: ShakeDetector {
+    private var shakeDetector: ShakeDetector {
         return measureInitializer.shakeDetector
     }
-    var screenshotGenerator: ScreenshotGenerator {
+    private var screenshotGenerator: ScreenshotGenerator {
         return measureInitializer.screenshotGenerator
     }
-    var layoutSnapshotGenerator: LayoutSnapshotGenerator {
+    private var layoutSnapshotGenerator: LayoutSnapshotGenerator {
         return measureInitializer.layoutSnapshotGenerator
+    }
+    private var spanProcessor: SpanProcessor {
+        return measureInitializer.spanProcessor
+    }
+    private var exporter: Exporter {
+        return measureInitializer.exporter
+    }
+    private var signalStore: SignalStore {
+        return measureInitializer.signalStore
     }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
@@ -175,6 +181,17 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
+        }
+        configLoader.loadDynamicConfig { dynamicConfig in
+            self.configProvider.setDynamicConfig(dynamicConfig)
+
+            self.sessionManager.onConfigLoaded()
+            self.spanProcessor.onConfigLoaded()
+            self.appLaunchCollector.onConfigLoaded()
+            self.cpuUsageCollector.onConfigLoaded()
+            self.memoryUsageCollector.onConfigLoaded()
+
+            self.exporter.export()
         }
     }
 
@@ -351,7 +368,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
-        self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
         self.dataCleanupService.clearStaleData {}
@@ -362,7 +378,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashDataPersistence.isForeground = true
         self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
-        self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.registedCollectors()
     }
@@ -385,7 +400,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
-        self.periodicExporter.enable()
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
@@ -405,7 +419,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.userTriggeredEventCollector.disable()
         self.cpuUsageCollector.disable()
         self.memoryUsageCollector.disable()
-        self.periodicExporter.disable()
         self.httpEventCollector.disable()
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()
@@ -449,6 +462,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     private func trackSessionStart(sessionId: String?) {
+        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: SessionStartData(),
                               timestamp: timeProvider.now(),
                               type: .sessionStart,
@@ -456,6 +470,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                               sessionId: sessionId,
                               attachments: nil,
                               userDefinedAttributes: nil,
-                              threadName: nil)
+                              threadName: nil,
+                              needsReporting: true)
     }
 }

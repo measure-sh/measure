@@ -35,4 +35,8 @@ protocol InternalSpan: Span {
 
     /// Converts the span to a data class for further processing and export.
     func toSpanData() -> SpanData
+    
+    /// Updates the sampling status of the span.
+    /// - Parameter sampled: A bool value representing whether the span is sampled or not.
+    func setSamplingRate(_ sampled: Bool)
 }

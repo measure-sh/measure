@@ -12,18 +12,23 @@ final class BaseSpanProcessorTests: XCTestCase {
     private var logger: MockLogger!
     private var signalProcessor: MockSignalProcessor!
     private var configProvider: MockConfigProvider!
+    private var sampler: MockSignalSampler!
+    private var attributeValueValidator: AttributeValueValidator!
 
     override func setUp() {
         super.setUp()
         logger = MockLogger()
         signalProcessor = MockSignalProcessor()
         configProvider = MockConfigProvider()
+        sampler = MockSignalSampler()
+        attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider, logger: logger)
     }
 
     override func tearDown() {
         logger = nil
         signalProcessor = nil
         configProvider = nil
+        sampler = nil
         super.tearDown()
     }
 
@@ -59,7 +64,9 @@ final class BaseSpanProcessorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [attributeProcessor],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
         let span = getSpan(
@@ -83,7 +90,9 @@ final class BaseSpanProcessorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [attributeProcessor],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
         let span = getSpan(
@@ -101,9 +110,12 @@ final class BaseSpanProcessorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
+        spanProcessor.onConfigLoaded()
         let span = getSpan(
             logger: logger,
             timeProvider: MockTimeProvider(),
@@ -122,7 +134,9 @@ final class BaseSpanProcessorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
         let span = getSpan(
@@ -137,14 +151,16 @@ final class BaseSpanProcessorTests: XCTestCase {
     }
 
     func test_onEnded_discardsSpanWithLongName() {
-        let longName = String(repeating: "a", count: configProvider.maxSpanNameLength + 1)
+        let longName = String(repeating: "a", count: Int(configProvider.maxSpanNameLength) + 1)
         let timeProvider = MockTimeProvider()
         timeProvider.current = 1000
         let spanProcessor = BaseSpanProcessor(
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
         let span = getSpan(
@@ -159,14 +175,17 @@ final class BaseSpanProcessorTests: XCTestCase {
     }
 
     func test_onEnded_discardsCheckpointsWithLongNames() {
-        let longName = String(repeating: "a", count: configProvider.maxCheckpointNameLength + 1)
+        let longName = String(repeating: "a", count: Int(configProvider.maxCheckpointNameLength) + 1)
         let spanProcessor = BaseSpanProcessor(
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
+        spanProcessor.onConfigLoaded()
         let span = getSpan(
             logger: logger,
             timeProvider: MockTimeProvider(),
@@ -185,9 +204,12 @@ final class BaseSpanProcessorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             attributeProcessors: [],
-            configProvider: configProvider
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
         )
 
+        spanProcessor.onConfigLoaded()
         let span = getSpan(
             logger: logger,
             timeProvider: timeProvider,
@@ -195,11 +217,12 @@ final class BaseSpanProcessorTests: XCTestCase {
             startTime: 1000
         )
 
-        for _ in 0...(configProvider.maxCheckpointsPerSpan + 5) {
+        for _ in 0...(Int(configProvider.maxCheckpointsPerSpan) + 5) {
             span.setCheckpoint("checkpoint")
         }
 
         span.end(timestamp: 3000)
-        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, configProvider.maxCheckpointsPerSpan)
+        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, Int(configProvider.maxCheckpointsPerSpan))
     }
 }
+

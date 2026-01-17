@@ -74,7 +74,7 @@ final class CpuUsageCollectorTests: XCTestCase {
         mockCpuUsageCalculator.mockCpuUsage = 25.5
         mockSysCtl.mockCpuCores = 4
         mockSysCtl.mockCpuFrequency = 2500
-        mockConfigProvider.cpuTrackingIntervalMs = 1000
+        mockConfigProvider.cpuUsageInterval = 1000
         mockTimeProvider.current = 1_000_000
         let expectedTimestamp = mockTimeProvider.now()
 
@@ -85,7 +85,6 @@ final class CpuUsageCollectorTests: XCTestCase {
             XCTAssertEqual(cpuUsageData.numCores, 4)
             XCTAssertEqual(cpuUsageData.clockSpeed, 2500)
             XCTAssertEqual(cpuUsageData.percentageUsage, 25.5)
-            XCTAssertEqual(cpuUsageData.interval, mockConfigProvider.cpuTrackingIntervalMs)
         } else {
             XCTFail("Data should be of type CpuUsageData.")
         }

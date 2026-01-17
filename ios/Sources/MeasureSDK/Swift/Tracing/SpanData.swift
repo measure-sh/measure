@@ -14,9 +14,9 @@ struct SpanData {
     let spanId: String
     let parentId: String?
     let sessionId: String
-    let startTime: Int64
-    let endTime: Int64
-    let duration: Int64
+    let startTime: Number
+    let endTime: Number
+    let duration: Number
     let status: SpanStatus
     let attributes: Attributes?
     let userDefinedAttrs: [String: AttributeValue]?

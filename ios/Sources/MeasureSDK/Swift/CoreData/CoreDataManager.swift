@@ -10,11 +10,12 @@ import CoreData
 
 protocol CoreDataManager {
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void)
+    var backgroundContext: NSManagedObjectContext? { get }
 }
 
 final class BaseCoreDataManager: CoreDataManager {
     private var persistentContainer: NSPersistentContainer?
-    private var backgroundContext: NSManagedObjectContext?
+    var backgroundContext: NSManagedObjectContext?
     private var mainContext: NSManagedObjectContext?
     private let logger: Logger
     private var initializationFailed: Bool = false

@@ -9,169 +9,105 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
-    var coldLaunchSamplingRate: Float
-    var warmLaunchSamplingRate: Float
-    var hotLaunchSamplingRate: Float
-    var journeySamplingRate: Float
-    var maxBodySizeBytes: Int
-    var maxAttachmentsInBatch: Int
-    var lifecycleViewControllerExcludeList: [String]
-    var cpuTrackingIntervalMs: UnsignedNumber
-    var memoryTrackingIntervalMs: UnsignedNumber
-    var maxSessionDurationMs: Number
     var enableLogging: Bool
-    var trackScreenshotOnCrash: Bool
-    var samplingRateForErrorFreeSessions: Float
-    var eventsBatchingIntervalMs: Number
-    var sessionEndLastEventThresholdMs: Number
+    var autoStart: Bool
+    var enableFullCollectionMode: Bool
+    var requestHeadersProvider: MsrRequestHeadersProvider?
+    var maxDiskUsageInMb: Number
+    var batchExportIntervalMs: Number
+    var attachmentExportIntervalMs: Number
+    var defaultHttpHeadersBlocklist: [String]
+    var sessionBackgroundTimeoutThresholdMs: Number
+    var maxEventNameLength: Number
+    var maxUserDefinedAttributesPerEvent: Number
+    var customEventNameRegex: String
+    var maxUserDefinedAttributeKeyLength: Number
+    var maxUserDefinedAttributeValueLength: Number
     var longPressTimeout: TimeInterval
     var scaledTouchSlop: CGFloat
-    var maxAttachmentSizeInEventsBatchInBytes: Number
-    var maxEventsInBatch: Number
-    var timeoutIntervalForRequest: TimeInterval
-    var customEventNameRegex: String
-    var maxEventNameLength: Int
-    var maxUserDefinedAttributeKeyLength: Int
-    var maxUserDefinedAttributeValueLength: Int
-    var maxUserDefinedAttributesPerEvent: Int
-    var httpContentTypeAllowlist: [String]
-    var defaultHttpHeadersBlocklist: [String]
-    var eventTypeExportAllowList: [EventType]
     var screenshotMaskHexColor: String
-    var screenshotCompressionQuality: Int
-    var layoutSnapshotDebounceInterval: Number
-    var trackHttpHeaders: Bool
-    var trackHttpBody: Bool
-    var httpHeadersBlocklist: [String]
-    var httpUrlBlocklist: [String]
-    var httpUrlAllowlist: [String]
-    var autoStart: Bool
-    var traceSamplingRate: Float
-    var maxSpanNameLength: Int
-    var maxCheckpointNameLength: Int
-    var maxCheckpointsPerSpan: Int
-    var screenshotMaskLevel: ScreenshotMaskLevel
-    var maxAttachmentsInBugReport: Int
-    var maxDescriptionLengthInBugReport: Int
+    var screenshotCompressionQuality: Number
+    var eventTypeExportAllowList: [EventType]
+    var maxSpanNameLength: Number
+    var maxCheckpointNameLength: Number
+    var maxCheckpointsPerSpan: Number
+    var maxInMemorySignalsQueueSize: Number
+    var inMemorySignalsQueueFlushRateMs: Number
+    var maxAttachmentsInBugReport: Number
+    var maxDescriptionLengthInBugReport: Number
     var shakeAccelerationThreshold: Float
     var shakeMinTimeIntervalMs: Number
-    var accelerometerUpdateInterval: TimeInterval
-    var requestHeadersProvider: MsrRequestHeadersProvider?
+    var shakeSlop: Number
     var disallowedCustomHeaders: [String]
-    var maxDiskUsageInMb: Int
-    var estimatedEventSizeInKb: Int
-    var maxExportJitterInterval: Int
+    var estimatedEventSizeInKb: Number
+    var sessionEndLastEventThresholdMs: Number
+    var layoutSnapshotDebounceInterval: Number
+    var accelerometerUpdateInterval: TimeInterval
+    var lifecycleViewControllerExcludeList: [String]
+    var maxExportJitterInterval: Number
+    var maxAttachmentsInBatch: Number
+    var maxBodySizeBytes: Number
+    var eventsBatchingIntervalMs: Number
+    var maxAttachmentSizeInEventsBatchInBytes: Number
+    var timeoutIntervalForRequest: TimeInterval
+    var httpContentTypeAllowlist: [String]
+    var maxEventsInBatch: Number
+    var crashTimelineDurationSeconds: Number
+    var anrTimelineDurationSeconds: Number
+    var bugReportTimelineDurationSeconds: Number
+    var traceSamplingRate: Float
+    var journeySamplingRate: Float
+    var screenshotMaskLevel: ScreenshotMaskLevel
+    var cpuUsageInterval: Number
+    var memoryUsageInterval: Number
+    var crashTakeScreenshot: Bool
+    var anrTakeScreenshot: Bool
+    var launchSamplingRate: Float
+    var gestureClickTakeSnapshot: Bool
+    var httpDisableEventForUrls: [String]
+    var httpTrackRequestForUrls: [String]
+    var httpTrackResponseForUrls: [String]
+    var httpBlockedHeaders: [String]
+    var dynamicConfig: DynamicConfig?
     var combinedHttpHeadersBlocklist: [String]
-    var combinedHttpUrlBlocklist: [String]
+    var combinedHttpUrlBlocklist: [String] = []
 
-    init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
-         trackScreenshotOnCrash: Bool = true,
-         samplingRateForErrorFreeSessions: Float = 1.0,
-         coldLaunchSamplingRate: Float = 1,
-         warmLaunchSamplingRate: Float = 1,
-         hotLaunchSamplingRate: Float = 1,
-         journeySamplingRate: Float = 1,
-         eventsBatchingIntervalMs: Number = 30000,
-         sessionEndLastEventThresholdMs: Number = 60 * 1000,
+    init(enableLogging: Bool = false,
+         autoStart: Bool = true,
+         enableFullCollectionMode: Bool = false,
+         requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+         maxDiskUsageInMb: Number = 50,
+         batchExportIntervalMs: Number = 3_000,
+         attachmentExportIntervalMs: Number = 500,
+         eventsBatchingIntervalMs: Number = 12_312,
+         defaultHttpHeadersBlocklist: [String] = DefaultConfig.disallowedCustomHeaders,
+         sessionBackgroundTimeoutThresholdMs: Number = 30_000,
+         maxEventNameLength: Number = 64,
+         maxUserDefinedAttributesPerEvent: Number = 100,
+         customEventNameRegex: String = "^[a-zA-Z0-9_-]+$",
+         maxUserDefinedAttributeKeyLength: Number = 256,
+         maxUserDefinedAttributeValueLength: Number = 256,
          longPressTimeout: TimeInterval = 500,
          scaledTouchSlop: CGFloat = 3.5,
-         maxAttachmentSizeInEventsBatchInBytes: Number = 3_000_000,
-         maxEventsInBatch: Number = 500,
-         timeoutIntervalForRequest: TimeInterval = 30,
-         maxSessionDurationMs: Number = 60 * 60 * 1000,
-         cpuTrackingIntervalMs: UnsignedNumber = 3000,
-         memoryTrackingIntervalMs: UnsignedNumber = 2000,
-         customEventNameRegex: String = "^[a-zA-Z0-9_-]",
-         maxEventNameLength: Int = 64,
-         maxUserDefinedAttributeKeyLength: Int = 256,
-         maxUserDefinedAttributeValueLength: Int = 256,
-         maxUserDefinedAttributesPerEvent: Int = 100,
-         httpContentTypeAllowlist: [String] = ["application/json"],
-         defaultHttpHeadersBlocklist: [String] = ["Authorization",
-                                                  "Cookie",
-                                                  "Set-Cookie",
-                                                  "Proxy-Authorization",
-                                                  "WWW-Authenticate",
-                                                  "X-Api-Key"],
-         eventTypeExportAllowList: [EventType] = [.coldLaunch,
-                                                  .hotLaunch,
-                                                  .warmLaunch,
-                                                  .lifecycleSwiftUI,
-                                                  .lifecycleViewController,
-                                                  .screenView],
          screenshotMaskHexColor: String = "#222222",
-         screenshotCompressionQuality: Int = 25,
+         screenshotCompressionQuality: Number = 25,
+         eventTypeExportAllowList: [EventType] = [.sessionStart],
+         maxSpanNameLength: Number = 64,
+         maxCheckpointNameLength: Number = 64,
+         maxCheckpointsPerSpan: Number = 100,
+         maxInMemorySignalsQueueSize: Number = 30,
+         inMemorySignalsQueueFlushRateMs: Number = 3_000,
+         maxAttachmentsInBugReport: Number = 5,
+         maxDescriptionLengthInBugReport: Number = 4_000,
+         shakeAccelerationThreshold: Float = 2.5,
+         shakeMinTimeIntervalMs: Number = 1_500,
+         shakeSlop: Number = 2,
+         disallowedCustomHeaders: [String] = DefaultConfig.disallowedCustomHeaders,
+         estimatedEventSizeInKb: Number = 2,
+         sessionEndLastEventThresholdMs: Number = 123_213,
          layoutSnapshotDebounceInterval: Number = 750,
-         trackHttpHeaders: Bool = false,
-         trackHttpBody: Bool = false,
-         httpHeadersBlocklist: [String] = [],
-         httpUrlBlocklist: [String] = [],
-         httpUrlAllowlist: [String] = [],
-         autoStart: Bool = true,
-         traceSamplingRate: Float = 0.1,
-         maxSpanNameLength: Int = 64,
-         maxCheckpointNameLength: Int = 64,
-         maxCheckpointsPerSpan: Int = 100,
-         screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
-         maxAttachmentsInBugReport: Int = 5,
-         maxDescriptionLengthInBugReport: Int = 4000,
-         shakeAccelerationThreshold: Float = 20,
-         shakeMinTimeIntervalMs: Number = 1500,
          accelerometerUpdateInterval: TimeInterval = 0.1,
-         requestHeadersProvider: MsrRequestHeadersProvider? = nil,
-         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
-         maxDiskUsageInMb: Int = 50,
-         estimatedEventSizeInKb: Int = 10,
-         maxExportJitterInterval: Int = 20,
-         maxAttachmentsInBatch: Int = 10,
-         maxBodySizeBytes: Int = 256 * 1024) {
-        self.enableLogging = enableLogging
-        self.trackScreenshotOnCrash = trackScreenshotOnCrash
-        self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
-        self.coldLaunchSamplingRate = coldLaunchSamplingRate
-        self.warmLaunchSamplingRate = warmLaunchSamplingRate
-        self.hotLaunchSamplingRate = hotLaunchSamplingRate
-        self.journeySamplingRate = journeySamplingRate
-        self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
-        self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
-        self.longPressTimeout = longPressTimeout
-        self.scaledTouchSlop = scaledTouchSlop
-        self.maxAttachmentSizeInEventsBatchInBytes = maxAttachmentSizeInEventsBatchInBytes
-        self.maxEventsInBatch = maxEventsInBatch
-        self.timeoutIntervalForRequest = timeoutIntervalForRequest
-        self.maxSessionDurationMs = maxSessionDurationMs
-        self.cpuTrackingIntervalMs = cpuTrackingIntervalMs
-        self.memoryTrackingIntervalMs = memoryTrackingIntervalMs
-        self.customEventNameRegex = customEventNameRegex
-        self.maxEventNameLength = maxEventNameLength
-        self.maxUserDefinedAttributeKeyLength = maxUserDefinedAttributeKeyLength
-        self.maxUserDefinedAttributeValueLength = maxUserDefinedAttributeValueLength
-        self.maxUserDefinedAttributesPerEvent = maxUserDefinedAttributesPerEvent
-        self.httpContentTypeAllowlist = httpContentTypeAllowlist
-        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
-        self.eventTypeExportAllowList = eventTypeExportAllowList
-        self.screenshotMaskHexColor = screenshotMaskHexColor
-        self.screenshotCompressionQuality = screenshotCompressionQuality
-        self.layoutSnapshotDebounceInterval = layoutSnapshotDebounceInterval
-        self.trackHttpHeaders = trackHttpHeaders
-        self.trackHttpBody = trackHttpBody
-        self.httpHeadersBlocklist = httpHeadersBlocklist
-        self.httpUrlBlocklist = httpUrlBlocklist
-        self.httpUrlAllowlist = httpUrlAllowlist
-        self.autoStart = autoStart
-        self.traceSamplingRate = traceSamplingRate
-        self.maxSpanNameLength = maxSpanNameLength
-        self.maxCheckpointNameLength = maxCheckpointNameLength
-        self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
-        self.screenshotMaskLevel = screenshotMaskLevel
-        self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
-        self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport
-        self.shakeAccelerationThreshold = shakeAccelerationThreshold
-        self.shakeMinTimeIntervalMs = shakeMinTimeIntervalMs
-        self.accelerometerUpdateInterval = accelerometerUpdateInterval
-        self.requestHeadersProvider = requestHeadersProvider
-        self.disallowedCustomHeaders = disallowedCustomHeaders
-        self.lifecycleViewControllerExcludeList = [
+         lifecycleViewControllerExcludeList: [String] = [
             "UIHostingController",
             "UIKitNavigationController",
             "NavigationStackHostingController",
@@ -187,57 +123,141 @@ final class MockConfigProvider: ConfigProvider {
             "UICompactibilityInputViewController",
             "UIPredictionViewController",
             "_UICursorAccessoryViewController",
-            "UIMultiscriptCandidateViewController"
-        ]
+            "UIMultiscriptCandidateViewController",
+            "_UIContextMenuActionsOnlyViewController",
+            "_UIAlertControllerTextFieldViewController",
+            "UIInputWindowController",
+            "UICompatibilityInputViewController",
+            "UISystemInputAssistantViewController"
+         ],
+         maxExportJitterInterval: Number = 20,
+         maxAttachmentsInBatch: Number = 10,
+         maxBodySizeBytes: Number = 3_000_000,
+         maxAttachmentSizeInEventsBatchInBytes: Number = 123_123,
+         timeoutIntervalForRequest: TimeInterval = 123_123,
+         httpContentTypeAllowlist: [String] = ["application/json"],
+         dynamicConfig: DynamicConfig = BaseDynamicConfig.default(),
+         combinedHttpUrlBlocklist: [String] = [],
+         maxEventsInBatch: Number = 10_000,
+         crashTimelineDurationSeconds: Number = 300,
+         anrTimelineDurationSeconds: Number = 300,
+         bugReportTimelineDurationSeconds: Number = 300,
+         traceSamplingRate: Float = 0.01,
+         journeySamplingRate: Float = 0.01,
+         screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
+         cpuUsageInterval: Number = 5,
+         memoryUsageInterval: Number = 5,
+         crashTakeScreenshot: Bool = true,
+         anrTakeScreenshot: Bool = true,
+         launchSamplingRate: Float = 0.01,
+         gestureClickTakeSnapshot: Bool = true,
+         httpDisableEventForUrls: [String] = [],
+         httpTrackRequestForUrls: [String] = [],
+         httpTrackResponseForUrls: [String] = [],
+         httpBlockedHeaders: [String] = [
+            "Authorization",
+            "Cookie",
+            "Set-Cookie",
+            "Proxy-Authorization",
+            "WWW-Authenticate",
+            "X-Api-Key",
+         ]) {
+        self.enableLogging = enableLogging
+        self.autoStart = autoStart
+        self.enableFullCollectionMode = enableFullCollectionMode
+        self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.batchExportIntervalMs = batchExportIntervalMs
+        self.attachmentExportIntervalMs = attachmentExportIntervalMs
+        self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
+        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
+        self.sessionBackgroundTimeoutThresholdMs = sessionBackgroundTimeoutThresholdMs
+        self.maxEventNameLength = maxEventNameLength
+        self.maxUserDefinedAttributesPerEvent = maxUserDefinedAttributesPerEvent
+        self.customEventNameRegex = customEventNameRegex
+        self.maxUserDefinedAttributeKeyLength = maxUserDefinedAttributeKeyLength
+        self.maxUserDefinedAttributeValueLength = maxUserDefinedAttributeValueLength
+        self.longPressTimeout = longPressTimeout
+        self.scaledTouchSlop = scaledTouchSlop
+        self.screenshotMaskHexColor = screenshotMaskHexColor
+        self.screenshotCompressionQuality = screenshotCompressionQuality
+        self.eventTypeExportAllowList = eventTypeExportAllowList
+        self.maxSpanNameLength = maxSpanNameLength
+        self.maxCheckpointNameLength = maxCheckpointNameLength
+        self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
+        self.maxInMemorySignalsQueueSize = maxInMemorySignalsQueueSize
+        self.inMemorySignalsQueueFlushRateMs = inMemorySignalsQueueFlushRateMs
+        self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
+        self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport
+        self.shakeAccelerationThreshold = shakeAccelerationThreshold
+        self.shakeMinTimeIntervalMs = shakeMinTimeIntervalMs
+        self.shakeSlop = shakeSlop
+        self.disallowedCustomHeaders = disallowedCustomHeaders
         self.estimatedEventSizeInKb = estimatedEventSizeInKb
+        self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
+        self.layoutSnapshotDebounceInterval = layoutSnapshotDebounceInterval
+        self.accelerometerUpdateInterval = accelerometerUpdateInterval
+        self.lifecycleViewControllerExcludeList = lifecycleViewControllerExcludeList
         self.maxExportJitterInterval = maxExportJitterInterval
         self.maxAttachmentsInBatch = maxAttachmentsInBatch
-        self.combinedHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist + self.httpHeadersBlocklist
-        self.combinedHttpUrlBlocklist = self.httpUrlBlocklist
         self.maxBodySizeBytes = maxBodySizeBytes
+        self.maxAttachmentSizeInEventsBatchInBytes = maxAttachmentSizeInEventsBatchInBytes
+        self.timeoutIntervalForRequest = timeoutIntervalForRequest
+        self.httpContentTypeAllowlist = httpContentTypeAllowlist
+        self.dynamicConfig = dynamicConfig
+        self.combinedHttpUrlBlocklist = combinedHttpUrlBlocklist
+        self.combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + dynamicConfig.httpBlockedHeaders
+        self.maxEventsInBatch = maxEventsInBatch
+        self.crashTimelineDurationSeconds = crashTimelineDurationSeconds
+        self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
+        self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
+        self.traceSamplingRate = traceSamplingRate
+        self.journeySamplingRate = journeySamplingRate
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.cpuUsageInterval = cpuUsageInterval
+        self.memoryUsageInterval = memoryUsageInterval
+        self.crashTakeScreenshot = crashTakeScreenshot
+        self.anrTakeScreenshot = anrTakeScreenshot
+        self.launchSamplingRate = launchSamplingRate
+        self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
+        self.httpDisableEventForUrls = httpDisableEventForUrls
+        self.httpTrackRequestForUrls = httpTrackRequestForUrls
+        self.httpTrackResponseForUrls = httpTrackResponseForUrls
+        self.httpBlockedHeaders = httpBlockedHeaders
     }
 
-    func loadNetworkConfig() {}
-
-    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
-        if !trackHttpBody {
-            return false
-        }
-
-        if contentType?.isEmpty ?? true {
-            return false
-        }
-
-        if !shouldTrackHttpUrl(url: url) {
-            return false
-        }
-
-        let nonNilContentType = contentType!
-        return httpContentTypeAllowlist.contains { allowlistEntry in
-            return nonNilContentType.lowercased().hasPrefix(allowlistEntry.lowercased())
-        }
-    }
-    
-    func shouldTrackHttpUrl(url: String) -> Bool {
-        if !httpUrlAllowlist.isEmpty {
-            return httpUrlAllowlist.contains { allowlistEntry in
-                return url.range(of: allowlistEntry, options: .caseInsensitive) != nil
-            }
-        }
-
-        return !combinedHttpUrlBlocklist.contains { blocklistEntry in
-            return url.range(of: blocklistEntry, options: .caseInsensitive) != nil
-        }
-    }
-    
-    func shouldTrackHttpHeader(key: String) -> Bool {
-        return !combinedHttpHeadersBlocklist.contains { blocklistEntry in
-            return key.range(of: blocklistEntry, options: .caseInsensitive) != nil
-        }
-    }
 
     func setMeasureUrl(url: String) {
         combinedHttpUrlBlocklist.append(url)
+    }
+
+    func setDynamicConfig(_ config: DynamicConfig) {
+        self.dynamicConfig = config
+        self.combinedHttpHeadersBlocklist =
+            defaultHttpHeadersBlocklist + config.httpBlockedHeaders
+    }
+
+    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
+        guard
+            let contentType,
+            !contentType.isEmpty,
+            shouldTrackHttpUrl(url: url)
+        else { return false }
+
+        return httpContentTypeAllowlist.contains {
+            contentType.lowercased().hasPrefix($0.lowercased())
+        }
+    }
+
+    func shouldTrackHttpUrl(url: String) -> Bool {
+        !combinedHttpUrlBlocklist.contains {
+            url.range(of: $0, options: .caseInsensitive) != nil
+        }
+    }
+
+    func shouldTrackHttpHeader(key: String) -> Bool {
+        !combinedHttpHeadersBlocklist.contains {
+            key.range(of: $0, options: .caseInsensitive) != nil
+        }
     }
 }

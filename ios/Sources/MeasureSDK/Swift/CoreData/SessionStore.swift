@@ -19,6 +19,7 @@ protocol SessionStore {
     func getOldestSession(completion: @escaping (String?) -> Void)
     func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void)
     func getSessionsToDelete(completion: @escaping ([String]?) -> Void)
+    func markSessionAsPriority(sessionId: String)
 }
 
 final class BaseSessionStore: SessionStore {
@@ -259,6 +260,37 @@ final class BaseSessionStore: SessionStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to fetch sessions to delete.", error: error, data: nil)
                 completion(nil)
+            }
+        }
+    }
+
+    func markSessionAsPriority(sessionId: String) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else { return }
+
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", sessionId)
+            fetchRequest.fetchLimit = 1
+
+            do {
+                if let session = try context.fetch(fetchRequest).first {
+                    session.isPriority = true
+                    try context.saveIfNeeded()
+                    
+                    self.logger.internalLog(
+                        level: .debug,
+                        message: "Marked session \(sessionId) as priority",
+                        error: nil,
+                        data: nil
+                    )
+                }
+            } catch {
+                self.logger.internalLog(
+                    level: .error,
+                    message: "Failed to mark session as priority: \(sessionId)",
+                    error: error,
+                    data: nil
+                )
             }
         }
     }

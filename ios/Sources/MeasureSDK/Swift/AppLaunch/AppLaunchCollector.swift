@@ -12,6 +12,7 @@ protocol AppLaunchCollector {
     func applicationWillEnterForeground()
     func applicationDidBecomeActive()
     func applicationWillResignActive()
+    func onConfigLoaded()
 }
 
 final class BaseAppLaunchCollector: AppLaunchCollector {
@@ -21,31 +22,34 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
     private let launchTracker: LaunchTracker
     private let launchCallback: LaunchCallbacks
     private var enabled = false
+    private let sampler: SignalSampler
+    private let bufferLock = NSLock()
+    private var trackEventBuffer: [() -> Void]? = []
+    private var needsReporting: Bool?
 
     init(logger: Logger,
          timeProvider: TimeProvider,
          signalProcessor: SignalProcessor,
          sysCtl: SysCtl,
          userDefaultStorage: UserDefaultStorage,
-         currentAppVersion: String) {
+         sampler: SignalSampler,
+         launchTracker: LaunchTracker,
+         launchCallback: LaunchCallbacks) {
         self.logger = logger
         self.timeProvider = timeProvider
         self.signalProcessor = signalProcessor
-        self.launchCallback = LaunchCallbacks()
-        self.launchTracker = BaseLaunchTracker(launchCallbacks: launchCallback,
-                                               timeProvider: timeProvider,
-                                               sysCtl: sysCtl,
-                                               logger: logger,
-                                               userDefaultStorage: userDefaultStorage,
-                                               currentAppVersion: currentAppVersion)
+        self.launchCallback = launchCallback
+        self.sampler = sampler
+        self.launchTracker = launchTracker
+
         self.launchCallback.onColdLaunchCallback = onColdLaunchCallback(_:)
         self.launchCallback.onWarmLaunchCallback = onWarmLaunchCallback(_:)
         self.launchCallback.onHotLaunchCallback = onHotLaunchCallback(_:)
     }
 
     func enable() {
-        logger.log(level: .info, message: "AppLaunchCollector enabled.", error: nil, data: nil)
         enabled = true
+        logger.log(level: .info, message: "AppLaunchCollector enabled.", error: nil, data: nil)
     }
 
     func applicationWillEnterForeground() {
@@ -60,43 +64,83 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
         launchTracker.applicationWillResignActive()
     }
 
-    func onColdLaunchCallback(_ data: ColdLaunchData) {
-        guard enabled else { return }
+    func onConfigLoaded() {
+        bufferLock.lock()
+        let pending = trackEventBuffer
+        trackEventBuffer = nil
+        bufferLock.unlock()
 
-        signalProcessor.track(data: data,
-                              timestamp: timeProvider.now(),
-                              type: .coldLaunch,
-                              attributes: nil,
-                              sessionId: nil,
-                              attachments: nil,
-                              userDefinedAttributes: nil,
-                              threadName: nil)
+        guard let pending, !pending.isEmpty else { return }
 
+        logger.log(level: .debug, message: "AppLaunchCollector: flushing \(pending.count) buffered launch events", error: nil, data: nil)
+
+        pending.forEach { $0() }
     }
 
-    func onWarmLaunchCallback(_ data: WarmLaunchData) {
+    private func onColdLaunchCallback(_ data: ColdLaunchData) {
         guard enabled else { return }
 
-        signalProcessor.track(data: data,
-                              timestamp: timeProvider.now(),
-                              type: .warmLaunch,
-                              attributes: nil,
-                              sessionId: nil,
-                              attachments: nil,
-                              userDefinedAttributes: nil,
-                              threadName: nil)
+        let timestamp = timeProvider.now()
+        trackOrBuffer {
+            self.signalProcessor.track(data: data,
+                                       timestamp: timestamp,
+                                       type: .coldLaunch,
+                                       attributes: nil,
+                                       sessionId: nil,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil,
+                                       needsReporting: self.sampler.shouldTrackLaunchEvents())
+        }
     }
 
-    func onHotLaunchCallback(_ data: HotLaunchData) {
+    private func onWarmLaunchCallback(_ data: WarmLaunchData) {
         guard enabled else { return }
 
-        signalProcessor.track(data: data,
-                              timestamp: timeProvider.now(),
-                              type: .hotLaunch,
-                              attributes: nil,
-                              sessionId: nil,
-                              attachments: nil,
-                              userDefinedAttributes: nil,
-                              threadName: nil)
+        let timestamp = timeProvider.now()
+        trackOrBuffer {
+            self.signalProcessor.track(
+                data: data,
+                timestamp: timestamp,
+                type: .warmLaunch,
+                attributes: nil,
+                sessionId: nil,
+                attachments: nil,
+                userDefinedAttributes: nil,
+                threadName: nil,
+                needsReporting: self.sampler.shouldTrackLaunchEvents()
+            )
+        }
+    }
+
+    private func onHotLaunchCallback(_ data: HotLaunchData) {
+        guard enabled else { return }
+
+        let timestamp = timeProvider.now()
+        trackOrBuffer {
+            self.signalProcessor.track(data: data,
+                                       timestamp: timestamp,
+                                       type: .hotLaunch,
+                                       attributes: nil,
+                                       sessionId: nil,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil,
+                                       needsReporting: self.sampler.shouldTrackLaunchEvents())
+        }
+    }
+
+    private func trackOrBuffer(_ action: @escaping () -> Void) {
+        bufferLock.lock()
+        if var buffer = trackEventBuffer {
+            buffer.append(action)
+            trackEventBuffer = buffer
+            bufferLock.unlock()
+
+            logger.log(level: .debug, message: "AppLaunchCollector: buffering launch event until config is loaded", error: nil, data: nil)
+        } else {
+            bufferLock.unlock()
+            action()
+        }
     }
 }

@@ -125,23 +125,23 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
         let isRequestHeadersPresent = requestHeaders != nil && !requestHeaders!.isEmpty
         let isResponseHeadersPresent = responseHeaders != nil && !responseHeaders!.isEmpty
-        
-        if !configProvider.trackHttpHeaders && (isResponseHeadersPresent || isRequestHeadersPresent) {
-            logger.log(level: .debug, message: "Discarding HTTP event, request or response headers were present but not configured for tracking in Measure.init", error: nil, data: nil)
-            return
-        }
+        // TODO: update http filter logic
+//        if !configProvider.trackHttpHeaders && (isResponseHeadersPresent || isRequestHeadersPresent) {
+//            logger.log(level: .debug, message: "Discarding HTTP event, request or response headers were present but not configured for tracking in Measure.init", error: nil, data: nil)
+//            return
+//        }
 
         var safeRequestHeaders = requestHeaders
         var safeResponseHeaders = responseHeaders
-
-        if configProvider.trackHttpHeaders {
-            safeRequestHeaders = safeRequestHeaders?.filter { key, _ in
-                configProvider.shouldTrackHttpHeader(key: key)
-            }
-            safeResponseHeaders = safeResponseHeaders?.filter { key, _ in
-                configProvider.shouldTrackHttpHeader(key: key)
-            }
-        }
+        // TODO: update http filter logic
+//        if configProvider.trackHttpHeaders {
+//            safeRequestHeaders = safeRequestHeaders?.filter { key, _ in
+//                configProvider.shouldTrackHttpHeader(key: key)
+//            }
+//            safeResponseHeaders = safeResponseHeaders?.filter { key, _ in
+//                configProvider.shouldTrackHttpHeader(key: key)
+//            }
+//        }
 
         let shouldTrackRequestHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: requestHeaders))
         let shouldTrackResponseHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: responseHeaders))

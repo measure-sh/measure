@@ -19,7 +19,7 @@ final class Event<T: Codable>: Codable {
     let timestamp: String
 
     /// The timestamp of the event in milliseconds.
-    let timestampInMillis: Number?
+    let timestampInMillis: Number
 
     /// The type of the event.
     let type: EventType

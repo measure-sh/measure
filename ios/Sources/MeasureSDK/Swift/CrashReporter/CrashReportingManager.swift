@@ -90,7 +90,8 @@ final class CrashReportingManager: CrashReportManager {
                                        sessionId: sessionId,
                                        attachments: nil,
                                        userDefinedAttributes: nil,
-                                       threadName: nil)
+                                       threadName: nil,
+                                       needsReporting: true)
         }
 
         crashReporter.clearCrashData()

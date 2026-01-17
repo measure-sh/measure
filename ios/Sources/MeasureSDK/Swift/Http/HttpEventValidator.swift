@@ -9,7 +9,7 @@ import Foundation
 
 protocol HttpEventValidator {
     func shouldTrackHttpEvent(_ httpContentTypeAllowlist: [String]?, contentType: String, requestUrl: String, allowedDomains: [String]?, ignoredDomains: [String]?) -> Bool
-    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Int) -> String?
+    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Number) -> String?
 }
 
 final class BaseHttpEventValidator: HttpEventValidator {
@@ -31,7 +31,7 @@ final class BaseHttpEventValidator: HttpEventValidator {
         return true
     }
 
-    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Int) -> String? {
+    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Number) -> String? {
         guard let body = body, !body.isEmpty else {
             return nil
         }
@@ -44,7 +44,7 @@ final class BaseHttpEventValidator: HttpEventValidator {
             return body
         }
 
-        let trimmedData = data.prefix(maxBodySizeBytes)
+        let trimmedData = data.prefix(Int(maxBodySizeBytes))
 
         var trimmedString: String? = String(data: trimmedData, encoding: .utf8)
         if trimmedString == nil {

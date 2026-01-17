@@ -29,60 +29,85 @@ final class BatchStoreTests: XCTestCase {
     }
 
     func testInsertBatch() {
-        let expectation = expectation(description: "Insert and fetch")
-        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
-        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1_000_000)
+        let batch1 = BatchEntity(
+            batchId: "batch1",
+            eventIds: ["event1", "event2"],
+            spanIds: ["span1", "span2"],
+            createdAt: 1_000_000
+        )
 
-        batchStore.insertBatch(batch1) { success1 in
-            XCTAssertTrue(success1)
-            self.batchStore.insertBatch(batch2) { success2 in
-                XCTAssertTrue(success2)
+        let batch2 = BatchEntity(
+            batchId: "batch2",
+            eventIds: ["event3", "event4"],
+            spanIds: ["span3", "span4"],
+            createdAt: 1_000_000
+        )
 
-                self.batchStore.getBatches(10) { batches in
-                    XCTAssertEqual(batches.count, 2)
-                    expectation.fulfill()
-                }
-            }
-        }
+        let success1 = batchStore.insertBatch(batch1)
+        let success2 = batchStore.insertBatch(batch2)
 
-        wait(for: [expectation], timeout: 5)
+        XCTAssertTrue(success1)
+        XCTAssertTrue(success2)
+
+        let batches = batchStore.getBatches(10)
+        XCTAssertEqual(batches.count, 2)
     }
 
     func testGetBatches() {
-        let expectation = expectation(description: "Insert and get")
+        let batch = BatchEntity(
+            batchId: "batch1",
+            eventIds: ["event1", "event2"],
+            spanIds: ["span1", "span2"],
+            createdAt: 1_000_000
+        )
 
-        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
+        let success = batchStore.insertBatch(batch)
+        XCTAssertTrue(success)
 
-        batchStore.insertBatch(batch) { _ in
-            self.batchStore.getBatches(1) { batches in
-                XCTAssertEqual(batches.count, 1)
-                XCTAssertEqual(batches.first?.batchId, "batch1")
-                expectation.fulfill()
-            }
-        }
+        let batches = batchStore.getBatches(1)
 
-        wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(batches.count, 1)
+        XCTAssertEqual(batches.first?.batchId, "batch1")
+    }
+
+    func testGetBatchById() {
+        let batch = BatchEntity(
+            batchId: "batch1",
+            eventIds: ["event1"],
+            spanIds: ["span1"],
+            createdAt: 1_000_000
+        )
+
+        _ = batchStore.insertBatch(batch)
+
+        let fetchedBatch = batchStore.getBatch("batch1")
+
+        XCTAssertNotNil(fetchedBatch)
+        XCTAssertEqual(fetchedBatch?.batchId, "batch1")
     }
 
     func testDeleteBatch() {
-        let expectation = expectation(description: "Insert, delete, verify")
+        let batch1 = BatchEntity(
+            batchId: "batch1",
+            eventIds: ["event1", "event2"],
+            spanIds: ["span1", "span2"],
+            createdAt: 1_000_000
+        )
 
-        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
-        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1_000_000)
+        let batch2 = BatchEntity(
+            batchId: "batch2",
+            eventIds: ["event3", "event4"],
+            spanIds: ["span3", "span4"],
+            createdAt: 1_000_000
+        )
 
-        batchStore.insertBatch(batch1) { _ in
-            self.batchStore.insertBatch(batch2) { _ in
-                self.batchStore.deleteBatch("batch1") {
-                    self.batchStore.deleteBatch("batch2") {
-                        self.batchStore.getBatches(10) { batches in
-                            XCTAssertEqual(batches.count, 0)
-                            expectation.fulfill()
-                        }
-                    }
-                }
-            }
-        }
+        _ = batchStore.insertBatch(batch1)
+        _ = batchStore.insertBatch(batch2)
 
-        wait(for: [expectation], timeout: 5)
+        batchStore.deleteBatch("batch1")
+        batchStore.deleteBatch("batch2")
+
+        let batches = batchStore.getBatches(10)
+        XCTAssertEqual(batches.count, 0)
     }
 }

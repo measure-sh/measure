@@ -9,14 +9,15 @@ import Foundation
 @testable import Measure
 
 final class MockConfigLoader: ConfigLoader {
-    var cachedConfig: Config?
-    var networkConfig: Config?
+    private let config: DynamicConfig
 
-    func getCachedConfig() -> Config? {
-        return cachedConfig
+    private(set) var didLoadConfig: Bool = false
+
+    init(config: DynamicConfig = BaseDynamicConfig.default()) {
+        self.config = config
     }
 
-    func getNetworkConfig(onSuccess: @escaping (Config) -> Void) {
-        onSuccess(networkConfig!)
+    func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void) {
+        onLoaded(config)
     }
 }
