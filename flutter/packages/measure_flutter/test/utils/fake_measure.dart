@@ -13,7 +13,6 @@ class FakeMeasure implements MeasureApi {
   @override
   Future<void> init(
     FutureOr<void> Function() action, {
-    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   }) async {
     await action();
@@ -71,17 +70,7 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  bool shouldTrackHttpBody(String url, String? contentType) {
-    throw UnimplementedError();
-  }
-
-  @override
   bool shouldTrackHttpHeader(String key) {
-    throw UnimplementedError();
-  }
-
-  @override
-  bool shouldTrackHttpUrl(String url) {
     throw UnimplementedError();
   }
 
@@ -176,6 +165,21 @@ class FakeMeasure implements MeasureApi {
 
   @override
   void trackScroll(ScrollData scrollData) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool shouldTrackHttpEvent(String url) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool shouldTrackHttpRequestBody(String url) {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool shouldTrackHttpResponseBody(String url) {
     throw UnimplementedError();
   }
 }

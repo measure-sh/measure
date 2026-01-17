@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/shake_detector.dart';
+import 'package:measure_flutter/src/config/config_loader.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
@@ -14,6 +15,7 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
+import 'package:measure_flutter/src/tracing/span_processor.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
@@ -37,6 +39,8 @@ final class MeasureInternal {
   final MsrMethodChannel methodChannel;
   final IdProvider _idProvider;
   final ShakeDetector _shakeDetector;
+  final ConfigLoader _configLoader;
+  final SpanProcessor _spanProcessor;
 
   MeasureInternal({
     required this.initializer,
@@ -53,12 +57,20 @@ final class MeasureInternal {
         _timeProvider = initializer.timeProvider,
         _tracer = initializer.tracer,
         _idProvider = initializer.idProvider,
-        _shakeDetector = initializer.shakeDetector;
+        _shakeDetector = initializer.shakeDetector,
+        _configLoader = initializer.configLoader,
+        _spanProcessor = initializer.spanProcessor;
 
   Future<void> init() async {
     if (configProvider.autoStart) {
       registerCollectors();
     }
+    _configLoader.loadDynamicConfig().then((dynamicConfig) {
+      if (dynamicConfig != null) {
+        configProvider.setDynamicConfig(dynamicConfig);
+      }
+      _spanProcessor.onConfigLoaded();
+    });
   }
 
   void registerCollectors() {

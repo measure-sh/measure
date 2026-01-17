@@ -416,6 +416,7 @@ internal class TestMeasureInitializer(
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(
         logger = logger,
+        configProvider = configProvider,
         signalProcessor = signalProcessor,
         processInfoProvider = processInfoProvider,
         sessionManager = sessionManager,

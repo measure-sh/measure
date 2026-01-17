@@ -41,24 +41,31 @@ class HttpCollector {
       return;
     }
 
-    if (!configProvider.shouldTrackHttpUrl(url)) {
+    if (!configProvider.shouldTrackHttpEvent(url)) {
       return;
     }
 
-    requestHeaders?.removeWhere(
-      (key, value) => !configProvider.shouldTrackHttpHeader(key),
-    );
-    responseHeaders?.removeWhere(
-      (key, value) => !configProvider.shouldTrackHttpHeader(key),
-    );
+    Map<String, String>? filteredRequestHeaders;
+    if (requestHeaders != null) {
+      filteredRequestHeaders = Map.from(requestHeaders)
+        ..removeWhere(
+              (key, value) => !configProvider.shouldTrackHttpHeader(key),
+        );
+    }
 
-    if (!configProvider.shouldTrackHttpBody(
-        url, requestHeaders?['Content-Type'])) {
+    Map<String, String>? filteredResponseHeaders;
+    if (responseHeaders != null) {
+      filteredResponseHeaders = Map.from(responseHeaders)
+        ..removeWhere(
+              (key, value) => !configProvider.shouldTrackHttpHeader(key),
+        );
+    }
+
+    if (!configProvider.shouldTrackHttpRequestBody(url)) {
       requestBody = null;
     }
 
-    if (!configProvider.shouldTrackHttpBody(
-        url, responseHeaders?['Content-Type'])) {
+    if (!configProvider.shouldTrackHttpResponseBody(url)) {
       responseBody = null;
     }
 
@@ -70,8 +77,8 @@ class HttpCollector {
       endTime: endTime,
       failureReason: failureReason,
       failureDescription: failureDescription,
-      requestHeaders: requestHeaders,
-      responseHeaders: responseHeaders,
+      requestHeaders: filteredRequestHeaders,
+      responseHeaders: filteredResponseHeaders,
       requestBody: requestBody,
       responseBody: responseBody,
       client: client ?? 'unknown',

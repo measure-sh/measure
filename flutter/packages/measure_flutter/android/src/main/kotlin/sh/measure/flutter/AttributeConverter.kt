@@ -9,7 +9,7 @@ import sh.measure.android.attributes.LongAttr
 import sh.measure.android.attributes.StringAttr
 
 object AttributeConverter {
-    fun convertAttributes(attributes: Map<String, Any>): MutableMap<String, AttributeValue> {
+    fun convertAttributes(attributes: Map<String, Any?>): MutableMap<String, AttributeValue> {
         return attributes.mapValuesTo(mutableMapOf()) { (key, value) ->
             try {
                 when (value) {
