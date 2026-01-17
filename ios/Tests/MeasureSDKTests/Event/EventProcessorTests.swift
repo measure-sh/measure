@@ -19,8 +19,6 @@ final class SignalProcessorTests: XCTestCase {
     var coreDataManager: MockCoreDataManager!
     var crashDataPersistence: MockCrashDataPersistence!
     var sessionManager: MockSessionManager!
-    var eventStore: MockEventStore!
-    var spanStore: MockSpanStore!
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
     var signalSampler: MockSignalSampler!
@@ -76,8 +74,7 @@ final class SignalProcessorTests: XCTestCase {
                                                         isForeground: true)
         sessionManager = MockSessionManager(sessionId: "session-id-1")
         screenshotGenerator = MockScreenshotGenerator()
-        eventStore = MockEventStore()
-        spanStore = MockSpanStore()
+        signalStore = MockSignalStore()
         signalSampler = MockSignalSampler()
     }
 
@@ -93,9 +90,8 @@ final class SignalProcessorTests: XCTestCase {
         coreDataManager = nil
         crashDataPersistence = nil
         sessionManager = nil
-        eventStore = nil
         screenshotGenerator = nil
-        signalSampler = nil
+        signalStore = nil
         signalSampler = nil
     }
 
@@ -154,11 +150,11 @@ final class SignalProcessorTests: XCTestCase {
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
 
-        // Check if event gets added to the EventStore
-        XCTAssertEqual(eventStore.events.count, 1)
+        // Check if event gets added to the signalStore
+        XCTAssertEqual(signalStore.storedEvents.count, 1)
 
         // Check if EventEntity is properly convert back to Event
-        guard let event = eventStore.events.first?.getEvent() as? Event<Exception> else {
+        guard let event = signalStore.storedEvents.first?.getEvent() as? Event<Exception> else {
             XCTFail("Failed to get event from EventStore.")
             return
         }
@@ -262,11 +258,11 @@ final class SignalProcessorTests: XCTestCase {
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)
 
-        // Check if event gets added to the EventStore
-        XCTAssertEqual(eventStore.events.count, 1)
+        // Check if event gets added to the SignalStore
+        XCTAssertEqual(signalStore.storedEvents.count, 1)
 
         // Check if EventEntity is properly convert back to Event
-        guard let event = eventStore.events.first?.getEvent() as? Event<Exception> else {
+        guard let event = signalStore.storedEvents.first?.getEvent() as? Event<Exception> else {
             XCTFail("Failed to get event from EventStore.")
             return
         }
@@ -313,7 +309,7 @@ final class SignalProcessorTests: XCTestCase {
             needsReporting: true
         )
 
-        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
+        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
     }
 
     func testJourneyEventTracked_whenSessionShouldReportSessionIsTrue_evenIfSamplingIsFalse() {
@@ -343,7 +339,7 @@ final class SignalProcessorTests: XCTestCase {
             needsReporting: true
         )
 
-        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
+        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
     }
 
     func testEventTracked_whenLaunchSamplingAllows_evenIfSessionShouldReportIsFalse() {
@@ -374,7 +370,7 @@ final class SignalProcessorTests: XCTestCase {
             needsReporting: true
         )
 
-        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
+        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
     }
 
     func testEventTracked_whenJourneySamplingAllows_evenIfSessionShouldReportIsFalse() {
@@ -405,7 +401,7 @@ final class SignalProcessorTests: XCTestCase {
             needsReporting: true
         )
 
-        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
+        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
     }
 
     func testEventTracked_whenInAllowList_evenIfSessionFalse_andSamplingFalse() {
@@ -435,9 +431,9 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: false
         )
 
-        XCTAssertEqual(eventStore.events.first?.needsReporting, true, "Event should be tracked when allowList contains eventType")
+        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when allowList contains eventType")
     }
 }
