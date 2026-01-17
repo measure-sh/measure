@@ -15,31 +15,41 @@ final class MockSpanStore: SpanStore {
         spans[span.spanId] = span
     }
 
-    func getSpansForSessions(sessions: [String]) -> [SpanEntity]? {
-        return spans.values.filter { span in
-            guard let sessionId = span.sessionId else { return false }
-            return sessions.contains(sessionId)
+    func insertSpans(spans: [SpanEntity]) {
+        for span in spans {
+            self.spans[span.spanId] = span
         }
     }
 
-    func getSpans(spanIds: [String], completion: @escaping ([SpanEntity]?) -> Void) {
-        completion(spanIds.compactMap { spans[$0] })
+    func getSpans(spanIds: [String]) -> [SpanEntity]? {
+        let result = spanIds.compactMap { spans[$0] }
+        return result.isEmpty ? nil : result
+    }
+
+    func getSpansForSessions(sessions: [String]) -> [SpanEntity]? {
+        let result = spans.values.filter {
+            guard let sessionId = $0.sessionId else { return false }
+            return sessions.contains(sessionId)
+        }
+        return result.isEmpty ? nil : result
     }
 
     func getAllSpans(completion: @escaping ([SpanEntity]?) -> Void) {
-        completion(Array(spans.values))
+        completion(spans.isEmpty ? nil : Array(spans.values))
     }
 
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void) {
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String] {
         let filtered = spans.values.filter { $0.batchId == nil }
+
         let sorted = filtered.sorted {
-            if ascending {
-                return $0.startTime < $1.startTime
-            } else {
-                return $0.startTime > $1.startTime
-            }
+            ascending
+            ? $0.startTime < $1.startTime
+            : $0.startTime > $1.startTime
         }
-        completion(sorted.prefix(Int(spanCount)).compactMap { $0.spanId })
+
+        return sorted
+            .prefix(Int(spanCount))
+            .compactMap { $0.spanId }
     }
 
     func deleteSpans(spanIds: [String]) {
@@ -49,18 +59,18 @@ final class MockSpanStore: SpanStore {
     }
 
     func deleteSpans(sessionIds: [String], completion: @escaping () -> Void) {
-        for (key, span) in spans {
-            if let sessionId = span.sessionId, sessionIds.contains(sessionId) {
-                spans.removeValue(forKey: key)
-            }
+        spans = spans.filter { _, span in
+            guard let sessionId = span.sessionId else { return true }
+            return !sessionIds.contains(sessionId)
         }
         completion()
     }
 
     func updateBatchId(_ batchId: String, for spansToUpdate: [String]) {
         for spanId in spansToUpdate {
-            guard var span = spans[spanId] else { continue }
-            span = SpanEntity(
+            guard let span = spans[spanId] else { continue }
+
+            spans[spanId] = SpanEntity(
                 name: span.name,
                 traceId: span.traceId,
                 spanId: span.spanId,
@@ -79,7 +89,6 @@ final class MockSpanStore: SpanStore {
                 isSampled: span.isSampled,
                 batchId: batchId
             )
-            spans[spanId] = span
         }
     }
 

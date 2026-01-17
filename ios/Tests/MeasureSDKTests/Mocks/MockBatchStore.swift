@@ -9,26 +9,31 @@ import Foundation
 @testable import Measure
 
 final class MockBatchStore: BatchStore {
-    var batches = [BatchEntity]()
-    var insertBatchCalled = false
-    var getBatchesCalled = false
-    var deleteBatchCalled = false
-    var deletedBatchId = ""
+    private var batches: [String: BatchEntity] = [:]
+    private(set) var insertCallCount = 0
+    private(set) var deleteCallCount = 0
 
-    func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void) {
-        batches.append(batch)
-        insertBatchCalled = true
-        completion(insertBatchCalled)
+    var onInsert: ((BatchEntity) -> Void)?
+    var onDelete: ((String) -> Void)?
+
+    func insertBatch(_ batch: BatchEntity) -> Bool {
+        insertCallCount += 1
+        batches[batch.batchId] = batch
+        onInsert?(batch)
+        return true
     }
 
-    func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void) {
-        getBatchesCalled = true
-        completion(Array(batches.prefix(maxNumberOfBatches)))
+    func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
+        return Array(batches.values.prefix(maxNumberOfBatches))
     }
 
-    func deleteBatch(_ batchId: String, completion: @escaping () -> Void) {
-        deleteBatchCalled = true
-        deletedBatchId = batchId
-        batches.removeAll { $0.batchId == batchId }
+    func getBatch(_ batchId: String) -> BatchEntity? {
+        return batches[batchId]
+    }
+
+    func deleteBatch(_ batchId: String) {
+        deleteCallCount += 1
+        batches.removeValue(forKey: batchId)
+        onDelete?(batchId)
     }
 }

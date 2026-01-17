@@ -34,15 +34,13 @@ final class MockMeasureInitializer: MeasureInitializer {
     let coreDataManager: CoreDataManager
     let eventStore: EventStore
     let spanStore: SpanStore
+    let signalStore: SignalStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
     let networkClient: NetworkClient
     let httpClient: HttpClient
-    let heartbeat: Heartbeat
-    let periodicExporter: PeriodicExporter
     let exporter: Exporter
     let batchStore: BatchStore
-    let batchCreator: BatchCreator
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
     let memoryUsageCollector: MemoryUsageCollector
@@ -89,6 +87,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          sessionStore: SessionStore? = nil,
          eventStore: EventStore? = nil,
          spanStore: SpanStore? = nil,
+         signalStore: SignalStore? = nil,
          sessionManager: SessionManager? = nil,
          signalProcessor: SignalProcessor? = nil,
          systemFileManager: SystemFileManager? = nil,
@@ -100,11 +99,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          gestureCollector: GestureCollector? = nil,
          httpClient: HttpClient? = nil,
          networkClient: NetworkClient? = nil,
-         heartbeat: Heartbeat? = nil,
          batchStore: BatchStore? = nil,
-         batchCreator: BatchCreator? = nil,
          exporter: Exporter? = nil,
-         periodicExporter: PeriodicExporter? = nil,
          lifecycleCollector: LifecycleCollector? = nil,
          cpuUsageCalculator: CpuUsageCalculator? = nil,
          memoryUsageCalculator: MemoryUsageCalculator? = nil,
@@ -164,6 +160,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                        logger: self.logger)
         self.spanStore = spanStore ?? BaseSpanStore(coreDataManager: self.coreDataManager,
                                                     logger: self.logger)
+        self.signalStore = signalStore ?? BaseSignalStore(eventStore: self.eventStore,
+                                                          spanStore: self.spanStore,
+                                                          logger: self.logger,
+                                                          config: self.configProvider)
         self.userDefaultStorage = userDefaultStorage ?? BaseUserDefaultStorage()
         self.sessionManager = sessionManager ?? BaseSessionManager(idProvider: self.idProvider,
                                                                    logger: self.logger,
@@ -207,8 +207,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                       configProvider: self.configProvider,
                                                                       timeProvider: self.timeProvider,
                                                                       crashDataPersistence: self.crashDataPersistence,
-                                                                      eventStore: self.eventStore,
-                                                                      spanStore: self.spanStore,
+                                                                      signalStore: self.signalStore,
                                                                       measureDispatchQueue: self.measureDispatchQueue,
                                                                       signalSampler: self.signalSampler)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
@@ -232,30 +231,21 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                httpClient: self.httpClient,
                                                                                exportQueue: MeasureQueue.periodicEventExporter,
                                                                                configProvider: self.configProvider)
-        self.heartbeat = heartbeat ?? BaseHeartbeat()
         self.batchStore = batchStore ?? BaseBatchStore(coreDataManager: self.coreDataManager,
                                                        logger: self.logger)
-        self.batchCreator = batchCreator ?? BaseBatchCreator(logger: self.logger,
-                                                             idProvider: self.idProvider,
-                                                             configProvider: self.configProvider,
-                                                             timeProvider: self.timeProvider,
-                                                             eventStore: self.eventStore,
-                                                             batchStore: self.batchStore,
-                                                             spanStore: self.spanStore)
         self.exporter = exporter ?? BaseExporter(logger: self.logger,
+                                                 idProvider: self.idProvider,
+                                                 dispatchQueue: MeasureQueue.periodicEventExporter,
+                                                 timeProvider: self.timeProvider,
                                                  networkClient: self.networkClient,
-                                                 batchCreator: self.batchCreator,
-                                                 batchStore: self.batchStore,
+                                                 httpClient: self.httpClient,
                                                  eventStore: self.eventStore,
                                                  spanStore: self.spanStore,
+                                                 batchStore: self.batchStore,
                                                  attachmentStore: self.attachmentStore,
-                                                 attachmentExporter: self.attachmentExporter)
-        self.periodicExporter = periodicExporter ?? BasePeriodicExporter(logger: self.logger,
-                                                                         configProvider: self.configProvider,
-                                                                         timeProvider: self.timeProvider,
-                                                                         heartbeat: self.heartbeat,
-                                                                         exporter: self.exporter,
-                                                                         dispatchQueue: MeasureQueue.periodicEventExporter)
+                                                 attachmentExporter: self.attachmentExporter,
+                                                 configProvider: self.configProvider,
+                                                 systemFileManager: self.systemFileManager)
         self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider, logger: self.logger)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                                 signalProcessor: self.signalProcessor,

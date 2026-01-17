@@ -8,38 +8,12 @@
 import Foundation
 @testable import Measure
 
-class MockExporter: Exporter {
-    var createBatchResult: BatchCreationResult?
-    var existingBatches: [BatchEntity] = []
-    var exportResponses: [String: HttpResponse] = [:]
-    var exportEventsCalled = false
-    var createBatchCalled = false
-    var exportBatchId = ""
+final class MockExporter: Exporter {
+    private(set) var exportCallCount = 0
+    var onExport: (() -> Void)?
 
-    func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void) {
-        createBatchCalled = true
-        completion(createBatchResult)
-    }
-
-    func getExistingBatches(completion: @escaping ([BatchEntity]) -> Void) {
-        completion(existingBatches)
-    }
-
-    func export(batchId: String, eventIds: [String], spanIds: [String], completion: @escaping (HttpResponse?) -> Void) {
-        exportEventsCalled = true
-        exportBatchId = batchId
-        completion(exportResponses[batchId])
-    }
-
-    func setCreateBatchResult(_ result: BatchCreationResult?) {
-        createBatchResult = result
-    }
-
-    func setExistingBatches(_ batches: [BatchEntity]) {
-        existingBatches = batches
-    }
-
-    func setExportResponse(for batchId: String, response: HttpResponse) {
-        exportResponses[batchId] = response
+    func export() {
+        exportCallCount += 1
+        onExport?()
     }
 }
