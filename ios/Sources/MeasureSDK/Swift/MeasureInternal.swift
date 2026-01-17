@@ -91,12 +91,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var httpClient: HttpClient {
         return measureInitializer.httpClient
     }
-    private var heartbeat: Heartbeat {
-        return measureInitializer.heartbeat
-    }
-    private var periodicExporter: PeriodicExporter {
-        return measureInitializer.periodicExporter
-    }
     private var attachmentExporter: AttachmentExporter {
         return measureInitializer.attachmentExporter
     }
@@ -159,6 +153,12 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var spanProcessor: SpanProcessor {
         return measureInitializer.spanProcessor
     }
+    private var exporter: Exporter {
+        return measureInitializer.exporter
+    }
+    private var signalStore: SignalStore {
+        return measureInitializer.signalStore
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
 
@@ -191,7 +191,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
 
-            // TODO: Implement updated export here
+            self.exporter.export()
         }
     }
 
@@ -368,7 +368,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
-        self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
         self.dataCleanupService.clearStaleData {}
@@ -379,7 +378,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashDataPersistence.isForeground = true
         self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
-        self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.registedCollectors()
     }
@@ -402,7 +400,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
-        self.periodicExporter.enable()
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
@@ -422,7 +419,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.userTriggeredEventCollector.disable()
         self.cpuUsageCollector.disable()
         self.memoryUsageCollector.disable()
-        self.periodicExporter.disable()
         self.httpEventCollector.disable()
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()

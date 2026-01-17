@@ -45,8 +45,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private let configProvider: ConfigProvider
     private let timeProvider: TimeProvider
     private var crashDataPersistence: CrashDataPersistence
-    private let eventStore: EventStore
-    private let spanStore: SpanStore
+    private let signalStore: SignalStore
     private let measureDispatchQueue: MeasureDispatchQueue
     private let signalSampler: SignalSampler
 
@@ -57,8 +56,7 @@ final class BaseSignalProcessor: SignalProcessor {
          configProvider: ConfigProvider,
          timeProvider: TimeProvider,
          crashDataPersistence: CrashDataPersistence,
-         eventStore: EventStore,
-         spanStore: SpanStore,
+         signalStore: SignalStore,
          measureDispatchQueue: MeasureDispatchQueue,
          signalSampler: SignalSampler) {
         self.logger = logger
@@ -68,8 +66,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.configProvider = configProvider
         self.timeProvider = timeProvider
         self.crashDataPersistence = crashDataPersistence
-        self.eventStore = eventStore
-        self.spanStore = spanStore
+        self.signalStore = signalStore
         self.measureDispatchQueue = measureDispatchQueue
         self.signalSampler = signalSampler
     }
@@ -108,6 +105,7 @@ final class BaseSignalProcessor: SignalProcessor {
                                         userDefinedAttributes: String?,
                                         threadName: String?) {
         SignPost.trace(subcategory: "Event", label: "trackEventUserTriggered") {
+            // TODO: add proper needsReporting
             track(data: data,
                   timestamp: timestamp,
                   type: type,
@@ -137,7 +135,7 @@ final class BaseSignalProcessor: SignalProcessor {
             let spanEntity = SpanEntity(spanData,
                                         startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
                                         endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
-            spanStore.insertSpan(span: spanEntity)
+            signalStore.store(spanEntity)
             logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
         }
     }
@@ -172,28 +170,13 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            // If session is marked for export everything is tracked
-//            if self.sessionManager.shouldReportSession {
-//                needsReporting = true
-//            } else {
-//                // Journey events
-//                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
-//                    needsReporting = signalSampler.shouldTrackJourneyEvents()
-//                }
-//
-//                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
-//                    needsReporting = true
-//                }
-//            }
             var needsReporting: Bool? = needsReporting
             if self.configProvider.eventTypeExportAllowList.contains(event.type) {
                 needsReporting = true
             }
 
-            let eventEntity = EventEntity(event, needsReporting: needsReporting ?? false)
-
-            self.eventStore.insertEvent(event: eventEntity) {}
-            self.sessionManager.onEventTracked(eventEntity)
+            self.signalStore.store(event, needsReporting: needsReporting ?? false)
+            self.sessionManager.onEventTracked(event)
 
             self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
         }

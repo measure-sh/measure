@@ -72,7 +72,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.batchExportIntervalMs = 3_000 // 3 seconds
         self.attachmentExportIntervalMs = 500 // 500 ms
-        self.eventsBatchingIntervalMs = 12312 // TODO: remove this
         self.defaultHttpHeadersBlocklist = ["Authorization",
                                              "Cookie",
                                              "Set-Cookie",
@@ -139,5 +138,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.cpuTrackingIntervalMs = 123123
         self.memoryTrackingIntervalMs = 123123
         self.httpContentTypeAllowlist = [""]
+        self.eventsBatchingIntervalMs = 12312
     }
 }

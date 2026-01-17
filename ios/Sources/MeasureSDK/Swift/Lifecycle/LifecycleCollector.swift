@@ -152,6 +152,6 @@ final class BaseLifecycleCollector: LifecycleCollector {
                               attachments: nil,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: true)
+                              needsReporting: false)
     }
 }

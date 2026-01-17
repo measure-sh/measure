@@ -32,15 +32,13 @@ protocol MeasureInitializer {
     var coreDataManager: CoreDataManager { get }
     var sessionStore: SessionStore { get }
     var eventStore: EventStore { get }
+    var signalStore: SignalStore { get }
     var gestureCollector: GestureCollector { get }
     var gestureTargetFinder: GestureTargetFinder { get }
     var networkClient: NetworkClient { get }
     var httpClient: HttpClient { get }
-    var periodicExporter: PeriodicExporter { get }
-    var heartbeat: Heartbeat { get }
     var exporter: Exporter { get }
     var batchStore: BatchStore { get }
-    var batchCreator: BatchCreator { get }
     var lifecycleCollector: LifecycleCollector { get }
     var cpuUsageCollector: CpuUsageCollector { get }
     var memoryUsageCollector: MemoryUsageCollector { get }
@@ -104,6 +102,7 @@ protocol MeasureInitializer {
 /// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
+/// - `signalStore`: `SignalStore` object that manages span and event insertion buffers.
 /// - `spanStore`: `SpanStore` object that manages `Span` related operations
 /// - `attachmentStore`: `AttachmentStore` object that manages `Attachment` related operations
 /// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
@@ -125,11 +124,8 @@ protocol MeasureInitializer {
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
-/// - `heartbeat`: `Heartbeat` object that emits a pulse every 30 seconds.
-/// - `periodicExporter`: `PeriodicExporter` object that exports events periodically to server.
 /// - `exporter`: `Exporter` object that exports a single batch.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
-/// - `batchCreator`: `BatchCreator` object used to create a batch.
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 /// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
 /// - `svgGenerator`: `SvgGenerator` object responsible for generating layout snapshot svg.
@@ -172,15 +168,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let sessionStore: SessionStore
     let coreDataManager: CoreDataManager
     let eventStore: EventStore
+    let signalStore: SignalStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
     let networkClient: NetworkClient
     let httpClient: HttpClient
-    let heartbeat: Heartbeat
-    let periodicExporter: PeriodicExporter
     let exporter: Exporter
     let batchStore: BatchStore
-    let batchCreator: BatchCreator
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
     let memoryUsageCollector: MemoryUsageCollector
@@ -241,6 +235,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              logger: logger)
         self.eventStore = BaseEventStore(coreDataManager: coreDataManager,
                                          logger: logger)
+        self.spanStore = BaseSpanStore(coreDataManager: coreDataManager,
+                                       logger: logger)
+        self.signalStore = BaseSignalStore(eventStore: eventStore,
+                                           spanStore: spanStore,
+                                           logger: logger,
+                                           config: configProvider)
         self.userDefaultStorage = BaseUserDefaultStorage()
         self.randomizer = BaseRandomizer()
         self.signalSampler = BaseSignalSampler(configProvider: configProvider,
@@ -280,8 +280,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
-        self.spanStore = BaseSpanStore(coreDataManager: coreDataManager,
-                                       logger: logger)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,
@@ -289,8 +287,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    configProvider: configProvider,
                                                    timeProvider: timeProvider,
                                                    crashDataPersistence: crashDataPersistence,
-                                                   eventStore: eventStore,
-                                                   spanStore: spanStore,
+                                                   signalStore: signalStore,
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
@@ -309,16 +306,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      gestureTargetFinder: gestureTargetFinder,
                                                      layoutSnapshotGenerator: layoutSnapshotGenerator,
                                                      systemFileManager: systemFileManager)
-        self.heartbeat = BaseHeartbeat()
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)
-        self.batchCreator = BaseBatchCreator(logger: logger,
-                                             idProvider: idProvider,
-                                             configProvider: configProvider,
-                                             timeProvider: timeProvider,
-                                             eventStore: eventStore,
-                                             batchStore: batchStore,
-                                             spanStore: spanStore)
         self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
                                                    logger: logger)
         self.attachmentExporter = BaseAttachmentExporter(logger: logger,
@@ -327,19 +316,18 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          exportQueue: MeasureQueue.attachmentExporter,
                                                          configProvider: configProvider)
         self.exporter = BaseExporter(logger: logger,
+                                     idProvider: idProvider,
+                                     dispatchQueue: MeasureQueue.periodicEventExporter,
+                                     timeProvider: timeProvider,
                                      networkClient: networkClient,
-                                     batchCreator: batchCreator,
-                                     batchStore: batchStore,
+                                     httpClient: httpClient,
                                      eventStore: eventStore,
                                      spanStore: spanStore,
+                                     batchStore: batchStore,
                                      attachmentStore: attachmentStore,
-                                     attachmentExporter: attachmentExporter)
-        self.periodicExporter = BasePeriodicExporter(logger: logger,
-                                                     configProvider: configProvider,
-                                                     timeProvider: timeProvider,
-                                                     heartbeat: heartbeat,
-                                                     exporter: exporter,
-                                                     dispatchQueue: MeasureQueue.periodicEventExporter)
+                                     attachmentExporter: attachmentExporter,
+                                     configProvider: configProvider,
+                                     systemFileManager: systemFileManager)
         self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
                                                                    logger: logger)
         self.spanProcessor = BaseSpanProcessor(logger: logger,

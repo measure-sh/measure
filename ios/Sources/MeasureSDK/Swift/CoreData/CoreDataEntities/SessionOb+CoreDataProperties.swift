@@ -1,24 +1,28 @@
 //
 //  SessionOb+CoreDataProperties.swift
-//  MeasureSDK
+//  Measure
 //
-//  Created by Adwin Ross on 04/03/25.
+//  Created by Adwin Ross on 15/01/26.
 //
 //
 
-import Foundation
-import CoreData
+public import Foundation
+public import CoreData
+
+
+public typealias SessionObCoreDataPropertiesSet = NSSet
 
 extension SessionOb {
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<SessionOb> {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<SessionOb> {
         return NSFetchRequest<SessionOb>(entityName: "SessionOb")
     }
 
-    @NSManaged var crashed: Bool
-    @NSManaged var createdAt: Int64
-    @NSManaged var needsReporting: Bool
-    @NSManaged var pid: Int32
-    @NSManaged var sessionId: String?
+    @NSManaged public var crashed: Bool
+    @NSManaged public var createdAt: Int64
+    @NSManaged public var needsReporting: Bool
+    @NSManaged public var pid: Int32
+    @NSManaged public var sessionId: String?
+    @NSManaged public var isPriority: Bool
 
 }
