@@ -34,6 +34,43 @@ extension Measure.AttributeValue : Swift.Codable {
   public func encode(to encoder: any Swift.Encoder) throws
   public init(from decoder: any Swift.Decoder) throws
 }
+public typealias SessionObCoreDataClassSet = Foundation.NSSet
+@_inheritsConvenienceInitializers @objc(SessionOb) nonisolated public class SessionOb : CoreData.NSManagedObject {
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+  #endif
+  @objc deinit
+}
+public typealias SessionObCoreDataPropertiesSet = Foundation.NSSet
+extension Measure.SessionOb {
+  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SessionOb>
+  @objc @NSManaged nonisolated dynamic public var crashed: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged nonisolated dynamic public var createdAt: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged nonisolated dynamic public var needsReporting: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged nonisolated dynamic public var pid: Swift.Int32 {
+    @objc get
+    @objc set
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  @objc @NSManaged nonisolated dynamic public var isPriority: Swift.Bool {
+    @objc get
+    @objc set
+  }
+}
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
   #if compiler(>=5.3) && $NonescapableTypes
   public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil)

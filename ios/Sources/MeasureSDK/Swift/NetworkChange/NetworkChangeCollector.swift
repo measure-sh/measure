@@ -53,6 +53,6 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
                               attachments: nil,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: true)
+                              needsReporting: false)
     }
 }

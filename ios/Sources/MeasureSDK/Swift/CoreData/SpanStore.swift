@@ -10,10 +10,11 @@ import CoreData
 
 protocol SpanStore {
     func insertSpan(span: SpanEntity)
-    func getSpans(spanIds: [String], completion: @escaping ([SpanEntity]?) -> Void)
+    func insertSpans(spans: [SpanEntity])
+    func getSpans(spanIds: [String]) -> [SpanEntity]?
     func deleteSpans(spanIds: [String])
     func getAllSpans(completion: @escaping ([SpanEntity]?) -> Void)
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void)
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String]
     func updateBatchId(_ batchId: String, for spans: [String])
     func deleteSpans(sessionIds: [String], completion: @escaping () -> Void)
     func getSpansCount(completion: @escaping (Int) -> Void)
@@ -59,40 +60,116 @@ final class BaseSpanStore: SpanStore {
         }
     }
 
-    func getSpans(spanIds: [String], completion: @escaping ([SpanEntity]?) -> Void) {
+    func insertSpans(spans: [SpanEntity]) {
+        guard !spans.isEmpty else { return }
+
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else {
-                completion(nil)
-                return
+            guard let self else { return }
+
+            for span in spans {
+                let spanOb = SpanOb(context: context)
+                spanOb.name = span.name
+                spanOb.traceId = span.traceId
+                spanOb.spanId = span.spanId
+                spanOb.parentId = span.parentId
+                spanOb.sessionId = span.sessionId
+                spanOb.startTime = span.startTime
+                spanOb.startTimeString = span.startTimeString
+                spanOb.endTime = span.endTime
+                spanOb.endTimeString = span.endTimeString
+                spanOb.duration = span.duration
+                spanOb.status = span.status ?? 0
+                spanOb.attributes = span.attributes
+                spanOb.userDefinedAttrs = span.userDefinedAttrs
+                spanOb.checkpoints = span.checkpoints
+                spanOb.hasEnded = span.hasEnded
+                spanOb.isSampled = span.isSampled
+                spanOb.batchId = span.batchId
             }
 
+            do {
+                try context.saveIfNeeded()
+            } catch {
+                self.logger.internalLog(
+                    level: .error,
+                    message: "Failed to save spans batch (count: \(spans.count))",
+                    error: error,
+                    data: nil
+                )
+            }
+        }
+    }
+
+    func getSpans(spanIds: [String]) -> [SpanEntity]? {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return nil
+        }
+
+        var result: [SpanEntity]?
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spanIds)
 
             do {
                 let spans = try context.fetch(fetchRequest)
-                completion(spans.map { $0.toSpanEntity() })
+                result = spans.map { $0.toSpanEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch spans for IDs", error: error, data: nil)
-                completion(nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to fetch spans for IDs",
+                    error: error,
+                    data: nil
+                )
+                result = nil
             }
         }
+
+        return result
     }
 
     func deleteSpans(spanIds: [String]) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return
+        }
 
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spanIds)
 
             let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteRequest.resultType = .resultTypeObjectIDs
 
             do {
-                try context.execute(deleteRequest)
+                let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
+                let objectIDs = result?.result as? [NSManagedObjectID] ?? []
+
+                // Merge deletions so context stays consistent
+                NSManagedObjectContext.mergeChanges(
+                    fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+                    into: [context]
+                )
+
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to delete spans", error: error, data: nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to delete spans: \(spanIds)",
+                    error: error,
+                    data: nil
+                )
             }
         }
     }
@@ -116,32 +193,60 @@ final class BaseSpanStore: SpanStore {
         }
     }
 
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else {
-                completion([])
-                return
-            }
+    func getUnBatchedSpans(
+        spanCount: Int64,
+        ascending: Bool
+    ) -> [String] {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return []
+        }
 
+        var spanIds: [String] = []
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "batchId == nil")
             fetchRequest.fetchLimit = Int(spanCount)
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: ascending)]
+            fetchRequest.sortDescriptors = [
+                NSSortDescriptor(key: "startTime", ascending: ascending)
+            ]
 
             do {
                 let spans = try context.fetch(fetchRequest)
-                completion(spans.compactMap { $0.spanId })
+                spanIds = spans.compactMap { $0.spanId }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch unbatched spans", error: error, data: nil)
-                completion([])
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to fetch unbatched spans",
+                    error: error,
+                    data: nil
+                )
             }
         }
+
+        return spanIds
     }
 
     func updateBatchId(_ batchId: String, for spans: [String]) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+        guard !spans.isEmpty else { return }
 
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return
+        }
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spans)
 
@@ -152,7 +257,12 @@ final class BaseSpanStore: SpanStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update batchId for spans: \(spans)", error: error, data: nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to update batchId for spans: \(spans)",
+                    error: error,
+                    data: nil
+                )
             }
         }
     }

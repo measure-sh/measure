@@ -15,7 +15,7 @@ protocol SessionManager {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
-    func onEventTracked(_ event: EventEntity)
+    func onEventTracked<T: Codable>(_ event: Event<T>)
     func setPreviousSessionCrashed(_ crashed: Bool)
     func markCurrentSessionAsCrashed()
     func onConfigLoaded()
@@ -113,7 +113,7 @@ final class BaseSessionManager: SessionManager {
         logger.log(level: .info, message: "applicationWillTerminate", error: nil, data: nil)
     }
 
-    func onEventTracked(_ event: EventEntity) {
+    func onEventTracked<T: Codable>(_ event: Event<T>) {
         userDefaultStorage.setRecentSessionEventTime(event.timestampInMillis)
     }
 
