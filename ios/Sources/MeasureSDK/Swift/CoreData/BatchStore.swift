@@ -159,7 +159,7 @@ final class BaseBatchStore: BatchStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "Background context unavailable while deleting batch",
                 error: nil,
                 data: nil
             )
@@ -167,41 +167,15 @@ final class BaseBatchStore: BatchStore {
         }
 
         context.performAndWait {
-            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = BatchOb.fetchRequest()
+            let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "batchId == %@", batchId)
             fetchRequest.fetchLimit = 1
 
-            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-            deleteRequest.resultType = .resultTypeObjectIDs
-
             do {
-                let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
-                let objectIDs = result?.result as? [NSManagedObjectID] ?? []
-
-                if objectIDs.isEmpty {
-                    logger.internalLog(
-                        level: .warning,
-                        message: "No batch found with id: \(batchId)",
-                        error: nil,
-                        data: nil
-                    )
-                    return
+                if let batch = try context.fetch(fetchRequest).first {
+                    context.delete(batch)
+                    try context.saveIfNeeded()
                 }
-
-                // Keep context consistent
-                NSManagedObjectContext.mergeChanges(
-                    fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
-                    into: [context]
-                )
-
-                try context.saveIfNeeded()
-
-                logger.internalLog(
-                    level: .debug,
-                    message: "Successfully deleted batch with id: \(batchId)",
-                    error: nil,
-                    data: nil
-                )
             } catch {
                 logger.internalLog(
                     level: .error,

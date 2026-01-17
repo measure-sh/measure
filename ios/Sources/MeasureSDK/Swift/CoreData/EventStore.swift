@@ -286,21 +286,15 @@ final class BaseEventStore: EventStore {
         }
 
         context.performAndWait {
-            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = EventOb.fetchRequest()
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
 
-            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-            deleteRequest.resultType = .resultTypeObjectIDs
-
             do {
-                let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
-                let objectIDs = result?.result as? [NSManagedObjectID] ?? []
+                let events = try context.fetch(fetchRequest)
 
-                // Keep context in sync
-                NSManagedObjectContext.mergeChanges(
-                    fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
-                    into: [context]
-                )
+                for event in events {
+                    context.delete(event)
+                }
 
                 try context.saveIfNeeded()
             } catch {
