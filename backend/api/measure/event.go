@@ -689,15 +689,21 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 	return nil
 }
 
-func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
+func (e *eventreq) countMetrics() (sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
 	eventCount = uint32(len(e.events))
 
 	sessionCount = 0
+	launchTimeCount = 0
 	for _, ev := range e.events {
 		if ev.Type == event.TypeSessionStart {
 			sessionCount++
 		}
+		if ev.Type == event.TypeColdLaunch || ev.Type == event.TypeWarmLaunch || ev.Type == event.TypeHotLaunch {
+			launchTimeCount++
+		}
 	}
+
+	eventCount = eventCount - sessionCount - launchTimeCount
 
 	if e.hasAttachmentBlobs() {
 		attachmentCount = uint32(len(e.attachments))
@@ -714,7 +720,7 @@ func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCou
 
 	spanCount = uint32(len(e.spans))
 
-	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
+	return sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount
 }
 
 // onboardable determines if the ingest batch
@@ -2770,12 +2776,9 @@ func PutEvents(c *gin.Context) {
 			_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
 			defer ingestMetricsSpan.End()
 
-			sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
-			sessionCountDays := sessionCount * uint32(retentionPeriod)
-			eventCountDays := eventCount * uint32(retentionPeriod)
-			spanCountDays := spanCount * uint32(retentionPeriod)
-			traceCountDays := traceCount * uint32(retentionPeriod)
-			attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+			sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+			totalBillableCount := sessionCount + launchTimeCount + eventCount + spanCount
+			totalBillableCountDays := totalBillableCount * uint32(retentionPeriod)
 
 			// insert metrics into clickhouse table
 			insertMetricsIngestionSelectStmt := sqlf.
@@ -2783,15 +2786,13 @@ func PutEvents(c *gin.Context) {
 				Select("? AS app_id", app.ID).
 				Select("? AS timestamp", time.Now()).
 				Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+				Select("sumState(CAST(? AS UInt32)) AS launch_time_count", launchTimeCount).
 				Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
 				Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
 				Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
 				Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
-				Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
-				Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
-				Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
-				Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
-				Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+				Select("sumState(CAST(? AS UInt32)) AS total_billable_count", totalBillableCount).
+				Select("sumState(CAST(? AS UInt32)) AS total_billable_count_days", totalBillableCountDays)
 			selectSQL := insertMetricsIngestionSelectStmt.String()
 			args := insertMetricsIngestionSelectStmt.Args()
 			defer insertMetricsIngestionSelectStmt.Close()
