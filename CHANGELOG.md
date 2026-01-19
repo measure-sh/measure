@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update /usage api response in docs by @anupcowkur in #3108
 - (**backend**): Update ingestion metrics by @anupcowkur in #3107
 - (**backend**): Update go dependencies (#3098) by @detj in #3098
 - (**backend**): Update retention periods by @anupcowkur in #3091
