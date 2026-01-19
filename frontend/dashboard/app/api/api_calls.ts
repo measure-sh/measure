@@ -931,9 +931,9 @@ export const emptyUsage = [
     monthly_app_usage: [
       {
         month_year: "",
-        event_count: 0,
         session_count: 0,
-        trace_count: 0,
+        launch_time_count: 0,
+        event_count: 0,
         span_count: 0,
       },
     ],

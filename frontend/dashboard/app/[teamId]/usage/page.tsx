@@ -13,9 +13,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   type AppMonthlyUsage = {
     id: string
     label: string
-    value: number
+    value: number // value represents sessions for pie chart purposes
+    launchTimes: number
     events: number
-    traces: number
     spans: number
   }
 
@@ -44,7 +44,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count })
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, launchTimes: u.launch_time_count, events: u.event_count, spans: u.span_count })
         }
       })
     })
@@ -86,13 +86,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   // @ts-ignore
   const CenteredMetric = ({ centerX, centerY }) => {
     let totalSessions = 0
+    let totalLaunchTimes = 0
     let totalEvents = 0
-    let totalTraces = 0
     let totalSpans = 0
     selectedMonthUsage!.forEach(appMonthlyUsage => {
       totalSessions += appMonthlyUsage.value
+      totalLaunchTimes += appMonthlyUsage.launchTimes
       totalEvents += appMonthlyUsage.events
-      totalTraces += appMonthlyUsage.traces
       totalSpans += appMonthlyUsage.spans
     })
 
@@ -104,10 +104,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         dominantBaseline="central"
         className='font-display font-semibold fill-foreground'
       >
-        <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalTraces} Traces</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalSpans} Spans</tspan>
+        <tspan className='text-2xl' x={centerX} dy="-0.7em">Sessions: {totalSessions}</tspan>
+        <tspan className='text-sm' x={centerX} dy="2em">Launch Time Events: {totalLaunchTimes}</tspan>
+        <tspan className='text-sm' x={centerX} dy="1.4em">Error, Timeline & Journey Events: {totalEvents}</tspan>
+        <tspan className='text-sm' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
       </text>
     )
   }
@@ -150,8 +150,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>
-                    <p className='text-xs'>Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
-                    <p className='text-xs'>Traces: {selectedMonthUsage?.find((i) => i.id === id)!.traces}</p>
+                    <p className='text-xs'>Launch Time Events: {selectedMonthUsage?.find((i) => i.id === id)!.launchTimes}</p>
+                    <p className='text-xs'>Error, Timeline & Journey Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
                     <p className='text-xs'>Spans: {selectedMonthUsage?.find((i) => i.id === id)!.spans}</p>
                   </div>
                 )
