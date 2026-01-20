@@ -288,19 +288,19 @@ export default function Pricing() {
             <div className="border-t-2 border-border pt-8">
               <div className="bg-secondary rounded-lg p-4 my-4 space-y-2 text-sm font-body">
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground">Session metrics per month:</span>
+                  <span className="text-secondary-foreground">Session tracking events per month:</span>
                   <span className="font-display">{formatNumber(Math.round(sessionStartPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground">Crash, ANR & Bug reports per month:</span>
+                  <span className="text-secondary-foreground">Crash, ANR & Bug report events per month:</span>
                   <span className="font-display">{formatNumber(Math.round(crashEventsPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground">Launch metrics per month:</span>
+                  <span className="text-secondary-foreground">Launch time events per month:</span>
                   <span className="font-display">{formatNumber(Math.round(launchPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground">Performance spans per month:</span>
+                  <span className="text-secondary-foreground">Performance span events per month:</span>
                   <span className="font-display">{formatNumber(Math.round(perfSpansEventsPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
