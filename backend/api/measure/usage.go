@@ -18,11 +18,10 @@ type AppUsage struct {
 }
 
 type MonthlyAppUsage struct {
-	MonthName       string `json:"month_year"`
-	SessionCount    uint64 `json:"session_count"`
-	LaunchTimeCount uint64 `json:"launch_time_count"`
-	EventCount      uint64 `json:"event_count"`
-	SpanCount       uint64 `json:"span_count"`
+	MonthName string `json:"month_year"`
+	Sessions  uint64 `json:"sessions"`
+	Events    uint64 `json:"events"`
+	Spans     uint64 `json:"spans"`
 }
 
 func GetUsage(c *gin.Context) {
@@ -91,10 +90,9 @@ func GetUsage(c *gin.Context) {
 		From(`ingestion_metrics`).
 		Select("app_id").
 		Select("formatDateTime(toStartOfMonth(timestamp), '%b %Y') AS month_year").
-		Select("sumMerge(session_count) AS session_count").
-		Select("sumMerge(launch_time_count) AS launch_time_count").
-		Select("sumMerge(event_count) AS event_count").
-		Select("sumMerge(span_count) AS span_count").
+		Select("sumMerge(sessions) AS sessions").
+		Select("sumMerge(events) AS events").
+		Select("sumMerge(spans) AS spans").
 		Where("`app_id` in ?", appIds).
 		Where("timestamp >= addMonths(toStartOfMonth(?), -2) AND timestamp < toStartOfMonth(addMonths(?, 1))", now, now).
 		GroupBy("app_id, toStartOfMonth(timestamp)").
@@ -132,9 +130,9 @@ func GetUsage(c *gin.Context) {
 	// Populate appUsageMap with metrics rows from DB
 	for metricsRows.Next() {
 		var appId, monthYear string
-		var sessionCount, launchTimeCount, eventCount, spanCount uint64
+		var sessions, events, spans uint64
 
-		if err := metricsRows.Scan(&appId, &monthYear, &sessionCount, &launchTimeCount, &eventCount, &spanCount); err != nil {
+		if err := metricsRows.Scan(&appId, &monthYear, &sessions, &events, &spans); err != nil {
 			msg := fmt.Sprintf("error occurred while scanning usage metrics row for team: %s", teamId)
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -143,11 +141,10 @@ func GetUsage(c *gin.Context) {
 
 		if appUsage, exists := appUsageMap[appId]; exists {
 			appUsage.MonthlyAppUsage = append(appUsage.MonthlyAppUsage, MonthlyAppUsage{
-				MonthName:       monthYear,
-				SessionCount:    sessionCount,
-				LaunchTimeCount: launchTimeCount,
-				EventCount:      eventCount,
-				SpanCount:       spanCount,
+				MonthName: monthYear,
+				Sessions:  sessions,
+				Events:    events,
+				Spans:     spans,
 			})
 		}
 	}
@@ -172,11 +169,10 @@ func GetUsage(c *gin.Context) {
 				newMonthlyAppUsage = append(newMonthlyAppUsage, usage)
 			} else {
 				newMonthlyAppUsage = append(newMonthlyAppUsage, MonthlyAppUsage{
-					MonthName:       monthName,
-					SessionCount:    0,
-					LaunchTimeCount: 0,
-					EventCount:      0,
-					SpanCount:       0,
+					MonthName: monthName,
+					Sessions:  0,
+					Events:    0,
+					Spans:     0,
 				})
 			}
 		}

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"backend/alerts/alerts"
-	"backend/alerts/email"
 	"backend/alerts/server"
 	"backend/alerts/slack"
 
@@ -96,7 +95,7 @@ func initCron(ctx context.Context) *cron.Cron {
 	fmt.Println("Scheduled crash & ANR job")
 
 	// run every 5m
-	if _, err := cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) }); err != nil {
+	if _, err := cron.AddFunc("@every 5m", func() { alerts.SendPendingAlertEmails(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule email alert job: %v\n", err)
 	}
 

@@ -73,6 +73,7 @@ func (r rank) String() string {
 
 var (
 	ScopeBillingAll                = newScope("billing", "*")
+	ScopeBillingRead               = newScope("billing", "read")
 	ScopeTeamAll                   = newScope("team", "*")
 	ScopeTeamRead                  = newScope("team", "read")
 	ScopeTeamInviteSameOrLower     = newScope("team", "inviteSameOrLower")
@@ -110,8 +111,8 @@ func (s scope) getRolesSameOrLower(r rank) []rank {
 var scopeMap = map[rank][]scope{
 	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll},
 	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	developer: {*ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	viewer:    {*ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
+	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
 }
 
 var roleMap = map[string]rank{
@@ -193,6 +194,21 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 		return false, nil
 	case *ScopeTeamAll:
 		if slices.Contains(roleScope, *ScopeTeamAll) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeBillingAll:
+		if slices.Contains(roleScope, *ScopeBillingAll) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeBillingRead:
+		if slices.Contains(roleScope, *ScopeBillingAll) {
+			return true, nil
+		}
+		if slices.Contains(roleScope, *ScopeBillingRead) {
 			return true, nil
 		}
 

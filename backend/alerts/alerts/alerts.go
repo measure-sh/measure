@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"backend/alerts/email"
 	"backend/alerts/server"
 	"backend/alerts/slack"
+	"backend/email"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -72,14 +72,6 @@ type DailySummaryRow struct {
 	HotLaunchSubtitle    string
 	HotLaunchHasWarning  bool
 	HotLaunchHasError    bool
-}
-
-type MetricData struct {
-	Value      string
-	Label      string
-	HasWarning bool
-	HasError   bool
-	Subtitle   string
 }
 
 const crashOrAnrSpikeTimePeriod = time.Hour
@@ -164,16 +156,15 @@ func CreateDailySummary(ctx context.Context) {
 				continue
 			}
 
-			dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
-
 			metrics, err := getDailySummaryMetrics(ctx, date, &app)
 			if err != nil {
 				fmt.Printf("Error fetching daily summary data for app %v: %v\n", app.ID, err)
 				continue
 			}
 
-			dailySummaryEmailBody := formatDailySummaryEmailBody(appName, dashboardURL, date, metrics)
+			_, dailySummaryEmailBody := email.DailySummaryEmail(appName, date, metrics, server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String())
 			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, appName)
+			dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
 			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
 		}
 	}
@@ -243,7 +234,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 	return appName, nil
 }
 
-func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]MetricData, error) {
+func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]email.MetricData, error) {
 	query := `
 		WITH
             toDate(?) AS target_date,
@@ -429,7 +420,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]Me
 		return nil, fmt.Errorf("failed to scan daily summary: %w", err)
 	}
 
-	metrics := []MetricData{
+	metrics := []email.MetricData{
 		{
 			Value:      summary.SessionsValue,
 			Label:      summary.SessionsLabel,
@@ -503,78 +494,24 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 }
 
 func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message, url, appName string) {
-	memberStmt := sqlf.PostgreSQL.
-		Select("user_id").
-		From("team_membership").
-		Where("team_id = ?", alert.TeamID)
-
-	defer memberStmt.Close()
-
-	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
-	if err != nil {
-		fmt.Printf("Error fetching team members for team %v: %v\n", alert.TeamID, err)
-		return
+	var subject, body string
+	if alert.Type == string(AlertTypeCrashSpike) {
+		subject, body = email.CrashSpikeAlertEmail(appName, message, url)
+	} else if alert.Type == string(AlertTypeAnrSpike) {
+		subject, body = email.AnrSpikeAlertEmail(appName, message, url)
+	} else {
+		subject = appName + " - Alert"
+		body = email.RenderEmailBody(subject, email.MessageContent(message), "View in Dashboard", url)
 	}
-	defer memberRows.Close()
 
-	for memberRows.Next() {
-		var userID uuid.UUID
-		if err := memberRows.Scan(&userID); err != nil {
-			fmt.Printf("Error scanning team member: %v\n", err)
-			continue
-		}
-
-		var emailAddr string
-		emailStmt := sqlf.PostgreSQL.
-			Select("email").
-			From("users").
-			Where("id = ?", userID)
-
-		defer emailStmt.Close()
-
-		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
-		if err != nil {
-			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
-			continue
-		}
-
-		title := appName + " - Alert"
-		if alert.Type == string(AlertTypeCrashSpike) {
-			title = appName + " - Crash Spike Alert"
-		} else if alert.Type == string(AlertTypeAnrSpike) {
-			title = appName + " - ANR Spike Alert"
-		}
-
-		pendingEmail := email.EmailInfo{
-			From:        server.Server.Config.TxEmailAddress,
-			To:          emailAddr,
-			Subject:     title,
-			ContentType: "text/html",
-			Body:        formatAlertEmailBody(appName, title, message, url),
-		}
-		dataJson, err := json.Marshal(pendingEmail)
-		if err != nil {
-			fmt.Printf("Error marshaling email data for user %v: %v\n", userID, err)
-			continue
-		}
-
-		insertStmt := sqlf.PostgreSQL.
-			InsertInto("pending_alert_messages").
-			Set("id", uuid.New()).
-			Set("team_id", alert.TeamID).
-			Set("app_id", alert.AppID).
-			Set("channel", "email").
-			SetExpr("data", "?::jsonb", string(dataJson)).
-			Set("created_at", time.Now()).
-			Set("updated_at", time.Now())
-
-		defer insertStmt.Close()
-
-		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
-		if err != nil {
-			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
-			continue
-		}
+	pendingEmail := email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		Subject:     subject,
+		ContentType: "text/html",
+		Body:        body,
+	}
+	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, alert.TeamID, alert.AppID, pendingEmail); err != nil {
+		fmt.Printf("Error queueing alert emails for team %v: %v\n", alert.TeamID, err)
 	}
 }
 
@@ -646,75 +583,18 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 }
 
 func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, appName string) {
-	memberStmt := sqlf.PostgreSQL.
-		Select("user_id").
-		From("team_membership").
-		Where("team_id = ?", teamId)
-
-	defer memberStmt.Close()
-
-	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
-	if err != nil {
-		fmt.Printf("Error fetching team members for team %v: %v\n", teamId, err)
-		return
+	pendingEmail := email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		Subject:     appName + " Daily Summary",
+		ContentType: "text/html",
+		Body:        emailBody,
 	}
-	defer memberRows.Close()
-
-	for memberRows.Next() {
-		var userID uuid.UUID
-		if err := memberRows.Scan(&userID); err != nil {
-			fmt.Printf("Error scanning team member: %v\n", err)
-			continue
-		}
-
-		var emailAddr string
-		emailStmt := sqlf.PostgreSQL.
-			Select("email").
-			From("users").
-			Where("id = ?", userID)
-
-		defer emailStmt.Close()
-
-		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
-		if err != nil {
-			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
-			continue
-		}
-
-		pendingEmail := email.EmailInfo{
-			From:        server.Server.Config.TxEmailAddress,
-			To:          emailAddr,
-			Subject:     appName + " Daily Summary",
-			ContentType: "text/html",
-			Body:        emailBody,
-		}
-		dataJson, err := json.Marshal(pendingEmail)
-		if err != nil {
-			fmt.Printf("Error marshaling email data for user %v: %v\n", userID, err)
-			continue
-		}
-
-		insertStmt := sqlf.PostgreSQL.
-			InsertInto("pending_alert_messages").
-			Set("id", uuid.New()).
-			Set("team_id", teamId).
-			Set("app_id", appId).
-			Set("channel", "email").
-			SetExpr("data", "?::jsonb", string(dataJson)).
-			Set("created_at", time.Now()).
-			Set("updated_at", time.Now())
-
-		defer insertStmt.Close()
-
-		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
-		if err != nil {
-			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
-			continue
-		}
+	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, teamId, appId, pendingEmail); err != nil {
+		fmt.Printf("Error queueing daily summary emails for team %v: %v\n", teamId, err)
 	}
 }
 
-func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, dashboardURL, appName string, date time.Time, metrics []MetricData) {
+func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, dashboardURL, appName string, date time.Time, metrics []email.MetricData) {
 	teamSlackStmt := `
     SELECT bot_token, channel_ids, is_active
     FROM team_slack
@@ -774,54 +654,6 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 	}
 }
 
-func formatAlertEmailBody(appName, title, message, url string) string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <title>%s</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
-        <!-- Header -->
-        <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
-        </div>
-
-        <!-- Content -->
-        <div style="padding: 40px 30px;">
-
-            <!-- Message -->
-            <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
-                %s
-            </div>
-
-            <!-- CTA Button -->
-            <div style="text-align: center; margin: 32px 0;">
-                <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
-                    View in Dashboard
-                </a>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #718096;">
-                This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
-            </p>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
-                open source tool to monitor mobile apps
-            </p>
-        </div>
-    </div>
-</body>
-</html>`, appName, title, message, url)
-}
-
 func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 	blocks := []slack.SlackBlock{
 		slack.SlackHeaderBlock{
@@ -874,100 +706,7 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 	}
 }
 
-func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, metrics []MetricData) string {
-	formattedDate := date.Format("January 2, 2006")
-
-	metricsHTML := ""
-	for _, metric := range metrics {
-		icon := ""
-		if metric.HasError {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%;">
-   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
-        					<tr>
-            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
-        					</tr>
-    					</table>
-					</div>`
-		} else if metric.HasWarning {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #d08700; border-radius: 50%;">
-   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
-        					<tr>
-            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
-        					</tr>
-    					</table>
-					</div>`
-		}
-
-		metricsHTML += fmt.Sprintf(`
-			<div style="background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; position: relative; min-height: 80px;">
-				%s
-				<div style="font-size: 28px; font-weight: 700; color: #1a202c; margin-bottom: 8px; font-family: 'Space Mono', monospace;">
-					%s
-				</div>
-				<div style="font-size: 14px; color: #4a5568; font-weight: 500;">
-					%s
-				</div>
-				<div style="font-size: 12px; color: #718096; margin-top: 4px;">
-					%s
-				</div>
-			</div>`, icon, metric.Value, metric.Label, metric.Subtitle)
-	}
-
-	return fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <title>%s - Daily Summary</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
-        <!-- Header -->
-        <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle; margin-right: 2px;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s Daily Summary</h1>
-        </div>
-
-        <!-- Content -->
-        <div style="padding: 40px 30px; background-color: #f8f9fa;">
-
-            <!-- Date Header -->
-            <div style="text-align: center; margin-bottom: 32px;">
-                <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
-                    %s (Last 24 hours)
-                </h2>
-            </div>
-
-            <!-- Metrics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
-                %s
-            </div>
-
-            <!-- CTA Button -->
-            <div style="text-align: center; margin: 32px 0;">
-                <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
-                    View Full Dashboard
-                </a>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #718096;">
-                This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
-            </p>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
-                open source tool to monitor mobile apps
-            </p>
-        </div>
-    </div>
-</body>
-</html>`, appName, appName, formattedDate, metricsHTML, dashboardURL)
-}
-
-func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time, metrics []MetricData) slack.SlackMessage {
+func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time, metrics []email.MetricData) slack.SlackMessage {
 	formattedDate := date.Format("January 2, 2006")
 
 	blocks := []slack.SlackBlock{
@@ -1121,14 +860,8 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			if method == "" {
 				method = "unknown_method"
 			}
-			alertMsg := fmt.Sprintf("Crashes are spiking at %s: %s() - %s", file, method, message)
-
-			alertUrl := fmt.Sprintf("%s/%s/crashes/%s/%s/%s%s", server.Server.Config.SiteOrigin, team.ID, app.ID, fingerprint, crashType, func() string {
-				if fileName != "" {
-					return "@" + fileName
-				}
-				return ""
-			}())
+			alertMsg := email.CrashAlertMessage(file, method, message)
+			alertUrl := email.CrashAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
 
 			fmt.Printf("Inserting alert for crash group %s\n", fingerprint)
 
@@ -1247,14 +980,8 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			if method == "" {
 				method = "unknown_method"
 			}
-			alertMsg := fmt.Sprintf("ANRs are spiking at %s: %s() - %s", file, method, message)
-
-			alertUrl := fmt.Sprintf("%s/%s/anrs/%s/%s/%s%s", server.Server.Config.SiteOrigin, team.ID, app.ID, fingerprint, crashType, func() string {
-				if fileName != "" {
-					return "@" + fileName
-				}
-				return ""
-			}())
+			alertMsg := email.AnrAlertMessage(file, method, message)
+			alertUrl := email.AnrAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
 
 			fmt.Printf("Inserting alert for anr group %s\n", fingerprint)
 
@@ -1302,4 +1029,62 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 	if anrGroupRows != nil {
 		anrGroupRows.Close()
 	}
+}
+
+// SendPendingAlertEmails checks the pending alert messages in the database and sends them as emails.
+// It processes up to 250 messages at a time, sending each email with a 1 second delay and deleting
+// the message from the database after a successful send. If an error occurs while sending an email,
+// it logs the error but continues processing the next messages.
+func SendPendingAlertEmails(ctx context.Context) error {
+	fmt.Println("Checking pending alert emails...")
+	stmt := sqlf.From("pending_alert_messages").
+		Select("id, data").
+		Where("channel = ?", "email").
+		OrderBy("created_at ASC").
+		Limit(250)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return fmt.Errorf("failed to query pending alert messages: %w", err)
+	}
+	defer rows.Close()
+
+	type pendingMsg struct {
+		ID   string
+		Data []byte
+	}
+
+	var msgs []pendingMsg
+	for rows.Next() {
+		var m pendingMsg
+		if err := rows.Scan(&m.ID, &m.Data); err != nil {
+			fmt.Printf("failed to scan row: %s\n", err)
+			continue
+		}
+		msgs = append(msgs, m)
+	}
+	if rows.Err() != nil {
+		return fmt.Errorf("row error: %w", rows.Err())
+	}
+
+	for _, msg := range msgs {
+		fmt.Printf("Sending email for msg Id: %v\n", msg.ID)
+		var info email.EmailInfo
+		if err := json.Unmarshal(msg.Data, &info); err != nil {
+			fmt.Printf("failed to unmarshal email data for id %s: %s\n", msg.ID, err)
+			continue
+		}
+		if err := email.SendEmail(server.Server.Mail, info); err != nil {
+			fmt.Printf("failed to send email for id %s: %s\n", msg.ID, err)
+			continue
+		}
+
+		// Delete after successful send
+		delStmt := sqlf.DeleteFrom("pending_alert_messages").Where("id = ?", msg.ID)
+		if _, err := server.Server.PgPool.Exec(ctx, delStmt.String(), delStmt.Args()...); err != nil {
+			fmt.Printf("failed to delete pending alert message id %s: %s\n", msg.ID, err)
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
 }

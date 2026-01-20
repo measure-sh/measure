@@ -8,11 +8,14 @@ import (
 	"os"
 	"strings"
 
-	"backend/metering/metering"
+	"backend/billing"
 	"backend/metering/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
+	"github.com/stripe/stripe-go/v84"
+	"github.com/stripe/stripe-go/v84/billing/meterevent"
+	"github.com/stripe/stripe-go/v84/subscription"
 	"google.golang.org/grpc/credentials"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -28,7 +31,7 @@ func main() {
 	config := server.NewConfig()
 	server.Init(config)
 
-	cron := initCron(context.Background())
+	cronDaily, cronHourly := initCrons(context.Background())
 
 	meteringTracer := initTracer(config.OtelServiceName)
 
@@ -56,7 +59,8 @@ func main() {
 	}()
 
 	// stop cron scheduler at shutdown
-	defer cron.Stop()
+	defer cronDaily.Stop()
+	defer cronHourly.Stop()
 
 	// set up gin
 	r := gin.Default()
@@ -77,18 +81,40 @@ func main() {
 	}
 }
 
-func initCron(ctx context.Context) *cron.Cron {
-	cron := cron.New()
+func initCrons(ctx context.Context) (*cron.Cron, *cron.Cron) {
+	cronDaily := cron.New()
+	cronHourly := cron.New()
 
-	// Run metering job at 11:59 PM every day to calculate usage for the day
-	if _, err := cron.AddFunc("59 23 * * *", func() { metering.CalculateUsage(ctx) }); err != nil {
-		fmt.Printf("Failed to schedule metering job: %v\n", err)
+	deps := billing.Deps{
+		PgPool:         server.Server.PgPool,
+		ChPool:         server.Server.RchPool,
+		SiteOrigin:     server.Server.Config.SiteOrigin,
+		TxEmailAddress: server.Server.Config.TxEmailAddress,
+		MeterName:      server.Server.Config.StripeUnitDaysMeterName,
+		GetSubscription: func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return subscription.Get(id, params)
+		},
+		ReportToStripe: func(params *stripe.BillingMeterEventParams) (*stripe.BillingMeterEvent, error) {
+			return meterevent.New(params)
+		},
 	}
 
-	fmt.Println("Scheduled metering job")
+	// Run billing check at beginning of every hour to check limits
+	if _, err := cronHourly.AddFunc("0 * * * *", func() { billing.RunHourlyBillingCheck(ctx, deps) }); err != nil {
+		fmt.Printf("Failed to schedule hourly metering job: %v\n", err)
+	}
 
-	cron.Start()
-	return cron
+	// Run metering job at 3 AM UTC every day to report for the previous day
+	if _, err := cronDaily.AddFunc("0 3 * * *", func() { billing.RunDailyMetering(ctx, deps) }); err != nil {
+		fmt.Printf("Failed to schedule daily metering job: %v\n", err)
+	}
+
+	if server.Server.Config.IsBillingEnabled() {
+		fmt.Println("Scheduled daily metering job")
+		cronDaily.Start()
+		cronHourly.Start()
+	}
+	return cronDaily, cronHourly
 }
 
 func initTracer(otelServiceName string) func(context.Context) error {

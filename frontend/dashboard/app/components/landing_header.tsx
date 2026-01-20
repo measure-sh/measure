@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
@@ -28,7 +27,6 @@ export default function LandingHeader() {
   const [isFocused, setIsFocused] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isSmallScreen = useIsSmallScreen();
-  const router = useRouter();
 
   // Disable scroll hide/show on small screens
   const shouldHide =

@@ -686,38 +686,25 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 	return nil
 }
 
-func (e *eventreq) countMetrics() (sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
-	eventCount = uint32(len(e.events))
+func (e *eventreq) countMetrics() (sessions, events, spans, attachments uint32) {
+	events = uint32(len(e.events))
 
-	sessionCount = 0
-	launchTimeCount = 0
+	sessions = 0
 	for _, ev := range e.events {
 		if ev.Type == event.TypeSessionStart {
-			sessionCount++
-		}
-		if ev.Type == event.TypeColdLaunch || ev.Type == event.TypeWarmLaunch || ev.Type == event.TypeHotLaunch {
-			launchTimeCount++
+			sessions++
 		}
 	}
-
-	eventCount = eventCount - sessionCount - launchTimeCount
 
 	if e.hasAttachmentBlobs() {
-		attachmentCount = uint32(len(e.attachments))
+		attachments = uint32(len(e.attachments))
 	} else if e.hasAttachmentUploadInfos() {
-		attachmentCount = uint32(len(e.attachmentUploadInfos))
+		attachments = uint32(len(e.attachmentUploadInfos))
 	}
 
-	traceCount = uint32(0)
-	for _, span := range e.spans {
-		if span.ParentID == "" {
-			traceCount++
-		}
-	}
+	spans = uint32(len(e.spans))
 
-	spanCount = uint32(len(e.spans))
-
-	return sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount
+	return sessions, events, spans, attachments
 }
 
 // onboardable determines if the ingest batch
@@ -1603,6 +1590,11 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	if err := CheckIngestAllowedForApp(c, appId); err != nil {
+		c.JSON(http.StatusPaymentRequired, gin.H{"error": err.Error()})
+		return
+	}
+
 	ctx := c.Request.Context()
 
 	reqIdKey := `msr-req-id`
@@ -1964,43 +1956,21 @@ func PutEvents(c *gin.Context) {
 		var metricsGroup errgroup.Group
 
 		metricsGroup.Go(func() error {
-			_, retentionPeriodSpan := ingestTracer.Start(ingestCtx, "get-retention-period")
-			defer retentionPeriodSpan.End()
-
-			// get retention period for app
-			var retentionPeriod int
-			retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
-				Select("retention_period").
-				Where("app_id = ?", app.ID)
-			defer retentionPeriodQuery.Close()
-
-			if err := server.Server.PgPool.QueryRow(ingestCtx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
-				fmt.Println(`failed to get app retention period`, err)
-				return err
-			}
-
-			retentionPeriodSpan.End()
-
 			_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
 			defer ingestMetricsSpan.End()
 
-			sessionCount, launchTimeCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
-			totalBillableCount := sessionCount + launchTimeCount + eventCount + spanCount
-			totalBillableCountDays := totalBillableCount * uint32(retentionPeriod)
+			sessions, events, spans, attachments := eventReq.countMetrics()
 
 			// insert metrics into clickhouse table
 			insertMetricsIngestionSelectStmt := sqlf.
 				Select("? AS team_id", eventReq.teamId).
 				Select("? AS app_id", app.ID).
 				Select("? AS timestamp", time.Now()).
-				Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
-				Select("sumState(CAST(? AS UInt32)) AS launch_time_count", launchTimeCount).
-				Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
-				Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
-				Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
-				Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
-				Select("sumState(CAST(? AS UInt32)) AS total_billable_count", totalBillableCount).
-				Select("sumState(CAST(? AS UInt32)) AS total_billable_count_days", totalBillableCountDays)
+				Select("sumState(CAST(? AS UInt32)) AS sessions", sessions).
+				Select("sumState(CAST(? AS UInt32)) AS events", events).
+				Select("sumState(CAST(? AS UInt32)) AS spans", spans).
+				Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
+				Select("sumState(CAST(? AS UInt32)) AS metrics", 0)
 			selectSQL := insertMetricsIngestionSelectStmt.String()
 			args := insertMetricsIngestionSelectStmt.Args()
 			defer insertMetricsIngestionSelectStmt.Close()

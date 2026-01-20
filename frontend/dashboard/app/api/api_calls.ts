@@ -308,14 +308,14 @@ export enum UpdateAlertPrefsApiStatus {
   Cancelled,
 }
 
-export enum FetchAppSettingsApiStatus {
+export enum FetchAppRetentionApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum UpdateAppSettingsApiStatus {
+export enum UpdateAppRetentionApiStatus {
   Init,
   Loading,
   Success,
@@ -328,6 +328,27 @@ export enum FetchUsageApiStatus {
   Success,
   Error,
   NoApps,
+  Cancelled,
+}
+
+export enum FetchStripeCheckoutSessionApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum DowngradeToFreeApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum FetchBillingInfoApiStatus {
+  Loading,
+  Success,
+  Error,
   Cancelled,
 }
 
@@ -718,6 +739,7 @@ export const emptyAnrExceptionsDetailsResponse = {
 
 export const defaultAuthzAndMembers = {
   can_invite: ["viewer"],
+  can_change_billing: false,
   members: [
     {
       id: "",
@@ -922,8 +944,8 @@ export const emptyAlertPrefs = {
   },
 }
 
-export const emptyAppSettings = {
-  retention_period: 30,
+export const emptyAppRetention = {
+  retention: 30,
 }
 
 export const emptyUsage = [
@@ -933,10 +955,9 @@ export const emptyUsage = [
     monthly_app_usage: [
       {
         month_year: "",
-        session_count: 0,
-        launch_time_count: 0,
-        event_count: 0,
-        span_count: 0,
+        sessions: 0,
+        events: 0,
+        spans: 0,
       },
     ],
   },
@@ -2247,45 +2268,45 @@ export const updateAlertPrefsFromServer = async (
   }
 }
 
-export const fetchAppSettingsFromServer = async (appId: string) => {
+export const fetchAppRetentionFromServer = async (appId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/settings`)
+    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/retention`)
 
     if (!res.ok) {
-      return { status: FetchAppSettingsApiStatus.Error, data: null }
+      return { status: FetchAppRetentionApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: FetchAppSettingsApiStatus.Success, data: data }
+    return { status: FetchAppRetentionApiStatus.Success, data: data }
   } catch {
-    return { status: FetchAppSettingsApiStatus.Cancelled, data: null }
+    return { status: FetchAppRetentionApiStatus.Cancelled, data: null }
   }
 }
 
-export const updateAppSettingsFromServer = async (
+export const updateAppRetentionFromServer = async (
   appdId: string,
-  appSettings: typeof emptyAppSettings,
+  appRetention: typeof emptyAppRetention,
 ) => {
   const opts = {
     method: "PATCH",
-    body: JSON.stringify(appSettings),
+    body: JSON.stringify(appRetention),
   }
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/apps/${appdId}/settings`,
+      `/api/apps/${appdId}/retention`,
       opts,
     )
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
+      return { status: UpdateAppRetentionApiStatus.Error, error: data.error }
     }
 
-    return { status: UpdateAppSettingsApiStatus.Success }
+    return { status: UpdateAppRetentionApiStatus.Success }
   } catch {
-    return { status: UpdateAppSettingsApiStatus.Cancelled }
+    return { status: UpdateAppRetentionApiStatus.Cancelled }
   }
 }
 
@@ -2313,6 +2334,22 @@ export const changeAppNameFromServer = async (
   }
 }
 
+export const fetchBillingInfoFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/info`)
+
+    if (!res.ok) {
+      return { status: FetchBillingInfoApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchBillingInfoApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchBillingInfoApiStatus.Cancelled, data: null }
+  }
+}
+
 export const fetchUsageFromServer = async (teamId: string) => {
   try {
     const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/usage`)
@@ -2330,6 +2367,53 @@ export const fetchUsageFromServer = async (teamId: string) => {
     return { status: FetchUsageApiStatus.Success, data: data }
   } catch {
     return { status: FetchUsageApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchStripeCheckoutSessionFromServer = async (
+  teamId: string,
+  successUrl: string,
+  cancelUrl: string
+) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/checkout`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      }),
+    })
+
+    if (!res.ok) {
+      return { status: FetchStripeCheckoutSessionApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchStripeCheckoutSessionApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchStripeCheckoutSessionApiStatus.Cancelled, data: null }
+  }
+}
+
+export const downgradeToFreeFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/downgrade`, {
+      method: 'PATCH',
+    })
+
+    if (!res.ok) {
+      return { status: DowngradeToFreeApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: DowngradeToFreeApiStatus.Success, data: data }
+  } catch {
+    return { status: DowngradeToFreeApiStatus.Cancelled, data: null }
   }
 }
 

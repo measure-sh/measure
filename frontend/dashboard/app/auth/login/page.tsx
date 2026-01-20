@@ -2,8 +2,8 @@
 
 import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { isCloud } from "@/app/utils/env_utils"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
-import { isMeasureHost } from "@/app/utils/url_utils"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { posthog } from "posthog-js"
@@ -80,7 +80,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       {inviteInvalid && (
         <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link.</p>
       )}
-      {!isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-muted-foreground">
+      {isCloud() && <p className="p-2 my-4 text-sm font-display text-muted-foreground">
         Measure Cloud is limited to alpha users at the moment. Please{" "}
         <Link
           target="_blank"

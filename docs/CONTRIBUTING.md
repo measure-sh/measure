@@ -112,6 +112,75 @@ And rerun.
 ```sh
 docker compose --profile migrate up
 ```
+## Running Tests
+
+### Backend
+
+Backend Go tests are separated into three categories using build tags.
+
+**Unit tests** — pure logic, no containers or external services needed:
+
+```sh
+cd backend/api && go test ./...
+```
+
+**Integration tests** — require Docker (spins up Postgres and ClickHouse via testcontainers):
+
+```sh
+cd backend/api && go test -tags=integration ./...
+cd backend/billing && go test -tags=integration ./...
+cd backend/email && go test -tags=integration ./...
+```
+
+**Functional tests** — end-to-end Stripe billing cycle tests. These are only relevant for core developers working on billing. They require a Stripe test environment with the following environment variables:
+
+- `TEST_STRIPE_API_KEY` — Stripe API key for the test environment
+- `TEST_STRIPE_UNIT_DAYS_METER_NAME` — event name of the billing meter
+- `TEST_STRIPE_PRO_UNIT_DAYS_PRICE_ID` — price ID for the pro plan
+
+Note that functional tests take more time than Go's default 10m timeout to run so a custom timeout should be passed in.
+
+```sh
+cd backend/billing && go test -tags=functional ./... -timeout 1h
+```
+
+Run all backend tests together:
+
+```sh
+cd backend/billing && go test -tags=integration,functional ./...
+```
+
+### Frontend Dashboard
+
+```sh
+cd frontend/dashboard && npm run test
+```
+
+### Android SDK
+
+```sh
+cd android/
+./gradlew :measure:testDebugUnitTest
+```
+
+### Flutter SDK
+
+```sh
+cd flutter/
+melos test:all
+```
+
+### iOS SDK
+
+```sh
+cd ios/
+xcodebuild test \
+    -project ios/MeasureSDK.xcodeproj \
+    -scheme MeasureSDKTests \
+    -sdk iphonesimulator \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    ONLY_ACTIVE_ARCH=YES
+```
 
 ## Writing commit messages
 

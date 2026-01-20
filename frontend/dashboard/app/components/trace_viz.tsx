@@ -269,16 +269,16 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
               <p className={`${valueStyle}`}>{selectedSpan.checkpoints !== null && selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>
             </div>
             {selectedSpan.checkpoints?.map((checkpoint, _) => (
-              <button className={`flex flex-col mt-1 py-2 px-2 w-full focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selectedCheckpoint === checkpoint ? "bg-background text-foreground" : "hover:bg-background text-foreground"}`}
+              <button className={`flex flex-col group mt-1 py-2 px-2 w-full rounded-md focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selectedCheckpoint === checkpoint ? "bg-background" : "hover:bg-background"}`}
                 key={checkpoint.name}
                 onClick={() => setSelectedCheckpoint(checkpoint)}>
                 <div className='flex flex-row mt-1'>
-                  <p className={keyStyle}>Name</p>
-                  <p className={valueStyle}> {checkpoint.name}</p>
+                  <p className={`${keyStyle} ${selectedCheckpoint === checkpoint ? "text-foreground dark:text-accent-foreground/60" : "group-hover:text-foreground text-accent-foreground/60 dark:group-hover:text-accent-foreground/60"}`}>Name</p>
+                  <p className={`${valueStyle} ${selectedCheckpoint === checkpoint ? "text-foreground" : "group-hover:text-foreground text-accent-foreground"}`}> {checkpoint.name}</p>
                 </div>
                 <div className='flex flex-row mt-2'>
-                  <p className={keyStyle}>Time</p>
-                  <p className={valueStyle}> {formatDateToHumanReadableDateTime(checkpoint.timestamp)}</p>
+                  <p className={`${keyStyle} ${selectedCheckpoint === checkpoint ? "text-foreground dark:text-accent-foreground/60" : "group-hover:text-foreground text-accent-foreground/60 dark:group-hover:text-accent-foreground/60"}`}>Time</p>
+                  <p className={`${valueStyle} ${selectedCheckpoint === checkpoint ? "text-foreground" : "group-hover:text-foreground text-accent-foreground"}`}> {formatDateToHumanReadableDateTime(checkpoint.timestamp)}</p>
                 </div>
               </button>
             ))}

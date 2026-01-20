@@ -18,3 +18,6 @@ Package.resolved
 
 # flutter
 .index-build/
+
+# email preview output
+backend/email/cmd/preview/output/

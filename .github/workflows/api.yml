@@ -75,7 +75,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Test with ${{ matrix.go-version }}
-        run: go test ./...
+        run: go test -tags=integration ./...
 
   push:
     name: Build and push image

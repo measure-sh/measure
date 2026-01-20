@@ -141,12 +141,12 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [GET `/apps/:id/settings`](#get-appsidsettings)
+  - [GET `/apps/:id/retention`](#get-appsidretention)
     - [Usage Notes](#usage-notes-26)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
+  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
     - [Usage Notes](#usage-notes-27)
     - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-24)
@@ -771,8 +771,8 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
 - [**PATCH `/apps/:id/rename`**](#patch-appsidrename) - Modify the name of an app.
-- [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
-- [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
+- [**GET `/apps/:id/retention`**](#get-appsidretention) - Fetch an app's retention period in days. Must be between 30 and 365. Default is 30.
+- [**PATCH `/apps/:id/retention`**](#patch-appsidretention) - Update an app's retention period in days. Must be between 30 and 365.
 - [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
 - [**GET `/apps/:id/spans/roots/names`**](#get-appsidspansrootsnames) - Fetch an app's root span names list with optional filters.
 - [**GET `/apps/:id/spans`**](#get-appsidspans) - Fetch a span's list of instances with optional filters.
@@ -4138,9 +4138,9 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/settings`
+### GET `/apps/:id/retention`
 
-Fetch an app's settings.
+Fetch an app's data retention period in days. Must be between 30 and 365. Default is 30.
 
 #### Usage Notes
 
@@ -4172,7 +4172,7 @@ The required headers must be present in each request.
 
   ```json
   {
-      "retention_period": 30
+      "retention": 30
   }
   ```
 
@@ -4204,9 +4204,9 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### PATCH `/apps/:id/settings`
+### PATCH `/apps/:id/retention`
 
-Update an app's settings.
+Update an app's data retention period in days. Must be between 30 and 365.
 
 #### Usage Notes
 
@@ -4216,7 +4216,7 @@ Update an app's settings.
 
   ```json
   {
-      "retention_period": 365
+      "retention": 365
   }
   ```
 
@@ -6564,6 +6564,7 @@ Fetch authorization details of members for a team. Oldest members appear first i
 
 - Teams's UUID must be passed in the URI
 - The `can_invite` field in the response indicates what roles new team members can be invited as by the current user
+- The `can_change_billing` field in the response indicates whether the current user is allowed to change billing settings (upgrade/downgrade plans) for the team. Only applicable to hosted cloud environment.
 - The `can_change_roles` field in the `authz` field in the response indicates what roles the current user is allowed to assign for that particular member
 - The `can_remove` flag in the `authz` field in the response indicates whether the current user is allowed to remove that particular member from the team
 
@@ -6599,6 +6600,7 @@ The required headers must be present in each request.
         "developer",
         "viewer"
     ],
+    "can_change_billing": true,
     "members": [
         {
             "id": "7737299c-82cb-4769-8fed-b313a230aa9d",
@@ -6699,249 +6701,222 @@ The required headers must be present in each request.
     <summary>Click to expand</summary>
 
   ```json
-    [
+  [
     {
-        "app_id": "9c1e3825-87fc-47f8-921f-a6d2b5a3234f",
-        "app_name": "iOS Flutter Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 21,
-                "event_count": 5,
-                "span_count": 105
-            }
-        ]
+      "app_id": "91ab8e0c-5256-4f56-bd86-2f0b236571d6",
+      "app_name": "Android Debug Flutter Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 391,
+          "spans": 11
+        }
+      ]
     },
     {
-        "app_id": "91ab8e0c-5256-4f56-bd86-2f0b236571d6",
-        "app_name": "Android Debug Flutter Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 5,
-                "event_count": 4,
-                "span_count": 387
-            }
-        ]
+      "app_id": "d5130515-6032-4f99-9e86-724640fb25f6",
+      "app_name": "Android PocketCasts",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        }
+      ]
     },
     {
-        "app_id": "d5130515-6032-4f99-9e86-724640fb25f6",
-        "app_name": "Android PocketCasts",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            }
-        ]
+      "app_id": "5952c302-0e9f-4a00-98c4-f4e6106faedc",
+      "app_name": "Android Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 38,
+          "events": 5003,
+          "spans": 518
+        }
+      ]
     },
     {
-        "app_id": "5952c302-0e9f-4a00-98c4-f4e6106faedc",
-        "app_name": "Android Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 38,
-                "launch_time_count": 386,
-                "event_count": 73,
-                "span_count": 4892
-            }
-        ]
+      "app_id": "80f1908f-7dbc-45e2-8845-2a20908aab04",
+      "app_name": "Android Wikipedia",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 1374,
+          "spans": 71
+        }
+      ]
     },
     {
-        "app_id": "a167a4f2-ce8e-4e72-9a3a-58ced02c0b7c",
-        "app_name": "iOS Debug Flutter Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 59,
-                "event_count": 10,
-                "span_count": 453
-            }
-        ]
+      "app_id": "15ef4b62-c66e-4bed-a042-af1d3b80f1e5",
+      "app_name": "iOS Wikipedia",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 5907,
+          "spans": 0
+        }
+      ]
     },
     {
-        "app_id": "d7291629-0f14-4fe1-8f90-a29e88c7d2c2",
-        "app_name": "iOS Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 195,
-                "event_count": 33,
-                "span_count": 2273
-            }
-        ]
+      "app_id": "cbbacb45-f789-4b8e-88e5-a6125998ef62",
+      "app_name": "Android Flutter Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 196,
+          "spans": 1
+        }
+      ]
     },
     {
-        "app_id": "15ef4b62-c66e-4bed-a042-af1d3b80f1e5",
-        "app_name": "iOS Wikipedia",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 258,
-                "event_count": 54,
-                "span_count": 5853
-            }
-        ]
+      "app_id": "a167a4f2-ce8e-4e72-9a3a-58ced02c0b7c",
+      "app_name": "iOS Debug Flutter Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 463,
+          "spans": 10
+        }
+      ]
     },
     {
-        "app_id": "cbbacb45-f789-4b8e-88e5-a6125998ef62",
-        "app_name": "Android Flutter Sample",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 1,
-                "event_count": 5,
-                "span_count": 191
-            }
-        ]
+      "app_id": "9c1e3825-87fc-47f8-921f-a6d2b5a3234f",
+      "app_name": "iOS Flutter Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 110,
+          "spans": 3
+        }
+      ]
     },
     {
-        "app_id": "80f1908f-7dbc-45e2-8845-2a20908aab04",
-        "app_name": "Android Wikipedia",
-        "monthly_app_usage": [
-            {
-                "month_year": "Nov 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Dec 2025",
-                "session_count": 0,
-                "launch_time_count": 0,
-                "event_count": 0,
-                "span_count": 0
-            },
-            {
-                "month_year": "Jan 2026",
-                "session_count": 0,
-                "launch_time_count": 95,
-                "event_count": 9,
-                "span_count": 1365
-            }
-        ]
+      "app_id": "d7291629-0f14-4fe1-8f90-a29e88c7d2c2",
+      "app_name": "iOS Sample",
+      "monthly_app_usage": [
+        {
+          "month_year": "Nov 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Dec 2025",
+          "sessions": 0,
+          "events": 0,
+          "spans": 0
+        },
+        {
+          "month_year": "Jan 2026",
+          "sessions": 0,
+          "events": 2306,
+          "spans": 32
+        }
+      ]
     }
   ]
   ```

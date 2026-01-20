@@ -4,17 +4,15 @@ import { LucideCheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button, buttonVariants } from '../components/button'
+import { Card } from '../components/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
 import LandingFooter from '../components/landing_footer'
 import LandingHeader from '../components/landing_header'
 import { Slider } from '../components/slider'
+import { FREE_UNITS, INCLUDED_PRO_UNITS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, PRICE_PER_UNIT_DAY } from '../utils/pricing_constants'
 import { cn } from '../utils/shadcn_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 
-// Pricing constants
-const BASE_EVENT_PRICE = 0.000005 // $5 per million events
-const FREE_EVENTS = 1000000 // 1M events free per month
-const MINIMUM_PRICE_AFTER_FREE_TIER = 80 // minimum $80 charge if above free tier
 const EVENTS_PER_SESSION_MINUTE = 60 // number of events generated per minute of session time
 const SESSION_TIME_PER_ERROR = 5 // time for which we collect timeline for errored sessions (in minutes)
 const AVG_SESSION_TIME = 10 // average session time in minutes
@@ -43,22 +41,33 @@ export default function Pricing() {
   const sessionTimelineSessionsPerDay = crashSessionsPerDay
   const sessionTimelineEventsPerDay = sessionTimelineSessionsPerDay * SESSION_TIME_PER_ERROR * EVENTS_PER_SESSION_MINUTE // events per collected timeline
   const perfSpansCollectedSessionsPerDay = dailyUsers * averageAppOpens * (perfSpanSamplePercent / 100)
-  const perfSpansEventsPerDay = perfSpansCollectedSessionsPerDay * perfSpanCount
+  const perfSpansPerDay = perfSpansCollectedSessionsPerDay * perfSpanCount
   const journeyEventsPerDay = dailyUsers * averageAppOpens * AVG_SESSION_TIME * JOURNEY_EVENTS_PER_MINUTE * (journeySamplePercent / 100)
 
-  const totalEventsPerDay = sessionStartPerDay + launchPerDay + crashEventsPerDay + sessionTimelineEventsPerDay + perfSpansEventsPerDay + journeyEventsPerDay
-  const totalEventsPerMonth = totalEventsPerDay * 30
-  const billableEventsPerMonth = Math.max(0, Math.round(totalEventsPerMonth) - FREE_EVENTS)
+  const totalUnitsPerDay = sessionStartPerDay + launchPerDay + crashEventsPerDay + sessionTimelineEventsPerDay + perfSpansPerDay + journeyEventsPerDay
+  const totalUnitsPerMonth = totalUnitsPerDay * 30
 
-  // Retention costs: each extra month beyond 1 month costs 0.25x the base event rate per event.
-  // If retention > 1 month, this applies to all events (including the free events). Retention is free for 1 month.
-  const retentionExtraMonths = Math.max(0, retentionMonths - 1)
-  const totalEventsRounded = Math.round(totalEventsPerMonth)
-  const retentionCost = retentionMonths > 1 ? totalEventsRounded * BASE_EVENT_PRICE * 0.25 * retentionExtraMonths : 0
-  const monthlyCost = billableEventsPerMonth * BASE_EVENT_PRICE + retentionCost
+  // Calculate Billable Unit Days
+  // 1 Unit retained for 30 days = 30 Unit-Days.
+  const retentionDays = retentionMonths * 30
+  const totalUnitsRounded = Math.round(totalUnitsPerMonth)
 
-  // Free tier applies only when total events are within free limits and retention is the default (1 month)
-  const isFreeTier = Math.round(totalEventsPerMonth) <= FREE_EVENTS && retentionExtraMonths === 0
+  // Base units (first 30 days of retention)
+  // If Total > 1M, ALL units are billable for the first 30 days.
+  const baseExcessUnits = totalUnitsRounded > FREE_UNITS ? totalUnitsRounded : 0
+  const billableUnitDaysBase = baseExcessUnits * 30
+
+  // Extended retention (days beyond 30)
+  // All units (including the first 1M) are charged for extra days.
+  const extraRetentionDays = Math.max(0, retentionDays - 30)
+  const billableUnitDaysRetention = totalUnitsRounded * extraRetentionDays
+
+  const baseCost = billableUnitDaysBase * PRICE_PER_UNIT_DAY
+  const retentionCost = billableUnitDaysRetention * PRICE_PER_UNIT_DAY
+  const rawMonthlyCost = baseCost + retentionCost
+
+  // Free tier applies only when total events are within free limits AND retention is default (1 month)
+  const isFreeTier = totalUnitsRounded <= FREE_UNITS && retentionMonths === 1
 
   const compactFormatter = new Intl.NumberFormat(undefined, {
     notation: 'compact',
@@ -100,15 +109,33 @@ export default function Pricing() {
         </p>
 
         <div className="py-8" />
-        <div className="bg-green-50 dark:bg-background border-2 border-green-300 dark:border-border rounded-lg p-4">
-          <div className="flex flex-col items-center gap-4">
-            <p className="font-body text-green-800 dark:text-green-500">{formatNumber(FREE_EVENTS)} events/month free</p>
-            <p className="font-display text-2xl text-green-900 dark:text-green-500">${BASE_EVENT_PRICE} per event/month after</p>
-            <p className="font-body text-sm text-green-800 dark:text-green-500 pt-4">Every Crash, ANR, Bug Report, Performance Span, Launch metric, Custom event etc counts as 1 event.</p>
-          </div>
+        <div className='flex flex-col md:flex-row gap-8 w-full max-w-4xl px-4 md:px-0'>
+          <Card className='w-full md:w-1/2'>
+            <div className="p-4 md:p-8 flex flex-col items-center">
+              <p className='text-xl font-display'>FREE</p>
+              <p className='text-4xl font-display py-4'>$0 per month</p>
+              <ul className='list-inside space-y-2'>
+                <li className='font-body text-center'>Up to {formatNumber(FREE_UNITS)} units per month</li>
+                <li className='font-body text-center'>30 day retention</li>
+                <li className='font-body text-center'>No credit card needed</li>
+              </ul>
+            </div>
+          </Card>
+          <Card className='w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-300 dark:border-border'>
+            <div className="p-4 md:p-8 flex flex-col items-center">
+              <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
+              <p className='text-4xl text-green-900 dark:text-primary font-display py-4'>$50 per month</p>
+              <ul className='list-inside space-y-2'>
+                <li className='font-body text-center text-green-900 dark:text-foreground'>{formatNumber(INCLUDED_PRO_UNITS)} units per month included</li>
+                <li className='font-body text-center text-green-900 dark:text-foreground'>Retention upto 1 year</li>
+                <li className='font-body text-center text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
+              </ul>
+            </div>
+          </Card>
         </div>
 
-        <div className="py-8" />
+        <p className="font-body text-sm py-16">Every Crash, ANR, Bug Report, Performance Span, Launch metric, Session Timeline event, User interaction event, Custom event etc counts as 1 unit.</p>
+
         <div className='flex flex-wrap justify-between px-4 md:px-0 md:w-4xl gap-4 font-display'>
           <div className='flex flex-row gap-4 items-center'><p>Control costs with <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link></p>
             <LucideCheckCircle className='text-green-600 dark:text-green-500 w-4 h-4' />
@@ -300,8 +327,8 @@ export default function Pricing() {
                   <span className="font-display">{formatNumber(Math.round(launchPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground">Performance span events per month:</span>
-                  <span className="font-display">{formatNumber(Math.round(perfSpansEventsPerDay * 30))}</span>
+                  <span className="text-secondary-foreground">Performance spans per month:</span>
+                  <span className="font-display">{formatNumber(Math.round(perfSpansPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary-foreground">Session timeline events per month:</span>
@@ -312,28 +339,30 @@ export default function Pricing() {
                   <span className="font-display">{formatNumber(Math.round(journeyEventsPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground font-semibold">Total events per month:</span>
-                  <span className="font-display font-semibold">{formatNumber(Math.round(totalEventsPerMonth))}</span>
+                  <span className="text-secondary-foreground font-semibold">Total units per month:</span>
+                  <span className="font-display font-semibold">{formatNumber(Math.round(totalUnitsPerMonth))}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-secondary-foreground font-semibold">Free events per month:</span>
-                  <span className="font-display text-green-600 dark:text-green-500">{formatNumber(FREE_EVENTS)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-secondary-foreground font-semibold">Billable events per month:</span>
-                  <span className="font-display font-semibold">{formatNumber(billableEventsPerMonth)}</span>
-                </div>
-                {!isFreeTier && (
+                {totalUnitsRounded <= FREE_UNITS && (
                   <div className="flex justify-between">
-                    <span className="text-secondary-foreground font-semibold">Minimum price post free tier:</span>
-                    <span className="font-display font-semibold">${formatNumber(MINIMUM_PRICE_AFTER_FREE_TIER)}</span>
+                    <span className="text-secondary-foreground font-semibold">Free units per month:</span>
+                    <span className="font-display text-green-600 dark:text-green-500">{formatNumber(FREE_UNITS)}</span>
                   </div>
                 )}
-                {retentionCost > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-secondary-foreground font-semibold">Retention cost per month:</span>
-                    <span className="font-display font-semibold">${retentionCost.toFixed(2)}</span>
-                  </div>
+                {!isFreeTier && (
+                  <>
+                    {baseCost > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-secondary-foreground font-semibold">Units price:</span>
+                        <span className="font-display font-semibold">${baseCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {retentionCost > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-secondary-foreground font-semibold">Retention price:</span>
+                        <span className="font-display font-semibold">${retentionCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -341,7 +370,7 @@ export default function Pricing() {
                 <div className="bg-green-50 dark:bg-background border-2 border-green-300 dark:border-border rounded-lg p-6 mb-8">
                   <div className="flex flex-col items-start gap-1">
                     <h4 className="font-display text-lg text-green-900 dark:text-green-500">Free Tier</h4>
-                    <p className="font-body text-green-800 dark:text-green-500">Your usage is within the free limits ({formatNumber(FREE_EVENTS)} events/month). No charges apply.</p>
+                    <p className="font-body text-green-800 dark:text-green-500">Your usage is within the free limits ({formatNumber(FREE_UNITS)} units/month). No charges apply.</p>
                   </div>
                 </div>
               )}
@@ -350,7 +379,7 @@ export default function Pricing() {
                 <div className="flex justify-between gap-2 items-start md:items-center mb-6 py-8 border-b-2 border-border">
                   <span className="text-4xl font-display text-card-foreground">Estimated monthly cost:</span>
                   <span className={cn("text-4xl font-display text-card-foreground")}>
-                    ${monthlyCost < MINIMUM_PRICE_AFTER_FREE_TIER ? formatNumber(MINIMUM_PRICE_AFTER_FREE_TIER) : formatNumber(monthlyCost)}
+                    ${rawMonthlyCost < MINIMUM_PRICE_AFTER_FREE_TIER ? formatNumber(MINIMUM_PRICE_AFTER_FREE_TIER) : formatNumber(rawMonthlyCost)}
                   </span>
                 </div>)}
 
@@ -365,21 +394,21 @@ export default function Pricing() {
               </Link>
 
               <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
-                Have large event event volumes or custom pricing needs?{" "}
+                Have large unit volumes?{" "}
                 <Link
                   href="mailto:hello@measure.sh"
                   className={underlineLinkStyle}>
                   Contact us
                 </Link>
-                {" "}for a personalized quote.
+                {" "}for personalised volume discounts.
               </p>
 
             </div>
           </div>
         </div>
         <div className="py-16" />
-      </div>
+      </div >
       <LandingFooter />
-    </main>
+    </main >
   )
 }

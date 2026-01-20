@@ -23,6 +23,7 @@ import { measureAuth } from "../auth/measure_auth"
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
 import { ThemeToggle } from "../components/theme_toggle"
 import UserAvatar from "../components/user_avatar"
+import { isCloud } from "../utils/env_utils"
 
 const initNavData = {
   navMain: [
@@ -105,7 +106,7 @@ const initNavData = {
           external: false,
         },
         {
-          title: "Usage",
+          title: isCloud() ? "Usage & Billing" : "Usage",
           url: "usage",
           isActive: false,
           external: false,
