@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Update pricing breakdown labels by @anupcowkur in #3112
 - (**frontend**): Change label size of usage pie chart by @anupcowkur in #3111
 - (**frontend**): Show combined events in usage by @anupcowkur in #3110
 - (**frontend**): Update layout snapshot rendering (#3106) by @abhaysood in #3106
