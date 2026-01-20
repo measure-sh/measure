@@ -41,10 +41,12 @@ services:
       - SLACK_OAUTH_STATE_SALT=${SLACK_OAUTH_STATE_SALT}
       - POSTHOG_HOST=${POSTHOG_HOST}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD}
+      - NEXT_PUBLIC_BILLING_ENABLED=${NEXT_PUBLIC_BILLING_ENABLED}
       - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
       - NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST}
       - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
     healthcheck:
@@ -60,11 +62,15 @@ services:
 
   api:
     build:
-      dockerfile: dockerfile
-      context: ../backend/api
+      dockerfile: api/dockerfile
+      context: ../backend
     ports:
       - "8080:8080"
     environment:
+      - BILLING_ENABLED=${BILLING_ENABLED}
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRO_UNIT_DAYS_PRICE_ID=${STRIPE_PRO_UNIT_DAYS_PRICE_ID}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
@@ -103,6 +109,10 @@ services:
     develop:
       watch:
         - path: ../backend/api
+          action: rebuild
+        - path: ../backend/billing
+          action: rebuild
+        - path: ../backend/email
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/ping"]
@@ -181,8 +191,8 @@ services:
 
   alerts:
     build:
-      dockerfile: dockerfile
-      context: ../backend/alerts
+      dockerfile: alerts/dockerfile
+      context: ../backend
     ports:
       - "8082:8082"
     environment:
@@ -201,6 +211,8 @@ services:
     develop:
       watch:
         - path: ../backend/alerts
+          action: rebuild
+        - path: ../backend/email
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/ping"]
@@ -256,20 +268,29 @@ services:
 
   metering:
     build:
-      dockerfile: dockerfile
-      context: ../backend/metering
+      dockerfile: metering/dockerfile
+      context: ../backend
     ports:
       - "8084:8084"
     environment:
+      - BILLING_ENABLED=${BILLING_ENABLED}
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_UNIT_DAYS_METER_NAME=${STRIPE_UNIT_DAYS_METER_NAME}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
+      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
         - path: ../backend/metering
+          action: rebuild
+        - path: ../backend/billing
+          action: rebuild
+        - path: ../backend/email
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/ping"]

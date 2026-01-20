@@ -1,6 +1,6 @@
 "use client"
 
-import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
+import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
@@ -10,6 +10,7 @@ import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/
 import { Input } from "@/app/components/input"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import SdkConfigurator from "@/app/components/sdk_configurator"
+import { isCloud } from "@/app/utils/env_utils"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
@@ -31,9 +32,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const [appRetentionPeriodConfirmationDialogOpen, setAppRetentionPeriodConfirmationDialogOpen] = useState(false)
   const [pageLoadStatus, setPageLoadStatus] = useState(PageLoadStatus.Init)
-  const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
-  const [appSettings, setAppSettings] = useState(emptyAppSettings)
-  const [updatedAppSettings, setUpdatedAppSettings] = useState(emptyAppSettings)
+
+  const [fetchBillingInfoApiStatus, setFetchBillingInfoApiStatus] = useState(FetchBillingInfoApiStatus.Loading)
+  const [retentionChangeAllowed, setRetentionChangeAllowed] = useState(false)
+
+  const [updateAppRetentionApiStatus, setUpdateAppRetentionApiStatus] = useState(UpdateAppRetentionApiStatus.Init)
+  const [appRetention, setAppRetention] = useState(emptyAppRetention)
+  const [updatedAppRetention, setUpdatedAppRetention] = useState(emptyAppRetention)
 
   const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
@@ -77,21 +82,21 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     setPageLoadStatus(PageLoadStatus.Loading)
 
     // Fetch both APIs in parallel
-    const [appSettingsResult, sdkConfigResult] = await Promise.all([
-      fetchAppSettingsFromServer(filters.app!.id),
+    const [appRetentionResult, sdkConfigResult] = await Promise.all([
+      fetchAppRetentionFromServer(filters.app!.id),
       fetchSdkConfigFromServer(filters.app!.id)
     ])
 
     // Check if both succeeded
     if (
-      appSettingsResult.status === FetchAppSettingsApiStatus.Success &&
+      appRetentionResult.status === FetchAppRetentionApiStatus.Success &&
       sdkConfigResult.status === SdkConfigApiStatus.Success
     ) {
       setPageLoadStatus(PageLoadStatus.Success)
 
       // Set app settings
-      setAppSettings(appSettingsResult.data)
-      setUpdatedAppSettings(appSettingsResult.data)
+      setAppRetention(appRetentionResult.data)
+      setUpdatedAppRetention(appRetentionResult.data)
 
       // Set SDK config directly from API response - no manual mapping needed
       setSdkConfig(sdkConfigResult.data)
@@ -110,19 +115,49 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     loadPageData()
   }, [filters])
 
-  const saveAppSettings = async () => {
-    setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Loading)
+  const getRetentionChangeAllowed = async () => {
+    if (!isCloud()) {
+      // always allow for self-hosted
+      setRetentionChangeAllowed(true)
+      return
+    }
 
-    const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings)
+    setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Loading)
+
+    const result = await fetchBillingInfoFromServer(params.teamId)
 
     switch (result.status) {
-      case UpdateAppSettingsApiStatus.Error:
-        setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
+      case FetchBillingInfoApiStatus.Error:
+        setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Error)
+        break
+      case FetchBillingInfoApiStatus.Success:
+        setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Success)
+        if (result.data.plan === 'free') {
+          setRetentionChangeAllowed(false)
+        } else {
+          setRetentionChangeAllowed(true)
+        }
+        break
+    }
+  }
+
+  useEffect(() => {
+    getRetentionChangeAllowed()
+  }, [])
+
+  const saveAppRetention = async () => {
+    setUpdateAppRetentionApiStatus(UpdateAppRetentionApiStatus.Loading)
+
+    const result = await updateAppRetentionFromServer(filters.app!.id, updatedAppRetention)
+
+    switch (result.status) {
+      case UpdateAppRetentionApiStatus.Error:
+        setUpdateAppRetentionApiStatus(UpdateAppRetentionApiStatus.Error)
         toastNegative("Error saving app settings", result.error)
         break
-      case UpdateAppSettingsApiStatus.Success:
-        setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Success)
-        setAppSettings(updatedAppSettings)
+      case UpdateAppRetentionApiStatus.Success:
+        setUpdateAppRetentionApiStatus(UpdateAppRetentionApiStatus.Success)
+        setAppRetention(updatedAppRetention)
         toastPositive("Your app settings have been saved")
         break
     }
@@ -143,7 +178,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   )
 
   const handleRetentionPeriodChange = (newRetentionPeriod: string) => {
-    setUpdatedAppSettings({ retention_period: displayTextToRetentionPeriodMap.get(newRetentionPeriod)! })
+    setUpdatedAppRetention({ retention: displayTextToRetentionPeriodMap.get(newRetentionPeriod)! })
   }
 
   const changeAppName = async () => {
@@ -230,10 +265,10 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           />
 
           {/* Dialog for confirming app retention period change */}
-          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to change the retention period for app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{updatedAppSettings.retention_period} days</span>? <br /> <br /> This change only affects new sessions, current sessions will retain their original retention period.</p>} open={appRetentionPeriodConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to change the retention period for app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{updatedAppRetention.retention} days</span>? <br /> <br /> This change only affects new sessions, current sessions will retain their original retention period.</p>} open={appRetentionPeriodConfirmationDialogOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setAppRetentionPeriodConfirmationDialogOpen(false)
-              saveAppSettings()
+              saveAppRetention()
             }}
             onCancelAction={() => setAppRetentionPeriodConfirmationDialogOpen(false)}
           />
@@ -287,18 +322,23 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               osName={filters.app!.os_name}
               initialConfig={sdkConfig}
               currentUserCanChangeAppSettings={currentUserCanChangeAppSettings}
-
             />
 
             <div className="py-8" />
-            <p className="font-display text-xl max-w-6xl">Configure Data Rentention</p>
+            <p className="font-display text-xl max-w-6xl">Configure Data Retention</p>
             <div className="flex flex-row items-center mt-2">
-              <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
+              <DropdownSelect
+                disabled={!retentionChangeAllowed}
+                type={DropdownSelectType.SingleString}
+                title="Data Retention Period"
+                items={Array.from(retentionPeriodToDisplayTextMap.values())}
+                initialSelected={retentionPeriodToDisplayTextMap.get(appRetention.retention!)!}
+                onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
               <Button
                 variant="outline"
                 className="m-4"
-                disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
-                loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
+                disabled={!retentionChangeAllowed || !currentUserCanChangeAppSettings || updateAppRetentionApiStatus === UpdateAppRetentionApiStatus.Loading || appRetention.retention === updatedAppRetention.retention}
+                loading={updateAppRetentionApiStatus === UpdateAppRetentionApiStatus.Loading}
                 onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
                 Save
               </Button>

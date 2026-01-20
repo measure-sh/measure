@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 
 	"cloud.google.com/go/cloudsqlconn"
@@ -13,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
+	"github.com/stripe/stripe-go/v84"
 )
 
 var Server *server
@@ -36,10 +38,16 @@ type ClickhouseConfig struct {
 }
 
 type ServerConfig struct {
-	PG              PostgresConfig
-	CH              ClickhouseConfig
-	OtelServiceName string
-	CloudEnv        bool
+	PG                      PostgresConfig
+	CH                      ClickhouseConfig
+	StripeAPIKey            string
+	StripeUnitDaysMeterName string
+	SiteOrigin              string
+	EmailDomain             string
+	TxEmailAddress          string
+	OtelServiceName         string
+	CloudEnv                bool
+	BillingEnabled          bool
 }
 
 // IsCloud is true if the service is assumed
@@ -52,10 +60,25 @@ func (sc *ServerConfig) IsCloud() bool {
 	return false
 }
 
+// IsBillingEnabled is true if the service has
+// billing feature enabled.
+func (sc *ServerConfig) IsBillingEnabled() bool {
+	if sc.BillingEnabled {
+		return true
+	}
+
+	return false
+}
+
 func NewConfig() *ServerConfig {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
+	}
+
+	billingEnabled := false
+	if os.Getenv("BILLING_ENABLED") == "true" {
+		billingEnabled = true
 	}
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
@@ -73,12 +96,46 @@ func NewConfig() *ServerConfig {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
+	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
+	if stripeAPIKey == "" {
+		log.Println("STRIPE_API_KEY env var is not set, stripe integration will not work")
+	}
+
+	stripeUnitDaysMeterName := os.Getenv("STRIPE_UNIT_DAYS_METER_NAME")
+	if stripeUnitDaysMeterName == "" {
+		log.Println("STRIPE_UNIT_DAYS_METER_NAME env var is not set, stripe integration will not work")
+	}
+
+	siteOrigin := os.Getenv("SITE_ORIGIN")
+	if siteOrigin == "" {
+		log.Println("SITE_ORIGIN env var not set, usage notification emails will not include dashboard links")
+	}
+
+	emailDomain := os.Getenv("EMAIL_DOMAIN")
+	if emailDomain == "" {
+		log.Println("EMAIL_DOMAIN env var is not set, emails will use SITE_ORIGIN as domain")
+	}
+
+	var txEmailAddress string
+	if emailDomain != "" {
+		txEmailAddress = "noreply@" + emailDomain
+	} else if siteOrigin != "" {
+		parsedSiteOrigin, err := url.Parse(siteOrigin)
+		if err != nil {
+			log.Printf("Error parsing SITE_ORIGIN: %v\n", err)
+		} else {
+			txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
+		}
+	}
+
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
 	}
 
 	return &ServerConfig{
+		StripeAPIKey:            stripeAPIKey,
+		StripeUnitDaysMeterName: stripeUnitDaysMeterName,
 		PG: PostgresConfig{
 			DSN: postgresDSN,
 		},
@@ -86,8 +143,23 @@ func NewConfig() *ServerConfig {
 			DSN:       clickhouseDSN,
 			ReaderDSN: clickhouseReaderDSN,
 		},
+		SiteOrigin:      siteOrigin,
+		EmailDomain:     emailDomain,
+		TxEmailAddress:  txEmailAddress,
 		OtelServiceName: otelServiceName,
 		CloudEnv:        cloudEnv,
+		BillingEnabled:  billingEnabled,
+	}
+}
+
+// InitForTest wires up the server singleton for use in tests.
+// It accepts externally-created pools so callers can use testcontainers.
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chReader driver.Conn) {
+	sqlf.SetDialect(sqlf.PostgreSQL)
+	Server = &server{
+		PgPool:  pgPool,
+		RchPool: chReader,
+		Config:  config,
 	}
 }
 
@@ -155,6 +227,8 @@ func Init(config *ServerConfig) {
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
+
+	stripe.Key = config.StripeAPIKey
 
 	Server = &server{
 		PgPool:  pgPool,

@@ -28,11 +28,12 @@ interface DropdownSelectProps {
   type: DropdownSelectType
   title: string
   items: string[] | AppVersion[] | OsVersion[]
+  disabled?: boolean
   initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
   onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
 }
 
-const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
+const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected, disabled = false }) => {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(initialSelected)
   const [searchValue, setSearchValue] = useState("")
@@ -218,8 +219,8 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen} >
+      <PopoverTrigger disabled={disabled} asChild>
         <Button
           variant="outline"
           className="flex justify-between w-fit min-w-[150px] select-none"

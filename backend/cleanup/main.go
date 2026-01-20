@@ -67,8 +67,8 @@ func main() {
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
 
-	// run every hour
-	if _, err := cron.AddFunc("0 * * * *", func() { cleanup.DeleteStaleData(ctx) }); err != nil {
+	// run at 2 AM UTC every day
+	if _, err := cron.AddFunc("0 2 * * *", func() { cleanup.DeleteStaleData(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule stale data cleanup job: %v\n", err)
 	}
 

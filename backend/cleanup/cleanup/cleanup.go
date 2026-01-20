@@ -620,11 +620,9 @@ func deleteStalePendingAlertMessages(ctx context.Context) {
 func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err error) {
 	// Fetch retention periods for each app
 	stmt := sqlf.PostgreSQL.
-		From("app_settings as s").
-		Join("apps as a", "a.app_id = s.app_id").
-		Select("s.app_id").
-		Select("a.team_id").
-		Select("s.retention_period")
+		From("apps").
+		Select("id").
+		Select("retention")
 
 	defer stmt.Close()
 

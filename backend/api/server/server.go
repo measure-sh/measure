@@ -17,6 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/leporo/sqlf"
+	"github.com/stripe/stripe-go/v84"
 	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
@@ -89,15 +91,29 @@ type ServerConfig struct {
 	TxEmailAddress             string
 	SlackClientID              string
 	SlackClientSecret          string
+	StripeAPIKey               string
+	StripeWebhookSecret        string
+	StripeProUnitDaysPriceID   string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
+	BillingEnabled             bool
 }
 
-// IsCloud is true if the service is assumed
+// IsCloud is true if the service is
 // running on a cloud environment.
 func (sc *ServerConfig) IsCloud() bool {
 	if sc.CloudEnv {
+		return true
+	}
+
+	return false
+}
+
+// IsBillingEnabled is true if the service has
+// billing feature enabled.
+func (sc *ServerConfig) IsBillingEnabled() bool {
+	if sc.BillingEnabled {
 		return true
 	}
 
@@ -108,6 +124,11 @@ func NewConfig() *ServerConfig {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
+	}
+
+	billingEnabled := false
+	if os.Getenv("BILLING_ENABLED") == "true" {
+		billingEnabled = true
 	}
 
 	// capture google service account email when running in
@@ -282,6 +303,23 @@ func NewConfig() *ServerConfig {
 		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
 	}
 
+	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
+	if stripeAPIKey == "" {
+		log.Println("STRIPE_API_KEY env var is not set, stripe integration will not work")
+	}
+
+	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if stripeWebhookSecret == "" {
+		log.Println("STRIPE_WEBHOOK_SECRET env var is not set, stripe integration will not work")
+	}
+
+	stripeProUnitDaysPriceID := os.Getenv("STRIPE_PRO_UNIT_DAYS_PRICE_ID")
+	if stripeProUnitDaysPriceID == "" {
+		log.Println("STRIPE_PRO_UNIT_DAYS_PRICE_ID env var is not set, stripe integration will not work")
+	}
+
+	stripe.Key = stripeAPIKey
+
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
@@ -329,9 +367,13 @@ func NewConfig() *ServerConfig {
 		TxEmailAddress:             txEmailAddress,
 		SlackClientID:              slackClientID,
 		SlackClientSecret:          slackClientSecret,
+		StripeAPIKey:               stripeAPIKey,
+		StripeWebhookSecret:        stripeWebhookSecret,
+		StripeProUnitDaysPriceID:   stripeProUnitDaysPriceID,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
+		BillingEnabled:             billingEnabled,
 	}
 }
 
@@ -456,6 +498,16 @@ func Init(config *ServerConfig) {
 		Config:  config,
 		VK:      vkClient,
 		Mail:    mailClient,
+	}
+}
+
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chReader driver.Conn, vk redis.Client) {
+	sqlf.SetDialect(sqlf.PostgreSQL)
+	Server = &server{
+		PgPool:  pgPool,
+		RchPool: chReader,
+		Config:  config,
+		VK:      vk,
 	}
 }
 

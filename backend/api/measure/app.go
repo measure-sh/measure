@@ -45,6 +45,7 @@ type App struct {
 	UniqueId     string     `json:"unique_identifier"`
 	OSName       string     `json:"os_name"`
 	APIKey       *APIKey    `json:"api_key"`
+	Retention    int        `json:"retention"`
 	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
 	OnboardedAt  time.Time  `json:"onboarded_at"`
@@ -59,6 +60,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 		OSName      *string    `json:"os_name"`
 		OnboardedAt *time.Time `json:"onboarded_at"`
 		UniqueId    *string    `json:"unique_identifier"`
+		Retention   *int       `json:"retention"`
 	}{
 		OSName: func() *string {
 			if a.OSName == "" {
@@ -78,6 +80,9 @@ func (a App) MarshalJSON() ([]byte, error) {
 			}
 			return &a.OnboardedAt
 		}(),
+		Retention: func() *int {
+			return &a.Retention
+		}(),
 		Alias: (*Alias)(&a),
 	})
 }
@@ -85,6 +90,35 @@ func (a App) MarshalJSON() ([]byte, error) {
 func (a App) rename() error {
 	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("app_name", a.AppName).
+		Set("updated_at", time.Now()).
+		Where("id = ?", a.ID)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a App) getAppRetention() (int, error) {
+	stmt := sqlf.PostgreSQL.Select("retention").
+		From("apps").
+		Where("id = ?", a.ID)
+	defer stmt.Close()
+
+	var retention int
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), stmt.Args()...).Scan(&retention); err != nil {
+		return 0, err
+	}
+
+	return retention, nil
+}
+
+func (a App) updateRetention(retention int) error {
+	stmt := sqlf.PostgreSQL.Update("apps").
+		Set("retention", retention).
 		Set("updated_at", time.Now()).
 		Where("id = ?", a.ID)
 	defer stmt.Close()
@@ -3304,7 +3338,7 @@ func (a *App) add(tx pgx.Tx) (*APIKey, error) {
 	id := uuid.New()
 	a.ID = &id
 
-	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, retention, created_at, updated_at) values ($1, $2, $3, $4, $5, $6);", a.ID, a.TeamId, a.AppName, a.Retention, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -4173,6 +4207,7 @@ func NewApp(teamId uuid.UUID) *App {
 	return &App{
 		ID:        &id,
 		TeamId:    teamId,
+		Retention: FREE_PLAN_MAX_RETENTION_DAYS,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -7302,7 +7337,7 @@ func UpdateAlertPrefs(c *gin.Context) {
 	})
 }
 
-func GetAppSettings(c *gin.Context) {
+func GetAppRetention(c *gin.Context) {
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `app id invalid or missing`
@@ -7313,9 +7348,13 @@ func GetAppSettings(c *gin.Context) {
 		return
 	}
 
-	appSettings, err := getAppSettings(appId)
+	app := App{
+		ID: &appId,
+	}
+
+	retention, err := app.getAppRetention()
 	if err != nil {
-		msg := `unable to fetch app settings`
+		msg := `unable to fetch app retention`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": msg,
@@ -7323,10 +7362,10 @@ func GetAppSettings(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, appSettings)
+	c.JSON(http.StatusOK, gin.H{"retention": retention})
 }
 
-func UpdateAppSettings(c *gin.Context) {
+func UpdateAppRetention(c *gin.Context) {
 	userId := c.GetString("userId")
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -7376,11 +7415,26 @@ func UpdateAppSettings(c *gin.Context) {
 		return
 	}
 
-	appSettings := newAppSettings(appId)
+	ok, err = CheckRetentionChangeAllowedInPlan(c, *team.ID)
+	if err != nil {
+		msg := `error checking retention change allowance`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := `retention change not allowed in current plan`
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
 
-	var payload AppSettingsPayload
+	type RetentionPayload struct {
+		Retention int `json:"retention"`
+	}
+	var payload RetentionPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		msg := `failed to parse alert preferences json payload`
+		msg := `failed to parse app settings json payload`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": msg,
@@ -7388,16 +7442,20 @@ func UpdateAppSettings(c *gin.Context) {
 		return
 	}
 
-	appSettings.RetentionPeriod = payload.RetentionPeriod
-
-	if appSettings.RetentionPeriod < 30 || appSettings.RetentionPeriod > 365 {
-		msg := `retention period must be between 30 and 365 days`
+	if payload.Retention < FREE_PLAN_MAX_RETENTION_DAYS || payload.Retention > MAX_RETENTION_DAYS {
+		msg := fmt.Sprintf(`retention period must be between %d and %d days`, FREE_PLAN_MAX_RETENTION_DAYS, MAX_RETENTION_DAYS)
 		fmt.Println(msg)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
-	appSettings.update()
+	err = app.updateRetention(payload.Retention)
+	if err != nil {
+		msg := "failed to update app retention"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": "done",

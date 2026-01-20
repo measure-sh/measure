@@ -130,14 +130,14 @@ func main() {
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
 
-		// config
+		// app management
 		apps.GET(":id/config", measure.GetConfig)
 		apps.PATCH(":id/config", measure.PatchConfig)
-
-		// misc
-		apps.GET(":id/settings", measure.GetAppSettings)
-		apps.PATCH(":id/settings", measure.UpdateAppSettings)
+		apps.GET(":id/retention", measure.GetAppRetention)
+		apps.PATCH(":id/retention", measure.UpdateAppRetention)
 		apps.PATCH(":id/rename", measure.RenameApp)
+
+		// filters
 		apps.POST(":id/shortFilters", measure.CreateShortFilters)
 	}
 
@@ -161,12 +161,20 @@ func main() {
 		teams.GET(":id/slack", measure.GetTeamSlack)
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", measure.SendTestSlackAlert)
+		teams.GET(":id/billing/info", measure.GetTeamBilling)
+		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
+		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
 	}
 
 	slack := r.Group("/slack")
 	{
 		slack.POST("/connect", measure.ConnectTeamSlack)
 		slack.POST("/events", measure.HandleSlackEvents)
+	}
+
+	stripe := r.Group("/stripe")
+	{
+		stripe.POST("/webhook", measure.HandleStripeWebhook)
 	}
 
 	port := os.Getenv("PORT")

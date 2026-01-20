@@ -1,11 +1,14 @@
-go 1.24.5
+go 1.25.6
 
 use (
 	./backend/alerts
 	./backend/api
+	./backend/billing
 	./backend/cleanup
+	./backend/email
 	./backend/metering
 	./backend/migrator
 	./backend/symboloader
+	./backend/testinfra
 	./self-host/sessionator
 )

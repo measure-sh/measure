@@ -2,13 +2,22 @@
 FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
-WORKDIR /go/src/app
-COPY ["go.mod", "go.sum", "./"]
-RUN go mod download
-COPY . .
+WORKDIR /go/src
+
+# Copy dependency modules first for caching
+COPY email/go.mod email/go.sum ./email/
+COPY billing/go.mod billing/go.sum ./billing/
+COPY metering/go.mod metering/go.sum ./metering/
+RUN cd metering && go mod download
+
+# Copy source
+COPY email/ ./email/
+COPY billing/ ./billing/
+COPY metering/ ./metering/
+
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/app -v .
+  cd metering && GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/app -v .
 
 # final stage
 FROM public.ecr.aws/docker/library/alpine:latest
