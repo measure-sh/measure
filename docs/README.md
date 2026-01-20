@@ -59,7 +59,7 @@ available in two ways:
 * **Remote Configuration Options** — Configured remotely from the Measure dashboard. Changes take effect without releasing a new
   app version.
 
-Read more about [Configuration Options](#configuration-options).
+Read more about [Configuration Options](features/configuration-options.md).
 
 # Data Retention
 
