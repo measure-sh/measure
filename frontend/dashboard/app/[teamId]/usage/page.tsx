@@ -104,8 +104,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         dominantBaseline="central"
         className='font-display font-semibold fill-foreground'
       >
-        <tspan className='text-2xl' x={centerX} dy="-0.7em">Events: {totalSessions + totalLaunchTimes + totalEvents}</tspan>
-        <tspan className='text-2xl' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
+        <tspan className='text-xl' x={centerX} dy="-0.7em">Events: {totalSessions + totalLaunchTimes + totalEvents}</tspan>
+        <tspan className='text-xl' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
       </text>
     )
   }
