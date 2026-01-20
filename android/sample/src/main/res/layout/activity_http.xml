@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".OkHttpActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="HTTP Config Testing"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Path with Random button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/et_path"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Path (e.g. /get)"
+                android:inputType="text"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/btn_random"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Random"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <!-- URL Preview -->
+        <TextView
+            android:id="@+id/tv_url_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="https://postman-echo.com/get"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <EditText
+                android:id="@+id/et_header_key"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Header key"
+                android:inputType="text"
+                android:layout_marginEnd="8dp" />
+
+            <EditText
+                android:id="@+id/et_header_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Header value"
+                android:inputType="text" />
+
+        </LinearLayout>
+
+        <!-- Method -->
+        <RadioGroup
+            android:id="@+id/rg_method"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <RadioButton
+                android:id="@+id/rb_get"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GET"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rb_post"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="POST"
+                android:layout_marginStart="16dp" />
+
+        </RadioGroup>
+
+        <!-- Request Body Checkbox -->
+        <CheckBox
+            android:id="@+id/cb_request_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Include request body"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btn_send"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Send Request"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="200dp"
+            android:background="#F5F5F5"
+            android:padding="12dp"
+            android:text="Status: Ready"
+            android:textSize="13sp"
+            android:textColor="#212121"
+            android:fontFamily="monospace" />
+
+    </LinearLayout>
+</ScrollView>
