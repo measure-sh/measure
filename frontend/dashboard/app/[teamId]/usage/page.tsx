@@ -104,10 +104,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         dominantBaseline="central"
         className='font-display font-semibold fill-foreground'
       >
-        <tspan className='text-2xl' x={centerX} dy="-0.7em">Sessions: {totalSessions}</tspan>
-        <tspan className='text-sm' x={centerX} dy="2em">Launch Time Events: {totalLaunchTimes}</tspan>
-        <tspan className='text-sm' x={centerX} dy="1.4em">Error, Timeline & Journey Events: {totalEvents}</tspan>
-        <tspan className='text-sm' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
+        <tspan className='text-2xl' x={centerX} dy="-0.7em">Events: {totalSessions + totalLaunchTimes + totalEvents}</tspan>
+        <tspan className='text-2xl' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
       </text>
     )
   }
@@ -149,9 +147,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                   <div className="bg-accent text-accent-foreground flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
-                    <p className='text-xs'>Sessions: {value}</p>
-                    <p className='text-xs'>Launch Time Events: {selectedMonthUsage?.find((i) => i.id === id)!.launchTimes}</p>
-                    <p className='text-xs'>Error, Timeline & Journey Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
+                    <p className='text-xs'>Events: {value + selectedMonthUsage?.find((i) => i.id === id)!.launchTimes! + selectedMonthUsage?.find((i) => i.id === id)!.events!}</p>
                     <p className='text-xs'>Spans: {selectedMonthUsage?.find((i) => i.id === id)!.spans}</p>
                   </div>
                 )
