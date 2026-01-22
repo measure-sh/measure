@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
 - (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
 - (**backend**): Update last_seen for API key by @anupcowkur in #2903
+- (**frontend**): Fix date filters by @anupcowkur in #3116
 - (**frontend**): Suppress theme change hydration warnings by @anupcowkur in #3101
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
