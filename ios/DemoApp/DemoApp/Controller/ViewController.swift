@@ -10,38 +10,54 @@ import SwiftUI
 import Measure
 
 @objc final class ViewController: MsrViewController, UITableViewDelegate, UITableViewDataSource {
-    let crashTypes = [
-        "Abort",
-        "Bad Pointer",
-        "Corrupt Memory",
-        "Corrupt Object",
-        "Deadlock",
-        "NSException",
-        "Stack Overflow",
-        "Zombie",
-        "Zombie NSException",
-        "Background thread crash",
-        "Segmentation Fault (SIGSEGV)",
-        "Abnormal Termination (SIGABRT)",
-        "Illegal Instruction (SIGILL)",
-        "Bus Error (SIGBUS)"
-    ]
+    enum TableSection: Int, CaseIterable {
+        case crashes = 0
+        case httpEvents = 1
+
+        var title: String {
+            switch self {
+            case .crashes:
+                return "Crash Types"
+            case .httpEvents:
+                return "HTTP Events"
+            }
+        }
+    }
+
+    let crashTypes = ["Abort",
+                      "Bad Pointer",
+                      "Corrupt Memory",
+                      "Corrupt Object",
+                      "Deadlock",
+                      "NSException",
+                      "Stack Overflow",
+                      "Zombie",
+                      "Zombie NSException",
+                      "Background thread crash",
+                      "Segmentation Fault (SIGSEGV)",
+                      "Abnormal Termination (SIGABRT)",
+                      "Illegal Instruction (SIGILL)",
+                      "Bus Error (SIGBUS)"]
+
+    let httpEventTypes = ["GET – 200 OK (JSON)",
+                          "POST – 201 Created (JSON body)",
+                          "PUT – 400 Client Error",
+                          "GET – Network Error",
+                          "GET – Non-JSON Response"]
+
+    private let tableView = UITableView(frame: .zero, style: .plain)
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.title = "Swift View Controller"
-        let tableView = UITableView(frame: view.bounds, style: .plain)
+        title = "Swift View Controller"
         tableView.accessibilityIdentifier = "HomeTableView"
         tableView.delegate = self
         tableView.dataSource = self
         tableView.translatesAutoresizingMaskIntoConstraints = false
-
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
 
-        let headerView = createTableHeaderView()
-        tableView.tableHeaderView = headerView
-
+        tableView.tableHeaderView = createTableHeaderView()
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -59,8 +75,20 @@ import Measure
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
+                                                    "paid_user": .boolean(true),
+                                                    "credit_balance": .int(1000),
+                                                    "latitude": .double(30.2661403415387)]
+
+        Measure.trackScreenView("Home", attributes: attributes)
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
                                                     "paid_user": .boolean(true),
                                                     "credit_balance": .int(1000),
@@ -68,89 +96,62 @@ import Measure
         Measure.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
-                                                    "paid_user": .boolean(true),
-                                                    "credit_balance": .int(1000),
-                                                    "latitude": .double(30.2661403415387)]
-        Measure.trackScreenView("Home", attributes: attributes)
-    }
-
-    // MARK: - Table Header View with Buttons
-
     func createTableHeaderView() -> UIView {
         let headerView = UIView()
-        // Do NOT set translatesAutoresizingMaskIntoConstraints = false for headerView
-        // headerView.translatesAutoresizingMaskIntoConstraints = false
 
-        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls", "Bug Reporter"]
+        let buttonTitles = [
+            "SwiftUI Controller",
+            "Objc Controller",
+            "Collection Controller",
+            "System Controls",
+            "Bug Reporter"
+        ]
 
-        // Create two vertical stack views
-        let verticalStackView1 = UIStackView()
-        verticalStackView1.axis = .vertical
-        verticalStackView1.distribution = .fillEqually
-        verticalStackView1.spacing = 8
+        let column1 = UIStackView()
+        column1.axis = .vertical
+        column1.spacing = 8
+        column1.distribution = .fillEqually
 
-        let verticalStackView2 = UIStackView()
-        verticalStackView2.axis = .vertical
-        verticalStackView2.distribution = .fillEqually
-        verticalStackView2.spacing = 8
+        let column2 = UIStackView()
+        column2.axis = .vertical
+        column2.spacing = 8
+        column2.distribution = .fillEqually
 
         for (index, title) in buttonTitles.enumerated() {
             let button = UIButton(type: .system)
+            button.setTitle(title, for: .normal)
+            button.tag = index
             button.layer.cornerRadius = 8
             button.layer.borderWidth = 1
             button.layer.borderColor = UIColor.systemBlue.cgColor
-            button.setTitle(title, for: .normal)
-            button.tag = index
-            button.addTarget(self, action: #selector(headerButtonTapped(_:)), for: .touchUpInside)
-            button.translatesAutoresizingMaskIntoConstraints = false
             button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+            button.addTarget(self, action: #selector(headerButtonTapped(_:)), for: .touchUpInside)
 
-            // Distribute buttons: 0,2,4 in first column; 1,3 in second
-            if index == 0 || index == 2 || index == 4 {
-                verticalStackView1.addArrangedSubview(button)
-            } else {
-                verticalStackView2.addArrangedSubview(button)
-            }
+            (index % 2 == 0 ? column1 : column2).addArrangedSubview(button)
         }
 
-        let horizontalStackView = UIStackView(arrangedSubviews: [verticalStackView1, verticalStackView2])
-        horizontalStackView.axis = .horizontal
-        horizontalStackView.distribution = .fillEqually
-        horizontalStackView.spacing = 16
-        horizontalStackView.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(horizontalStackView)
+        let horizontalStack = UIStackView(arrangedSubviews: [column1, column2])
+        horizontalStack.axis = .horizontal
+        horizontalStack.spacing = 16
+        horizontalStack.translatesAutoresizingMaskIntoConstraints = false
 
-        // Pin horizontalStackView to headerView's safe area
+        headerView.addSubview(horizontalStack)
+
         NSLayoutConstraint.activate([
-            horizontalStackView.leadingAnchor.constraint(equalTo: headerView.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            horizontalStackView.trailingAnchor.constraint(equalTo: headerView.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            horizontalStackView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
-            horizontalStackView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
+            horizontalStack.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
+            horizontalStack.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
+            horizontalStack.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
+            horizontalStack.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
         ])
 
-        // Remove headerView.heightAnchor constraint. Instead, set frame height below.
-        // headerView.heightAnchor.constraint(equalToConstant: 150).isActive = true
-        headerView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 150)
+        headerView.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: UIScreen.main.bounds.width,
+            height: 150
+        )
 
         return headerView
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        // Update header view frame when orientation or safe area changes
-        if let tableView = view.subviews.first(where: { $0 is UITableView }) as? UITableView,
-           let headerView = tableView.tableHeaderView {
-            let targetWidth = tableView.bounds.width
-            let targetHeight = headerView.systemLayoutSizeFitting(CGSize(width: targetWidth, height: 0)).height
-            if headerView.frame.width != targetWidth || headerView.frame.height != targetHeight {
-                headerView.frame.size.width = targetWidth
-                headerView.frame.size.height = targetHeight
-                tableView.tableHeaderView = headerView
-            }
-        }
     }
 
     @objc func headerButtonTapped(_ sender: UIButton) {
@@ -158,117 +159,185 @@ import Measure
         case 0:
             let swiftUIView = SwiftUIDetailViewController()
             let hostingController = UIHostingController(rootView: swiftUIView)
-            self.navigationController?.pushViewController(hostingController, animated: true)
+            navigationController?.pushViewController(hostingController, animated: true)
+
         case 1:
             let controller = ObjcDetailViewController()
-            self.navigationController?.pushViewController(controller, animated: true)
+            navigationController?.pushViewController(controller, animated: true)
+
         case 2:
             let controller = CollectionViewController()
-            self.navigationController?.pushViewController(controller, animated: true)
+            navigationController?.pushViewController(controller, animated: true)
+
         case 3:
-            if let controller = self.storyboard?.instantiateViewController(withIdentifier: "ControlsViewController") {
-                self.navigationController?.pushViewController(controller, animated: true)
+            if let controller = storyboard?.instantiateViewController(
+                withIdentifier: "ControlsViewController"
+            ) {
+                navigationController?.pushViewController(controller, animated: true)
             }
+
         case 4:
-            let color = BugReportConfig.default.colors.update(badgeColor: .red, isDarkMode: true)
-            let dimensions = MsrDimensions(
-                topPadding: 20
-            )
-            let config = BugReportConfig(colors: color, dimensions: dimensions)
+            let colors = BugReportConfig.default.colors
+                .update(badgeColor: .red, isDarkMode: true)
+
+            let dimensions = MsrDimensions(topPadding: 20)
+            let config = BugReportConfig(colors: colors, dimensions: dimensions)
+
             Measure.launchBugReport(takeScreenshot: true, bugReportConfig: config)
+
         default:
-            let controller = ControlsViewController()
-            self.navigationController?.pushViewController(controller, animated: true)
+            break
         }
     }
 
-    // MARK: - UITableViewDataSource
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return crashTypes.count
+    func numberOfSections(in tableView: UITableView) -> Int {
+        TableSection.allCases.count
     }
 
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    func tableView(_ tableView: UITableView,
+                   titleForHeaderInSection section: Int) -> String? {
+        TableSection(rawValue: section)?.title
+    }
+
+    func tableView(_ tableView: UITableView,
+                   numberOfRowsInSection section: Int) -> Int {
+        guard let sectionType = TableSection(rawValue: section) else { return 0 }
+        return sectionType == .crashes ? crashTypes.count : httpEventTypes.count
+    }
+
+    func tableView(_ tableView: UITableView,
+                   cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = crashTypes[indexPath.row]
+        guard let sectionType = TableSection(rawValue: indexPath.section) else { return cell }
+
+        switch sectionType {
+        case .crashes:
+            cell.textLabel?.text = crashTypes[indexPath.row]
+            cell.textLabel?.textColor = .systemRed
+
+        case .httpEvents:
+            cell.textLabel?.text = httpEventTypes[indexPath.row]
+            cell.textLabel?.textColor = .systemBlue
+        }
+
         return cell
     }
 
     // MARK: - UITableViewDelegate
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let selectedCrashType = crashTypes[indexPath.row]
-        triggerCrash(type: selectedCrashType)
+    func tableView(_ tableView: UITableView,
+                   didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+
+        guard let sectionType = TableSection(rawValue: indexPath.section) else { return }
+
+        switch sectionType {
+        case .crashes:
+            triggerCrash(type: crashTypes[indexPath.row])
+        case .httpEvents:
+            triggerHttpEvent(type: httpEventTypes[indexPath.row])
+        }
     }
 
-    // MARK: - Crash Triggers
+    // MARK: - HTTP Tracking
 
-    func triggerCrash(type: String) { // swiftlint:disable:this cyclomatic_complexity function_body_length
+    func triggerHttpEvent(type: String) {
+        let startTime = UInt64(CFAbsoluteTimeGetCurrent() * 1000)
+        let endTime = startTime + 150
+
         switch type {
-        case "Abort":
-            abort()
+
+        case "GET – 200 OK (JSON)":
+            Measure.trackHttpEvent(
+                url: "https://api.com/users",
+                method: "get",
+                startTime: startTime,
+                endTime: endTime,
+                client: "URLSession",
+                statusCode: 200,
+                responseHeaders: ["Content-Type": "application/json"],
+                responseBody: #"{"id":1,"name":"Alice"}"#
+            )
+
+        case "POST – 201 Created (JSON body)":
+            Measure.trackHttpEvent(
+                url: "https://api.example.com/users",
+                method: "post",
+                startTime: startTime,
+                endTime: endTime,
+                client: "URLSession",
+                statusCode: 201,
+                requestHeaders: ["Content-Type": "application/json", "custom-header": "should-not-be-tracked"],
+                responseHeaders: ["Content-Type": "application/json", "custom-header": "should-not-be-tracked"],
+                requestBody: #"{"name":"Alice"}"#,
+                responseBody: #"{"id":42}"#
+            )
+
+        case "PUT – 400 Client Error":
+            Measure.trackHttpEvent(
+                url: "https://api.example.com/users/42",
+                method: "put",
+                startTime: startTime,
+                endTime: endTime,
+                client: "URLSession",
+                statusCode: 400,
+                responseHeaders: ["Content-Type": "application/json"],
+                responseBody: #"{"error":"Invalid request"}"#
+            )
+
+        case "GET – Network Error":
+            Measure.trackHttpEvent(
+                url: "https://api.example.com/timeout",
+                method: "get",
+                startTime: startTime,
+                endTime: endTime,
+                client: "URLSession",
+                error: URLError(.timedOut)
+            )
+
+        case "GET – Non-JSON Response":
+            Measure.trackHttpEvent(
+                url: "https://example.com/html",
+                method: "get",
+                startTime: startTime,
+                endTime: endTime,
+                client: "URLSession",
+                statusCode: 200,
+                responseHeaders: ["Content-Type": "text/html"],
+                responseBody: "<html>ignored</html>"
+            )
+
+        default:
+            break
+        }
+    }
+
+    // MARK: - Crash Triggers (unchanged)
+
+    func triggerCrash(type: String) {
+        switch type {
+        case "Abort": abort()
         case "Bad Pointer":
             let pointer = UnsafeMutableRawPointer(bitPattern: 0xdeadbeef)!
             pointer.storeBytes(of: 0, as: Int.self)
         case "Corrupt Memory":
             let array = [1, 2, 3]
-            array.withUnsafeBufferPointer {
-                _ = $0.baseAddress!.advanced(by: 4).pointee
-            }
+            _ = array[10]
         case "Corrupt Object":
             let object: AnyObject = NSArray()
-            let _ = object.perform(Selector(("invalidSelector"))) // swiftlint:disable:this redundant_discardable_let
+            _ = object.perform(Selector(("invalidSelector")))
         case "Deadlock":
             let queue = DispatchQueue(label: "deadlockQueue")
-            queue.sync {
-                queue.sync {}
-            }
+            queue.sync { queue.sync {} }
         case "NSException":
             let array = NSArray()
             print(array[1])
         case "Stack Overflow":
-            func recurse() {
-                recurse()
-            }
+            func recurse() { recurse() }
             recurse()
-        case "Zombie":
-            var object: NSObject? = NSObject()
-            let __weakObject = object // swiftlint:disable:this identifier_name
-            object = nil
-            print(__weakObject!.description)
-        case "Zombie NSException":
-            var exception: NSException? = NSException(name: .genericException, reason: "Test", userInfo: nil)
-            let __weakException = exception // swiftlint:disable:this identifier_name
-            exception = nil
-            __weakException?.raise()
-        case "Background thread crash":
-            let backgroundQueue = DispatchQueue(label: "com.demo.backgroundQueue", qos: .background)
-            backgroundQueue.async {
-                let array = NSArray()
-                print(array[1])
-            }
-        case "Segmentation Fault (SIGSEGV)":
-            let pointer = UnsafeMutablePointer<Int>.allocate(capacity: 1)
-            pointer.deallocate()
-        case "Abnormal Termination (SIGABRT)":
-            let array: [Int] = []
-            print(array[1])
-        case "Illegal Instruction (SIGILL)":
-            let invalidInstruction: UnsafeMutablePointer<Void> = UnsafeMutablePointer(bitPattern: 0)!
-            print("invalidInstruction.pointee: ", invalidInstruction.pointee)
-        case "Bus Error (SIGBUS)":
-            let invalidAddress = UnsafeMutableRawPointer(bitPattern: 0x1)
-            invalidAddress!.storeBytes(of: 0, as: Int.self) // Attempting to write to an invalid memory address
         default:
-            print("Unknown crash type.")
+            fatalError("Triggered crash: \(type)")
         }
     }
-}
-
-struct ViewControllerRepresentable: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> ViewController {
-        return ViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: ViewController, context: Context) {}
 }

@@ -46,21 +46,17 @@ final class BaseHttpEventCollector: HttpEventCollector {
         isEnabled.setTrueIfFalse {
             NetworkInterceptorProtocol.setTimeProvider(timeProvider)
             NetworkInterceptorProtocol.setHttpInterceptorCallbacks(httpInterceptorCallbacks)
-            NetworkInterceptorProtocol.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
             // TODO: update http filter logic
+//            NetworkInterceptorProtocol.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
 //            NetworkInterceptorProtocol.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist + configProvider.httpHeadersBlocklist)
-//            NetworkInterceptorProtocol.setAllowedDomains(configProvider.httpUrlAllowlist)
-//            NetworkInterceptorProtocol.setIgnoredDomains(configProvider.httpUrlBlocklist + [client.apiUrl.absoluteString])
             NetworkInterceptorProtocol.setConfigProvider(configProvider)
             NetworkInterceptorProtocol.setHttpEventValidator(httpEventValidator)
             urlSessionTaskSwizzler.swizzleURLSessionTask()
             URLSessionTaskInterceptor.shared.setHttpInterceptorCallbacks(httpInterceptorCallbacks)
             URLSessionTaskInterceptor.shared.setTimeProvider(timeProvider)
-            URLSessionTaskInterceptor.shared.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
             // TODO: update http filter logic
+//            URLSessionTaskInterceptor.shared.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
 //            URLSessionTaskInterceptor.shared.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist + configProvider.httpHeadersBlocklist)
-//            URLSessionTaskInterceptor.shared.setAllowedDomains(configProvider.httpUrlAllowlist)
-//            URLSessionTaskInterceptor.shared.setIgnoredDomains(configProvider.httpUrlBlocklist + [client.apiUrl.absoluteString])
             URLSessionTaskInterceptor.shared.setConfigProvider(configProvider)
             URLSessionTaskInterceptor.shared.setHttpEventValidator(httpEventValidator)
             logger.log(level: .info, message: "HttpEventCollector enabled.", error: nil, data: nil)

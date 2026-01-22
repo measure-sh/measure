@@ -77,12 +77,8 @@ protocol InternalConfig {
     /// The force threshold to trigger a shake (higher = less sensitive). Defaults to 2.5.
     var shakeAccelerationThreshold: Float { get }
 
-    // TODO: This value defaults to 5000 ms in android, check if that works for ios as well.
     /// Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
     var shakeMinTimeIntervalMs: Number { get }
-
-    // TODO: use this in shake detector instead of the hardcoded value
-    var shakeSlop: Number { get }
 
     /// List of custom headers that should not be included.
     var disallowedCustomHeaders: [String] { get }
@@ -90,42 +86,19 @@ protocol InternalConfig {
     /// The estimated size of one event on disk.
     var estimatedEventSizeInKb: Number { get }
 
-
-
-
-    // TODO: check if the below properties are needed in internal config.
-    
-    /// The threshold after which a session is considered ended. Defaults to 30 seconds.
-    var sessionEndLastEventThresholdMs: Number { get }
-
-    /// The time interval (in milliseconds) that must pass before a new layout snapshot can be generated. Defaults to 750 ms.
-    var layoutSnapshotDebounceInterval: Number { get }
-
     /// The interval, in seconds, for providing accelerometer updates to the block handler. Defaults to 0.1 seconds.
     var accelerometerUpdateInterval: TimeInterval { get }
 
     /// List of ViewController names that should not be tracked by LifecycleCollector
     var lifecycleViewControllerExcludeList: [String] { get }
 
-    /// The maximum jitter interval to apply when scheduling batch exports. A random delay between 0 and this value (in seconds) will be added. Defaults to 20 seconds.
-    var maxExportJitterInterval: Number { get }
+    // TODO: this is not in android. check if its needed to be added in config or in LayoutSnapshotThrottler
+    /// The time interval (in milliseconds) that must pass before a new layout snapshot can be generated. Defaults to 750 ms.
+    var layoutSnapshotDebounceInterval: Number { get }
 
-    /// The maximum number of attachment to export in API. Defaults to 10.
-    var maxAttachmentsInBatch: Number { get }
+    /// The request timeout interval for all tasks within sessions based on this configuration
+    var timeoutIntervalForRequest: TimeInterval { get }
 
     /// The maximum size of response or request body in `HttpData`. Defaults to 256 x 1024 bytes
     var maxBodySizeBytes: Number { get }
-    
-    /// The interval at which to create a batch for export.
-    var eventsBatchingIntervalMs: Number { get }
-    
-    /// The maximum size of attachments allowed in a single batch. Defaults to 3MB
-    var maxAttachmentSizeInEventsBatchInBytes: Number { get }
-    
-    /// The request timeout interval for all tasks within sessions based on this configuration
-    var timeoutIntervalForRequest: TimeInterval { get }
-    
-    /// This determines whether to capture the body or not based on the content type of the request/response. Defaults to `application/json`.
-    var httpContentTypeAllowlist: [String] { get }
-
 }

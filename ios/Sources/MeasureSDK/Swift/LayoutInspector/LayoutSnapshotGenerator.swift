@@ -35,6 +35,11 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
     }
 
     func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
+        guard configProvider.gestureClickTakeSnapshot else {
+            completion(nil)
+            return
+        }
+
         SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshot") {
             let currentTime = timeProvider.now()
             guard currentTime - lastSnapshotTime > configProvider.layoutSnapshotDebounceInterval else {

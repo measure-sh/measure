@@ -42,15 +42,61 @@ final class BaseDataCleanupService: DataCleanupService {
                 sessionsToDelete.removeAll { $0 == self.sessionManager.sessionId }
 
                 guard !sessionsToDelete.isEmpty else {
-                    self.logger.internalLog(level: .info, message: "No stale session data to clear after filtering current session.", error: nil, data: nil)
+                    self.logger.internalLog(level: .info, message: "Cleanup Service: No stale session data to clear after filtering current session.", error: nil, data: nil)
                     completion()
                     return
                 }
 
                 self.deleteSessionData(sessionIds: sessionsToDelete) {
-                    self.logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
+                    self.logger.internalLog(level: .info, message: "Cleanup Service: Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
                     completion()
                 }
+            }
+        }
+    }
+
+    private func deleteEmptySessions(currentSessionId: String, completion: (() -> Void)? = nil) {
+        sessionStore.getSessionsToDelete { [weak self] sessionIds in
+            guard let self, let sessionIds = sessionIds else {
+                completion?()
+                return
+            }
+
+            var sessionsToDelete: [String] = []
+
+            let group = DispatchGroup()
+
+            for sessionId in sessionIds where sessionId != currentSessionId {
+                group.enter()
+                // TODO: Create new function to get count of events and spans for a session.
+                self.eventStore.getEventsForSessions(sessions: [sessionId]) { events in
+                    self.spanStore.getAllSpans { spans in
+                        let sessionSpans = spans?.filter { $0.sessionId == sessionId } ?? []
+                        if (events?.count ?? 0) + sessionSpans.count == 0 {
+                            sessionsToDelete.append(sessionId)
+                        }
+                        group.leave()
+                    }
+                }
+            }
+
+            group.notify(queue: .main) {
+                guard !sessionsToDelete.isEmpty else {
+                    completion?()
+                    return
+                }
+
+                self.logger.internalLog(
+                    level: .debug,
+                    message: "Exporter: Deleting \(sessionsToDelete.count) empty sessions",
+                    error: nil,
+                    data: ["sessionIds": sessionsToDelete]
+                )
+
+                self.deleteSessionData(sessionIds: sessionsToDelete) {
+                    completion?()
+                }
+                
             }
         }
     }
@@ -103,13 +149,13 @@ final class BaseDataCleanupService: DataCleanupService {
             }
 
             if oldestSessionId == sessionId {
-                self.logger.internalLog(level: .debug, message: "Skipping deletion: oldest session is current session \(sessionId)", error: nil, data: nil)
+                self.logger.internalLog(level: .debug, message: "Cleanup Service: Skipping deletion: oldest session is current session \(sessionId)", error: nil, data: nil)
                 completion?()
                 return
             }
 
             self.deleteSessionData(sessionIds: [oldestSessionId]) {
-                self.logger.internalLog(level: .info, message: "Deleted oldest session: \(oldestSessionId)", error: nil, data: nil)
+                self.logger.internalLog(level: .info, message: "Cleanup Service: Deleted oldest session: \(oldestSessionId)", error: nil, data: nil)
                 completion?()
             }
         }

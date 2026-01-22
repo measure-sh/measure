@@ -66,10 +66,6 @@ extension Measure.SessionOb {
     @objc set
   }
   #endif
-  @objc @NSManaged nonisolated dynamic public var isPriority: Swift.Bool {
-    @objc get
-    @objc set
-  }
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
   #if compiler(>=5.3) && $NonescapableTypes

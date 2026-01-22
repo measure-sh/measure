@@ -115,7 +115,6 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
                                 stime: 0,
                                 interval: UnsignedNumber(intervalMs),
                                 percentageUsage: FloatNumber64(usage))
-        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .cpuUsage,

@@ -193,17 +193,9 @@ final class BaseSpanStore: SpanStore {
         }
     }
 
-    func getUnBatchedSpans(
-        spanCount: Int64,
-        ascending: Bool
-    ) -> [String] {
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(
-                level: .error,
-                message: "Background context not available",
-                error: nil,
-                data: nil
-            )
+            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
             return []
         }
 

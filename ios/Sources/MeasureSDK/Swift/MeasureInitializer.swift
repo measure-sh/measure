@@ -73,7 +73,6 @@ protocol MeasureInitializer {
     var exceptionGenerator: ExceptionGenerator { get }
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
-    var attachmentExporter: AttachmentExporter { get }
     var signalSampler: SignalSampler { get }
 }
 
@@ -142,7 +141,6 @@ protocol MeasureInitializer {
 /// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
-/// - `attachmentExporter`: `AttachmentExporter` object that exports attachments.
 /// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
@@ -209,9 +207,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
-    let attachmentExporter: AttachmentExporter
     let signalSampler: SignalSampler
 
+    // TODO: ignore storage.googleapis.com urls
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
@@ -220,6 +218,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
+        self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
         self.logger = MeasureLogger(enabled: config.enableLogging)
         self.systemFileManager = BaseSystemFileManager(logger: logger)
         self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
@@ -227,7 +226,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                httpClient: httpClient,
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: systemFileManager)
-        self.configLoader = BaseConfigLoader(fileManager: systemFileManager, networkClient: networkClient)
+        self.configLoader = BaseConfigLoader(fileManager: systemFileManager,
+                                             networkClient: networkClient,
+                                             logger: logger)
         self.timeProvider = BaseTimeProvider()
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
@@ -239,8 +240,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                        logger: logger)
         self.signalStore = BaseSignalStore(eventStore: eventStore,
                                            spanStore: spanStore,
+                                           sessionStore: sessionStore,
                                            logger: logger,
                                            config: configProvider)
+        self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
+                                         logger: logger)
+        self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
+                                                   logger: logger)
         self.userDefaultStorage = BaseUserDefaultStorage()
         self.randomizer = BaseRandomizer()
         self.signalSampler = BaseSignalSampler(configProvider: configProvider,
@@ -280,6 +286,18 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
+        self.exporter = BaseExporter(logger: logger,
+                                     idProvider: idProvider,
+                                     dispatchQueue: MeasureQueue.periodicEventExporter,
+                                     timeProvider: timeProvider,
+                                     networkClient: networkClient,
+                                     httpClient: httpClient,
+                                     eventStore: eventStore,
+                                     spanStore: spanStore,
+                                     batchStore: batchStore,
+                                     attachmentStore: attachmentStore,
+                                     sessionStore: sessionStore,
+                                     configProvider: configProvider)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,
@@ -289,7 +307,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    crashDataPersistence: crashDataPersistence,
                                                    signalStore: signalStore,
                                                    measureDispatchQueue: measureDispatchQueue,
-                                                   signalSampler: signalSampler)
+                                                   signalSampler: signalSampler,
+                                                   exporter: exporter)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
@@ -306,28 +325,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      gestureTargetFinder: gestureTargetFinder,
                                                      layoutSnapshotGenerator: layoutSnapshotGenerator,
                                                      systemFileManager: systemFileManager)
-        self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
-                                         logger: logger)
-        self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
-                                                   logger: logger)
-        self.attachmentExporter = BaseAttachmentExporter(logger: logger,
-                                                         attachmentStore: attachmentStore,
-                                                         httpClient: httpClient,
-                                                         exportQueue: MeasureQueue.attachmentExporter,
-                                                         configProvider: configProvider)
-        self.exporter = BaseExporter(logger: logger,
-                                     idProvider: idProvider,
-                                     dispatchQueue: MeasureQueue.periodicEventExporter,
-                                     timeProvider: timeProvider,
-                                     networkClient: networkClient,
-                                     httpClient: httpClient,
-                                     eventStore: eventStore,
-                                     spanStore: spanStore,
-                                     batchStore: batchStore,
-                                     attachmentStore: attachmentStore,
-                                     attachmentExporter: attachmentExporter,
-                                     configProvider: configProvider,
-                                     systemFileManager: systemFileManager)
         self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
                                                                    logger: logger)
         self.spanProcessor = BaseSpanProcessor(logger: logger,
@@ -347,7 +344,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          timeProvider: timeProvider,
                                                          tracer: tracer,
                                                          configProvider: configProvider,
-                                                         logger: logger)
+                                                         sessionManager: sessionManager,
+                                                         logger: logger,
+                                                         signalSampler: signalSampler)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
         self.sysCtl = BaseSysCtl()
@@ -394,7 +393,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                            logger: logger,
                                                                            exceptionGenerator: exceptionGenerator,
                                                                            attributeValueValidator: attributeValueValidator,
-                                                                           configProvider: configProvider)
+                                                                           configProvider: configProvider,
+                                                                           sessionManager: sessionManager,
+                                                                           signalSampler: signalSampler)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,

@@ -23,25 +23,26 @@ final class BaseExporter: Exporter {
     private let spanStore: SpanStore
     private let batchStore: BatchStore
     private let attachmentStore: AttachmentStore
-    private let attachmentExporter: AttachmentExporter
+    private let sessionStore: SessionStore
     private let configProvider: ConfigProvider
-    private let systemFileManager: SystemFileManager
-
     private let isExporting = AtomicBool(false)
+    private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
 
-    init(logger: Logger,
-         idProvider: IdProvider,
-         dispatchQueue: DispatchQueue,
-         timeProvider: TimeProvider,
-         networkClient: NetworkClient,
-         httpClient: HttpClient,
-         eventStore: EventStore,
-         spanStore: SpanStore,
-         batchStore: BatchStore,
-         attachmentStore: AttachmentStore,
-         attachmentExporter: AttachmentExporter,
-         configProvider: ConfigProvider,
-         systemFileManager: SystemFileManager) {
+    // MARK: - Init
+    init(
+        logger: Logger,
+        idProvider: IdProvider,
+        dispatchQueue: DispatchQueue,
+        timeProvider: TimeProvider,
+        networkClient: NetworkClient,
+        httpClient: HttpClient,
+        eventStore: EventStore,
+        spanStore: SpanStore,
+        batchStore: BatchStore,
+        attachmentStore: AttachmentStore,
+        sessionStore: SessionStore,
+        configProvider: ConfigProvider
+    ) {
         self.logger = logger
         self.idProvider = idProvider
         self.dispatchQueue = dispatchQueue
@@ -52,65 +53,85 @@ final class BaseExporter: Exporter {
         self.spanStore = spanStore
         self.batchStore = batchStore
         self.attachmentStore = attachmentStore
-        self.attachmentExporter = attachmentExporter
+        self.sessionStore = sessionStore
         self.configProvider = configProvider
-        self.systemFileManager = systemFileManager
     }
 
+    // MARK: - Public API
     func export() {
         var started = false
-        isExporting.setTrueIfFalse {
-            started = true
-        }
+        isExporting.setTrueIfFalse { started = true }
 
         guard started else {
             logger.internalLog(level: .debug, message: "Exporter: export already in progress, skipping", error: nil, data: nil)
             return
         }
 
-        defer {
-            isExporting.set(false)
-        }
+        logger.internalLog(level: .debug, message: "Exporter: starting export", error: nil, data: nil)
 
-        exportEvents()
-        exportAttachments()
+        startBackgroundTask()
+
+        dispatchQueue.async { [weak self] in
+            guard let self else { return }
+
+            self.exportEvents()
+            self.exportAttachments()
+
+            self.isExporting.set(false)
+            self.endBackgroundTask()
+
+            self.logger.internalLog(level: .debug, message: "Exporter: export finished", error: nil, data: nil)
+        }
     }
 
-    private func exportEvents() {
-        dispatchQueue.async {
-            let batchIds = self.getBatchIds()
+    // MARK: - Background task handling
+    private func startBackgroundTask() {
+        guard backgroundTaskId == .invalid else { return }
 
-            if !batchIds.isEmpty {
-                self.logger.internalLog(level: .debug, message: "Exporter: found \(batchIds.count) existing batches, exporting", error: nil, data: nil)
-
-                let success = self.exportBatches(batchIds)
-                if !success {
-                    return
-                }
-            }
-
-            let createdCount = self.createNewBatches()
-            if createdCount > 0 {
-                self.logger.internalLog(level: .debug, message: "Exporter: created \(createdCount) new batches, exporting", error: nil, data: nil)
-
-                let newBatchIds = self.getBatchIds()
-                if !newBatchIds.isEmpty {
-                    _ = self.exportBatches(newBatchIds)
-                }
-            } else {
-                self.logger.internalLog(level: .debug, message: "Exporter: no batches to export", error: nil, data: nil)
-            }
+        backgroundTaskId = UIApplication.shared.beginBackgroundTask(withName: "measure.export") { [weak self] in
+            guard let self else { return }
+            self.logger.internalLog(level: .warning, message: "Exporter: background time expired", error: nil, data: nil)
+            self.isExporting.set(false)
+            self.endBackgroundTask()
         }
+
+        logger.internalLog(level: .debug, message: "Exporter: background task started", error: nil, data: nil)
+    }
+
+    private func endBackgroundTask() {
+        guard backgroundTaskId != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskId)
+        backgroundTaskId = .invalid
+        logger.internalLog(level: .debug, message: "Exporter: background task ended", error: nil, data: nil)
+    }
+
+    // MARK: - Event export
+    private func exportEvents() {
+        let batchIds = getBatchIds()
+
+        if !batchIds.isEmpty {
+            if !exportBatches(batchIds) { return }
+        }
+
+        let created = createNewBatches()
+        guard created > 0 else { return }
+
+        let newBatchIds = getBatchIds()
+        if !newBatchIds.isEmpty { _ = exportBatches(newBatchIds) }
     }
 
     private func exportBatches(_ batchIds: [String]) -> Bool {
         for (index, batchId) in batchIds.enumerated() {
-            guard let batch = getBatch(by: batchId) else {
+            guard let batch = batchStore.getBatch(batchId) else {
+                logger.internalLog(level: .error, message: "Exporter: failed to fetch batch \(batchId)", error: nil, data: nil)
                 return false
             }
 
+            logger.internalLog(level: .debug, message: "Exporter: exporting batch \(batchId)", error: nil, data: nil)
+
             let success = exportBatch(batch)
             if !success {
+                logger.internalLog(level: .debug, message: "Exporter: batch \(batchId) failed", error: nil, data: nil)
                 return false
             }
 
@@ -122,31 +143,19 @@ final class BaseExporter: Exporter {
     }
 
     private func exportBatch(_ batch: BatchEntity) -> Bool {
-        if batch.eventIds.isEmpty && batch.spanIds.isEmpty {
-            logger.internalLog(level: .error, message: "Exporter: invalid batch, no events or spans found for batch \(batch.batchId)", error: nil, data: nil)
+        let events = eventStore.getEvents(eventIds: batch.eventIds) ?? []
+        let spans = spanStore.getSpans(spanIds: batch.spanIds) ?? []
+
+        guard !events.isEmpty || !spans.isEmpty else {
+            logger.internalLog(level: .error, message: "Exporter: batch \(batch.batchId) is empty, deleting", error: nil, data: nil)
             deleteBatch(batch)
             return false
         }
 
-        let events = getEvents(batch.eventIds)
-        let spans = getSpans(batch.spanIds)
+        logger.internalLog(level: .debug, message: "Exporter: batch \(batch.batchId) has \(events.count) events, \(spans.count) spans", error: nil, data: nil)
 
-        if events.isEmpty && spans.isEmpty {
-            logger.internalLog(level: .error, message: "Exporter: invalid export request, no events or spans found for batch", error: nil, data: nil)
-            deleteBatch(batch)
-            return false
-        }
-
-        logger.internalLog(level: .debug, message: "Exporter: exporting batch \(batch.batchId) with \(events.count) events and \(spans.count) spans", error: nil, data: nil)
-
-        let response = networkClient.execute(batchId: batch.batchId,
-                                             events: events,
-                                             spans: spans)
-
-        handleBatchProcessingResult(response: response,
-                                    batchId: batch.batchId,
-                                    events: events,
-                                    spans: spans)
+        let response = networkClient.execute(batchId: batch.batchId, events: events, spans: spans)
+        handleBatchResponse(response: response, batch: batch, events: events, spans: spans)
 
         if case .success = response {
             return true
@@ -154,180 +163,155 @@ final class BaseExporter: Exporter {
         return false
     }
 
-    private func exportAttachments() {
-        attachmentExporter.onNewAttachmentsAvailable()
-    }
-
-    private func handleBatchProcessingResult(response: HttpResponse,
-                                             batchId: String,
-                                             events: [EventEntity],
-                                             spans: [SpanEntity]) {
+    private func handleBatchResponse(response: HttpResponse, batch: BatchEntity, events: [EventEntity], spans: [SpanEntity]) {
         switch response {
         case .success(let body):
-            self.parseAndSaveAttachmentMetadata(responseBody: body)
-            self.attachmentExporter.onNewAttachmentsAvailable()
-            self.deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
-            self.logger.internalLog(level: .debug, message: "Successfully sent batch \(batchId)", error: nil, data: nil)
+            logger.internalLog(level: .debug, message: "Exporter: batch \(batch.batchId) sent successfully", error: nil, data: nil)
+            parseAndSaveAttachmentMetadata(responseBody: body)
+            deleteEventsAndSpans(batch, events: events, spans: spans)
 
         case .error(let errorType):
-            switch errorType {
-            case .clientError:
-                self.deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
-                self.logger.internalLog(level: .error, message: "Client error while sending batch \(batchId), dropping the batch", error: nil, data: nil)
-            default:
+            logger.internalLog(level: .error, message: "Exporter: batch \(batch.batchId) failed with \(errorType)", error: nil, data: nil)
+            if case .clientError = errorType { deleteEventsAndSpans(batch, events: events, spans: spans) }
+        }
+    }
+
+    // MARK: - Attachment export (synchronous)
+    private func exportAttachments() {
+        while true {
+            let attachments = attachmentStore.getAttachmentsForUpload(batchSize: 5)
+            guard !attachments.isEmpty else {
+                logger.internalLog(level: .debug, message: "Exporter: no attachments to upload", error: nil, data: nil)
                 break
             }
+
+            logger.internalLog(level: .debug, message: "Exporter: uploading \(attachments.count) attachments", error: nil, data: nil)
+
+            for attachment in attachments {
+                logger.internalLog(level: .debug, message: "Exporter: uploading attachment \(attachment.id)", error: nil, data: nil)
+                let success = uploadAttachmentSync(attachment)
+                if !success {
+                    logger.internalLog(level: .debug, message: "Exporter: attachment \(attachment.id) upload failed", error: nil, data: nil)
+                    break
+                }
+                Thread.sleep(forTimeInterval: TimeInterval(configProvider.attachmentExportIntervalMs) / 1000)
+            }
         }
     }
 
-    private func deleteEventsAndSpans(batchId: String,
-                                      events: [EventEntity],
-                                      spans: [SpanEntity]) {
-        let eventIds = events.map { $0.id }
-        let spanIds = spans.map { $0.spanId }
+    private func uploadAttachmentSync(_ attachment: MsrUploadAttachment) -> Bool {
+        guard
+            let bytes = attachment.bytes,
+            let uploadUrlString = attachment.uploadUrl,
+            let uploadUrl = URL(string: uploadUrlString),
+            let headersData = attachment.headers,
+            let headers = deserializeHeaders(headersData)
+        else {
+            attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {})
+            return false
+        }
 
-        spanStore.deleteSpans(spanIds: spanIds)
-        eventStore.deleteEvents(eventIds: eventIds)
-        batchStore.deleteBatch(batchId)
+        let contentType = attachment.type == .screenshot ? screenshotContentType : layoutSnapshotContentType
+
+        let response = httpClient.uploadFile(url: uploadUrl, method: .put, contentType: contentType, headers: headers, fileData: bytes)
+
+        switch response {
+        case .success:
+            attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {})
+            return true
+        case .error(let errorType):
+            if case .clientError = errorType { attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {}) }
+            return false
+        }
     }
 
+    // MARK: - Attachment metadata
     private func parseAndSaveAttachmentMetadata(responseBody: String?) {
-        guard let responseBody,
-              let data = responseBody.data(using: .utf8) else {
-            logger.internalLog(level: .error, message: "Failed to convert response body to Data.", error: nil, data: nil)
-            return
-        }
+        guard let responseBody, let data = responseBody.data(using: .utf8) else { return }
 
         do {
-            let json = try JSONDecoder().decode([String: [ResponseAttachment]].self, from: data)
-            guard let responseAttachments = json["attachments"] else { return }
+            let decoded = try JSONDecoder().decode([String: [ResponseAttachment]].self, from: data)
+            guard let attachments = decoded["attachments"] else { return }
 
-            for attachment in responseAttachments {
-                let headersData = attachment.headers.flatMap {
-                    try? JSONSerialization.data(withJSONObject: $0)
-                }
-
-                attachmentStore.updateUploadDetails(for: attachment.id,
-                                                    uploadUrl: attachment.upload_url,
-                                                    headers: headersData,
-                                                    expiresAt: attachment.expires_at) {}
+            for attachment in attachments {
+                let headersData = attachment.headers.flatMap { try? JSONSerialization.data(withJSONObject: $0) }
+                attachmentStore.updateUploadDetails(for: attachment.id, uploadUrl: attachment.upload_url, headers: headersData, expiresAt: attachment.expires_at, completion: {})
             }
         } catch {
-            logger.internalLog(level: .error, message: "Failed to decode batch response for attachments.", error: error, data: nil)
+            logger.internalLog(level: .error, message: "Exporter: failed to decode attachment metadata", error: error, data: nil)
         }
     }
 
-    private func getBatchIds() -> [String] {
-        return batchStore.getBatches(Int.max).map { $0.batchId }
+    private func deserializeHeaders(_ data: Data) -> [String: String]? {
+        try? JSONSerialization.jsonObject(with: data) as? [String: String]
     }
 
-    private func getBatch(by id: String) -> BatchEntity? {
-        return batchStore.getBatch(id)
-    }
-
-    private func getEvents(_ ids: [String]) -> [EventEntity] {
-        return eventStore.getEvents(eventIds: ids) ?? []
-    }
-
-    private func getSpans(_ ids: [String]) -> [SpanEntity] {
-        return spanStore.getSpans(spanIds: ids) ?? []
-    }
-
-    private func deleteBatch(_ batch: BatchEntity) {
-        batchStore.deleteBatch(batch.batchId)
-        spanStore.deleteSpans(spanIds: batch.spanIds)
-        eventStore.deleteEvents(eventIds: batch.eventIds)
-    }
-
+    // MARK: - Batch creation
     private func createNewBatches() -> Int {
-        var batchesInserted = 0
-
-        // 1. Fetch sessionIds that have unbatched events
         let sessionIds = eventStore.getSessionIdsWithUnBatchedEvents()
+        guard !sessionIds.isEmpty else { return 0 }
 
-        guard !sessionIds.isEmpty else {
-            return 0
-        }
+        let prioritySessionIds = sessionStore.getPrioritySessionIds()
+        let orderedSessionIds = prioritySessionIds.filter(sessionIds.contains) + sessionIds.filter { !prioritySessionIds.contains($0) }
 
         let maxBatchSize = configProvider.maxEventsInBatch
-        let insertionBatchSize = 1000
-
-        var currentBatchId = idProvider.uuid()
-        var currentBatchSize = 0
-
+        var inserted = 0
+        var batchId = idProvider.uuid()
+        var size = 0
         var eventIds = Set<String>()
         var spanIds = Set<String>()
 
-        func insertBatchIfNeeded() {
+        func flush() {
             guard !eventIds.isEmpty || !spanIds.isEmpty else { return }
 
-            let batch = BatchEntity(batchId: currentBatchId,
-                                    eventIds: Array(eventIds),
-                                    spanIds: Array(spanIds),
-                                    createdAt: timeProvider.now())
-
-            let inserted = batchStore.insertBatch(batch)
-
-            if inserted {
-                batchesInserted += 1
-                eventStore.updateBatchId(currentBatchId, for: Array(eventIds))
-                spanStore.updateBatchId(currentBatchId, for: Array(spanIds))
+            let batch = BatchEntity(batchId: batchId, eventIds: Array(eventIds), spanIds: Array(spanIds), createdAt: timeProvider.now())
+            if batchStore.insertBatch(batch) {
+                inserted += 1
+                eventStore.updateBatchId(batchId, for: Array(eventIds))
+                spanStore.updateBatchId(batchId, for: Array(spanIds))
             }
 
             eventIds.removeAll()
             spanIds.removeAll()
+            size = 0
+            batchId = idProvider.uuid()
         }
 
-        func createNewBatch() {
-            insertBatchIfNeeded()
-            currentBatchId = idProvider.uuid()
-            currentBatchSize = 0
-        }
-
-        func addEvent(_ id: String) {
-            eventIds.insert(id)
-            currentBatchSize += 1
-
-            if currentBatchSize >= maxBatchSize {
-                createNewBatch()
-            } else if eventIds.count + spanIds.count >= insertionBatchSize {
-                insertBatchIfNeeded()
+        for sessionId in orderedSessionIds {
+            let events = eventStore.getUnBatchedEvents(eventCount: Number(maxBatchSize), ascending: true, sessionId: sessionId)
+            for eventId in events {
+                eventIds.insert(eventId)
+                size += 1
+                if size >= maxBatchSize { flush() }
             }
         }
 
-        func addSpan(_ id: String) {
-            spanIds.insert(id)
-            currentBatchSize += 1
-
-            if currentBatchSize >= maxBatchSize {
-                createNewBatch()
-            } else if eventIds.count + spanIds.count >= insertionBatchSize {
-                insertBatchIfNeeded()
-            }
+        let spans = spanStore.getUnBatchedSpans(spanCount: Int64(maxBatchSize), ascending: true)
+        for spanId in spans {
+            spanIds.insert(spanId)
+            size += 1
+            if size >= maxBatchSize { flush() }
         }
 
-        // 2. Process sessions
-        for sessionId in sessionIds {
-            let unbatchedEvents = eventStore.getUnBatchedEvents(eventCount: Number(maxBatchSize),
-                                                                ascending: true,
-                                                                sessionId: sessionId)
+        flush()
+        return inserted
+    }
 
-            for eventId in unbatchedEvents {
-                addEvent(eventId)
-            }
-        }
+    // MARK: - Cleanup
+    private func deleteEventsAndSpans(_ batch: BatchEntity, events: [EventEntity], spans: [SpanEntity]) {
+        eventStore.deleteEvents(eventIds: events.map { $0.id })
+        spanStore.deleteSpans(spanIds: spans.map { $0.spanId })
+        batchStore.deleteBatch(batch.batchId)
+    }
 
-        // 3. Add unbatched spans
-        let unbatchedSpans = spanStore.getUnBatchedSpans(spanCount: Int64(maxBatchSize),
-                                                         ascending: true)
+    private func deleteBatch(_ batch: BatchEntity) {
+        batchStore.deleteBatch(batch.batchId)
+        eventStore.deleteEvents(eventIds: batch.eventIds)
+        spanStore.deleteSpans(spanIds: batch.spanIds)
+    }
 
-        for spanId in unbatchedSpans {
-            addSpan(spanId)
-        }
-
-        insertBatchIfNeeded()
-
-        return batchesInserted
+    private func getBatchIds() -> [String] {
+        batchStore.getBatches(Int.max).map { $0.batchId }
     }
 }
 

@@ -30,7 +30,8 @@ protocol SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?)
+        threadName: String?,
+        needsReporting: Bool?)
 
     func trackSpan(_ spanData: SpanData)
 }
@@ -48,6 +49,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private let signalStore: SignalStore
     private let measureDispatchQueue: MeasureDispatchQueue
     private let signalSampler: SignalSampler
+    private let exporter: Exporter
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -58,7 +60,8 @@ final class BaseSignalProcessor: SignalProcessor {
          crashDataPersistence: CrashDataPersistence,
          signalStore: SignalStore,
          measureDispatchQueue: MeasureDispatchQueue,
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         exporter: Exporter) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -69,6 +72,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.signalStore = signalStore
         self.measureDispatchQueue = measureDispatchQueue
         self.signalSampler = signalSampler
+        self.exporter = exporter
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -103,9 +107,9 @@ final class BaseSignalProcessor: SignalProcessor {
                                         sessionId: String?,
                                         attachments: [MsrAttachment]?,
                                         userDefinedAttributes: String?,
-                                        threadName: String?) {
+                                        threadName: String?,
+                                        needsReporting: Bool?) {
         SignPost.trace(subcategory: "Event", label: "trackEventUserTriggered") {
-            // TODO: add proper needsReporting
             track(data: data,
                   timestamp: timestamp,
                   type: type,
@@ -115,7 +119,7 @@ final class BaseSignalProcessor: SignalProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
                   threadName: threadName,
-                  needsReporting: nil)
+                  needsReporting: needsReporting)
         }
     }
 
@@ -177,6 +181,9 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.signalStore.store(event, needsReporting: needsReporting ?? false)
             self.sessionManager.onEventTracked(event)
+            if event.type == .bugReport {
+                self.exporter.export()
+            }
 
             self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
         }

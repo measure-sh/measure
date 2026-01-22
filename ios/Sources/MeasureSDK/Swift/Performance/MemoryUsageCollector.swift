@@ -104,7 +104,6 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
         let data = MemoryUsageData(maxMemory: sysCtl.getMaximumAvailableRam(),
                                    usedMemory: usedMemory,
                                    interval: intervalMs)
-        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .memoryUsageAbsolute,

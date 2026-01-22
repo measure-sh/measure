@@ -54,25 +54,43 @@ final class BaseNetworkClient: NetworkClient {
     }
 
     func getConfig(eTag: String?) -> DynamicConfig? {
-        let dynamicConfig = BaseDynamicConfig(maxEventsInBatch: 10_000,
-                                              crashTimelineDurationSeconds: 300,
-                                              anrTimelineDurationSeconds: 300,
-                                              bugReportTimelineDurationSeconds: 60,
-                                              traceSamplingRate: 1,
-                                              journeySamplingRate: 1,
-                                              screenshotMaskLevel: .allTextAndMedia,
-                                              cpuUsageInterval: 5,
-                                              memoryUsageInterval: 5,
-                                              crashTakeScreenshot: true,
-                                              anrTakeScreenshot: true,
-                                              launchSamplingRate: 1,
-                                              gestureClickTakeSnapshot: true,
-                                              httpDisableEventForUrls: [],
-                                              httpTrackRequestForUrls: [],
-                                              httpTrackResponseForUrls: [],
-                                              httpBlockedHeaders: [])
+        let url = baseUrl.appendingPathComponent("config")
 
-        return dynamicConfig
+        var headers: [String: String] = [
+            authorization: "\(bearer) \(apiKey)"
+        ]
+
+        if let eTag {
+            headers["If-None-Match"] = eTag
+        }
+
+        let response = httpClient.sendJsonRequest(url: url,
+                                                  method: .get,
+                                                  headers: headers,
+                                                  jsonBody: Data())
+
+        switch response {
+        case .success(let body):
+            guard let body,
+                  let data = body.data(using: .utf8) else {
+                return nil
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                let config = try decoder.decode(BaseDynamicConfig.self, from: data)
+
+                return config
+            } catch {
+                return nil
+            }
+
+        case .error(let error):
+            if case .clientError(let code, _) = error, code == 304 {
+                return nil
+            }
+            return nil
+        }
     }
 
     private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {

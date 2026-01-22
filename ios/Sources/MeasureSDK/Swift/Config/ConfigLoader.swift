@@ -24,10 +24,12 @@ struct BaseConfigLoader: ConfigLoader {
     private let networkClient: NetworkClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let logger: Logger
 
-    init(fileManager: SystemFileManager, networkClient: NetworkClient) {
+    init(fileManager: SystemFileManager, networkClient: NetworkClient, logger: Logger) {
         self.fileManager = fileManager
         self.networkClient = networkClient
+        self.logger = logger
 
         let decoder = JSONDecoder()
         self.decoder = decoder
@@ -62,14 +64,12 @@ struct BaseConfigLoader: ConfigLoader {
     private func saveConfigToDisk(_ config: BaseDynamicConfig) {
         do {
             let data = try encoder.encode(config)
-            _ = fileManager.saveFile(
-                data: data,
-                name: ConfigFileConstants.fileName,
-                folderName: ConfigFileConstants.folderName,
-                directory: ConfigFileConstants.directory
-            )
+            _ = fileManager.saveFile(data: data,
+                                     name: ConfigFileConstants.fileName,
+                                     folderName: ConfigFileConstants.folderName,
+                                     directory: ConfigFileConstants.directory)
         } catch {
-            // TODO: what to do is save fails
+            logger.internalLog(level: .error, message: "Failed to save Dynamic config to disk.", error: error, data: nil)
         }
     }
 

@@ -19,7 +19,7 @@ protocol SessionStore {
     func getOldestSession(completion: @escaping (String?) -> Void)
     func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void)
     func getSessionsToDelete(completion: @escaping ([String]?) -> Void)
-    func markSessionAsPriority(sessionId: String)
+    func getPrioritySessionIds() -> [String]
 }
 
 final class BaseSessionStore: SessionStore {
@@ -264,34 +264,34 @@ final class BaseSessionStore: SessionStore {
         }
     }
 
-    func markSessionAsPriority(sessionId: String) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+    func getPrioritySessionIds() -> [String] {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            return []
+        }
 
+        var sessionIds: [String] = []
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", sessionId)
-            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "needsReporting == %d", true)
+            fetchRequest.sortDescriptors = [
+                NSSortDescriptor(key: "createdAt", ascending: true)
+            ]
 
             do {
-                if let session = try context.fetch(fetchRequest).first {
-                    session.isPriority = true
-                    try context.saveIfNeeded()
-                    
-                    self.logger.internalLog(
-                        level: .debug,
-                        message: "Marked session \(sessionId) as priority",
-                        error: nil,
-                        data: nil
-                    )
-                }
+                let sessions = try context.fetch(fetchRequest)
+                sessionIds = sessions.compactMap { $0.sessionId }
             } catch {
-                self.logger.internalLog(
+                logger.internalLog(
                     level: .error,
-                    message: "Failed to mark session as priority: \(sessionId)",
+                    message: "Failed to fetch priority sessions",
                     error: error,
                     data: nil
                 )
             }
         }
+
+        return sessionIds
     }
 }

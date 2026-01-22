@@ -9,10 +9,9 @@ import Foundation
 
 protocol SignalSampler {
     func shouldTrackLaunchEvents() -> Bool
-    func shouldMarkSessionForExport() -> Bool
     func shouldTrackTrace() -> Bool
     func shouldSampleTrace(_ traceId: String) -> Bool
-    func shouldTrackJourneyEvents() -> Bool
+    func shouldTrackJourneyForSession(sessionId: String) -> Bool
 }
 
 final class BaseSignalSampler: SignalSampler {
@@ -27,11 +26,6 @@ final class BaseSignalSampler: SignalSampler {
 
     func shouldTrackLaunchEvents() -> Bool {
         return shouldTrack(configProvider.launchSamplingRate / 100)
-    }
-
-    // TODO: use dynamic config property here
-    func shouldMarkSessionForExport() -> Bool {
-        return shouldTrack(1)
     }
 
     func shouldTrackTrace() -> Bool {
@@ -62,12 +56,41 @@ final class BaseSignalSampler: SignalSampler {
         return (idLo & Int64.max) < threshold
     }
 
-    func shouldTrackJourneyEvents() -> Bool {
-        if let shouldSampleUserJourney {
-            return shouldSampleUserJourney
+    func shouldTrackJourneyForSession(sessionId: String) -> Bool {
+        let samplingRate = configProvider.journeySamplingRate / 100.0
+
+        if samplingRate == 0.0 {
+            return false
         }
-        shouldSampleUserJourney = shouldTrack(configProvider.journeySamplingRate / 100)
-        return shouldSampleUserJourney!
+        if samplingRate == 1.0 {
+            return true
+        }
+
+        return stableSamplingValue(sessionId: sessionId) < samplingRate
+    }
+
+    /// Generates a stable sampling value in [0, 1] from a session ID.
+    ///
+    /// Uses FNV-1a 64-bit hash for deterministic, uniformly distributed output.
+    /// The same sessionId always produces the same value, ensuring consistent
+    /// sampling decisions.
+    ///
+    /// Notes:
+    /// - Constants are FNV-1a 64-bit (offset and prime)
+    /// - `>> 1` on UInt64 clears the sign bit (equivalent to Kotlin's `ushr 1`)
+    private func stableSamplingValue(sessionId: String) -> Float {
+        // FNV-1a 64-bit constants
+        var hash: UInt64 = 0xcbf29ce484222325
+        let prime: UInt64 = 0x100000001b3
+
+        for scalar in sessionId.unicodeScalars {
+            hash ^= UInt64(scalar.value)
+            hash &*= prime
+        }
+
+        // Clear sign bit and normalize to [0, 1]
+        let shifted = hash >> 1
+        return Float(shifted) / Float(UInt64.max >> 1)
     }
 
     private func shouldTrack(_ samplingRate: Float) -> Bool {

@@ -15,15 +15,18 @@ protocol SignalStore {
 final class BaseSignalStore: SignalStore {
     private let eventStore: EventStore
     private let spanStore: SpanStore
+    private let sessionStore: SessionStore
     private let logger: Logger
     private let config: ConfigProvider
 
     init(eventStore: EventStore,
          spanStore: SpanStore,
+         sessionStore: SessionStore,
          logger: Logger,
          config: ConfigProvider) {
         self.eventStore = eventStore
         self.spanStore = spanStore
+        self.sessionStore = sessionStore
         self.logger = logger
         self.config = config
     }
@@ -38,9 +41,8 @@ final class BaseSignalStore: SignalStore {
         let isBugReportEvent = event.type == .bugReport
         let isHighPriority = isCrashEvent || isBugReportEvent
 
-        eventStore.insertEvent(event: eventEntity) {}
+        eventStore.insertEvent(event: eventEntity)
         if isHighPriority {
-            // Mark timeline for reporting
             let timelineDuration: Number
             if isCrashEvent {
                 timelineDuration = config.crashTimelineDurationSeconds

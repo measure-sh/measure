@@ -71,7 +71,6 @@ final class BaseGestureCollector: GestureCollector {
             logger.log(level: .error, message: "No window detected. Could not enable GestureCollector.", error: nil, data: nil)
             return
         }
-        // TODO: update needsReporting flag using sampler
         switch gesture {
         case .click(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)

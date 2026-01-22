@@ -44,7 +44,6 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
     }
 
     func onNetworkChangeCallback(_ data: NetworkChangeData) {
-        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .networkChange,

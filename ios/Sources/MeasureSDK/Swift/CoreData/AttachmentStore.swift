@@ -12,7 +12,7 @@ protocol AttachmentStore {
     func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void)
     func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void)
     func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void)
-    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void)
+    func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment]
     func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void)
 }
 
@@ -87,23 +87,33 @@ final class BaseAttachmentStore: AttachmentStore {
         }
     }
 
-    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion([]); return }
+    func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment] {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return []
+        }
 
+        var uploadAttachments: [MsrUploadAttachment] = []
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil AND uploadUrl != ''")
             fetchRequest.fetchLimit = Int(batchSize)
 
             do {
-                let attachments = try context.fetch(fetchRequest)
-                let uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
-                completion(uploadAttachments)
+                let attachments = try fetchRequest.execute()
+                uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
             } catch {
-                self.logger.internalLog(level: .error, message: "Failed to fetch attachments with upload URLs in batch.", error: error, data: nil)
-                completion([])
+                logger.internalLog(level: .error, message: "Failed to fetch attachments with upload URLs in batch.", error: error, data: nil)
             }
         }
+
+        return uploadAttachments
     }
 
     func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void) {

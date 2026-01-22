@@ -23,6 +23,5 @@ extension SessionOb {
     @NSManaged public var needsReporting: Bool
     @NSManaged public var pid: Int32
     @NSManaged public var sessionId: String?
-    @NSManaged public var isPriority: Bool
 
 }

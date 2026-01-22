@@ -17,7 +17,7 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let batchExportIntervalMs: Number
     let attachmentExportIntervalMs: Number
-    let eventsBatchingIntervalMs: Number
+//    let eventsBatchingIntervalMs: Number
     let defaultHttpHeadersBlocklist: [String]
     let sessionBackgroundTimeoutThresholdMs: Number
     let maxEventNameLength: Number
@@ -25,14 +25,9 @@ struct Config: InternalConfig, MeasureConfig {
     let customEventNameRegex: String
     let maxUserDefinedAttributeKeyLength: Number
     let maxUserDefinedAttributeValueLength: Number
-    let sessionEndLastEventThresholdMs: Number
     let longPressTimeout: TimeInterval
     let scaledTouchSlop: CGFloat
-    let maxAttachmentSizeInEventsBatchInBytes: Number
     let timeoutIntervalForRequest: TimeInterval
-    let cpuTrackingIntervalMs: UnsignedNumber
-    let memoryTrackingIntervalMs: UnsignedNumber
-    let httpContentTypeAllowlist: [String]
     let screenshotMaskHexColor: String
     let screenshotCompressionQuality: Number
     let eventTypeExportAllowList: [EventType]
@@ -45,14 +40,11 @@ struct Config: InternalConfig, MeasureConfig {
     let maxDescriptionLengthInBugReport: Number
     let shakeAccelerationThreshold: Float
     let shakeMinTimeIntervalMs: Number
-    let shakeSlop: Number
     let disallowedCustomHeaders: [String]
     let estimatedEventSizeInKb: Number
     let layoutSnapshotDebounceInterval: Number
     let accelerometerUpdateInterval: TimeInterval
     let lifecycleViewControllerExcludeList: [String]
-    let maxExportJitterInterval: Number
-    let maxAttachmentsInBatch: Number
     let maxBodySizeBytes: Number
     let enableLogging: Bool
     let autoStart: Bool
@@ -98,7 +90,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxDescriptionLengthInBugReport = 4000
         self.shakeAccelerationThreshold = 2.5
         self.shakeMinTimeIntervalMs = 1500
-        self.shakeSlop = 2
         self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
         self.estimatedEventSizeInKb = 2 // 2kb
         // iOS specific
@@ -126,18 +117,8 @@ struct Config: InternalConfig, MeasureConfig {
                     "UICompatibilityInputViewController",
                     "UISystemInputAssistantViewController"
                 ]
-        // TODO: check if this is needed in android
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
-        // TODO: to remove
-        self.maxExportJitterInterval = 20
-        self.maxAttachmentsInBatch = 10
+        self.timeoutIntervalForRequest = 30
         self.maxBodySizeBytes = 3_000_000
-        self.sessionEndLastEventThresholdMs = 123213
-        self.maxAttachmentSizeInEventsBatchInBytes = 123123
-        self.timeoutIntervalForRequest = 123123
-        self.cpuTrackingIntervalMs = 123123
-        self.memoryTrackingIntervalMs = 123123
-        self.httpContentTypeAllowlist = [""]
-        self.eventsBatchingIntervalMs = 12312
     }
 }

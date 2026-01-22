@@ -52,7 +52,6 @@
     <entity name="SessionOb" representedClassName="SessionOb" syncable="YES">
         <attribute name="crashed" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="isPriority" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="needsReporting" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="pid" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>

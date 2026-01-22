@@ -9,7 +9,7 @@ import CoreData
 import Foundation
 
 protocol EventStore {
-    func insertEvent(event: EventEntity, completion: @escaping () -> Void)
+    func insertEvent(event: EventEntity)
     func insertEvents(events: [EventEntity], completion: @escaping () -> Void)
     func getEvents(eventIds: [String]) -> [EventEntity]?
     func getEventsForSessions(sessions: [String], completion: @escaping ([EventEntity]?) -> Void)
@@ -18,7 +18,7 @@ protocol EventStore {
     func getAllEvents(completion: @escaping ([EventEntity]?) -> Void)
     func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String]
     func updateBatchId(_ batchId: String, for events: [String])
-    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
+    func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool)
     func getEventsCount(completion: @escaping (Int) -> Void)
     func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String)
     func getSessionIdsWithUnBatchedEvents() -> [String]
@@ -33,13 +33,13 @@ final class BaseEventStore: EventStore {
         self.logger = logger
     }
 
-    func insertEvent(event: EventEntity, completion: @escaping () -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else {
-                completion()
-                return
-            }
+    func insertEvent(event: EventEntity) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            return
+        }
 
+        context.performAndWait {
             let eventOb = EventOb(context: context)
             eventOb.id = event.id
             eventOb.sessionId = event.sessionId
@@ -68,7 +68,7 @@ final class BaseEventStore: EventStore {
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
             eventOb.needsReporting = event.needsReporting
-            
+
             if let attachments = event.attachments {
                 for attachment in attachments {
                     let attachmentOb = AttachmentOb(context: context)
@@ -88,8 +88,6 @@ final class BaseEventStore: EventStore {
             } catch {
                 logger.internalLog(level: .error, message: "Failed to save event: \(event.id)", error: error, data: nil)
             }
-
-            completion()
         }
     }
 
@@ -365,12 +363,18 @@ final class BaseEventStore: EventStore {
         }
     }
 
-    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
+    func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else { return }
 
+            let journeyEventTypes = DefaultConfig.journeyEvents.map { $0.rawValue }
+
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "sessionId == %@", sessionId),
+                NSPredicate(format: "type IN %@", journeyEventTypes)
+            ])
+
             do {
                 let events = try context.fetch(fetchRequest)
                 for event in events {
@@ -378,7 +382,12 @@ final class BaseEventStore: EventStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update needsReporting for sessionId: \(sessionId)", error: error, data: nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to update needsReporting for journey events for sessionId: \(sessionId)",
+                    error: error,
+                    data: nil
+                )
             }
         }
     }
@@ -433,6 +442,7 @@ final class BaseEventStore: EventStore {
         }
     }
 
+    // TODO: update this function to ignore the current session.
     func getSessionIdsWithUnBatchedEvents() -> [String] {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)

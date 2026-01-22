@@ -91,9 +91,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var httpClient: HttpClient {
         return measureInitializer.httpClient
     }
-    private var attachmentExporter: AttachmentExporter {
-        return measureInitializer.attachmentExporter
-    }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
     }
@@ -191,6 +188,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
 
+            // TODO: Export also on background and when a bug report is encountered.
             self.exporter.export()
         }
     }
@@ -370,6 +368,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
+        self.exporter.export()
         self.dataCleanupService.clearStaleData {}
     }
 
@@ -406,7 +405,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
-        self.attachmentExporter.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -426,7 +424,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
-        self.attachmentExporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {
@@ -462,7 +459,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     private func trackSessionStart(sessionId: String?) {
-        // TODO: update needsReporting flag using sampler
         signalProcessor.track(data: SessionStartData(),
                               timestamp: timeProvider.now(),
                               type: .sessionStart,
