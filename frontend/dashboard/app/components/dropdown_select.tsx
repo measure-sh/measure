@@ -31,6 +31,7 @@ interface DropdownSelectProps {
   disabled?: boolean
   initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
   onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
+  disabled?: boolean
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected, disabled = false }) => {
@@ -219,11 +220,12 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen} >
-      <PopoverTrigger disabled={disabled} asChild>
+    <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
+      <PopoverTrigger asChild>
         <Button
           variant="outline"
           className="flex justify-between w-fit min-w-[150px] select-none"
+          disabled={disabled}
         >
           <span className="truncate">{getDisplayText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
