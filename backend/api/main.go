@@ -135,6 +135,17 @@ func main() {
 		apps.PATCH(":id/config", measure.PatchConfig)
 		apps.GET(":id/retention", measure.GetAppRetention)
 		apps.PATCH(":id/retention", measure.UpdateAppRetention)
+
+		// network requests
+		apps.GET(":id/networkRequests/domains", measure.GetNetworkRequestsDomains)
+		apps.GET(":id/networkRequests/paths", measure.GetNetworkRequestsPaths)
+		apps.GET(":id/networkRequests/plots/errors", measure.GetNetworkErrorsPlot)
+		apps.GET(":id/networkRequests/top", measure.GetNetworkRequestsTopEndpoints)
+		apps.GET(":id/networkRequests/metrics", measure.GetNetworkRequestsMetrics)
+
+		// misc
+		apps.GET(":id/settings", measure.GetAppSettings)
+		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 		apps.PATCH(":id/rename", measure.RenameApp)
 		apps.PATCH(":id/apiKey", measure.RotateApiKey)
 
@@ -196,7 +207,7 @@ func main() {
 		}
 	}()
 
-	// Listen for shutdown signals
+	// List for shutdown signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

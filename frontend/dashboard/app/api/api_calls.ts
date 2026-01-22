@@ -413,6 +413,46 @@ export enum UpdateSdkConfigApiStatus {
   Cancelled,
 }
 
+export enum HttpDomainsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum HttpPathsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkMetricsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkOverviewApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkErrorRatePlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   Crashes = "Crash Sessions",
   ANRs = "ANR Sessions",
@@ -2629,5 +2669,125 @@ export const updateSdkConfigFromServer = async (appId: string, config: Partial<S
       status: UpdateSdkConfigApiStatus.Cancelled,
       data: null,
     }
+  }
+}
+
+export const fetchHttpDomainsFromServer = async (selectedApp: App) => {
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${selectedApp.id}/networkRequests/domains`,
+    )
+
+    if (!res.ok) {
+      return { status: HttpDomainsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null || data.results.length === 0) {
+      return { status: HttpDomainsApiStatus.NoData, data: null }
+    }
+
+    return { status: HttpDomainsApiStatus.Success, data: data }
+  } catch {
+    return { status: HttpDomainsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchHttpPathsFromServer = async (selectedApp: App, domain: string, search: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}`,
+    )
+
+    if (!res.ok) {
+      return { status: HttpPathsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null || data.results.length === 0) {
+      return { status: HttpPathsApiStatus.NoData, data: null }
+    }
+
+    return { status: HttpPathsApiStatus.Success, data: data }
+  } catch {
+    return { status: HttpPathsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkMetricsFromServer = async (filters: Filters, url: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/metrics?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("url", url)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkMetricsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkMetricsApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkMetricsApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkMetricsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/top?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkOverviewApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkOverviewApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkOverviewApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkErrorRatePlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/errors?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkErrorRatePlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || (Array.isArray(data) && data.length === 0)) {
+      return { status: NetworkErrorRatePlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkErrorRatePlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkErrorRatePlotApiStatus.Cancelled, data: null }
   }
 }

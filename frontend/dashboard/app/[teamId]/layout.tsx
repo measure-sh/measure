@@ -88,6 +88,12 @@ const initNavData = {
           isActive: false,
           external: false,
         },
+        {
+          title: "Network",
+          url: "network",
+          isActive: false,
+          external: false,
+        },
       ],
     },
     {
