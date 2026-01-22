@@ -615,23 +615,29 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         ? sessionPersistedFilters.dateRange
         : DateRange.Last6Hours
     const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
+
     const [selectedStartDate, setSelectedStartDate] = useState(
-      urlFilters.startDate
-        ? urlFilters.startDate
-        : sessionPersistedFilters
-          ? sessionPersistedFilters.dateRange === DateRange.Custom
-            ? sessionPersistedFilters.startDate
-            : mapDateRangeToDate(initDateRange)!.toISO()
-          : DateTime.now().minus({ hours: 6 }).toISO(),
+      urlFilters.dateRange ?
+        mapDateRangeToDate(initDateRange)!.toISO() :
+        urlFilters.startDate
+          ? urlFilters.startDate
+          : sessionPersistedFilters
+            ? sessionPersistedFilters.dateRange === DateRange.Custom
+              ? sessionPersistedFilters.startDate
+              : mapDateRangeToDate(initDateRange)!.toISO()
+            : DateTime.now().minus({ hours: 6 }).toISO(),
     )
+
     const [selectedEndDate, setSelectedEndDate] = useState(
-      urlFilters.endDate
-        ? urlFilters.endDate
-        : sessionPersistedFilters
-          ? sessionPersistedFilters.dateRange === DateRange.Custom
-            ? sessionPersistedFilters.endDate
-            : DateTime.now().toISO()
-          : DateTime.now().toISO(),
+      urlFilters.dateRange ?
+        DateTime.now().toISO() :
+        urlFilters.endDate
+          ? urlFilters.endDate
+          : sessionPersistedFilters
+            ? sessionPersistedFilters.dateRange === DateRange.Custom
+              ? sessionPersistedFilters.endDate
+              : DateTime.now().toISO()
+            : DateTime.now().toISO(),
     )
 
     const getApps = async (appIdToSelect?: string) => {
