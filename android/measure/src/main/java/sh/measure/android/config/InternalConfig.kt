@@ -62,12 +62,6 @@ internal interface InternalConfig {
     val screenshotCompressionQuality: Int
 
     /**
-     * All [EventType]'s that are always exported, regardless of other filters like session
-     * sampling rate and whether the session crashed or not.
-     */
-    val eventTypeExportAllowList: List<EventType>
-
-    /**
      * Max length of a span name. Defaults to 64.
      */
     val maxSpanNameLength: Int

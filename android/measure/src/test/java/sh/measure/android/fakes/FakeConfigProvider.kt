@@ -5,13 +5,11 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
-import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
     override val enableLogging: Boolean = false
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
-    override val eventTypeExportAllowList: List<EventType> = emptyList()
     override var trackActivityIntentData: Boolean = false
     override var batchExportIntervalMs: Long = 3_000 // 3 seconds
     override var attachmentExportIntervalMs: Long = 500 // 500ms
