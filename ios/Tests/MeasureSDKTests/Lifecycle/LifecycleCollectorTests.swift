@@ -19,6 +19,8 @@ final class LifecycleCollectorTests: XCTestCase {
     private var mockConfigProvider: MockConfigProvider!
     private var mockLogger: MockLogger!
     private var mockViewController: MockViewController!
+    private var mockSessionManager: MockSessionManager!
+    private var mockSignalSampler: MockSignalSampler!
 
     override func setUp() {
         super.setUp()
@@ -28,13 +30,17 @@ final class LifecycleCollectorTests: XCTestCase {
         mockConfigProvider = MockConfigProvider()
         mockLogger = MockLogger()
         mockViewController = MockViewController()
+        mockSessionManager = MockSessionManager()
+        mockSignalSampler = MockSignalSampler()
 
         lifecycleCollector = BaseLifecycleCollector(
             signalProcessor: mockSignalProcessor,
             timeProvider: mockTimeProvider,
             tracer: mockTracer,
             configProvider: mockConfigProvider,
-            logger: mockLogger
+            sessionManager: mockSessionManager,
+            logger: mockLogger,
+            signalSampler: mockSignalSampler
         )
     }
 
@@ -46,6 +52,8 @@ final class LifecycleCollectorTests: XCTestCase {
         mockConfigProvider = nil
         mockLogger = nil
         mockViewController = nil
+        mockSessionManager = nil
+        mockSignalSampler = nil
         super.tearDown()
     }
 

@@ -14,7 +14,6 @@ class NetworkInterceptorProtocol: URLProtocol {
     private var responseBody: Data?
     private var httpResponse: HTTPURLResponse?
     private var httpContentTypeAllowlist: [String]?
-    private var defaultHttpHeadersBlocklist: [String]?
 
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -24,12 +23,7 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     static var httpInterceptorCallbacks: HttpInterceptorCallbacks?
     static var timeProvider: TimeProvider?
-    static var allowedDomains: [String]?
-    static var ignoredDomains: [String]?
-    static var httpContentTypeAllowlist: [String]?
-    static var defaultHttpHeadersBlocklist: [String]?
     static var configProvider: ConfigProvider?
-    static var httpEventValidator: HttpEventValidator?
 
     static func setTimeProvider(_ timeProvider: TimeProvider) {
         self.timeProvider = timeProvider
@@ -41,26 +35,6 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     static func setHttpInterceptorCallbacks(_ httpInterceptorCallbacks: HttpInterceptorCallbacks) {
         self.httpInterceptorCallbacks = httpInterceptorCallbacks
-    }
-
-    static func setAllowedDomains(_ allowedDomains: [String]) {
-        self.allowedDomains = allowedDomains
-    }
-
-    static func setIgnoredDomains(_ ignoredDomains: [String]) {
-        self.ignoredDomains = ignoredDomains
-    }
-
-    static func setHttpContentTypeAllowlist(_ httpContentTypeAllowlist: [String]) {
-        self.httpContentTypeAllowlist = httpContentTypeAllowlist
-    }
-
-    static func setDefaultHttpHeadersBlocklist(_ defaultHttpHeadersBlocklist: [String]) {
-        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
-    }
-
-    static func setHttpEventValidator(_ httpEventValidator: HttpEventValidator) {
-        self.httpEventValidator = httpEventValidator
     }
 
     override class func canInit(with request: URLRequest) -> Bool {

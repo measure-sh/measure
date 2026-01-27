@@ -9,98 +9,153 @@ import Foundation
 @testable import Measure
 
 final class MockEventStore: EventStore {
-    var events: [EventEntity] = []
-    var deleteEventsCalled = false
-    var deletedEventIds: [String] = []
+    private var events: [String: EventEntity] = [:]
+    private let lock = NSLock()
 
-    func insertEvents(events: [EventEntity], completion: @escaping () -> Void) {
-        self.events.append(contentsOf: events)
-        completion()
-    }
+    func insertEvent(event: EventEntity) {
+        lock.lock()
+        defer { lock.unlock() }
 
-    func insertEvent(event: EventEntity, completion: @escaping () -> Void) {
-        events.append(event)
-        completion()
+        events[event.id] = event
     }
 
     func getEvents(eventIds: [String]) -> [EventEntity]? {
-        let result = events.filter { eventIds.contains($0.id) }
+        lock.lock()
+        defer { lock.unlock() }
+
+        let result = eventIds.compactMap { events[$0] }
+        return result.isEmpty ? nil : result
+    }
+
+    func getEventsForSessions(sessions: [String]) -> [EventEntity]? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let sessionSet = Set(sessions)
+        let result = events.values.filter {
+            sessionSet.contains($0.sessionId)
+        }
+
         return result.isEmpty ? nil : result
     }
 
     func deleteEvents(eventIds: [String]) {
-        deleteEventsCalled = true
-        deletedEventIds = eventIds
-        events.removeAll { eventIds.contains($0.id) }
+        lock.lock()
+        defer { lock.unlock() }
+
+        eventIds.forEach { events.removeValue(forKey: $0) }
     }
 
-    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String] {
-        var filtered = events.filter {
-            $0.batchId == nil && $0.needsReporting
+    func deleteEvents(sessionIds: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let sessionSet = Set(sessionIds)
+        events = events.filter { !sessionSet.contains($0.value.sessionId) }
+    }
+
+    func getUnBatchedEvents(
+        eventCount: Number,
+        ascending: Bool,
+        sessionId: String?
+    ) -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+
+        var filtered = events.values.filter { event in
+            event.batchId == nil &&
+            (sessionId == nil || event.sessionId == sessionId)
         }
 
-        if let sessionId {
-            filtered = filtered.filter { $0.sessionId == sessionId }
+        filtered.sort { (lhs: EventEntity, rhs: EventEntity) -> Bool in
+            if ascending {
+                return lhs.timestampInMillis < rhs.timestampInMillis
+            } else {
+                return lhs.timestampInMillis > rhs.timestampInMillis
+            }
         }
-
-        filtered.sort { ascending ? $0.timestampInMillis < $1.timestampInMillis : $0.timestampInMillis > $1.timestampInMillis }
 
         return filtered
             .prefix(Int(eventCount))
-            .map(\.id)
+            .map { $0.id }
     }
 
-    func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String) {
-        let start = eventTimestampMillis
-        let end = eventTimestampMillis + durationSeconds * 1000
+    func updateBatchId(_ batchId: String, for events: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
 
-        for index in 0..<events.count where events[index].sessionId == sessionId {
-            let ts = events[index].timestampInMillis
-            if ts >= start && ts <= end {
-                events[index].needsReporting = true
+        for eventId in events {
+            self.events[eventId]?.batchId = batchId
+        }
+    }
+
+    func updateNeedsReportingForJourneyEvents(
+        sessionId: String,
+        needsReporting: Bool
+    ) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        self.events = self.events.mapValues { event in
+            guard event.sessionId == sessionId else { return event }
+
+            var updated = event
+            updated.needsReporting = needsReporting
+            return updated
+        }
+    }
+
+    func getEventsCount() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return events.count
+    }
+
+    func getEventCount(forSessionId sessionId: String) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return events.values.filter { $0.sessionId == sessionId }.count
+    }
+
+    func markTimelineForReporting(
+        eventTimestampMillis: Int64,
+        durationSeconds: Int64,
+        sessionId: String
+    ) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let start = eventTimestampMillis
+        let end = eventTimestampMillis + (durationSeconds * 1000)
+
+        self.events = self.events.mapValues { event in
+            guard event.sessionId == sessionId,
+                  event.timestampInMillis >= start,
+                  event.timestampInMillis <= end else {
+                return event
             }
+
+            var updated = event
+            updated.needsReporting = true
+            return updated
         }
     }
 
     func getSessionIdsWithUnBatchedEvents() -> [String] {
-        let sessionIds = events
-            .filter { $0.batchId == nil && $0.needsReporting }
-            .compactMap(\.sessionId)
+        lock.lock()
+        defer { lock.unlock() }
+
+        let sessionIds = events.values
+            .filter { $0.batchId == nil }
+            .map { $0.sessionId }
 
         return Array(Set(sessionIds))
     }
 
-    func updateBatchId(_ batchId: String, for events: [String]) {
-        for index in 0..<self.events.count where events.contains(self.events[index].id) {
-            self.events[index].batchId = batchId
-        }
-    }
-
-    func getEventsForSessions(sessions: [String], completion: @escaping ([EventEntity]?) -> Void) {
-        let filtered = events.filter { sessions.contains($0.sessionId) }
-        completion(filtered.isEmpty ? nil : filtered)
-    }
-
-    func getAllEvents(completion: @escaping ([EventEntity]?) -> Void) {
-        completion(events.isEmpty ? nil : events)
-    }
-
-    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
-        for index in 0..<events.count where events[index].sessionId == sessionId {
-            events[index].needsReporting = needsReporting
-        }
-    }
-
-    func deleteEvents(sessionIds: [String], completion: @escaping () -> Void) {
-        let idsToDelete = events
-            .filter { sessionIds.contains($0.sessionId) && !$0.needsReporting }
-            .map(\.id)
-
-        deleteEvents(eventIds: idsToDelete)
-        completion()
-    }
-
-    func getEventsCount(completion: @escaping (Int) -> Void) {
-        completion(events.count)
+    func getAllEvents() -> [EventEntity] {
+        return Array(events.values)
     }
 }
+

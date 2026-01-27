@@ -9,49 +9,50 @@ import Foundation
 import CoreData
 
 protocol CoreDataManager {
-    func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void)
     var backgroundContext: NSManagedObjectContext? { get }
 }
 
 final class BaseCoreDataManager: CoreDataManager {
-    private var persistentContainer: NSPersistentContainer?
-    var backgroundContext: NSManagedObjectContext?
-    private var mainContext: NSManagedObjectContext?
     private let logger: Logger
-    private var initializationFailed: Bool = false
-    private var backgroundTaskQueue: [(NSManagedObjectContext) -> Void] = []
-    private let taskQueueLock = DispatchQueue(label: "com.measure.coredata.taskQueueLock", qos: .userInitiated)
-    private var isReady: Bool = false {
-        didSet {
-            if isReady {
-                flushQueuedTasks()
-            }
-        }
-    }
+    private var persistentContainer: NSPersistentContainer?
+    private var _backgroundContext: NSManagedObjectContext?
+    private let readySemaphore = DispatchSemaphore(value: 0)
+    private var initializationFailed = false
+    private var didSignalReady = false
+    private let readyLock = NSLock()
 
     init(logger: Logger) {
         self.logger = logger
 
+        let model: NSManagedObjectModel
+
         #if SWIFT_PACKAGE
         guard let modelURL = Bundle.module.url(forResource: "MeasureModel", withExtension: "momd"),
-              let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            logger.log(level: .fatal, message: "Error loading model from Swift Package bundle", error: nil, data: nil)
+              let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+            logger.log(level: .fatal, message: "Failed to load Core Data model (SPM)", error: nil, data: nil)
             initializationFailed = true
+            signalReadyOnce()
             return
         }
+        model = loadedModel
         #else
         guard let modelURL = Bundle(for: type(of: self)).url(forResource: "MeasureModel", withExtension: "momd"),
-              let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            logger.log(level: .fatal, message: "Error loading model from bundle or initializing model", error: nil, data: nil)
+              let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+            logger.log(level: .fatal, message: "Failed to load Core Data model", error: nil, data: nil)
             initializationFailed = true
+            signalReadyOnce()
             return
         }
+        model = loadedModel
         #endif
 
-        self.persistentContainer = NSPersistentContainer(name: "MeasureModel", managedObjectModel: model)
+        let container = NSPersistentContainer(name: "MeasureModel", managedObjectModel: model)
+        self.persistentContainer = container
 
-        persistentContainer?.loadPersistentStores { (_, error) in
-            if let error = error {
+        container.loadPersistentStores { [weak self] _, error in
+            guard let self else { return }
+
+            if let error {
                 self.logger.log(
                     level: .fatal,
                     message: "Unresolved error loading persistent stores: \(error.localizedDescription)",
@@ -59,53 +60,53 @@ final class BaseCoreDataManager: CoreDataManager {
                     data: nil
                 )
                 self.initializationFailed = true
-
-                // Clear any queued tasks since they'll never run
-                self.taskQueueLock.sync {
-                    self.backgroundTaskQueue.removeAll()
-                }
+                self.signalReadyOnce()
                 return
             }
 
-            self.mainContext = self.persistentContainer?.viewContext
-            self.backgroundContext = self.persistentContainer?.newBackgroundContext()
-            self.backgroundContext?.automaticallyMergesChangesFromParent = true
-            self.isReady = true
+            let backgroundContext = container.newBackgroundContext()
+            backgroundContext.automaticallyMergesChangesFromParent = true
+            backgroundContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
-            self.logger.log(level: .info, message: "Core Data persistent store loaded successfully.", error: nil, data: nil)
+            self._backgroundContext = backgroundContext
+
+            self.logger.log(
+                level: .info,
+                message: "Core Data persistent store loaded successfully.",
+                error: nil,
+                data: nil
+            )
+
+            self.signalReadyOnce()
         }
     }
 
-    func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void) {
-        taskQueueLock.sync {
-            if initializationFailed {
-                logger.log(level: .error, message: "Core Data is not available due to failed initialization. Task dropped.", error: nil, data: nil)
-                return
-            }
-
-            if isReady, let context = backgroundContext {
-                context.perform {
-                    block(context)
-                }
-            } else {
-                logger.log(level: .info, message: "Queuing background task since Core Data is not ready yet.", error: nil, data: nil)
-                backgroundTaskQueue.append(block)
-            }
+    var backgroundContext: NSManagedObjectContext? {
+        if didSignalReady {
+            return _backgroundContext
         }
+
+        readySemaphore.wait()
+
+        if initializationFailed {
+            logger.log(
+                level: .error,
+                message: "Core Data unavailable due to failed initialization",
+                error: nil,
+                data: nil
+            )
+            return nil
+        }
+
+        return _backgroundContext
     }
 
-    private func flushQueuedTasks() {
-        taskQueueLock.sync {
-            guard let backgroundContext = self.backgroundContext else { return }
+    private func signalReadyOnce() {
+        readyLock.lock()
+        defer { readyLock.unlock() }
 
-            logger.log(level: .info, message: "Flushing \(backgroundTaskQueue.count) queued Core Data tasks.", error: nil, data: nil)
-
-            for task in backgroundTaskQueue {
-                backgroundContext.perform {
-                    task(backgroundContext)
-                }
-            }
-            backgroundTaskQueue.removeAll()
-        }
+        guard !didSignalReady else { return }
+        didSignalReady = true
+        readySemaphore.signal()
     }
 }

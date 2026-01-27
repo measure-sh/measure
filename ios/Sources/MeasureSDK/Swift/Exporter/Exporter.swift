@@ -6,12 +6,12 @@
 //
 
 import Foundation
+import UIKit
 
 protocol Exporter {
     func export()
 }
 
-// TODO: Add tests
 final class BaseExporter: Exporter {
     private let logger: Logger
     private let idProvider: IdProvider
@@ -28,7 +28,6 @@ final class BaseExporter: Exporter {
     private let isExporting = AtomicBool(false)
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
 
-    // MARK: - Init
     init(
         logger: Logger,
         idProvider: IdProvider,
@@ -57,7 +56,6 @@ final class BaseExporter: Exporter {
         self.configProvider = configProvider
     }
 
-    // MARK: - Public API
     func export() {
         var started = false
         isExporting.setTrueIfFalse { started = true }
@@ -84,7 +82,6 @@ final class BaseExporter: Exporter {
         }
     }
 
-    // MARK: - Background task handling
     private func startBackgroundTask() {
         guard backgroundTaskId == .invalid else { return }
 
@@ -105,7 +102,6 @@ final class BaseExporter: Exporter {
         logger.internalLog(level: .debug, message: "Exporter: background task ended", error: nil, data: nil)
     }
 
-    // MARK: - Event export
     private func exportEvents() {
         let batchIds = getBatchIds()
 
@@ -165,7 +161,7 @@ final class BaseExporter: Exporter {
 
     private func handleBatchResponse(response: HttpResponse, batch: BatchEntity, events: [EventEntity], spans: [SpanEntity]) {
         switch response {
-        case .success(let body):
+        case .success(let body, _):
             logger.internalLog(level: .debug, message: "Exporter: batch \(batch.batchId) sent successfully", error: nil, data: nil)
             parseAndSaveAttachmentMetadata(responseBody: body)
             deleteEventsAndSpans(batch, events: events, spans: spans)
@@ -176,7 +172,6 @@ final class BaseExporter: Exporter {
         }
     }
 
-    // MARK: - Attachment export (synchronous)
     private func exportAttachments() {
         while true {
             let attachments = attachmentStore.getAttachmentsForUpload(batchSize: 5)
@@ -207,7 +202,7 @@ final class BaseExporter: Exporter {
             let headersData = attachment.headers,
             let headers = deserializeHeaders(headersData)
         else {
-            attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {})
+            attachmentStore.deleteAttachments(attachmentIds: [attachment.id])
             return false
         }
 
@@ -217,15 +212,14 @@ final class BaseExporter: Exporter {
 
         switch response {
         case .success:
-            attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {})
+            attachmentStore.deleteAttachments(attachmentIds: [attachment.id])
             return true
         case .error(let errorType):
-            if case .clientError = errorType { attachmentStore.deleteAttachments(attachmentIds: [attachment.id], completion: {}) }
+            if case .clientError = errorType { attachmentStore.deleteAttachments(attachmentIds: [attachment.id]) }
             return false
         }
     }
 
-    // MARK: - Attachment metadata
     private func parseAndSaveAttachmentMetadata(responseBody: String?) {
         guard let responseBody, let data = responseBody.data(using: .utf8) else { return }
 
@@ -235,7 +229,7 @@ final class BaseExporter: Exporter {
 
             for attachment in attachments {
                 let headersData = attachment.headers.flatMap { try? JSONSerialization.data(withJSONObject: $0) }
-                attachmentStore.updateUploadDetails(for: attachment.id, uploadUrl: attachment.upload_url, headers: headersData, expiresAt: attachment.expires_at, completion: {})
+                attachmentStore.updateUploadDetails(for: attachment.id, uploadUrl: attachment.upload_url, headers: headersData, expiresAt: attachment.expires_at)
             }
         } catch {
             logger.internalLog(level: .error, message: "Exporter: failed to decode attachment metadata", error: error, data: nil)
@@ -246,7 +240,6 @@ final class BaseExporter: Exporter {
         try? JSONSerialization.jsonObject(with: data) as? [String: String]
     }
 
-    // MARK: - Batch creation
     private func createNewBatches() -> Int {
         let sessionIds = eventStore.getSessionIdsWithUnBatchedEvents()
         guard !sessionIds.isEmpty else { return 0 }
@@ -254,6 +247,7 @@ final class BaseExporter: Exporter {
         let prioritySessionIds = sessionStore.getPrioritySessionIds()
         let orderedSessionIds = prioritySessionIds.filter(sessionIds.contains) + sessionIds.filter { !prioritySessionIds.contains($0) }
 
+        // TODO: reduce maxBatchSize and test
         let maxBatchSize = configProvider.maxEventsInBatch
         var inserted = 0
         var batchId = idProvider.uuid()
@@ -297,7 +291,6 @@ final class BaseExporter: Exporter {
         return inserted
     }
 
-    // MARK: - Cleanup
     private func deleteEventsAndSpans(_ batch: BatchEntity, events: [EventEntity], spans: [SpanEntity]) {
         eventStore.deleteEvents(eventIds: events.map { $0.id })
         spanStore.deleteSpans(spanIds: spans.map { $0.spanId })

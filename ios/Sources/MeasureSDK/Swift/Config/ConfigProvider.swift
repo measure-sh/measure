@@ -34,6 +34,7 @@ protocol ConfigProvider: MeasureConfig, InternalConfig, DynamicConfig {
 final class BaseConfigProvider: ConfigProvider {
     private struct HttpPatternState {
         let disableEventPatterns: [NSRegularExpression]
+        let blocklistPatterns: [NSRegularExpression]
         let trackRequestPatterns: [NSRegularExpression]
         let trackResponsePatterns: [NSRegularExpression]
         let blockedHeaders: [String]
@@ -44,6 +45,7 @@ final class BaseConfigProvider: ConfigProvider {
     private var dynamicConfig: DynamicConfig = BaseDynamicConfig.default()
     private var httpPatternState = HttpPatternState(
         disableEventPatterns: [],
+        blocklistPatterns: [],
         trackRequestPatterns: [],
         trackResponsePatterns: [],
         blockedHeaders: [],
@@ -55,7 +57,7 @@ final class BaseConfigProvider: ConfigProvider {
     }
 
     func setDynamicConfig(_ config: DynamicConfig) {
-        lockQueue.async {
+        lockQueue.sync {
             self.dynamicConfig = config
 
             let measureUrl = self.httpPatternState.measureUrl
@@ -65,6 +67,7 @@ final class BaseConfigProvider: ConfigProvider {
                     configUrls: config.httpDisableEventForUrls,
                     measureUrl: measureUrl
                 ),
+                blocklistPatterns: self.httpUrlBlocklist.map(self.compilePattern),
                 trackRequestPatterns: config.httpTrackRequestForUrls.map(self.compilePattern),
                 trackResponsePatterns: config.httpTrackResponseForUrls.map(self.compilePattern),
                 blockedHeaders: config.httpBlockedHeaders,
@@ -96,7 +99,6 @@ final class BaseConfigProvider: ConfigProvider {
     var scaledTouchSlop: CGFloat { defaultConfig.scaledTouchSlop }
     var screenshotMaskHexColor: String { defaultConfig.screenshotMaskHexColor }
     var screenshotCompressionQuality: Number { defaultConfig.screenshotCompressionQuality }
-    var eventTypeExportAllowList: [EventType] { defaultConfig.eventTypeExportAllowList }
     var maxSpanNameLength: Number { defaultConfig.maxSpanNameLength }
     var maxCheckpointNameLength: Number { defaultConfig.maxCheckpointNameLength }
     var maxCheckpointsPerSpan: Number { defaultConfig.maxCheckpointsPerSpan }
@@ -113,6 +115,7 @@ final class BaseConfigProvider: ConfigProvider {
     var lifecycleViewControllerExcludeList: [String] { defaultConfig.lifecycleViewControllerExcludeList }
     var maxBodySizeBytes: Number { defaultConfig.maxBodySizeBytes }
     var timeoutIntervalForRequest: TimeInterval { defaultConfig.timeoutIntervalForRequest }
+    var httpUrlBlocklist: [String] { defaultConfig.httpUrlBlocklist }
 
     // DynamicConfig
 
@@ -138,31 +141,31 @@ final class BaseConfigProvider: ConfigProvider {
 
     func shouldTrackHttpUrl(url: String) -> Bool {
         let state = httpPatternState
+        let range = NSRange(location: 0, length: url.utf16.count)
 
-        return !state.disableEventPatterns.contains {
-            $0.firstMatch(
-                in: url,
-                options: [],
-                range: NSRange(location: 0, length: url.utf16.count)
-            ) != nil
+        if state.blocklistPatterns.contains(where: {
+            $0.firstMatch(in: url, options: [], range: range) != nil
+        }) {
+            return false
         }
+
+        if state.disableEventPatterns.contains(where: {
+            $0.firstMatch(in: url, options: [], range: range) != nil
+        }) {
+            return false
+        }
+
+        return true
     }
 
     func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
         let state = httpPatternState
-
+        let range = NSRange(location: 0, length: url.utf16.count)
+        
         return state.trackRequestPatterns.contains {
-            $0.firstMatch(
-                in: url,
-                options: [],
-                range: NSRange(location: 0, length: url.utf16.count)
-            ) != nil
+            $0.firstMatch(in: url, options: [], range: range) != nil
         } || state.trackResponsePatterns.contains {
-            $0.firstMatch(
-                in: url,
-                options: [],
-                range: NSRange(location: 0, length: url.utf16.count)
-            ) != nil
+            $0.firstMatch(in: url, options: [], range: range) != nil
         }
     }
 
@@ -181,12 +184,13 @@ final class BaseConfigProvider: ConfigProvider {
     }
 
     func setMeasureUrl(url: String) {
-        lockQueue.async {
+        lockQueue.sync {
             let currentState = self.httpPatternState
 
             let disablePatterns = self.buildDisableEventPatterns(configUrls: self.dynamicConfig.httpDisableEventForUrls, measureUrl: url)
 
             self.httpPatternState = HttpPatternState(disableEventPatterns: disablePatterns,
+                                                     blocklistPatterns: currentState.blocklistPatterns,
                                                      trackRequestPatterns: currentState.trackRequestPatterns,
                                                      trackResponsePatterns: currentState.trackResponsePatterns,
                                                      blockedHeaders: currentState.blockedHeaders,
@@ -202,9 +206,17 @@ final class BaseConfigProvider: ConfigProvider {
     private func compilePattern(_ pattern: String) -> NSRegularExpression {
         let escaped = NSRegularExpression.escapedPattern(for: pattern)
         let regexPattern = escaped.replacingOccurrences(of: "\\*", with: ".*")
-
+        
+        let finalPattern: String
+        if pattern.contains("*") {
+            finalPattern = "^" + regexPattern + "$"
+        } else {
+            // Match base URL and everything under it
+            finalPattern = "^" + regexPattern + "(/.*)?$"
+        }
+        
         do {
-            return try NSRegularExpression(pattern: "^" + regexPattern + "$", options: [.caseInsensitive])
+            return try NSRegularExpression(pattern: finalPattern, options: [.caseInsensitive])
         } catch {
             return NSRegularExpression()
         }

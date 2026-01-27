@@ -188,7 +188,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
 
-            // TODO: Export also on background and when a bug report is encountered.
             self.exporter.export()
         }
     }
@@ -369,7 +368,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
         self.exporter.export()
-        self.dataCleanupService.clearStaleData {}
+        self.dataCleanupService.clearStaleData()
     }
 
     private func applicationWillEnterForeground() {

@@ -209,7 +209,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let attachmentStore: AttachmentStore
     let signalSampler: SignalSampler
 
-    // TODO: ignore storage.googleapis.com urls
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
@@ -219,6 +218,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
         self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
+        self.userDefaultStorage = BaseUserDefaultStorage()
         self.logger = MeasureLogger(enabled: config.enableLogging)
         self.systemFileManager = BaseSystemFileManager(logger: logger)
         self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
@@ -226,7 +226,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                httpClient: httpClient,
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: systemFileManager)
-        self.configLoader = BaseConfigLoader(fileManager: systemFileManager,
+        self.configLoader = BaseConfigLoader(userDefaultStorage: userDefaultStorage,
+                                             fileManager: systemFileManager,
                                              networkClient: networkClient,
                                              logger: logger)
         self.timeProvider = BaseTimeProvider()
@@ -247,7 +248,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                          logger: logger)
         self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
                                                    logger: logger)
-        self.userDefaultStorage = BaseUserDefaultStorage()
         self.randomizer = BaseRandomizer()
         self.signalSampler = BaseSignalSampler(configProvider: configProvider,
                                                randomizer: randomizer)
@@ -417,7 +417,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    signalProcessor: signalProcessor,
                                                                    sessionManager: sessionManager,
-                                                                   attributeProcessors: attributeProcessors)
+                                                                   attributeProcessors: attributeProcessors,
+                                                                   signalSampler: signalSampler)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
                                                            logger: logger,
                                                            attachmentProcessor: attachmentProcessor,

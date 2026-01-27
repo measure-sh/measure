@@ -9,11 +9,10 @@ import Foundation
 import CoreData
 
 protocol AttachmentStore {
-    func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void)
-    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void)
-    func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void)
+    func deleteAttachments(attachmentIds: [String])
+    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?)
     func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment]
-    func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void)
+    func deleteAttachments(forSessionIds sessionIds: [String])
 }
 
 final class BaseAttachmentStore: AttachmentStore {
@@ -25,10 +24,20 @@ final class BaseAttachmentStore: AttachmentStore {
         self.logger = logger
     }
 
-    func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion(); return }
+    func deleteAttachments(attachmentIds: [String]) {
+        guard !attachmentIds.isEmpty else { return }
 
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return
+        }
+
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id IN %@", attachmentIds)
 
@@ -37,52 +46,58 @@ final class BaseAttachmentStore: AttachmentStore {
                 attachments.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
-                self.logger.internalLog(level: .error, message: "Failed to delete attachments by IDs.", error: error, data: nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to delete attachments by IDs.",
+                    error: error,
+                    data: ["attachmentIds": attachmentIds]
+                )
             }
-            completion()
         }
     }
 
-    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion(); return }
+    func updateUploadDetails(
+        for attachmentId: String,
+        uploadUrl: String,
+        headers: Data?,
+        expiresAt: String?
+    ) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
+            return
+        }
 
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.fetchLimit = 1
             fetchRequest.predicate = NSPredicate(format: "id == %@", attachmentId)
 
             do {
-                if let attachmentOb = try context.fetch(fetchRequest).first {
-                    attachmentOb.uploadUrl = uploadUrl
-                    attachmentOb.headers = headers
-                    attachmentOb.expires_at = expiresAt
+                if let attachment = try context.fetch(fetchRequest).first {
+                    attachment.uploadUrl = uploadUrl
+                    attachment.headers = headers
+                    attachment.expires_at = expiresAt
                     try context.saveIfNeeded()
                 } else {
-                    self.logger.internalLog(level: .warning, message: "Attachment with ID \(attachmentId) not found for URL update.", error: nil, data: nil)
+                    logger.internalLog(
+                        level: .warning,
+                        message: "Attachment with ID \(attachmentId) not found for upload update.",
+                        error: nil,
+                        data: nil
+                    )
                 }
             } catch {
-                self.logger.internalLog(level: .error, message: "Failed to update upload details for attachment \(attachmentId).", error: error, data: nil)
-            }
-            completion()
-        }
-    }
-
-    func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion([]); return }
-
-            let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-            let eventPredicate = NSPredicate(format: "eventRel.id == %@", eventId)
-            let urlPredicate = NSPredicate(format: "uploadUrl != nil")
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [eventPredicate, urlPredicate])
-
-            do {
-                let attachments = try context.fetch(fetchRequest)
-                let uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
-                completion(uploadAttachments)
-            } catch {
-                self.logger.internalLog(level: .error, message: "Failed to fetch attachments for upload for event ID \(eventId).", error: error, data: nil)
-                completion([])
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to update upload details for attachment.",
+                    error: error,
+                    data: ["attachmentId": attachmentId]
+                )
             }
         }
     }
@@ -98,7 +113,7 @@ final class BaseAttachmentStore: AttachmentStore {
             return []
         }
 
-        var uploadAttachments: [MsrUploadAttachment] = []
+        var result: [MsrUploadAttachment] = []
 
         context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
@@ -106,48 +121,58 @@ final class BaseAttachmentStore: AttachmentStore {
             fetchRequest.fetchLimit = Int(batchSize)
 
             do {
-                let attachments = try fetchRequest.execute()
-                uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
+                let attachments = try context.fetch(fetchRequest)
+                result = attachments.compactMap { $0.toUploadEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch attachments with upload URLs in batch.", error: error, data: nil)
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to fetch attachments for upload.",
+                    error: error,
+                    data: ["batchSize": batchSize]
+                )
             }
         }
 
-        return uploadAttachments
+        return result
     }
 
-    func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void) {
-        guard !sessionIds.isEmpty else {
-            completion()
+    func deleteAttachments(forSessionIds sessionIds: [String]) {
+        guard !sessionIds.isEmpty else { return }
+
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(
+                level: .error,
+                message: "Background context not available",
+                error: nil,
+                data: nil
+            )
             return
         }
 
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion(); return }
-
+        context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-
             fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
 
             do {
                 let attachments = try context.fetch(fetchRequest)
 
-                self.logger.internalLog(level: .debug,
-                                        message: "Attempting to delete \(attachments.count) attachments across \(sessionIds.count) sessions.",
-                                        error: nil,
-                                        data: nil)
+                logger.internalLog(
+                    level: .debug,
+                    message: "Deleting \(attachments.count) attachments for \(sessionIds.count) sessions.",
+                    error: nil,
+                    data: ["sessionIds": sessionIds]
+                )
 
                 attachments.forEach { context.delete($0) }
-
                 try context.saveIfNeeded()
             } catch {
-                self.logger.internalLog(level: .error,
-                                        message: "Failed to delete attachments for session IDs.",
-                                        error: error,
-                                        data: ["sessionIds": sessionIds])
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to delete attachments for session IDs.",
+                    error: error,
+                    data: ["sessionIds": sessionIds]
+                )
             }
-
-            completion()
         }
     }
 }

@@ -9,7 +9,7 @@ import Foundation
 
 protocol NetworkClient {
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse
-    func getConfig(eTag: String?) -> DynamicConfig?
+    func getConfig(eTag: String?) -> (DynamicConfig?, String?)
 }
 
 final class BaseNetworkClient: NetworkClient {
@@ -32,7 +32,7 @@ final class BaseNetworkClient: NetworkClient {
         let serializedSpans = self.serializeSpans(spans: spans)
         
         if serializedEvents.isEmpty && serializedSpans.isEmpty {
-            return .success(body: "{}")
+            return .success(body: "{}", eTag: nil)
         }
 
         let payload: [String: Any] = [
@@ -53,7 +53,7 @@ final class BaseNetworkClient: NetworkClient {
                                           jsonBody: jsonBody)
     }
 
-    func getConfig(eTag: String?) -> DynamicConfig? {
+    func getConfig(eTag: String?) -> (DynamicConfig?, String?) {
         let url = baseUrl.appendingPathComponent("config")
 
         var headers: [String: String] = [
@@ -70,26 +70,26 @@ final class BaseNetworkClient: NetworkClient {
                                                   jsonBody: Data())
 
         switch response {
-        case .success(let body):
+        case .success(let body, let eTag):
             guard let body,
                   let data = body.data(using: .utf8) else {
-                return nil
+                return (nil, nil)
             }
 
             do {
                 let decoder = JSONDecoder()
                 let config = try decoder.decode(BaseDynamicConfig.self, from: data)
 
-                return config
+                return (config, eTag)
             } catch {
-                return nil
+                return (nil, nil)
             }
 
         case .error(let error):
             if case .clientError(let code, _) = error, code == 304 {
-                return nil
+                return (nil, nil)
             }
-            return nil
+            return (nil, nil)
         }
     }
 

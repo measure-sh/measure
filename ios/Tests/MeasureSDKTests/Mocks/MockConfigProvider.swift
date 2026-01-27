@@ -27,7 +27,6 @@ final class MockConfigProvider: ConfigProvider {
     var scaledTouchSlop: CGFloat
     var screenshotMaskHexColor: String
     var screenshotCompressionQuality: Number
-    var eventTypeExportAllowList: [EventType]
     var maxSpanNameLength: Number
     var maxCheckpointNameLength: Number
     var maxCheckpointsPerSpan: Number
@@ -40,7 +39,6 @@ final class MockConfigProvider: ConfigProvider {
     var shakeSlop: Number
     var disallowedCustomHeaders: [String]
     var estimatedEventSizeInKb: Number
-    var sessionEndLastEventThresholdMs: Number
     var layoutSnapshotDebounceInterval: Number
     var accelerometerUpdateInterval: TimeInterval
     var lifecycleViewControllerExcludeList: [String]
@@ -71,6 +69,7 @@ final class MockConfigProvider: ConfigProvider {
     var dynamicConfig: DynamicConfig?
     var combinedHttpHeadersBlocklist: [String]
     var combinedHttpUrlBlocklist: [String] = []
+    var httpUrlBlocklist: [String]
 
     init(enableLogging: Bool = false,
          autoStart: Bool = true,
@@ -91,7 +90,6 @@ final class MockConfigProvider: ConfigProvider {
          scaledTouchSlop: CGFloat = 3.5,
          screenshotMaskHexColor: String = "#222222",
          screenshotCompressionQuality: Number = 25,
-         eventTypeExportAllowList: [EventType] = [.sessionStart],
          maxSpanNameLength: Number = 64,
          maxCheckpointNameLength: Number = 64,
          maxCheckpointsPerSpan: Number = 100,
@@ -104,7 +102,6 @@ final class MockConfigProvider: ConfigProvider {
          shakeSlop: Number = 2,
          disallowedCustomHeaders: [String] = DefaultConfig.disallowedCustomHeaders,
          estimatedEventSizeInKb: Number = 2,
-         sessionEndLastEventThresholdMs: Number = 123_213,
          layoutSnapshotDebounceInterval: Number = 750,
          accelerometerUpdateInterval: TimeInterval = 0.1,
          lifecycleViewControllerExcludeList: [String] = [
@@ -161,7 +158,8 @@ final class MockConfigProvider: ConfigProvider {
             "Proxy-Authorization",
             "WWW-Authenticate",
             "X-Api-Key",
-         ]) {
+         ],
+         httpUrlBlocklist: [String] = ["https://storage.googleapis.com/"]) {
         self.enableLogging = enableLogging
         self.autoStart = autoStart
         self.enableFullCollectionMode = enableFullCollectionMode
@@ -181,7 +179,6 @@ final class MockConfigProvider: ConfigProvider {
         self.scaledTouchSlop = scaledTouchSlop
         self.screenshotMaskHexColor = screenshotMaskHexColor
         self.screenshotCompressionQuality = screenshotCompressionQuality
-        self.eventTypeExportAllowList = eventTypeExportAllowList
         self.maxSpanNameLength = maxSpanNameLength
         self.maxCheckpointNameLength = maxCheckpointNameLength
         self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
@@ -194,7 +191,6 @@ final class MockConfigProvider: ConfigProvider {
         self.shakeSlop = shakeSlop
         self.disallowedCustomHeaders = disallowedCustomHeaders
         self.estimatedEventSizeInKb = estimatedEventSizeInKb
-        self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
         self.layoutSnapshotDebounceInterval = layoutSnapshotDebounceInterval
         self.accelerometerUpdateInterval = accelerometerUpdateInterval
         self.lifecycleViewControllerExcludeList = lifecycleViewControllerExcludeList
@@ -224,6 +220,7 @@ final class MockConfigProvider: ConfigProvider {
         self.httpTrackRequestForUrls = httpTrackRequestForUrls
         self.httpTrackResponseForUrls = httpTrackResponseForUrls
         self.httpBlockedHeaders = httpBlockedHeaders
+        self.httpUrlBlocklist = httpUrlBlocklist
     }
 
 

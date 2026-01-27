@@ -56,7 +56,6 @@ final class BaseSignalStore: SignalStore {
 
             return
         }
-
     }
 
     func store(_ span: SpanEntity) {

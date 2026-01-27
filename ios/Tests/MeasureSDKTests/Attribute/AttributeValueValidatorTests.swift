@@ -138,4 +138,125 @@ final class AttributeValueValidatorTests: XCTestCase {
         XCTAssertEqual(mockLogger.logs.count, 1)
         XCTAssertTrue(mockLogger.logs.first!.contains("Event(\(eventName)) contains more than max allowed attributes."))
     }
+
+    func testValidateAttributes_whenOneAttributeInvalid_entireEventRejected() {
+        mockConfigProvider.maxUserDefinedAttributeKeyLength = 3
+
+        let attrs: [String: AttributeValue] = [
+            "ok": .int(1),
+            "toolong": .int(2)
+        ]
+
+        let isValid = validator.validateAttributes(name: "event", attributes: attrs)
+
+        XCTAssertFalse(isValid)
+    }
+
+    func testValidateAttributes_whenEmptyDictionary_returnsTrue() {
+        let isValid = validator.validateAttributes(name: "event", attributes: [:])
+
+        XCTAssertTrue(isValid)
+    }
+
+    func testDropInvalidAttributes_whenNil_returnsNil() {
+        let result = validator.dropInvalidAttributes(name: "event", attributes: nil)
+
+        XCTAssertNil(result)
+        XCTAssertTrue(mockLogger.logs.isEmpty)
+    }
+
+    func testDropInvalidAttributes_whenEmpty_returnsEmpty() {
+        let result = validator.dropInvalidAttributes(name: "event", attributes: [:])
+
+        XCTAssertEqual(result?.count, 0)
+        XCTAssertTrue(mockLogger.logs.isEmpty)
+    }
+
+    func testDropInvalidAttributes_dropsInvalidKey() {
+        mockConfigProvider.maxUserDefinedAttributeKeyLength = 3
+
+        let attrs: [String: AttributeValue] = [
+            "toolong": .int(1),
+            "ok": .int(2)
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?.count, 1)
+        XCTAssertNotNil(result?["ok"])
+        XCTAssertNil(result?["toolong"])
+        XCTAssertEqual(mockLogger.logs.count, 1)
+        XCTAssertTrue(mockLogger.logs.first!.contains("dropped attribute with invalid key"))
+    }
+
+    func testDropInvalidAttributes_dropsInvalidValue() {
+        mockConfigProvider.maxUserDefinedAttributeValueLength = 3
+
+        let attrs: [String: AttributeValue] = [
+            "a": .string("toolong"),
+            "b": .string("ok")
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?.count, 1)
+        XCTAssertNotNil(result?["b"])
+        XCTAssertNil(result?["a"])
+        XCTAssertEqual(mockLogger.logs.count, 1)
+        XCTAssertTrue(mockLogger.logs.first!.contains("invalid value"))
+    }
+
+    func testDropInvalidAttributes_dropsBothInvalidKeyAndValue() {
+        mockConfigProvider.maxUserDefinedAttributeKeyLength = 2
+        mockConfigProvider.maxUserDefinedAttributeValueLength = 2
+
+        let attrs: [String: AttributeValue] = [
+            "long": .string("long")
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?.count, 0)
+        XCTAssertEqual(mockLogger.logs.count, 2)
+    }
+
+    func testDropInvalidAttributes_keepsOnlyValidAttributes() {
+        mockConfigProvider.maxUserDefinedAttributeKeyLength = 5
+
+        let attrs: [String: AttributeValue] = [
+            "valid": .int(1),
+            "toolong": .int(2)
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?["valid"]?.value as? Int, 1)
+    }
+
+    func testDropInvalidAttributes_enforcesMaxAttributesLimit() {
+        mockConfigProvider.maxUserDefinedAttributesPerEvent = 1
+
+        let attrs: [String: AttributeValue] = [
+            "a": .int(1),
+            "b": .int(2)
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?.count, 1)
+        XCTAssertEqual(mockLogger.logs.count, 1)
+        XCTAssertTrue(mockLogger.logs.first!.contains("exceeded max attributes"))
+    }
+
+    func testDropInvalidAttributes_whenAllInvalid_returnsEmptyDictionary() {
+        mockConfigProvider.maxUserDefinedAttributeKeyLength = 1
+
+        let attrs: [String: AttributeValue] = [
+            "long": .int(1)
+        ]
+
+        let result = validator.dropInvalidAttributes(name: "event", attributes: attrs)
+
+        XCTAssertEqual(result?.count, 0)
+    }
 }

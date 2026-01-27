@@ -29,200 +29,221 @@ final class BaseSpanProcessorTests: XCTestCase {
         signalProcessor = nil
         configProvider = nil
         sampler = nil
+        attributeValueValidator = nil
         super.tearDown()
     }
 
-    private func getSpan(logger: Logger,
-                         timeProvider: TimeProvider,
-                         spanProcessor: SpanProcessor,
-                         name: String = "span-name",
-                         spanId: String = "span-id",
-                         traceId: String = "trace-id",
-                         parentId: String? = nil,
-                         sessionId: String = "session-id",
-                         startTime: Int64 = 987654321,
-                         isSampled: Bool = true) -> MsrSpan {
-        return MsrSpan(logger: logger,
-                       timeProvider: timeProvider,
-                       isSampled: isSampled,
-                       name: name,
-                       spanId: spanId,
-                       traceId: traceId,
-                       parentId: parentId,
-                       sessionId: sessionId,
-                       startTime: startTime,
-                       spanProcessor: spanProcessor)
-    }
+    private func makeSpan(
+        spanProcessor: SpanProcessor,
+        timeProvider: MockTimeProvider = MockTimeProvider(),
+        name: String = "span-name",
+        startTime: Int64? = nil,
+        isSampled: Bool = true
+    ) -> MsrSpan {
 
-    func test_onStart_appendsAttributesToSpan() {
-        let timeProvider = MockTimeProvider()
-        let attributeProcessor = MockAttributeProcessor { attributes in
-            attributes.deviceName = "test-device"
-        }
+        let start = startTime ?? timeProvider.current
 
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [attributeProcessor],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
-
-        let span = getSpan(
+        return MsrSpan(
             logger: logger,
             timeProvider: timeProvider,
+            isSampled: isSampled,
+            name: name,
+            spanId: "span-id",
+            traceId: "trace-id",
+            parentId: nil,
+            sessionId: "session-id",
+            startTime: start,
             spanProcessor: spanProcessor
         )
-
-        spanProcessor.onStart(span)
-        let attributes = span.attributes
-
-        XCTAssertEqual(attributes?.deviceName, "test-device")
     }
 
-    func test_onStart_addsThreadNameToAttributes() {
-        let timeProvider = MockTimeProvider()
-        let attributeProcessor = MockAttributeProcessor { attributes in
-            attributes.threadName = "unknown"
+    private func makeProcessor(attributeProcessors: [AttributeProcessor] = []) -> BaseSpanProcessor {
+        BaseSpanProcessor(
+            logger: logger,
+            signalProcessor: signalProcessor,
+            attributeProcessors: attributeProcessors,
+            configProvider: configProvider,
+            sampler: sampler,
+            attributeValueValidator: attributeValueValidator
+        )
+    }
+
+    // MARK: onStart
+
+    func test_onStart_setsThreadNameAndCustomAttributes() {
+        let attributeProcessor = MockAttributeProcessor {
+            $0.deviceName = "test-device"
         }
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [attributeProcessor],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
 
-        let span = getSpan(
-            logger: logger,
-            timeProvider: timeProvider,
-            spanProcessor: spanProcessor
-        )
+        let processor = makeProcessor(attributeProcessors: [attributeProcessor])
+        processor.onConfigLoaded()
 
-        spanProcessor.onStart(span)
-        XCTAssertEqual(span.attributes?.threadName, "unknown")
+        let span = makeSpan(spanProcessor: processor)
+        processor.onStart(span)
+
+        let attrs = span.toSpanData().attributes
+
+        XCTAssertEqual(attrs?.deviceName, "test-device")
+        XCTAssertNotNil(attrs?.threadName)
     }
 
-    func test_onEnded_delegatesToSignalProcessor() {
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
+    // MARK: forwarding
 
-        spanProcessor.onConfigLoaded()
-        let span = getSpan(
-            logger: logger,
-            timeProvider: MockTimeProvider(),
-            spanProcessor: spanProcessor,
-            startTime: 2000
-        )
-        span.end(timestamp: 3000)
+    func test_onEnded_tracksSpanAfterConfigLoaded() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
 
+        let span = makeSpan(spanProcessor: processor)
+        span.end()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 1)
         XCTAssertEqual(signalProcessor.spanData?.name, "span-name")
     }
 
-    func test_onEnded_discardsSpanWithNegativeDuration() {
-        let timeProvider = MockTimeProvider()
-        timeProvider.current = 4000
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
+    func test_onEnded_buffersUntilConfigLoaded() {
+        let processor = makeProcessor()
 
-        let span = getSpan(
-            logger: logger,
-            timeProvider: timeProvider,
-            spanProcessor: spanProcessor,
-            startTime: 5000
-        )
-        span.end(timestamp: 4000)
+        let span = makeSpan(spanProcessor: processor)
+        processor.onStart(span)
+        span.end()
 
-        XCTAssertNil(signalProcessor.spanData)
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
+
+        processor.onConfigLoaded()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 1)
     }
 
-    func test_onEnded_discardsSpanWithLongName() {
-        let longName = String(repeating: "a", count: Int(configProvider.maxSpanNameLength) + 1)
-        let timeProvider = MockTimeProvider()
-        timeProvider.current = 1000
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
+    func test_onConfigLoaded_onlyProcessesBufferedSpansOnce() {
+        let processor = makeProcessor()
 
-        let span = getSpan(
-            logger: logger,
-            timeProvider: timeProvider,
-            spanProcessor: spanProcessor,
-            name: longName
-        )
-        span.end(timestamp: 2000)
+        let span = makeSpan(spanProcessor: processor)
+        processor.onStart(span)
+        span.end()
 
-        XCTAssertNil(signalProcessor.spanData)
+        processor.onConfigLoaded()
+        processor.onConfigLoaded()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 1)
     }
 
-    func test_onEnded_discardsCheckpointsWithLongNames() {
-        let longName = String(repeating: "a", count: Int(configProvider.maxCheckpointNameLength) + 1)
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
+    // MARK: sampling
 
-        spanProcessor.onConfigLoaded()
-        let span = getSpan(
-            logger: logger,
-            timeProvider: MockTimeProvider(),
-            spanProcessor: spanProcessor,
-            startTime: 1000
-        )
-        span.setCheckpoint(longName)
-        span.end(timestamp: 2000)
+    func test_onConfigLoaded_appliesSamplingToBufferedSpan() {
+        let processor = makeProcessor()
 
-        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, 0)
+        let span = makeSpan(spanProcessor: processor, isSampled: false)
+        processor.onStart(span)
+        span.end()
+
+        sampler.shouldSampleTraceReturnValue = true
+        processor.onConfigLoaded()
+
+        XCTAssertTrue(span.isSampled)
     }
 
-    func test_onEnded_limitsCheckpointCount() {
-        let timeProvider = MockTimeProvider()
-        let spanProcessor = BaseSpanProcessor(
-            logger: logger,
-            signalProcessor: signalProcessor,
-            attributeProcessors: [],
-            configProvider: configProvider,
-            sampler: sampler,
-            attributeValueValidator: attributeValueValidator
-        )
+    // MARK: sanitization
 
-        spanProcessor.onConfigLoaded()
-        let span = getSpan(
-            logger: logger,
-            timeProvider: timeProvider,
-            spanProcessor: spanProcessor,
-            startTime: 1000
-        )
+    func test_discardsSpanWithNegativeDuration() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
 
-        for _ in 0...(Int(configProvider.maxCheckpointsPerSpan) + 5) {
-            span.setCheckpoint("checkpoint")
+        let time = MockTimeProvider()
+        time.current = 1000
+
+        let span = makeSpan(spanProcessor: processor, timeProvider: time, startTime: 2000)
+        span.end(timestamp: 1000)
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
+    }
+
+    func test_discardsSpanWhenNameTooLong() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        let longName = String(repeating: "s", count: Int(configProvider.maxSpanNameLength) + 1)
+        makeSpan(spanProcessor: processor, name: longName).end()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
+    }
+
+    func test_sanitizesCheckpoints() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        let span = makeSpan(spanProcessor: processor)
+
+        let long = String(repeating: "x", count: Int(configProvider.maxCheckpointNameLength) + 1)
+        span.setCheckpoint(long)
+        span.setCheckpoint("valid")
+
+        span.end()
+
+        let tracked = signalProcessor.spanData!
+        XCTAssertEqual(tracked.checkpoints.count, 1)
+        XCTAssertEqual(tracked.checkpoints.first?.name, "valid")
+    }
+
+    func test_limitsCheckpointCount() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        let span = makeSpan(spanProcessor: processor)
+
+        for _ in 0...configProvider.maxCheckpointsPerSpan {
+            span.setCheckpoint("cp")
         }
 
-        span.end(timestamp: 3000)
-        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count, Int(configProvider.maxCheckpointsPerSpan))
+        span.end()
+
+        XCTAssertEqual(signalProcessor.spanData?.checkpoints.count,
+                       Int(configProvider.maxCheckpointsPerSpan))
+    }
+
+    func test_dropsInvalidUserAttributes() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        let span = makeSpan(spanProcessor: processor)
+
+        span.setAttribute(
+            String(repeating: "k", count: Int(configProvider.maxUserDefinedAttributeKeyLength) + 1),
+            value: "value"
+        )
+        span.setAttribute("valid", value: "value")
+
+        span.end()
+
+        let tracked = signalProcessor.spanData!
+
+        XCTAssertEqual(tracked.userDefinedAttrs?.count, 1)
+        XCTAssertEqual(tracked.userDefinedAttrs?["valid"]?.value as? String, "value")
     }
 }
 
+//    func test_onConfigLoaded_setsSamplingRateOnBufferedSpans() {
+//        let processor = makeProcessor()
+//
+//        let span = makeSpan(spanProcessor: processor, startTime: 0, isSampled: false)
+//        processor.onStart(span)
+//        span.end()
+//
+//        sampler.setSampled(true)
+//        processor.onConfigLoaded()
+//
+//        XCTAssertTrue(span.isSampled)
+//    }
+//
+//    func test_onConfigLoaded_onlyProcessesBufferedSpansOnce() {
+//        let processor = makeProcessor()
+//
+//        let span = makeSpan(spanProcessor: processor, startTime: 0)
+//        processor.onStart(span)
+//        span.end()
+//
+//        processor.onConfigLoaded()
+//        processor.onConfigLoaded()
+//
+//        XCTAssertEqual(signalProcessor.trackSpanCallCount, 1)
+//    }
+//}

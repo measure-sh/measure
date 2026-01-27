@@ -12,6 +12,8 @@ protocol UserDefaultStorage {
     func setInstallationId(_ installationId: String)
     func getUserId() -> String?
     func setUserId(_ userId: String?)
+    func getConfigEtag() -> String?
+    func setConfigEtag(_ eTag: String?)
     func getRecentSession() -> RecentSession?
     func setRecentSessionEventTime(_ timestamp: Number)
     func setRecentSession(_ recentSession: RecentSession)
@@ -45,6 +47,18 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
             userDefaults.set(userId, forKey: userIdKey)
         } else {
             userDefaults.removeObject(forKey: userIdKey)
+        }
+    }
+
+    func getConfigEtag() -> String? {
+        return userDefaults.string(forKey: eTagKey)
+    }
+
+    func setConfigEtag(_ eTag: String?) {
+        if let eTag = eTag {
+            userDefaults.set(eTag, forKey: eTagKey)
+        } else {
+            userDefaults.removeObject(forKey: eTagKey)
         }
     }
 

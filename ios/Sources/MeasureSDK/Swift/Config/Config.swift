@@ -17,7 +17,6 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let batchExportIntervalMs: Number
     let attachmentExportIntervalMs: Number
-//    let eventsBatchingIntervalMs: Number
     let defaultHttpHeadersBlocklist: [String]
     let sessionBackgroundTimeoutThresholdMs: Number
     let maxEventNameLength: Number
@@ -30,7 +29,6 @@ struct Config: InternalConfig, MeasureConfig {
     let timeoutIntervalForRequest: TimeInterval
     let screenshotMaskHexColor: String
     let screenshotCompressionQuality: Number
-    let eventTypeExportAllowList: [EventType]
     let maxSpanNameLength: Number
     let maxCheckpointNameLength: Number
     let maxCheckpointsPerSpan: Number
@@ -51,6 +49,7 @@ struct Config: InternalConfig, MeasureConfig {
     let enableFullCollectionMode: Bool
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let maxDiskUsageInMb: Number
+    let httpUrlBlocklist: [String]
     
     init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
          autoStart: Bool = DefaultConfig.autoStart,
@@ -65,11 +64,11 @@ struct Config: InternalConfig, MeasureConfig {
         self.batchExportIntervalMs = 3_000 // 3 seconds
         self.attachmentExportIntervalMs = 500 // 500 ms
         self.defaultHttpHeadersBlocklist = ["Authorization",
-                                             "Cookie",
-                                             "Set-Cookie",
-                                             "Proxy-Authorization",
-                                             "WWW-Authenticate",
-                                             "X-Api-Key"]
+                                            "Cookie",
+                                            "Set-Cookie",
+                                            "Proxy-Authorization",
+                                            "WWW-Authenticate",
+                                            "X-Api-Key"]
         self.sessionBackgroundTimeoutThresholdMs = 30_000 // 30 seconds
         self.maxEventNameLength = 64 // 64 chars
         self.maxUserDefinedAttributesPerEvent = 100
@@ -80,7 +79,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.scaledTouchSlop = 3.5 // 3.5 points
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
-        self.eventTypeExportAllowList = [.sessionStart]
         self.maxSpanNameLength = 64
         self.maxCheckpointNameLength = 64
         self.maxCheckpointsPerSpan = 100
@@ -120,5 +118,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
         self.timeoutIntervalForRequest = 30
         self.maxBodySizeBytes = 3_000_000
+        self.httpUrlBlocklist = ["https://storage.googleapis.com/"]
     }
 }

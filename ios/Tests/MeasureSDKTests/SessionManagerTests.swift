@@ -29,7 +29,6 @@ final class SessionManagerTests: XCTestCase {
                                             eventsBatchingIntervalMs: 1000,
                                             longPressTimeout: 0.5,
                                             scaledTouchSlop: 20,
-                                            sessionEndLastEventThresholdMs: 1000,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
         randomizer = MockRandomizer()
@@ -79,7 +78,7 @@ final class SessionManagerTests: XCTestCase {
         let recentSession = RecentSession(id: expectedSessionId, createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "2.0.0")
         userDefaultStorage.recentSession = recentSession
         timeProvider.current = lastEventTime + 1000
-        configProvider.sessionEndLastEventThresholdMs = 10000
+        configProvider.sessionBackgroundTimeoutThresholdMs = 10000
 
         sessionManager.start() { _ in }
         XCTAssertEqual(sessionManager.sessionId, "new-session-id", "Expected a new session to be created when the framework version is updated.")
@@ -91,7 +90,7 @@ final class SessionManagerTests: XCTestCase {
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
-        timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs - 1
+        timeProvider.millisTime += configProvider.sessionBackgroundTimeoutThresholdMs - 1
         idProvider.uuId = "test-session-id-2"
 
         sessionManager.applicationWillEnterForeground()
@@ -105,7 +104,7 @@ final class SessionManagerTests: XCTestCase {
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
-        timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs + 1
+        timeProvider.millisTime += configProvider.sessionBackgroundTimeoutThresholdMs + 1
         idProvider.uuId = "test-session-id-2"
 
         sessionManager.applicationWillEnterForeground()
@@ -114,18 +113,10 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionStore() {
-        let expectation = self.expectation(description: "Session should be inserted")
+        sessionManager.start { _ in }
 
-        sessionManager.start() { _ in }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            self.sessionStore.getAllSessions { sessions in
-                XCTAssertEqual(sessions?.count, 1, "Expected 1 session in session store.")
-                expectation.fulfill()
-            }
-        }
-
-        wait(for: [expectation], timeout: 2.0)
+        let sessions = sessionStore.getAllSessions()
+        XCTAssertEqual(sessions.count, 1, "Expected 1 session in session store.")
     }
 
     func testCreatesNewSession_WhenRecentSessionIsUnavailable() {
@@ -146,7 +137,7 @@ final class SessionManagerTests: XCTestCase {
         let recentSession = RecentSession(id: "previous-session-id", createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "1.0.0")
         userDefaultStorage.recentSession = recentSession
         timeProvider.current = lastEventTime + 5000
-        configProvider.sessionEndLastEventThresholdMs = 1000
+        configProvider.sessionBackgroundTimeoutThresholdMs = 1000
 
         sessionManager.start() { _ in }
         let sessionId = sessionManager.sessionId
@@ -173,7 +164,7 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testCreatesNewSession_IfLastSessionCrashedWithinThresholdTime() {
-        configProvider.sessionEndLastEventThresholdMs = 100000
+        configProvider.sessionBackgroundTimeoutThresholdMs = 100000
         let sessionCreatedAt: Int64 = 1000
         timeProvider.current = sessionCreatedAt
         sessionManager.start() { _ in }

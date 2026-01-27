@@ -174,12 +174,8 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            var needsReporting: Bool? = needsReporting
-            if self.configProvider.eventTypeExportAllowList.contains(event.type) {
-                needsReporting = true
-            }
-
-            self.signalStore.store(event, needsReporting: needsReporting ?? false)
+            self.signalStore.store(event,
+                                   needsReporting: configProvider.enableFullCollectionMode ? true : needsReporting ?? false)
             self.sessionManager.onEventTracked(event)
             if event.type == .bugReport {
                 self.exporter.export()

@@ -12,12 +12,7 @@ final class URLSessionTaskInterceptor {
     private var httpInterceptorCallbacks: HttpInterceptorCallbacks?
     private var taskStartTimes: [URLSessionTask: UInt64] = [:]
     private var timeProvider: TimeProvider?
-    private var allowedDomains: [String]?
-    private var ignoredDomains: [String]?
-    private var httpContentTypeAllowlist: [String]?
-    private var defaultHttpHeadersBlocklist: [String]?
     private var configProvider: ConfigProvider?
-    private var httpEventValidator: HttpEventValidator?
     private var recentRequests: [String: UInt64] = [:]
     private let dedupeWindowMs: UInt64 = 300
 
@@ -33,26 +28,6 @@ final class URLSessionTaskInterceptor {
 
     func setConfigProvider(_ configProvider: ConfigProvider) {
         self.configProvider = configProvider
-    }
-
-    func setAllowedDomains(_ allowedDomains: [String]) {
-        self.allowedDomains = allowedDomains
-    }
-
-    func setIgnoredDomains(_ ignoredDomains: [String]) {
-        self.ignoredDomains = ignoredDomains
-    }
-
-    func setHttpContentTypeAllowlist(_ httpContentTypeAllowlist: [String]) {
-        self.httpContentTypeAllowlist = httpContentTypeAllowlist
-    }
-
-    func setDefaultHttpHeadersBlocklist(_ defaultHttpHeadersBlocklist: [String]) {
-        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
-    }
-
-    func setHttpEventValidator(_ httpEventValidator: HttpEventValidator) {
-       self.httpEventValidator = httpEventValidator
     }
 
     func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this function_body_length

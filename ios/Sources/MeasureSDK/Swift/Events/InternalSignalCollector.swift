@@ -51,6 +51,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let timeProvider: TimeProvider
     private let sessionManager: SessionManager
     private let attributeProcessors: [AttributeProcessor]
+    private let signalSampler: SignalSampler
 
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
@@ -59,12 +60,14 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
          timeProvider: TimeProvider,
          signalProcessor: SignalProcessor,
          sessionManager: SessionManager,
-         attributeProcessors: [AttributeProcessor]) {
+         attributeProcessors: [AttributeProcessor],
+         signalSampler: SignalSampler) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.sessionManager = sessionManager
         self.timeProvider = timeProvider
         self.attributeProcessors = attributeProcessors
+        self.signalSampler = signalSampler
         self.isForeground = true
     }
 
@@ -101,7 +104,6 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         let evaluatedAttributes = Attributes(threadName: threadName)
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
 
-        // TODO: Check if needs reporting will always be true for trackEvent method.
         do {
             switch type {
             case EventType.custom.rawValue:
@@ -115,7 +117,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: false
                 )
 
             case EventType.exception.rawValue:
@@ -154,7 +156,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId)
                 )
 
             case EventType.http.rawValue:
@@ -168,7 +170,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: false
                 )
 
             case EventType.bugReport.rawValue:
@@ -196,7 +198,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: false
                 )
             case EventType.gestureLongClick.rawValue:
                 let bugReportData = try extractLongClickData(data: data)
@@ -209,7 +211,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: false
                 )
             case EventType.gestureScroll.rawValue:
                 let bugReportData = try extractScrollData(data: data)
@@ -222,7 +224,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: false
                 )
             default:
                 logger.log(

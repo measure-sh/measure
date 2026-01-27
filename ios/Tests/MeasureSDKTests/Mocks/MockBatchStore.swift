@@ -10,30 +10,42 @@ import Foundation
 
 final class MockBatchStore: BatchStore {
     private var batches: [String: BatchEntity] = [:]
-    private(set) var insertCallCount = 0
-    private(set) var deleteCallCount = 0
-
-    var onInsert: ((BatchEntity) -> Void)?
-    var onDelete: ((String) -> Void)?
+    private var insertionOrder: [String] = []
+    private let lock = NSLock()
 
     func insertBatch(_ batch: BatchEntity) -> Bool {
-        insertCallCount += 1
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard batches[batch.batchId] == nil else {
+            return false
+        }
+
         batches[batch.batchId] = batch
-        onInsert?(batch)
+        insertionOrder.append(batch.batchId)
         return true
     }
 
     func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
-        return Array(batches.values.prefix(maxNumberOfBatches))
+        lock.lock()
+        defer { lock.unlock() }
+
+        let ids = insertionOrder.prefix(maxNumberOfBatches)
+        return ids.compactMap { batches[$0] }
     }
 
     func getBatch(_ batchId: String) -> BatchEntity? {
+        lock.lock()
+        defer { lock.unlock() }
+
         return batches[batchId]
     }
 
     func deleteBatch(_ batchId: String) {
-        deleteCallCount += 1
+        lock.lock()
+        defer { lock.unlock() }
+
         batches.removeValue(forKey: batchId)
-        onDelete?(batchId)
+        insertionOrder.removeAll { $0 == batchId }
     }
 }

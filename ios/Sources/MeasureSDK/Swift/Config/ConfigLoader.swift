@@ -18,15 +18,20 @@ protocol ConfigLoader {
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void)
 }
 
+// TODO:
+// Add cache expiry logic
+// using etag in api call never returns error. 
 /// A base implementation of the `ConfigLoader` protocol.
 struct BaseConfigLoader: ConfigLoader {
+    private let userDefaultStorage: UserDefaultStorage
     private let fileManager: SystemFileManager
     private let networkClient: NetworkClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let logger: Logger
 
-    init(fileManager: SystemFileManager, networkClient: NetworkClient, logger: Logger) {
+    init(userDefaultStorage: UserDefaultStorage, fileManager: SystemFileManager, networkClient: NetworkClient, logger: Logger) {
+        self.userDefaultStorage = userDefaultStorage
         self.fileManager = fileManager
         self.networkClient = networkClient
         self.logger = logger
@@ -74,10 +79,14 @@ struct BaseConfigLoader: ConfigLoader {
     }
 
     private func refreshConfigFromServer() {
-        guard let config = networkClient.getConfig(eTag: nil), let dynamicConfig = config as? BaseDynamicConfig else {
-            return
+        let responseTuple = networkClient.getConfig(eTag: userDefaultStorage.getConfigEtag())
+
+        if let dynamicConfig = responseTuple.0 as? BaseDynamicConfig {
+            self.saveConfigToDisk(dynamicConfig)
         }
 
-        self.saveConfigToDisk(dynamicConfig)
+        if let eTag = responseTuple.1 {
+            userDefaultStorage.setConfigEtag(eTag)
+        }
     }
 }

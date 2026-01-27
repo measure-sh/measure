@@ -9,23 +9,45 @@ import Foundation
 @testable import Measure
 
 final class MockSessionManager: SessionManager {
-    var shouldReportSession: Bool = true
-    var sessionId: String = ""
-    var isPreviousSessionCrashed = false
-    var trackedEvent: Any?
-    var isCrashed: Bool = false
-    var onConfigLoadedHandler: (() -> Void)?
+    var sessionId: String
+    var shouldReportJourneyEvents: Bool
+    private(set) var startCalled = false
+    private(set) var applicationDidEnterBackgroundCalled = false
+    private(set) var applicationWillEnterForegroundCalled = false
+    private(set) var applicationWillTerminateCalled = false
+    private(set) var onEventTrackedCalled = false
+    private(set) var onEventTrackedCallCount = 0
+    private(set) var isPreviousSessionCrashed: Bool?
+    private(set) var isCrashed = false
+    private(set) var onConfigLoadedCalled = false
+    private(set) var trackedEvent: Any?
 
-    init(sessionId: String = "session-id", onConfigLoaded: (() -> Void)? = nil) {
+    init(sessionId: String = "mock-session-id", shouldReportJourneyEvents: Bool = true) {
         self.sessionId = sessionId
-        self.onConfigLoadedHandler = onConfigLoaded
+        self.shouldReportJourneyEvents = shouldReportJourneyEvents
     }
 
-    func start(onNewSession: (String?) -> Void) {}
-    func applicationDidEnterBackground() {}
-    func applicationWillEnterForeground() {}
-    func applicationWillTerminate() {}
-    func onEventTracked<T: Codable>(_ event: Event<T>)  {
+    func start(onNewSession: (String?) -> Void) {
+        startCalled = true
+
+        onNewSession(sessionId)
+    }
+
+    func applicationDidEnterBackground() {
+        applicationDidEnterBackgroundCalled = true
+    }
+
+    func applicationWillEnterForeground() {
+        applicationWillEnterForegroundCalled = true
+    }
+
+    func applicationWillTerminate() {
+        applicationWillTerminateCalled = true
+    }
+
+    func onEventTracked<T>(_ event: Event<T>) where T: Decodable & Encodable {
+        onEventTrackedCalled = true
+        onEventTrackedCallCount += 1
         trackedEvent = event
     }
 
@@ -38,6 +60,6 @@ final class MockSessionManager: SessionManager {
     }
 
     func onConfigLoaded() {
-        onConfigLoadedHandler?()
+        onConfigLoadedCalled = true
     }
 }

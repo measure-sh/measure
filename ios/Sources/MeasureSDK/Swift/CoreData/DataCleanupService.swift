@@ -8,7 +8,7 @@
 import Foundation
 
 protocol DataCleanupService {
-    func clearStaleData(completion: @escaping () -> Void)
+    func clearStaleData()
 }
 
 final class BaseDataCleanupService: DataCleanupService {
@@ -20,7 +20,13 @@ final class BaseDataCleanupService: DataCleanupService {
     private let configProvider: ConfigProvider
     private let attachmentStore: AttachmentStore
 
-    init(eventStore: EventStore, spanStore: SpanStore, sessionStore: SessionStore, logger: Logger, sessionManager: SessionManager, configProvider: ConfigProvider, attachmentStore: AttachmentStore) {
+    init(eventStore: EventStore,
+         spanStore: SpanStore,
+         sessionStore: SessionStore,
+         logger: Logger,
+         sessionManager: SessionManager,
+         configProvider: ConfigProvider,
+         attachmentStore: AttachmentStore) {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.sessionStore = sessionStore
@@ -30,162 +36,110 @@ final class BaseDataCleanupService: DataCleanupService {
         self.attachmentStore = attachmentStore
     }
 
-    func clearStaleData(completion: @escaping () -> Void) {
-        trimIfDiskLimitExceeded(currentSessionId: self.sessionManager.sessionId) { [weak self] in
-            guard let self else { return }
-            self.sessionStore.getSessionsToDelete { [weak self] sessionsToDelete in
-                guard let self, var sessionsToDelete = sessionsToDelete else {
-                    completion()
-                    return
-                }
+    func clearStaleData() {
+        trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
 
-                sessionsToDelete.removeAll { $0 == self.sessionManager.sessionId }
-
-                guard !sessionsToDelete.isEmpty else {
-                    self.logger.internalLog(level: .info, message: "Cleanup Service: No stale session data to clear after filtering current session.", error: nil, data: nil)
-                    completion()
-                    return
-                }
-
-                self.deleteSessionData(sessionIds: sessionsToDelete) {
-                    self.logger.internalLog(level: .info, message: "Cleanup Service: Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
-                    completion()
-                }
-            }
+        guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
+            return
         }
+
+        sessionsToDelete.removeAll { $0 == sessionManager.sessionId }
+
+        guard !sessionsToDelete.isEmpty else {
+            logger.internalLog(
+                level: .info,
+                message: "Cleanup Service: No stale session data to clear after filtering current session.",
+                error: nil,
+                data: nil
+            )
+            return
+        }
+
+        deleteSessionData(sessionIds: sessionsToDelete)
+        logger.internalLog(
+            level: .info,
+            message: "Cleanup Service: Cleared stale session data for \(sessionsToDelete.count) sessions.",
+            error: nil,
+            data: ["sessionIds": sessionsToDelete]
+        )
     }
 
-    private func deleteEmptySessions(currentSessionId: String, completion: (() -> Void)? = nil) {
-        sessionStore.getSessionsToDelete { [weak self] sessionIds in
-            guard let self, let sessionIds = sessionIds else {
-                completion?()
-                return
-            }
+    private func deleteEmptySessions(currentSessionId: String) {
+        guard let sessionIds = sessionStore.getSessionsToDelete() else { return }
 
-            var sessionsToDelete: [String] = []
+        var sessionsToDelete: [String] = []
 
-            let group = DispatchGroup()
+        for sessionId in sessionIds where sessionId != currentSessionId {
+            let eventCount = eventStore
+                .getEventsForSessions(sessions: [sessionId])?
+                .count ?? 0
 
-            for sessionId in sessionIds where sessionId != currentSessionId {
-                group.enter()
-                // TODO: Create new function to get count of events and spans for a session.
-                self.eventStore.getEventsForSessions(sessions: [sessionId]) { events in
-                    self.spanStore.getAllSpans { spans in
-                        let sessionSpans = spans?.filter { $0.sessionId == sessionId } ?? []
-                        if (events?.count ?? 0) + sessionSpans.count == 0 {
-                            sessionsToDelete.append(sessionId)
-                        }
-                        group.leave()
-                    }
-                }
-            }
+            let spanCount = spanStore.getSpansCount(sessionId: sessionId)
 
-            group.notify(queue: .main) {
-                guard !sessionsToDelete.isEmpty else {
-                    completion?()
-                    return
-                }
-
-                self.logger.internalLog(
-                    level: .debug,
-                    message: "Exporter: Deleting \(sessionsToDelete.count) empty sessions",
-                    error: nil,
-                    data: ["sessionIds": sessionsToDelete]
-                )
-
-                self.deleteSessionData(sessionIds: sessionsToDelete) {
-                    completion?()
-                }
-                
+            if eventCount + spanCount == 0 {
+                sessionsToDelete.append(sessionId)
             }
         }
+
+        guard !sessionsToDelete.isEmpty else { return }
+
+        logger.internalLog(
+            level: .debug,
+            message: "Exporter: Deleting \(sessionsToDelete.count) empty sessions",
+            error: nil,
+            data: ["sessionIds": sessionsToDelete]
+        )
+
+        deleteSessionData(sessionIds: sessionsToDelete)
     }
 
-    func trimIfDiskLimitExceeded(currentSessionId: String, completion: (() -> Void)? = nil) {
-        var eventsCount = 0
-        var spansCount = 0
+    func trimIfDiskLimitExceeded(currentSessionId: String) {
+        let eventsCount = eventStore.getEventsCount()
+        let spansCount = spanStore.getSpansCount()
+
         let minDiskLimitMb = 20
         let maxDiskLimitMb = 1500
-        let group = DispatchGroup()
 
-        group.enter()
-        eventStore.getEventsCount { [weak self] count in
-            guard self != nil else { group.leave(); return }
-            eventsCount = count
-            group.leave()
-        }
+        let totalSignals = eventsCount + spansCount
+        let estimatedSizeInMb =
+            (totalSignals * Int(configProvider.estimatedEventSizeInKb)) / 1024
 
-        group.enter()
-        spanStore.getSpansCount { [weak self] count in
-            guard self != nil else { group.leave(); return }
-            spansCount = count
-            group.leave()
-        }
+        let maxDiskMb = min(
+            max(Int(configProvider.maxDiskUsageInMb), minDiskLimitMb),
+            maxDiskLimitMb
+        )
 
-        group.notify(queue: .main) { [weak self] in
-            guard let self else {
-                completion?()
-                return
-            }
+        guard estimatedSizeInMb > maxDiskMb else { return }
 
-            let totalSignals = eventsCount + spansCount
-            let estimatedSizeInMb = (totalSignals * Int(self.configProvider.estimatedEventSizeInKb)) / 1024
-
-            let maxDiskMb = min(max(Int(configProvider.maxDiskUsageInMb), minDiskLimitMb), maxDiskLimitMb)
-
-            if estimatedSizeInMb > maxDiskMb {
-                self.deleteOldestSession(excluding: currentSessionId, completion: completion)
-            } else {
-                completion?()
-            }
-        }
+        deleteOldestSession(excluding: currentSessionId)
     }
 
-    private func deleteOldestSession(excluding sessionId: String, completion: (() -> Void)? = nil) {
-        sessionStore.getOldestSession { [weak self] oldestSessionId in
-            guard let self, let oldestSessionId = oldestSessionId else {
-                completion?()
-                return
-            }
+    private func deleteOldestSession(excluding sessionId: String) {
+        guard let oldestSessionId = sessionStore.getOldestSession() else { return }
 
-            if oldestSessionId == sessionId {
-                self.logger.internalLog(level: .debug, message: "Cleanup Service: Skipping deletion: oldest session is current session \(sessionId)", error: nil, data: nil)
-                completion?()
-                return
-            }
-
-            self.deleteSessionData(sessionIds: [oldestSessionId]) {
-                self.logger.internalLog(level: .info, message: "Cleanup Service: Deleted oldest session: \(oldestSessionId)", error: nil, data: nil)
-                completion?()
-            }
+        guard oldestSessionId != sessionId else {
+            logger.internalLog(
+                level: .debug,
+                message: "Cleanup Service: Skipping deletion: oldest session is current session \(sessionId)",
+                error: nil,
+                data: nil
+            )
+            return
         }
+
+        deleteSessionData(sessionIds: [oldestSessionId])
+        logger.internalLog(
+            level: .info,
+            message: "Cleanup Service: Deleted oldest session: \(oldestSessionId)",
+            error: nil,
+            data: nil
+        )
     }
 
-    private func deleteSessionData(sessionIds: [String], completion: (() -> Void)? = nil) {
-        let group = DispatchGroup()
-
-        group.enter()
-        sessionStore.deleteSessions(sessionIds) {
-            group.leave()
-        }
-
-        group.enter()
-        eventStore.deleteEvents(sessionIds: sessionIds) {
-            group.leave()
-        }
-
-        group.enter()
-        spanStore.deleteSpans(sessionIds: sessionIds) {
-            group.leave()
-        }
-
-        group.enter()
-        attachmentStore.deleteAttachments(forSessionIds: sessionIds) {
-            group.leave()
-        }
-
-        group.notify(queue: .main) {
-            completion?()
-        }
+    private func deleteSessionData(sessionIds: [String]) {
+        sessionStore.deleteSessions(sessionIds)
+        eventStore.deleteEvents(sessionIds: sessionIds)
+        spanStore.deleteSpans(sessionIds: sessionIds)
+        attachmentStore.deleteAttachments(forSessionIds: sessionIds)
     }
 }

@@ -17,6 +17,7 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     var launchData: LaunchData?
     var recentAppVersion: String?
     var recentBuildNumber: String?
+    var eTag: String?
 
     func getInstallationId() -> String? {
         return installationId
@@ -74,5 +75,13 @@ final class MockUserDefaultStorage: UserDefaultStorage {
 
     func setRecentBuildNumber(_ buildNumber: String) {
         self.recentBuildNumber = buildNumber
+    }
+
+    func setConfigEtag(_ eTag: String?) {
+        self.eTag = eTag
+    }
+
+    func getConfigEtag() -> String? {
+        return eTag
     }
 }

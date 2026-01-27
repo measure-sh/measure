@@ -9,78 +9,98 @@ import Foundation
 @testable import Measure
 
 final class MockAttachmentStore: AttachmentStore {
-    private var attachments: [String: [MsrUploadAttachment]] = [:]
-
-    var attachmentsToReturn: [MsrUploadAttachment] {
-        return attachments.values
-            .flatMap { $0 }
-            .filter { $0.uploadUrl != nil }
+    private struct StoredAttachment {
+        var attachment: MsrUploadAttachment
+        var sessionId: String
     }
 
-    func insertAttachment(_ attachment: MsrUploadAttachment, sessionId: String) {
-        if var sessionAttachments = attachments[sessionId] {
-            if let index = sessionAttachments.firstIndex(where: { $0.id == attachment.id }) {
-                sessionAttachments[index] = attachment
-            } else {
-                sessionAttachments.append(attachment)
+    private var attachments: [String: StoredAttachment] = [:]
+    private let lock = NSLock()
+
+    func insert(
+        attachment: MsrUploadAttachment,
+        sessionId: String
+    ) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        attachments[attachment.id] = StoredAttachment(
+            attachment: attachment,
+            sessionId: sessionId
+        )
+    }
+
+    func updateUploadDetails(
+        for attachmentId: String,
+        uploadUrl: String,
+        headers: Data?,
+        expiresAt: String?
+    ) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard let stored = attachments[attachmentId] else { return }
+
+        let old = stored.attachment
+
+        let updated = MsrUploadAttachment(
+            id: old.id,
+            name: old.name,
+            type: old.type,
+            size: old.size,
+            bytes: old.bytes,
+            path: old.path,
+            uploadUrl: uploadUrl,
+            expiresAt: expiresAt,
+            headers: headers
+        )
+
+        attachments[attachmentId] = StoredAttachment(
+            attachment: updated,
+            sessionId: stored.sessionId
+        )
+    }
+
+    func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment] {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let uploadable = attachments.values
+            .map { $0.attachment }
+            .filter {
+                $0.uploadUrl != nil &&
+                $0.headers != nil &&
+                $0.bytes != nil
             }
-            attachments[sessionId] = sessionAttachments
-        } else {
-            attachments[sessionId] = [attachment]
+            .prefix(Int(batchSize))
+
+        return Array(uploadable)
+    }
+
+    func deleteAttachments(attachmentIds: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        attachmentIds.forEach {
+            attachments.removeValue(forKey: $0)
         }
     }
 
-    func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void) {
-        attachments = attachments.mapValues { sessionAttachments in
-            sessionAttachments.filter { !attachmentIds.contains($0.id) }
+    func deleteAttachments(forSessionIds sessionIds: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let sessionSet = Set(sessionIds)
+
+        attachments = attachments.filter {
+            !sessionSet.contains($0.value.sessionId)
         }
-
-        attachments = attachments.filter { !$0.value.isEmpty }
-
-        completion()
     }
 
-    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void) {
-        for (sessionId, sessionAttachments) in attachments {
-            if let index = sessionAttachments.firstIndex(where: { $0.id == attachmentId }) {
-                let originalAttachment = sessionAttachments[index]
-                let updatedAttachment = MsrUploadAttachment(id: originalAttachment.id,
-                                                            name: originalAttachment.name,
-                                                            type: originalAttachment.type,
-                                                            size: originalAttachment.size,
-                                                            bytes: originalAttachment.bytes,
-                                                            path: originalAttachment.path,
-                                                            uploadUrl: uploadUrl,
-                                                            expiresAt: expiresAt,
-                                                            headers: headers)
-                var newAttachments = sessionAttachments
-                newAttachments[index] = updatedAttachment
-                attachments[sessionId] = newAttachments
+    func allAttachments() -> [MsrUploadAttachment] {
+        lock.lock()
+        defer { lock.unlock() }
 
-                completion()
-                return
-            }
-        }
-        completion()
-    }
-
-    func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void) {
-        completion(attachmentsToReturn)
-    }
-
-    func getAttachmentsForUpload(batchSize: Number, completion: @escaping ([MsrUploadAttachment]) -> Void) {
-        let result = attachmentsToReturn.prefix(Int(batchSize)).map { $0 }
-        completion(Array(result))
-    }
-
-    func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void) {
-        for sessionId in sessionIds {
-            attachments.removeValue(forKey: sessionId)
-        }
-        completion()
-    }
-
-    func reset() {
-        attachments = [:]
+        return attachments.values.map { $0.attachment }
     }
 }

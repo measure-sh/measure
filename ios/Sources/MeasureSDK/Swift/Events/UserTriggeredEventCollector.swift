@@ -81,7 +81,6 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard isEnabled.get() else { return }
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
-        // TODO: check if needsReporting is fine or not?
         if let exception = exceptionGenerator.generate(error as NSError, collectStackTraces: collectStackTraces) {
             track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
         }
@@ -91,7 +90,6 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard isEnabled.get() else { return }
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
-        // TODO: check if needsReporting is fine or not?
         if let exception = exceptionGenerator.generate(error, collectStackTraces: collectStackTraces) {
             track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
         }
@@ -180,7 +178,6 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             responseBody: shouldTrackResponseHttpBody ? responseBody : nil,
                             client: client)
 
-        // TODO: check if needsReporting is fine or not?
         track(data, type: .http, needsReporting: false)
     }
 

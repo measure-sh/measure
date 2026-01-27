@@ -80,7 +80,7 @@ final class BaseSessionManager: SessionManager {
                                     createdAt: Number(timeProvider.now()),
                                     needsReporting: false,
                                     crashed: false)
-        sessionStore.insertSession(session) {}
+        sessionStore.insertSession(session)
         let recentSession = RecentSession(id: session.sessionId,
                                           createdAt: session.createdAt,
                                           versionCode: versionCode)
@@ -119,26 +119,24 @@ final class BaseSessionManager: SessionManager {
     func setPreviousSessionCrashed(_ crashed: Bool) {
         self.previousSessionCrashed = crashed
         if let recentSession = userDefaultStorage.getRecentSession(), previousSessionCrashed {
-            sessionStore.markCrashedSession(sessionId: recentSession.id) {}
+            sessionStore.markCrashedSession(sessionId: recentSession.id)
             sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
         }
     }
 
     func markCurrentSessionAsCrashed() {
-        sessionStore.markCrashedSession(sessionId: sessionId) {}
+        sessionStore.markCrashedSession(sessionId: sessionId)
 
-        sessionStore.getSession(byId: sessionId) { [weak self] session in
-            guard let self, let session else { return }
-
+        if let session = sessionStore.getSession(byId: sessionId) {
             let recentSession = RecentSession(
                 id: session.sessionId,
                 createdAt: session.createdAt,
                 crashed: true,
                 versionCode: versionCode
             )
-
-            self.userDefaultStorage.setRecentSession(recentSession)
-            self.sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
+            
+            userDefaultStorage.setRecentSession(recentSession)
+            sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
         }
     }
 

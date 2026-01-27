@@ -49,9 +49,6 @@ protocol InternalConfig {
     /// The compression quality of the screenshot. Must be between 0 and 100, where 0 is lowest quality and smallest size while 100 is highest quality and largest size.
     var screenshotCompressionQuality: Number { get }
 
-    /// All `EventType`s that are always exported, regardless of other filters like session sampling rate and whether the session crashed or not.
-    var eventTypeExportAllowList: [EventType] { get }
-
     /// Max length of a span name. Defaults to 64.
     var maxSpanNameLength: Number { get }
 
@@ -92,7 +89,6 @@ protocol InternalConfig {
     /// List of ViewController names that should not be tracked by LifecycleCollector
     var lifecycleViewControllerExcludeList: [String] { get }
 
-    // TODO: this is not in android. check if its needed to be added in config or in LayoutSnapshotThrottler
     /// The time interval (in milliseconds) that must pass before a new layout snapshot can be generated. Defaults to 750 ms.
     var layoutSnapshotDebounceInterval: Number { get }
 
@@ -101,4 +97,7 @@ protocol InternalConfig {
 
     /// The maximum size of response or request body in `HttpData`. Defaults to 256 x 1024 bytes
     var maxBodySizeBytes: Number { get }
+
+    /// URLs for which HTTP events should be disabled.
+    var httpUrlBlocklist: [String] { get }
 }

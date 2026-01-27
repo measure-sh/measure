@@ -46,7 +46,6 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
         }
     }
 
-    // TODO: add tests
     func dropInvalidAttributes(name: String, attributes: [String: AttributeValue]?) -> [String: AttributeValue]? {
         guard let attributes, !attributes.isEmpty else {
             return attributes

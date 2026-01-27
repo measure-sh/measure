@@ -74,7 +74,6 @@ final class MockMeasureInitializer: MeasureInitializer {
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
-    let attachmentExporter: AttachmentExporter
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configLoader: ConfigLoader? = nil,
@@ -133,38 +132,42 @@ final class MockMeasureInitializer: MeasureInitializer {
          measureDispatchQueue: MeasureDispatchQueue? = nil,
          attributeValueValidator: AttributeValueValidator? = nil,
          attachmentStore: AttachmentStore? = nil,
-         attachmentExporter: AttachmentExporter? = nil,
-         signalSampler: SignalSampler? = nil) {
+         signalSampler: SignalSampler? = nil,
+         screenshotGenerator: ScreenshotGenerator? = nil,
+         bugReportManager: BugReportManager? = nil,
+         bugReportCollector: BugReportCollector? = nil,
+         shakeDetector: ShakeDetector? = nil,
+         shakeBugReportCollector: ShakeBugReportCollector? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config())
         self.logger = logger ?? MockLogger()
+        self.userDefaultStorage = userDefaultStorage ?? BaseUserDefaultStorage()
         self.systemFileManager = systemFileManager ?? BaseSystemFileManager(logger: self.logger)
         self.httpClient = httpClient ?? BaseHttpClient(logger: self.logger, configProvider: self.configProvider)
         self.networkClient = networkClient ?? BaseNetworkClient(client: self.client,
-                                                                httpClient: self.httpClient,
-                                                                eventSerializer: EventSerializer(),
-                                                                systemFileManager: self.systemFileManager)
-        self.configLoader = configLoader ?? BaseConfigLoader(fileManager: self.systemFileManager,
-                                                             networkClient: self.networkClient)
-        self.randomizer = randomizer ?? BaseRandomizer()
-        self.signalSampler = signalSampler ?? BaseSignalSampler(configProvider: self.configProvider,
-                                                                randomizer: self.randomizer)
+                                               httpClient: self.httpClient,
+                                               eventSerializer: EventSerializer(),
+                                               systemFileManager: self.systemFileManager)
+        self.configLoader = configLoader ?? BaseConfigLoader(userDefaultStorage: self.userDefaultStorage,
+                                             fileManager: self.systemFileManager,
+                                             networkClient: self.networkClient,
+                                             logger: self.logger)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
         self.idProvider = idProvider ?? UUIDProvider()
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
-        self.sessionStore = sessionStore ?? BaseSessionStore(coreDataManager: self.coreDataManager,
-                                                             logger: self.logger)
-        self.attachmentStore = attachmentStore ?? BaseAttachmentStore(coreDataManager: self.coreDataManager,
-                                                                      logger: self.logger)
-        self.eventStore = eventStore ?? BaseEventStore(coreDataManager: self.coreDataManager,
-                                                       logger: self.logger)
-        self.spanStore = spanStore ?? BaseSpanStore(coreDataManager: self.coreDataManager,
-                                                    logger: self.logger)
+        self.sessionStore = sessionStore ?? MockSessionStore()
+        self.eventStore = eventStore ?? MockEventStore()
+        self.spanStore = spanStore ?? MockSpanStore()
+        self.batchStore = batchStore ?? MockBatchStore()
+        self.attachmentStore = attachmentStore ?? MockAttachmentStore()
+        self.randomizer = randomizer ?? BaseRandomizer()
+        self.signalSampler = signalSampler ?? BaseSignalSampler(configProvider: self.configProvider,
+                                                               randomizer: self.randomizer)
         self.signalStore = signalStore ?? BaseSignalStore(eventStore: self.eventStore,
                                                           spanStore: self.spanStore,
+                                                          sessionStore: self.sessionStore,
                                                           logger: self.logger,
                                                           config: self.configProvider)
-        self.userDefaultStorage = userDefaultStorage ?? BaseUserDefaultStorage()
         self.sessionManager = sessionManager ?? BaseSessionManager(idProvider: self.idProvider,
                                                                    logger: self.logger,
                                                                    timeProvider: self.timeProvider,
@@ -174,50 +177,71 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                    userDefaultStorage: self.userDefaultStorage,
                                                                    versionCode: FrameworkInfo.version,
                                                                    signalSampler: self.signalSampler)
+        self.exporter = exporter ?? MockExporter()
+        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
-                                                                                                                     idProvider: self.idProvider)
-        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
+                                                                                 idProvider: self.idProvider)
         self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
         self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
-                                                                                       measureDispatchQueue: self.measureDispatchQueue)
-        self.attributeProcessors = [self.appAttributeProcessor,
-                                    self.deviceAttributeProcessor,
-                                    self.installationIdAttributeProcessor,
-                                    self.networkStateAttributeProcessor,
-                                    self.userAttributeProcessor]
-        self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: self.logger,
-                                                                                     systemFileManager: self.systemFileManager)
+                                                             measureDispatchQueue: self.measureDispatchQueue)
+        self.attributeProcessors = [
+            self.appAttributeProcessor,
+            self.deviceAttributeProcessor,
+            self.installationIdAttributeProcessor,
+            self.networkStateAttributeProcessor,
+            self.userAttributeProcessor
+        ]
+        self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: logger ?? MockLogger(),
+                                                             systemFileManager: self.systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(self.crashDataPersistence)
         self.attachmentProcessor = attachmentProcessor ?? BaseAttachmentProcessor(logger: self.logger,
-                                                                                  fileManager: self.systemFileManager,
-                                                                                  idProvider: self.idProvider)
+                                                           fileManager: self.systemFileManager,
+                                                           idProvider: self.idProvider)
         self.userPermissionManager = userPermissionManager ?? BaseUserPermissionManager()
         self.svgGenerator = svgGenerator ?? BaseSvgGenerator()
         self.layoutSnapshotGenerator = layoutSnapshotGenerator ?? BaseLayoutSnapshotGenerator(logger: self.logger,
-                                                                                              configProvider: self.configProvider,
-                                                                                              timeProvider: self.timeProvider,
-                                                                                              attachmentProcessor: self.attachmentProcessor,
-                                                                                              svgGenerator: self.svgGenerator)
+                                                                   configProvider: self.configProvider,
+                                                                   timeProvider: self.timeProvider,
+                                                                   attachmentProcessor: self.attachmentProcessor,
+                                                                   svgGenerator: self.svgGenerator)
+
+        self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider,
+                                                                   logger: self.logger)
         self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
-                                                                      idProvider: self.idProvider,
-                                                                      sessionManager: self.sessionManager,
-                                                                      attributeProcessors: self.attributeProcessors,
-                                                                      configProvider: self.configProvider,
-                                                                      timeProvider: self.timeProvider,
-                                                                      crashDataPersistence: self.crashDataPersistence,
-                                                                      signalStore: self.signalStore,
-                                                                      measureDispatchQueue: self.measureDispatchQueue,
-                                                                      signalSampler: self.signalSampler)
+                                                   idProvider: self.idProvider,
+                                                   sessionManager: self.sessionManager,
+                                                   attributeProcessors: self.attributeProcessors,
+                                                   configProvider: self.configProvider,
+                                                   timeProvider: self.timeProvider,
+                                                   crashDataPersistence: self.crashDataPersistence,
+                                                   signalStore: self.signalStore,
+                                                   measureDispatchQueue: self.measureDispatchQueue,
+                                                   signalSampler: self.signalSampler,
+                                                   exporter: self.exporter)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
+
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
-                                                                              signalProcessor: self.signalProcessor,
-                                                                              crashDataPersistence: self.crashDataPersistence,
-                                                                              crashReporter: self.systemCrashReporter,
-                                                                              systemFileManager: self.systemFileManager,
-                                                                              idProvider: self.idProvider,
-                                                                              configProvider: self.configProvider)
+                                                        signalProcessor: self.signalProcessor,
+                                                        crashDataPersistence: self.crashDataPersistence,
+                                                        crashReporter: self.systemCrashReporter,
+                                                        systemFileManager: self.systemFileManager,
+                                                        idProvider: self.idProvider,
+                                                        configProvider: self.configProvider)
+        self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
+                                               signalProcessor: self.signalProcessor,
+                                               attributeProcessors: attributeProcessors,
+                                               configProvider: self.configProvider,
+                                               sampler: self.signalSampler,
+                                               attributeValueValidator: self.attributeValueValidator)
+        self.tracer = tracer ?? MsrTracer(logger: self.logger,
+                                idProvider: self.idProvider,
+                                timeProvider: self.timeProvider,
+                                spanProcessor: self.spanProcessor,
+                                sessionManager: self.sessionManager,
+                                signalSampler: self.signalSampler)
+        self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
         self.gestureTargetFinder = gestureTargetFinder ?? BaseGestureTargetFinder()
         self.gestureCollector = gestureCollector ?? BaseGestureCollector(logger: self.logger,
                                                                          signalProcessor: self.signalProcessor,
@@ -226,127 +250,102 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                          gestureTargetFinder: self.gestureTargetFinder,
                                                                          layoutSnapshotGenerator: self.layoutSnapshotGenerator,
                                                                          systemFileManager: self.systemFileManager)
-        self.attachmentExporter = attachmentExporter ?? BaseAttachmentExporter(logger: self.logger,
-                                                                               attachmentStore: self.attachmentStore,
-                                                                               httpClient: self.httpClient,
-                                                                               exportQueue: MeasureQueue.periodicEventExporter,
-                                                                               configProvider: self.configProvider)
-        self.batchStore = batchStore ?? BaseBatchStore(coreDataManager: self.coreDataManager,
-                                                       logger: self.logger)
-        self.exporter = exporter ?? BaseExporter(logger: self.logger,
-                                                 idProvider: self.idProvider,
-                                                 dispatchQueue: MeasureQueue.periodicEventExporter,
-                                                 timeProvider: self.timeProvider,
-                                                 networkClient: self.networkClient,
-                                                 httpClient: self.httpClient,
-                                                 eventStore: self.eventStore,
-                                                 spanStore: self.spanStore,
-                                                 batchStore: self.batchStore,
-                                                 attachmentStore: self.attachmentStore,
-                                                 attachmentExporter: self.attachmentExporter,
-                                                 configProvider: self.configProvider,
-                                                 systemFileManager: self.systemFileManager)
-        self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider, logger: self.logger)
-        self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
-                                                                signalProcessor: self.signalProcessor,
-                                                                attributeProcessors: attributeProcessors,
-                                                                configProvider: self.configProvider,
-                                                                sampler: self.signalSampler,
-                                                                attributeValueValidator: self.attributeValueValidator)
-        self.tracer = tracer ?? MsrTracer(logger: self.logger,
-                                          idProvider: self.idProvider,
-                                          timeProvider: self.timeProvider,
-                                          spanProcessor: self.spanProcessor,
-                                          sessionManager: self.sessionManager,
-                                          signalSampler: self.signalSampler)
-        self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
         self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
-                                                                               timeProvider: self.timeProvider,
-                                                                               tracer: self.tracer,
-                                                                               configProvider: self.configProvider,
-                                                                               logger: self.logger)
+                                                         timeProvider: self.timeProvider,
+                                                         tracer: self.tracer,
+                                                         configProvider: self.configProvider,
+                                                         sessionManager: self.sessionManager,
+                                                         logger: self.logger,
+                                                         signalSampler: self.signalSampler)
         self.cpuUsageCalculator = cpuUsageCalculator ?? BaseCpuUsageCalculator()
         self.memoryUsageCalculator = memoryUsageCalculator ?? BaseMemoryUsageCalculator()
         self.sysCtl = sysCtl ?? BaseSysCtl()
         self.cpuUsageCollector = cpuUsageCollector ?? BaseCpuUsageCollector(logger: self.logger,
-                                                                            configProvider: self.configProvider,
-                                                                            signalProcessor: self.signalProcessor,
-                                                                            timeProvider: self.timeProvider,
-                                                                            cpuUsageCalculator: self.cpuUsageCalculator,
-                                                                            sysCtl: self.sysCtl)
+                                                       configProvider: self.configProvider,
+                                                       signalProcessor: self.signalProcessor,
+                                                       timeProvider: self.timeProvider,
+                                                       cpuUsageCalculator: self.cpuUsageCalculator,
+                                                       sysCtl: self.sysCtl)
         self.memoryUsageCollector = memoryUsageCollector ?? BaseMemoryUsageCollector(logger: self.logger,
-                                                                                     configProvider: self.configProvider,
-                                                                                     signalProcessor: self.signalProcessor,
-                                                                                     timeProvider: self.timeProvider,
-                                                                                     memoryUsageCalculator: self.memoryUsageCalculator,
-                                                                                     sysCtl: self.sysCtl)
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
+                                                             configProvider: self.configProvider,
+                                                             signalProcessor: self.signalProcessor,
+                                                             timeProvider: self.timeProvider,
+                                                             memoryUsageCalculator: self.memoryUsageCalculator,
+                                                             sysCtl: self.sysCtl)
+
         self.launchCallback = launchCallback ?? LaunchCallbacks()
         self.launchTracker = launchTracker ?? BaseLaunchTracker(launchCallbacks: self.launchCallback,
-                                                                timeProvider: self.timeProvider,
-                                                                sysCtl: self.sysCtl,
-                                                                logger: self.logger,
-                                                                userDefaultStorage: self.userDefaultStorage,
-                                                                currentAppVersion: appVersion)
+                                               timeProvider: self.timeProvider,
+                                               sysCtl: self.sysCtl,
+                                               logger: self.logger,
+                                               userDefaultStorage: self.userDefaultStorage,
+                                               currentAppVersion: "test")
+
         self.appLaunchCollector = appLaunchCollector ?? BaseAppLaunchCollector(logger: self.logger,
-                                                                               timeProvider: self.timeProvider,
-                                                                               signalProcessor: self.signalProcessor,
-                                                                               sysCtl: self.sysCtl,
-                                                                               userDefaultStorage: self.userDefaultStorage,
-                                                                               sampler: self.signalSampler,
-                                                                               launchTracker: self.launchTracker,
-                                                                               launchCallback: self.launchCallback)
+                                                         timeProvider: self.timeProvider,
+                                                         signalProcessor: self.signalProcessor,
+                                                         sysCtl: self.sysCtl,
+                                                         userDefaultStorage: self.userDefaultStorage,
+                                                         sampler: self.signalSampler,
+                                                         launchTracker: self.launchTracker,
+                                                         launchCallback: self.launchCallback)
+
         self.networkChangeCollector = networkChangeCollector ?? BaseNetworkChangeCollector(logger: self.logger,
-                                                                                           signalProcessor: self.signalProcessor,
-                                                                                           timeProvider: self.timeProvider)
+                                                                 signalProcessor: self.signalProcessor,
+                                                                 timeProvider: self.timeProvider)
         self.customEventCollector = customEventCollector ?? BaseCustomEventCollector(logger: self.logger,
-                                                                                     signalProcessor: self.signalProcessor,
-                                                                                     timeProvider: self.timeProvider,
-                                                                                     configProvider: self.configProvider,
-                                                                                     attributeValueValidator: self.attributeValueValidator)
+                                                             signalProcessor: self.signalProcessor,
+                                                             timeProvider: self.timeProvider,
+                                                             configProvider: self.configProvider,
+                                                             attributeValueValidator: self.attributeValueValidator)
         self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(crashReporter: self.systemCrashReporter,
-                                                                               logger: self.logger)
+                                                         logger: self.logger)
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
-                                                                                                          timeProvider: self.timeProvider,
-                                                                                                          logger: self.logger,
-                                                                                                          exceptionGenerator: self.exceptionGenerator,
-                                                                                                          attributeValueValidator: self.attributeValueValidator,
-                                                                                                          configProvider: self.configProvider)
+                                                                           timeProvider: self.timeProvider,
+                                                                           logger: self.logger,
+                                                                           exceptionGenerator: self.exceptionGenerator,
+                                                                           attributeValueValidator: self.attributeValueValidator,
+                                                                           configProvider: self.configProvider,
+                                                                           sessionManager: self.sessionManager,
+                                                                           signalSampler: self.signalSampler)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
-                                                                               spanStore: self.spanStore,
-                                                                               sessionStore: self.sessionStore,
-                                                                               logger: self.logger,
-                                                                               sessionManager: self.sessionManager,
-                                                                               configProvider: self.configProvider,
-                                                                               attachmentStore: self.attachmentStore)
+                                                         spanStore: self.spanStore,
+                                                         sessionStore: self.sessionStore,
+                                                         logger: self.logger,
+                                                         sessionManager: self.sessionManager,
+                                                         configProvider: self.configProvider,
+                                                         attachmentStore: self.attachmentStore)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
-                                                                               signalProcessor: self.signalProcessor,
-                                                                               timeProvider: self.timeProvider,
-                                                                               urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
-                                                                               httpInterceptorCallbacks: HttpInterceptorCallbacks(),
-                                                                               client: self.client,
-                                                                               configProvider: self.configProvider,
-                                                                               httpEventValidator: self.httpEventValidator)
+                                                         signalProcessor: self.signalProcessor,
+                                                         timeProvider: self.timeProvider,
+                                                         urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
+                                                         httpInterceptorCallbacks: HttpInterceptorCallbacks(),
+                                                         client: self.client,
+                                                         configProvider: self.configProvider,
+                                                         httpEventValidator: self.httpEventValidator)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
-                                                                                              timeProvider: self.timeProvider,
-                                                                                              signalProcessor: self.signalProcessor,
-                                                                                              sessionManager: self.sessionManager,
-                                                                                              attributeProcessors: self.attributeProcessors)
-        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: self.configProvider,
+                                                                   timeProvider: self.timeProvider,
+                                                                   signalProcessor: self.signalProcessor,
+                                                                   sessionManager: self.sessionManager,
+                                                                   attributeProcessors: self.attributeProcessors,
+                                                                   signalSampler: self.signalSampler)
+        self.screenshotGenerator = screenshotGenerator ?? BaseScreenshotGenerator(configProvider: self.configProvider,
                                                            logger: self.logger,
                                                            attachmentProcessor: self.attachmentProcessor,
                                                            userPermissionManager: self.userPermissionManager)
-        self.bugReportManager = BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
+        self.bugReportManager = bugReportManager ?? BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
                                                      configProvider: self.configProvider,
                                                      idProvider: self.idProvider)
-        self.bugReportCollector = BaseBugReportCollector(bugReportManager: self.bugReportManager,
+
+        self.bugReportCollector = bugReportCollector ?? BaseBugReportCollector(bugReportManager: self.bugReportManager,
                                                          signalProcessor: self.signalProcessor,
                                                          timeProvider: self.timeProvider,
                                                          sessionManager: self.sessionManager,
                                                          idProvider: self.idProvider,
                                                          logger: self.logger)
-        self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: self.shakeDetector)
+
+        self.shakeDetector = shakeDetector ?? AccelerometerShakeDetector(configProvider: self.configProvider)
+        self.shakeBugReportCollector = shakeBugReportCollector ?? ShakeBugReportCollector(shakeDetector: self.shakeDetector)
     }
 }
