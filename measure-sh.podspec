@@ -21,5 +21,5 @@ Pod::Spec.new do |spec|
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel" 
   ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
-  spec.dependency "PLCrashReporter", "1.11.2"
+  spec.dependency "PLCrashReporter", "1.12.0"
 end
