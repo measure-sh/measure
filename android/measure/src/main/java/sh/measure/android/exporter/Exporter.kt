@@ -102,8 +102,8 @@ internal class ExporterImpl(
 
     private fun exportBatches(batches: List<String>): Boolean {
         var success = true
-        batches.forEachIndexed { index, batch ->
-            val batch = database.getBatch(batch)
+        batches.forEachIndexed { index, batchId ->
+            val batch = database.getBatch(batchId)
 
             if (!exportBatch(batch)) {
                 success = false

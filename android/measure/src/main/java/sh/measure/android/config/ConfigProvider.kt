@@ -1,7 +1,5 @@
 package sh.measure.android.config
 
-import sh.measure.android.events.EventType
-
 internal interface ConfigProvider :
     IMeasureConfig,
     InternalConfig,
@@ -75,7 +73,6 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     override val enableLogging: Boolean = defaultConfig.enableLogging
     override val screenshotMaskHexColor: String = defaultConfig.screenshotMaskHexColor
     override val screenshotCompressionQuality: Int = defaultConfig.screenshotCompressionQuality
-    override val eventTypeExportAllowList: List<EventType> = defaultConfig.eventTypeExportAllowList
     override val batchExportIntervalMs: Long = defaultConfig.batchExportIntervalMs
     override val attachmentExportIntervalMs: Long = defaultConfig.attachmentExportIntervalMs
     override val defaultHttpHeadersBlocklist: List<String> =
