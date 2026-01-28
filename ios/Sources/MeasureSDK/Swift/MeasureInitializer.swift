@@ -226,11 +226,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                httpClient: httpClient,
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: systemFileManager)
+        self.timeProvider = BaseTimeProvider()
         self.configLoader = BaseConfigLoader(userDefaultStorage: userDefaultStorage,
                                              fileManager: systemFileManager,
                                              networkClient: networkClient,
+                                             timeProvider: timeProvider,
                                              logger: logger)
-        self.timeProvider = BaseTimeProvider()
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,

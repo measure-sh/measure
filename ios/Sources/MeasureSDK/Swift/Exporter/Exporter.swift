@@ -247,7 +247,6 @@ final class BaseExporter: Exporter {
         let prioritySessionIds = sessionStore.getPrioritySessionIds()
         let orderedSessionIds = prioritySessionIds.filter(sessionIds.contains) + sessionIds.filter { !prioritySessionIds.contains($0) }
 
-        // TODO: reduce maxBatchSize and test
         let maxBatchSize = configProvider.maxEventsInBatch
         var inserted = 0
         var batchId = idProvider.uuid()

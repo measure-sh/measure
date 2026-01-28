@@ -148,11 +148,12 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                httpClient: self.httpClient,
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: self.systemFileManager)
+        self.timeProvider = timeProvider ?? BaseTimeProvider()
         self.configLoader = configLoader ?? BaseConfigLoader(userDefaultStorage: self.userDefaultStorage,
                                              fileManager: self.systemFileManager,
                                              networkClient: self.networkClient,
+                                            timeProvider: self.timeProvider,
                                              logger: self.logger)
-        self.timeProvider = timeProvider ?? BaseTimeProvider()
         self.idProvider = idProvider ?? UUIDProvider()
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
         self.sessionStore = sessionStore ?? MockSessionStore()

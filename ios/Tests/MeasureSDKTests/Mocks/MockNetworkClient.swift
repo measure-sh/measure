@@ -16,7 +16,7 @@ final class MockNetworkClient: NetworkClient {
     private(set) var executedBatchIds: [String] = []
 
     var executeResponse: HttpResponse = .success(body: nil, eTag: nil)
-    var configResponse: (DynamicConfig?, String?) = (nil, nil)
+    var configResponse: ConfigResponse = .notModified
 
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
         executedBatchIds.append(batchId)
@@ -26,7 +26,7 @@ final class MockNetworkClient: NetworkClient {
         return executeResponse
     }
 
-    func getConfig(eTag: String?) -> (DynamicConfig?, String?) {
+    func getConfig(eTag: String?) -> ConfigResponse {
         lastETag = eTag
         return configResponse
     }
@@ -37,7 +37,7 @@ final class MockNetworkClient: NetworkClient {
         lastSpans = []
         lastETag = nil
         executeResponse = .success(body: nil, eTag: nil)
-        configResponse = (nil, nil)
+        configResponse = .notModified
         executedBatchIds = []
     }
 
@@ -49,7 +49,7 @@ final class MockNetworkClient: NetworkClient {
         executeResponse = .error(error)
     }
 
-    func stubConfig(_ config: DynamicConfig?, eTag: String?) {
-        configResponse = (config, eTag)
+    func stubConfig(_ configResponse: ConfigResponse) {
+        self.configResponse = configResponse
     }
 }

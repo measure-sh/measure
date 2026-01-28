@@ -18,22 +18,25 @@ protocol ConfigLoader {
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void)
 }
 
-// TODO:
-// Add cache expiry logic
-// using etag in api call never returns error. 
 /// A base implementation of the `ConfigLoader` protocol.
 struct BaseConfigLoader: ConfigLoader {
     private let userDefaultStorage: UserDefaultStorage
     private let fileManager: SystemFileManager
     private let networkClient: NetworkClient
+    private let timeProvider: TimeProvider
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let logger: Logger
 
-    init(userDefaultStorage: UserDefaultStorage, fileManager: SystemFileManager, networkClient: NetworkClient, logger: Logger) {
+    init(userDefaultStorage: UserDefaultStorage,
+         fileManager: SystemFileManager,
+         networkClient: NetworkClient,
+         timeProvider: TimeProvider,
+         logger: Logger) {
         self.userDefaultStorage = userDefaultStorage
         self.fileManager = fileManager
         self.networkClient = networkClient
+        self.timeProvider = timeProvider
         self.logger = logger
 
         let decoder = JSONDecoder()
@@ -79,14 +82,70 @@ struct BaseConfigLoader: ConfigLoader {
     }
 
     private func refreshConfigFromServer() {
-        let responseTuple = networkClient.getConfig(eTag: userDefaultStorage.getConfigEtag())
+        let now = timeProvider.now()
 
-        if let dynamicConfig = responseTuple.0 as? BaseDynamicConfig {
-            self.saveConfigToDisk(dynamicConfig)
+        let lastFetch = userDefaultStorage.getConfigFetchTimestamp()
+        let cacheControl = userDefaultStorage.getConfigCacheControl()
+
+        let shouldRefresh: Bool
+
+        if lastFetch == 0 || cacheControl == 0 {
+            shouldRefresh = true
+        } else {
+            shouldRefresh = now - lastFetch > cacheControl
         }
 
-        if let eTag = responseTuple.1 {
-            userDefaultStorage.setConfigEtag(eTag)
+        if !shouldRefresh {
+            logger.internalLog(
+                level: .debug,
+                message: "ConfigLoader: CacheControl not expired, skipping refresh",
+                error: nil,
+                data: nil
+            )
+            return
+        }
+
+        let response = networkClient.getConfig(eTag: userDefaultStorage.getConfigEtag())
+
+        switch response {
+
+        case .success(let config, let eTag, let cacheControl):
+
+            saveConfigToDisk(config)
+
+            userDefaultStorage.setConfigFetchTimestamp(now)
+            userDefaultStorage.setConfigCacheControl(Number(cacheControl))
+
+            if let eTag {
+                userDefaultStorage.setConfigEtag(eTag)
+            }
+
+            logger.internalLog(
+                level: .debug,
+                message: "ConfigLoader: New config loaded from server successfully",
+                error: nil,
+                data: nil
+            )
+
+        case .notModified:
+
+            userDefaultStorage.setConfigFetchTimestamp(now)
+
+            logger.internalLog(
+                level: .debug,
+                message: "ConfigLoader: 304 Not Modified",
+                error: nil,
+                data: nil
+            )
+
+        case .error:
+
+            logger.internalLog(
+                level: .error,
+                message: "ConfigLoader: Failed to load config from server",
+                error: nil,
+                data: nil
+            )
         }
     }
 }
