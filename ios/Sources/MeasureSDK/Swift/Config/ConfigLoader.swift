@@ -7,12 +7,6 @@
 
 import Foundation
 
-enum ConfigFileConstants {
-    static let fileName = "dynamic_config.json"
-    static let folderName = "measure"
-    static let directory: FileManager.SearchPathDirectory = .cachesDirectory
-}
-
 /// A protocol that defines the methods for loading configuration data either a cache or a network source.
 protocol ConfigLoader {
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void)
