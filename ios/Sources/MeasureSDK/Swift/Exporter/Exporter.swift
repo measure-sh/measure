@@ -249,44 +249,54 @@ final class BaseExporter: Exporter {
 
         let maxBatchSize = configProvider.maxEventsInBatch
         var inserted = 0
-        var batchId = idProvider.uuid()
-        var size = 0
-        var eventIds = Set<String>()
-        var spanIds = Set<String>()
 
-        func flush() {
+        func flushBatch(eventIds: inout Set<String>, spanIds: inout Set<String>) {
             guard !eventIds.isEmpty || !spanIds.isEmpty else { return }
 
+            let batchId = idProvider.uuid()
             let batch = BatchEntity(batchId: batchId, eventIds: Array(eventIds), spanIds: Array(spanIds), createdAt: timeProvider.now())
             if batchStore.insertBatch(batch) {
                 inserted += 1
                 eventStore.updateBatchId(batchId, for: Array(eventIds))
                 spanStore.updateBatchId(batchId, for: Array(spanIds))
+            } else {
+                logger.internalLog(level: .error, message: "Exporter: Failed to insert batch \(batchId)", error: nil, data: nil)
             }
 
             eventIds.removeAll()
             spanIds.removeAll()
-            size = 0
-            batchId = idProvider.uuid()
         }
 
+        var currentEventIds = Set<String>()
+        var currentSpanIds = Set<String>()
+
+        // Process all sessions
         for sessionId in orderedSessionIds {
-            let events = eventStore.getUnBatchedEvents(eventCount: Number(maxBatchSize), ascending: true, sessionId: sessionId)
+            let events = eventStore.getUnBatchedEvents(eventCount: Number.max, ascending: true, sessionId: sessionId)
+
             for eventId in events {
-                eventIds.insert(eventId)
-                size += 1
-                if size >= maxBatchSize { flush() }
+                currentEventIds.insert(eventId)
+
+                if currentEventIds.count >= maxBatchSize {
+                    flushBatch(eventIds: &currentEventIds, spanIds: &currentSpanIds)
+                }
             }
         }
 
-        let spans = spanStore.getUnBatchedSpans(spanCount: Int64(maxBatchSize), ascending: true)
+        // Process all spans
+        let spans = spanStore.getUnBatchedSpans(spanCount: Int64.max, ascending: true)
+
         for spanId in spans {
-            spanIds.insert(spanId)
-            size += 1
-            if size >= maxBatchSize { flush() }
+            currentSpanIds.insert(spanId)
+
+            if currentSpanIds.count >= maxBatchSize {
+                flushBatch(eventIds: &currentEventIds, spanIds: &currentSpanIds)
+            }
         }
 
-        flush()
+        flushBatch(eventIds: &currentEventIds, spanIds: &currentSpanIds)
+
+        logger.internalLog(level: .debug, message: "Exporter: total batches inserted: \(inserted)", error: nil, data: nil)
         return inserted
     }
 

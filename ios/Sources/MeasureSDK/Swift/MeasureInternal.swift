@@ -245,14 +245,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func createSpan(name: String) -> SpanBuilder? {
-        guard isStarted else { return nil }
-
         return spanCollector.createSpan(name: name)
     }
 
     func startSpan(name: String, timestamp: Int64? = nil) -> Span {
-        guard isStarted else { return InvalidSpan() }
-
         return spanCollector.startSpan(name: name, timestamp: timestamp)
     }
 
@@ -287,16 +283,12 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        guard isStarted else { return }
-
         screenshotGenerator.generate(viewController: viewController) { attachment in
             completion(attachment)
         }
     }
 
     func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        guard isStarted else { return }
-
         layoutSnapshotGenerator.generate(for: viewController) { attachment in
             completion(attachment)
         }

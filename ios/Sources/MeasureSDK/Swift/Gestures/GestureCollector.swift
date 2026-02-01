@@ -166,7 +166,7 @@ final class BaseGestureCollector: GestureCollector {
     }
 
     private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
-        if let window = self.window {
+        if configProvider.gestureClickTakeSnapshot, let window = self.window {
             layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) { attachment in
                 completion(attachment)
             }

@@ -9,7 +9,6 @@ import Foundation
 
 protocol SignalSampler {
     func shouldTrackLaunchEvents() -> Bool
-    func shouldTrackTrace() -> Bool
     func shouldSampleTrace(_ traceId: String) -> Bool
     func shouldTrackJourneyForSession(sessionId: String) -> Bool
 }
@@ -25,11 +24,10 @@ final class BaseSignalSampler: SignalSampler {
     }
 
     func shouldTrackLaunchEvents() -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
         return shouldTrack(configProvider.launchSamplingRate / 100)
-    }
-
-    func shouldTrackTrace() -> Bool {
-        return shouldTrack(configProvider.traceSamplingRate / 100)
     }
 
     func shouldSampleTrace(_ traceId: String) -> Bool {
@@ -57,6 +55,9 @@ final class BaseSignalSampler: SignalSampler {
     }
 
     func shouldTrackJourneyForSession(sessionId: String) -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
         let samplingRate = configProvider.journeySamplingRate / 100.0
 
         if samplingRate == 0.0 {
