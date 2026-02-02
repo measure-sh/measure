@@ -88,6 +88,8 @@ func main() {
 		apps.GET(":id/journey", measure.GetAppJourney)
 		apps.GET(":id/metrics", measure.GetAppMetrics)
 		apps.GET(":id/filters", measure.GetAppFilters)
+
+		// crashes
 		apps.GET(":id/crashGroups", measure.GetCrashOverview)
 		apps.GET(":id/crashGroups/plots/instances", measure.GetCrashOverviewPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/crashes", measure.GetCrashDetailCrashes)
@@ -95,6 +97,8 @@ func main() {
 		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", measure.GetCrashDetailPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/distribution", measure.GetCrashDetailAttributeDistribution)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/journey", measure.GetCrashDetailPlotJourney)
+
+		// ANRs
 		apps.GET(":id/anrGroups", measure.GetANROverview)
 		apps.GET(":id/anrGroups/plots/instances", measure.GetANROverviewPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRDetailANRs)
@@ -102,24 +106,36 @@ func main() {
 		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", measure.GetANRDetailAttributeDistribution)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/journey", measure.GetANRDetailPlotJourney)
+
+		// sessions
 		apps.GET(":id/sessions", measure.GetSessionsOverview)
 		apps.GET(":id/sessions/:sessionId", measure.GetSession)
 		apps.GET(":id/sessions/plots/instances", measure.GetSessionsOverviewPlotInstances)
-		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
-		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
-		apps.GET(":id/settings", measure.GetAppSettings)
-		apps.PATCH(":id/settings", measure.UpdateAppSettings)
-		apps.PATCH(":id/rename", measure.RenameApp)
-		apps.POST(":id/shortFilters", measure.CreateShortFilters)
+
+		// spans & traces
 		apps.GET(":id/spans/roots/names", measure.GetRootSpanNames)
 		apps.GET(":id/spans", measure.GetSpansForSpanName)
 		apps.GET(":id/spans/plots/metrics", measure.GetMetricsPlotForSpanName)
 		apps.GET(":id/traces/:traceId", measure.GetTrace)
+
+		// bug reports
 		apps.GET(":id/bugReports", measure.GetBugReportsOverview)
 		apps.GET(":id/bugReports/plots/instances", measure.GetBugReportsInstancesPlot)
 		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
 		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
+
+		// alerts
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
+
+		// alert preferences
+		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
+		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
+
+		// misc
+		apps.GET(":id/settings", measure.GetAppSettings)
+		apps.PATCH(":id/settings", measure.UpdateAppSettings)
+		apps.PATCH(":id/rename", measure.RenameApp)
+		apps.POST(":id/shortFilters", measure.CreateShortFilters)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())
@@ -168,7 +184,7 @@ func main() {
 		}
 	}()
 
-	// List for shutdown signals
+	// Listen for shutdown signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

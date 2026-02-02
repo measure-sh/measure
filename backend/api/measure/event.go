@@ -1536,8 +1536,8 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`trace_id`, e.spans[i].TraceID).
 			Set(`session_id`, e.spans[i].SessionID).
 			Set(`status`, e.spans[i].Status).
-			Set(`start_time`, e.spans[i].StartTime.Format(chrono.NanoTimeFormat)).
-			Set(`end_time`, e.spans[i].EndTime.Format(chrono.NanoTimeFormat)).
+			Set(`start_time`, e.spans[i].StartTime).
+			Set(`end_time`, e.spans[i].EndTime).
 			Set(`checkpoints`, formattedCheckpoints).
 			Set(`attribute.app_unique_id`, e.spans[i].Attributes.AppUniqueID).
 			Set(`attribute.installation_id`, e.spans[i].Attributes.InstallationID).
@@ -1567,7 +1567,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 // GetExceptionsWithFilter fetches a slice of EventException for an
 // ExceptionGroup matching AppFilter. Also computes pagination meta
 // values for keyset pagination.
-func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
+func GetExceptionsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
 	pageSize := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
 	operator := ">"
@@ -1604,7 +1604,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and exception.fingerprint = ? and exception.handled = false", af.AppID, af.From, af.To, event.TypeException, group.ID)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and exception.fingerprint = ? and exception.handled = false", af.AppID, af.From, af.To, event.TypeException, fingerprint)
 
 	if af.HasVersions() {
 		selectedVersions, errVersions := af.VersionPairs()
@@ -1763,15 +1763,20 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		return nil, errors.New("missing timezone filter")
 	}
 
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+
 	stmt := sqlf.
-		From("events final").
+		From("events_new final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("uniq(session_id) as total_sessions").
 		Select("uniqIf(session_id, type = ? and exception.handled = false) as exception_sessions", event.TypeException).
-		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", af.AppID, af.From, af.To)
+		Clause("prewhere team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ?", teamId, af.AppID, af.From, af.To)
 
 	defer stmt.Close()
 
@@ -1858,7 +1863,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 // GetANRsWithFilter fetches a slice of EventException for an
 // ANRGroup matching AppFilter. Also computes pagination meta
 // values for keyset pagination.
-func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
+func GetANRsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
 	pageSize := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
 	operator := ">"
@@ -1894,7 +1899,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Select("anr.threads threads").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and anr.fingerprint = ?", af.AppID, af.From, af.To, event.TypeANR, group.ID)
+		Clause("prewhere app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and type = ? and anr.fingerprint = ?", af.AppID, af.From, af.To, event.TypeANR, fingerprint)
 
 	if af.HasVersions() {
 		selectedVersions, errVersions := af.VersionPairs()
@@ -2280,6 +2285,11 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		return nil, errors.New("missing timezone filter")
 	}
 
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+
 	fingerprint := g.GetId()
 	groupType := event.TypeException
 
@@ -2294,11 +2304,11 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	}
 
 	stmt := sqlf.
-		From(`events`).
+		From(`events_new`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("uniq(id) as instances").
-		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint)
+		Clause(fmt.Sprintf("prewhere team_id = toUUID(?) and app_id = toUUID(?) and %s.fingerprint = ?", groupType), teamId, af.AppID, fingerprint)
 
 	defer stmt.Close()
 

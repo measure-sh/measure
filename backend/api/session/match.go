@@ -10,16 +10,16 @@ import (
 // matching any text on the session's type, lifecycle
 // events or user's id.
 func ExtractMatches(
-	needle, userId string, sessionId string,
-	types, logStrings, viewClassnames, subviewClassnames []string,
-	exceptions, anrs, clickTargets, longclickTargets, scrollTargets []map[string]string,
+	needle, userId, sessionId string,
+	types, customTypeNames, logStrings,
+	viewClassnames, subviewClassnames []string, exceptions,
+	anrs, clickTargets, longclickTargets, scrollTargets []map[string]string,
 ) (matched string) {
 	if needle == "" {
 		return
 	}
 
 	buff := []string{}
-	const sep = " "
 
 	// user id
 	if strings.Contains(strings.ToLower(userId), strings.ToLower(needle)) {
@@ -35,6 +35,14 @@ func ExtractMatches(
 	for i := range types {
 		if strings.Contains(strings.ToLower(types[i]), strings.ToLower(needle)) {
 			buff = append(buff, fmt.Sprintf("Type: %s", types[i]))
+			break
+		}
+	}
+
+	// custom type names
+	for i := range customTypeNames {
+		if strings.Contains(strings.ToLower(customTypeNames[i]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Custom Type: %s", customTypeNames[i]))
 			break
 		}
 	}
@@ -188,7 +196,7 @@ func ExtractMatches(
 		}
 	}
 
-	matched = strings.Join(buff, sep)
+	matched = strings.Join(buff, " ")
 
 	return
 }

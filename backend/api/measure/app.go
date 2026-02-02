@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"backend/api/opsys"
 	"backend/api/paginate"
 	"backend/api/server"
+	"backend/api/session"
 	"backend/api/span"
 	"backend/api/timeline"
 
@@ -175,8 +177,167 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 	return
 }
 
-// GetExceptionGroups returns slice of ExceptionGroup
-// of an app.
+// GetExceptionGroup queries a single exception group by its id.
+func (a App) GetExceptionGroupTwo(ctx context.Context, id string, af *filter.AppFilter) (exceptionGroup *group.ExceptionGroup, err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+
+	table := "unhandled_exception_groups_new final"
+
+	mergedStmt := sqlf.
+		From(table).
+		Select("app_id").
+		Select("id").
+		Select("type").
+		Select("message").
+		Select("method_name").
+		Select("file_name").
+		Select("line_number").
+		Select("updated_at").
+		Select("sumMerge(count) as count").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("app_version.1 in ?", af.Versions).
+		Where("app_version.2 in ?", af.VersionCodes).
+		Where("id = ?", id).
+		GroupBy("app_id").
+		GroupBy("id").
+		GroupBy("type").
+		GroupBy("message").
+		GroupBy("method_name").
+		GroupBy("file_name").
+		GroupBy("line_number").
+		GroupBy("updated_at")
+
+	if af.HasOSVersions() {
+		mergedStmt.Select("groupUniqArrayMerge(os_versions) as os_versions")
+	}
+
+	stmt := sqlf.
+		With("merged", mergedStmt).
+		From("merged").
+		Select("app_id").
+		Select("id").
+		Select("type").
+		Select("message").
+		Select("method_name").
+		Select("file_name").
+		Select("line_number").
+		Select("updated_at").
+		Select("count")
+
+	if af.HasOSVersions() {
+		osVersions, errOSVersions := af.OSVersionPairs()
+		if errOSVersions != nil {
+			err = errOSVersions
+			return
+		}
+
+		stmt.Where("hasAll(os_versions, [?])", osVersions.Parameterize())
+	}
+
+	defer stmt.Close()
+
+	exceptionGroup = &group.ExceptionGroup{}
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+		&exceptionGroup.AppID,
+		&exceptionGroup.ID,
+		&exceptionGroup.Type,
+		&exceptionGroup.Message,
+		&exceptionGroup.MethodName,
+		&exceptionGroup.FileName,
+		&exceptionGroup.LineNumber,
+		&exceptionGroup.UpdatedAt,
+		&exceptionGroup.Count); err != nil {
+		return
+	}
+
+	return
+}
+
+// GetExceptionGroupPlotInstances computes crash instances of the exception group.
+func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	stmt := sqlf.
+		From(`events_new`).
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
+		Select("count(id) as instances").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = ?", false).
+		Where("exception.fingerprint = ?", fingerprint)
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	stmt.GroupBy("version, datetime").
+		OrderBy("version, datetime")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+			return nil, err
+		}
+		instances = append(instances, instance)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.
 		From("unhandled_exception_groups as g final").
@@ -285,6 +446,458 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 	return
 }
 
+// GetExceptionGroupsWithFilter fetches exception groups
+// of an app.
+func (a App) GetExceptionGroupsWithFilterTwo(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
+	stmt := sqlf.
+		From("unhandled_exception_groups_new final").
+		Select("app_id").
+		Select("id").
+		Select("argMax(type, timestamp)").
+		Select("argMax(message, timestamp)").
+		Select("argMax(method_name, timestamp)").
+		Select("argMax(file_name, timestamp)").
+		Select("argMax(line_number, timestamp)").
+		Select("max(timestamp)").
+		Select("sumMerge(count) as event_count").
+		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		// Capture all the exception groups that received new exceptions
+		// after the "from" date & were created before the "to" date.
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("team_id").
+		GroupBy("app_id").
+		GroupBy("id").
+		// Don't consider exception groups that do not
+		// have any exception events yet.
+		// Also avoids division by zero errors.
+		Having("event_count > 0").
+		OrderBy("event_count desc")
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		osVersions, errOSVersions := af.OSVersionPairs()
+		if errOSVersions != nil {
+			err = errOSVersions
+			return
+		}
+
+		stmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		stmt.Having("hasAll(groupUniqArrayMerge(countries), ?)", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
+	}
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var g group.ExceptionGroup
+		if err = rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+			&g.Count,
+			&g.Percentage,
+		); err != nil {
+			return
+		}
+
+		groups = append(groups, g)
+	}
+
+	resultLen := len(groups)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		groups = groups[:resultLen-1]
+		next = true
+	}
+
+	if af.Offset > 0 {
+		previous = true
+	}
+
+	return
+}
+
+// GetExceptionPlotInstances queries aggregated exception
+// instances and crash free sessions by datetime and filters.
+func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	stmt := sqlf.
+		From("events_new final").
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
+		Select("count() as total_exceptions").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = false")
+
+	defer stmt.Close()
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	stmt.GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+			return nil, err
+		}
+
+		if *instance.Instances > 0 {
+			zero := float64(0)
+			instance.IssueFreeSessions = &zero
+			issueInstances = append(issueInstances, instance)
+		}
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetExceptionAttributesDistribution computes the data required for
+// plotting crash attribute distribution.
+func (a App) GetExceptionAttributesDistribution(ctx context.Context, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+	stmt := sqlf.
+		From("events_new").
+		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
+		Select("concat(attribute.os_name, ' ', attribute.os_version) as os_version").
+		Select("inet.country_code as country").
+		Select("attribute.network_type as network_type").
+		Select("attribute.device_locale as locale").
+		Select("concat(attribute.device_manufacturer, ' - ', attribute.device_name) as device").
+		Select("count(id) as count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("exception.fingerprint = ?", fingerprint).
+		Where("exception.handled = false").
+		Where("type = ?", event.TypeException).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("country").
+		GroupBy("network_type").
+		GroupBy("locale").
+		GroupBy("device")
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	distribution.AppVersion = make(map[string]uint64)
+	distribution.OSVersion = make(map[string]uint64)
+	distribution.Country = make(map[string]uint64)
+	distribution.NetworkType = make(map[string]uint64)
+	distribution.Locale = make(map[string]uint64)
+	distribution.Device = make(map[string]uint64)
+
+	// Parse each row in the result set.
+	for rows.Next() {
+		var (
+			appVersion  string
+			osVersion   string
+			country     string
+			networkType string
+			locale      string
+			device      string
+			count       uint64
+		)
+
+		if err = rows.Scan(&appVersion, &osVersion, &country, &networkType, &locale, &device, &count); err != nil {
+			return
+		}
+
+		// Update counts in the distribution map
+		distribution.AppVersion[appVersion] += count
+		distribution.OSVersion[osVersion] += count
+		distribution.Country[country] += count
+		distribution.NetworkType[networkType] += count
+		distribution.Locale[locale] += count
+		distribution.Device[device] += count
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetExceptionsWithFilter fetches exception events for a matching
+// exception fingerprint. Also matches filters
+// and handles pagination.
+func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
+	stmt := sqlf.From("events_new").
+		Select("id").
+		Select("type").
+		Select("timestamp").
+		Select("session_id").
+		Select("attribute.app_version as app_version").
+		Select("attribute.app_build as app_build").
+		Select("attribute.device_manufacturer as device_manufacturer").
+		Select("attribute.device_model as device_model").
+		Select("attribute.network_type as network_type").
+		Select("exception.exceptions as exceptions").
+		Select("exception.threads as threads").
+		Select("exception.framework as framework").
+		Select("attachments").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("attribute.app_version in ?", af.Versions).
+		Where("attribute.app_build in ?", af.VersionCodes).
+		Where("type = ?", event.TypeException).
+		Where("exception.fingerprint = ?", fingerprint).
+		Where("exception.handled = false").
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name in ?", af.OsNames)
+		stmt.Where("attribute.os_version in ?", af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code in ?", af.Countries)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	stmt.OrderBy("timestamp")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var e event.EventException
+		var exceptions string
+		var threads string
+		var attachments string
+		if err = rows.Scan(
+			&e.ID,
+			&e.Type,
+			&e.Timestamp,
+			&e.SessionID,
+			&e.Attribute.AppVersion,
+			&e.Attribute.AppBuild,
+			&e.Attribute.DeviceManufacturer,
+			&e.Attribute.DeviceModel,
+			&e.Attribute.NetworkType,
+			&exceptions,
+			&threads,
+			&e.Exception.Framework,
+			&attachments,
+		); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
+			return
+		}
+
+		e.ComputeView()
+		events = append(events, e)
+	}
+
+	resultLen := len(events)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		events = events[:resultLen-1]
+		next = true
+	}
+
+	if af.Offset > 0 {
+		previous = true
+	}
+
+	return
+}
+
 // GetANRGroup queries a single ANR group by its id.
 func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGroup, err error) {
 	stmt := sqlf.
@@ -357,6 +970,403 @@ func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGro
 	anrGroup.EventIDs = eventIds
 	anrGroup.Count = uint64(len(eventIds))
 
+	return
+}
+
+// GetANRGroupPlotInstances computes crash instances of the exception group.
+func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	stmt := sqlf.
+		From(`events_new`).
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
+		Select("count(id) as instances").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("type = ?", event.TypeANR).
+		Where("anr.fingerprint = ?", fingerprint)
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	stmt.GroupBy("version, datetime").
+		OrderBy("version, datetime")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+			return nil, err
+		}
+		instances = append(instances, instance)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetANRPlotInstances queries aggregated exception
+// instances and crash free sessions by datetime and filters.
+func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	stmt := sqlf.
+		From("events_new final").
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
+		Select("count() as total_anrs").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("type = ?", event.TypeANR)
+
+	defer stmt.Close()
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	stmt.GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+			return nil, err
+		}
+
+		if *instance.Instances > 0 {
+			zero := float64(0)
+			instance.IssueFreeSessions = &zero
+			issueInstances = append(issueInstances, instance)
+		}
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetANRAttributesDistribution computes the data required for
+// plotting crash attribute distribution.
+func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+	stmt := sqlf.
+		From("events_new").
+		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
+		Select("concat(attribute.os_name, ' ', attribute.os_version) as os_version").
+		Select("inet.country_code as country").
+		Select("attribute.network_type as network_type").
+		Select("attribute.device_locale as locale").
+		Select("concat(attribute.device_manufacturer, ' - ', attribute.device_name) as device").
+		Select("count(id) as count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("anr.fingerprint = ?", fingerprint).
+		Where("type = ?", event.TypeANR).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("country").
+		GroupBy("network_type").
+		GroupBy("locale").
+		GroupBy("device")
+
+	if af.HasVersions() {
+		stmt.Where("attribute.app_version").In(af.Versions)
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name").In(af.OsNames)
+		stmt.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	distribution.AppVersion = make(map[string]uint64)
+	distribution.OSVersion = make(map[string]uint64)
+	distribution.Country = make(map[string]uint64)
+	distribution.NetworkType = make(map[string]uint64)
+	distribution.Locale = make(map[string]uint64)
+	distribution.Device = make(map[string]uint64)
+
+	// Parse each row in the result set.
+	for rows.Next() {
+		var (
+			appVersion  string
+			osVersion   string
+			country     string
+			networkType string
+			locale      string
+			device      string
+			count       uint64
+		)
+
+		if err = rows.Scan(&appVersion, &osVersion, &country, &networkType, &locale, &device, &count); err != nil {
+			return
+		}
+
+		// Update counts in the distribution map
+		distribution.AppVersion[appVersion] += count
+		distribution.OSVersion[osVersion] += count
+		distribution.Country[country] += count
+		distribution.NetworkType[networkType] += count
+		distribution.Locale[locale] += count
+		distribution.Device[device] += count
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetANRGroups fetches ANR groups of an app.
+func (a App) GetANRGroupsWithFilterTwo(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
+	stmt := sqlf.
+		From("anr_groups_new final").
+		Select("app_id").
+		Select("id").
+		Select("argMax(type, timestamp)").
+		Select("argMax(message, timestamp)").
+		Select("argMax(method_name, timestamp)").
+		Select("argMax(file_name, timestamp)").
+		Select("argMax(line_number, timestamp)").
+		Select("max(timestamp)").
+		Select("sumMerge(count) as event_count").
+		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		// Capture all the exception groups that received new exceptions
+		// after the "from" date & were created before the "to" date.
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("team_id").
+		GroupBy("app_id").
+		GroupBy("id").
+		// Don't consider exception groups that do not
+		// have any exception events yet.
+		// Also avoids division by zero errors.
+		Having("event_count > 0").
+		OrderBy("event_count desc")
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		osVersions, errOSVersions := af.OSVersionPairs()
+		if errOSVersions != nil {
+			err = errOSVersions
+			return
+		}
+
+		stmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		stmt.Having("hasAll(groupUniqArrayMerge(countries), ?)", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
+	}
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var g group.ANRGroup
+		if err = rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+			&g.Count,
+			&g.Percentage,
+		); err != nil {
+			return
+		}
+
+		groups = append(groups, g)
+	}
+
+	resultLen := len(groups)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		groups = groups[:resultLen-1]
+		next = true
+	}
+
+	if af.Offset > 0 {
+		previous = true
+	}
 	return
 }
 
@@ -459,6 +1469,133 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		}
 
 		groups = append(groups, g)
+	}
+
+	return
+}
+
+// GetANRsWithFilter fetches ANR events for a matching ANR fingerprint.
+// Also matches filters and handles pagination.
+func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
+	stmt := sqlf.From("events_new").
+		Select("id").
+		Select("type").
+		Select("timestamp").
+		Select("session_id").
+		Select("attribute.app_version as app_version").
+		Select("attribute.app_build as app_build").
+		Select("attribute.device_manufacturer as device_manufacturer").
+		Select("attribute.device_model as device_model").
+		Select("attribute.network_type as network_type").
+		Select("anr.exceptions as exceptions").
+		Select("anr.threads as threads").
+		Select("attachments").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("attribute.app_version in ?", af.Versions).
+		Where("attribute.app_build in ?", af.VersionCodes).
+		Where("type = ?", event.TypeANR).
+		Where("anr.fingerprint = ?", fingerprint).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasOSVersions() {
+		stmt.Where("attribute.os_name in ?", af.OsNames)
+		stmt.Where("attribute.os_version in ?", af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("inet.country_code in ?", af.Countries)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	stmt.OrderBy("timestamp")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var e event.EventANR
+		var exceptions string
+		var threads string
+		var attachments string
+		if err = rows.Scan(
+			&e.ID,
+			&e.Type,
+			&e.Timestamp,
+			&e.SessionID,
+			&e.Attribute.AppVersion,
+			&e.Attribute.AppBuild,
+			&e.Attribute.DeviceManufacturer,
+			&e.Attribute.DeviceModel,
+			&e.Attribute.NetworkType,
+			&exceptions,
+			&threads,
+			&attachments,
+		); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
+			return
+		}
+
+		e.ComputeView()
+		events = append(events, e)
+	}
+
+	resultLen := len(events)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		events = events[:resultLen-1]
+		next = true
+	}
+
+	if af.Offset > 0 {
+		previous = true
 	}
 
 	return
@@ -794,468 +1931,545 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	return
 }
 
-// getJourneyEvents queries all relevant lifecycle
-// and issue events involved in forming
-// an implicit navigational journey.
-func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
-	whereVals := []any{}
+// GetSessionsInstancesPlot provides aggregated session instances
+// matching various filters.
+func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
+	base := sqlf.From("sessions_new").
+		Select("session_id").
+		Select("min(first_event_timestamp) as start_time").
+		Select("app_version").
+		Select("toDate(min(first_event_timestamp)) as date").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
 
-	switch opsys.ToFamily(a.OSName) {
-	case opsys.Android:
-		whereVals = append(
-			whereVals,
-			event.TypeLifecycleActivity,
-			[]string{
-				event.LifecycleActivityTypeCreated,
-				event.LifecycleActivityTypeResumed,
-			},
-			event.TypeLifecycleFragment,
-			[]string{
-				event.LifecycleFragmentTypeAttached,
-				event.LifecycleFragmentTypeResumed,
-			},
-		)
-	case opsys.AppleFamily:
-		whereVals = append(
-			whereVals,
-			event.TypeLifecycleViewController,
-			[]string{
-				event.LifecycleViewControllerTypeViewDidLoad,
-				event.LifecycleViewControllerTypeViewDidAppear,
-			},
-			event.TypeLifecycleSwiftUI,
-			[]string{
-				event.LifecycleSwiftUITypeOnAppear,
-			},
-		)
+	if af.HasFreeText() {
+		base.
+			Select("groupUniqArrayMerge(user_ids) as user_ids").
+			Select("groupUniqArrayMerge(unique_types) as unique_types").
+			Select("groupUniqArrayMerge(unique_custom_type_names) as unique_custom_type_names").
+			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
+			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
+			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayMerge(unique_exceptions) as unique_exceptions").
+			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
+			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
+			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
+			Select("groupUniqArrayMerge(unique_scroll_targets) as unique_scroll_targets")
 	}
 
-	whereVals = append(whereVals, event.TypeScreenView)
+	if af.HasVersions() {
+		// critical to filter on individual columns to hit
+		// binary search using primary key(s)
+		base.Where("app_version.1 in ?", af.Versions)
+		base.Where("app_version.2 in ?", af.VersionCodes)
+	}
 
-	if opts.All {
-		switch opsys.ToFamily(a.OSName) {
-		case opsys.Android:
-			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
-		case opsys.AppleFamily:
-			whereVals = append(whereVals, event.TypeException, false)
+	// Timeline selection parameters
+	//
+	// Allow the user to mix & match fine-grained
+	// timeline selection parameters.
+	{
+		if af.Crash {
+			base.Having("sumMerge(crash_count) >= 1")
 		}
-	} else if opts.Exceptions {
-		whereVals = append(whereVals, event.TypeException, false)
-	} else if opts.ANRs {
-		switch a.OSName {
-		case opsys.Android:
-			whereVals = append(whereVals, event.TypeANR)
+
+		if af.ANR {
+			base.Having("sumMerge(anr_count) >= 1")
+		}
+
+		if af.BugReport {
+			base.Having("sumMerge(bug_report_count) >= 1")
+		}
+
+		if af.Background {
+			base.Having("sumMerge(background_count) >= 1")
+		}
+
+		if af.Foreground {
+			base.Having("sumMerge(foreground_count) >= 1")
+		}
+
+		if af.UserInteraction {
+			// wrap the entire user interaction detection condition
+			// in parenthesis because we want to evaluate it as
+			// a whole
+			//
+			// the cast using '::Map(T, U)' is critical
+			// the series of 'OR' expressions is also critical
+			base.Having("(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
 		}
 	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return nil, err
+		}
+
+		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		base.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		base.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		base.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		base.Where("device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		base.Where("device_name").In(af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.
+			From("user_def_attrs_new").
+			Select("distinct session_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			base.Where("app_version.1 in ?", af.Versions)
+			base.Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, err := af.OSVersionPairs()
+			if err != nil {
+				return nil, err
+			}
+
+			base.Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		base.SubQuery("session_id in (", ")", subQuery)
+	}
+
+	base.
+		GroupBy("session_id").
+		GroupBy("app_version")
 
 	stmt := sqlf.
-		From(`journey_new`).
-		Select(`id`).
-		Select(`type`).
-		Select(`timestamp`).
-		Select(`session_id`).
-		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", a.ID)
-
-	if len(af.Versions) > 0 {
-		stmt.Where("app_version.1 in ?", af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-	switch opsys.ToFamily(a.OSName) {
-	case opsys.Android:
-		stmt.
-			Select(`toString(lifecycle_activity.type)`).
-			Select(`toString(lifecycle_activity.class_name)`).
-			Select(`toString(lifecycle_fragment.type)`).
-			Select(`toString(lifecycle_fragment.class_name)`).
-			Select(`toString(lifecycle_fragment.parent_activity)`).
-			Select(`toString(lifecycle_fragment.parent_fragment)`)
-	case opsys.AppleFamily:
-		stmt.
-			Select(`toString(lifecycle_view_controller.type)`).
-			Select(`toString(lifecycle_view_controller.class_name)`).
-			Select(`toString(lifecycle_swift_ui.type)`).
-			Select(`toString(lifecycle_swift_ui.class_name)`)
-	}
-
-	stmt.Select(`toString(screen_view.name)`)
-
-	if opts.All {
-		switch opsys.ToFamily(a.OSName) {
-		case opsys.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
-		case opsys.AppleFamily:
-			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
-		}
-	} else if opts.Exceptions {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
-	} else if opts.ANRs {
-		switch a.OSName {
-		case opsys.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ?))", whereVals...)
-		}
-	}
-
-	if len(af.OsNames) > 0 {
-		stmt.Where("`attribute.os_name` in ?", af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		stmt.Where("`attribute.os_version` in ?", af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		stmt.Where("`inet.country_code` in ?", af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		stmt.Where("`attribute.device_name` in ?", af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("`attribute.device_manufacturer` in ?", af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		stmt.Where("`attribute.device_locale` in ?", af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		stmt.Where("`attribute.network_provider` in ?", af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		stmt.Where("`attribute.network_type` in ?", af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("`attribute.network_generation` in ?", af.NetworkGenerations)
-	}
-
-	stmt.OrderBy(`timestamp`)
+		With("base", base).
+		From("base").
+		Select("count() as instances").
+		Select("formatDateTime(date, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("concat(app_version.1, ' ', '(', app_version.2, ')') as app_version_fmt").
+		GroupBy("app_version, date").
+		OrderBy("date, app_version.2 desc")
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	// filter sessions that partially match the user
+	// supplied keyword inside various session events.
+	//
+	// matches user id & session id exactly, not partially.
+	if af.HasFreeText() {
+		partial := fmt.Sprintf("%%%s%%", af.FreeText)
+
+		stmtMatch := sqlf.
+			New("").
+			SubQuery("(", ")", sqlf.
+				New("").
+				Clause("arrayExists(x -> x ilike ?, user_ids)", af.FreeText).
+				Clause("or").
+				Clause("toString(session_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_types)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_custom_type_names)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_click_targets)", partial, partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_longclick_targets)", partial, partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_scroll_targets)", partial, partial),
+			)
+
+		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
+	}
+
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
 	for rows.Next() {
-		var ev event.EventField
-		var lifecycleActivityType string
-		var lifecycleActivityClassName string
-		var lifecycleFragmentType string
-		var lifecycleFragmentClassName string
-		var lifecycleFragmentParentActivity string
-		var lifecycleFragmentParentFragment string
-		var lifecycleViewControllerType string
-		var lifecycleViewControllerClassName string
-		var lifecycleSwiftUIType string
-		var lifecycleSwiftUIClassName string
-		var screenViewName string
-
-		dest := []any{
-			&ev.ID,
-			&ev.Type,
-			&ev.Timestamp,
-			&ev.SessionID,
+		var sessionInstance session.SessionInstance
+		if err = rows.Scan(&sessionInstance.Instances, &sessionInstance.DateTime, &sessionInstance.Version); err != nil {
+			return
 		}
 
-		switch opsys.ToFamily(a.OSName) {
-		case opsys.Android:
-			dest = append(
-				dest,
-				&lifecycleActivityType,
-				&lifecycleActivityClassName,
-				&lifecycleFragmentType,
-				&lifecycleFragmentClassName,
-				&lifecycleFragmentParentActivity,
-				&lifecycleFragmentParentFragment,
-				&screenViewName,
-			)
-		case opsys.AppleFamily:
-			dest = append(
-				dest,
-				&lifecycleViewControllerType,
-				&lifecycleViewControllerClassName,
-				&lifecycleSwiftUIType,
-				&lifecycleSwiftUIClassName,
-				&screenViewName,
-			)
-		}
-
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		if ev.IsLifecycleActivity() {
-			ev.LifecycleActivity = &event.LifecycleActivity{
-				Type:      lifecycleActivityType,
-				ClassName: lifecycleActivityClassName,
-			}
-		} else if ev.IsLifecycleFragment() {
-			ev.LifecycleFragment = &event.LifecycleFragment{
-				Type:           lifecycleFragmentType,
-				ClassName:      lifecycleFragmentClassName,
-				ParentActivity: lifecycleFragmentParentActivity,
-				ParentFragment: lifecycleFragmentParentFragment,
-			}
-		} else if ev.IsLifecycleViewController() {
-			ev.LifecycleViewController = &event.LifecycleViewController{
-				Type:      lifecycleViewControllerType,
-				ClassName: lifecycleViewControllerClassName,
-			}
-		} else if ev.IsLifecycleSwiftUI() {
-			ev.LifecycleSwiftUI = &event.LifecycleSwiftUI{
-				Type:      lifecycleSwiftUIType,
-				ClassName: lifecycleSwiftUIClassName,
-			}
-		} else if ev.IsScreenView() {
-			ev.ScreenView = &event.ScreenView{
-				Name: screenViewName,
-			}
-		} else if ev.IsException() {
-			ev.Exception = &event.Exception{}
-		} else if ev.IsANR() {
-			ev.ANR = &event.ANR{}
-		}
-
-		events = append(events, ev)
+		sessionInstances = append(sessionInstances, sessionInstance)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+	err = rows.Err()
+
+	return
+}
+
+// GetSessionsWithFilter provides sessions that matches various
+// filter criteria in a paginated fashion.
+func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []SessionDisplay, next, previous bool, err error) {
+	base := sqlf.
+		From("sessions_new").
+		Select("session_id").
+		Select("app_version.1 as app_version_major").
+		Select("app_version.2 as app_version_minor").
+		Select("device_name").
+		Select("device_model").
+		Select("device_manufacturer").
+		Select("os_version.1 as os_version_major").
+		Select("os_version.2 as os_version_minor").
+		Select("min(first_event_timestamp) as start_time").
+		Select("max(last_event_timestamp) as end_time").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
+
+	if af.HasFreeText() {
+		base.
+			Select("groupUniqArrayMerge(user_ids) as user_ids").
+			Select("groupUniqArrayMerge(unique_types) as unique_types").
+			Select("groupUniqArrayMerge(unique_custom_type_names) as unique_custom_type_names").
+			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
+			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
+			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayMerge(unique_exceptions) as unique_exceptions").
+			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
+			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
+			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
+			Select("groupUniqArrayMerge(unique_scroll_targets) as unique_scroll_targets")
+	}
+
+	if af.HasVersions() {
+		// critical to filter on individual columns to hit
+		// binary search using primary key(s)
+		base.Where("app_version.1 in ?", af.Versions)
+		base.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	// Timeline selection parameters
+	//
+	// Allow the user to mix & match fine-grained
+	// timeline selection parameters.
+	{
+		if af.Crash {
+			base.Having("sumMerge(crash_count) >= 1")
+		}
+
+		if af.ANR {
+			base.Having("sumMerge(anr_count) >= 1")
+		}
+
+		if af.BugReport {
+			base.Having("sumMerge(bug_report_count) >= 1")
+		}
+
+		if af.Background {
+			base.Having("sumMerge(background_count) >= 1")
+		}
+
+		if af.Foreground {
+			base.Having("sumMerge(foreground_count) >= 1")
+		}
+
+		if af.UserInteraction {
+			// wrap the entire user interaction detection condition
+			// in parenthesis because we want to evaluate it as
+			// a whole
+			//
+			// the cast using '::Map(T, U)' is critical
+			// the series of 'OR' expressions is also critical
+			base.Having("(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+		}
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return sessions, next, previous, err
+		}
+
+		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		base.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		base.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		base.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		base.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		base.Where("device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		base.Where("device_name").In(af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.
+			From("user_def_attrs_new").
+			Select("distinct session_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			base.Where("app_version.1 in ?", af.Versions)
+			base.Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, err := af.OSVersionPairs()
+			if err != nil {
+				return sessions, next, previous, err
+			}
+
+			base.Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		base.SubQuery("session_id in (", ")", subQuery)
+	}
+
+	base.
+		GroupBy("session_id").
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("device_name").
+		GroupBy("device_model").
+		GroupBy("device_manufacturer")
+
+	stmt := sqlf.With("base", base).
+		From("base").
+		Select("session_id").
+		Select("app_version_major").
+		Select("app_version_minor").
+		Select("os_version_major").
+		Select("os_version_minor").
+		Select("device_name").
+		Select("device_model").
+		Select("device_manufacturer").
+		Select("start_time").
+		Select("end_time").
+
+		// show latest sessions on top
+		OrderBy("start_time desc").
+
+		// if start_time is same for two
+		// consecutive sessions in order
+		// use session_id as a tie-breaker
+		//
+		// clickhouse sorts UUIDs lexicographically
+		// so, the resultant order doesn't matter so
+		// long there is an order.
+		OrderBy("session_id desc")
+
+	defer stmt.Close()
+
+	// paginate
+	{
+		if af.Limit > 0 {
+			stmt.Limit(uint64(af.Limit) + 1)
+		}
+
+		if af.Offset >= 0 {
+			stmt.Offset(uint64(af.Offset))
+		}
+	}
+
+	// filter sessions that partially match the user
+	// supplied keyword inside various session events.
+	//
+	// matches user id & session id exactly, not partially.
+	if af.HasFreeText() {
+		partial := fmt.Sprintf("%%%s%%", af.FreeText)
+
+		stmtMatch := sqlf.
+			New("").
+			SubQuery("(", ")", sqlf.
+				New("").
+				Clause("arrayExists(x -> x ilike ?, user_ids)", af.FreeText).
+				Clause("or").
+				Clause("toString(session_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_types)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_custom_type_names)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_click_targets)", partial, partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_longclick_targets)", partial, partial).
+				Clause("or").
+				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_scroll_targets)", partial, partial),
+			)
+
+		stmt.Select("user_ids").
+			Select("unique_types").
+			Select("unique_custom_type_names").
+			Select("unique_strings").
+			Select("unique_view_classnames").
+			Select("unique_subview_classnames").
+			Select("unique_exceptions").
+			Select("unique_anrs").
+			Select("unique_click_targets").
+			Select("unique_longclick_targets").
+			Select("unique_scroll_targets")
+
+		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
+	}
+
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
+			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames []string
+		uniqueExceptions := []map[string]string{}
+		uniqueANRs := []map[string]string{}
+		uniqueClickTargets := []map[string]string{}
+		uniqueLongclickTargets := []map[string]string{}
+		uniqueScrollTargets := []map[string]string{}
+
+		var sess SessionDisplay
+		sess.Session = new(Session)
+		sess.Attribute = new(event.Attribute)
+		sess.AppID = af.AppID
+
+		dest := []any{
+			&sess.SessionID,
+			&sess.Attribute.AppVersion,
+			&sess.Attribute.AppBuild,
+			&sess.Attribute.OSName,
+			&sess.Attribute.OSVersion,
+			&sess.Attribute.DeviceName,
+			&sess.Attribute.DeviceModel,
+			&sess.Attribute.DeviceManufacturer,
+			&sess.FirstEventTime,
+			&sess.LastEventTime,
+		}
+
+		if af.HasFreeText() {
+			dest = append(dest, &uniqueUserIds, &uniqueTypes, &uniqueCustomTypeNames, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
+		}
+
+		if err = rows.Scan(dest...); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		if len(uniqueUserIds) > 0 {
+			sess.Attribute.UserID = uniqueUserIds[0]
+		}
+
+		// set duration
+		sess.Duration = time.Duration(sess.LastEventTime.Sub(*sess.FirstEventTime).Milliseconds())
+
+		// set matched free text results
+		sess.MatchedFreeText = session.ExtractMatches(
+			af.FreeText,
+			sess.Attribute.UserID,
+			sess.SessionID.String(),
+			uniqueTypes,
+			uniqueCustomTypeNames,
+			uniqueStrings,
+			uniqueViewClassnames,
+			uniqueSubviewClassnames,
+			uniqueExceptions,
+			uniqueANRs,
+			uniqueClickTargets,
+			uniqueLongclickTargets,
+			uniqueScrollTargets,
+		)
+
+		sessions = append(sessions, sess)
+	}
+
+	err = rows.Err()
+
+	resultLen := len(sessions)
+
+	// set pagination next & previous flags
+	if resultLen > af.Limit {
+		sessions = sessions[:resultLen-1]
+		next = true
+	}
+
+	if af.Offset > 0 {
+		previous = true
 	}
 
 	return
 }
 
-func (a *App) add() (*APIKey, error) {
-	// id := uuid.New()
-	id := uuid.MustParse("5f1e2455-ffef-4e8e-9d68-73239753e5a0")
-	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	apiKey, err := NewAPIKey(*a.ID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
-		return nil, err
-	}
-
-	return apiKey, nil
-}
-
-func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
-	var appName pgtype.Text
-	var uniqueId pgtype.Text
-	var osName pgtype.Text
-	var firstVersion pgtype.Text
-	var onboarded pgtype.Bool
-	var onboardedAt pgtype.Timestamptz
-	var apiKeyLastSeen pgtype.Timestamptz
-	var apiKeyCreatedAt pgtype.Timestamptz
-	var createdAt pgtype.Timestamptz
-	var updatedAt pgtype.Timestamptz
-
-	apiKey := new(APIKey)
-
-	cols := []string{
-		"apps.app_name",
-		"apps.unique_identifier",
-		"apps.os_name",
-		"apps.first_version",
-		"apps.onboarded",
-		"apps.onboarded_at",
-		"api_keys.key_prefix",
-		"api_keys.key_value",
-		"api_keys.checksum",
-		"api_keys.last_seen",
-		"api_keys.created_at",
-		"apps.created_at",
-		"apps.updated_at",
-	}
-
-	stmt := sqlf.PostgreSQL.
-		Select(strings.Join(cols, ",")).
-		From("apps").
-		LeftJoin("api_keys", "api_keys.app_id = apps.id").
-		Where("apps.id = ? and apps.team_id = ?", nil, nil)
-
-	defer stmt.Close()
-
-	dest := []any{
-		&appName,
-		&uniqueId,
-		&osName,
-		&firstVersion,
-		&onboarded,
-		&onboardedAt,
-		&apiKey.keyPrefix,
-		&apiKey.keyValue,
-		&apiKey.checksum,
-		&apiKeyLastSeen,
-		&apiKeyCreatedAt,
-		&createdAt,
-		&updatedAt,
-	}
-
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	if appName.Valid {
-		a.AppName = appName.String
-	}
-
-	if uniqueId.Valid {
-		a.UniqueId = uniqueId.String
-	} else {
-		a.UniqueId = ""
-	}
-
-	if osName.Valid {
-		a.OSName = osName.String
-	} else {
-		a.OSName = ""
-	}
-
-	if firstVersion.Valid {
-		a.FirstVersion = firstVersion.String
-	} else {
-		a.FirstVersion = ""
-	}
-
-	if onboarded.Valid {
-		a.Onboarded = onboarded.Bool
-	}
-
-	if onboardedAt.Valid {
-		a.OnboardedAt = onboardedAt.Time
-	}
-
-	if apiKeyLastSeen.Valid {
-		apiKey.lastSeen = apiKeyLastSeen.Time
-	}
-
-	if apiKeyCreatedAt.Valid {
-		apiKey.createdAt = apiKeyCreatedAt.Time
-	}
-
-	if createdAt.Valid {
-		a.CreatedAt = createdAt.Time
-	}
-
-	if updatedAt.Valid {
-		a.UpdatedAt = updatedAt.Time
-	}
-
-	a.APIKey = apiKey
-
-	return a, nil
-}
-
-func (a *App) getTeam(ctx context.Context) (*Team, error) {
-	team := &Team{}
-
-	stmt := sqlf.PostgreSQL.
-		Select("team_id").
-		From("apps").
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	return team, nil
-}
-
-// Populate fills in all app values
-// for the app.
-func (a *App) Populate(ctx context.Context) (err error) {
-	stmt := sqlf.PostgreSQL.From("apps").
-		Select("team_id::UUID").
-		Select("unique_identifier").
-		Select("app_name").
-		Select("os_name").
-		Select("first_version").
-		Select("onboarded").
-		Select("onboarded_at").
-		Select("created_at").
-		Select("updated_at").
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.OSName, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
-}
-
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
-	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("apps").
-		Set("onboarded", true).
-		Set("unique_identifier", uniqueIdentifier).
-		Set("os_name", osName).
-		Set("first_version", firstVersion).
-		Set("onboarded_at", now).
-		Set("updated_at", now).
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
-	teamId, err := ambient.TeamId(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+// GetSessionEvents fetches all the events of an app's session.
+func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
 	sessionAppVersion := sqlf.From("sessions_index_new").
-		Select("app_version").
-		Where("team_id = toUUID(?)", teamId).
+		Select("argMax(app_version, last_event_timestamp) as app_version").
+		Select("min(first_event_timestamp) as start_time").
+		Select("max(last_event_timestamp) as end_time").
+		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("session_id = toUUID(?)", sessionId).
 		Limit(1)
@@ -1454,10 +2668,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		stmt.Select(cols[i])
 	}
 
-	stmt.Where("team_id = toUUID(?)", teamId)
+	stmt.Where("team_id = toUUID(?)", a.TeamId)
 	stmt.Where("app_id = toUUID(?)", a.ID)
 	stmt.Where("attribute.app_version in (select app_version.1 from session_app_version)")
 	stmt.Where("attribute.app_build in (select app_version.2 from session_app_version)")
+	stmt.Where("timestamp >= (select start_time from session_app_version) and timestamp <= (select end_time from session_app_version)")
 	stmt.Where("session_id = toUUID(?)", sessionId)
 	stmt.OrderBy("timestamp")
 
@@ -1915,6 +3130,1375 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	}
 
 	return &session, nil
+}
+
+// FetchRootSpanNames returns list of root span names for a given app id
+func (a App) FetchRootSpanNames(ctx context.Context) (traceNames []string, err error) {
+	stmt := sqlf.
+		From("spans_new").
+		Select("span_name").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("parent_id = ''").
+		GroupBy("span_name").
+		OrderBy("max(start_time) desc").
+		Limit(5000)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var traceName string
+
+		if err = rows.Scan(&traceName); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		traceNames = append(traceNames, traceName)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// FetchTracesForSessionId returns list of traces for a given app id and session id
+func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (sessionTraces []span.TraceSessionTimelineDisplay, err error) {
+	stmt := sqlf.
+		Select("toString(span_name)").
+		Select("toString(trace_id)").
+		Select("toString(attribute.thread_name)").
+		Select("start_time").
+		Select("end_time").
+		From("spans_new final").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("parent_id = ''").
+		OrderBy("start_time desc")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		sessionTrace := span.TraceSessionTimelineDisplay{}
+
+		if err = rows.Scan(&sessionTrace.TraceName, &sessionTrace.TraceID, &sessionTrace.ThreadName, &sessionTrace.StartTime, &sessionTrace.EndTime); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		sessionTrace.Duration = time.Duration(sessionTrace.EndTime.Sub(sessionTrace.StartTime).Milliseconds())
+
+		sessionTraces = append(sessionTraces, sessionTrace)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
+// filter criteria in a paginated fashion.
+func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
+	stmt := sqlf.
+		From("spans_new final").
+		Select("app_id").
+		Select("toString(span_name)").
+		Select("toString(span_id)").
+		Select("toString(trace_id)").
+		Select("status").
+		Select("start_time").
+		Select("end_time").
+		Select("tupleElement(attribute.app_version, 1)").
+		Select("tupleElement(attribute.app_version, 2)").
+		Select("tupleElement(attribute.os_version, 1)").
+		Select("tupleElement(attribute.os_version, 2)").
+		Select("attribute.device_manufacturer").
+		Select("attribute.device_model").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("span_name = ?", spanName).
+		Where("start_time >= ? and end_time <= ?", af.From, af.To)
+
+	if af.HasSpanStatuses() {
+		stmt.Where("status").In(af.SpanStatuses)
+	}
+
+	if af.HasVersions() {
+		stmt.Where("`attribute.app_version`.1 in ?", af.Versions)
+		stmt.Where("`attribute.app_version`.2 in ?", af.VersionCodes)
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return rootSpans, next, previous, err
+		}
+
+		stmt.Where("attribute.os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		stmt.Where("attribute.country_code in ?", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("attribute.network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("span_user_def_attrs_new").
+			Select("span_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			subQuery.
+				Where("app_version.1 in ?", af.Versions).
+				Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, errVersions := af.OSVersionPairs()
+			if err != nil {
+				err = errVersions
+				return
+			}
+
+			subQuery.
+				Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		stmt.SubQuery("span_id in (", ")", subQuery)
+	}
+
+	stmt.OrderBy("start_time desc")
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		rootSpan := span.RootSpanDisplay{}
+
+		if err = rows.Scan(&rootSpan.AppID, &rootSpan.SpanName, &rootSpan.SpanID, &rootSpan.TraceID, &rootSpan.Status, &rootSpan.StartTime, &rootSpan.EndTime, &rootSpan.AppVersion, &rootSpan.AppBuild, &rootSpan.OSName, &rootSpan.OSVersion, &rootSpan.DeviceManufacturer, &rootSpan.DeviceModel); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		rootSpan.Duration = time.Duration(rootSpan.EndTime.Sub(rootSpan.StartTime).Milliseconds())
+
+		rootSpans = append(rootSpans, rootSpan)
+	}
+
+	err = rows.Err()
+
+	resultLen := len(rootSpans)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		rootSpans = rootSpans[:resultLen-1]
+		next = true
+	}
+	if af.Offset > 0 {
+		previous = true
+	}
+
+	return
+}
+
+// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
+// for the given span name with the applied filtering criteria
+func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
+	if !af.HasTimezone() {
+		err = fmt.Errorf("timezone is required")
+		return
+	}
+
+	stmt := sqlf.
+		From("span_metrics_new").
+		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select("round(quantileMerge(0.50)(p50), 2) as p50").
+		Select("round(quantileMerge(0.90)(p90), 2) as p90").
+		Select("round(quantileMerge(0.95)(p95), 2) as p95").
+		Select("round(quantileMerge(0.99)(p99), 2) as p99").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("span_name = ?", spanName).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	if af.HasSpanStatuses() {
+		stmt.Where("status").In(af.SpanStatuses)
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return nil, err
+		}
+
+		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		stmt.Where("country_code in ?", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("device_locale in ?", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.
+			From("span_user_def_attrs_new").
+			Select("span_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			subQuery.
+				Where("app_version.1 in ?", af.Versions).
+				Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, errVersions := af.OSVersionPairs()
+			if err != nil {
+				err = errVersions
+				return
+			}
+
+			subQuery.
+				Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		stmt.SubQuery("span_id in (", ")", subQuery)
+	}
+
+	stmt.GroupBy("app_version, datetime")
+	stmt.OrderBy("datetime, tupleElement(app_version, 2) desc")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var spanMetricsPlotInstance span.SpanMetricsPlotInstance
+		if err = rows.Scan(&spanMetricsPlotInstance.Version, &spanMetricsPlotInstance.DateTime, &spanMetricsPlotInstance.P50, &spanMetricsPlotInstance.P90, &spanMetricsPlotInstance.P95, &spanMetricsPlotInstance.P99); err != nil {
+			return
+		}
+
+		spanMetricsPlotInstances = append(spanMetricsPlotInstances, spanMetricsPlotInstance)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetTrace constructs and returns a trace for
+// a given traceId
+func (a App) GetTrace(ctx context.Context, traceId string) (trace span.TraceDisplay, err error) {
+	stmt := sqlf.
+		From("spans_new final").
+		Select("app_id").
+		Select("toString(trace_id)").
+		Select("session_id").
+		Select("attribute.user_id").
+		Select("toString(span_id)").
+		Select("toString(span_name)").
+		Select("toString(parent_id)").
+		Select("start_time").
+		Select("end_time").
+		Select("status").
+		Select("checkpoints").
+		Select("tupleElement(attribute.app_version, 1)").
+		Select("tupleElement(attribute.app_version, 2)").
+		Select("tupleElement(attribute.os_version, 1)").
+		Select("tupleElement(attribute.os_version, 2)").
+		Select("attribute.device_manufacturer").
+		Select("attribute.device_model").
+		Select("attribute.network_type").
+		Select("toString(attribute.thread_name)").
+		Select("attribute.device_low_power_mode").
+		Select("attribute.device_thermal_throttling_enabled").
+		Select("user_defined_attribute").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("trace_id = ?", traceId).
+		OrderBy("start_time desc")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	spans := []span.SpanField{}
+
+	for rows.Next() {
+		var rawCheckpoints [][]any
+		var rawUserDefAttr map[string][]any
+		s := span.SpanField{}
+
+		if err = rows.Scan(&s.AppID, &s.TraceID, &s.SessionID, &s.Attributes.UserID, &s.SpanID, &s.SpanName, &s.ParentID, &s.StartTime, &s.EndTime, &s.Status, &rawCheckpoints, &s.Attributes.AppVersion, &s.Attributes.AppBuild, &s.Attributes.OSName, &s.Attributes.OSVersion, &s.Attributes.DeviceManufacturer, &s.Attributes.DeviceModel, &s.Attributes.NetworkType, &s.Attributes.ThreadName, &s.Attributes.LowPowerModeEnabled, &s.Attributes.ThermalThrottlingEnabled, &rawUserDefAttr); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		// Map rawUserDefAttr
+		if len(rawUserDefAttr) > 0 {
+			s.UserDefinedAttribute.Scan(rawUserDefAttr)
+		}
+
+		// Map rawCheckpoints
+		for _, cp := range rawCheckpoints {
+			rawName, _ := cp[0].(string)
+			name := strings.ReplaceAll(rawName, "\u0000", "")
+			timestamp, _ := cp[1].(time.Time)
+			s.CheckPoints = append(s.CheckPoints, span.CheckPointField{
+				Name:      name,
+				Timestamp: timestamp,
+			})
+		}
+
+		spans = append(spans, s)
+	}
+
+	if len(spans) == 0 {
+		return trace, fmt.Errorf("no spans found for traceId: %v", traceId)
+	}
+
+	spanDisplays := []span.SpanDisplay{}
+	var minStartTime time.Time
+	var maxEndTime time.Time
+
+	for i, s := range spans {
+		spanDisplay := span.SpanDisplay{
+			SpanName:                 s.SpanName,
+			SpanID:                   s.SpanID,
+			ParentID:                 s.ParentID,
+			Status:                   s.Status,
+			StartTime:                s.StartTime,
+			EndTime:                  s.EndTime,
+			Duration:                 time.Duration(s.EndTime.Sub(s.StartTime).Milliseconds()),
+			ThreadName:               s.Attributes.ThreadName,
+			LowPowerModeEnabled:      s.Attributes.LowPowerModeEnabled,
+			ThermalThrottlingEnabled: s.Attributes.ThermalThrottlingEnabled,
+			UserDefinedAttribute:     s.UserDefinedAttribute,
+			CheckPoints:              s.CheckPoints,
+		}
+
+		spanDisplays = append(spanDisplays, spanDisplay)
+
+		// Initialize minStartTime and maxEndTime on the first iteration
+		if i == 0 {
+			minStartTime = s.StartTime
+			maxEndTime = s.EndTime
+		} else {
+			// Update minStartTime and maxEndTime as necessary
+			if s.StartTime.Before(minStartTime) {
+				minStartTime = s.StartTime
+			}
+			if s.EndTime.After(maxEndTime) {
+				maxEndTime = s.EndTime
+			}
+		}
+	}
+
+	trace.AppID = spans[0].AppID
+	trace.TraceID = spans[0].TraceID
+	trace.SessionID = spans[0].SessionID
+	trace.UserID = spans[0].Attributes.UserID
+	trace.StartTime = minStartTime
+	trace.EndTime = maxEndTime
+	trace.Duration = time.Duration(maxEndTime.Sub(minStartTime).Milliseconds())
+	trace.AppVersion = spans[0].Attributes.AppVersion + "(" + spans[0].Attributes.AppBuild + ")"
+	trace.OSVersion = spans[0].Attributes.OSName + " " + spans[0].Attributes.OSVersion
+	trace.DeviceManufacturer = spans[0].Attributes.DeviceManufacturer
+	trace.DeviceModel = spans[0].Attributes.DeviceModel
+	trace.NetworkType = spans[0].Attributes.NetworkType
+	trace.Spans = spanDisplays
+
+	return
+}
+
+// GetBugReportsWithFilter provides bug reports that matches various
+// filter criteria in a paginated fashion.
+func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+	stmt := sqlf.
+		From("bug_reports_new final").
+		Select("event_id").
+		Select("session_id").
+		Select("timestamp").
+		Select("updated_at").
+		Select("status").
+		Select("description").
+		Select("tupleElement(app_version, 1)").
+		Select("tupleElement(app_version, 2)").
+		Select("tupleElement(os_version, 1)").
+		Select("tupleElement(os_version, 2)").
+		Select("device_manufacturer").
+		Select("device_name").
+		Select("device_model").
+		Select("user_id").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	defer stmt.Close()
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
+	if af.HasBugReportStatuses() {
+		stmt.Where("status").In(af.BugReportStatuses)
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return bugReports, next, previous, err
+		}
+
+		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		stmt.Where("country_code in ?", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("device_locale in ?", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs_new").
+			Select("distinct event_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("bug_report = true").
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			subQuery.
+				Where("app_version.1 in ?", af.Versions).
+				Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, errVersions := af.OSVersionPairs()
+			if err != nil {
+				err = errVersions
+				return
+			}
+
+			subQuery.
+				Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		stmt.SubQuery("event_id in (", ")", subQuery)
+	}
+
+	stmt.OrderBy("timestamp desc")
+
+	if af.HasFreeText() {
+		partial := fmt.Sprintf("%%%s%%", af.FreeText)
+
+		stmtMatch := sqlf.
+			New("").
+			SubQuery("(", ")", sqlf.
+				New("").
+				Clause("user_id ilike ?", af.FreeText).
+				Clause("or").
+				Clause("toString(event_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("toString(session_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("description ilike ?", partial),
+			)
+
+		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var bugReport BugReportDisplay
+		bugReport.BugReport = new(BugReport)
+		bugReport.Attribute = new(event.Attribute)
+		bugReport.AppID = af.AppID
+
+		dest := []any{
+			&bugReport.EventID,
+			&bugReport.SessionID,
+			&bugReport.Timestamp,
+			&bugReport.UpdatedAt,
+			&bugReport.Status,
+			&bugReport.Description,
+			&bugReport.Attribute.AppVersion,
+			&bugReport.Attribute.AppBuild,
+			&bugReport.Attribute.OSName,
+			&bugReport.Attribute.OSVersion,
+			&bugReport.Attribute.DeviceManufacturer,
+			&bugReport.Attribute.DeviceName,
+			&bugReport.Attribute.DeviceModel,
+			&bugReport.Attribute.UserID,
+		}
+
+		if err = rows.Scan(dest...); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		// set matched free text results
+		bugReport.MatchedFreeText = extractMatches(af.FreeText, bugReport.Attribute.UserID, bugReport.EventID.String(), bugReport.SessionID.String(), bugReport.Description)
+
+		bugReports = append(bugReports, bugReport)
+	}
+
+	err = rows.Err()
+
+	resultLen := len(bugReports)
+
+	// Set pagination next & previous flags
+	if resultLen > af.Limit {
+		bugReports = bugReports[:resultLen-1]
+		next = true
+	}
+	if af.Offset > 0 {
+		previous = true
+	}
+
+	return
+}
+
+// GetBugReportInstancesPlot provides aggregated bug report instances
+// matching various filters.
+func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
+	base := sqlf.From("bug_reports_new final").
+		Select("event_id").
+		Select("app_version").
+		Select("timestamp").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasVersions() {
+		base.Where("app_version.1 in ?", af.Versions)
+		base.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	if af.HasBugReportStatuses() {
+		base.Where("status").In(af.BugReportStatuses)
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err != nil {
+			return nil, err
+		}
+
+		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
+	}
+
+	if af.HasCountries() {
+		base.Where("country_code in ?", af.Countries)
+	}
+
+	if af.HasNetworkProviders() {
+		base.Where("network_provider in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		base.Where("network_type in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		base.Where("network_generation in ?", af.NetworkGenerations)
+	}
+
+	if af.HasDeviceLocales() {
+		base.Where("device_locale in ?", af.Locales)
+	}
+
+	if af.HasDeviceManufacturers() {
+		base.Where("device_manufacturer in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceNames() {
+		base.Where("device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasFreeText() {
+		partial := fmt.Sprintf("%%%s%%", af.FreeText)
+
+		stmtMatch := sqlf.
+			New("").
+			SubQuery("(", ")", sqlf.
+				New("").
+				Clause("user_id ilike ?", af.FreeText).
+				Clause("or").
+				Clause("toString(event_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("toString(session_id) ilike ?", af.FreeText).
+				Clause("or").
+				Clause("description ilike ?", partial),
+			)
+
+		base.Where(stmtMatch.String(), stmtMatch.Args()...)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.
+			From("user_def_attrs_new").
+			Select("distinct event_id").
+			Where("team_id = toUUID(?)", a.TeamId).
+			Where("app_id = toUUID(?)", a.ID).
+			Where("bug_report = true").
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			subQuery.
+				Where("app_version.1 in ?", af.Versions).
+				Where("app_version.2 in ?", af.VersionCodes)
+		}
+
+		if af.HasOSVersions() {
+			selectedOSVersions, errVersions := af.OSVersionPairs()
+			if err != nil {
+				err = errVersions
+				return
+			}
+
+			subQuery.
+				Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+
+		af.UDExpression.Augment(subQuery)
+		base.SubQuery("event_id in (", ")", subQuery)
+	}
+
+	base.OrderBy("timestamp desc")
+	base.GroupBy("event_id")
+	base.GroupBy("app_version")
+	base.GroupBy("timestamp")
+
+	stmt := sqlf.
+		With("base", base).
+		From("base").
+		Select("uniq(event_id) instances").
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
+		GroupBy("app_version, datetime").
+		OrderBy("datetime, tupleElement(app_version, 2) desc")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var bugReportInstance BugReportInstance
+		if err = rows.Scan(&bugReportInstance.Instances, &bugReportInstance.DateTime, &bugReportInstance.Version); err != nil {
+			return
+		}
+
+		bugReportInstances = append(bugReportInstances, bugReportInstance)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetBugReport fetches a bug report by its event id.
+func (a App) GetBugReportById(ctx context.Context, bugReportId string) (bugReport BugReport, err error) {
+	stmt := sqlf.
+		From("bug_reports_new final").
+		Select("event_id").
+		Select("app_id").
+		Select("session_id").
+		Select("timestamp").
+		Select("updated_at").
+		Select("status").
+		Select("description").
+		Select("tupleElement(app_version, 1)").
+		Select("tupleElement(app_version, 2)").
+		Select("tupleElement(os_version, 1)").
+		Select("tupleElement(os_version, 2)").
+		Select("network_provider").
+		Select("network_type").
+		Select("network_generation").
+		Select("device_locale").
+		Select("device_manufacturer").
+		Select("device_name").
+		Select("device_model").
+		Select("user_id").
+		Select("device_low_power_mode").
+		Select("device_thermal_throttling_enabled").
+		Select("user_defined_attribute").
+		Select("attachments").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("event_id = toUUID(?)", bugReportId)
+
+	defer stmt.Close()
+
+	row := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+
+	if row.Err() != nil {
+		err = row.Err()
+		return
+	}
+
+	bugReport.Attribute = new(event.Attribute)
+	var rawUserDefAttr map[string][]any
+	var rawAttachments string
+
+	dest := []any{
+		&bugReport.EventID,
+		&bugReport.AppID,
+		&bugReport.SessionID,
+		&bugReport.Timestamp,
+		&bugReport.UpdatedAt,
+		&bugReport.Status,
+		&bugReport.Description,
+		&bugReport.Attribute.AppVersion,
+		&bugReport.Attribute.AppBuild,
+		&bugReport.Attribute.OSName,
+		&bugReport.Attribute.OSVersion,
+		&bugReport.Attribute.NetworkProvider,
+		&bugReport.Attribute.NetworkType,
+		&bugReport.Attribute.NetworkGeneration,
+		&bugReport.Attribute.DeviceLocale,
+		&bugReport.Attribute.DeviceManufacturer,
+		&bugReport.Attribute.DeviceName,
+		&bugReport.Attribute.DeviceModel,
+		&bugReport.Attribute.UserID,
+		&bugReport.Attribute.DeviceLowPowerMode,
+		&bugReport.Attribute.DeviceThermalThrottlingEnabled,
+		&rawUserDefAttr,
+		&rawAttachments,
+	}
+
+	if err = row.Scan(dest...); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Map rawUserDefAttr
+	if len(rawUserDefAttr) > 0 {
+		bugReport.UserDefinedAttribute.Scan(rawUserDefAttr)
+	}
+
+	// Map rawAttachments
+	if err = json.Unmarshal([]byte(rawAttachments), &bugReport.Attachments); err != nil {
+		return
+	}
+
+	// Presign attachment URLs
+	if len(bugReport.Attachments) > 0 {
+		for j := range bugReport.Attachments {
+			if err = bugReport.Attachments[j].PreSignURL(ctx); err != nil {
+				msg := `failed to generate URLs for attachment`
+				fmt.Println(msg, err)
+				return
+			}
+		}
+	}
+
+	return
+}
+
+// UpdateBugReportStatusById updates the status of a bug report by its event id.
+func (a App) UpdateBugReportStatusById(ctx context.Context, bugReportId string, status uint8) (err error) {
+	if status != 0 && status != 1 {
+		return fmt.Errorf("invalid status %d. Should be 0 (closed) or 1 (open)", status)
+	}
+
+	stmt := sqlf.
+		Update("bug_reports_new").
+		Set("status", status).
+		Set("updated_at", time.Now()).
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("event_id = ?", bugReportId)
+
+	defer stmt.Close()
+
+	if err = server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return
+	}
+
+	return
+}
+
+// getJourneyEvents queries all relevant lifecycle
+// and issue events involved in forming
+// an implicit navigational journey.
+func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
+	whereVals := []any{}
+
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleActivity,
+			[]string{
+				event.LifecycleActivityTypeCreated,
+				event.LifecycleActivityTypeResumed,
+			},
+			event.TypeLifecycleFragment,
+			[]string{
+				event.LifecycleFragmentTypeAttached,
+				event.LifecycleFragmentTypeResumed,
+			},
+		)
+	case opsys.AppleFamily:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleViewController,
+			[]string{
+				event.LifecycleViewControllerTypeViewDidLoad,
+				event.LifecycleViewControllerTypeViewDidAppear,
+			},
+			event.TypeLifecycleSwiftUI,
+			[]string{
+				event.LifecycleSwiftUITypeOnAppear,
+			},
+		)
+	}
+
+	whereVals = append(whereVals, event.TypeScreenView)
+
+	if opts.All {
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
+			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+		case opsys.AppleFamily:
+			whereVals = append(whereVals, event.TypeException, false)
+		}
+	} else if opts.Exceptions {
+		whereVals = append(whereVals, event.TypeException, false)
+	} else if opts.ANRs {
+		switch a.OSName {
+		case opsys.Android:
+			whereVals = append(whereVals, event.TypeANR)
+		}
+	}
+
+	stmt := sqlf.
+		From(`journey_new`).
+		Select(`id`).
+		Select(`type`).
+		Select(`timestamp`).
+		Select(`session_id`).
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID)
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
+		stmt.
+			Select(`lifecycle_activity.type`).
+			Select(`lifecycle_activity.class_name`).
+			Select(`lifecycle_fragment.type`).
+			Select(`lifecycle_fragment.class_name`).
+			Select(`lifecycle_fragment.parent_activity`).
+			Select(`lifecycle_fragment.parent_fragment`)
+	case opsys.AppleFamily:
+		stmt.
+			Select(`lifecycle_view_controller.type`).
+			Select(`lifecycle_view_controller.class_name`).
+			Select(`lifecycle_swift_ui.type`).
+			Select(`lifecycle_swift_ui.class_name`)
+	}
+
+	stmt.Select(`screen_view.name`)
+
+	if opts.All {
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		case opsys.AppleFamily:
+			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		}
+	} else if opts.Exceptions {
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+	} else if opts.ANRs {
+		switch a.OSName {
+		case opsys.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ?))", whereVals...)
+		}
+	}
+
+	if af.HasOSVersions() {
+		stmt.Where("`attribute.os_name` in ?", af.OsNames)
+		stmt.Where("`attribute.os_version` in ?", af.OsVersions)
+	}
+
+	if af.HasCountries() {
+		stmt.Where("`inet.country_code` in ?", af.Countries)
+	}
+
+	if af.HasDeviceNames() {
+		stmt.Where("`attribute.device_name` in ?", af.DeviceNames)
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("`attribute.device_manufacturer` in ?", af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("`attribute.device_locale` in ?", af.Locales)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("`attribute.network_provider` in ?", af.NetworkProviders)
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("`attribute.network_type` in ?", af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("`attribute.network_generation` in ?", af.NetworkGenerations)
+	}
+
+	stmt.OrderBy(`timestamp`)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var ev event.EventField
+		var lifecycleActivityType string
+		var lifecycleActivityClassName string
+		var lifecycleFragmentType string
+		var lifecycleFragmentClassName string
+		var lifecycleFragmentParentActivity string
+		var lifecycleFragmentParentFragment string
+		var lifecycleViewControllerType string
+		var lifecycleViewControllerClassName string
+		var lifecycleSwiftUIType string
+		var lifecycleSwiftUIClassName string
+		var screenViewName string
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&ev.Timestamp,
+			&ev.SessionID,
+		}
+
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
+			dest = append(
+				dest,
+				&lifecycleActivityType,
+				&lifecycleActivityClassName,
+				&lifecycleFragmentType,
+				&lifecycleFragmentClassName,
+				&lifecycleFragmentParentActivity,
+				&lifecycleFragmentParentFragment,
+				&screenViewName,
+			)
+		case opsys.AppleFamily:
+			dest = append(
+				dest,
+				&lifecycleViewControllerType,
+				&lifecycleViewControllerClassName,
+				&lifecycleSwiftUIType,
+				&lifecycleSwiftUIClassName,
+				&screenViewName,
+			)
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		if ev.IsLifecycleActivity() {
+			ev.LifecycleActivity = &event.LifecycleActivity{
+				Type:      lifecycleActivityType,
+				ClassName: lifecycleActivityClassName,
+			}
+		} else if ev.IsLifecycleFragment() {
+			ev.LifecycleFragment = &event.LifecycleFragment{
+				Type:           lifecycleFragmentType,
+				ClassName:      lifecycleFragmentClassName,
+				ParentActivity: lifecycleFragmentParentActivity,
+				ParentFragment: lifecycleFragmentParentFragment,
+			}
+		} else if ev.IsLifecycleViewController() {
+			ev.LifecycleViewController = &event.LifecycleViewController{
+				Type:      lifecycleViewControllerType,
+				ClassName: lifecycleViewControllerClassName,
+			}
+		} else if ev.IsLifecycleSwiftUI() {
+			ev.LifecycleSwiftUI = &event.LifecycleSwiftUI{
+				Type:      lifecycleSwiftUIType,
+				ClassName: lifecycleSwiftUIClassName,
+			}
+		} else if ev.IsScreenView() {
+			ev.ScreenView = &event.ScreenView{
+				Name: screenViewName,
+			}
+		} else if ev.IsException() {
+			ev.Exception = &event.Exception{}
+		} else if ev.IsANR() {
+			ev.ANR = &event.ANR{}
+		}
+
+		events = append(events, ev)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+func (a *App) add() (*APIKey, error) {
+	// id := uuid.New()
+	id := uuid.MustParse("5f1e2455-ffef-4e8e-9d68-73239753e5a0")
+	a.ID = &id
+	tx, err := server.Server.PgPool.Begin(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	apiKey, err := NewAPIKey(*a.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := apiKey.saveTx(tx); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
+func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
+	var appName pgtype.Text
+	var uniqueId pgtype.Text
+	var osName pgtype.Text
+	var firstVersion pgtype.Text
+	var onboarded pgtype.Bool
+	var onboardedAt pgtype.Timestamptz
+	var apiKeyLastSeen pgtype.Timestamptz
+	var apiKeyCreatedAt pgtype.Timestamptz
+	var createdAt pgtype.Timestamptz
+	var updatedAt pgtype.Timestamptz
+
+	apiKey := new(APIKey)
+
+	cols := []string{
+		"apps.app_name",
+		"apps.unique_identifier",
+		"apps.os_name",
+		"apps.first_version",
+		"apps.onboarded",
+		"apps.onboarded_at",
+		"api_keys.key_prefix",
+		"api_keys.key_value",
+		"api_keys.checksum",
+		"api_keys.last_seen",
+		"api_keys.created_at",
+		"apps.created_at",
+		"apps.updated_at",
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Select(strings.Join(cols, ",")).
+		From("apps").
+		LeftJoin("api_keys", "api_keys.app_id = apps.id").
+		Where("apps.id = ? and apps.team_id = ?", nil, nil)
+
+	defer stmt.Close()
+
+	dest := []any{
+		&appName,
+		&uniqueId,
+		&osName,
+		&firstVersion,
+		&onboarded,
+		&onboardedAt,
+		&apiKey.keyPrefix,
+		&apiKey.keyValue,
+		&apiKey.checksum,
+		&apiKeyLastSeen,
+		&apiKeyCreatedAt,
+		&createdAt,
+		&updatedAt,
+	}
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if appName.Valid {
+		a.AppName = appName.String
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	} else {
+		a.UniqueId = ""
+	}
+
+	if osName.Valid {
+		a.OSName = osName.String
+	} else {
+		a.OSName = ""
+	}
+
+	if firstVersion.Valid {
+		a.FirstVersion = firstVersion.String
+	} else {
+		a.FirstVersion = ""
+	}
+
+	if onboarded.Valid {
+		a.Onboarded = onboarded.Bool
+	}
+
+	if onboardedAt.Valid {
+		a.OnboardedAt = onboardedAt.Time
+	}
+
+	if apiKeyLastSeen.Valid {
+		apiKey.lastSeen = apiKeyLastSeen.Time
+	}
+
+	if apiKeyCreatedAt.Valid {
+		apiKey.createdAt = apiKeyCreatedAt.Time
+	}
+
+	if createdAt.Valid {
+		a.CreatedAt = createdAt.Time
+	}
+
+	if updatedAt.Valid {
+		a.UpdatedAt = updatedAt.Time
+	}
+
+	a.APIKey = apiKey
+
+	return a, nil
+}
+
+func (a *App) getTeam(ctx context.Context) (*Team, error) {
+	team := &Team{}
+
+	stmt := sqlf.PostgreSQL.
+		Select("team_id").
+		From("apps").
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return team, nil
+}
+
+// Populate fills in all app values
+// for the app.
+func (a *App) Populate(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("team_id::UUID").
+		Select("unique_identifier").
+		Select("app_name").
+		Select("os_name").
+		Select("first_version").
+		Select("onboarded").
+		Select("onboarded_at").
+		Select("created_at").
+		Select("updated_at").
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.OSName, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
+}
+
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
+	now := time.Now()
+	stmt := sqlf.PostgreSQL.Update("apps").
+		Set("onboarded", true).
+		Set("unique_identifier", uniqueIdentifier).
+		Set("os_name", osName).
+		Set("first_version", firstVersion).
+		Set("onboarded_at", now).
+		Set("updated_at", now).
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewApp(teamId uuid.UUID) *App {
@@ -2845,26 +5429,49 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
+	app.TeamId = *team.ID
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "crashes_list")
-	crashGroups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
-	if err != nil {
-		msg := "failed to get app's exception groups with filter"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+
+	paging := c.Query("paging")
+	var crashGroups []group.ExceptionGroup
+	var next, previous bool
+
+	switch paging {
+	case "offset":
+		crashGroups, next, previous, err = app.GetExceptionGroupsWithFilterTwo(ctx, &af)
+		if err != nil {
+			msg := "failed to get app's exception groups with filter"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	default:
+		crashGroups, err = app.GetExceptionGroupsWithFilter(ctx, &af)
+		if err != nil {
+			msg := "failed to get app's exception groups with filter"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		group.ComputeCrashContribution(crashGroups)
+		group.SortExceptionGroups(crashGroups)
+		crashGroups, next, previous = paginate.Paginate(crashGroups, &af)
 	}
 
-	group.ComputeCrashContribution(crashGroups)
-	group.SortExceptionGroups(crashGroups)
-	crashGroups, next, previous := paginate.Paginate(crashGroups, &af)
-	meta := gin.H{"next": next, "previous": previous}
+	meta := gin.H{
+		"next":     next,
+		"previous": previous,
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"results": crashGroups,
@@ -2978,20 +5585,41 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	app.TeamId = *team.ID
+	ctx = ambient.WithTeamId(ctx, *team.ID)
+
+	only := c.Query("only")
+	var crashInstances []event.IssueInstance
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
-	crashInstances, err := GetExceptionPlotInstances(ctx, &af)
-	if err != nil {
-		msg := `failed to query exception instances`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+
+	switch only {
+	case "instances":
+		crashInstances, err = app.GetExceptionPlotInstances(ctx, &af)
+		if err != nil {
+			msg := `failed to query exception instances`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+	default:
+		crashInstances, err = GetExceptionPlotInstances(ctx, &af)
+		if err != nil {
+			msg := `failed to query exception instances`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	type instance struct {
@@ -3126,29 +5754,42 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetExceptionGroup(ctx, crashGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	// use newer offset based pagination if requested
+	// otherwise fallback to older keyset based pagination
+	paging := c.Query("paging")
+	var next, previous bool
+	var eventExceptions []event.EventException
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	if group == nil {
-		msg := fmt.Sprintf("no exception group found with id %q", crashGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": msg,
-		})
-		return
-	}
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
 
-	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group, &af)
-	if err != nil {
-		msg := `failed to get exception group's exception events`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	switch paging {
+	case "offset":
+		eventExceptions, next, previous, err = app.GetExceptionsWithFilter(ctx, crashGroupId, &af)
+		if err != nil {
+			msg := `failed to get exception group's exception events`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	default:
+		eventExceptions, next, previous, err = GetExceptionsWithFilter(ctx, crashGroupId, &af)
+		if err != nil {
+			msg := `failed to get exception group's exception events`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	// set appropriate attachment URLs
@@ -3283,15 +5924,18 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetExceptionGroup(ctx, crashGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.Crashes).
+			String(),
 	}
 
-	crashInstances, err := GetIssuesPlot(ctx, group, &af)
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail_plots_instances")
+
+	crashInstances, err := app.GetExceptionGroupPlotInstances(ctx, crashGroupId, &af)
 	if err != nil {
 		msg := `failed to query data for crash instances plot`
 		fmt.Println(msg, err)
@@ -3438,15 +6082,18 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetExceptionGroup(ctx, crashGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	lc.MustPut(logcomment.Root, logcomment.Crashes)
+
+	settings := clickhouse.Settings{
+		"log_comment": lc.String(),
 	}
 
-	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_distribution")
+
+	distribution, err := app.GetExceptionAttributesDistribution(ctx, crashGroupId, &af)
 	if err != nil {
 		msg := `failed to query data for crash distribution plot`
 		fmt.Println(msg, err)
@@ -3459,6 +6106,8 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 	c.JSON(http.StatusOK, distribution)
 }
 
+// Deprecated: Planned for removal. No alternative exists at the moment.
+// Do not use.
 func GetCrashDetailPlotJourney(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
@@ -3771,24 +6420,47 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
+	app.TeamId = *team.ID
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anrs_list")
-	anrGroups, err := app.GetANRGroupsWithFilter(ctx, &af)
-	if err != nil {
-		msg := "failed to get app's anr groups matching filter"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+
+	paging := c.Query("paging")
+	var anrGroups []group.ANRGroup
+	var next, previous bool
+
+	switch paging {
+	case "offset":
+		anrGroups, next, previous, err = app.GetANRGroupsWithFilterTwo(ctx, &af)
+		if err != nil {
+			msg := "failed to get app's anr groups matching filter"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	default:
+		anrGroups, err = app.GetANRGroupsWithFilter(ctx, &af)
+		if err != nil {
+			msg := "failed to get app's anr groups matching filter"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+		group.ComputeANRContribution(anrGroups)
+		group.SortANRGroups(anrGroups)
+		anrGroups, next, previous = paginate.Paginate(anrGroups, &af)
 	}
 
-	group.ComputeANRContribution(anrGroups)
-	group.SortANRGroups(anrGroups)
-	anrGroups, next, previous := paginate.Paginate(anrGroups, &af)
-	meta := gin.H{"next": next, "previous": previous}
+	meta := gin.H{
+		"next":     next,
+		"previous": previous,
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"results": anrGroups,
@@ -3901,21 +6573,43 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	app.TeamId = *team.ID
+	ctx = ambient.WithTeamId(ctx, *team.ID)
+
+	only := c.Query("only")
+	var anrInstances []event.IssueInstance
+
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
-	anrInstances, err := GetANRPlotInstances(ctx, &af)
-	if err != nil {
-		msg := `failed to query exception instances`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+
+	switch only {
+	case "instances":
+		anrInstances, err = app.GetANRPlotInstances(ctx, &af)
+		if err != nil {
+			msg := `failed to query exception instances`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+	default:
+		anrInstances, err = GetANRPlotInstances(ctx, &af)
+		if err != nil {
+			msg := `failed to query exception instances`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
+
 	type instance struct {
 		ID   string  `json:"id"`
 		Data []gin.H `json:"data"`
@@ -4054,29 +6748,42 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetANRGroup(ctx, anrGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	// use newer offset based pagination if requested
+	// otherwise fallback to older keyset based pagination
+	paging := c.Query("paging")
+	var next, previous bool
+	var eventANRs []event.EventANR
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	if group == nil {
-		msg := fmt.Sprintf("no ANR group found with id %q", anrGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": msg,
-		})
-		return
-	}
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
 
-	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group, &af)
-	if err != nil {
-		msg := `failed to get anr group's anr events`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	switch paging {
+	case "offset":
+		eventANRs, next, previous, err = app.GetANRsWithFilter(ctx, anrGroupId, &af)
+		if err != nil {
+			msg := `failed to get anr group's anr events`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	default:
+		eventANRs, next, previous, err = GetANRsWithFilter(ctx, anrGroupId, &af)
+		if err != nil {
+			msg := `failed to get anr group's anr events`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	// set appropriate attachment URLs
@@ -4205,15 +6912,18 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetANRGroup(ctx, anrGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.ANRs).
+			String(),
 	}
 
-	anrInstances, err := GetIssuesPlot(ctx, group, &af)
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail_plots_instances")
+
+	anrInstances, err := app.GetANRGroupPlotInstances(ctx, anrGroupId, &af)
 	if err != nil {
 		msg := `failed to query data for anr instances plot`
 		fmt.Println(msg, err)
@@ -4354,15 +7064,16 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetANRGroup(ctx, anrGroupId)
-	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs),
 	}
 
-	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_distribution")
+
+	distribution, err := app.GetANRAttributesDistribution(ctx, anrGroupId, &af)
 	if err != nil {
 		msg := `failed to query data for anr distribution plot`
 		fmt.Println(msg, err)
@@ -4375,6 +7086,8 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 	c.JSON(http.StatusOK, distribution)
 }
 
+// Deprecated: Planned for removal. No alternative exists at the moment.
+// Do not use.
 func GetANRDetailPlotJourney(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
@@ -4640,7 +7353,9 @@ func GetSessionsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4705,12 +7420,16 @@ func GetSessionsOverview(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4719,7 +7438,9 @@ func GetSessionsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4727,17 +7448,21 @@ func GetSessionsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	ctx = ambient.WithTeamId(ctx, *team.ID)
+	app.TeamId = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -4745,11 +7470,13 @@ func GetSessionsOverview(c *gin.Context) {
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sessions_list")
-	sessions, next, previous, err := GetSessionsWithFilterTwo(ctx, &af)
+	sessions, next, previous, err := app.GetSessionsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4843,12 +7570,16 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4857,7 +7588,9 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4865,17 +7598,21 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	ctx = ambient.WithTeamId(ctx, *team.ID)
+	app.TeamId = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -4883,7 +7620,7 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
-	sessionInstances, err := GetSessionsInstancesPlotTwo(ctx, &af)
+	sessionInstances, err := app.GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
@@ -4929,7 +7666,9 @@ func GetSession(c *gin.Context) {
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4937,7 +7676,9 @@ func GetSession(c *gin.Context) {
 	if err != nil {
 		msg := `session id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4962,45 +7703,56 @@ func GetSession(c *gin.Context) {
 		return
 	}
 
-	team := &Team{
-		ID: &app.TeamId,
-	}
-
 	userId := c.GetString("userId")
 
-	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	ok, err := PerformAuthz(userId, app.TeamId.String(), *ScopeTeamRead)
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, team.ID)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, app.TeamId)
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	ok, err = PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	ok, err = PerformAuthz(userId, app.TeamId.String(), *ScopeAppRead)
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, team.ID)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, app.TeamId)
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	ctx = ambient.WithTeamId(ctx, *team.ID)
+	lc := logcomment.New(2).MustPut(logcomment.Root, logcomment.Sessions)
+	settings := clickhouse.Settings{
+		"log_comment": lc.String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail")
 
 	session, err := app.GetSessionEvents(ctx, sessionId)
 	if err != nil {
 		msg := `failed to fetch session data for timeline`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5248,11 +8000,13 @@ func GetSession(c *gin.Context) {
 
 	threads.Sort()
 
-	sessionTraces, err := span.FetchTracesForSessionId(ctx, appId, sessionId)
+	sessionTraces, err := app.FetchTracesForSessionId(ctx, sessionId)
 	if err != nil {
 		msg := `failed to fetch trace data for timeline`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5276,7 +8030,9 @@ func GetAlertPrefs(c *gin.Context) {
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5292,7 +8048,9 @@ func GetAlertPrefs(c *gin.Context) {
 	if err != nil {
 		msg := `unable to fetch notif prefs`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5312,7 +8070,9 @@ func UpdateAlertPrefs(c *gin.Context) {
 	if err != nil {
 		msg := "app id invalid or missing"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5322,7 +8082,9 @@ func UpdateAlertPrefs(c *gin.Context) {
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse alert preferences json payload`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5332,7 +8094,9 @@ func UpdateAlertPrefs(c *gin.Context) {
 
 	alertPref.update()
 
-	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+	c.JSON(http.StatusOK, gin.H{
+		"ok": "done",
+	})
 }
 
 func GetAppSettings(c *gin.Context) {
@@ -5340,7 +8104,9 @@ func GetAppSettings(c *gin.Context) {
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5348,7 +8114,9 @@ func GetAppSettings(c *gin.Context) {
 	if err != nil {
 		msg := `unable to fetch app settings`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5361,7 +8129,9 @@ func UpdateAppSettings(c *gin.Context) {
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5373,12 +8143,16 @@ func UpdateAppSettings(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5386,12 +8160,16 @@ func UpdateAppSettings(c *gin.Context) {
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
 		msg := fmt.Sprintf(`you don't have permissions to modify app settings in team [%s]`, team.ID.String())
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5401,7 +8179,9 @@ func UpdateAppSettings(c *gin.Context) {
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse alert preferences json payload`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5409,7 +8189,9 @@ func UpdateAppSettings(c *gin.Context) {
 
 	appSettings.update()
 
-	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+	c.JSON(http.StatusOK, gin.H{
+		"ok": "done",
+	})
 }
 
 func RenameApp(c *gin.Context) {
@@ -5418,7 +8200,9 @@ func RenameApp(c *gin.Context) {
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5430,12 +8214,16 @@ func RenameApp(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5443,19 +8231,25 @@ func RenameApp(c *gin.Context) {
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
 		msg := fmt.Sprintf(`you don't have permissions to modify app in team [%s]`, team.ID.String())
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&app); err != nil {
 		msg := `failed to parse app rename json payload`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5463,11 +8257,15 @@ func RenameApp(c *gin.Context) {
 	if err != nil {
 		msg := `failed to rename app`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+	c.JSON(http.StatusOK, gin.H{
+		"ok": "done",
+	})
 }
 
 func CreateShortFilters(c *gin.Context) {
@@ -5564,7 +8362,9 @@ func GetRootSpanNames(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5575,12 +8375,16 @@ func GetRootSpanNames(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5589,7 +8393,9 @@ func GetRootSpanNames(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5597,21 +8403,38 @@ func GetRootSpanNames(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	traceNames, err := span.FetchRootSpanNames(ctx, *app.ID)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment":      lc.MustPut(logcomment.Root, logcomment.Spans),
+		"use_query_cache":  gin.Mode() == gin.ReleaseMode,
+		"use_skip_indexes": 0,
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "names_list")
+
+	traceNames, err := app.FetchRootSpanNames(ctx)
 	if err != nil {
 		msg := "failed to get app's traces"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5626,19 +8449,25 @@ func GetSpansForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	rawSpanName := c.Query("span_name")
 	if rawSpanName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing span_name query param",
+		})
 		return
 	}
 
 	spanName, err := url.QueryUnescape(rawSpanName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid span_name query param",
+		})
 		return
 	}
 
@@ -5703,12 +8532,16 @@ func GetSpansForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5717,7 +8550,9 @@ func GetSpansForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5725,21 +8560,37 @@ func GetSpansForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	spans, next, previous, err := span.GetSpansForSpanNameWithFilter(ctx, spanName, &af)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment":     lc.MustPut(logcomment.Root, logcomment.Spans),
+		"use_query_cache": gin.Mode() == gin.ReleaseMode,
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
+
+	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, spanName, &af)
 	if err != nil {
 		msg := "failed to get app's root spans"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5758,19 +8609,25 @@ func GetMetricsPlotForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	rawSpanName := c.Query("span_name")
 	if rawSpanName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing span_name query param",
+		})
 		return
 	}
 
 	spanName, err := url.QueryUnescape(rawSpanName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid span_name query param",
+		})
 		return
 	}
 
@@ -5835,12 +8692,16 @@ func GetMetricsPlotForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5849,7 +8710,9 @@ func GetMetricsPlotForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5857,21 +8720,36 @@ func GetMetricsPlotForSpanName(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	spanMetricsPlotInstances, err := span.GetMetricsPlotForSpanNameWithFilter(ctx, spanName, &af)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Spans),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_metrics")
+
+	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, spanName, &af)
 	if err != nil {
 		msg := "failed to get span's plot"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5914,7 +8792,9 @@ func GetTrace(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5927,12 +8807,16 @@ func GetTrace(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5941,7 +8825,9 @@ func GetTrace(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5949,21 +8835,36 @@ func GetTrace(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	trace, err := span.GetTrace(ctx, traceId)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Spans),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "trace")
+
+	trace, err := app.GetTrace(ctx, traceId)
 	if err != nil {
 		msg := "failed to get trace"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -5976,7 +8877,9 @@ func GetBugReportsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6041,12 +8944,16 @@ func GetBugReportsOverview(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6055,7 +8962,9 @@ func GetBugReportsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6063,21 +8972,38 @@ func GetBugReportsOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	bugReports, next, previous, err := GetBugReportsWithFilter(ctx, &af)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.BugReports).
+			String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
+
+	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's bug reports"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6171,12 +9097,16 @@ func GetBugReportsInstancesPlot(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6185,7 +9115,9 @@ func GetBugReportsInstancesPlot(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6193,17 +9125,32 @@ func GetBugReportsInstancesPlot(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	bugReportInstances, err := GetBugReportInstancesPlot(ctx, &af)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.BugReports).
+			String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+
+	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for bug reports plot`
 		fmt.Println(msg, err)
@@ -6249,7 +9196,9 @@ func GetBugReport(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6262,12 +9211,16 @@ func GetBugReport(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6276,7 +9229,9 @@ func GetBugReport(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6284,21 +9239,38 @@ func GetBugReport(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	bugReport, err := GetBugReportById(ctx, bugReportId)
+	app.TeamId = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.BugReports).
+			String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail")
+
+	bugReport, err := app.GetBugReportById(ctx, bugReportId)
 	if err != nil {
 		msg := "failed to get bug report"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6311,7 +9283,9 @@ func UpdateBugReportStatus(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6324,12 +9298,16 @@ func UpdateBugReportStatus(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6338,7 +9316,9 @@ func UpdateBugReportStatus(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -6346,33 +9326,53 @@ func UpdateBugReportStatus(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
+
+	app.TeamId = *team.ID
 
 	var payload BugReportStatusUpdatePayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse bug report status update json payload`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	err = UpdateBugReportStatusById(ctx, bugReportId, *payload.Status)
-	if err != nil {
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.
+			MustPut(logcomment.Root, logcomment.BugReports).
+			String(),
+	}
+
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "update_status")
+
+	if err := app.UpdateBugReportStatusById(ctx, bugReportId, *payload.Status); err != nil {
 		msg := "failed to update bug report status"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+	c.JSON(http.StatusOK, gin.H{
+		"ok": "done",
+	})
 }
 
 func GetAlertsOverview(c *gin.Context) {
