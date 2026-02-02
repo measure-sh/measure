@@ -478,7 +478,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	for rows.Next() {
 		var uniqueTypes, uniqueCustomTypeNames, uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames []string
-		uniqueExceptions := []map[string]string{}
+		uniqueUnhandledExceptions := []map[string]string{}
+		uniqueHandledExceptions := []map[string]string{}
 		uniqueANRs := []map[string]string{}
 		uniqueClickTargets := []map[string]string{}
 		uniqueLongclickTargets := []map[string]string{}
@@ -503,7 +504,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		}
 
 		if af.FreeText != "" {
-			dest = append(dest, &sess.Attribute.UserID, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
+			dest = append(dest, &sess.Attribute.UserID, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueUnhandledExceptions, &uniqueHandledExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
 		}
 
 		if err = rows.Scan(dest...); err != nil {
@@ -528,7 +529,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			uniqueStrings,
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
-			uniqueExceptions,
+			uniqueUnhandledExceptions,
+			uniqueHandledExceptions,
 			uniqueANRs,
 			uniqueClickTargets,
 			uniqueLongclickTargets,

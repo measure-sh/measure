@@ -1951,7 +1951,8 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
 			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayMerge(unique_exceptions) as unique_exceptions").
+			Select("groupUniqArrayMerge(unique_unhandled_exceptions) as unique_unhandled_exceptions").
+			Select("groupUniqArrayMerge(unique_handled_exceptions) as unique_handled_exceptions").
 			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
 			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
 			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
@@ -2041,7 +2042,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
 			From("user_def_attrs_new").
-			Select("distinct session_id").
+			Select("session_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -2061,6 +2062,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("session_id")
 		base.SubQuery("session_id in (", ")", subQuery)
 	}
 
@@ -2104,7 +2106,9 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
@@ -2164,7 +2168,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
 			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayMerge(unique_exceptions) as unique_exceptions").
+			Select("groupUniqArrayMerge(unique_unhandled_exceptions) as unique_unhandled_exceptions").
+			Select("groupUniqArrayMerge(unique_handled_exceptions) as unique_handled_exceptions").
 			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
 			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
 			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
@@ -2254,7 +2259,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
 			From("user_def_attrs_new").
-			Select("distinct session_id").
+			Select("session_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -2274,6 +2279,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("session_id")
 		base.SubQuery("session_id in (", ")", subQuery)
 	}
 
@@ -2348,7 +2354,9 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
@@ -2365,7 +2373,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("unique_strings").
 			Select("unique_view_classnames").
 			Select("unique_subview_classnames").
-			Select("unique_exceptions").
+			Select("unique_unhandled_exceptions").
+			Select("unique_handled_exceptions").
 			Select("unique_anrs").
 			Select("unique_click_targets").
 			Select("unique_longclick_targets").
@@ -2382,7 +2391,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	for rows.Next() {
 		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
 			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames []string
-		uniqueExceptions := []map[string]string{}
+		uniqueUnhandledExceptions := []map[string]string{}
+		uniqueHandledExceptions := []map[string]string{}
 		uniqueANRs := []map[string]string{}
 		uniqueClickTargets := []map[string]string{}
 		uniqueLongclickTargets := []map[string]string{}
@@ -2407,7 +2417,21 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		}
 
 		if af.HasFreeText() {
-			dest = append(dest, &uniqueUserIds, &uniqueTypes, &uniqueCustomTypeNames, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
+			dest = append(
+				dest,
+				&uniqueUserIds,
+				&uniqueTypes,
+				&uniqueCustomTypeNames,
+				&uniqueStrings,
+				&uniqueViewClassnames,
+				&uniqueSubviewClassnames,
+				&uniqueUnhandledExceptions,
+				&uniqueHandledExceptions,
+				&uniqueANRs,
+				&uniqueClickTargets,
+				&uniqueLongclickTargets,
+				&uniqueScrollTargets,
+			)
 		}
 
 		if err = rows.Scan(dest...); err != nil {
@@ -2436,7 +2460,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			uniqueStrings,
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
-			uniqueExceptions,
+			uniqueUnhandledExceptions,
+			uniqueHandledExceptions,
 			uniqueANRs,
 			uniqueClickTargets,
 			uniqueLongclickTargets,
@@ -3276,7 +3301,8 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string,
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("span_user_def_attrs_new").
+		subQuery := sqlf.
+			From("span_user_def_attrs_new").
 			Select("span_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -3300,6 +3326,7 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string,
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("span_id")
 		stmt.SubQuery("span_id in (", ")", subQuery)
 	}
 
@@ -3448,6 +3475,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("span_id")
 		stmt.SubQuery("span_id in (", ")", subQuery)
 	}
 
@@ -3689,8 +3717,9 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 	}
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs_new").
-			Select("distinct event_id").
+		subQuery := sqlf.
+			From("user_def_attrs_new").
+			Select("event_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("bug_report = true").
@@ -3714,6 +3743,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("event_id")
 		stmt.SubQuery("event_id in (", ")", subQuery)
 	}
 
@@ -3872,7 +3902,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
 			From("user_def_attrs_new").
-			Select("distinct event_id").
+			Select("event_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("bug_report = true").
@@ -3896,6 +3926,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 		}
 
 		af.UDExpression.Augment(subQuery)
+		subQuery.GroupBy("event_id")
 		base.SubQuery("event_id in (", ")", subQuery)
 	}
 
