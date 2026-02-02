@@ -35,7 +35,7 @@ type ExceptionGroup struct {
 	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
-	Percentage      float32                `json:"percentage_contribution"`
+	Percentage      float64                `json:"percentage_contribution"`
 	UpdatedAt       time.Time              `json:"updated_at" db:"updated_at"`
 }
 
@@ -50,7 +50,7 @@ type ANRGroup struct {
 	Count      uint64           `json:"count"`
 	EventIDs   []uuid.UUID      `json:"event_ids,omitempty"`
 	EventANRs  []event.EventANR `json:"anr_events,omitempty"`
-	Percentage float32          `json:"percentage_contribution"`
+	Percentage float64          `json:"percentage_contribution"`
 	UpdatedAt  time.Time        `json:"updated_at" db:"updated_at"`
 }
 
@@ -181,7 +181,7 @@ func ComputeCrashContribution(groups []ExceptionGroup) {
 
 	for i := range groups {
 		percentage := (float64(groups[i].Count) / float64(total)) * 100
-		groups[i].Percentage = float32(math.Round(percentage*100) / 100)
+		groups[i].Percentage = float64(math.Round(percentage*100) / 100)
 	}
 }
 
@@ -196,7 +196,7 @@ func ComputeANRContribution(groups []ANRGroup) {
 
 	for i := range groups {
 		percentage := (float64(groups[i].Count) / float64(total)) * 100
-		groups[i].Percentage = float32(math.Round(percentage*100) / 100)
+		groups[i].Percentage = float64(math.Round(percentage*100) / 100)
 	}
 }
 
