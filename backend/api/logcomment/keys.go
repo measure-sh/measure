@@ -31,3 +31,11 @@ const Metrics = "metrics"
 // Journeys is the root key for the `journeys`
 // logcomment.
 const Journeys = "journeys"
+
+// Spans is the root key for the `spans`
+// logcomment.
+const Spans = "spans"
+
+// BugReports is the root key for the `bug_reports`
+// logcomment.
+const BugReports = "bug_reports"
