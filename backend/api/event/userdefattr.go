@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"reflect"
 	"regexp"
@@ -450,41 +451,52 @@ func (u UDAttribute) Empty() bool {
 // MarshalJSON marshals UDAttribute type of user
 // defined attributes to JSON.
 func (u UDAttribute) MarshalJSON() (data []byte, err error) {
+	// copy to avoid mutating the receiver
+	attrs := make(map[string]any, len(u.rawAttrs))
+	maps.Copy(attrs, u.rawAttrs)
+
 	for key, keytype := range u.keyTypes {
+		raw, ok := attrs[key]
+		if !ok {
+			continue
+		}
+
+		strval, ok := raw.(string)
+		if !ok {
+			err = fmt.Errorf("expected attribute %q to be string, got %T", key, raw)
+			return
+		}
+
 		switch keytype {
 		case AttrBool:
-			strval := u.rawAttrs[key].(string)
-			value, err := strconv.ParseBool(strval)
+			v, err := strconv.ParseBool(strval)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("attribute %q: %w", key, err)
 			}
-			u.rawAttrs[key] = value
-		case AttrInt64:
-			strval := u.rawAttrs[key].(string)
-			value, err := strconv.ParseInt(strval, 10, 64)
-			if err != nil {
-				return nil, err
-			}
+			attrs[key] = v
 
-			// if value lies outside the bounds
-			// of int64, then parse as string
-			if value >= math.MaxInt64 || value <= math.MinInt64 {
-				u.rawAttrs[key] = strval
-			} else {
-				u.rawAttrs[key] = value
-			}
-		case AttrFloat64:
-			strval := u.rawAttrs[key].(string)
-			value, err := strconv.ParseFloat(strval, 64)
+		case AttrInt64:
+			v, err := strconv.ParseInt(strval, 10, 64)
 			if err != nil {
-				return nil, err
+				// overflow or invalid -> keep as string
+				attrs[key] = strval
+				continue
 			}
-			u.rawAttrs[key] = value
+			attrs[key] = v
+
+		case AttrFloat64:
+			v, err := strconv.ParseFloat(strval, 64)
+			if err != nil {
+				return nil, fmt.Errorf("attribute %q: %w", key, err)
+			}
+			attrs[key] = v
 		case AttrString:
-			u.rawAttrs[key] = u.rawAttrs[key].(string)
+			// already a string
+			// nothing to do
 		}
 	}
-	return json.Marshal(u.rawAttrs)
+
+	return json.Marshal(attrs)
 }
 
 // UnmarshalJSON unmarshalls bytes resembling user defined
