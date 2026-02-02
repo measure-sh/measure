@@ -26,6 +26,7 @@ type Attachment struct {
 }
 
 type AppRetention struct {
+	TeamID    string    `json:"team_id"`
 	AppID     string    `json:"app_id"`
 	Threshold time.Time `json:"threshold"`
 }
@@ -241,8 +242,9 @@ func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("user_def_attrs").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
-			Where("end_of_month < ?", retention.Threshold)
+			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
 			errCount += 1
@@ -266,8 +268,9 @@ func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_user_def_attrs").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
-			Where("end_of_month < ?", retention.Threshold)
+			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
 			errCount += 1
@@ -537,9 +540,11 @@ func deleteStalePendingAlertMessages(ctx context.Context) {
 func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err error) {
 	// Fetch retention periods for each app
 	stmt := sqlf.PostgreSQL.
-		From("app_settings").
-		Select("app_id").
-		Select("retention_period")
+		From("app_settings as s").
+		Join("apps as a", "a.app_id = s.app_id").
+		Select("s.app_id").
+		Select("a.team_id").
+		Select("s.retention_period")
 
 	defer stmt.Close()
 
@@ -552,7 +557,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 		var retention AppRetention
 		var period int
 
-		if err := rows.Scan(&retention.AppID, &period); err != nil {
+		if err := rows.Scan(&retention.AppID, &retention.TeamID, &period); err != nil {
 			fmt.Printf("Failed to scan row: %v\n", err)
 			continue
 		}
