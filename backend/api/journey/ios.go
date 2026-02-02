@@ -299,7 +299,12 @@ func (j JourneyiOS) String() string {
 			key := j.makeKey(v, w)
 			n := j.metalut[key].Size()
 
-			b.WriteString(fmt.Sprintf("  %s -> %s [label=\"%d session(s)\"];\n", fmt.Sprintf("\"(%d) %s\"", v, vName), fmt.Sprintf("\"(%d) %s\"", w, wName), n))
+			fmt.Fprintf(&b,
+				"  \"(%d) %s\" -> \"(%d) %s\" [label=\"%d session(s)\"];\n",
+				v, vName,
+				w, wName,
+				n,
+			)
 
 			return false
 		})
