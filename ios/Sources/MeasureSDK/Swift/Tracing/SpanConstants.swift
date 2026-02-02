@@ -12,17 +12,17 @@ enum SpanName {
     private static let viewControllerTtidPrefix = "VC TTID"
 
     /// Returns the span name for a ViewController TTID span, truncated if necessary.
-    static func viewControllerTtidSpan(className: String, maxLength: Int) -> String {
+    static func viewControllerTtidSpan(className: String, maxLength: Number) -> String {
         return truncateClassNameIfNeeded(prefix: viewControllerTtidPrefix, className: className, maxLength: maxLength)
     }
 
     /// Truncates the class name to fit within the specified maximum length, including the prefix.
-    private static func truncateClassNameIfNeeded(prefix: String, className: String, maxLength: Int) -> String {
+    private static func truncateClassNameIfNeeded(prefix: String, className: String, maxLength: Number) -> String {
         let fullString = "\(prefix) \(className)"
         guard fullString.count > maxLength else {
             return fullString
         }
-        let availableSpace = maxLength - prefix.count - 1
+        let availableSpace = Int(maxLength) - prefix.count - 1
         let truncatedClassName = String(className.prefix(availableSpace))
         return "\(prefix) \(truncatedClassName)"
     }

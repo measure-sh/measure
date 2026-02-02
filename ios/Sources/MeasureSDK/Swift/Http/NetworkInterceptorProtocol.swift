@@ -14,7 +14,6 @@ class NetworkInterceptorProtocol: URLProtocol {
     private var responseBody: Data?
     private var httpResponse: HTTPURLResponse?
     private var httpContentTypeAllowlist: [String]?
-    private var defaultHttpHeadersBlocklist: [String]?
 
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -24,12 +23,7 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     static var httpInterceptorCallbacks: HttpInterceptorCallbacks?
     static var timeProvider: TimeProvider?
-    static var allowedDomains: [String]?
-    static var ignoredDomains: [String]?
-    static var httpContentTypeAllowlist: [String]?
-    static var defaultHttpHeadersBlocklist: [String]?
     static var configProvider: ConfigProvider?
-    static var httpEventValidator: HttpEventValidator?
 
     static func setTimeProvider(_ timeProvider: TimeProvider) {
         self.timeProvider = timeProvider
@@ -41,26 +35,6 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     static func setHttpInterceptorCallbacks(_ httpInterceptorCallbacks: HttpInterceptorCallbacks) {
         self.httpInterceptorCallbacks = httpInterceptorCallbacks
-    }
-
-    static func setAllowedDomains(_ allowedDomains: [String]) {
-        self.allowedDomains = allowedDomains
-    }
-
-    static func setIgnoredDomains(_ ignoredDomains: [String]) {
-        self.ignoredDomains = ignoredDomains
-    }
-
-    static func setHttpContentTypeAllowlist(_ httpContentTypeAllowlist: [String]) {
-        self.httpContentTypeAllowlist = httpContentTypeAllowlist
-    }
-
-    static func setDefaultHttpHeadersBlocklist(_ defaultHttpHeadersBlocklist: [String]) {
-        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
-    }
-
-    static func setHttpEventValidator(_ httpEventValidator: HttpEventValidator) {
-        self.httpEventValidator = httpEventValidator
     }
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -122,48 +96,58 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
             }
         }
 
-        if let timeProvider = NetworkInterceptorProtocol.timeProvider,
-           let httpInterceptorCallbacks = NetworkInterceptorProtocol.httpInterceptorCallbacks,
-           let defaultHttpHeadersBlocklist = NetworkInterceptorProtocol.defaultHttpHeadersBlocklist,
-           let url = request.url?.absoluteString,
-           let configProvider = NetworkInterceptorProtocol.configProvider,
-           let httpEventValidator = NetworkInterceptorProtocol.httpEventValidator {
-            guard let contentType = task.currentRequest?.allHTTPHeaderFields?["Content-Type"] else { return }
+        guard let timeProvider = NetworkInterceptorProtocol.timeProvider,
+              let httpInterceptorCallbacks = NetworkInterceptorProtocol.httpInterceptorCallbacks,
+              let configProvider = NetworkInterceptorProtocol.configProvider,
+              let httpResponse = task.response as? HTTPURLResponse,
+              let urlString = request.url?.absoluteString else { return }
 
-            guard httpEventValidator.shouldTrackHttpEvent(NetworkInterceptorProtocol.httpContentTypeAllowlist,
-                                                          contentType: contentType,
-                                                          requestUrl: url,
-                                                          allowedDomains: NetworkInterceptorProtocol.allowedDomains,
-                                                          ignoredDomains: NetworkInterceptorProtocol.ignoredDomains) else {
-                return
-            }
-
-            let endTime = UnsignedNumber(timeProvider.millisTime)
-
-            var requestBody: String?
-            if let requestBodyStream = request.httpBodyStream {
-                requestBody = requestBodyStream.readStream()
-            } else if let requestBodyData = request.httpBody, let requestBodyString = String(data: requestBodyData, encoding: .utf8) {
-                requestBody = requestBodyString
-            }
-
-            let responseString = responseBody.map { String(data: $0, encoding: .utf8) } ?? nil
-
-            let httpData = HttpData(
-                url: url.removeHttpPrefix(),
-                method: request.httpMethod?.lowercased() ?? "",
-                statusCode: httpResponse?.statusCode,
-                startTime: startTime,
-                endTime: endTime,
-                failureReason: error.map { String(describing: type(of: $0)) },
-                failureDescription: error?.localizedDescription,
-                requestHeaders: configProvider.trackHttpHeaders ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                responseHeaders: configProvider.trackHttpHeaders ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
-                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseString?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
-                client: "URLSession")
-
-            httpInterceptorCallbacks.onHttpCompletion(data: httpData)
+        guard configProvider.shouldTrackHttpUrl(url: urlString) else {
+            return
         }
+
+        let endTime = UnsignedNumber(timeProvider.millisTime)
+
+        var requestBody: String?
+        if let requestBodyStream = request.httpBodyStream {
+            requestBody = requestBodyStream.readStream()
+        } else if let requestBodyData = request.httpBody {
+            requestBody = String(data: requestBodyData, encoding: .utf8)
+        }
+
+        let responseBodyString = responseBody.flatMap {
+            String(data: $0, encoding: .utf8)
+        }
+
+        let safeRequestHeaders = request.allHTTPHeaderFields?
+            .filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
+
+        let safeResponseHeaders = extractHeaders(from: httpResponse)?
+            .filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
+
+        let shouldTrackRequestBody = configProvider.shouldTrackHttpBody(url: urlString,
+                                                                        contentType: request.allHTTPHeaderFields?["Content-Type"])
+
+        let shouldTrackResponseBody = configProvider.shouldTrackHttpBody(url: urlString,
+                                                                         contentType: httpResponse.allHeaderFields["Content-Type"] as? String)
+
+        let httpData = HttpData(url: urlString.removeHttpPrefix(),
+                                method: request.httpMethod?.lowercased() ?? "",
+                                statusCode: httpResponse.statusCode,
+                                startTime: startTime,
+                                endTime: endTime,
+                                failureReason: error.map { String(describing: type(of: $0)) },
+                                failureDescription: error?.localizedDescription,
+                                requestHeaders: safeRequestHeaders,
+                                responseHeaders: safeResponseHeaders,
+                                requestBody: shouldTrackRequestBody
+                                ? requestBody?.sanitizeRequestBody()
+                                : nil,
+                                responseBody: shouldTrackResponseBody
+                                ? responseBodyString?.sanitizeRequestBody()
+                                : nil,
+                                client: "URLSession")
+
+        httpInterceptorCallbacks.onHttpCompletion(data: httpData)
     }
 }

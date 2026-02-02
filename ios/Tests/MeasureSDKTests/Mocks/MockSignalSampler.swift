@@ -10,23 +10,23 @@ import Foundation
 
 final class MockSignalSampler: SignalSampler {
     var shouldTrackLaunchEventsReturnValue: Bool = false
-    var shouldMarkSessionForExportReturnValue: Bool = false
     var shouldTrackTraceReturnValue: Bool = false
     var shouldTrackJourneyEventsReturnValue: Bool = false
-
-    func shouldTrackLaunchEvents(type: EventType) -> Bool {
-        return shouldTrackLaunchEventsReturnValue
-    }
-
-    func shouldMarkSessionForExport() -> Bool {
-        return shouldMarkSessionForExportReturnValue
-    }
+    var shouldSampleTraceReturnValue: Bool = false
 
     func shouldTrackTrace() -> Bool {
         return shouldTrackTraceReturnValue
     }
 
-    func shouldTrackJourneyEvents() -> Bool {
-        return shouldTrackJourneyEventsReturnValue
+    func shouldTrackJourneyForSession(sessionId: String) -> Bool {
+        shouldTrackLaunchEventsReturnValue
+    }
+
+    func shouldTrackLaunchEvents() -> Bool {
+        return shouldTrackLaunchEventsReturnValue
+    }
+    
+    func shouldSampleTrace(_ traceId: String) -> Bool {
+        return shouldSampleTraceReturnValue
     }
 }

@@ -13,7 +13,7 @@ enum MultipartData {
 }
 
 enum HttpResponse {
-    case success(body: String?)
+    case success(body: String?, eTag: String?)
     case error(HttpError)
 }
 

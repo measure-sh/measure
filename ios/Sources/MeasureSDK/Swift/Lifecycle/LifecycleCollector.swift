@@ -27,17 +27,23 @@ final class BaseLifecycleCollector: LifecycleCollector {
     private let logger: Logger
     private var isEnabled = AtomicBool(false)
     private var activeSpans: [String: Span] = [:]
+    private let sessionManager: SessionManager
+    private let signalSampler: SignalSampler
 
     init(signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          tracer: Tracer,
          configProvider: ConfigProvider,
-         logger: Logger) {
+         sessionManager: SessionManager,
+         logger: Logger,
+         signalSampler: SignalSampler) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.tracer = tracer
         self.configProvider = configProvider
+        self.sessionManager = sessionManager
         self.logger = logger
+        self.signalSampler = signalSampler
     }
 
     func enable() {
@@ -150,6 +156,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
                               sessionId: nil,
                               attachments: nil,
                               userDefinedAttributes: nil,
-                              threadName: nil)
+                              threadName: nil,
+                              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId))
     }
 }

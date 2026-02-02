@@ -7,8 +7,15 @@
 
 import Foundation
 
+enum ConfigResponse {
+    case success(config: BaseDynamicConfig, eTag: String?, cacheControl: Number)
+    case notModified
+    case error
+}
+
 protocol NetworkClient {
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse
+    func getConfig(eTag: String?) -> ConfigResponse
 }
 
 final class BaseNetworkClient: NetworkClient {
@@ -31,7 +38,7 @@ final class BaseNetworkClient: NetworkClient {
         let serializedSpans = self.serializeSpans(spans: spans)
         
         if serializedEvents.isEmpty && serializedSpans.isEmpty {
-            return .success(body: "{}")
+            return .success(body: "{}", eTag: nil)
         }
 
         let payload: [String: Any] = [
@@ -50,6 +57,58 @@ final class BaseNetworkClient: NetworkClient {
                                             msrRequestId: batchId
                                           ],
                                           jsonBody: jsonBody)
+    }
+
+    func getConfig(eTag: String?) -> ConfigResponse {
+        let url = baseUrl.appendingPathComponent("config")
+
+        var headers: [String: String] = [
+            authorization: "\(bearer) \(apiKey)"
+        ]
+
+        if let eTag {
+            headers["If-None-Match"] = eTag
+        }
+
+        let response = httpClient.sendJsonRequest(
+            url: url,
+            method: .get,
+            headers: headers,
+            jsonBody: Data()
+        )
+
+        switch response {
+        case .success(let body, let newETag):
+
+            guard let body,
+                  let data = body.data(using: .utf8) else {
+                return .error
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                let config = try decoder.decode(BaseDynamicConfig.self, from: data)
+
+                // default 5 minutes if backend forgets
+                let cacheControl = 300//config.cacheControlSeconds ?? 300
+
+                return .success(
+                    config: config,
+                    eTag: newETag,
+                    cacheControl: Number(cacheControl)
+                )
+            } catch {
+                return .error
+            }
+
+        case .error(let error):
+
+            if case .clientError(let code, _) = error, code == 304 {
+                return .notModified
+            }
+
+            return .error
+        }
     }
 
     private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {

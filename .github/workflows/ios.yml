@@ -38,7 +38,7 @@ jobs:
             -project ios/MeasureSDK.xcodeproj \
             -scheme Measure \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
             ONLY_ACTIVE_ARCH=YES \
             SKIP_TESTING=YES
 
@@ -48,6 +48,6 @@ jobs:
             -project ios/MeasureSDK.xcodeproj \
             -scheme MeasureSDKTests \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
             ONLY_ACTIVE_ARCH=YES \
             -parallel-testing-enabled NO

@@ -158,9 +158,10 @@ final class BaseHttpClient: HttpClient {
             logger.internalLog(level: .info, message: "Response (\(httpResponse.statusCode)): No body", error: nil, data: nil)
         }
 
+        let etag = httpResponse.allHeaderFields["Etag"] as? String
         switch httpResponse.statusCode {
         case 200..<300:
-            return .success(body: responseBody)
+            return .success(body: responseBody, eTag: etag)
         case 429:
             return .error(.rateLimitError(body: responseBody))
         case 400..<500:

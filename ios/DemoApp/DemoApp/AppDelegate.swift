@@ -23,21 +23,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         }
         let measureConfig = BaseMeasureConfig(enableLogging: true,
-                                              samplingRateForErrorFreeSessions: 1,
-                                              traceSamplingRate: 1,
-                                              coldLaunchSamplingRate: 1,
-                                              warmLaunchSamplingRate: 1,
-                                              hotLaunchSamplingRate: 1,
-                                              journeySamplingRate: 1,
-                                              trackHttpHeaders: true,
-                                              trackHttpBody: true,
-                                              httpHeadersBlocklist: nil,
-                                              httpUrlBlocklist: nil,
-                                              httpUrlAllowlist: nil,
                                               autoStart: true,
-                                              screenshotMaskLevel: .allTextAndMedia,
                                               requestHeadersProvider: CustomHeaderProvider(),
-                                              maxDiskUsageInMb: 100)
+                                              maxDiskUsageInMb: 100,
+                                              enableFullCollectionMode: false)
         Measure.initialize(with: clientInfo, config: measureConfig)
         Measure.setUserId("test_user_ios")
         Measure.onShake {

@@ -19,7 +19,8 @@ protocol SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?)
+        threadName: String?,
+        needsReporting: Bool?)
 
     func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -29,7 +30,8 @@ protocol SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?)
+        threadName: String?,
+        needsReporting: Bool?)
 
     func trackSpan(_ spanData: SpanData)
 }
@@ -44,10 +46,10 @@ final class BaseSignalProcessor: SignalProcessor {
     private let configProvider: ConfigProvider
     private let timeProvider: TimeProvider
     private var crashDataPersistence: CrashDataPersistence
-    private let eventStore: EventStore
-    private let spanStore: SpanStore
+    private let signalStore: SignalStore
     private let measureDispatchQueue: MeasureDispatchQueue
     private let signalSampler: SignalSampler
+    private let exporter: Exporter
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -56,10 +58,10 @@ final class BaseSignalProcessor: SignalProcessor {
          configProvider: ConfigProvider,
          timeProvider: TimeProvider,
          crashDataPersistence: CrashDataPersistence,
-         eventStore: EventStore,
-         spanStore: SpanStore,
+         signalStore: SignalStore,
          measureDispatchQueue: MeasureDispatchQueue,
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         exporter: Exporter) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -67,10 +69,10 @@ final class BaseSignalProcessor: SignalProcessor {
         self.configProvider = configProvider
         self.timeProvider = timeProvider
         self.crashDataPersistence = crashDataPersistence
-        self.eventStore = eventStore
-        self.spanStore = spanStore
+        self.signalStore = signalStore
         self.measureDispatchQueue = measureDispatchQueue
         self.signalSampler = signalSampler
+        self.exporter = exporter
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -81,7 +83,8 @@ final class BaseSignalProcessor: SignalProcessor {
         sessionId: String?,
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
-        threadName: String?) {
+        threadName: String?,
+        needsReporting: Bool?) {
         SignPost.trace(subcategory: "Event", label: "trackEvent") {
             track(data: data,
                   timestamp: timestamp,
@@ -91,7 +94,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   attachments: attachments,
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
-                  threadName: threadName)
+                  threadName: threadName,
+                  needsReporting: needsReporting)
         }
     }
 
@@ -103,7 +107,8 @@ final class BaseSignalProcessor: SignalProcessor {
                                         sessionId: String?,
                                         attachments: [MsrAttachment]?,
                                         userDefinedAttributes: String?,
-                                        threadName: String?) {
+                                        threadName: String?,
+                                        needsReporting: Bool?) {
         SignPost.trace(subcategory: "Event", label: "trackEventUserTriggered") {
             track(data: data,
                   timestamp: timestamp,
@@ -113,7 +118,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   attachments: attachments,
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
-                  threadName: threadName)
+                  threadName: threadName,
+                  needsReporting: needsReporting)
         }
     }
 
@@ -133,7 +139,7 @@ final class BaseSignalProcessor: SignalProcessor {
             let spanEntity = SpanEntity(spanData,
                                         startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
                                         endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
-            spanStore.insertSpan(span: spanEntity)
+            signalStore.store(spanEntity)
             logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
         }
     }
@@ -147,7 +153,8 @@ final class BaseSignalProcessor: SignalProcessor {
         attachments: [MsrAttachment]?,
         sessionId: String?,
         userDefinedAttributes: String?,
-        threadName: String?
+        threadName: String?,
+        needsReporting: Bool?
     ) {
         let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
@@ -167,31 +174,12 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            var needsReporting = false
-
-            // If session is marked for export everything is tracked
-            if self.sessionManager.shouldReportSession {
-                needsReporting = true
-            } else {
-                // Launch events
-                if event.type == .coldLaunch || event.type == .warmLaunch || event.type == .hotLaunch {
-                    needsReporting = signalSampler.shouldTrackLaunchEvents(type: event.type)
-                }
-
-                // Journey events
-                if event.type == .lifecycleViewController || event.type == .lifecycleSwiftUI || event.type == .screenView {
-                    needsReporting = signalSampler.shouldTrackJourneyEvents()
-                }
-
-                if self.configProvider.eventTypeExportAllowList.contains(event.type) {
-                    needsReporting = true
-                }
+            self.signalStore.store(event,
+                                   needsReporting: configProvider.enableFullCollectionMode ? true : needsReporting ?? false)
+            self.sessionManager.onEventTracked(event)
+            if event.type == .bugReport {
+                self.exporter.export()
             }
-
-            let eventEntity = EventEntity(event, needsReporting: needsReporting)
-
-            self.eventStore.insertEvent(event: eventEntity) {}
-            self.sessionManager.onEventTracked(eventEntity)
 
             self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
         }
