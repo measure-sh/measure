@@ -2398,7 +2398,7 @@
 			repositoryURL = "https://github.com/microsoft/plcrashreporter";
 			requirement = {
 				kind = exactVersion;
-				version = 1.11.2;
+				version = 1.12.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
