@@ -96,7 +96,6 @@ func main() {
 		apps.GET(":id/crashGroups/:crashGroupId/path", measure.GetCrashGroupCommonPath)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", measure.GetCrashDetailPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/distribution", measure.GetCrashDetailAttributeDistribution)
-		apps.GET(":id/crashGroups/:crashGroupId/plots/journey", measure.GetCrashDetailPlotJourney)
 
 		// ANRs
 		apps.GET(":id/anrGroups", measure.GetANROverview)
@@ -105,7 +104,6 @@ func main() {
 		apps.GET(":id/anrGroups/:anrGroupId/path", measure.GetANRGroupCommonPath)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", measure.GetANRDetailAttributeDistribution)
-		apps.GET(":id/anrGroups/:anrGroupId/plots/journey", measure.GetANRDetailPlotJourney)
 
 		// sessions
 		apps.GET(":id/sessions", measure.GetSessionsOverview)
