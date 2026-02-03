@@ -84,10 +84,21 @@ internal interface FileStorage {
      * Deletes attachments with given IDs.
      */
     fun deleteAttachmentsIfExist(attachmentIds: List<String>?)
+
+    /**
+     * Returns the file where the [sh.measure.android.config.DynamicConfig] is stored.
+     */
+    fun getConfigFile(): File?
+
+    /**
+     * Validates that the file exists.
+     */
+    fun validateFile(path: String): Boolean
 }
 
 private const val MEASURE_DIR = "measure"
 private const val BUG_REPORTS_DIR = "bug_reports"
+private const val CONFIG_FILE_NAME = "config.json"
 
 internal class FileStorageImpl(
     private val rootDir: String,
@@ -95,7 +106,7 @@ internal class FileStorageImpl(
 ) : FileStorage {
 
     override fun writeEventData(eventId: String, serializedData: String): String? {
-        val file = createFile(eventId) ?: return null
+        val file = getOrCreateFile(eventId) ?: return null
         try {
             file.writeText(serializedData)
         } catch (e: IOException) {
@@ -107,7 +118,7 @@ internal class FileStorageImpl(
     }
 
     override fun writeAttachment(attachmentId: String, bytes: ByteArray): String? {
-        val file = createFile(attachmentId) ?: return null
+        val file = getOrCreateFile(attachmentId) ?: return null
         return try {
             file.writeBytes(bytes)
             file.path
@@ -143,7 +154,7 @@ internal class FileStorageImpl(
         bytes: ByteArray,
         sessionId: String,
     ): String? {
-        val file = createFile("$name.$extension", "$BUG_REPORTS_DIR/$sessionId")
+        val file = getOrCreateFile("$name.$extension", "$BUG_REPORTS_DIR/$sessionId")
         if (file != null) {
             file.writeBytes(bytes)
             return file.absolutePath
@@ -179,6 +190,13 @@ internal class FileStorageImpl(
         }
     }
 
+    override fun getConfigFile(): File? = getOrCreateFile(CONFIG_FILE_NAME)
+
+    override fun validateFile(path: String): Boolean {
+        val file = getFile(path)
+        return file != null && file.exists() && file.length() > 0
+    }
+
     override fun getFile(path: String): File? {
         val file = File(path)
         return when {
@@ -187,7 +205,7 @@ internal class FileStorageImpl(
         }
     }
 
-    private fun createFile(id: String, subdir: String = ""): File? {
+    private fun getOrCreateFile(id: String, subdir: String = ""): File? {
         val dirPath = "$rootDir/$MEASURE_DIR/$subdir"
         val rootDir = File(dirPath)
 
@@ -201,7 +219,6 @@ internal class FileStorageImpl(
             return null
         }
 
-        // Create file with event id as file name
         val filePath = "$dirPath/$id"
         val file = File(filePath)
         try {

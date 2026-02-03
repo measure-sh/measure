@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.androidx.baselineprofile)
     id("sh.measure.android.gradle")
 }
 
@@ -54,6 +55,12 @@ android {
             )
             signingConfig = signingConfigs.getByName("debug")
         }
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -90,6 +97,9 @@ dependencies {
     implementation(libs.androidx.activity)
 
     implementation(project(":measure"))
+    implementation(libs.androidx.profileinstaller)
+
+    baselineProfile(project(":benchmarks"))
 
     debugImplementation(libs.squareup.leakcanary)
     debugImplementation(libs.androidx.compose.ui.tooling)

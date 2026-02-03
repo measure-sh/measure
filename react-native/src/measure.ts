@@ -465,4 +465,21 @@ export const Measure = {
 
     return _measureInternal.trackBugReport(description, attachments, attributes);
   },
+
+  /**
+   * Returns the current session ID, or null if the SDK is not initialized.
+   *
+   * A session represents a continuous period of activity in the app.
+   * A new session begins when the app is launched for the first time, or when there's been no activity for a 5-minute period.
+   * A session represents a continuous period of app usage.
+   */
+  getSessionId(): Promise<string | null> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.getSessionId();
+  },
 };

@@ -1,15 +1,17 @@
 //
 //  SessionOb+CoreDataClass.swift
-//  MeasureSDK
+//  Measure
 //
-//  Created by Adwin Ross on 04/03/25.
+//  Created by Adwin Ross on 15/01/26.
 //
 //
 
-import Foundation
-import CoreData
+public import Foundation
+public import CoreData
+
+public typealias SessionObCoreDataClassSet = NSSet
 
 @objc(SessionOb)
-class SessionOb: NSManagedObject {
+public class SessionOb: NSManagedObject {
 
 }

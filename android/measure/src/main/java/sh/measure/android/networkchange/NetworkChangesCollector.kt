@@ -18,6 +18,8 @@ import android.telephony.TelephonyManager
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.getNetworkGeneration
@@ -40,6 +42,7 @@ import sh.measure.android.utils.hasPhoneStatePermission
  */
 internal class NetworkChangesCollector(
     private val context: Context,
+    private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
@@ -54,29 +57,34 @@ internal class NetworkChangesCollector(
 
     @SuppressLint("MissingPermission")
     fun register() {
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
-                if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-                    val connectivityManager = systemServiceProvider.connectivityManager ?: return
-                    val networkCallback = networkCallback()
-                    this.networkCallback = networkCallback
-                    connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
+                    if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+                        val connectivityManager =
+                            systemServiceProvider.connectivityManager ?: return
+                        val networkCallback = networkCallback()
+                        this.networkCallback = networkCallback
+                        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+                    }
                 }
-            }
 
-            else -> {
-                val connectivityManager = systemServiceProvider.connectivityManager ?: return
-                if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-                    val networkCallback = networkCallback()
-                    this.networkCallback = networkCallback
-                    connectivityManager.registerNetworkCallback(
-                        NetworkRequest.Builder().addTransportType(TRANSPORT_CELLULAR)
-                            .addTransportType(TRANSPORT_WIFI).addTransportType(TRANSPORT_VPN)
-                            .addCapability(NET_CAPABILITY_INTERNET).build(),
-                        networkCallback,
-                    )
+                else -> {
+                    val connectivityManager = systemServiceProvider.connectivityManager ?: return
+                    if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+                        val networkCallback = networkCallback()
+                        this.networkCallback = networkCallback
+                        connectivityManager.registerNetworkCallback(
+                            NetworkRequest.Builder().addTransportType(TRANSPORT_CELLULAR)
+                                .addTransportType(TRANSPORT_WIFI).addTransportType(TRANSPORT_VPN)
+                                .addCapability(NET_CAPABILITY_INTERNET).build(),
+                            networkCallback,
+                        )
+                    }
                 }
             }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "NetworkChangesCollector failed to register", e)
         }
     }
 

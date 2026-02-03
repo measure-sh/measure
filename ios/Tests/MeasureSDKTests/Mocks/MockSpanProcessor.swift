@@ -13,6 +13,11 @@ final class MockSpanProcessor: SpanProcessor {
     private(set) var startedSpans: [InternalSpan] = []
     private(set) var endingSpans: [InternalSpan] = []
     private(set) var endedSpans: [InternalSpan] = []
+    var onConfigLoadedHandler: (() -> Void)?
+
+    init(onConfigLoaded: (() -> Void)? = nil) {
+        self.onConfigLoadedHandler = onConfigLoaded
+    }
 
     func onStart(_ span: InternalSpan) {
         startedSpans.append(span)
@@ -42,5 +47,9 @@ final class MockSpanProcessor: SpanProcessor {
         startedSpans.removeAll()
         endingSpans.removeAll()
         endedSpans.removeAll()
+    }
+
+    func onConfigLoaded() {
+        onConfigLoadedHandler?()
     }
 }

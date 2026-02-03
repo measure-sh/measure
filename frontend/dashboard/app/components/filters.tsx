@@ -25,6 +25,7 @@ import {
   SpanStatus,
   UserDefAttr,
 } from "../api/api_calls"
+import { underlineLinkStyle } from "../utils/shared_styles"
 import {
   formatDateToHumanReadableDateTime,
   formatIsoDateForDateTimeInputField,
@@ -33,6 +34,7 @@ import {
 import DebounceTextInput from "./debounce_text_input"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
 import FilterPill from "./filter_pill"
+import { Input } from "./input"
 import LoadingSpinner from "./loading_spinner"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
 
@@ -513,9 +515,6 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       }
     }
 
-    const customDateInputStyle =
-      "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-
     const searchParams = useSearchParams()
     const pathName = usePathname()
 
@@ -616,23 +615,29 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         ? sessionPersistedFilters.dateRange
         : DateRange.Last6Hours
     const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
+
     const [selectedStartDate, setSelectedStartDate] = useState(
-      urlFilters.startDate
-        ? urlFilters.startDate
-        : sessionPersistedFilters
-          ? sessionPersistedFilters.dateRange === DateRange.Custom
-            ? sessionPersistedFilters.startDate
-            : mapDateRangeToDate(initDateRange)!.toISO()
-          : DateTime.now().minus({ hours: 6 }).toISO(),
+      urlFilters.dateRange ?
+        mapDateRangeToDate(initDateRange)!.toISO() :
+        urlFilters.startDate
+          ? urlFilters.startDate
+          : sessionPersistedFilters
+            ? sessionPersistedFilters.dateRange === DateRange.Custom
+              ? sessionPersistedFilters.startDate
+              : mapDateRangeToDate(initDateRange)!.toISO()
+            : DateTime.now().minus({ hours: 6 }).toISO(),
     )
+
     const [selectedEndDate, setSelectedEndDate] = useState(
-      urlFilters.endDate
-        ? urlFilters.endDate
-        : sessionPersistedFilters
-          ? sessionPersistedFilters.dateRange === DateRange.Custom
-            ? sessionPersistedFilters.endDate
-            : DateTime.now().toISO()
-          : DateTime.now().toISO(),
+      urlFilters.dateRange ?
+        DateTime.now().toISO() :
+        urlFilters.endDate
+          ? urlFilters.endDate
+          : sessionPersistedFilters
+            ? sessionPersistedFilters.dateRange === DateRange.Custom
+              ? sessionPersistedFilters.endDate
+              : DateTime.now().toISO()
+            : DateTime.now().toISO(),
     )
 
     const getApps = async (appIdToSelect?: string) => {
@@ -1225,7 +1230,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
               "creating your first app!"
             ) : (
               <Link
-                className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+                className={underlineLinkStyle}
                 href={`apps`}
               >
                 creating your first app!
@@ -1278,7 +1283,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     Follow our{" "}
                     <Link
                       target="_blank"
-                      className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+                      className={underlineLinkStyle}
                       href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
                     >
                       docs
@@ -1390,13 +1395,12 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     <p className="font-display px-2">:</p>
                   )}
                   {showDates && selectedDateRange === DateRange.Custom && (
-                    <input
+                    <Input
                       type="datetime-local"
                       defaultValue={formatIsoDateForDateTimeInputField(
                         selectedStartDate,
                       )}
                       max={formatIsoDateForDateTimeInputField(selectedEndDate)}
-                      className={customDateInputStyle}
                       onChange={(e) => {
                         if (isValidTimestamp(e.target.value)) {
                           setSelectedStartDate(
@@ -1410,7 +1414,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     <p className="font-display px-2">to</p>
                   )}
                   {showDates && selectedDateRange === DateRange.Custom && (
-                    <input
+                    <Input
                       type="datetime-local"
                       defaultValue={formatIsoDateForDateTimeInputField(
                         selectedEndDate,
@@ -1421,7 +1425,6 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                       max={formatIsoDateForDateTimeInputField(
                         DateTime.now().toISO(),
                       )}
-                      className={customDateInputStyle}
                       onChange={(e) => {
                         if (isValidTimestamp(e.target.value)) {
                           // If "To" date is greater than now, ignore the change and reset to current end date.

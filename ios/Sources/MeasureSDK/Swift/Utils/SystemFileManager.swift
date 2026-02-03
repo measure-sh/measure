@@ -7,12 +7,19 @@
 
 import Foundation
 
+enum ConfigFileConstants {
+    static let fileName = "dynamic_config.json"
+    static let folderName = "measure"
+    static let directory: FileManager.SearchPathDirectory = .cachesDirectory
+}
+
 /// A protocol that defines file system related operations.
 protocol SystemFileManager {
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String?
     func getCrashFilePath() -> URL?
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL?
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
+    func getDynamicConfigPath() -> String?
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -107,5 +114,17 @@ final class BaseSystemFileManager: SystemFileManager {
             return nil
         }
         return directoryURL.path
+    }
+
+    func getDynamicConfigPath() -> String? {
+        guard let directoryURL = fileManager.urls(for: ConfigFileConstants.directory, in: .userDomainMask).first else {
+            logger.internalLog(level: .error, message: "Unable to access directory \(ConfigFileConstants.directory)", error: nil, data: nil)
+            return nil
+        }
+
+        let folderURL = directoryURL.appendingPathComponent(ConfigFileConstants.folderName)
+        let fileURL = folderURL.appendingPathComponent(ConfigFileConstants.fileName)
+
+        return fileURL.path
     }
 }

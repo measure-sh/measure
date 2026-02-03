@@ -1,8 +1,8 @@
 package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -11,9 +11,10 @@ import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.StringAttr
-import sh.measure.android.exporter.ExceptionExporter
+import sh.measure.android.exporter.Exporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.FakeSampler
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.FakeSignalStore
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -29,9 +30,10 @@ internal class SignalProcessorTest {
     private val idProvider = FakeIdProvider()
     private val sessionManager = FakeSessionManager()
     private val signalStore = FakeSignalStore()
-    private val exceptionExporter = mock<ExceptionExporter>()
+    private val exporter = mock<Exporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val configProvider = FakeConfigProvider()
+    private val sampler = FakeSampler()
 
     private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
@@ -40,24 +42,25 @@ internal class SignalProcessorTest {
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = emptyList(),
-        exceptionExporter = exceptionExporter,
+        exporter = exporter,
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
+        sampler = sampler,
     )
 
     @Before
     fun setUp() {
-        configProvider.trackScreenshotOnCrash = false
+        configProvider.enableFullCollectionMode = false
+        configProvider.crashTakeScreenshot = false
+        configProvider.anrTakeScreenshot = false
     }
 
     @Test
-    fun `given an event, adds session id, event id and thread name as attribute, then stores event`() {
-        // Given
+    fun `track stores event with session id, event id, thread name and platform attributes`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
 
-        // When
         signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
@@ -79,14 +82,12 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given event with attachments, adds session id, event id and thread name as attribute, then stores event`() {
-        // Given
+    fun `track stores event with attachments`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attachments = mutableListOf(TestData.getAttachment())
 
-        // When
         signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
@@ -110,14 +111,12 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given event with attributes, adds session id, event id and thread name as attribute, then stores event`() {
-        // Given
+    fun `track stores event with provided attributes`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
 
-        // When
         signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
@@ -138,8 +137,25 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given attribute processors are provided, applies them to the event`() {
-        // Given
+    fun `track uses provided sessionId instead of session manager`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 1710746412L
+        val type = EventType.EXCEPTION
+        val customSessionId = "custom-session-id"
+
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            sessionId = customSessionId,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(customSessionId, signalStore.trackedEvents.first().sessionId)
+    }
+
+    @Test
+    fun `track applies attribute processors to event`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
@@ -155,12 +171,12 @@ internal class SignalProcessorTest {
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
-            exceptionExporter = exceptionExporter,
+            exporter = exporter,
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
+            sampler = sampler,
         )
 
-        // When
         signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
@@ -183,187 +199,63 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given an event of type exception, stores it, marks current session as crashed, and triggers export`() {
-        // Given
+    fun `track drops event when user defined attributes exceed maximum count`() {
+        val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
+            "key$it" to StringAttr("value")
+        }
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
 
-        // When
-        signalProcessor.trackCrash(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
-            takeScreenshot = false,
+            userDefinedAttributes = attributes,
         )
 
-        // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
-        assertEquals(1, signalStore.trackedEvents.size)
-        verify(exceptionExporter).export(sessionManager.getSessionId())
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 
     @Test
-    fun `given an event of type ANR,  stores it, marks current session as crashed, and triggers export`() {
-        // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.ANR
-
-        // When
-        signalProcessor.trackCrash(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-            takeScreenshot = false,
-        )
-
-        // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
-        assertEquals(1, signalStore.trackedEvents.size)
-        verify(exceptionExporter).export(sessionManager.getSessionId())
-    }
-
-    @Test
-    fun `given an event of type exception and config to capture screenshot, adds screenshot as attachment`() {
-        // Given
+    fun `track drops event when user defined attribute key exceeds maximum length`() {
+        val longKey = "k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1)
+        val attributes = mapOf(longKey to StringAttr("value"))
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        configProvider.trackScreenshotOnCrash = true
-        val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
-        `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
-        // When
-        signalProcessor.trackCrash(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            userDefinedAttributes = attributes,
         )
 
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        val attachments = signalStore.trackedEvents.first().attachments
-        assertEquals(1, attachments.size)
-        assertEquals("screenshot.png", attachments.first().name)
-        assertTrue(screenshot.data.contentEquals(attachments.first().bytes))
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 
     @Test
-    fun `given an event of type exception and config to not capture screenshot, does not add screenshot as attachment`() {
-        // Given
+    fun `track drops event when user defined attribute value exceeds maximum length`() {
+        val invalidAttributeValue =
+            "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1)
+        val attributes = mapOf("key" to StringAttr(invalidAttributeValue))
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        configProvider.trackScreenshotOnCrash = false
 
-        // When
         signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            userDefinedAttributes = attributes,
         )
 
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        val attachments = signalStore.trackedEvents.first().attachments
-        assertEquals(0, attachments.size)
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 
     @Test
-    fun `given an event of type ANR and config to capture screenshot, does not add screenshot as attachment`() {
-        // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.ANR
-        configProvider.trackScreenshotOnCrash = true
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-        )
-
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        val attachments = signalStore.trackedEvents.first().attachments
-        assertEquals(0, attachments.size)
-    }
-
-    @Test
-    fun `given an event of type ANR and config to not capture screenshot, does not add screenshot as attachment`() {
-        // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.ANR
-        configProvider.trackScreenshotOnCrash = false
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-        )
-
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        val attachments = signalStore.trackedEvents.first().attachments
-        assertEquals(0, attachments.size)
-    }
-
-    @Test
-    fun `given an event of type app exit, applies attributes and updates version info`() {
-        // Given
-        val appExit = TestData.getAppExit()
-        val timestamp = 1710746412L
-        val type = EventType.APP_EXIT
-        val sessionId = "session-id-app-exit"
-        val appVersion = "app-version"
-        val appBuild = "1000"
-
-        // When
-        signalProcessor.trackAppExit(
-            data = appExit,
-            timestamp = timestamp,
-            type = type,
-            sessionId = sessionId,
-            appVersion = appVersion,
-            appBuild = appBuild,
-            threadName = "thread-name",
-        )
-
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        val event = signalStore.trackedEvents.first()
-        assertEquals(type, event.type)
-        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
-        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
-        assertEquals(sessionId, event.sessionId)
-    }
-
-    @Test
-    fun `given an event of type bug_report, marks session with bug report`() {
-        // Given
-        val bugReportData = TestData.getBugReportData()
-        val timestamp = 1710746412L
-        val type = EventType.BUG_REPORT
-        val sessionId = "session-id-bug-report"
-
-        // When
-        signalProcessor.track(
-            data = bugReportData,
-            timestamp = timestamp,
-            type = type,
-            sessionId = sessionId,
-        )
-
-        // Then
-        assertTrue(sessionManager.markedSessionWithBugReport)
-    }
-
-    @Test
-    fun `given a user triggered event, then stores the event`() {
+    fun `trackUserTriggered stores event with userTriggered flag`() {
         val data = TestData.getScreenViewData()
         val timestamp = 1710746412L
         val eventType = EventType.SCREEN_VIEW
@@ -373,6 +265,7 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             userTriggered = true,
+            isSampled = sampler.trackJourneyForSession,
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
             appendAttribute(Attribute.PLATFORM_KEY, "android")
@@ -389,13 +282,11 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `calls onEventTracked on session manager when crash is stored`() {
-        // Given
+    fun `trackCrash for exception stores event and triggers export`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
 
-        // When
         signalProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
@@ -403,95 +294,158 @@ internal class SignalProcessorTest {
             takeScreenshot = false,
         )
 
-        // Then
-        assertTrue(sessionManager.onEventTracked)
+        assertEquals(1, signalStore.trackedEvents.size)
+        verify(exporter).export()
     }
 
     @Test
-    fun `calls onEventTracked on session manager when event is stored`() {
-        // Given
-        val data = TestData.getScreenViewData()
+    fun `trackCrash for ANR stores event and triggers export`() {
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
-        val type = EventType.SCREEN_VIEW
+        val type = EventType.ANR
 
-        // When
-        signalProcessor.track(
-            data = data,
+        signalProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            takeScreenshot = false,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        verify(exporter).export()
+    }
+
+    @Test
+    fun `trackCrash for exception with screenshot enabled adds screenshot attachment`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+        configProvider.crashTakeScreenshot = true
+        val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
+        `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
+
+        signalProcessor.trackCrash(
+            data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
 
-        // Then
-        assertTrue(sessionManager.onEventTracked)
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
+        assertEquals(1, attachments.size)
+        assertEquals("screenshot.png", attachments.first().name)
+        assertTrue(screenshot.data.contentEquals(attachments.first().bytes))
+    }
+
+    @Test
+    fun `trackCrash for exception with screenshot disabled does not add screenshot attachment`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+        configProvider.crashTakeScreenshot = false
+
+        signalProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(0, signalStore.trackedEvents.first().attachments.size)
+    }
+
+    @Test
+    fun `trackCrash for ANR with screenshot enabled adds screenshot attachment`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.ANR
+        configProvider.anrTakeScreenshot = true
+        val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
+        `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
+
+        signalProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
+        assertEquals(1, attachments.size)
+        assertEquals("screenshot.png", attachments.first().name)
+        assertTrue(screenshot.data.contentEquals(attachments.first().bytes))
+    }
+
+    @Test
+    fun `trackCrash for ANR with screenshot disabled does not add screenshot attachment`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.ANR
+        configProvider.anrTakeScreenshot = false
+
+        signalProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(0, signalStore.trackedEvents.first().attachments.size)
+    }
+
+    @Test
+    fun `trackCrash with takeScreenshot false does not capture screenshot regardless of config`() {
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+        configProvider.crashTakeScreenshot = true
+
+        signalProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            takeScreenshot = false,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(0, signalStore.trackedEvents.first().attachments.size)
+    }
+
+    @Test
+    fun `trackAppExit stores event with provided sessionId and version attributes`() {
+        val appExit = TestData.getAppExit()
+        val timestamp = 1710746412L
+        val type = EventType.APP_EXIT
+        val sessionId = "session-id-app-exit"
+        val appVersion = "app-version"
+        val appBuild = "1000"
+        val isSampled = true
+
+        signalProcessor.trackAppExit(
+            data = appExit,
+            timestamp = timestamp,
+            type = type,
+            sessionId = sessionId,
+            appVersion = appVersion,
+            appBuild = appBuild,
+            threadName = "thread-name",
+            isSampled = isSampled,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(type, event.type)
+        assertEquals(sessionId, event.sessionId)
+        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
     }
 
     @Test
     fun `trackSpan stores span`() {
-        // When
         val spanData = TestData.getSpanData()
+
         signalProcessor.trackSpan(spanData)
 
-        // Then
         assertTrue(signalStore.trackedSpans.contains(spanData))
-    }
-
-    @Test
-    fun `should drop event when user defined attributes exceed maximum count`() {
-        // Given
-        val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
-            "key$it" to StringAttr("value")
-        }
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-            userDefinedAttributes = attributes,
-        )
-
-        assertEquals(0, signalStore.trackedEvents.size)
-    }
-
-    @Test
-    fun `should drop event when user defined attribute key exceeds maximum length`() {
-        val longKey = "k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1)
-        val attributes = mapOf(longKey to StringAttr("value"))
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-            userDefinedAttributes = attributes,
-        )
-
-        assertEquals(0, signalStore.trackedEvents.size)
-    }
-
-    @Test
-    fun `should drop event when user defined string attribute value exceeds maximum length`() {
-        val invalidAttributeValue =
-            "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1)
-        val attributes = mapOf("key" to StringAttr(invalidAttributeValue))
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-            userDefinedAttributes = attributes,
-        )
-
-        assertEquals(0, signalStore.trackedEvents.size)
     }
 }

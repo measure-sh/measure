@@ -20,4 +20,8 @@ internal class FakeSpanProcessor : SpanProcessor {
     override fun onEnded(span: InternalSpan) {
         endedSpans += span as Span
     }
+
+    override fun onConfigLoaded() {
+        // no-op
+    }
 }

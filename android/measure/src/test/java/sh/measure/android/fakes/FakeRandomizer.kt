@@ -3,10 +3,10 @@ package sh.measure.android.fakes
 import sh.measure.android.utils.Randomizer
 
 internal class FakeRandomizer : Randomizer {
-    var randomDouble: Double
-        get() = 1.0
+    var randomDouble: Double = 1.0
         set(value) {
             require(value in 0.0..1.0)
+            field = value
         }
 
     var randomLong: Long = 100L

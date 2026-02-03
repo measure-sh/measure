@@ -2,6 +2,7 @@ package sh.measure.android.exporter
 
 import okio.source
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.ConfigResponse
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
@@ -14,6 +15,8 @@ internal interface NetworkClient {
         eventPackets: List<EventPacket>,
         spanPackets: List<SpanPacket>,
     ): HttpResponse
+
+    fun getConfig(eTag: String?): ConfigResponse
 }
 
 internal class NetworkClientImpl(
@@ -24,16 +27,19 @@ internal class NetworkClientImpl(
 ) : NetworkClient {
     private var baseUrl: URL? = null
     private var eventsUrl: URL? = null
+    private var configUrl: URL? = null
     private var apiKey: String? = null
 
     companion object {
         private const val PATH_EVENTS = "/events"
+        private const val PATH_CONFIG = "/config"
     }
 
     override fun init(baseUrl: String, apiKey: String) {
         this.baseUrl = parseUrl(baseUrl)
         this.apiKey = apiKey
         this.eventsUrl = this.baseUrl?.let { createEventsUrl(it) }
+        this.configUrl = this.baseUrl?.let { createConfigUrl(it) }
     }
 
     override fun execute(
@@ -59,6 +65,15 @@ internal class NetworkClientImpl(
         }
     }
 
+    override fun getConfig(eTag: String?): ConfigResponse {
+        if (!isInitialized()) {
+            return ConfigResponse.Error(UninitializedPropertyAccessException("Unable to initialize network client, please check the API_KEY and API_URL"))
+        }
+
+        val headers = mapOf("Authorization" to "Bearer $apiKey")
+        return httpClient.getConfig(configUrl.toString(), eTag, headers)
+    }
+
     private fun parseUrl(url: String): URL? = try {
         URL(url)
     } catch (e: Exception) {
@@ -70,6 +85,13 @@ internal class NetworkClientImpl(
         baseUrl.toURI().resolve(PATH_EVENTS).toURL()
     } catch (e: Exception) {
         logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
+        null
+    }
+
+    private fun createConfigUrl(baseUrl: URL): URL? = try {
+        baseUrl.toURI().resolve(PATH_CONFIG).toURL()
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to fetch config: invalid API_URL", e)
         null
     }
 
@@ -124,9 +146,11 @@ internal class NetworkClientImpl(
             event.serializedData != null -> {
                 sink.writeUtf8(event.serializedData)
             }
+
             event.serializedDataFilePath != null -> {
                 streamFileContent(sink, event.serializedDataFilePath)
             }
+
             else -> {
                 sink.writeUtf8("null")
             }

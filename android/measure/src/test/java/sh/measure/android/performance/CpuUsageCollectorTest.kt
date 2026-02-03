@@ -10,6 +10,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -29,12 +30,14 @@ internal class CpuUsageCollectorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val testClock = TestClock.create()
     private val timeProvider = AndroidTimeProvider(testClock)
+    private val configProvider = FakeConfigProvider()
     private val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger,
         signalProcessor,
         processInfo,
         timeProvider,
         executorService,
+        configProvider,
         procProvider,
         osSysConfProvider,
     )
@@ -166,16 +169,6 @@ internal class CpuUsageCollectorTest {
             clockSpeedHz = 100,
         )
         Assert.assertEquals(0.0, result, 0.0)
-    }
-
-    @Test
-    fun `CpuUsageCollector pauses and resumes`() {
-        cpuUsageCollector.register()
-        Assert.assertNotNull(cpuUsageCollector.future)
-        cpuUsageCollector.pause()
-        Assert.assertNull(cpuUsageCollector.future)
-        cpuUsageCollector.resume()
-        Assert.assertNotNull(cpuUsageCollector.future)
     }
 
     @Test

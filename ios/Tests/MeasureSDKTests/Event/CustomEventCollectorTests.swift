@@ -71,7 +71,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
     func testTrackEvent_whenNameExceedsMaxLength_logsWarning() {
         eventCollector.enable()
-        let longName = String(repeating: "a", count: configProvider.maxEventNameLength + 1)
+        let longName = String(repeating: "a", count: Int(configProvider.maxEventNameLength) + 1)
         eventCollector.trackEvent(name: longName, attributes: [:], timestamp: nil)
 
         XCTAssertNil(signalProcessor.data)
@@ -88,7 +88,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
     func testTrackEvent_whenTooManyAttributes_logsWarning() {
         eventCollector.enable()
-        let attributes = (1...configProvider.maxUserDefinedAttributesPerEvent + 1)
+        let attributes = (1...Int(configProvider.maxUserDefinedAttributesPerEvent) + 1)
             .reduce(into: [String: AttributeValue]()) { $0["key\($1)"] = .int($1) }
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
@@ -100,7 +100,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
     func testTrackEvent_whenAttributeKeyExceedsMaxLength_logsWarning() {
         eventCollector.enable()
         let attributes: [String: AttributeValue] = [
-            String(repeating: "a", count: configProvider.maxUserDefinedAttributeKeyLength + 1): .int(1)
+            String(repeating: "a", count: Int(configProvider.maxUserDefinedAttributeKeyLength) + 1): .int(1)
         ]
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
@@ -112,7 +112,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
     func testTrackEvent_whenAttributeValueExceedsMaxLength_logsWarning() {
         eventCollector.enable()
         let attributes: [String: AttributeValue] = [
-            "valid_key": .string(String(repeating: "a", count: configProvider.maxUserDefinedAttributeValueLength + 1))
+            "valid_key": .string(String(repeating: "a", count: Int(configProvider.maxUserDefinedAttributeValueLength) + 1))
         ]
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)

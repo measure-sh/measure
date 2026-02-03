@@ -64,25 +64,6 @@ jobs:
       - name: Run Gradle plugin checks
         run: ./gradlew :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
 
-  # ensures benchmark app is not broken
-  assemble-benchmarks:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
-    permissions:
-      contents: read
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: 'gradle'
-      - name: Assemble benchmarks
-        run: ./gradlew clean :benchmarks:benchmark:assembleMeasureEnabled --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
-
   # ensures sample app is not broken
   assemble-sample:
     runs-on: ubuntu-latest

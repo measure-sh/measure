@@ -16,9 +16,9 @@ interface DangerConfirmationDialogProps {
 const DangerConfirmationDialog: React.FC<DangerConfirmationDialogProps> = ({ body, open, affirmativeText, cancelText, onAffirmativeAction, onCancelAction }) => {
     return (
         <Dialog open={open} modal={true} onOpenChange={(open) => { if (!open) onCancelAction(); }}>
-            <DialogContent>
+            <DialogContent className="bg-background text-foreground">
                 <DialogHeader>
-                    <DialogTitle className="font-display text-red-600">Are you sure?</DialogTitle>
+                    <DialogTitle className="font-display text-red-600 dark:text-red-400">Are you sure?</DialogTitle>
                 </DialogHeader>
                 <DialogDescription>
                     {body}
@@ -26,14 +26,12 @@ const DangerConfirmationDialog: React.FC<DangerConfirmationDialogProps> = ({ bod
                 <DialogFooter>
                     <Button
                         variant="destructive"
-                        className="font-display select-none"
                         onClick={onAffirmativeAction}
                     >
                         {affirmativeText}
                     </Button>
                     <Button
                         variant="outline"
-                        className="font-display border border-black select-none"
                         onClick={onCancelAction}
                     >
                         {cancelText}

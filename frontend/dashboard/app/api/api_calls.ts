@@ -104,7 +104,7 @@ export enum MetricsApiStatus {
   Cancelled,
 }
 
-export enum SessionsOverviewApiStatus {
+export enum SessionTimelinesOverviewApiStatus {
   Loading,
   Success,
   Error,
@@ -131,7 +131,7 @@ export enum ExceptionsOverviewPlotApiStatus {
   Cancelled,
 }
 
-export enum SessionsOverviewPlotApiStatus {
+export enum SessionTimelinesOverviewPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -368,6 +368,21 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum SdkConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateSdkConfigApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -506,7 +521,7 @@ export const emptyMetrics = {
   },
 }
 
-export const emptySessionsOverviewResponse = {
+export const emptySessionTimelinesOverviewResponse = {
   meta: {
     next: false,
     previous: false,
@@ -916,9 +931,9 @@ export const emptyUsage = [
     monthly_app_usage: [
       {
         month_year: "",
-        event_count: 0,
         session_count: 0,
-        trace_count: 0,
+        launch_time_count: 0,
+        event_count: 0,
         span_count: 0,
       },
     ],
@@ -1040,6 +1055,21 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
+export type SdkConfig = {
+  trace_sampling_rate: number
+  crash_timeline_duration: number
+  crash_take_screenshot: boolean
+  anr_timeline_duration: number
+  anr_take_screenshot: boolean
+  bug_report_timeline_duration: number
+  launch_sampling_rate: number
+  journey_sampling_rate: number
+  http_disable_event_for_urls: string[]
+  http_track_request_for_urls: string[]
+  http_track_response_for_urls: string[]
+  http_blocked_headers: string[]
+  screenshot_mask_level: string
+}
 export class AppVersion {
   name: string
   code: string
@@ -1423,15 +1453,15 @@ export const fetchSessionsVsExceptionsPlotFromServer = async (
 ) => {
   // Fetch all three datasets in parallel
   const [sessionsRes, crashesRes, anrsRes] = await Promise.all([
-    fetchSessionsOverviewPlotFromServer(filters),
+    fetchSessionTimelinesOverviewPlotFromServer(filters),
     fetchExceptionsOverviewPlotFromServer(ExceptionsType.Crash, filters),
     fetchExceptionsOverviewPlotFromServer(ExceptionsType.Anr, filters),
   ])
 
   // Handle error/no data
   if (
-    sessionsRes.status !== SessionsOverviewPlotApiStatus.Success &&
-    sessionsRes.status !== SessionsOverviewPlotApiStatus.NoData
+    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.Success &&
+    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.NoData
   ) {
     return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
   }
@@ -1576,7 +1606,7 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
   }
 }
 
-export const fetchSessionsOverviewFromServer = async (
+export const fetchSessionTimelinesOverviewFromServer = async (
   filters: Filters,
   keyId: string | null,
   keyTimestamp: string | null,
@@ -1598,18 +1628,18 @@ export const fetchSessionsOverviewFromServer = async (
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: SessionsOverviewApiStatus.Error, data: null }
+      return { status: SessionTimelinesOverviewApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: SessionsOverviewApiStatus.Success, data: data }
+    return { status: SessionTimelinesOverviewApiStatus.Success, data: data }
   } catch {
-    return { status: SessionsOverviewApiStatus.Cancelled, data: null }
+    return { status: SessionTimelinesOverviewApiStatus.Cancelled, data: null }
   }
 }
 
-export const fetchSessionsOverviewPlotFromServer = async (filters: Filters) => {
+export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
@@ -1618,18 +1648,18 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters) => {
     const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      return { status: SessionsOverviewPlotApiStatus.Error, data: null }
+      return { status: SessionTimelinesOverviewPlotApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null) {
-      return { status: SessionsOverviewPlotApiStatus.NoData, data: null }
+      return { status: SessionTimelinesOverviewPlotApiStatus.NoData, data: null }
     }
 
-    return { status: SessionsOverviewPlotApiStatus.Success, data: data }
+    return { status: SessionTimelinesOverviewPlotApiStatus.Success, data: data }
   } catch {
-    return { status: SessionsOverviewPlotApiStatus.Cancelled, data: null }
+    return { status: SessionTimelinesOverviewPlotApiStatus.Cancelled, data: null }
   }
 }
 
@@ -2424,5 +2454,52 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSdkConfigFromServer = async (appId: String) => {
+  const url = `/api/apps/${appId}/config`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+    if (!res.ok) {
+      return { status: SdkConfigApiStatus.Error, data: null }
+    }
+    const data = await res.json()
+    return { status: SdkConfigApiStatus.Success, data: data }
+  } catch {
+    return { status: SdkConfigApiStatus.Cancelled, data: null }
+  }
+}
+
+export const updateSdkConfigFromServer = async (appId: string, config: Partial<SdkConfig>) => {
+  const url = `/api/apps/${appId}/config`
+
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(config),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(url, opts)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return {
+        status: UpdateSdkConfigApiStatus.Error,
+        data: null,
+        error: data?.error,
+      }
+    }
+
+    return {
+      status: UpdateSdkConfigApiStatus.Success,
+      data,
+    }
+  } catch {
+    return {
+      status: UpdateSdkConfigApiStatus.Cancelled,
+      data: null,
+    }
   }
 }

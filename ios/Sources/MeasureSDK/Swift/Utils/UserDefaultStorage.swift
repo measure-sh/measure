@@ -12,6 +12,8 @@ protocol UserDefaultStorage {
     func setInstallationId(_ installationId: String)
     func getUserId() -> String?
     func setUserId(_ userId: String?)
+    func getConfigEtag() -> String?
+    func setConfigEtag(_ eTag: String?)
     func getRecentSession() -> RecentSession?
     func setRecentSessionEventTime(_ timestamp: Number)
     func setRecentSession(_ recentSession: RecentSession)
@@ -21,6 +23,10 @@ protocol UserDefaultStorage {
     func setRecentAppVersion(_ version: String)
     func getRecentBuildNumber() -> String?
     func setRecentBuildNumber(_ buildNumber: String)
+    func getConfigFetchTimestamp() -> Number
+    func setConfigFetchTimestamp(_ timestamp: Number)
+    func getConfigCacheControl() -> Number
+    func setConfigCacheControl(_ duration: Number)
 }
 
 final class BaseUserDefaultStorage: UserDefaultStorage {
@@ -45,6 +51,18 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
             userDefaults.set(userId, forKey: userIdKey)
         } else {
             userDefaults.removeObject(forKey: userIdKey)
+        }
+    }
+
+    func getConfigEtag() -> String? {
+        return userDefaults.string(forKey: eTagKey)
+    }
+
+    func setConfigEtag(_ eTag: String?) {
+        if let eTag = eTag {
+            userDefaults.set(eTag, forKey: eTagKey)
+        } else {
+            userDefaults.removeObject(forKey: eTagKey)
         }
     }
 
@@ -105,5 +123,22 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
 
     func setRecentBuildNumber(_ buildNumber: String) {
         userDefaults.set(buildNumber, forKey: recentAppBuildNumber)
+    }
+
+    func getConfigFetchTimestamp() -> Number {
+        Number(userDefaults.double(forKey: configFetchTimestampKey))
+    }
+
+    func setConfigFetchTimestamp(_ timestamp: Number) {
+        userDefaults.set(timestamp, forKey: configFetchTimestampKey)
+    }
+
+    func getConfigCacheControl() -> Number {
+        let value = userDefaults.double(forKey: configCacheControlKey)
+        return Number(value == 0 ? 0 : value)
+    }
+
+    func setConfigCacheControl(_ duration: Number) {
+        userDefaults.set(duration, forKey: configCacheControlKey)
     }
 }

@@ -7,6 +7,8 @@ import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
+import sh.measure.android.config.DynamicConfig
+import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.Event
@@ -33,7 +35,6 @@ import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.AttachmentEntity
-import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.storage.SpanEntity
@@ -150,6 +151,7 @@ internal object TestData {
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
         userDefinedAttributes: Map<String, AttributeValue> = emptyMap(),
+        isSampled: Boolean = false,
     ): Event<T> = Event(
         id = id,
         timestamp = timestamp,
@@ -160,6 +162,7 @@ internal object TestData {
         attributes = attributes,
         userTriggered = userTriggered,
         userDefinedAttributes = userDefinedAttributes,
+        isSampled = isSampled,
     )
 
     fun getLongClickData(
@@ -382,6 +385,7 @@ internal object TestData {
         filePath: String? = null,
         attachmentEntities: List<AttachmentEntity> = emptyList(),
         serializedUserDefAttributes: String? = null,
+        isSampled: Boolean = false,
     ): EventEntity = EventEntity(
         id = eventId,
         type = type,
@@ -395,40 +399,29 @@ internal object TestData {
         attachmentEntities = attachmentEntities,
         filePath = filePath,
         serializedUserDefAttributes = serializedUserDefAttributes,
+        isSampled = isSampled,
     )
 
     fun getSessionEntity(
         id: String = "session-id",
         pid: Int = 100,
         createdAt: Long = 987654321L,
-        needsReporting: Boolean = false,
+        prioritySession: Boolean = false,
         crashed: Boolean = false,
         supportsAppExit: Boolean = false,
         appVersion: String? = "1.0.0",
         appBuild: String? = "100",
-        trackJourney: Boolean? = false,
+        trackJourney: Boolean = false,
     ): SessionEntity = SessionEntity(
         sessionId = id,
         pid = pid,
         createdAt = createdAt,
-        needsReporting = needsReporting,
+        prioritySession = prioritySession,
         crashed = crashed,
         supportsAppExit = supportsAppExit,
         appVersion = appVersion,
         appBuild = appBuild,
         trackJourney = trackJourney,
-    )
-
-    fun getEventBatchEntity(
-        batchId: String = "batch-id",
-        eventIds: List<String> = emptyList(),
-        spanIds: List<String> = emptyList(),
-        createdAt: Long = 987654321L,
-    ): BatchEntity = BatchEntity(
-        batchId = batchId,
-        eventIds = eventIds,
-        spanIds = spanIds,
-        createdAt = createdAt,
     )
 
     fun getAppExit(
@@ -463,7 +456,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
-        userDefinedAttrs: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = true,
     ): SpanData = SpanData(
@@ -519,8 +512,9 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
-        userDefinedAttrs: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
+        isSampled: Boolean = false,
     ): SpanEntity = getSpanData(
         name = name,
         traceId = traceId,
@@ -535,6 +529,7 @@ internal object TestData {
         attributes = attributes,
         userDefinedAttrs = userDefinedAttrs,
         checkpoints = checkpoints,
+        isSampled = isSampled,
     ).toSpanEntity()
 
     fun getBugReportData(): BugReportData = BugReportData("Bug report description")
@@ -544,4 +539,42 @@ internal object TestData {
         content: ByteArray = "content".toByteArray(),
         type: String = AttachmentType.SCREENSHOT,
     ): MsrAttachment = MsrAttachment(name, bytes = content, type = type)
+
+    fun getDynamicConfig(
+        maxEventsInBatch: Int = 500,
+        crashTimelineDuration: Int = 30_000,
+        anrTimelineDuration: Int = 30_000,
+        bugReportTimelineDuration: Int = 30_000,
+        traceSamplingRate: Float = 1.0f,
+        journeySamplingRate: Float = 1.0f,
+        screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllText,
+        cpuUsageInterval: Long = 3000L,
+        memoryUsageInterval: Long = 3000L,
+        crashTakeScreenshot: Boolean = false,
+        anrTakeScreenshot: Boolean = false,
+        launchSamplingRate: Float = 1.0f,
+        gestureClickTakeSnapshot: Boolean = false,
+        httpDisableEventForUrls: MutableList<String> = mutableListOf(),
+        httpTrackRequestForUrls: List<String> = emptyList(),
+        httpTrackResponseForUrls: List<String> = emptyList(),
+        httpBlockedHeaders: MutableList<String> = mutableListOf(),
+    ) = DynamicConfig(
+        maxEventsInBatch = maxEventsInBatch,
+        crashTimelineDurationSeconds = crashTimelineDuration,
+        anrTimelineDurationSeconds = anrTimelineDuration,
+        bugReportTimelineDurationSeconds = bugReportTimelineDuration,
+        traceSamplingRate = traceSamplingRate,
+        journeySamplingRate = journeySamplingRate,
+        screenshotMaskLevel = screenshotMaskLevel,
+        cpuUsageInterval = cpuUsageInterval,
+        memoryUsageInterval = memoryUsageInterval,
+        crashTakeScreenshot = crashTakeScreenshot,
+        anrTakeScreenshot = anrTakeScreenshot,
+        launchSamplingRate = launchSamplingRate,
+        gestureClickTakeSnapshot = gestureClickTakeSnapshot,
+        httpDisableEventForUrls = httpDisableEventForUrls,
+        httpTrackRequestForUrls = httpTrackRequestForUrls,
+        httpTrackResponseForUrls = httpTrackResponseForUrls,
+        httpBlockedHeaders = httpBlockedHeaders,
+    )
 }

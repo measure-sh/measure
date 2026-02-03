@@ -32,12 +32,22 @@ jobs:
       - name: Clean Derived Data
         run: rm -rf ~/Library/Developer/Xcode/DerivedData
 
+      - name: Build Measure SDK
+        run: |
+          xcodebuild build \
+            -project ios/MeasureSDK.xcodeproj \
+            -scheme Measure \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            ONLY_ACTIVE_ARCH=YES \
+            SKIP_TESTING=YES
+
       - name: Run Unit Tests
         run: |
           xcodebuild test \
             -project ios/MeasureSDK.xcodeproj \
             -scheme MeasureSDKTests \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
             ONLY_ACTIVE_ARCH=YES \
             -parallel-testing-enabled NO

@@ -2,6 +2,7 @@ package sh.measure.android.performance
 
 import android.system.OsConstants
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
@@ -17,14 +18,13 @@ import java.util.concurrent.Future
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
-internal const val CPU_TRACKING_INTERVAL_MS = 3000L
-
 internal class CpuUsageCollector(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
+    private val configProvider: ConfigProvider,
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
 ) {
@@ -47,8 +47,8 @@ internal class CpuUsageCollector(
                     }
                 },
                 0,
-                CPU_TRACKING_INTERVAL_MS,
-                TimeUnit.MILLISECONDS,
+                configProvider.cpuUsageInterval,
+                TimeUnit.SECONDS,
             )
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Debug, "Failed to track CPU usage", e)
@@ -56,13 +56,16 @@ internal class CpuUsageCollector(
         }
     }
 
-    fun resume() {
-        if (future == null) register()
-    }
-
-    fun pause() {
+    fun unregister() {
         future?.cancel(false)
         future = null
+    }
+
+    fun onConfigLoaded() {
+        // re-register to reflect updated interval
+        if (future == null) return
+        unregister()
+        register()
     }
 
     private fun trackCpuUsage() {

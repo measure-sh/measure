@@ -20,18 +20,19 @@ internal class UnhandledExceptionCollector(
     private val processInfo: ProcessInfoProvider,
 ) : UncaughtExceptionHandler {
 
-    private val originalHandler: UncaughtExceptionHandler? =
-        Thread.getDefaultUncaughtExceptionHandler()
+    private var previousHandler: UncaughtExceptionHandler? = null
 
-    /**
-     * Registers [UnhandledExceptionCollector] as the [UncaughtExceptionHandler].
-     */
     fun register() {
+        val current = Thread.getDefaultUncaughtExceptionHandler()
+        if (current === this) return
+        previousHandler = current
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
     fun unregister() {
-        Thread.setDefaultUncaughtExceptionHandler(originalHandler)
+        val current = Thread.getDefaultUncaughtExceptionHandler()
+        if (current !== this) return
+        Thread.setDefaultUncaughtExceptionHandler(previousHandler)
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
@@ -48,11 +49,9 @@ internal class UnhandledExceptionCollector(
                 takeScreenshot = true,
             )
         } catch (e: Throwable) {
-            // Prevent an infinite loop of exceptions if the above code fails.
             logger.log(LogLevel.Debug, "Failed to track unhandled exception", e)
         } finally {
-            // Call the original handler so that we do not swallow any exceptions.
-            originalHandler?.uncaughtException(thread, throwable)
+            previousHandler?.uncaughtException(thread, throwable)
         }
     }
 }

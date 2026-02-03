@@ -68,6 +68,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
     }
 
@@ -93,6 +94,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(statusCode, actualData.status_code)
@@ -119,6 +121,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals("post", actualData.method)
@@ -146,6 +149,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(url, actualData.url)
@@ -173,6 +177,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val data = captor.firstValue
         Assert.assertEquals(requestBody, data.request_body)
@@ -200,6 +205,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(requestBody, actualData.request_body)
@@ -227,6 +233,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(responseBody, actualData.response_body)
@@ -257,6 +264,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(responseBody, actualData.response_body)
@@ -284,6 +292,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertTrue(actualData.request_headers?.isNotEmpty() == true)
@@ -311,6 +320,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertTrue(actualData.response_headers?.isNotEmpty() == true)
@@ -337,6 +347,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)
@@ -364,6 +375,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualTimestamp = timestampCaptor.firstValue
         // timestamp is non-null, initialized to -1L to remain transient
@@ -399,6 +411,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(actualData.request_headers, emptyMap<String, String>())
@@ -425,6 +438,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(HttpClientName.OK_HTTP, actualData.client)
@@ -451,6 +465,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals("java.net.ConnectException", actualData.failure_reason)
@@ -485,6 +500,7 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)
@@ -492,8 +508,8 @@ class OkHttpEventCollectorTest {
     }
 
     @Test
-    fun `does not track event if trackHttpUrl is false`() {
-        configProvider.shouldTrackHttpUrl = false
+    fun `does not track event if shouldTrackHttpEvent returns false`() {
+        configProvider.shouldTrackHttpEventForUrl = false
         okHttpEventCollector.register()
 
         // When
@@ -504,73 +520,11 @@ class OkHttpEventCollectorTest {
     }
 
     @Test
-    fun `does not track headers if trackHttpHeaders is false`() {
+    fun `does not track request body if shouldTrackHttpRequestBody returns false`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<EventType>()
-        configProvider.trackHttpHeaders = false
-        okHttpEventCollector.register()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(signalProcessor).track(
-            data = captor.capture(),
-            timestamp = timestampCaptor.capture(),
-            type = typeCaptor.capture(),
-            attributes = eq(mutableMapOf()),
-            userDefinedAttributes = eq(emptyMap()),
-            attachments = eq(mutableListOf()),
-            threadName = eq(null),
-            sessionId = eq(null),
-            userTriggered = eq(false),
-        )
-        val actualData = captor.firstValue
-        Assert.assertEquals(emptyMap<String, String>(), actualData.request_headers)
-        Assert.assertEquals(emptyMap<String, String>(), actualData.response_headers)
-    }
-
-    @Test
-    fun `does not track headers in httpHeadersBlocklist`() {
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<EventType>()
-        configProvider.trackHttpHeaders = true
-        configProvider.httpHeadersBlocklist = listOf("x-custom-header")
-        okHttpEventCollector.register()
-
-        // When
-        simulateSuccessfulPostRequest(
-            requestHeader = Pair("x-custom-header", "request-header"),
-            responseHeader = Pair("x-custom-header", "response-header"),
-        )
-
-        // Then
-        verify(signalProcessor).track(
-            data = captor.capture(),
-            timestamp = timestampCaptor.capture(),
-            type = typeCaptor.capture(),
-            attributes = eq(mutableMapOf()),
-            userDefinedAttributes = eq(emptyMap()),
-            attachments = eq(mutableListOf()),
-            threadName = eq(null),
-            sessionId = eq(null),
-            userTriggered = eq(false),
-        )
-        val actualData = captor.firstValue
-        Assert.assertNotNull(actualData.request_headers)
-        Assert.assertNotNull(actualData.response_headers)
-        Assert.assertNull(actualData.request_headers?.get("x-custom-header"))
-        Assert.assertNull(actualData.response_headers?.get("x-custom-header"))
-    }
-
-    @Test
-    fun `does not track request and response body if shouldTrackHttpBody returns false`() {
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<EventType>()
-        configProvider.shouldTrackHttpBodyResult = false
+        configProvider.shouldTrackHttpRequestBodyResult = false
         okHttpEventCollector.register()
 
         // When
@@ -590,9 +544,40 @@ class OkHttpEventCollectorTest {
             threadName = eq(null),
             sessionId = eq(null),
             userTriggered = eq(false),
+            isSampled = any(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(actualData.request_body)
+    }
+
+    @Test
+    fun `does not track response body if shouldTrackHttpResponseBody returns false`() {
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<EventType>()
+        configProvider.shouldTrackHttpResponseBodyResult = false
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(
+            requestBody = "{\"key\":\"value\"}\"",
+            responseBody = "{\"key\":\"value\"}\",",
+        )
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = timestampCaptor.capture(),
+            type = typeCaptor.capture(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
         Assert.assertNull(actualData.response_body)
     }
 

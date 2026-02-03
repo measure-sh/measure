@@ -259,7 +259,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     }
 
     func test_samplingState_rootSpan() {
-        signalSampler.shouldTrackTraceReturnValue = true
+        signalSampler.shouldSampleTraceReturnValue = true
         let sampledSpan = MsrSpan.startSpan(name: "sampled",
                                             logger: logger,
                                             timeProvider: timeProvider,
@@ -270,7 +270,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                             spanProcessor: spanProcessor)
         XCTAssertTrue(sampledSpan.isSampled)
 
-        signalSampler.shouldTrackTraceReturnValue = false
+        signalSampler.shouldSampleTraceReturnValue = false
         let unsampledSpan = MsrSpan.startSpan(name: "unsampled",
                                               logger: logger,
                                               timeProvider: timeProvider,
@@ -283,7 +283,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     }
 
     func test_samplingState_childSpanInheritsFromParent() {
-        signalSampler.shouldTrackTraceReturnValue = true
+        signalSampler.shouldSampleTraceReturnValue = true
         let parentSpan = MsrSpan.startSpan(name: "parent",
                                            logger: logger,
                                            timeProvider: timeProvider,
@@ -293,7 +293,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                            parentSpan: nil,
                                            spanProcessor: spanProcessor)
 
-        signalSampler.shouldTrackTraceReturnValue = false
+        signalSampler.shouldSampleTraceReturnValue = false
         let childSpan = MsrSpan.startSpan(name: "child",
                                           logger: logger,
                                           timeProvider: timeProvider,

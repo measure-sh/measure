@@ -2,6 +2,7 @@
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
 
+* [Session Timeline](#session-timeline)
 * [Built-in Experience](#built-in-experience)
     * [Theming](#theming)
     * [Permissions](#permissions)
@@ -14,6 +15,11 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
 * [Add Attributes](#add-attributes)
 * [Shake to Report Bug](#shake-to-report-bug)
 * [Benchmarks](#benchmarks)
+
+## Session Timeline
+
+When a bug report is captured, it automatically comes with a session timeline that includes all events that occurred 5
+minutes before the bug report was submitted. This provides rich context to help diagnose and fix the reported issue.
 
 ## Built-in Experience
 

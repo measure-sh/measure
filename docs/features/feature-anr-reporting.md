@@ -2,6 +2,7 @@
 
 * [**Debugging ANRs**](#debugging-anrs)
 * [**Metrics**](#metrics)
+* [**Get a UI Snapshot**](#get-a-ui-snapshot)
 * [**Data Collected**](#data-collected)
 * [**How It Works**](#how-it-works)
 
@@ -63,6 +64,15 @@ Where:
 - **Total Sessions**: The total number of sessions recorded.
 - **ANR Sessions**: The number of sessions that experienced an ANR.
 
+## Get a UI Snapshot
+
+A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
+remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
+
+- `Capture Screenshot on ANR` — Enables or disables the automatic screenshot capture on crash. It is enabled by default.
+- `Mask Sensitive Information` — Masks sensitive information in the screenshot by blurring text fields and
+  password fields. It is disabled by default.
+
 ## Data Collected
 
 Check out all the data collected for App Exit in the [App Exit Event](../../api/sdk/README.md#appexit) section.
@@ -74,7 +84,6 @@ Measure SDK detects ANRs by tracking the `SIGQUIT` signal. When an ANR occurs, t
 #### Implementation Details
 
 * [Signal](#handling-signals)
-* [Signal Delivery](#signal-delivery)
 * [Handling Signals](#handling-signals)
 * [Semaphores](#semaphores)
 * [Detecting SIGQUIT on Android](#detecting-sigquit-on-android)

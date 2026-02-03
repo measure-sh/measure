@@ -26,7 +26,7 @@ Explore the following pages which include instructions and configuration options
 how to leverage different features in your mobile applications. Also, review the 'How It Works' section in each
 feature's documentation to understand its underlying mechanism and enhance your ability to use it effectively.
 
-* [**Session Monitoring**](features/feature-session-monitoring.md) — Find and view complete user sessions
+* [**Session Timelines**](features/feature-session-timelines.md) — Find and view session timelines
 * [**Crash Reporting**](features/feature-crash-reporting.md) — Analyze app crashes
 * [**ANR Reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
 * [**Error Tracking**](features/feature-error-tracking.md) — Track and analyze handled errors in your app
@@ -52,18 +52,19 @@ feature's documentation to understand its underlying mechanism and enhance your 
 
 # Configuration Options
 
-Each feature section above contains the configuration options available for that feature. These options allow you to
-customize the behavior of the SDK to suit your application's needs. You can also find a comprehensive list of all
-configuration options in the [Configuration Options](features/configuration-options.md) documentation.
+Measure provides a number of configuration options to customize data collection and SDK behavior. These options are
+available in two ways:
 
-# Data Control
+* **SDK Options** — Set at initialization time in your app's code.
+* **Remote Configuration Options** — Configured remotely from the Measure dashboard. Changes take effect without releasing a new
+  app version.
 
-To control costs, measure-sh provides sampling options to limit the amount of data collected and the time for which
-it is retained on the server. This helps balance data quality with storage costs. Read the following pages for more
-information.
+Read more about [Configuration Options](#configuration-options).
 
-* [**Sampling**](features/feature-sampling.md)
-* [**Data Retention**](features/feature-data-retention.md)
+# Data Retention
+
+To limit the time for which data is retained on the server. This helps balance data quality with storage costs. Read 
+the following pages for more information [Data Retention](features/feature-data-retention.md).
 
 # Performance Impact
 

@@ -1,13 +1,13 @@
 package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
-import org.junit.Assert
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -23,6 +23,7 @@ internal class MemoryUsageCollectorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
     private val processInfo = FakeProcessInfoProvider()
+    private val configProvider = FakeConfigProvider()
     private val memoryUsageCollector = MemoryUsageCollector(
         NoopLogger(),
         signalProcessor,
@@ -30,6 +31,7 @@ internal class MemoryUsageCollectorTest {
         executorService,
         memoryReader,
         processInfo,
+        configProvider,
     )
 
     @Test
@@ -49,16 +51,6 @@ internal class MemoryUsageCollectorTest {
                 interval = 0,
             ),
         )
-    }
-
-    @Test
-    fun `MemoryUsageCollector pauses and resumes`() {
-        memoryUsageCollector.register()
-        Assert.assertNotNull(memoryUsageCollector.future)
-        memoryUsageCollector.pause()
-        Assert.assertNull(memoryUsageCollector.future)
-        memoryUsageCollector.resume()
-        Assert.assertNotNull(memoryUsageCollector.future)
     }
 
     @Test

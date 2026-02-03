@@ -1,6 +1,7 @@
 package sh.measure.android.performance
 
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
@@ -12,7 +13,6 @@ import java.util.concurrent.Future
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
-internal const val MEMORY_TRACKING_INTERVAL_MS = 2000L
 internal const val BYTES_TO_KB_FACTOR = 1024
 
 internal class MemoryUsageCollector(
@@ -22,6 +22,7 @@ internal class MemoryUsageCollector(
     private val defaultExecutor: MeasureExecutorService,
     private val memoryReader: MemoryReader,
     private val processInfo: ProcessInfoProvider,
+    private val configProvider: ConfigProvider,
 ) {
     @VisibleForTesting
     var future: Future<*>? = null
@@ -41,8 +42,8 @@ internal class MemoryUsageCollector(
                     trackMemoryUsage()
                 },
                 0,
-                MEMORY_TRACKING_INTERVAL_MS,
-                TimeUnit.MILLISECONDS,
+                configProvider.memoryUsageInterval,
+                TimeUnit.SECONDS,
             )
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
@@ -50,27 +51,37 @@ internal class MemoryUsageCollector(
         }
     }
 
-    fun resume() {
-        if (future == null) register()
-    }
-
-    fun pause() {
+    fun unregister() {
         future?.cancel(false)
         future = null
+    }
+
+    fun onConfigLoaded() {
+        // re-register to reflect updated interval
+        if (future == null) return
+        unregister()
+        register()
     }
 
     private fun trackMemoryUsage() {
         val interval = getInterval()
         previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
+        val maxHeapSize = sanitizeNegativeValue(memoryReader.maxHeapSize())
+        val totalHeapSize = sanitizeNegativeValue(memoryReader.totalHeapSize())
+        val freeHeapSize = sanitizeNegativeValue(memoryReader.freeHeapSize())
+        val totalPss = sanitizeNegativeValue(memoryReader.totalPss())
+        val rss = sanitizeNegativeValue(memoryReader.rss() ?: 0)
+        val nativeTotalHeapSize = sanitizeNegativeValue(memoryReader.nativeTotalHeapSize())
+        val nativeFreeHeap = sanitizeNegativeValue(memoryReader.nativeFreeHeapSize())
 
         val data = MemoryUsageData(
-            java_max_heap = memoryReader.maxHeapSize(),
-            java_total_heap = memoryReader.totalHeapSize(),
-            java_free_heap = memoryReader.freeHeapSize(),
-            total_pss = memoryReader.totalPss(),
-            rss = memoryReader.rss(),
-            native_total_heap = memoryReader.nativeTotalHeapSize(),
-            native_free_heap = memoryReader.nativeFreeHeapSize(),
+            java_max_heap = maxHeapSize,
+            java_total_heap = totalHeapSize,
+            java_free_heap = freeHeapSize,
+            total_pss = totalPss,
+            rss = rss,
+            native_total_heap = nativeTotalHeapSize,
+            native_free_heap = nativeFreeHeap,
             interval = interval,
         )
         signalProcessor.track(
@@ -88,5 +99,27 @@ internal class MemoryUsageCollector(
         } else {
             0
         }
+    }
+
+    private fun sanitizeNegativeValue(value: Long): Long {
+        if (value < 0) {
+            logger.log(
+                LogLevel.Debug,
+                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0",
+            )
+            return 0
+        }
+        return value
+    }
+
+    private fun sanitizeNegativeValue(value: Int): Int {
+        if (value < 0) {
+            logger.log(
+                LogLevel.Debug,
+                "MemoryUsageCollector: Got a negative memory value: $value, resetting to 0",
+            )
+            return 0
+        }
+        return value
     }
 }

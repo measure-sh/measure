@@ -17,6 +17,9 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     var launchData: LaunchData?
     var recentAppVersion: String?
     var recentBuildNumber: String?
+    var eTag: String?
+    var configFetchTimestamp: Number?
+    var configCacheControl: Number?
 
     func getInstallationId() -> String? {
         return installationId
@@ -74,5 +77,29 @@ final class MockUserDefaultStorage: UserDefaultStorage {
 
     func setRecentBuildNumber(_ buildNumber: String) {
         self.recentBuildNumber = buildNumber
+    }
+
+    func setConfigEtag(_ eTag: String?) {
+        self.eTag = eTag
+    }
+
+    func getConfigEtag() -> String? {
+        return eTag
+    }
+
+    func getConfigFetchTimestamp() -> Number {
+        return configFetchTimestamp ?? 0
+    }
+    
+    func setConfigFetchTimestamp(_ timestamp: Number) {
+        configFetchTimestamp = timestamp
+    }
+    
+    func getConfigCacheControl() -> Number {
+        return configCacheControl ?? 0
+    }
+    
+    func setConfigCacheControl(_ duration: Number) {
+        configCacheControl = duration
     }
 }

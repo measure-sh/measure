@@ -25,6 +25,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     private let logger: Logger
     private let attachmentProcessor: AttachmentProcessor
     private let userPermissionManager: UserPermissionManager
+    private let maskedClassNameFragments: [String] = ["RCTParagraphTextView"]
 
     init(configProvider: ConfigProvider,
          logger: Logger,
@@ -101,6 +102,12 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
 
         for type in types {
             if view.isKind(of: type) {
+                let frameInRootView = view.convert(view.bounds, to: rootView)
+                sensitiveFrames.append(frameInRootView)
+                break
+            }
+            let className = String(describing: view)
+            if maskedClassNameFragments.contains(where: { className.contains($0) }) {
                 let frameInRootView = view.convert(view.bounds, to: rootView)
                 sensitiveFrames.append(frameInRootView)
                 break

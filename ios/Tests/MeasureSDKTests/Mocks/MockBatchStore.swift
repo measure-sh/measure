@@ -9,26 +9,43 @@ import Foundation
 @testable import Measure
 
 final class MockBatchStore: BatchStore {
-    var batches = [BatchEntity]()
-    var insertBatchCalled = false
-    var getBatchesCalled = false
-    var deleteBatchCalled = false
-    var deletedBatchId = ""
+    private var batches: [String: BatchEntity] = [:]
+    private var insertionOrder: [String] = []
+    private let lock = NSLock()
 
-    func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void) {
-        batches.append(batch)
-        insertBatchCalled = true
-        completion(insertBatchCalled)
+    func insertBatch(_ batch: BatchEntity) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard batches[batch.batchId] == nil else {
+            return false
+        }
+
+        batches[batch.batchId] = batch
+        insertionOrder.append(batch.batchId)
+        return true
     }
 
-    func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void) {
-        getBatchesCalled = true
-        completion(Array(batches.prefix(maxNumberOfBatches)))
+    func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let ids = insertionOrder.prefix(maxNumberOfBatches)
+        return ids.compactMap { batches[$0] }
     }
 
-    func deleteBatch(_ batchId: String, completion: @escaping () -> Void) {
-        deleteBatchCalled = true
-        deletedBatchId = batchId
-        batches.removeAll { $0.batchId == batchId }
+    func getBatch(_ batchId: String) -> BatchEntity? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return batches[batchId]
+    }
+
+    func deleteBatch(_ batchId: String) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        batches.removeValue(forKey: batchId)
+        insertionOrder.removeAll { $0 == batchId }
     }
 }

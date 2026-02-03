@@ -27,8 +27,8 @@ class SendButton extends StatelessWidget {
         style: theme.textTheme.bodyLarge?.copyWith(
           color: enabled
               ? (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
-              : (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
-                  .withValues(alpha: .4),
+              // ignore: deprecated_member_use
+              : (bugReportTheme.colors.primaryColor ?? colorScheme.primary).withOpacity(.4),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -42,11 +42,9 @@ class SendButton extends StatelessWidget {
       onPressed: enabled ? onSend : null,
       style: TextButton.styleFrom(
         foregroundColor: enabled
-            ? (bugReportTheme.colors.primaryColor ??
-            colorScheme.primary)
-            : (bugReportTheme.colors.primaryColor ??
-            colorScheme.primary)
-            .withValues(alpha: 0.4),
+            ? (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+            // ignore: deprecated_member_use
+            : (bugReportTheme.colors.primaryColor ?? colorScheme.primary).withOpacity(0.4),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
       child: Text(
@@ -54,11 +52,10 @@ class SendButton extends StatelessWidget {
         style: theme.textTheme.bodyLarge?.copyWith(
           fontWeight: FontWeight.w600,
           color: enabled
-              ? (bugReportTheme.colors.primaryColor ??
-              colorScheme.primary)
-              : (bugReportTheme.colors.primaryColor ??
-              colorScheme.primary)
-              .withValues(alpha: 0.4),
+              ? (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+              : (bugReportTheme.colors.primaryColor ?? colorScheme.primary)
+                  // ignore: deprecated_member_use
+                  .withOpacity(0.4),
         ),
       ),
     );

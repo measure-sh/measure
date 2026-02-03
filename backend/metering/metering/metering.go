@@ -11,17 +11,15 @@ import (
 )
 
 type UsageMetrics struct {
-	TeamID          string
-	Sessions        uint64
-	Events          uint64
-	Spans           uint64
-	Traces          uint64
-	Attachments     uint64
-	SessionsDays    uint64
-	EventsDays      uint64
-	SpansDays       uint64
-	TracesDays      uint64
-	AttachmentsDays uint64
+	TeamID                  string
+	SessionCount            uint64
+	LaunchTimes             uint64
+	EventCount              uint64
+	SpanCount               uint64
+	TraceCount              uint64
+	AttachmentCount         uint64
+	TotalBillableEvents     uint64
+	TotalBillableEventsDays uint64
 }
 
 func CalculateUsage(ctx context.Context) {
@@ -94,11 +92,11 @@ func CalculateUsage(ctx context.Context) {
 
 			if len(metrics) > 0 {
 				m := metrics[0] // Should only be one result per team per date
-				log.Printf("Daily usage metrics for date = %s and team = %s : sessions = %d events = %d spans = %d traces = %d attachments = %d session_days = %d event_days = %d span_days = %d trace_days = %d attachment_days = %d",
+				log.Printf("Daily usage metrics for date = %s and team = %s : sessionCount = %d launchTimes = %d eventCount = %d spanCount = %d traceCount = %d attachmentCount = %d totalBillableEvents = %d totalBillableEventsDays = %d",
 					date.Format("2006-01-02"),
 					m.TeamID,
-					m.Sessions, m.Events, m.Spans, m.Traces, m.Attachments,
-					m.SessionsDays, m.EventsDays, m.SpansDays, m.TracesDays, m.AttachmentsDays,
+					m.SessionCount, m.LaunchTimes, m.EventCount, m.SpanCount, m.TraceCount, m.AttachmentCount,
+					m.TotalBillableEvents, m.TotalBillableEventsDays,
 				)
 			} else {
 				log.Printf("No metrics found for team %s (%s) on %s", team.ID, team.Name, date.Format("2006-01-02"))
@@ -130,15 +128,13 @@ func fetchClickhouseMetricsForTeam(ctx context.Context, teamID string, day time.
 	query := sqlf.
 		Select("team_id").
 		Select("coalesce(sumMerge(session_count), 0) as sessions").
+		Select("coalesce(sumMerge(launch_time_count), 0) as launch_time_events").
 		Select("coalesce(sumMerge(event_count), 0) as events").
 		Select("coalesce(sumMerge(span_count), 0) as spans").
 		Select("coalesce(sumMerge(trace_count), 0) as traces").
 		Select("coalesce(sumMerge(attachment_count), 0) as attachments").
-		Select("coalesce(sumMerge(session_count_days), 0) as sessions_days").
-		Select("coalesce(sumMerge(event_count_days), 0) as events_days").
-		Select("coalesce(sumMerge(span_count_days), 0) as spans_days").
-		Select("coalesce(sumMerge(trace_count_days), 0) as traces_days").
-		Select("coalesce(sumMerge(attachment_count_days), 0) as attachments_days").
+		Select("coalesce(sumMerge(total_billable_count), 0) as total_billable_events").
+		Select("coalesce(sumMerge(total_billable_count_days), 0) as total_billable_events_days").
 		From("ingestion_metrics").
 		Where("team_id = ?", teamID).
 		Where("timestamp >= ?", start).
@@ -157,16 +153,14 @@ func fetchClickhouseMetricsForTeam(ctx context.Context, teamID string, day time.
 		var m UsageMetrics
 		if err := rows.Scan(
 			&m.TeamID,
-			&m.Sessions,
-			&m.Events,
-			&m.Spans,
-			&m.Traces,
-			&m.Attachments,
-			&m.SessionsDays,
-			&m.EventsDays,
-			&m.SpansDays,
-			&m.TracesDays,
-			&m.AttachmentsDays,
+			&m.SessionCount,
+			&m.LaunchTimes,
+			&m.EventCount,
+			&m.SpanCount,
+			&m.TraceCount,
+			&m.AttachmentCount,
+			&m.TotalBillableEvents,
+			&m.TotalBillableEventsDays,
 		); err != nil {
 			return nil, err
 		}

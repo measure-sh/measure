@@ -6,12 +6,8 @@
     * [iOS](#ios)
     * [Flutter](#flutter)
 * [3. Verify Installation](#3-verify-installation)
+* [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
-
-> [!IMPORTANT]
->
-> Make sure the measure-sh server is running. For setup instructions on your local machine or in the cloud, refer to the
-> [hosting guide](hosting/README.md).
 
 ## 1. Create an App
 
@@ -37,7 +33,7 @@ in later steps.
 
 | Name                  | Version         |
 |-----------------------|-----------------|
-| Android Gradle Plugin | `8.0.2`         |
+| Android Gradle Plugin | `8.1.0`         |
 | Min SDK               | `21` (Lollipop) |
 | Target SDK            | `35`            |
 
@@ -48,7 +44,8 @@ in later steps.
 
 | SDK Version         | Minimum Required Self-host Version |
 |---------------------|------------------------------------|
-| >=`0.13.0`          | `0.9.0`                            |
+| >= `0.16.0`         | `0.10.0`                           |
+| `0.13.0` -`0.15.1`  | `0.9.0`                            |
 | `0.10.0` - `0.12.0` | `0.6.0`                            |
 | `0.9.0`             | `0.5.0`                            |
 
@@ -118,7 +115,6 @@ Then add the following in the `AndroidManifest.xml` file:
 ```
 
 </details>
-
 
 ### Add the Gradle Plugin
 
@@ -201,9 +197,9 @@ Add the following to your app's Application class `onCreate` method.
 ```kotlin
 Measure.init(
     context, MeasureConfig(
-        // Set to 1 to track all sessions
-        // useful to verify the installation
-        samplingRateForErrorFreeSessions = 1f,
+        // Enable full collection in debug mode
+        // to verify installations.
+        enableFullCollectionMode = true,
     )
 )
 ```
@@ -319,7 +315,7 @@ Flutter SDK as well.
 
 | Name    | Version |
 |---------|---------|
-| Flutter | `3.10`  |
+| Flutter | `3.24`  |
 
 </details>
 
@@ -328,7 +324,8 @@ Flutter SDK as well.
 
 | SDK Version | Minimum Required Self-host Version |
 |-------------|------------------------------------|
-| `0.1.0`     | `0.8.0`                            |
+| >= `0.3.0`  | `0.9.0`                            |
+| >= `0.1.0`  | `0.8.0`                            |
 
 </details>
 
@@ -338,14 +335,15 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.3.1
+  measure_flutter: ^0.3.2
 ```
 
 ### Initialize the SDK
 
 To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
 
-- Run app inside the callback passed to the `init` method. This ensures that the Measure SDK can set up error handlers to
+- Run app inside the callback passed to the `init` method. This ensures that the Measure SDK can set up error handlers
+  to
   track uncaught exceptions.
 - Wrap your app with the `MeasureWidget`, this is required for gesture tracking and screenshots.
 - Set the `sessionSamplingRate` and `samplingRateForErrorFreeSessions` in the `MeasureConfig` as per your requirements.
@@ -354,8 +352,10 @@ To initialize the SDK, you need to call the `Measure.instance.init` method in yo
 
 > [!IMPORTANT]
 > To detect early native crashes and to ensure accurate launch time metrics, initialize the Android SDK in
-> `Application` class as described in the [Android](#initialize-the-sdk) section and the iOS SDK in `AppDelegate` as described in 
-> the [iOS](#initialize-the-sdk-1) section. It is highly recommended to initialize both native SDKs even when using the Flutter SDK.
+> `Application` class as described in the [Android](#initialize-the-sdk) section and the iOS SDK in `AppDelegate` as
+> described in
+> the [iOS](#initialize-the-sdk-1) section. It is highly recommended to initialize both native SDKs even when using the
+> Flutter SDK.
 
 ```dart
 Future<void> main() async {
@@ -411,7 +411,6 @@ navigation events.
 
 See [Network Monitoring](features/feature-network-monitoring.md) for instructions on how to track HTTP requests.
 
-
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
@@ -420,6 +419,16 @@ to see the sessions being tracked.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
 _______
+
+## 4. Review Configuration Options
+
+There are several configuration options available to customize the SDK behavior. Some options can be set during SDK
+initialization, while others can be configured remotely from the dashboard. Review the [Configuration Options](features/configuration-options.md)
+section to learn more about these options and how to use them effectively.
+
+For debug builds, it's recommended to set `enableFullCollectionMode` to `true` during initialization to ensure all data is
+collected for verification purposes. In release builds, you can adjust the sampling rates and other settings as needed 
+to balance signal vs noise and optimize costs.
 
 ## Troubleshoot
 
@@ -458,19 +467,23 @@ Measure.initialize(with: clientInfo, config: config)
     <summary>Flutter</summary>
 
 ```dart
-await Measure.instance.init(
-    () => runApp(
-      MeasureWidget(child: MyApp()),
-    ),
-    config: const MeasureConfig(
-      // Set to 1 to track all sessions
-      // useful to verify the installation
-      samplingRateForErrorFreeSessions: 1,
-    ),
-    clientInfo: ClientInfo(
-      apiKey: "YOUR_API_KEY",
-      apiUrl: "YOUR_API_URL",
-    ),
+await
+Measure.instance.init
+(
+() => runApp(
+MeasureWidget(child: MyApp()),
+),
+config: const MeasureConfig(
+// Set to 1 to track all sessions
+// useful to verify the installation
+samplingRateForErrorFreeSessions: 1,
+),
+clientInfo: ClientInfo(
+apiKey: "YOUR_API_KEY",
+apiUrl: "YOUR_API_URL"
+,
+)
+,
 );
 ```
 
@@ -512,17 +525,21 @@ Measure.initialize(with: clientInfo, config: config)
 Verify the API URL and API key are set correctly in the `ClientInfo` object when initializing the SDK.
 
 ```dart
-await Measure.instance.init(
-    () => runApp(
-      MeasureWidget(child: MyApp()),
-    ),
-    config: const MeasureConfig(
-      samplingRateForErrorFreeSessions: 1,
-    ),
-    clientInfo: ClientInfo(
-      apiKey: "YOUR_API_KEY",
-      apiUrl: "YOUR_API_URL",
-    ),
+await
+Measure.instance.init
+(
+() => runApp(
+MeasureWidget(child: MyApp()),
+),
+config: const MeasureConfig(
+samplingRateForErrorFreeSessions: 1,
+),
+clientInfo: ClientInfo(
+apiKey: "YOUR_API_KEY",
+apiUrl: "YOUR_API_URL"
+,
+)
+,
 );
 ```
 
@@ -585,15 +602,22 @@ Measure.initialize(with: clientInfo, config: config)
 Enable logging during SDK initialization.
 
 ```dart
-await Measure.instance.init(
-    () => runApp(
-      MeasureWidget(child: MyApp()),
-    ),
-    config: const MeasureConfig(
-      enableLogging: true,
-    ),
+await
+Measure.instance.init
+(
+() => runApp(
+MeasureWidget(child: MyApp()),
+),
+config: const MeasureConfig(
+enableLogging
+:
+true
+,
+)
+,
 );
 ```
+
 </details>
 
 ### Connecting to a Self-hosted Server

@@ -49,11 +49,11 @@ class SessionTestRobot {
     }
 
     fun incrementTimeBeyondLastEventThreshold() {
-        testClock.advance(configProvider.sessionEndLastEventThresholdMs + 1000)
+        testClock.advance(configProvider.sessionBackgroundTimeoutThresholdMs + 1000)
     }
 
     fun incrementTimeWithinSessionThreshold() {
-        testClock.advance(configProvider.sessionEndLastEventThresholdMs - 1000)
+        testClock.advance(configProvider.sessionBackgroundTimeoutThresholdMs - 1000)
     }
 
     fun moveAppToBackground() {

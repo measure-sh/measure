@@ -20,6 +20,7 @@ import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.Config
+import sh.measure.android.config.ConfigLoader
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
@@ -33,21 +34,12 @@ import sh.measure.android.events.UserTriggeredEventCollectorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistry
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
-import sh.measure.android.exporter.AttachmentExporter
-import sh.measure.android.exporter.BatchCreator
-import sh.measure.android.exporter.BatchCreatorImpl
-import sh.measure.android.exporter.DefaultAttachmentExporter
-import sh.measure.android.exporter.ExceptionExporter
-import sh.measure.android.exporter.ExceptionExporterImpl
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.exporter.ExporterImpl
-import sh.measure.android.exporter.Heartbeat
-import sh.measure.android.exporter.HeartbeatImpl
+import sh.measure.android.exporter.HttpClient
 import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
-import sh.measure.android.exporter.PeriodicExporter
-import sh.measure.android.exporter.PeriodicExporterImpl
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.ActivityLifecycleCollector
@@ -85,7 +77,6 @@ import sh.measure.android.tracing.MsrSpanProcessor
 import sh.measure.android.tracing.MsrTracer
 import sh.measure.android.tracing.SpanCollector
 import sh.measure.android.tracing.SpanProcessor
-import sh.measure.android.tracing.TraceSamplerImpl
 import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.AndroidSystemClock
 import sh.measure.android.utils.AndroidTimeProvider
@@ -111,6 +102,8 @@ import sh.measure.android.utils.RandomizerImpl
 import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.ResumedActivityProviderImpl
 import sh.measure.android.utils.RuntimeProvider
+import sh.measure.android.utils.Sampler
+import sh.measure.android.utils.SamplerImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -121,25 +114,12 @@ internal class MeasureInitializerImpl(
     override val configProvider: ConfigProvider = ConfigProviderImpl(
         defaultConfig = Config(
             enableLogging = inputConfig.enableLogging,
-            trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
-            screenshotMaskLevel = inputConfig.screenshotMaskLevel,
-            trackHttpHeaders = inputConfig.trackHttpHeaders,
-            trackHttpBody = inputConfig.trackHttpBody,
-            httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
-            httpUrlBlocklist = inputConfig.httpUrlBlocklist,
-            httpUrlAllowlist = inputConfig.httpUrlAllowlist,
-            trackActivityIntentData = inputConfig.trackActivityIntentData,
-            samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
             autoStart = inputConfig.autoStart,
-            traceSamplingRate = inputConfig.traceSamplingRate,
-            requestHeadersProvider = inputConfig.requestHeadersProvider,
             maxDiskUsageInMb = inputConfig.maxDiskUsageInMb,
-            coldLaunchSamplingRate = inputConfig.coldLaunchSamplingRate,
-            warmLaunchSamplingRate = inputConfig.warmLaunchSamplingRate,
-            hotLaunchSamplingRate = inputConfig.hotLaunchSamplingRate,
-            journeySamplingRate = inputConfig.journeySamplingRate,
+            trackActivityIntentData = inputConfig.trackActivityIntentData,
+            enableFullCollectionMode = inputConfig.enableFullCollectionMode,
+            requestHeadersProvider = inputConfig.requestHeadersProvider,
         ),
-        configLoader = ConfigLoaderImpl(),
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
@@ -161,18 +141,29 @@ internal class MeasureInitializerImpl(
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
         context = application,
     ),
+    override val configLoader: ConfigLoader = ConfigLoaderImpl(
+        logger = logger,
+        networkClient = networkClient,
+        fileStorage = fileStorage,
+        prefsStorage = prefsStorage,
+        timeProvider = timeProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        // TODO: The msr-export thread is used for the
+        //  API call. The name for event export executor can be changed.
+        exportExecutor = executorServiceRegistry.eventExportExecutor(),
+    ),
     private val packageInfoProvider: PackageInfoProviderImpl = PackageInfoProviderImpl(application),
+    private val sampler: Sampler = SamplerImpl(configProvider, randomizer),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
         database = database,
-        prefs = prefsStorage,
         idProvider = idProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         processInfo = processInfoProvider,
         configProvider = configProvider,
         packageInfoProvider = packageInfoProvider,
-        randomizer = randomizer,
+        sampler = sampler,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -239,13 +230,7 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
         configProvider = configProvider,
-    ),
-    override val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler = PeriodicSignalStoreScheduler(
-        logger = logger,
-        defaultExecutor = executorServiceRegistry.defaultExecutor(),
-        ioExecutor = executorServiceRegistry.ioExecutor(),
-        signalStore = signalStore,
-        configProvider = configProvider,
+        sampler = sampler,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
         application,
@@ -259,33 +244,26 @@ internal class MeasureInitializerImpl(
         lowMemoryCheck = lowMemoryCheck,
         config = configProvider,
     ),
-    private val batchCreator: BatchCreator = BatchCreatorImpl(
+    private val httpClient: HttpClient = HttpUrlConnectionClient(logger),
+    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
         logger = logger,
-        timeProvider = timeProvider,
-        database = database,
-        configProvider = configProvider,
-        idProvider = idProvider,
-    ),
-    override val attachmentExporter: AttachmentExporter = DefaultAttachmentExporter(
-        logger = logger,
-        database = database,
-        executorService = executorServiceRegistry.attachmentExportExecutor(),
-        randomizer = randomizer,
         fileStorage = fileStorage,
-        httpClient = HttpUrlConnectionClient(logger),
+        database = database,
+        sessionManager = sessionManager,
+        configProvider = configProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
     ),
-    private val exporter: Exporter = ExporterImpl(
+    override val exporter: Exporter = ExporterImpl(
         logger = logger,
+        idProvider = idProvider,
+        timeProvider = timeProvider,
+        fileStorage = fileStorage,
         database = database,
         networkClient = networkClient,
-        fileStorage = fileStorage,
-        batchCreator = batchCreator,
-        attachmentExporter = attachmentExporter,
-    ),
-    private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
-        logger = logger,
-        exportExecutor = executorServiceRegistry.eventExportExecutor(),
-        exporter = exporter,
+        httpClient = httpClient,
+        configProvider = configProvider,
+        eventExportService = executorServiceRegistry.eventExportExecutor(),
+        attachmentExportService = executorServiceRegistry.attachmentExportExecutor(),
     ),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,
@@ -294,9 +272,10 @@ internal class MeasureInitializerImpl(
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = attributeProcessors,
-        exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
+        exporter = exporter,
+        sampler = sampler,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         logger = logger,
@@ -304,19 +283,6 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
         configProvider = configProvider,
-    ),
-    private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
-        logger,
-        executorServiceRegistry.defaultExecutor(),
-        randomizer,
-    ),
-    override val periodicExporter: PeriodicExporter = PeriodicExporterImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        configProvider = configProvider,
-        exportExecutor = executorServiceRegistry.eventExportExecutor(),
-        heartbeat = periodicHeartbeat,
-        exporter = exporter,
     ),
     private val httpEventCollectorFactory: HttpEventCollectorFactory = HttpEventCollectorFactory(
         logger = logger,
@@ -333,7 +299,6 @@ internal class MeasureInitializerImpl(
     ),
     private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(logger),
     override val anrCollector: AnrCollector = AnrCollector(
-        logger = logger,
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
@@ -343,12 +308,10 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
-        logger = logger,
         appExitProvider = appExitProvider,
-        ioExecutor = executorServiceRegistry.ioExecutor(),
         signalProcessor = signalProcessor,
-        sessionManager = sessionManager,
         database = database,
+        sessionManager = sessionManager,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,
@@ -357,6 +320,7 @@ internal class MeasureInitializerImpl(
         processInfo = processInfoProvider,
         procProvider = procProvider,
         osSysConfProvider = osSysConfProvider,
+        configProvider = configProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
     ),
     override val memoryUsageCollector: MemoryUsageCollector = MemoryUsageCollector(
@@ -365,6 +329,7 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         memoryReader = memoryReader,
+        configProvider = configProvider,
         processInfo = processInfoProvider,
     ),
     override val componentCallbacksCollector: ComponentCallbacksCollector = ComponentCallbacksCollector(
@@ -384,11 +349,12 @@ internal class MeasureInitializerImpl(
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
     ),
-    private val spanProcessor: SpanProcessor = MsrSpanProcessor(
+    override val spanProcessor: SpanProcessor = MsrSpanProcessor(
         logger,
         signalProcessor,
         attributeProcessors = spanAttributeProcessors,
-        configProvider,
+        configProvider = configProvider,
+        sampler = sampler,
     ),
     private val tracer: Tracer = MsrTracer(
         logger = logger,
@@ -396,7 +362,7 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         spanProcessor = spanProcessor,
         sessionManager = sessionManager,
-        traceSampler = TraceSamplerImpl(randomizer, configProvider),
+        sampler = sampler,
     ),
     override val activityLifecycleCollector: DefaultActivityLifecycleCollector = DefaultActivityLifecycleCollector(
         signalProcessor = signalProcessor,
@@ -415,7 +381,7 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
-        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(configProvider, timeProvider),
     ),
     override val spanCollector: SpanCollector = SpanCollector(
         tracer = tracer,
@@ -427,9 +393,11 @@ internal class MeasureInitializerImpl(
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         application = application,
+        logger = logger,
         timeProvider = timeProvider,
         signalProcessor = signalProcessor,
         launchTracker = launchTracker,
+        sampler = sampler,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         context = application,
@@ -437,15 +405,7 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
-    ),
-    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
         logger = logger,
-        fileStorage = fileStorage,
-        database = database,
-        ioExecutor = executorServiceRegistry.ioExecutor(),
-        sessionManager = sessionManager,
-        configProvider = configProvider,
-        prefsStorage = prefsStorage,
     ),
     override val customEventCollector: CustomEventCollector = CustomEventCollector(
         logger = logger,
@@ -478,12 +438,20 @@ internal class MeasureInitializerImpl(
         sessionManager,
         spanAttributeProcessors,
     ),
+    override val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler = PeriodicSignalStoreScheduler(
+        logger = logger,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        signalStore = signalStore,
+        configProvider = configProvider,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
     val logger: Logger
     val timeProvider: TimeProvider
     val networkClient: NetworkClient
+    val configLoader: ConfigLoader
     val configProvider: ConfigProvider
     val manifestReader: ManifestReader
     val resumedActivityProvider: ResumedActivityProvider
@@ -503,20 +471,20 @@ internal interface MeasureInitializer {
     val gestureCollector: GestureCollector
     val appLaunchCollector: AppLaunchCollector
     val networkChangesCollector: NetworkChangesCollector
-    val periodicExporter: PeriodicExporter
-    val attachmentExporter: AttachmentExporter
+    val exporter: Exporter
     val userAttributeProcessor: UserAttributeProcessor
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider
     val powerStateProvider: PowerStateProvider
+    val spanProcessor: SpanProcessor
     val spanCollector: SpanCollector
     val customEventCollector: CustomEventCollector
-    val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
     val bugReportCollector: BugReportCollector
     val executorServiceRegistry: ExecutorServiceRegistry
     val shakeBugReportCollector: ShakeBugReportCollector
     val internalSignalCollector: InternalSignalCollector
     val spanAttributeProcessors: List<AttributeProcessor>
     val fileStorage: FileStorage
+    val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
 }

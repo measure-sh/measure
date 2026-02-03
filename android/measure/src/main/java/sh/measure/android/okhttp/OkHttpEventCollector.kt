@@ -51,7 +51,7 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val request = call.request()
         val url = request.url.toString()
-        if (configProvider.shouldTrackHttpUrl(url)) {
+        if (configProvider.shouldTrackHttpEvent(url)) {
             httpDataBuilders[key] =
                 HttpData.Builder().url(url).startTime(timeProvider.elapsedRealtime)
                     .method(request.method.lowercase())
@@ -61,7 +61,7 @@ internal class OkHttpEventCollectorImpl(
 
     override fun requestHeadersEnd(call: Call, request: Request) {
         val key = getIdentityHash(call)
-        if (configProvider.trackHttpHeaders) {
+        if (configProvider.shouldTrackHttpRequestBody(request.url.toString())) {
             val filteredHeaders = request.headers.names()
                 .filter { headerName ->
                     configProvider.shouldTrackHttpHeader(headerName)
@@ -83,7 +83,7 @@ internal class OkHttpEventCollectorImpl(
 
     override fun responseHeadersEnd(call: Call, response: Response) {
         val key = getIdentityHash(call)
-        if (configProvider.trackHttpHeaders) {
+        if (configProvider.shouldTrackHttpResponseBody(call.request().url.toString())) {
             val filteredHeaders = response.headers.names()
                 .filter { headerName ->
                     configProvider.shouldTrackHttpHeader(headerName)
@@ -122,11 +122,7 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun request(call: Call, request: Request) {
-        if (configProvider.shouldTrackHttpBody(
-                request.url.toString(),
-                request.headers["Content-Type"],
-            )
-        ) {
+        if (configProvider.shouldTrackHttpRequestBody(request.url.toString())) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val requestBody = getRequestBodyByteArray(request)
@@ -136,11 +132,7 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun response(call: Call, request: Request, response: Response) {
-        if (configProvider.shouldTrackHttpBody(
-                request.url.toString(),
-                response.headers["Content-Type"],
-            )
-        ) {
+        if (configProvider.shouldTrackHttpResponseBody(request.url.toString())) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val responseBody = getResponseBodyByteString(response)

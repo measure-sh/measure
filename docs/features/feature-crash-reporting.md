@@ -5,10 +5,10 @@ Crashes are automatically tracked, optionally with a snapshot of the app's UI at
 * [**Metrics**](#metrics)
     * [Crash-Free Rate](#crash-free-rate)
     * [Perceived Crash Rate](#perceived-crash-rate)
+* [**Get a UI Snapshot**](#get-a-ui-snapshot)
 * [**Crash Grouping**](#crash-grouping)
 * [**API Reference**](#api-reference)
   * [**Symbolicate Stacktrace**](#symbolicate-stacktrace)
-  * [**Get a UI Snapshot**](#get-a-ui-snapshot)
 * [**Data Collected**](#data-collected)
 * [**How It Works**](#how-it-works)
 
@@ -49,6 +49,17 @@ Where:
 
 - **Crashed Sessions When App Is in Foreground**: The number of sessions that experienced a crash while the app was actively being used by the user.
 - **Total Sessions**: The total number of sessions recorded.
+
+## Get a UI Snapshot
+
+A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
+remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
+
+- `Capture Screenshot on Crash` — Enables or disables the automatic screenshot capture on crash. It is enabled by default.
+- `Mask Sensitive Information` — Masks sensitive information in the screenshot by blurring text fields and
+  password fields. It is disabled by default.
+
+Note that on iOS a screenshot cannot be captured reliably at the time of crash, it instead captures a layout snapshot.
 
 ## Crash Grouping
 
@@ -147,30 +158,6 @@ When obfuscating your Flutter app using --obfuscate and --split-debug-info optio
 * **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
   with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
   (typically under _/build/ios/Release-iphoneos/_)
-
-### Get a UI Snapshot
-
-#### Android
-
-A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be
-configured using the following options at the time of SDK initialization:
-
-- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
-- `screenshotMaskLevel` — To hide sensitive information in the screenshot, you can configure the masking level. See the [options](configuration-options.md#screenshotmasklevel) available.
-
-#### iOS
-
-A layout snapshot of the app is captured when an app crashes on iOS. This feature is always enabled.
-
-#### Flutter
-
-A screenshot of the app is captured when an app crashes on Flutter. This feature is disabled by default and can be
-configured using the following options at the time of SDK initialization:
-
-- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
-
-> [!NOTE]
-> Masking sensitive information in the screenshot is not supported on Flutter yet.
 
 ## Data Collected
 

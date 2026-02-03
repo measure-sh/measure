@@ -68,6 +68,13 @@ internal interface InternalSpan : Span {
     fun setInternalAttribute(attribute: Pair<String, Any?>)
 
     /**
+     * Updates the sampling status of the span.
+     *
+     * @param sampled whether the span is sampled or not.
+     */
+    fun setSamplingRate(sampled: Boolean)
+
+    /**
      * Converts the span to a data class for further processing and export.
      */
     fun toSpanData(): SpanData

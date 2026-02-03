@@ -12,16 +12,16 @@ const STYLES = {
         status: 'w-5 h-5',
         trend: 'w-4 h-4',
         tooltipIcon: 'w-4 h-4',
-        green: 'text-green-600',
+        green: 'text-green-600 dark:text-green-500',
         yellow: 'text-yellow-600',
-        red: 'text-red-600'
+        red: 'text-red-500'
     },
     text: {
-        mainValue: 'font-body font-semibold text-3xl',
-        trendText: 'ml-2 font-body text-sm',
-        subtitle: 'font-body text-sm',
+        mainValue: 'font-code font-semibold text-3xl',
+        trendText: 'ml-2 font-code text-sm',
+        subtitle: 'font-code text-sm',
         error: 'font-display font-semibold text-3xl',
-        footerTitle: 'font-display text-gray-500 text-sm select-none',
+        footerTitle: 'font-display text-sm select-none',
         tooltipContent: 'p-2'
     },
     layout: {
@@ -38,7 +38,7 @@ const STYLES = {
         tooltipSpacer: 'py-2'
     },
     tooltip: {
-        content: 'font-display max-w-96 text-sm text-white fill-neutral-800 bg-neutral-800',
+        content: 'font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent',
         text: 'p-2'
     }
 } as const
@@ -307,8 +307,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                     return (<>
                         <p className={STYLES.text.mainValue}> N/A</p>
                         <div className={STYLES.layout.spacer} />
-                        <p className={`text-xs font-code`}>
-                            App size metric is only available when a single app version is selected.
+                        <p className={`text-xs font-body`}>
+                            App size metric is only available when a single app version is selected
                         </p>
                     </>)
                 } else {
@@ -467,7 +467,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     return (
         <Tooltip>
             <TooltipTrigger asChild className='transition-all'>
-                <Card className={`${STYLES.layout.cardSize} hover:bg-muted/50`}>
+                <Card className={`${STYLES.layout.cardSize} bg-card text-card-foreground hover:bg-muted/50 dark:hover:bg-card/50`}>
                     <CardContent className={STYLES.layout.cardContent}>
                         {showStatusIcon() && (
                             <div className={STYLES.layout.statusIconPosition}>

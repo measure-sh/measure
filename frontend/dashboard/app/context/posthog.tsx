@@ -24,7 +24,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
             posthog.init(apiKey as string, {
                 api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
                 person_profiles: 'identified_only',
-                defaults: '2025-05-24'
+                defaults: '2025-05-24',
+                cookieless_mode: 'on_reject'
             })
         }
     }, [shouldInit])

@@ -1,6 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from './tooltip'
 
 export type LayoutElementType =
     | "container"
@@ -17,10 +22,10 @@ export type LayoutElementType =
     | "slider"
     | "progress"
 
-export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, #fef08a 0, #fef08a 1px, transparent 5px, transparent 10px)`
+// have to hardcode colours here. Should map to primary in globals.css
+export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, oklch(0.8790 0.1690 91.6050) 0, oklch(0.8790 0.1690 91.6050) 1px, transparent 5px, transparent 10px)`
 
 type LayoutElement = {
-    id: string
     label: string
     type: LayoutElementType
     x: number
@@ -41,54 +46,71 @@ type LayoutSnapshotProps = {
 function LayoutElementNode({
     element,
     scaleX,
-    scaleY,
-    onHover,
-    hoveredId
+    scaleY
 }: {
     element: LayoutElement
     scaleX: number
     scaleY: number
-    onHover: (id: string | null) => void
-    hoveredId: string | null
 }) {
-    const isHovered = element.id === hoveredId
+    const isTextElement = element.type === 'text'
 
-    const baseClasses = 'absolute border box-border cursor-pointer'
     const bgStyle = element.highlighted
         ? {
             backgroundImage: LayoutSnapshotStripedBgImage
         }
-        : {}
+        : isTextElement
+            ? {
+                backgroundColor: 'light-dark(oklch(from var(--background) l c h / 0.20), oklch(from var(--foreground) l c h / 0.20))'
+
+            }
+            : {}
+
     const borderClass = element.highlighted
-        ? 'border-yellow-200'
-        : isHovered
-            ? 'border-yellow-200'
-            : 'border-gray-400'
+        ? 'border-primary hover:border-primary'
+        : isTextElement
+            ? 'border-transparent hover:border-primary dark:hover:border-primary'
+            : 'border-background/60 dark:border-foreground/50 hover:border-primary dark:hover:border-primary'
+
+    const positionStyle = {
+        left: element.x * scaleX,
+        top: element.y * scaleY,
+        width: element.width * scaleX,
+        height: element.height * scaleY,
+    }
 
     return (
-        <div
-            className={`${baseClasses} ${borderClass}`}
-            style={{
-                left: element.x * scaleX,
-                top: element.y * scaleY,
-                width: element.width * scaleX,
-                height: element.height * scaleY,
-                ...bgStyle
-            }}
-            onMouseEnter={() => onHover(element.id)}
-            onMouseLeave={() => onHover(null)}
-        >
-            {element.children?.map(child => (
+        <>
+            <div
+                className="absolute"
+                style={positionStyle}
+            >
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div
+                            className={`absolute inset-0 border box-border ${borderClass}`}
+                            style={bgStyle}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-white fill-black bg-black pointer-events-none"
+                    >
+                        {element.label}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+
+            {/* Children - on top, will intercept pointer events */}
+            {element.children?.map((child, index) => (
                 <LayoutElementNode
-                    key={child.id}
+                    key={`${child.label}-${index}`}
                     element={child}
                     scaleX={scaleX}
                     scaleY={scaleY}
-                    onHover={onHover}
-                    hoveredId={hoveredId}
                 />
             ))}
-        </div>
+        </>
     )
 }
 
@@ -99,8 +121,6 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
     const horizontalOrienationHeight = 211
 
     const [layout, setLayout] = useState<LayoutElement | null>(null)
-    const [hoveredId, setHoveredId] = useState<string | null>(null)
-    const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null)
 
     const fetchLayout = async () => {
         try {
@@ -133,9 +153,7 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
     }
 
     // First scaling layer: scale base dimensions to fit within passed width/height
-    const containerScaleX = width / baseWidth
-    const containerScaleY = height / baseHeight
-    const containerScale = Math.min(containerScaleX, containerScaleY) // maintain aspect ratio
+    const containerScale = Math.min(width / baseWidth, height / baseHeight) // maintain aspect ratio
 
     const scaledWidth = baseWidth * containerScale
     const scaledHeight = baseHeight * containerScale
@@ -144,48 +162,16 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
     const scaleX = (scaledWidth / layout.width)
     const scaleY = (scaledHeight / layout.height)
 
-    const findHoveredLabel = (element: LayoutElement, id: string | null): string | null => {
-        if (!id) return null
-        if (element.id === id) return element.label
-        for (const child of element.children || []) {
-            const result = findHoveredLabel(child, id)
-            if (result) return result
-        }
-        return null
-    }
-
-    const hoveredLabel = findHoveredLabel(layout, hoveredId)
-
-    const handleMouseMove = (event: React.MouseEvent) => {
-        setMousePosition({ x: event.clientX, y: event.clientY })
-    }
-
     return (
         <div
             className="relative overflow-hidden"
             style={{ width: scaledWidth, height: scaledHeight }}
-            onMouseMove={handleMouseMove}
         >
             <LayoutElementNode
                 element={layout}
                 scaleX={scaleX}
                 scaleY={scaleY}
-                onHover={setHoveredId}
-                hoveredId={hoveredId}
             />
-
-            {hoveredLabel && mousePosition && (
-                <div
-                    className="fixed bg-black bg-opacity-50 font-display text-white px-2 py-1 rounded z-50 pointer-events-none"
-                    style={{
-                        top: mousePosition.y + 20, // Offset further below the cursor
-                        left: mousePosition.x + 10, // Offset slightly to the right of the cursor
-                    }}
-                >
-                    {hoveredLabel}
-                </div>
-            )}
         </div>
     )
 }
-

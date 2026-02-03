@@ -34,14 +34,25 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     private let exceptionGenerator: ExceptionGenerator
     private let attributeValueValidator: AttributeValueValidator
     private let configProvider: ConfigProvider
+    private let sessionManager: SessionManager
+    private let signalSampler: SignalSampler
 
-    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger, exceptionGenerator: ExceptionGenerator, attributeValueValidator: AttributeValueValidator, configProvider: ConfigProvider) {
+    init(signalProcessor: SignalProcessor,
+         timeProvider: TimeProvider,
+         logger: Logger,
+         exceptionGenerator: ExceptionGenerator,
+         attributeValueValidator: AttributeValueValidator,
+         configProvider: ConfigProvider,
+         sessionManager: SessionManager,
+         signalSampler: SignalSampler) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.logger = logger
         self.exceptionGenerator = exceptionGenerator
         self.attributeValueValidator = attributeValueValidator
         self.configProvider = configProvider
+        self.sessionManager = sessionManager
+        self.signalSampler = signalSampler
     }
 
     func enable() {
@@ -60,22 +71,27 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard isEnabled.get() else { return }
         guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
-        track(ScreenViewData(name: screenName), type: .screenView, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
+        track(ScreenViewData(name: screenName),
+              type: .screenView,
+              userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId))
     }
 
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
         guard isEnabled.get() else { return }
+        guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(error as NSError, collectStackTraces: collectStackTraces) {
-            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
+            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
         }
     }
 
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
         guard isEnabled.get() else { return }
+        guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(error, collectStackTraces: collectStackTraces) {
-            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
+            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
         }
     }
 
@@ -92,58 +108,61 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                         responseBody: String?) {
         guard isEnabled.get() else { return }
 
+        // Validate URL
         if url.isEmpty {
             logger.log(level: .error, message: "Failed to track HTTP event, url is required", error: nil, data: nil)
             return
         }
 
+        // Validate method
         let validMethods = ["get", "post", "put", "delete", "patch"]
         if !validMethods.contains(method.lowercased()) {
             logger.log(level: .error, message: "Failed to track HTTP event, invalid method \(method)", error: nil, data: nil)
             return
         }
 
-        if startTime <= UnsignedNumber(0) || endTime <= UnsignedNumber(0) {
+        // Validate timing
+        if startTime == 0 || endTime == 0 {
             logger.log(level: .error, message: "Failed to track HTTP event, invalid start or end time", error: nil, data: nil)
             return
         }
 
-        if Double(endTime) - Double(startTime) < 0 {
+        if endTime < startTime {
             logger.log(level: .error, message: "Failed to track HTTP event, invalid start or end time (end < start)", error: nil, data: nil)
             return
         }
 
+        // Validate status code
         if let code = statusCode, !(100...599).contains(code) {
             logger.log(level: .error, message: "Failed to track HTTP event, invalid status code: \(code)", error: nil, data: nil)
             return
         }
 
+        // Apply URL filtering
         if !configProvider.shouldTrackHttpUrl(url: url) {
             logger.log(level: .debug, message: "Discarding HTTP event, URL is not allowed for tracking", error: nil, data: nil)
             return
         }
 
-        let isRequestHeadersPresent = requestHeaders != nil && !requestHeaders!.isEmpty
-        let isResponseHeadersPresent = responseHeaders != nil && !responseHeaders!.isEmpty
-        
-        if !configProvider.trackHttpHeaders && (isResponseHeadersPresent || isRequestHeadersPresent) {
-            logger.log(level: .debug, message: "Discarding HTTP event, request or response headers were present but not configured for tracking in Measure.init", error: nil, data: nil)
-            return
+        // Filter headers
+        var safeRequestHeaders = requestHeaders?.filter { key, _ in
+            configProvider.shouldTrackHttpHeader(key: key)
         }
 
-        var safeRequestHeaders = requestHeaders
-        var safeResponseHeaders = responseHeaders
+        var safeResponseHeaders = responseHeaders?.filter { key, _ in
+            configProvider.shouldTrackHttpHeader(key: key)
+        }
 
-        if configProvider.trackHttpHeaders {
-            safeRequestHeaders = safeRequestHeaders?.filter { key, _ in
-                configProvider.shouldTrackHttpHeader(key: key)
-            }
-            safeResponseHeaders = safeResponseHeaders?.filter { key, _ in
-                configProvider.shouldTrackHttpHeader(key: key)
-            }
+        if safeRequestHeaders?.isEmpty == true {
+            safeRequestHeaders = nil
+        }
+
+        if safeResponseHeaders?.isEmpty == true {
+            safeResponseHeaders = nil
         }
 
         let shouldTrackRequestHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: requestHeaders))
+
         let shouldTrackResponseHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: responseHeaders))
 
         let data = HttpData(url: url,
@@ -159,10 +178,10 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             responseBody: shouldTrackResponseHttpBody ? responseBody : nil,
                             client: client)
 
-        self.track(data, type: .http)
+        track(data, type: .http, needsReporting: false)
     }
 
-    private func track(_ data: Codable, type: EventType, userDefinedAttributes: String? = nil) {
+    private func track(_ data: Codable, type: EventType, userDefinedAttributes: String? = nil, needsReporting: Bool?) {
         signalProcessor.trackUserTriggered(data: data,
                                            timestamp: timeProvider.now(),
                                            type: type,
@@ -170,7 +189,8 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            sessionId: nil,
                                            attachments: nil,
                                            userDefinedAttributes: userDefinedAttributes,
-                                           threadName: nil)
+                                           threadName: nil,
+                                           needsReporting: needsReporting)
     }
 
     private func getContentType(headers: [String: String]?) -> String? {

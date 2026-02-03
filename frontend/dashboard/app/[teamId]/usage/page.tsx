@@ -3,7 +3,9 @@
 import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
+import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -11,9 +13,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   type AppMonthlyUsage = {
     id: string
     label: string
-    value: number
+    value: number // value represents sessions for pie chart purposes
+    launchTimes: number
     events: number
-    traces: number
     spans: number
   }
 
@@ -22,6 +24,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [months, setMonths] = useState<string[]>()
   const [selectedMonth, setSelectedMonth] = useState<string>()
   const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
+  const { theme } = useTheme()
 
   function parseMonths(data: typeof emptyUsage): string[] {
     const monthYearSet: Set<string> = new Set()
@@ -41,7 +44,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count })
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, launchTimes: u.launch_time_count, events: u.event_count, spans: u.span_count })
         }
       })
     })
@@ -83,13 +86,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   // @ts-ignore
   const CenteredMetric = ({ centerX, centerY }) => {
     let totalSessions = 0
+    let totalLaunchTimes = 0
     let totalEvents = 0
-    let totalTraces = 0
     let totalSpans = 0
     selectedMonthUsage!.forEach(appMonthlyUsage => {
       totalSessions += appMonthlyUsage.value
+      totalLaunchTimes += appMonthlyUsage.launchTimes
       totalEvents += appMonthlyUsage.events
-      totalTraces += appMonthlyUsage.traces
       totalSpans += appMonthlyUsage.spans
     })
 
@@ -99,25 +102,23 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         y={centerY}
         textAnchor="middle"
         dominantBaseline="central"
-        className='font-display font-semibold'
+        className='font-display font-semibold fill-foreground'
       >
-        <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalTraces} Traces</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalSpans} Spans</tspan>
+        <tspan className='text-xl' x={centerX} dy="-0.7em">Events: {totalSessions + totalLaunchTimes + totalEvents}</tspan>
+        <tspan className='text-xl' x={centerX} dy="1.4em">Spans: {totalSpans}</tspan>
       </text>
     )
   }
 
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
-      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <LoadingSpinner />}
@@ -128,6 +129,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <div className='w-full h-[36rem]'>
             <ResponsivePie
               data={selectedMonthUsage!}
+              theme={chartTheme}
               animate
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
               innerRadius={0.7}
@@ -136,18 +138,16 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               padAngle={0.7}
               cornerRadius={3}
               activeOuterRadiusOffset={8}
-              colors={{ scheme: 'nivo' }}
+              colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
               arcLinkLabelsSkipAngle={10}
               arcLinkLabelsThickness={2}
               arcLinkLabelsColor={{ from: 'color' }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-neutral-800 text-white flex flex-col py-2 px-4 font-display rounded-md">
+                  <div className="bg-accent text-accent-foreground flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
-                    <p className='text-xs'>Sessions: {value}</p>
-                    <p className='text-xs'>Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
-                    <p className='text-xs'>Traces: {selectedMonthUsage?.find((i) => i.id === id)!.traces}</p>
+                    <p className='text-xs'>Events: {value + selectedMonthUsage?.find((i) => i.id === id)!.launchTimes! + selectedMonthUsage?.find((i) => i.id === id)!.events!}</p>
                     <p className='text-xs'>Spans: {selectedMonthUsage?.find((i) => i.id === id)!.spans}</p>
                   </div>
                 )

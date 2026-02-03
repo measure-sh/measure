@@ -1,10 +1,8 @@
 package sh.measure.android.storage
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import sh.measure.android.RecentSession
 import sh.measure.android.attributes.Attribute
 
 internal interface PrefsStorage {
@@ -12,11 +10,12 @@ internal interface PrefsStorage {
     fun setInstallationId(installationId: String)
     fun getUserId(): String?
     fun setUserId(userId: String?)
-    fun setRecentSession(recentSession: RecentSession)
-    fun setRecentSessionCrashed()
-    fun setRecentSessionEventTime(timestamp: Long)
-    fun getRecentSession(): RecentSession?
-    fun deleteRecentSession()
+    fun getConfigFetchTimestamp(): Long
+    fun getConfigCacheControl(): Long
+    fun getConfigEtag(): String?
+    fun setConfigFetchTimestamp(timestamp: Long)
+    fun setConfigCacheControl(cacheControl: Long)
+    fun setConfigEtag(etag: String)
 }
 
 internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
@@ -24,11 +23,9 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
 
     private companion object {
         private const val USER_ID_KEY = "user_id"
-        private const val RECENT_SESSION_ID = "rs_id"
-        private const val RECENT_SESSION_CREATED_AT = "rs_created_at"
-        private const val RECENT_SESSION_EVENT_TIME = "rs_event_time"
-        private const val RECENT_SESSION_CRASHED = "rs_crashed"
-        private const val RECENT_SESSION_VERSION_CODE = "rs_version_code"
+        private const val CONFIG_FETCH_TIMESTAMP = "config_fetch_timestamp"
+        private const val CONFIG_CACHE_CONTROL = "config_cache_control"
+        private const val CONFIG_ETAG = "config_etag"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -51,51 +48,21 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
         }
     }
 
-    override fun setRecentSession(recentSession: RecentSession) {
-        sharedPreferences.edit {
-            putString(RECENT_SESSION_ID, recentSession.id)
-                .putLong(RECENT_SESSION_EVENT_TIME, recentSession.lastEventTime)
-                .putLong(RECENT_SESSION_CREATED_AT, recentSession.createdAt)
-                .putBoolean(RECENT_SESSION_CRASHED, recentSession.crashed)
-                .putString(RECENT_SESSION_VERSION_CODE, recentSession.versionCode)
-        }
+    override fun getConfigFetchTimestamp(): Long = sharedPreferences.getLong(CONFIG_FETCH_TIMESTAMP, 0)
+
+    override fun getConfigCacheControl(): Long = sharedPreferences.getLong(CONFIG_CACHE_CONTROL, 0)
+
+    override fun getConfigEtag(): String? = sharedPreferences.getString(CONFIG_ETAG, null)
+
+    override fun setConfigFetchTimestamp(timestamp: Long) {
+        sharedPreferences.edit { putLong(CONFIG_FETCH_TIMESTAMP, timestamp) }
     }
 
-    @SuppressLint("ApplySharedPref")
-    override fun setRecentSessionCrashed() {
-        // The app is crashing, using commit to have a better chance for the write to succeed.
-        sharedPreferences.edit(commit = true) { putBoolean(RECENT_SESSION_CRASHED, true) }
+    override fun setConfigCacheControl(cacheControl: Long) {
+        sharedPreferences.edit { putLong(CONFIG_CACHE_CONTROL, cacheControl) }
     }
 
-    override fun setRecentSessionEventTime(timestamp: Long) {
-        sharedPreferences.edit { putLong(RECENT_SESSION_EVENT_TIME, timestamp) }
-    }
-
-    override fun getRecentSession(): RecentSession? {
-        val sessionId = sharedPreferences.getString(RECENT_SESSION_ID, null)
-        val eventTime = sharedPreferences.getLong(RECENT_SESSION_EVENT_TIME, 0)
-        val crashed = sharedPreferences.getBoolean(RECENT_SESSION_CRASHED, false)
-        val createdAt = sharedPreferences.getLong(RECENT_SESSION_CREATED_AT, 0)
-        val versionCode = sharedPreferences.getString(RECENT_SESSION_VERSION_CODE, null)
-        if (sessionId == null || versionCode == null) {
-            return null
-        }
-        return RecentSession(
-            id = sessionId,
-            lastEventTime = eventTime,
-            createdAt = createdAt,
-            crashed = crashed,
-            versionCode = versionCode,
-        )
-    }
-
-    override fun deleteRecentSession() {
-        sharedPreferences.edit {
-            remove(RECENT_SESSION_ID)
-            remove(RECENT_SESSION_CREATED_AT)
-            remove(RECENT_SESSION_EVENT_TIME)
-            remove(RECENT_SESSION_CRASHED)
-            remove(RECENT_SESSION_VERSION_CODE)
-        }
+    override fun setConfigEtag(etag: String) {
+        sharedPreferences.edit { putString(CONFIG_ETAG, etag) }
     }
 }

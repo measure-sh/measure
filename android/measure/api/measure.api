@@ -193,46 +193,19 @@ public final class sh/measure/android/config/ClientInfo$Companion {
 
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
-	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFILsh/measure/android/config/MsrRequestHeadersProvider;FFFF)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFILsh/measure/android/config/MsrRequestHeadersProvider;FFFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;Z)V
+	public synthetic fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
-	public fun getColdLaunchSamplingRate ()F
+	public fun getEnableFullCollectionMode ()Z
 	public fun getEnableLogging ()Z
-	public fun getHotLaunchSamplingRate ()F
-	public fun getHttpHeadersBlocklist ()Ljava/util/List;
-	public fun getHttpUrlAllowlist ()Ljava/util/List;
-	public fun getHttpUrlBlocklist ()Ljava/util/List;
-	public fun getJourneySamplingRate ()F
 	public fun getMaxDiskUsageInMb ()I
 	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
-	public fun getSamplingRateForErrorFreeSessions ()F
-	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
-	public fun getTraceSamplingRate ()F
 	public fun getTrackActivityIntentData ()Z
-	public fun getTrackHttpBody ()Z
-	public fun getTrackHttpHeaders ()Z
-	public fun getTrackScreenshotOnCrash ()Z
-	public fun getWarmLaunchSamplingRate ()F
-}
-
-public final class sh/measure/android/config/MeasureConfig$Companion {
-	public final fun fromJson (Ljava/util/Map;)Lsh/measure/android/config/MeasureConfig;
 }
 
 public abstract interface class sh/measure/android/config/MsrRequestHeadersProvider {
 	public abstract fun getRequestHeaders ()Ljava/util/Map;
-}
-
-public final class sh/measure/android/config/ScreenshotMaskLevel : java/lang/Enum {
-	public static final field AllText Lsh/measure/android/config/ScreenshotMaskLevel;
-	public static final field AllTextAndMedia Lsh/measure/android/config/ScreenshotMaskLevel;
-	public static final field AllTextExceptClickable Lsh/measure/android/config/ScreenshotMaskLevel;
-	public static final field SensitiveFieldsOnly Lsh/measure/android/config/ScreenshotMaskLevel;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/config/ScreenshotMaskLevel;
-	public static fun values ()[Lsh/measure/android/config/ScreenshotMaskLevel;
 }
 
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {

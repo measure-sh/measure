@@ -11,9 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add test Slack alerts by @anupcowkur in #2898
 - (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
+- (**frontend**): Implement dynamic config (#3007) by @abhaysood in #3007
 
 ### :bug: Bug fixes
 
+- (**backend**): Update migration for device manufacturer attribute (#3097) by @detj in #3097
+- (**backend**): Allow larger values for device manufacturer attribute (#3094) by @detj in #3094
+- (**backend**): Issue free metrics would not show for some cases (#3093) by @detj in #3093
+- (**backend**): Update migrations for 0.10.x release (#3084) by @abhaysood in #3084
 - (**backend**): Support empty filters in certain dashboard apis by @detj in #3043
 - (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
 - (**backend**): Handle panic on invalid exception payload (#3031) by @detj in #3031
@@ -27,10 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
 - (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
 - (**backend**): Update last_seen for API key by @anupcowkur in #2903
+- (**frontend**): Fix date filters by @anupcowkur in #3116
+- (**frontend**): Suppress theme change hydration warnings by @anupcowkur in #3101
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
 ### :hammer: Misc
 
+- (**backend**): Update /usage api response in docs by @anupcowkur in #3108
+- (**backend**): Update ingestion metrics by @anupcowkur in #3107
+- (**backend**): Update go dependencies (#3098) by @detj in #3098
+- (**backend**): Update retention periods by @anupcowkur in #3091
+- (**backend**): Add migration guide entry for v0.10.x (#3074) by @abhaysood in #3074
 - (**backend**): Sync go.work (#3050) by @detj in #3050
 - (**backend**): Update go image tag (#3032) by @detj in #3032
 - (**backend**): Handle an invalid payload condition to debug panics (#3029) by @detj in #3029
@@ -53,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Update pricing breakdown labels by @anupcowkur in #3112
+- (**frontend**): Change label size of usage pie chart by @anupcowkur in #3111
+- (**frontend**): Show combined events in usage by @anupcowkur in #3110
+- (**frontend**): Update layout snapshot rendering (#3106) by @abhaysood in #3106
+- (**frontend**): Update layout snapshot rendering by @anupcowkur in #3104
+- (**frontend**): Disable team name change ui for below admin users by @anupcowkur in #3099
+- (**frontend**): Update website by @anupcowkur in #2968
 - (**frontend**): Add note to session list about filtering by @anupcowkur in #3049
 - (**frontend**): Show size metric with disclaimer on multi app version select by @anupcowkur in #3048
 - (**frontend**): Send empty filters when all values are selected by @anupcowkur

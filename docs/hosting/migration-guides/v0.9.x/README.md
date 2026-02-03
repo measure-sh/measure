@@ -63,11 +63,3 @@ sudo ./migrations/v0.9.x-sync-databases.sh
 ```sh
 sudo ./install.sh
 ```
-
-## 7. Run database back filling script
-
-Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
-
-```sh
-sudo ./migrations/v0.9.x-data-backfills.sh
-```

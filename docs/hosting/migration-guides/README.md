@@ -14,3 +14,4 @@ Some migrations may contain _optional_ steps. The specific guide would state tha
 - [**v0.6.x**](./v0.6.x/README.md) - Migration Guide for `v0.6.x`
 - [**v0.8.x**](./v0.8.x/README.md) - Migration Guide for `v0.8.x`
 - [**v0.9.x**](./v0.9.x/README.md) - Migration Guide for `v0.9.x`
+- [**v0.10.x**](./v0.10.x/README.md) - Migration Guide for `v0.10.x`

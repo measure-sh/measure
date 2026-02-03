@@ -156,12 +156,31 @@ export default function HomeScreen() {
     navigation.navigate('TracesScreen');
   };
 
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const showCurrentSessionId = async () => {
+    try {
+      const id = await Measure.getSessionId();
+      setSessionId(id);
+    } catch (e) {
+      console.error('Failed to fetch session id', e);
+      setSessionId(null);
+    }
+  };
+
   const sections = [
     {
       title: 'Session & Init',
       data: [
         { id: 'start-sdk', title: 'Start SDK', onPress: startMeasure },
         { id: 'stop-sdk', title: 'Stop SDK', onPress: stopMeasure },
+        {
+          id: 'current-session',
+          title: sessionId
+            ? `Current Session ID: ${sessionId}`
+            : 'Show Current Session ID',
+          onPress: showCurrentSessionId,
+        },
       ],
     },
     {

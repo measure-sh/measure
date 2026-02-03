@@ -2488,675 +2488,6 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	return
 }
 
-// GetSessionEvents fetches all the events of an app's session.
-func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
-	sessionAppVersion := sqlf.From("sessions_index_new").
-		Select("argMax(app_version, last_event_timestamp) as app_version").
-		Select("min(first_event_timestamp) as start_time").
-		Select("max(last_event_timestamp) as end_time").
-		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", a.ID).
-		Where("session_id = toUUID(?)", sessionId).
-		Limit(1)
-
-	cols := []string{
-		`id`,
-		`type`,
-		`session_id`,
-		`app_id`,
-		`inet.ipv4`,
-		`inet.ipv6`,
-		`inet.country_code`,
-		`timestamp`,
-		`user_triggered`,
-		`attachments`,
-		`attribute.installation_id`,
-		`attribute.app_version`,
-		`attribute.app_build`,
-		`attribute.app_unique_id`,
-		`attribute.platform`,
-		`attribute.measure_sdk_version`,
-		`attribute.thread_name`,
-		`attribute.user_id`,
-		`attribute.device_name`,
-		`attribute.device_model`,
-		`attribute.device_manufacturer`,
-		`attribute.device_type`,
-		`attribute.device_is_foldable`,
-		`attribute.device_is_physical`,
-		`attribute.device_density_dpi`,
-		`attribute.device_width_px`,
-		`attribute.device_height_px`,
-		`attribute.device_density`,
-		`attribute.device_locale`,
-		`attribute.os_name`,
-		`attribute.os_version`,
-		`attribute.network_type`,
-		`attribute.network_generation`,
-		`attribute.network_provider`,
-		`user_defined_attribute`,
-		`gesture_long_click.target`,
-		`gesture_long_click.target_id`,
-		`gesture_long_click.touch_down_time`,
-		`gesture_long_click.touch_up_time`,
-		`gesture_long_click.width`,
-		`gesture_long_click.height`,
-		`gesture_long_click.x`,
-		`gesture_long_click.y`,
-		`gesture_click.target`,
-		`gesture_click.target_id`,
-		`gesture_click.touch_down_time`,
-		`gesture_click.touch_up_time`,
-		`gesture_click.width`,
-		`gesture_click.height`,
-		`gesture_click.x`,
-		`gesture_click.y`,
-		`gesture_scroll.target`,
-		`gesture_scroll.target_id`,
-		`gesture_scroll.touch_down_time`,
-		`gesture_scroll.touch_up_time`,
-		`gesture_scroll.x`,
-		`gesture_scroll.y`,
-		`gesture_scroll.end_x`,
-		`gesture_scroll.end_y`,
-		`gesture_scroll.direction`,
-		`exception.handled`,
-		`exception.fingerprint`,
-		`exception.foreground`,
-		`exception.exceptions`,
-		`exception.threads`,
-		`exception.framework`,
-		`lifecycle_app.type`,
-		`cold_launch.process_start_uptime`,
-		`cold_launch.process_start_requested_uptime`,
-		`cold_launch.content_provider_attach_uptime`,
-		`cold_launch.on_next_draw_uptime`,
-		`cold_launch.launched_activity`,
-		`cold_launch.has_saved_state`,
-		`cold_launch.intent_data`,
-		`cold_launch.duration`,
-		`warm_launch.app_visible_uptime`,
-		`warm_launch.process_start_uptime`,
-		`warm_launch.process_start_requested_uptime`,
-		`warm_launch.content_provider_attach_uptime`,
-		`warm_launch.on_next_draw_uptime`,
-		`warm_launch.launched_activity`,
-		`warm_launch.has_saved_state`,
-		`warm_launch.intent_data`,
-		`warm_launch.duration`,
-		`warm_launch.is_lukewarm`,
-		`hot_launch.app_visible_uptime`,
-		`hot_launch.on_next_draw_uptime`,
-		`hot_launch.launched_activity`,
-		`hot_launch.has_saved_state`,
-		`hot_launch.intent_data`,
-		`hot_launch.duration`,
-		`network_change.network_type`,
-		`network_change.previous_network_type`,
-		`network_change.network_generation`,
-		`network_change.previous_network_generation`,
-		`network_change.network_provider`,
-		`http.url`,
-		`http.method`,
-		`http.status_code`,
-		`http.start_time`,
-		`http.end_time`,
-		`http_request_headers`,
-		`http_response_headers`,
-		`http.request_body`,
-		`http.response_body`,
-		`http.failure_reason`,
-		`http.failure_description`,
-		`http.client`,
-		`cpu_usage.num_cores`,
-		`cpu_usage.clock_speed`,
-		`cpu_usage.start_time`,
-		`cpu_usage.uptime`,
-		`cpu_usage.utime`,
-		`cpu_usage.cutime`,
-		`cpu_usage.stime`,
-		`cpu_usage.cstime`,
-		`cpu_usage.interval`,
-		`cpu_usage.percentage_usage`,
-		`screen_view.name `,
-		`bug_report.description`,
-		`custom.name`,
-	}
-
-	switch opsys.ToFamily(a.OSName) {
-	case opsys.Android:
-		cols = append(cols, []string{
-			`anr.fingerprint`,
-			`anr.foreground`,
-			`anr.exceptions`,
-			`anr.threads`,
-			`app_exit.reason`,
-			`app_exit.importance`,
-			`app_exit.trace`,
-			`app_exit.process_name`,
-			`app_exit.pid`,
-			`string.severity_text`,
-			`string.string`,
-			`lifecycle_activity.type`,
-			`lifecycle_activity.class_name`,
-			`lifecycle_activity.intent`,
-			`lifecycle_activity.saved_instance_state`,
-			`lifecycle_fragment.type`,
-			`lifecycle_fragment.class_name`,
-			`lifecycle_fragment.parent_activity`,
-			`lifecycle_fragment.parent_fragment`,
-			`lifecycle_fragment.tag`,
-			`memory_usage.java_max_heap`,
-			`memory_usage.java_total_heap`,
-			`memory_usage.java_free_heap`,
-			`memory_usage.total_pss`,
-			`memory_usage.rss`,
-			`memory_usage.native_total_heap`,
-			`memory_usage.native_free_heap`,
-			`memory_usage.interval`,
-			`low_memory.java_max_heap`,
-			`low_memory.java_total_heap`,
-			`low_memory.java_free_heap`,
-			`low_memory.total_pss`,
-			`low_memory.rss`,
-			`low_memory.native_total_heap`,
-			`low_memory.native_free_heap`,
-			`trim_memory.level`,
-			`navigation.to`,
-			`navigation.from`,
-			`navigation.source`,
-		}...)
-	case opsys.AppleFamily:
-		cols = append(cols, []string{
-			`exception.error`,
-			`lifecycle_view_controller.type`,
-			`lifecycle_view_controller.class_name`,
-			`lifecycle_swift_ui.type`,
-			`lifecycle_swift_ui.class_name`,
-			`memory_usage_absolute.max_memory`,
-			`memory_usage_absolute.used_memory`,
-			`memory_usage_absolute.interval`,
-		}...)
-	}
-
-	// We look up the app version from sessions_index table
-	// to speed up the query to fetch events for the session
-	//
-	// This allows us to stay on the fast binary search path
-	// using the table's native ORDER BY sequence.
-	stmt := sqlf.From("events_new").
-		With("session_app_version", sessionAppVersion)
-
-	defer stmt.Close()
-
-	for i := range cols {
-		stmt.Select(cols[i])
-	}
-
-	stmt.Where("team_id = toUUID(?)", a.TeamId)
-	stmt.Where("app_id = toUUID(?)", a.ID)
-	stmt.Where("attribute.app_version in (select app_version.1 from session_app_version)")
-	stmt.Where("attribute.app_build in (select app_version.2 from session_app_version)")
-	stmt.Where("timestamp >= (select start_time from session_app_version) and timestamp <= (select end_time from session_app_version)")
-	stmt.Where("session_id = toUUID(?)", sessionId)
-	stmt.OrderBy("timestamp")
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var session Session
-	var firstUserID string
-
-	for rows.Next() {
-		var ev event.EventField
-		var anr event.ANR
-		var exception event.Exception
-		var exceptionExceptions string
-		var exceptionThreads string
-		var anrExceptions string
-		var anrThreads string
-		var attachments string
-
-		var appExit event.AppExit
-		var logString event.LogString
-		var gestureLongClick event.GestureLongClick
-		var gestureClick event.GestureClick
-		var gestureScroll event.GestureScroll
-		var lifecycleActivity event.LifecycleActivity
-		var lifecycleFragment event.LifecycleFragment
-		var lifecycleApp event.LifecycleApp
-		var coldLaunch event.ColdLaunch
-		var warmLaunch event.WarmLaunch
-		var hotLaunch event.HotLaunch
-		var networkChange event.NetworkChange
-		var http event.Http
-		var memoryUsage event.MemoryUsage
-		var lowMemory event.LowMemory
-		var trimMemory event.TrimMemory
-		var cpuUsage event.CPUUsage
-		var navigation event.Navigation
-		var screenView event.ScreenView
-		var userDefAttr map[string][]any
-		var bugReport event.BugReport
-		var custom event.Custom
-
-		var coldLaunchDuration uint32
-		var warmLaunchDuration uint32
-		var hotLaunchDuration uint32
-
-		var exceptionError string
-		var lifecycleViewController event.LifecycleViewController
-		var lifecycleSwiftUI event.LifecycleSwiftUI
-		var memoryUsageAbs event.MemoryUsageAbs
-
-		dest := []any{
-			&ev.ID,
-			&ev.Type,
-			&session.SessionID,
-			&session.AppID,
-			&ev.IPv4,
-			&ev.IPv6,
-			&ev.CountryCode,
-			&ev.Timestamp,
-			&ev.UserTriggered,
-			&attachments,
-
-			// attribute
-			&ev.Attribute.InstallationID,
-			&ev.Attribute.AppVersion,
-			&ev.Attribute.AppBuild,
-			&ev.Attribute.AppUniqueID,
-			&ev.Attribute.Platform,
-			&ev.Attribute.MeasureSDKVersion,
-			&ev.Attribute.ThreadName,
-			&ev.Attribute.UserID,
-			&ev.Attribute.DeviceName,
-			&ev.Attribute.DeviceModel,
-			&ev.Attribute.DeviceManufacturer,
-			&ev.Attribute.DeviceType,
-			&ev.Attribute.DeviceIsFoldable,
-			&ev.Attribute.DeviceIsPhysical,
-			&ev.Attribute.DeviceDensityDPI,
-			&ev.Attribute.DeviceWidthPX,
-			&ev.Attribute.DeviceHeightPX,
-			&ev.Attribute.DeviceDensity,
-			&ev.Attribute.DeviceLocale,
-			&ev.Attribute.OSName,
-			&ev.Attribute.OSVersion,
-			&ev.Attribute.NetworkType,
-			&ev.Attribute.NetworkGeneration,
-			&ev.Attribute.NetworkProvider,
-
-			// user defined attributes
-			&userDefAttr,
-
-			// gesture long click
-			&gestureLongClick.Target,
-			&gestureLongClick.TargetID,
-			&gestureLongClick.TouchDownTime,
-			&gestureLongClick.TouchUpTime,
-			&gestureLongClick.Width,
-			&gestureLongClick.Height,
-			&gestureLongClick.X,
-			&gestureLongClick.Y,
-
-			// gesture click
-			&gestureClick.Target,
-			&gestureClick.TargetID,
-			&gestureClick.TouchDownTime,
-			&gestureClick.TouchUpTime,
-			&gestureClick.Width,
-			&gestureClick.Height,
-			&gestureClick.X,
-			&gestureClick.Y,
-
-			// gesture scroll
-			&gestureScroll.Target,
-			&gestureScroll.TargetID,
-			&gestureScroll.TouchDownTime,
-			&gestureScroll.TouchUpTime,
-			&gestureScroll.X,
-			&gestureScroll.Y,
-			&gestureScroll.EndX,
-			&gestureScroll.EndY,
-			&gestureScroll.Direction,
-
-			// excpetion
-			&exception.Handled,
-			&exception.Fingerprint,
-			&exception.Foreground,
-			&exceptionExceptions,
-			&exceptionThreads,
-			&exception.Framework,
-
-			// lifecycle app
-			&lifecycleApp.Type,
-
-			// cold launch
-			&coldLaunch.ProcessStartUptime,
-			&coldLaunch.ProcessStartRequestedUptime,
-			&coldLaunch.ContentProviderAttachUptime,
-			&coldLaunch.OnNextDrawUptime,
-			&coldLaunch.LaunchedActivity,
-			&coldLaunch.HasSavedState,
-			&coldLaunch.IntentData,
-			&coldLaunchDuration,
-
-			// warm launch
-			&warmLaunch.AppVisibleUptime,
-			&warmLaunch.ProcessStartUptime,
-			&warmLaunch.ProcessStartRequestedUptime,
-			&warmLaunch.ContentProviderAttachUptime,
-			&warmLaunch.OnNextDrawUptime,
-			&warmLaunch.LaunchedActivity,
-			&warmLaunch.HasSavedState,
-			&warmLaunch.IntentData,
-			&warmLaunchDuration,
-			&warmLaunch.IsLukewarm,
-
-			// hot launch
-			&hotLaunch.AppVisibleUptime,
-			&hotLaunch.OnNextDrawUptime,
-			&hotLaunch.LaunchedActivity,
-			&hotLaunch.HasSavedState,
-			&hotLaunch.IntentData,
-			&hotLaunchDuration,
-
-			// network change
-			&networkChange.NetworkType,
-			&networkChange.PreviousNetworkType,
-			&networkChange.NetworkGeneration,
-			&networkChange.PreviousNetworkGeneration,
-			&networkChange.NetworkProvider,
-
-			// http
-			&http.URL,
-			&http.Method,
-			&http.StatusCode,
-			&http.StartTime,
-			&http.EndTime,
-			&http.RequestHeaders,
-			&http.ResponseHeaders,
-			&http.RequestBody,
-			&http.ResponseBody,
-			&http.FailureReason,
-			&http.FailureDescription,
-			&http.Client,
-
-			// cpu usage
-			&cpuUsage.NumCores,
-			&cpuUsage.ClockSpeed,
-			&cpuUsage.StartTime,
-			&cpuUsage.Uptime,
-			&cpuUsage.UTime,
-			&cpuUsage.CUTime,
-			&cpuUsage.STime,
-			&cpuUsage.CSTime,
-			&cpuUsage.Interval,
-			&cpuUsage.PercentageUsage,
-
-			// screen view
-			&screenView.Name,
-
-			// bug report
-			&bugReport.Description,
-
-			// custom
-			&custom.Name,
-		}
-
-		switch opsys.ToFamily(a.OSName) {
-		case opsys.Android:
-			dest = append(dest, []any{
-				// anr
-				&anr.Fingerprint,
-				&anr.Foreground,
-				&anrExceptions,
-				&anrThreads,
-
-				// app exit
-				&appExit.Reason,
-				&appExit.Importance,
-				&appExit.Trace,
-				&appExit.ProcessName,
-				&appExit.PID,
-
-				// log string
-				&logString.SeverityText,
-				&logString.String,
-
-				// lifecycle activity
-				&lifecycleActivity.Type,
-				&lifecycleActivity.ClassName,
-				&lifecycleActivity.Intent,
-				&lifecycleActivity.SavedInstanceState,
-
-				// lifecycle fragment
-				&lifecycleFragment.Type,
-				&lifecycleFragment.ClassName,
-				&lifecycleFragment.ParentActivity,
-				&lifecycleFragment.ParentFragment,
-				&lifecycleFragment.Tag,
-
-				// memory usage
-				&memoryUsage.JavaMaxHeap,
-				&memoryUsage.JavaTotalHeap,
-				&memoryUsage.JavaFreeHeap,
-				&memoryUsage.TotalPSS,
-				&memoryUsage.RSS,
-				&memoryUsage.NativeTotalHeap,
-				&memoryUsage.NativeFreeHeap,
-				&memoryUsage.Interval,
-
-				// low memory
-				&lowMemory.JavaMaxHeap,
-				&lowMemory.JavaTotalHeap,
-				&lowMemory.JavaFreeHeap,
-				&lowMemory.TotalPSS,
-				&lowMemory.RSS,
-				&lowMemory.NativeTotalHeap,
-				&lowMemory.NativeFreeHeap,
-
-				// trim memory
-				&trimMemory.Level,
-
-				// navigation
-				&navigation.To,
-				&navigation.From,
-				&navigation.Source,
-			}...)
-		case opsys.AppleFamily:
-			dest = append(dest, []any{
-				&exceptionError,
-				&lifecycleViewController.Type,
-				&lifecycleViewController.ClassName,
-				&lifecycleSwiftUI.Type,
-				&lifecycleSwiftUI.ClassName,
-				&memoryUsageAbs.MaxMemory,
-				&memoryUsageAbs.UsedMemory,
-				&memoryUsageAbs.Interval,
-			}...)
-		}
-
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		// Capture first non-empty user ID (add this after the scan)
-		if firstUserID == "" && ev.Attribute.UserID != "" {
-			firstUserID = ev.Attribute.UserID
-		}
-
-		// populate user defined attribute
-		if len(userDefAttr) > 0 {
-			ev.UserDefinedAttribute.Scan(userDefAttr)
-		}
-
-		switch ev.Type {
-		case event.TypeANR:
-			if err := json.Unmarshal([]byte(anrExceptions), &anr.Exceptions); err != nil {
-				return nil, err
-			}
-			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
-				return nil, err
-			}
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-				return nil, err
-			}
-			ev.ANR = &anr
-			session.Events = append(session.Events, ev)
-		case event.TypeException:
-			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
-				return nil, err
-			}
-
-			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
-				return nil, err
-			}
-
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-				return nil, err
-			}
-
-			// for now, only unmarshal exception.error for Apple
-			// family of OSes. support can - of course, be extended
-			// to other OSes on a "need to" basis.
-			switch opsys.ToFamily(a.OSName) {
-			case opsys.AppleFamily:
-				fmt.Println("exceptionError", exceptionError)
-				if exceptionError != "" {
-					if err := json.Unmarshal([]byte(exceptionError), &exception.Error); err != nil {
-						return nil, err
-					}
-				}
-			}
-
-			ev.Exception = &exception
-			session.Events = append(session.Events, ev)
-		case event.TypeAppExit:
-			ev.AppExit = &appExit
-			session.Events = append(session.Events, ev)
-		case event.TypeString:
-			ev.LogString = &logString
-			session.Events = append(session.Events, ev)
-		case event.TypeGestureLongClick:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
-			}
-			ev.GestureLongClick = &gestureLongClick
-			session.Events = append(session.Events, ev)
-		case event.TypeGestureClick:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
-			}
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-				return nil, err
-			}
-			ev.GestureClick = &gestureClick
-			session.Events = append(session.Events, ev)
-		case event.TypeGestureScroll:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
-			}
-			ev.GestureScroll = &gestureScroll
-			session.Events = append(session.Events, ev)
-		case event.TypeLifecycleActivity:
-			ev.LifecycleActivity = &lifecycleActivity
-			session.Events = append(session.Events, ev)
-		case event.TypeLifecycleFragment:
-			ev.LifecycleFragment = &lifecycleFragment
-			session.Events = append(session.Events, ev)
-		case event.TypeLifecycleApp:
-			ev.LifecycleApp = &lifecycleApp
-			session.Events = append(session.Events, ev)
-		case event.TypeColdLaunch:
-			ev.ColdLaunch = &coldLaunch
-			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
-			session.Events = append(session.Events, ev)
-		case event.TypeWarmLaunch:
-			ev.WarmLaunch = &warmLaunch
-			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
-			session.Events = append(session.Events, ev)
-		case event.TypeHotLaunch:
-			ev.HotLaunch = &hotLaunch
-			ev.HotLaunch.Duration = time.Duration(hotLaunchDuration)
-			session.Events = append(session.Events, ev)
-		case event.TypeNetworkChange:
-			ev.NetworkChange = &networkChange
-			session.Events = append(session.Events, ev)
-		case event.TypeHttp:
-			ev.Http = &http
-			session.Events = append(session.Events, ev)
-		case event.TypeMemoryUsage:
-			ev.MemoryUsage = &memoryUsage
-			session.Events = append(session.Events, ev)
-		case event.TypeLowMemory:
-			ev.LowMemory = &lowMemory
-			session.Events = append(session.Events, ev)
-		case event.TypeTrimMemory:
-			ev.TrimMemory = &trimMemory
-			session.Events = append(session.Events, ev)
-		case event.TypeCPUUsage:
-			ev.CPUUsage = &cpuUsage
-			session.Events = append(session.Events, ev)
-		case event.TypeNavigation:
-			ev.Navigation = &navigation
-			session.Events = append(session.Events, ev)
-		case event.TypeScreenView:
-			ev.ScreenView = &screenView
-			session.Events = append(session.Events, ev)
-		case event.TypeBugReport:
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-				return nil, err
-			}
-			ev.BugReport = &bugReport
-			session.Events = append(session.Events, ev)
-		case event.TypeCustom:
-			ev.Custom = &custom
-			session.Events = append(session.Events, ev)
-		case event.TypeLifecycleViewController:
-			ev.LifecycleViewController = &lifecycleViewController
-			session.Events = append(session.Events, ev)
-		case event.TypeLifecycleSwiftUI:
-			ev.LifecycleSwiftUI = &lifecycleSwiftUI
-			session.Events = append(session.Events, ev)
-		case event.TypeMemoryUsageAbs:
-			ev.MemoryUsageAbs = &memoryUsageAbs
-			session.Events = append(session.Events, ev)
-		default:
-			continue
-		}
-	}
-
-	// attach session's first event attribute
-	// as the session's attributes
-	if len(session.Events) > 0 {
-		attr := session.Events[0].Attribute
-		// Override with the first non-empty user ID we found
-		if firstUserID != "" {
-			attr.UserID = firstUserID
-		}
-		session.Attribute = &attr
-	}
-
-	return &session, nil
-}
-
 // FetchRootSpanNames returns list of root span names for a given app id
 func (a App) FetchRootSpanNames(ctx context.Context) (traceNames []string, err error) {
 	stmt := sqlf.
@@ -4322,19 +3653,11 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	return
 }
 
-func (a *App) add() (*APIKey, error) {
-	// id := uuid.New()
-	id := uuid.MustParse("5f1e2455-ffef-4e8e-9d68-73239753e5a0")
+func (a *App) add(tx pgx.Tx) (*APIKey, error) {
+	id := uuid.New()
 	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err := tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -4347,10 +3670,6 @@ func (a *App) add() (*APIKey, error) {
 	}
 
 	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -4530,6 +3849,675 @@ func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName,
 	}
 
 	return nil
+}
+
+// GetSessionEvents fetches all the events of an app's session.
+func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
+	sessionAppVersion := sqlf.From("sessions_index_new").
+		Select("argMax(app_version, last_event_timestamp) as app_version").
+		Select("min(first_event_timestamp) as start_time").
+		Select("max(last_event_timestamp) as end_time").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("session_id = toUUID(?)", sessionId).
+		Limit(1)
+
+	cols := []string{
+		`id`,
+		`type`,
+		`session_id`,
+		`app_id`,
+		`inet.ipv4`,
+		`inet.ipv6`,
+		`inet.country_code`,
+		`timestamp`,
+		`user_triggered`,
+		`attachments`,
+		`attribute.installation_id`,
+		`attribute.app_version`,
+		`attribute.app_build`,
+		`attribute.app_unique_id`,
+		`attribute.platform`,
+		`attribute.measure_sdk_version`,
+		`attribute.thread_name`,
+		`attribute.user_id`,
+		`attribute.device_name`,
+		`attribute.device_model`,
+		`attribute.device_manufacturer`,
+		`attribute.device_type`,
+		`attribute.device_is_foldable`,
+		`attribute.device_is_physical`,
+		`attribute.device_density_dpi`,
+		`attribute.device_width_px`,
+		`attribute.device_height_px`,
+		`attribute.device_density`,
+		`attribute.device_locale`,
+		`attribute.os_name`,
+		`attribute.os_version`,
+		`attribute.network_type`,
+		`attribute.network_generation`,
+		`attribute.network_provider`,
+		`user_defined_attribute`,
+		`gesture_long_click.target`,
+		`gesture_long_click.target_id`,
+		`gesture_long_click.touch_down_time`,
+		`gesture_long_click.touch_up_time`,
+		`gesture_long_click.width`,
+		`gesture_long_click.height`,
+		`gesture_long_click.x`,
+		`gesture_long_click.y`,
+		`gesture_click.target`,
+		`gesture_click.target_id`,
+		`gesture_click.touch_down_time`,
+		`gesture_click.touch_up_time`,
+		`gesture_click.width`,
+		`gesture_click.height`,
+		`gesture_click.x`,
+		`gesture_click.y`,
+		`gesture_scroll.target`,
+		`gesture_scroll.target_id`,
+		`gesture_scroll.touch_down_time`,
+		`gesture_scroll.touch_up_time`,
+		`gesture_scroll.x`,
+		`gesture_scroll.y`,
+		`gesture_scroll.end_x`,
+		`gesture_scroll.end_y`,
+		`gesture_scroll.direction`,
+		`exception.handled`,
+		`exception.fingerprint`,
+		`exception.foreground`,
+		`exception.exceptions`,
+		`exception.threads`,
+		`exception.framework`,
+		`lifecycle_app.type`,
+		`cold_launch.process_start_uptime`,
+		`cold_launch.process_start_requested_uptime`,
+		`cold_launch.content_provider_attach_uptime`,
+		`cold_launch.on_next_draw_uptime`,
+		`cold_launch.launched_activity`,
+		`cold_launch.has_saved_state`,
+		`cold_launch.intent_data`,
+		`cold_launch.duration`,
+		`warm_launch.app_visible_uptime`,
+		`warm_launch.process_start_uptime`,
+		`warm_launch.process_start_requested_uptime`,
+		`warm_launch.content_provider_attach_uptime`,
+		`warm_launch.on_next_draw_uptime`,
+		`warm_launch.launched_activity`,
+		`warm_launch.has_saved_state`,
+		`warm_launch.intent_data`,
+		`warm_launch.duration`,
+		`warm_launch.is_lukewarm`,
+		`hot_launch.app_visible_uptime`,
+		`hot_launch.on_next_draw_uptime`,
+		`hot_launch.launched_activity`,
+		`hot_launch.has_saved_state`,
+		`hot_launch.intent_data`,
+		`hot_launch.duration`,
+		`network_change.network_type`,
+		`network_change.previous_network_type`,
+		`network_change.network_generation`,
+		`network_change.previous_network_generation`,
+		`network_change.network_provider`,
+		`http.url`,
+		`http.method`,
+		`http.status_code`,
+		`http.start_time`,
+		`http.end_time`,
+		`http_request_headers`,
+		`http_response_headers`,
+		`http.request_body`,
+		`http.response_body`,
+		`http.failure_reason`,
+		`http.failure_description`,
+		`http.client`,
+		`cpu_usage.num_cores`,
+		`cpu_usage.clock_speed`,
+		`cpu_usage.start_time`,
+		`cpu_usage.uptime`,
+		`cpu_usage.utime`,
+		`cpu_usage.cutime`,
+		`cpu_usage.stime`,
+		`cpu_usage.cstime`,
+		`cpu_usage.interval`,
+		`cpu_usage.percentage_usage`,
+		`screen_view.name `,
+		`bug_report.description`,
+		`custom.name`,
+	}
+
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
+		cols = append(cols, []string{
+			`anr.fingerprint`,
+			`anr.foreground`,
+			`anr.exceptions`,
+			`anr.threads`,
+			`app_exit.reason`,
+			`app_exit.importance`,
+			`app_exit.trace`,
+			`app_exit.process_name`,
+			`app_exit.pid`,
+			`string.severity_text`,
+			`string.string`,
+			`lifecycle_activity.type`,
+			`lifecycle_activity.class_name`,
+			`lifecycle_activity.intent`,
+			`lifecycle_activity.saved_instance_state`,
+			`lifecycle_fragment.type`,
+			`lifecycle_fragment.class_name`,
+			`lifecycle_fragment.parent_activity`,
+			`lifecycle_fragment.parent_fragment`,
+			`lifecycle_fragment.tag`,
+			`memory_usage.java_max_heap`,
+			`memory_usage.java_total_heap`,
+			`memory_usage.java_free_heap`,
+			`memory_usage.total_pss`,
+			`memory_usage.rss`,
+			`memory_usage.native_total_heap`,
+			`memory_usage.native_free_heap`,
+			`memory_usage.interval`,
+			`low_memory.java_max_heap`,
+			`low_memory.java_total_heap`,
+			`low_memory.java_free_heap`,
+			`low_memory.total_pss`,
+			`low_memory.rss`,
+			`low_memory.native_total_heap`,
+			`low_memory.native_free_heap`,
+			`trim_memory.level`,
+			`navigation.to`,
+			`navigation.from`,
+			`navigation.source`,
+		}...)
+	case opsys.AppleFamily:
+		cols = append(cols, []string{
+			`exception.error`,
+			`lifecycle_view_controller.type`,
+			`lifecycle_view_controller.class_name`,
+			`lifecycle_swift_ui.type`,
+			`lifecycle_swift_ui.class_name`,
+			`memory_usage_absolute.max_memory`,
+			`memory_usage_absolute.used_memory`,
+			`memory_usage_absolute.interval`,
+		}...)
+	}
+
+	// We look up the app version from sessions_index table
+	// to speed up the query to fetch events for the session
+	//
+	// This allows us to stay on the fast binary search path
+	// using the table's native ORDER BY sequence.
+	stmt := sqlf.From("events_new").
+		With("session_app_version", sessionAppVersion)
+
+	defer stmt.Close()
+
+	for i := range cols {
+		stmt.Select(cols[i])
+	}
+
+	stmt.Where("team_id = toUUID(?)", a.TeamId)
+	stmt.Where("app_id = toUUID(?)", a.ID)
+	stmt.Where("attribute.app_version in (select app_version.1 from session_app_version)")
+	stmt.Where("attribute.app_build in (select app_version.2 from session_app_version)")
+	stmt.Where("timestamp >= (select start_time from session_app_version) and timestamp <= (select end_time from session_app_version)")
+	stmt.Where("session_id = toUUID(?)", sessionId)
+	stmt.OrderBy("timestamp")
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var session Session
+	var firstUserID string
+
+	for rows.Next() {
+		var ev event.EventField
+		var anr event.ANR
+		var exception event.Exception
+		var exceptionExceptions string
+		var exceptionThreads string
+		var anrExceptions string
+		var anrThreads string
+		var attachments string
+
+		var appExit event.AppExit
+		var logString event.LogString
+		var gestureLongClick event.GestureLongClick
+		var gestureClick event.GestureClick
+		var gestureScroll event.GestureScroll
+		var lifecycleActivity event.LifecycleActivity
+		var lifecycleFragment event.LifecycleFragment
+		var lifecycleApp event.LifecycleApp
+		var coldLaunch event.ColdLaunch
+		var warmLaunch event.WarmLaunch
+		var hotLaunch event.HotLaunch
+		var networkChange event.NetworkChange
+		var http event.Http
+		var memoryUsage event.MemoryUsage
+		var lowMemory event.LowMemory
+		var trimMemory event.TrimMemory
+		var cpuUsage event.CPUUsage
+		var navigation event.Navigation
+		var screenView event.ScreenView
+		var userDefAttr map[string][]any
+		var bugReport event.BugReport
+		var custom event.Custom
+
+		var coldLaunchDuration uint32
+		var warmLaunchDuration uint32
+		var hotLaunchDuration uint32
+
+		var exceptionError string
+		var lifecycleViewController event.LifecycleViewController
+		var lifecycleSwiftUI event.LifecycleSwiftUI
+		var memoryUsageAbs event.MemoryUsageAbs
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&session.SessionID,
+			&session.AppID,
+			&ev.IPv4,
+			&ev.IPv6,
+			&ev.CountryCode,
+			&ev.Timestamp,
+			&ev.UserTriggered,
+			&attachments,
+
+			// attribute
+			&ev.Attribute.InstallationID,
+			&ev.Attribute.AppVersion,
+			&ev.Attribute.AppBuild,
+			&ev.Attribute.AppUniqueID,
+			&ev.Attribute.Platform,
+			&ev.Attribute.MeasureSDKVersion,
+			&ev.Attribute.ThreadName,
+			&ev.Attribute.UserID,
+			&ev.Attribute.DeviceName,
+			&ev.Attribute.DeviceModel,
+			&ev.Attribute.DeviceManufacturer,
+			&ev.Attribute.DeviceType,
+			&ev.Attribute.DeviceIsFoldable,
+			&ev.Attribute.DeviceIsPhysical,
+			&ev.Attribute.DeviceDensityDPI,
+			&ev.Attribute.DeviceWidthPX,
+			&ev.Attribute.DeviceHeightPX,
+			&ev.Attribute.DeviceDensity,
+			&ev.Attribute.DeviceLocale,
+			&ev.Attribute.OSName,
+			&ev.Attribute.OSVersion,
+			&ev.Attribute.NetworkType,
+			&ev.Attribute.NetworkGeneration,
+			&ev.Attribute.NetworkProvider,
+
+			// user defined attributes
+			&userDefAttr,
+
+			// gesture long click
+			&gestureLongClick.Target,
+			&gestureLongClick.TargetID,
+			&gestureLongClick.TouchDownTime,
+			&gestureLongClick.TouchUpTime,
+			&gestureLongClick.Width,
+			&gestureLongClick.Height,
+			&gestureLongClick.X,
+			&gestureLongClick.Y,
+
+			// gesture click
+			&gestureClick.Target,
+			&gestureClick.TargetID,
+			&gestureClick.TouchDownTime,
+			&gestureClick.TouchUpTime,
+			&gestureClick.Width,
+			&gestureClick.Height,
+			&gestureClick.X,
+			&gestureClick.Y,
+
+			// gesture scroll
+			&gestureScroll.Target,
+			&gestureScroll.TargetID,
+			&gestureScroll.TouchDownTime,
+			&gestureScroll.TouchUpTime,
+			&gestureScroll.X,
+			&gestureScroll.Y,
+			&gestureScroll.EndX,
+			&gestureScroll.EndY,
+			&gestureScroll.Direction,
+
+			// excpetion
+			&exception.Handled,
+			&exception.Fingerprint,
+			&exception.Foreground,
+			&exceptionExceptions,
+			&exceptionThreads,
+			&exception.Framework,
+
+			// lifecycle app
+			&lifecycleApp.Type,
+
+			// cold launch
+			&coldLaunch.ProcessStartUptime,
+			&coldLaunch.ProcessStartRequestedUptime,
+			&coldLaunch.ContentProviderAttachUptime,
+			&coldLaunch.OnNextDrawUptime,
+			&coldLaunch.LaunchedActivity,
+			&coldLaunch.HasSavedState,
+			&coldLaunch.IntentData,
+			&coldLaunchDuration,
+
+			// warm launch
+			&warmLaunch.AppVisibleUptime,
+			&warmLaunch.ProcessStartUptime,
+			&warmLaunch.ProcessStartRequestedUptime,
+			&warmLaunch.ContentProviderAttachUptime,
+			&warmLaunch.OnNextDrawUptime,
+			&warmLaunch.LaunchedActivity,
+			&warmLaunch.HasSavedState,
+			&warmLaunch.IntentData,
+			&warmLaunchDuration,
+			&warmLaunch.IsLukewarm,
+
+			// hot launch
+			&hotLaunch.AppVisibleUptime,
+			&hotLaunch.OnNextDrawUptime,
+			&hotLaunch.LaunchedActivity,
+			&hotLaunch.HasSavedState,
+			&hotLaunch.IntentData,
+			&hotLaunchDuration,
+
+			// network change
+			&networkChange.NetworkType,
+			&networkChange.PreviousNetworkType,
+			&networkChange.NetworkGeneration,
+			&networkChange.PreviousNetworkGeneration,
+			&networkChange.NetworkProvider,
+
+			// http
+			&http.URL,
+			&http.Method,
+			&http.StatusCode,
+			&http.StartTime,
+			&http.EndTime,
+			&http.RequestHeaders,
+			&http.ResponseHeaders,
+			&http.RequestBody,
+			&http.ResponseBody,
+			&http.FailureReason,
+			&http.FailureDescription,
+			&http.Client,
+
+			// cpu usage
+			&cpuUsage.NumCores,
+			&cpuUsage.ClockSpeed,
+			&cpuUsage.StartTime,
+			&cpuUsage.Uptime,
+			&cpuUsage.UTime,
+			&cpuUsage.CUTime,
+			&cpuUsage.STime,
+			&cpuUsage.CSTime,
+			&cpuUsage.Interval,
+			&cpuUsage.PercentageUsage,
+
+			// screen view
+			&screenView.Name,
+
+			// bug report
+			&bugReport.Description,
+
+			// custom
+			&custom.Name,
+		}
+
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
+			dest = append(dest, []any{
+				// anr
+				&anr.Fingerprint,
+				&anr.Foreground,
+				&anrExceptions,
+				&anrThreads,
+
+				// app exit
+				&appExit.Reason,
+				&appExit.Importance,
+				&appExit.Trace,
+				&appExit.ProcessName,
+				&appExit.PID,
+
+				// log string
+				&logString.SeverityText,
+				&logString.String,
+
+				// lifecycle activity
+				&lifecycleActivity.Type,
+				&lifecycleActivity.ClassName,
+				&lifecycleActivity.Intent,
+				&lifecycleActivity.SavedInstanceState,
+
+				// lifecycle fragment
+				&lifecycleFragment.Type,
+				&lifecycleFragment.ClassName,
+				&lifecycleFragment.ParentActivity,
+				&lifecycleFragment.ParentFragment,
+				&lifecycleFragment.Tag,
+
+				// memory usage
+				&memoryUsage.JavaMaxHeap,
+				&memoryUsage.JavaTotalHeap,
+				&memoryUsage.JavaFreeHeap,
+				&memoryUsage.TotalPSS,
+				&memoryUsage.RSS,
+				&memoryUsage.NativeTotalHeap,
+				&memoryUsage.NativeFreeHeap,
+				&memoryUsage.Interval,
+
+				// low memory
+				&lowMemory.JavaMaxHeap,
+				&lowMemory.JavaTotalHeap,
+				&lowMemory.JavaFreeHeap,
+				&lowMemory.TotalPSS,
+				&lowMemory.RSS,
+				&lowMemory.NativeTotalHeap,
+				&lowMemory.NativeFreeHeap,
+
+				// trim memory
+				&trimMemory.Level,
+
+				// navigation
+				&navigation.To,
+				&navigation.From,
+				&navigation.Source,
+			}...)
+		case opsys.AppleFamily:
+			dest = append(dest, []any{
+				&exceptionError,
+				&lifecycleViewController.Type,
+				&lifecycleViewController.ClassName,
+				&lifecycleSwiftUI.Type,
+				&lifecycleSwiftUI.ClassName,
+				&memoryUsageAbs.MaxMemory,
+				&memoryUsageAbs.UsedMemory,
+				&memoryUsageAbs.Interval,
+			}...)
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		// Capture first non-empty user ID (add this after the scan)
+		if firstUserID == "" && ev.Attribute.UserID != "" {
+			firstUserID = ev.Attribute.UserID
+		}
+
+		// populate user defined attribute
+		if len(userDefAttr) > 0 {
+			ev.UserDefinedAttribute.Scan(userDefAttr)
+		}
+
+		switch ev.Type {
+		case event.TypeANR:
+			if err := json.Unmarshal([]byte(anrExceptions), &anr.Exceptions); err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
+			ev.ANR = &anr
+			session.Events = append(session.Events, ev)
+		case event.TypeException:
+			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
+				return nil, err
+			}
+
+			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
+				return nil, err
+			}
+
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
+
+			// for now, only unmarshal exception.error for Apple
+			// family of OSes. support can - of course, be extended
+			// to other OSes on a "need to" basis.
+			switch opsys.ToFamily(a.OSName) {
+			case opsys.AppleFamily:
+				fmt.Println("exceptionError", exceptionError)
+				if exceptionError != "" {
+					if err := json.Unmarshal([]byte(exceptionError), &exception.Error); err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			ev.Exception = &exception
+			session.Events = append(session.Events, ev)
+		case event.TypeAppExit:
+			ev.AppExit = &appExit
+			session.Events = append(session.Events, ev)
+		case event.TypeString:
+			ev.LogString = &logString
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureLongClick:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
+			ev.GestureLongClick = &gestureLongClick
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureClick:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
+			ev.GestureClick = &gestureClick
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureScroll:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
+			ev.GestureScroll = &gestureScroll
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleActivity:
+			ev.LifecycleActivity = &lifecycleActivity
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleFragment:
+			ev.LifecycleFragment = &lifecycleFragment
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleApp:
+			ev.LifecycleApp = &lifecycleApp
+			session.Events = append(session.Events, ev)
+		case event.TypeColdLaunch:
+			ev.ColdLaunch = &coldLaunch
+			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
+			session.Events = append(session.Events, ev)
+		case event.TypeWarmLaunch:
+			ev.WarmLaunch = &warmLaunch
+			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
+			session.Events = append(session.Events, ev)
+		case event.TypeHotLaunch:
+			ev.HotLaunch = &hotLaunch
+			ev.HotLaunch.Duration = time.Duration(hotLaunchDuration)
+			session.Events = append(session.Events, ev)
+		case event.TypeNetworkChange:
+			ev.NetworkChange = &networkChange
+			session.Events = append(session.Events, ev)
+		case event.TypeHttp:
+			ev.Http = &http
+			session.Events = append(session.Events, ev)
+		case event.TypeMemoryUsage:
+			ev.MemoryUsage = &memoryUsage
+			session.Events = append(session.Events, ev)
+		case event.TypeLowMemory:
+			ev.LowMemory = &lowMemory
+			session.Events = append(session.Events, ev)
+		case event.TypeTrimMemory:
+			ev.TrimMemory = &trimMemory
+			session.Events = append(session.Events, ev)
+		case event.TypeCPUUsage:
+			ev.CPUUsage = &cpuUsage
+			session.Events = append(session.Events, ev)
+		case event.TypeNavigation:
+			ev.Navigation = &navigation
+			session.Events = append(session.Events, ev)
+		case event.TypeScreenView:
+			ev.ScreenView = &screenView
+			session.Events = append(session.Events, ev)
+		case event.TypeBugReport:
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
+			ev.BugReport = &bugReport
+			session.Events = append(session.Events, ev)
+		case event.TypeCustom:
+			ev.Custom = &custom
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleViewController:
+			ev.LifecycleViewController = &lifecycleViewController
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleSwiftUI:
+			ev.LifecycleSwiftUI = &lifecycleSwiftUI
+			session.Events = append(session.Events, ev)
+		case event.TypeMemoryUsageAbs:
+			ev.MemoryUsageAbs = &memoryUsageAbs
+			session.Events = append(session.Events, ev)
+		default:
+			continue
+		}
+	}
+
+	// attach session's first event attribute
+	// as the session's attributes
+	if len(session.Events) > 0 {
+		attr := session.Events[0].Attribute
+		// Override with the first non-empty user ID we found
+		if firstUserID != "" {
+			attr.UserID = firstUserID
+		}
+		session.Attribute = &attr
+	}
+
+	return &session, nil
 }
 
 func NewApp(teamId uuid.UUID) *App {
@@ -6937,16 +6925,43 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := app.add()
+	tx, err := server.Server.PgPool.Begin(context.Background())
+	if err != nil {
+		msg := `failed to start transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer tx.Rollback(context.Background()) // Rollback if not committed
 
+	apiKey, err := app.add(tx)
 	if err != nil {
 		msg := "failed to create app"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-
 	app.APIKey = apiKey
+
+	// Create default config for the app
+	userUUID, _ := uuid.Parse(userId)
+	appUUID, _ := uuid.Parse(app.ID.String())
+
+	err = CreateConfig(c.Request.Context(), tx, teamId, appUUID, &userUUID)
+	if err != nil {
+		msg := "failed to create default config for app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		msg := "failed to commit transaction"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusCreated, app)
 }
@@ -7790,6 +7805,13 @@ func UpdateAppSettings(c *gin.Context) {
 	}
 
 	appSettings.RetentionPeriod = payload.RetentionPeriod
+
+	if appSettings.RetentionPeriod < 30 || appSettings.RetentionPeriod > 365 {
+		msg := `retention period must be between 30 and 365 days`
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
 
 	appSettings.update()
 
@@ -9096,4 +9118,113 @@ func GetAlertsOverview(c *gin.Context) {
 			"previous": previous,
 		},
 	})
+}
+
+func GetConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	GetConfigForDashboard(c, id)
+}
+
+func PatchConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	idParam := c.Param("id")
+
+	appId, err := uuid.Parse(idParam)
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = PatchConfigForApp(c, appId, userId)
+	if err != nil {
+		msg := "failed to update SDK config"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "config updated successfully"})
 }

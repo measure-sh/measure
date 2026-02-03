@@ -42,10 +42,12 @@ class DeleteScreenshotButton extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: materialTheme.colorScheme.surface.withValues(alpha: 0.9),
+          // ignore: deprecated_member_use
+          color: materialTheme.colorScheme.surface.withOpacity(0.9),
           shape: BoxShape.circle,
           border: Border.all(
-            color: materialTheme.colorScheme.outline.withValues(alpha: 0.3),
+            // ignore: deprecated_member_use
+            color: materialTheme.colorScheme.outline.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -58,8 +60,7 @@ class DeleteScreenshotButton extends StatelessWidget {
     );
   }
 
-  Widget _buildAndroidButton(
-      BuildContext context, BugReportTheme bugReportTheme) {
+  Widget _buildAndroidButton(BuildContext context, BugReportTheme bugReportTheme) {
     final materialTheme = Theme.of(context);
 
     return IconButton(
@@ -67,13 +68,15 @@ class DeleteScreenshotButton extends StatelessWidget {
       icon: const Icon(Icons.close),
       style: IconButton.styleFrom(
         backgroundColor:
-            materialTheme.colorScheme.surface.withValues(alpha: 0.9),
+            // ignore: deprecated_member_use
+            materialTheme.colorScheme.surface.withOpacity(0.9),
         foregroundColor: materialTheme.colorScheme.onSurface,
         padding: const EdgeInsets.all(4),
         minimumSize: const Size(28, 28),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         side: BorderSide(
-          color: materialTheme.colorScheme.outline.withValues(alpha: 0.3),
+          // ignore: deprecated_member_use
+          color: materialTheme.colorScheme.outline.withOpacity(0.3),
           width: 1,
         ),
       ),

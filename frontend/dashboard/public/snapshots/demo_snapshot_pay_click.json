@@ -1,0 +1,453 @@
+{
+    "label": "Checkout Screen",
+    "type": "container",
+    "x": 0,
+    "y": 0,
+    "width": 392,
+    "height": 812,
+    "scrollable": true,
+    "highlighted": false,
+    "children": [
+        {
+            "label": "Header Bar",
+            "type": "container",
+            "x": 0,
+            "y": 0,
+            "width": 392,
+            "height": 72,
+            "scrollable": false,
+            "highlighted": false,
+            "children": [
+                {
+                    "label": "Close Button",
+                    "type": "button",
+                    "x": 16,
+                    "y": 24,
+                    "width": 24,
+                    "height": 24,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Screen Title",
+                    "type": "text",
+                    "x": 146,
+                    "y": 24,
+                    "width": 100,
+                    "height": 24,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Points Balance",
+                    "type": "container",
+                    "x": 291,
+                    "y": 24,
+                    "width": 85,
+                    "height": 24,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                }
+            ]
+        },
+        {
+            "label": "Payment Method Card",
+            "type": "container",
+            "x": 16,
+            "y": 88,
+            "width": 360,
+            "height": 68,
+            "scrollable": false,
+            "highlighted": false,
+            "children": [
+                {
+                    "label": "Currency Flag Icon",
+                    "type": "image",
+                    "x": 32,
+                    "y": 106,
+                    "width": 32,
+                    "height": 32,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Payment Type Info",
+                    "type": "text",
+                    "x": 76,
+                    "y": 106,
+                    "width": 140,
+                    "height": 20,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Balance Amount",
+                    "type": "text",
+                    "x": 76,
+                    "y": 128,
+                    "width": 150,
+                    "height": 18,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Chevron Icon",
+                    "type": "image",
+                    "x": 344,
+                    "y": 114,
+                    "width": 16,
+                    "height": 16,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                }
+            ]
+        },
+        {
+            "label": "Discount Selection Section",
+            "type": "container",
+            "x": 16,
+            "y": 176,
+            "width": 360,
+            "height": 112,
+            "scrollable": false,
+            "highlighted": false,
+            "children": [
+                {
+                    "label": "Discount Section Title",
+                    "type": "text",
+                    "x": 16,
+                    "y": 176,
+                    "width": 200,
+                    "height": 24,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Discount Button Group",
+                    "type": "container",
+                    "x": 16,
+                    "y": 216,
+                    "width": 360,
+                    "height": 72,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": [
+                        {
+                            "label": "Discount Option 1",
+                            "type": "button",
+                            "x": 16,
+                            "y": 216,
+                            "width": 108,
+                            "height": 72,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": [
+                                {
+                                    "label": "Discount 1 Amount",
+                                    "type": "text",
+                                    "x": 35,
+                                    "y": 228,
+                                    "width": 70,
+                                    "height": 24,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                },
+                                {
+                                    "label": "Discount 1 Points",
+                                    "type": "text",
+                                    "x": 35,
+                                    "y": 256,
+                                    "width": 70,
+                                    "height": 20,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "label": "Discount Option 2",
+                            "type": "button",
+                            "x": 142,
+                            "y": 216,
+                            "width": 108,
+                            "height": 72,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": [
+                                {
+                                    "label": "Discount 2 Amount",
+                                    "type": "text",
+                                    "x": 161,
+                                    "y": 228,
+                                    "width": 70,
+                                    "height": 24,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                },
+                                {
+                                    "label": "Discount 2 Points",
+                                    "type": "text",
+                                    "x": 161,
+                                    "y": 256,
+                                    "width": 70,
+                                    "height": 20,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "label": "Discount Option 3",
+                            "type": "button",
+                            "x": 268,
+                            "y": 216,
+                            "width": 108,
+                            "height": 72,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": [
+                                {
+                                    "label": "Discount 3 Amount",
+                                    "type": "text",
+                                    "x": 287,
+                                    "y": 228,
+                                    "width": 70,
+                                    "height": 24,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                },
+                                {
+                                    "label": "Discount 3 Points",
+                                    "type": "text",
+                                    "x": 287,
+                                    "y": 256,
+                                    "width": 70,
+                                    "height": 20,
+                                    "scrollable": false,
+                                    "highlighted": false,
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "Order Section",
+            "type": "container",
+            "x": 16,
+            "y": 304,
+            "width": 360,
+            "height": 312,
+            "scrollable": false,
+            "highlighted": false,
+            "children": [
+                {
+                    "label": "Order Section Title",
+                    "type": "text",
+                    "x": 16,
+                    "y": 304,
+                    "width": 60,
+                    "height": 24,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": []
+                },
+                {
+                    "label": "Order Summary Card",
+                    "type": "container",
+                    "x": 16,
+                    "y": 344,
+                    "width": 360,
+                    "height": 72,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": [
+                        {
+                            "label": "Store Logo",
+                            "type": "image",
+                            "x": 32,
+                            "y": 360,
+                            "width": 40,
+                            "height": 40,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Summary Label",
+                            "type": "text",
+                            "x": 84,
+                            "y": 360,
+                            "width": 160,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Store Name",
+                            "type": "text",
+                            "x": 84,
+                            "y": 382,
+                            "width": 140,
+                            "height": 18,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Order Total",
+                            "type": "text",
+                            "x": 300,
+                            "y": 370,
+                            "width": 60,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Expand Icon",
+                            "type": "image",
+                            "x": 244,
+                            "y": 360,
+                            "width": 16,
+                            "height": 16,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "label": "Pay Row",
+                    "type": "container",
+                    "x": 16,
+                    "y": 432,
+                    "width": 360,
+                    "height": 52,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": [
+                        {
+                            "label": "Pay Label",
+                            "type": "text",
+                            "x": 32,
+                            "y": 448,
+                            "width": 40,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Pay Amount",
+                            "type": "text",
+                            "x": 300,
+                            "y": 448,
+                            "width": 60,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "label": "Earn Rate Row",
+                    "type": "container",
+                    "x": 16,
+                    "y": 500,
+                    "width": 360,
+                    "height": 52,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": [
+                        {
+                            "label": "Earn Rate Label",
+                            "type": "text",
+                            "x": 32,
+                            "y": 516,
+                            "width": 80,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Earn Rate Badge",
+                            "type": "container",
+                            "x": 300,
+                            "y": 512,
+                            "width": 60,
+                            "height": 28,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "label": "Points Earned Row",
+                    "type": "container",
+                    "x": 16,
+                    "y": 568,
+                    "width": 360,
+                    "height": 52,
+                    "scrollable": false,
+                    "highlighted": false,
+                    "children": [
+                        {
+                            "label": "Points Earned Label",
+                            "type": "text",
+                            "x": 32,
+                            "y": 584,
+                            "width": 140,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        },
+                        {
+                            "label": "Points Earned Amount",
+                            "type": "text",
+                            "x": 300,
+                            "y": 584,
+                            "width": 60,
+                            "height": 20,
+                            "scrollable": false,
+                            "highlighted": false,
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "Pay Button",
+            "type": "button",
+            "x": 16,
+            "y": 732,
+            "width": 360,
+            "height": 56,
+            "scrollable": false,
+            "highlighted": true,
+            "children": []
+        }
+    ]
+}

@@ -2,118 +2,379 @@
 //  ExporterTests.swift
 //  MeasureSDKTests
 //
-//  Created by Adwin Ross on 20/10/24.
+//  Created by Adwin Ross on 26/01/26.
 //
 
 import XCTest
 @testable import Measure
 
-final class BaseexporterTests: XCTestCase {
-    private var logger: MockLogger!
-    private var networkClient: MockNetworkClient!
-    private var batchCreator: MockBatchCreator!
-    private var batchStore: MockBatchStore!
-    private var eventStore: MockEventStore!
+final class BaseExporterTests: XCTestCase {
     private var exporter: BaseExporter!
+    private var network: MockNetworkClient!
+    private var http: MockHttpClient!
+    private var eventStore: MockEventStore!
     private var spanStore: MockSpanStore!
-    private var attachmentExporter: MockAttachmentExporter!
+    private var batchStore: MockBatchStore!
     private var attachmentStore: MockAttachmentStore!
+    private var sessionStore: MockSessionStore!
+    private var config: MockConfigProvider!
 
     override func setUp() {
         super.setUp()
-        logger = MockLogger()
-        networkClient = MockNetworkClient()
-        batchCreator = MockBatchCreator()
-        batchStore = MockBatchStore()
+
+        network = MockNetworkClient()
+        http = MockHttpClient()
         eventStore = MockEventStore()
         spanStore = MockSpanStore()
-        attachmentExporter = MockAttachmentExporter()
+        batchStore = MockBatchStore()
         attachmentStore = MockAttachmentStore()
+        sessionStore = MockSessionStore()
+        config = MockConfigProvider()
+
         exporter = BaseExporter(
-            logger: logger,
-            networkClient: networkClient,
-            batchCreator: batchCreator,
-            batchStore: batchStore,
+            logger: MockLogger(),
+            idProvider: MockIdProvider(),
+            dispatchQueue: DispatchQueue.main,
+            timeProvider: MockTimeProvider(),
+            networkClient: network,
+            httpClient: http,
             eventStore: eventStore,
             spanStore: spanStore,
+            batchStore: batchStore,
             attachmentStore: attachmentStore,
-            attachmentExporter: attachmentExporter
+            sessionStore: sessionStore,
+            configProvider: config
         )
     }
 
-    func test_exportBatchWithNoAttachments() {
-        let batchId = "batch1"
-        let eventIds = ["event1", "event2"]
-        let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
-
-        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
-            XCTAssertNotNil(response)
-            XCTAssertTrue(self.networkClient.executeCalled)
-            XCTAssertEqual(self.networkClient.executedBatchId, batchId)
-            XCTAssertEqual(self.networkClient.executedEvents.count, 2)
-            XCTAssertEqual(self.networkClient.executedEvents[0].id, "event1")
-            XCTAssertEqual(self.networkClient.executedEvents[1].id, "event2")
-        }
+    override func tearDown() {
+        exporter = nil
+        network = nil
+        http = nil
+        eventStore = nil
+        spanStore = nil
+        batchStore = nil
+        attachmentStore = nil
+        sessionStore = nil
+        config = nil
     }
 
-    func test_exportBatchNoEventsFound() {
-        let batchId = "batch1"
-        let eventIds = ["event-id"]
-        let spanIds = ["span-id"]
-
-        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
-            XCTAssertNil(response)
-            XCTAssertFalse(self.networkClient.executeCalled)
-        }
+    private func makeEvent(id: String, sessionId: String) -> EventEntity {
+        EventEntity(
+            id: id,
+            sessionId: sessionId,
+            timestamp: "t",
+            type: "custom",
+            exception: nil,
+            attachments: nil,
+            attributes: nil,
+            userDefinedAttributes: nil,
+            gestureClick: nil,
+            gestureLongClick: nil,
+            gestureScroll: nil,
+            userTriggered: false,
+            timestampInMillis: 1,
+            batchId: nil,
+            lifecycleApp: nil,
+            lifecycleViewController: nil,
+            lifecycleSwiftUI: nil,
+            cpuUsage: nil,
+            memoryUsage: nil,
+            coldLaunch: nil,
+            warmLaunch: nil,
+            hotLaunch: nil,
+            http: nil,
+            networkChange: nil,
+            customEvent: nil,
+            screenView: nil,
+            bugReport: nil,
+            sessionStartData: nil,
+            needsReporting: false
+        )
     }
 
-    func test_getExistingBatches() {
-        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1727272496000)
-        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1727272497000)
+    private func makeSpan(id: String, sessionId: String) -> SpanEntity {
+        let start: Int64 = 1
+        let end: Int64 = 2
 
-        batchStore.batches = [batch1, batch2]
-        exporter.getExistingBatches { batches in
-            XCTAssertEqual(batches.count, 2)
-            XCTAssertEqual(batches[0].eventIds, ["event1", "event2"])
-            XCTAssertEqual(batches[1].eventIds, ["event3", "event4"])
-        }
+        return SpanEntity(
+            name: "span",
+            traceId: "trace",
+            spanId: id,
+            parentId: nil,
+            sessionId: sessionId,
+            startTime: start,
+            startTimeString: "start",
+            endTime: end,
+            endTimeString: "end",
+            duration: end - start,
+            status: nil,
+            attributes: nil,
+            userDefinedAttrs: nil,
+            checkpoints: nil,
+            hasEnded: true,
+            isSampled: true,
+            batchId: nil
+        )
     }
 
-    func test_deleteEventsAndBatchOnSuccessfulExport() {
-        let batchId = "batch1"
-        let eventIds = ["event1", "event2"]
-        let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
+    func testSkipsExportWhenAlreadyRunning() {
+        exporter.export()
+        exporter.export()
 
-        networkClient.response = .success(body: "success")
-
-        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
-            XCTAssertNotNil(response)
-            XCTAssertTrue(self.eventStore.deleteEventsCalled)
-            XCTAssertEqual(self.eventStore.deletedEventIds, eventIds)
-            XCTAssertTrue(self.batchStore.deleteBatchCalled)
-            XCTAssertEqual(self.batchStore.deletedBatchId, batchId)
-        }
+        XCTAssertNil(network.lastBatchId)
     }
 
-    func test_deleteEventsAndBatchOnClientError() {
-        let batchId = "batch1"
-        let eventIds = ["event1", "event2"]
-        let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
+    func testExportsExistingBatch() {
+        network.executeResponse = .success(body: nil, eTag: nil)
 
-        networkClient.response = .error(.clientError(responseCode: 400, body: "error"))
+        let event = makeEvent(id: "e1", sessionId: "s1")
+        eventStore.insertEvent(event: event)
 
-        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
-            XCTAssertNotNil(response)
-            XCTAssertTrue(self.eventStore.deleteEventsCalled)
-            XCTAssertEqual(self.eventStore.deletedEventIds, eventIds)
-            XCTAssertTrue(self.batchStore.deleteBatchCalled)
-            XCTAssertEqual(self.batchStore.deletedBatchId, batchId)
+        let batch = BatchEntity(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0)
+        _ = batchStore.insertBatch(batch)
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.lastBatchId, "b1")
+            exp.fulfill()
         }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testDeletesBatchOnSuccess() {
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        let event = makeEvent(id: "e1", sessionId: "s1")
+        eventStore.insertEvent(event: event)
+
+        _ = batchStore.insertBatch(
+            BatchEntity(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0)
+        )
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            XCTAssertEqual(self.eventStore.getEventsCount(), 0)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testDoesNotDeleteBatchOnServerError() {
+        network.executeResponse = .error(.serverError(responseCode: 500, body: nil))
+
+        let event = makeEvent(id: "e1", sessionId: "s1")
+        eventStore.insertEvent(event: event)
+
+        _ = batchStore.insertBatch(
+            BatchEntity(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0)
+        )
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertNotNil(self.batchStore.getBatch("b1"))
+            XCTAssertEqual(self.eventStore.getEventsCount(), 1)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testUploadsAttachmentsAfterExport() {
+        let json = """
+        {"attachments":[{"id":"a1","type":"screenshot","filename":"layout_snapshot.png","upload_url":"https://example.com/a1","expires_at":"x","headers":{}}]}
+        """
+
+        network.executeResponse = .success(body: json, eTag: nil)
+        http.uploadResponse = .success(body: nil, eTag: nil)
+
+        let event = makeEvent(id: "e1", sessionId: "s1")
+        eventStore.insertEvent(event: event)
+
+        _ = batchStore.insertBatch(
+            BatchEntity(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0)
+        )
+
+        let imageData = Data([1, 2, 3])
+        let attachment = MsrUploadAttachment(
+            id: "a1",
+            name: "layout_snapshot.png",
+            type: .screenshot,
+            size: Number(imageData.count),
+            bytes: imageData,
+            path: nil,
+            uploadUrl: nil,
+            expiresAt: nil,
+            headers: nil
+        )
+
+        attachmentStore.insert(attachment: attachment, sessionId: "e1")
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertEqual(self.http.uploadedUrls.first?.absoluteString, "https://example.com/a1")
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testExportsExistingBatchesInOrder() {
+        network.executeResponse = .success(body: nil, eTag: nil)
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
+        
+        eventStore.insertEvent(event: makeEvent(id: "e2", sessionId: "s2"))
+        _ = batchStore.insertBatch(.init(batchId: "b2", eventIds: ["e2"], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.executedBatchIds, ["b1", "b2"])
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testExportsBatchWithEventsAndSpans() {
+        network.executeResponse = .success(body: nil, eTag: nil)
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        spanStore.insertSpan(span: makeSpan(id: "sp1", sessionId: "s1"))
+        
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: ["sp1"], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.lastEvents.count, 1)
+            XCTAssertEqual(self.network.lastSpans.count, 1)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testDeletesInvalidEmptyBatch() {
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: [], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testDeletesInvalidBatchWhenPacketsMissing() {
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["ghost"], spanIds: ["ghost"], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testHandlesNilResponseBodyGracefully() {
+        network.executeResponse = .success(body: nil, eTag: nil)
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testHandlesMalformedResponseBody() {
+        network.executeResponse = .success(body: "nope", eTag: nil)
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testDeletesBatchOnClientError() {
+        network.executeResponse = .error(.clientError(responseCode: 400, body: nil))
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func testDoesNotDeleteBatchOnUnknownError() {
+        network.executeResponse = .error(.unknownError("DummyError"))
+        
+        eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
+        _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
+        
+        let exp = expectation(description: "export")
+        
+        exporter.export()
+        
+        DispatchQueue.main.async {
+            XCTAssertNotNil(self.batchStore.getBatch("b1"))
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1)
     }
 }

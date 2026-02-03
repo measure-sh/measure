@@ -300,6 +300,16 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
+  - [GET `/teams/:id/config`](#get-teamsidconfig)
+    - [Usage Notes](#usage-notes-55)
+    - [Authorization \& Content Type](#authorization--content-type-53)
+    - [Response Body](#response-body-56)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
+  - [PATCH `/teams/:id/config`](#patch-teamsidconfig)
+    - [Usage Notes](#usage-notes-56)
+    - [Authorization \& Content Type](#authorization--content-type-54)
+    - [Response Body](#response-body-57)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
 
 ## Auth
 
@@ -6690,249 +6700,249 @@ The required headers must be present in each request.
 
   ```json
     [
-      {
-          "app_id": "b5417416-5b61-42c5-8e21-862e4b8c3b36",
-          "app_name": "Wikipedia",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 1374,
-                  "session_count": 0,
-                  "trace_count": 71,
-                  "span_count": 71
-              }
-          ]
-      },
-      {
-          "app_id": "8af8fb8e-e37a-4b56-82a0-905c12852240",
-          "app_name": "iOS Wikipedia",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 5907,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              }
-          ]
-      },
-      {
-          "app_id": "36213dc3-fb23-454f-be9f-94cb327a4823",
-          "app_name": "Flutter Sample iOS Debug",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 463,
-                  "session_count": 0,
-                  "trace_count": 6,
-                  "span_count": 10
-              }
-          ]
-      },
-      {
-          "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
-          "app_name": "Sample",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 5003,
-                  "session_count": 38,
-                  "trace_count": 407,
-                  "span_count": 518
-              }
-          ]
-      },
-      {
-          "app_id": "1156ec93-1e69-4952-a470-31af0de94497",
-          "app_name": "iOS Sample",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 2306,
-                  "session_count": 0,
-                  "trace_count": 32,
-                  "span_count": 32
-              }
-          ]
-      },
-      {
-          "app_id": "f220a1b1-0738-43be-820c-4225f7b12698",
-          "app_name": "Flutter Sample Android",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 196,
-                  "session_count": 0,
-                  "trace_count": 1,
-                  "span_count": 1
-              }
-          ]
-      },
-      {
-          "app_id": "816b93d6-1d01-45a9-81b8-e363dbdf314c",
-          "app_name": "Flutter Sample Android Debug",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 391,
-                  "session_count": 0,
-                  "trace_count": 7,
-                  "span_count": 11
-              }
-          ]
-      },
-      {
-          "app_id": "6ee68015-8da7-46fb-8afb-c25394e2bdf3",
-          "app_name": "Flutter Sample iOS",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 110,
-                  "session_count": 0,
-                  "trace_count": 3,
-                  "span_count": 3
-              }
-          ]
-      },
-      {
-          "app_id": "426c19c0-e0ef-4c82-a3e0-4802cf0e7bd1",
-          "app_name": "PocketCasts",
-          "monthly_app_usage": [
-              {
-                  "month_year": "Jun 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Jul 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              },
-              {
-                  "month_year": "Aug 2025",
-                  "event_count": 0,
-                  "session_count": 0,
-                  "trace_count": 0,
-                  "span_count": 0
-              }
-          ]
-      }
+    {
+        "app_id": "9c1e3825-87fc-47f8-921f-a6d2b5a3234f",
+        "app_name": "iOS Flutter Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 21,
+                "event_count": 5,
+                "span_count": 105
+            }
+        ]
+    },
+    {
+        "app_id": "91ab8e0c-5256-4f56-bd86-2f0b236571d6",
+        "app_name": "Android Debug Flutter Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 5,
+                "event_count": 4,
+                "span_count": 387
+            }
+        ]
+    },
+    {
+        "app_id": "d5130515-6032-4f99-9e86-724640fb25f6",
+        "app_name": "Android PocketCasts",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            }
+        ]
+    },
+    {
+        "app_id": "5952c302-0e9f-4a00-98c4-f4e6106faedc",
+        "app_name": "Android Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 38,
+                "launch_time_count": 386,
+                "event_count": 73,
+                "span_count": 4892
+            }
+        ]
+    },
+    {
+        "app_id": "a167a4f2-ce8e-4e72-9a3a-58ced02c0b7c",
+        "app_name": "iOS Debug Flutter Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 59,
+                "event_count": 10,
+                "span_count": 453
+            }
+        ]
+    },
+    {
+        "app_id": "d7291629-0f14-4fe1-8f90-a29e88c7d2c2",
+        "app_name": "iOS Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 195,
+                "event_count": 33,
+                "span_count": 2273
+            }
+        ]
+    },
+    {
+        "app_id": "15ef4b62-c66e-4bed-a042-af1d3b80f1e5",
+        "app_name": "iOS Wikipedia",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 258,
+                "event_count": 54,
+                "span_count": 5853
+            }
+        ]
+    },
+    {
+        "app_id": "cbbacb45-f789-4b8e-88e5-a6125998ef62",
+        "app_name": "Android Flutter Sample",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 1,
+                "event_count": 5,
+                "span_count": 191
+            }
+        ]
+    },
+    {
+        "app_id": "80f1908f-7dbc-45e2-8845-2a20908aab04",
+        "app_name": "Android Wikipedia",
+        "monthly_app_usage": [
+            {
+                "month_year": "Nov 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Dec 2025",
+                "session_count": 0,
+                "launch_time_count": 0,
+                "event_count": 0,
+                "span_count": 0
+            },
+            {
+                "month_year": "Jan 2026",
+                "session_count": 0,
+                "launch_time_count": 95,
+                "event_count": 9,
+                "span_count": 1365
+            }
+        ]
+    }
   ]
   ```
 
@@ -7072,9 +7082,10 @@ The required headers must be present in each request.
     <summary>Click to expand</summary>
 
   ```json
-  {
-    "ok" : "done"
-  }
+    {
+      "slack_team_name":"Measure",
+      "is_active":true
+    }
   ```
 
   </details>
@@ -7155,6 +7166,168 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/config`
+
+Fetch an app's config.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "max_events_in_batch": 1000,
+    "crash_timeline_duration": 300,
+    "anr_timeline_duration": 300,
+    "bug_report_timeline_duration": 300,
+    "trace_sampling_rate": 0.001,
+    "journey_sampling_rate": 0.001,
+    "screenshot_mask_level": "all_text",
+    "cpu_usage_interval": 5,
+    "memory_usage_interval": 5,
+    "crash_take_screenshot": true,
+    "anr_take_screenshot": true,
+    "launch_sampling_rate": 1,
+    "gesture_click_take_snapshot": true,
+    "http_disable_event_for_urls": [],
+    "http_track_request_for_urls": [],
+    "http_track_response_for_urls": [],
+    "http_blocked_headers": []
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### PATCH `/apps/:id/config`
+
+Update an app's config using a PATCH request.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- One or more config fields must be passed in the request body. Only the fields present in the request body will be updated.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Request
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    {
+      screenshot_mask_level: "all_text"
+    }
+  ```
+
+  </details>
+
+- Response
+  <details>
+    <summary>Click to expand</summary>
+    
+    ```json
+    {
+      "message":"config updated successfully"
+    }
+    ```
+  </details>
+
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 
