@@ -293,7 +293,7 @@ app_metrics_new_table=$(
   cat <<'EOF'
 create or replace table app_metrics_new
 (
-    `team_id` LowCardinality(UUID) CODEC(LZ4),
+    `team_id` LowCardinality(UUID) comment 'associated team id' CODEC(LZ4),
     `app_id` LowCardinality(UUID) comment 'associated app id' CODEC(LZ4),
     `timestamp` DateTime64(3, 'UTC') comment 'interval metrics will be aggregated to' CODEC(DoubleDelta, ZSTD(3)),
     `app_version` Tuple(
