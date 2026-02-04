@@ -332,6 +332,8 @@ create or replace table journey_new
   `type` LowCardinality(String) comment 'type of the event' CODEC(ZSTD(3)),
   `app_version` Tuple(LowCardinality(String), LowCardinality(String)) comment 'app version identifier' CODEC(ZSTD(3)),
   `exception.handled` Bool comment 'exception was handled by application code' CODEC(ZSTD(3)),
+  `exception.fingerprint` String comment 'fingerprint for exception similarity classification' CODEC(ZSTD(3)),
+  `anr.fingerprint` String comment 'fingerprint for ANR similarity classification' CODEC(ZSTD(3)),
   `lifecycle_activity.type` LowCardinality(String) comment 'type of the lifecycle activity, either - created, resumed, paused, destroyed' CODEC(ZSTD(3)),
   `lifecycle_activity.class_name` String comment 'fully qualified class name of the activity' CODEC(ZSTD(3)),
   `lifecycle_fragment.type` LowCardinality(String) comment 'type of the lifecycle fragment, either - attached, resumed, paused, detached' CODEC(ZSTD(3)),
@@ -346,7 +348,8 @@ create or replace table journey_new
 )
 engine = ReplacingMergeTree
 partition by toYYYYMM(timestamp)
-order by (team_id, app_id, app_version.1, app_version.2, timestamp)
+order by (team_id, app_id, app_version.1, app_version.2, timestamp, id)
+settings index_granularity = 8192
 comment 'journey events';
 EOF
 )
@@ -922,6 +925,8 @@ as select
   type,
   (attribute.app_version, attribute.app_build) as app_version,
   exception.handled,
+  exception.fingerprint,
+  anr.fingerprint,
   lifecycle_activity.type,
   lifecycle_activity.class_name,
   lifecycle_fragment.type,
@@ -1408,7 +1413,7 @@ EOF
 }
 
 # connect to cloud database
-USE_CLOUD=0
+USE_CLOUD=1
 
 # replay chunk size
 CHUNK_SIZE=10000
@@ -1419,19 +1424,21 @@ fi
 
 # list of partitions to migrate
 # PARTITIONS=(202509 202510 202511 202512 202601)
-PARTITIONS=(202511)
+PARTITIONS=(202601)
 
 clickhouse_query() {
   local admin_user
   local admin_password
   local dbname
 
-  admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
-  admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
+  # admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
+  # admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
+  admin_user="app_admin"
+  admin_password="Da2a-5Up8R.nRJXks5RiFL-jr"
   dbname=measure
 
   if [[ "$USE_CLOUD" -eq 1 ]]; then
-    host="mfntp88uzl.us-central1.gcp.clickhouse.cloud"
+    host="pa5ct2shp1.us-central1.gcp.clickhouse.cloud"
     clickhouse_client \
       --user "$admin_user" \
       --password "$admin_password" \
@@ -1495,11 +1502,6 @@ create_resources() {
   echo "  ✔ Create new unhandled exception groups"
   clickhouse_query --query "$unhandled_exception_groups_new_table"
 
-  # echo "  ✔ Create new unhandled exception groups index"
-  # clickhouse_query --query "$unhandled_exception_groups_index_new_table"
-  # clickhouse_query --query "drop table if exists unhandled_exception_groups_index_new_mv sync"
-  # clickhouse_query --query "$(unhandled_exception_groups_index_mv 'unhandled_exception_groups_index_new_mv' 'events_new' 'unhandled_exception_groups_index_new')"
-
   echo "  ✔ Create new anr groups"
   clickhouse_query --query "$anr_groups_new_table"
 
@@ -1539,7 +1541,7 @@ replay_events() {
     for part in "${PARTITIONS[@]}"; do
       echo "  ✔ Starting partition $part"
 
-      local offset=0
+      local offset=280000000
       while true; do
         local chunk_count
         chunk_count=$(clickhouse_query --query "
@@ -1591,7 +1593,7 @@ replay_events() {
           limit $CHUNK_SIZE offset $offset
           settings
             min_insert_block_size_rows = 10484490,
-            max_block_size = 100000,
+            max_block_size = 1000000,
             max_threads = 16
         "; then
           echo "  ✗ Insert failed at offset $offset in partition $part"
@@ -2200,8 +2202,8 @@ count_rows() {
 check_base_dir
 set_docker_compose
 
-echo "Create resources..."
-create_resources
+# echo "Create resources..."
+# create_resources
 
 echo
 echo "Replay data..."
