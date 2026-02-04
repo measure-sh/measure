@@ -46,7 +46,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
     const getSessionTimelinesOverview = async () => {
         updatePageState({ sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus.Loading })
 
-        const result = await fetchSessionTimelinesOverviewFromServer(pageState.filters, null, null, paginationLimit, pageState.paginationOffset)
+        const result = await fetchSessionTimelinesOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
             case SessionTimelinesOverviewApiStatus.Error:

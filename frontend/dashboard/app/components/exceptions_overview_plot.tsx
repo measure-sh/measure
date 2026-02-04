@@ -20,14 +20,12 @@ type ExceptionsOverviewPlot = {
     id: string
     x: string
     y: number
-    instances: number
   }[]
 }[]
 
 const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ exceptionsType, filters }) => {
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsOverviewPlot>()
-  const [pointIdToInstanceMap, setPointIdToInstanceMap] = useState(new Map<String, number>())
   const { theme } = useTheme()
 
   const getExceptionsOverviewPlot = async () => {
@@ -56,21 +54,11 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           data: item.data.map((data: any, index: number) => ({
             id: item.id + '.' + index,
             x: data.datetime,
-            y: exceptionsType === ExceptionsType.Crash ? data.crash_free_sessions : data.anr_free_sessions,
-            instances: data.instances
+            y: data.instances
           }))
         }))
 
-        // create map of point id to instance count for use in custom tooltip
-        let newPointIdToInstanceMap = new Map<String, number>()
-        newPlot.forEach((item: any) => {
-          item.data.forEach((subItem: any) => {
-            newPointIdToInstanceMap.set(subItem.id, subItem.instances)
-          })
-        })
-
         setPlot(newPlot)
-        setPointIdToInstanceMap(newPointIdToInstanceMap)
         break
     }
   }
@@ -120,7 +108,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
             tickSize: 1,
             tickPadding: 5,
             format: value => Number.isInteger(value) ? value : '',
-            legend: exceptionsType === ExceptionsType.Crash ? '% Crash free sessions ' : '% ANR free sessions',
+            legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
             legendOffset: -80,
             legendPosition: 'middle'
           }}
@@ -151,7 +139,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
                     <div className="px-2" />
                     <p>{point.serieId.toString()} - </p>
                     <div className="px-2" />
-                    <p>{point.data.yFormatted}% {exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} free sessions, {pointIdToInstanceMap.get(point.id)} {exceptionsType === ExceptionsType.Crash ? (pointIdToInstanceMap.get(point.id)! > 1 ? 'Crashes' : 'Crash') : (pointIdToInstanceMap.get(point.id)! > 1 ? 'ANRs' : 'ANR')} </p>
+                    <p>{point.data.y.toString()} {point.data.y.valueOf() as number > 1 ? 'instances' : 'instance'}</p>
                   </div>
                 ))}
               </div>

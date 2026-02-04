@@ -1128,9 +1128,10 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     })),
   }
 
+  // we always include app versions regardless of whether all are selected for more efficient filtering on backend
   const bodyFilters: any = {
-    versions: filters.versions.all ? [] : filters.versions.selected.map((v) => v.name),
-    version_codes: filters.versions.all ? [] : filters.versions.selected.map((v) => v.code),
+    versions: filters.versions.selected.map((v) => v.name),
+    version_codes: filters.versions.selected.map((v) => v.code),
     os_names: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.name),
     os_versions: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.version),
     countries: filters.countries.all ? [] : filters.countries.selected,
@@ -1170,8 +1171,6 @@ export const saveListFiltersToServer = async (filters: Filters) => {
 async function applyGenericFiltersToUrl(
   url: string,
   filters: Filters,
-  keyId: string | null,
-  keyTimestamp: string | null,
   limit: number | null,
   offset: number | null,
 ) {
@@ -1238,16 +1237,6 @@ async function applyGenericFiltersToUrl(
   // Append free text if present
   if (filters.freeText !== "") {
     searchParams.append("free_text", filters.freeText)
-  }
-
-  // Append keyId if present
-  if (keyId !== null) {
-    searchParams.append("key_id", keyId)
-  }
-
-  // Append keyTimestamp if present
-  if (keyTimestamp !== null) {
-    searchParams.append("key_timestamp", keyTimestamp)
   }
 
   // Append limit if present
@@ -1349,7 +1338,7 @@ export const fetchSpansFromServer = async (
 ) => {
   var url = `/api/apps/${filters.app!.id}/spans?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1369,7 +1358,7 @@ export const fetchSpansFromServer = async (
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1569,7 +1558,7 @@ export const fetchJourneyFromServer = async (
   // Append bidirectional value
   url = url + `bigraph=${bidirectional ? "1&" : "0&"}`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1589,7 +1578,7 @@ export const fetchJourneyFromServer = async (
 export const fetchMetricsFromServer = async (filters: Filters) => {
   let url = `/api/apps/${filters.app!.id}/metrics?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1608,8 +1597,6 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
 
 export const fetchSessionTimelinesOverviewFromServer = async (
   filters: Filters,
-  keyId: string | null,
-  keyTimestamp: string | null,
   limit: number,
   offset: number,
 ) => {
@@ -1618,8 +1605,6 @@ export const fetchSessionTimelinesOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(
     url,
     filters,
-    keyId,
-    keyTimestamp,
     limit,
     offset,
   )
@@ -1642,7 +1627,7 @@ export const fetchSessionTimelinesOverviewFromServer = async (
 export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1666,8 +1651,8 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filte
 export const fetchExceptionsOverviewFromServer = async (
   exceptionsType: ExceptionsType,
   filters: Filters,
-  keyId: string | null,
   limit: number,
+  offset: number,
 ) => {
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
@@ -1676,7 +1661,7 @@ export const fetchExceptionsOverviewFromServer = async (
     url = `/api/apps/${filters.app!.id}/anrGroups?`
   }
 
-  url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit, null)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1697,9 +1682,8 @@ export const fetchExceptionsDetailsFromServer = async (
   exceptionsType: ExceptionsType,
   exceptionsGroupdId: string,
   filters: Filters,
-  keyId: string | null,
-  keyTimestamp: string | null,
   limit: number,
+  offset: number,
 ) => {
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
@@ -1711,10 +1695,8 @@ export const fetchExceptionsDetailsFromServer = async (
   url = await applyGenericFiltersToUrl(
     url,
     filters,
-    keyId,
-    keyTimestamp,
     limit,
-    null,
+    offset,
   )
 
   try {
@@ -1771,7 +1753,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (
     url = `/api/apps/${filters.app!.id}/anrGroups/plots/instances?`
   }
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1804,7 +1786,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (
     url = `/api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
   }
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1837,7 +1819,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (
     url = `/api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
   }
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2340,7 +2322,7 @@ export const fetchBugReportsOverviewFromServer = async (
 ) => {
   var url = `/api/apps/${filters.app!.id}/bugReports?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2362,7 +2344,7 @@ export const fetchBugReportsOverviewPlotFromServer = async (
 ) => {
   var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2440,7 +2422,7 @@ export const fetchAlertsOverviewFromServer = async (
 ) => {
   var url = `/api/apps/${filters.app!.id}/alerts?`
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
     const res = await measureAuth.fetchMeasure(url)

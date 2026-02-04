@@ -151,10 +151,11 @@ interface PageState {
   exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
   filters: typeof defaultFilters
   exceptionsDetails: typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
-  keyId: string | null
-  keyTimestamp: string | null
-  limit: number
+  paginationOffset: number
 }
+
+const paginationLimit = 1
+const paginationOffsetUrlKey = "po"
 
 interface ExceptionsDetailsProps {
   exceptionsType?: ExceptionsType,
@@ -179,18 +180,11 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const keyIdUrlKey = "kId"
-  const keyTimestampUrlKey = "kTs"
-  const paginationLimitUrlKey = "pl"
-  const defaultPaginationLimit = 1
-
   const initialState: PageState = {
     exceptionsDetailsApiStatus: demo ? ExceptionsDetailsApiStatus.Success : ExceptionsDetailsApiStatus.Loading,
     filters: defaultFilters,
     exceptionsDetails: demo ? demoExceptionDetails : (exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse),
-    keyId: searchParams.get('keyId') || null,
-    keyTimestamp: searchParams.get('keyTimestamp') || null,
-    limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 1
+    paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
   }
 
   const [pageState, setPageState] = useState<PageState>(initialState)
@@ -207,7 +201,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const getExceptionsDetails = async () => {
     updatePageState({ exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Loading })
 
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, pageState.filters, paginationLimit, pageState.paginationOffset)
 
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:
@@ -223,36 +217,22 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+    // update filters only if they have changed
     if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters,
-        keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? searchParams.get(keyIdUrlKey) : pageState.keyId,
-        keyTimestamp: pageState.filters.serialisedFilters && searchParams.get(keyTimestampUrlKey) ? searchParams.get(keyTimestampUrlKey) : pageState.keyTimestamp,
-        limit: pageState.filters.serialisedFilters && searchParams.get(paginationLimitUrlKey) ? defaultPaginationLimit : pageState.limit
+        // Reset pagination on filters change if previous filters were not default filters
+        paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
       })
     }
   }
 
   const handleNextPage = () => {
-    if (pageState.exceptionsDetails.results?.length > 0) {
-      const currentItem = pageState.exceptionsDetails.results[0]
-      updatePageState({
-        keyId: currentItem.id,
-        keyTimestamp: currentItem.timestamp,
-        limit: defaultPaginationLimit
-      })
-    }
+    updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
   }
 
   const handlePrevPage = () => {
-    if (pageState.exceptionsDetails.results?.length > 0) {
-      const currentItem = pageState.exceptionsDetails.results[0]
-      updatePageState({
-        keyId: currentItem.id,
-        keyTimestamp: currentItem.timestamp,
-        limit: -defaultPaginationLimit
-      })
-    }
+    updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
   }
 
   useEffect(() => {
@@ -261,17 +241,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
     }
 
     // update url
-    const queryParams = [
-      pageState.keyId ? `keyId=${encodeURIComponent(pageState.keyId)}` : '',
-      pageState.keyTimestamp ? `keyTimestamp=${encodeURIComponent(pageState.keyTimestamp)}` : '',
-      `limit=${pageState.limit}`,
-      pageState.filters.serialisedFilters || ''
-    ].filter(Boolean).join('&')
-
-    router.replace(`?${queryParams}`, { scroll: false })
+    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
 
     getExceptionsDetails()
-  }, [pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit])
+  }, [pageState.paginationOffset, pageState.filters])
 
   return (
     <div className="flex flex-col items-start">

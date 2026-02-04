@@ -309,8 +309,8 @@ describe('ExceptionsDetails Component - Crashes', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check URL update with limit and filters
-        expect(replaceMock).toHaveBeenCalledWith('?limit=1&updated', { scroll: false })
+        // Check URL update with po (pagination offset) and filters
+        expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
 
         // Verify main UI components are rendered
         expect(screen.getByTestId('exceptions-details-plot-mock')).toBeInTheDocument()
@@ -459,8 +459,27 @@ describe('ExceptionsDetails Component - Crashes', () => {
         expect(replaceMock).toHaveBeenCalledTimes(1)
     })
 
-    describe('Pagination handling', () => {
-        it('updates keyId and keyTimestamp when Next is clicked', async () => {
+    describe('Pagination offset handling', () => {
+        it('initializes pagination offset to 0 when no offset is provided', async () => {
+            render(
+                <ExceptionsDetails
+                    exceptionsType={ExceptionsType.Crash}
+                    teamId="123"
+                    appId="app1"
+                    exceptionsGroupId="exception1"
+                    exceptionsGroupName="NullPointerException@MainActivity.java"
+                />
+            )
+
+            const updateButton = screen.getByTestId('update-filters')
+            await act(async () => {
+                fireEvent.click(updateButton)
+            })
+
+            expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
+        })
+
+        it('increments pagination offset when Next is clicked', async () => {
             render(
                 <ExceptionsDetails
                     exceptionsType={ExceptionsType.Crash}
@@ -481,11 +500,11 @@ describe('ExceptionsDetails Component - Crashes', () => {
                 fireEvent.click(nextButton)
             })
 
-            // The keyId should be set to the ID of the first item in results
-            expect(replaceMock).toHaveBeenLastCalledWith('?keyId=exception1&keyTimestamp=2020-01-01T00%3A00%3A00Z&limit=1&updated', { scroll: false })
+            // The pagination limit is 1 so offset should be 1.
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=1&updated', { scroll: false })
         })
 
-        it('updates keyId and keyTimestamp when Prev is clicked', async () => {
+        it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
             render(
                 <ExceptionsDetails
                     exceptionsType={ExceptionsType.Crash}
@@ -500,21 +519,31 @@ describe('ExceptionsDetails Component - Crashes', () => {
             await act(async () => {
                 fireEvent.click(updateButton)
             })
+
+            const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=1&updated', { scroll: false })
 
             const prevButton = await screen.findByTestId('prev-button')
             await act(async () => {
                 fireEvent.click(prevButton)
             })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
 
-            expect(replaceMock).toHaveBeenLastCalledWith('?keyId=exception1&keyTimestamp=2020-01-01T00%3A00%3A00Z&limit=-1&updated', { scroll: false })
+            await act(async () => {
+                fireEvent.click(prevButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
         })
 
-        it('resets pagination parameters when filters change', async () => {
-            // Override useSearchParams to simulate initial parameters
+        it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
+            // Override useSearchParams to simulate an initial offset.
             const { useSearchParams } = jest.requireActual('next/navigation')
             const useSearchParamsSpy = jest
                 .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?keyId=previousKey&keyTimestamp=previousTs&limit=1'))
+                .mockReturnValue(new URLSearchParams('?po=5'))
 
             render(
                 <ExceptionsDetails
@@ -527,19 +556,26 @@ describe('ExceptionsDetails Component - Crashes', () => {
             )
 
             const updateButton = screen.getByTestId('update-filters')
+            // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
                 fireEvent.click(updateButton)
             })
-            expect(replaceMock).toHaveBeenCalledWith('?keyId=previousKey&keyTimestamp=previousTs&limit=1&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
 
-            // Now simulate a filter change with a different value
+            // Click Next to further increment the offset.
+            const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=6&updated', { scroll: false })
+
+            // Now simulate a filter change with a different value.
             const updateButton2 = screen.getByTestId('update-filters-2')
             await act(async () => {
                 fireEvent.click(updateButton2)
+                await new Promise(resolve => setTimeout(resolve, 0))
             })
-
-            // Should keep the keyId and keyTimestamp from URL
-            expect(replaceMock).toHaveBeenLastCalledWith('?keyId=previousKey&keyTimestamp=previousTs&limit=1&updated2', { scroll: false })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
             useSearchParamsSpy.mockRestore()
         })
     })
