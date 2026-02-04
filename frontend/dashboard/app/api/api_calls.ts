@@ -1128,9 +1128,10 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     })),
   }
 
+  // we always include app versions regardless of whether all are selected for more efficient filtering on backend
   const bodyFilters: any = {
-    versions: filters.versions.all ? [] : filters.versions.selected.map((v) => v.name),
-    version_codes: filters.versions.all ? [] : filters.versions.selected.map((v) => v.code),
+    versions: filters.versions.selected.map((v) => v.name),
+    version_codes: filters.versions.selected.map((v) => v.code),
     os_names: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.name),
     os_versions: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.version),
     countries: filters.countries.all ? [] : filters.countries.selected,
