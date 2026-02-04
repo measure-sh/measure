@@ -23,7 +23,6 @@ import (
 	"backend/api/metrics"
 	"backend/api/numeric"
 	"backend/api/opsys"
-	"backend/api/paginate"
 	"backend/api/server"
 	"backend/api/session"
 	"backend/api/span"
@@ -37,10 +36,6 @@ import (
 	"github.com/leporo/sqlf"
 	"golang.org/x/sync/errgroup"
 )
-
-// appMetricsTable is the name of the table for app's
-// metrics.
-const appMetricsTable = "app_metrics_new final"
 
 type App struct {
 	ID           *uuid.UUID `json:"id"`
@@ -178,86 +173,6 @@ func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *
 	return
 }
 
-// GetExceptionGroup queries a single exception group by its id.
-func (a App) GetExceptionGroupTwo(ctx context.Context, id string, af *filter.AppFilter) (exceptionGroup *group.ExceptionGroup, err error) {
-	teamId, err := ambient.TeamId(ctx)
-	if err != nil {
-		return
-	}
-
-	table := "unhandled_exception_groups_new final"
-
-	mergedStmt := sqlf.
-		From(table).
-		Select("app_id").
-		Select("id").
-		Select("type").
-		Select("message").
-		Select("method_name").
-		Select("file_name").
-		Select("line_number").
-		Select("updated_at").
-		Select("sumMerge(count) as count").
-		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", a.ID).
-		Where("app_version.1 in ?", af.Versions).
-		Where("app_version.2 in ?", af.VersionCodes).
-		Where("id = ?", id).
-		GroupBy("app_id").
-		GroupBy("id").
-		GroupBy("type").
-		GroupBy("message").
-		GroupBy("method_name").
-		GroupBy("file_name").
-		GroupBy("line_number").
-		GroupBy("updated_at")
-
-	if af.HasOSVersions() {
-		mergedStmt.Select("groupUniqArrayMerge(os_versions) as os_versions")
-	}
-
-	stmt := sqlf.
-		With("merged", mergedStmt).
-		From("merged").
-		Select("app_id").
-		Select("id").
-		Select("type").
-		Select("message").
-		Select("method_name").
-		Select("file_name").
-		Select("line_number").
-		Select("updated_at").
-		Select("count")
-
-	if af.HasOSVersions() {
-		osVersions, errOSVersions := af.OSVersionPairs()
-		if errOSVersions != nil {
-			err = errOSVersions
-			return
-		}
-
-		stmt.Where("hasAll(os_versions, [?])", osVersions.Parameterize())
-	}
-
-	defer stmt.Close()
-
-	exceptionGroup = &group.ExceptionGroup{}
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
-		&exceptionGroup.AppID,
-		&exceptionGroup.ID,
-		&exceptionGroup.Type,
-		&exceptionGroup.Message,
-		&exceptionGroup.MethodName,
-		&exceptionGroup.FileName,
-		&exceptionGroup.LineNumber,
-		&exceptionGroup.UpdatedAt,
-		&exceptionGroup.Count); err != nil {
-		return
-	}
-
-	return
-}
-
 // GetExceptionGroupPlotInstances computes crash instances of the exception group.
 func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
 	if af.Timezone == "" {
@@ -339,117 +254,9 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 	return
 }
 
-func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
-	stmt := sqlf.
-		From("unhandled_exception_groups as g final").
-		Select("g.app_id").
-		Select("g.id").
-		Select(`g.type`).
-		Select(`g.message`).
-		Select(`g.method_name`).
-		Select(`g.file_name`).
-		Select(`g.line_number`).
-		Select("g.updated_at").
-		Select("count(e.id) as event_count").
-		Clause("prewhere g.app_id = toUUID(?)", a.ID).
-		LeftJoin("events as e final", "g.id = e.exception.fingerprint").
-		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
-		Where("e.type = ?", event.TypeException).
-		Where("e.exception.handled = false").
-		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
-		Having("event_count > 0")
-
-	defer stmt.Close()
-
-	if len(af.Versions) > 0 {
-		stmt.Where("e.attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
-	}
-
-	if len(af.OsNames) > 0 {
-		stmt.Where("e.attribute.os_name").In(af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		stmt.Where("e.attribute.os_version").In(af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		stmt.Where("e.inet.country_code").In(af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		stmt.Where("e.attribute.device_locale").In(af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
-			Select("event_id id").
-			Where("app_id = toUUID(?)", af.AppID).
-			Where("exception = true")
-		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-	}
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-
-	if err = rows.Err(); err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var g group.ExceptionGroup
-		if err = rows.Scan(
-			&g.AppID,
-			&g.ID,
-			&g.Type,
-			&g.Message,
-			&g.MethodName,
-			&g.FileName,
-			&g.LineNumber,
-			&g.UpdatedAt,
-			&g.Count,
-		); err != nil {
-			return
-		}
-
-		groups = append(groups, g)
-	}
-
-	return
-}
-
 // GetExceptionGroupsWithFilter fetches exception groups
 // of an app.
-func (a App) GetExceptionGroupsWithFilterTwo(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
+func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
 	stmt := sqlf.
 		From("unhandled_exception_groups_new final").
 		Select("app_id").
@@ -1245,8 +1052,8 @@ func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint strin
 	return
 }
 
-// GetANRGroups fetches ANR groups of an app.
-func (a App) GetANRGroupsWithFilterTwo(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
+// GetANRGroupsWithFilter fetches ANR groups of an app.
+func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
 	stmt := sqlf.
 		From("anr_groups_new final").
 		Select("app_id").
@@ -1368,110 +1175,6 @@ func (a App) GetANRGroupsWithFilterTwo(ctx context.Context, af *filter.AppFilter
 	if af.Offset > 0 {
 		previous = true
 	}
-	return
-}
-
-// GetANRGroups returns slice of ANRGroup of an app.
-func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
-	stmt := sqlf.
-		From("anr_groups as g final").
-		Select("g.app_id").
-		Select("g.id").
-		Select(`g.type`).
-		Select(`g.message`).
-		Select(`g.method_name`).
-		Select(`g.file_name`).
-		Select(`g.line_number`).
-		Select("g.updated_at").
-		Select("count(e.id) as event_count").
-		Clause("prewhere g.app_id = toUUID(?)", a.ID).
-		LeftJoin("events as e final", "g.id = e.anr.fingerprint").
-		Where("e.timestamp >= ? and e.timestamp <= ?", af.From, af.To).
-		Where("e.type = ?", event.TypeANR).
-		GroupBy("g.app_id, g.id, g.type, g.message, g.method_name, g.file_name, g.line_number, g.updated_at").
-		Having("event_count > 0")
-
-	defer stmt.Close()
-
-	if len(af.Versions) > 0 {
-		stmt.Where("e.attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("e.attribute.app_build").In(af.VersionCodes)
-	}
-
-	if len(af.OsNames) > 0 {
-		stmt.Where("e.attribute.os_name").In(af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		stmt.Where("e.attribute.os_version").In(af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		stmt.Where("e.inet.country_code").In(af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		stmt.Where("e.attribute.device_name").In(af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("e.attribute.device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		stmt.Where("e.attribute.device_locale").In(af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		stmt.Where("e.attribute.network_provider").In(af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		stmt.Where("e.attribute.network_type").In(af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("e.attribute.network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("user_def_attrs").
-			Select("event_id id").
-			Where("app_id = toUUID(?)", af.AppID).
-			Where("anr = true")
-		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
-	}
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var g group.ANRGroup
-		if err = rows.Scan(
-			&g.AppID,
-			&g.ID,
-			&g.Type,
-			&g.Message,
-			&g.MethodName,
-			&g.FileName,
-			&g.LineNumber,
-			&g.UpdatedAt,
-			&g.Count,
-		); err != nil {
-			return
-		}
-
-		groups = append(groups, g)
-	}
-
 	return
 }
 
@@ -1694,7 +1397,7 @@ func (a App) GetIssueFreeMetrics(
 		return
 	}
 
-	stmt := sqlf.From(appMetricsTable).
+	stmt := sqlf.From(config.AppMetricsTable).
 		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
@@ -1865,7 +1568,7 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 		return
 	}
 
-	stmt := sqlf.From(appMetricsTable).
+	stmt := sqlf.From(config.AppMetricsTable).
 		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMerge(unique_sessions) as all_sessions").
 		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
@@ -1893,7 +1596,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 
 	selectedVersions, err := af.VersionPairs()
 
-	withStmt := sqlf.From(appMetricsTable).
+	withStmt := sqlf.From(config.AppMetricsTable).
 		Select("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (?)) as cold_launch_p95", selectedVersions.Parameterize()).
 		Select("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (?)) as warm_launch_p95", selectedVersions.Parameterize()).
 		Select("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (?)) as hot_launch_p95", selectedVersions.Parameterize()).
@@ -1909,7 +1612,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
 		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
 		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
-		From(appMetricsTable).
+		From(config.AppMetricsTable).
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -5506,34 +5209,14 @@ func GetCrashOverview(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "crashes_list")
 
-	paging := c.Query("paging")
-	var crashGroups []group.ExceptionGroup
-	var next, previous bool
-
-	switch paging {
-	case "offset":
-		crashGroups, next, previous, err = app.GetExceptionGroupsWithFilterTwo(ctx, &af)
-		if err != nil {
-			msg := "failed to get app's exception groups with filter"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-	default:
-		crashGroups, err = app.GetExceptionGroupsWithFilter(ctx, &af)
-		if err != nil {
-			msg := "failed to get app's exception groups with filter"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-		group.ComputeCrashContribution(crashGroups)
-		group.SortExceptionGroups(crashGroups)
-		crashGroups, next, previous = paginate.Paginate(crashGroups, &af)
+	crashGroups, next, previous, err := app.GetExceptionGroupsWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's exception groups with filter"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	meta := gin.H{
@@ -5656,7 +5339,6 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	app.TeamId = *team.ID
 	ctx = ambient.WithTeamId(ctx, *team.ID)
 
-	only := c.Query("only")
 	var crashInstances []event.IssueInstance
 
 	lc := logcomment.New(2)
@@ -5666,28 +5348,14 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 
-	switch only {
-	case "instances":
-		crashInstances, err = app.GetExceptionPlotInstances(ctx, &af)
-		if err != nil {
-			msg := `failed to query exception instances`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-	default:
-		crashInstances, err = GetExceptionPlotInstances(ctx, &af)
-		if err != nil {
-			msg := `failed to query exception instances`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
+	crashInstances, err = app.GetExceptionPlotInstances(ctx, &af)
+	if err != nil {
+		msg := `failed to query exception instances`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	type instance struct {
@@ -5824,12 +5492,6 @@ func GetCrashDetailCrashes(c *gin.Context) {
 
 	app.TeamId = *team.ID
 
-	// use newer offset based pagination if requested
-	// otherwise fallback to older keyset based pagination
-	paging := c.Query("paging")
-	var next, previous bool
-	var eventExceptions []event.EventException
-
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
@@ -5837,27 +5499,14 @@ func GetCrashDetailCrashes(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
 
-	switch paging {
-	case "offset":
-		eventExceptions, next, previous, err = app.GetExceptionsWithFilter(ctx, crashGroupId, &af)
-		if err != nil {
-			msg := `failed to get exception group's exception events`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-	default:
-		eventExceptions, next, previous, err = GetExceptionsWithFilter(ctx, crashGroupId, &af)
-		if err != nil {
-			msg := `failed to get exception group's exception events`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
+	eventExceptions, next, previous, err := app.GetExceptionsWithFilter(ctx, crashGroupId, &af)
+	if err != nil {
+		msg := `failed to get exception group's exception events`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	// set appropriate attachment URLs
@@ -6286,32 +5935,14 @@ func GetANROverview(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anrs_list")
 
-	paging := c.Query("paging")
-	var anrGroups []group.ANRGroup
-	var next, previous bool
-
-	switch paging {
-	case "offset":
-		anrGroups, next, previous, err = app.GetANRGroupsWithFilterTwo(ctx, &af)
-		if err != nil {
-			msg := "failed to get app's anr groups matching filter"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-	default:
-		anrGroups, err = app.GetANRGroupsWithFilter(ctx, &af)
-		if err != nil {
-			msg := "failed to get app's anr groups matching filter"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-		group.ComputeANRContribution(anrGroups)
-		group.SortANRGroups(anrGroups)
-		anrGroups, next, previous = paginate.Paginate(anrGroups, &af)
+	anrGroups, next, previous, err := app.GetANRGroupsWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's anr groups matching filter"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	meta := gin.H{
@@ -6433,9 +6064,6 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 	app.TeamId = *team.ID
 	ctx = ambient.WithTeamId(ctx, *team.ID)
 
-	only := c.Query("only")
-	var anrInstances []event.IssueInstance
-
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
@@ -6443,28 +6071,14 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
 
-	switch only {
-	case "instances":
-		anrInstances, err = app.GetANRPlotInstances(ctx, &af)
-		if err != nil {
-			msg := `failed to query exception instances`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-	default:
-		anrInstances, err = GetANRPlotInstances(ctx, &af)
-		if err != nil {
-			msg := `failed to query exception instances`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
+	anrInstances, err := app.GetANRPlotInstances(ctx, &af)
+	if err != nil {
+		msg := `failed to query exception instances`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	type instance struct {
@@ -6607,12 +6221,6 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	app.TeamId = *team.ID
 
-	// use newer offset based pagination if requested
-	// otherwise fallback to older keyset based pagination
-	paging := c.Query("paging")
-	var next, previous bool
-	var eventANRs []event.EventANR
-
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
@@ -6620,27 +6228,14 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
 
-	switch paging {
-	case "offset":
-		eventANRs, next, previous, err = app.GetANRsWithFilter(ctx, anrGroupId, &af)
-		if err != nil {
-			msg := `failed to get anr group's anr events`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-	default:
-		eventANRs, next, previous, err = GetANRsWithFilter(ctx, anrGroupId, &af)
-		if err != nil {
-			msg := `failed to get anr group's anr events`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
+	eventANRs, next, previous, err := app.GetANRsWithFilter(ctx, anrGroupId, &af)
+	if err != nil {
+		msg := `failed to get anr group's anr events`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	// set appropriate attachment URLs

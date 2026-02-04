@@ -12,3 +12,7 @@ const AppFiltersTable = "app_filters_new final"
 // SpanFiltersTable is the name of the table for span
 // filters.
 const SpanFiltersTable = "span_filters final"
+
+// AppMetricsTable is the name of the table for app's
+// metrics.
+const AppMetricsTable = "app_metrics_new final"

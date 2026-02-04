@@ -13,12 +13,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/blang/semver/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -160,19 +158,9 @@ type AppFilter struct {
 	// a bug report to be filtered on.
 	BugReportStatuses []int8 `form:"bug_report_statuses"`
 
-	// Deprecated: Use Limit/Offset for paging.
-	// KeyID is the anchor point for keyset
-	// pagination.
-	KeyID string `form:"key_id"`
-
 	// FreeText is a free form text string that can be used
 	// to filter over logs, exceptions, events etc
 	FreeText string `form:"free_text"`
-
-	// Deprecated: Use Limit/Offset for paging.
-	// KeyTimestamp is the anchor point for
-	// keyset pagination.
-	KeyTimestamp time.Time `form:"key_timestamp"`
 
 	// Limit is the count of matching rows to
 	// return.
@@ -225,12 +213,6 @@ type FilterList struct {
 	DeviceNames         []string          `json:"device_names"`
 	UDKeyTypes          []event.UDKeyType `json:"ud_keytypes"`
 	UDExpressionRaw     string            `json:"ud_expression"`
-}
-
-// Versions represents a list of
-// (version, code) pairs.
-type Versions struct {
-	names, codes []string
 }
 
 // ExtendLimit extends the limit by one
@@ -436,6 +418,12 @@ func (af *AppFilter) Validate() error {
 	return nil
 }
 
+// HasUDExpression returns true if a user
+// defined expression was requested.
+func (af *AppFilter) HasUDExpression() bool {
+	return af.UDExpressionRaw != "" && af.UDExpression != nil
+}
+
 // ValidateVersions validates presence of valid
 // version name and version code.
 func (af AppFilter) ValidateVersions() error {
@@ -480,12 +468,6 @@ func (af AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], e
 // appropriately set.
 func (af AppFilter) HasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
-}
-
-// HasKeyset checks if key id and key timestamp
-// values are present and valid.
-func (af AppFilter) HasKeyset() bool {
-	return af.hasKeyID() && af.hasKeyTimestamp()
 }
 
 // HasPositiveLimit checks if limit is greater
@@ -576,12 +558,6 @@ func (af AppFilter) HasSpanStatuses() bool {
 // one bug report statuses are requested.
 func (af AppFilter) HasBugReportStatuses() bool {
 	return len(af.BugReportStatuses) > 0
-}
-
-// HasUDExpression returns true if a user
-// defined expression was requested.
-func (af *AppFilter) HasUDExpression() bool {
-	return af.UDExpressionRaw != "" && af.UDExpression != nil
 }
 
 // LimitAbs returns the absolute value of limit
@@ -796,20 +772,6 @@ func (af AppFilter) GetUserDefinedAttrKeys(ctx context.Context, fl *FilterList) 
 	}
 
 	return
-}
-
-// Deprecated: Use limit/offset for paging.
-// hasKeyID checks if key id is a valid non-empty
-// value.
-func (af AppFilter) hasKeyID() bool {
-	return af.KeyID != ""
-}
-
-// Deprecated: Use limit/offset for paging.
-// hasKeyTimestamp checks if key timestamp is a valid non-empty
-// value.
-func (af AppFilter) hasKeyTimestamp() bool {
-	return !time.Time.IsZero(af.KeyTimestamp)
 }
 
 // getAppVersions finds distinct pairs of app versions &
@@ -1382,113 +1344,6 @@ func (af AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions,
 	}
 
 	versions = exclude(allVersions, allCodes, af.Versions, af.VersionCodes)
-
-	return
-}
-
-// Add adds a version name and code pair
-// to versions.
-func (v *Versions) Add(name, code string) {
-	v.names = append(v.names, name)
-	v.codes = append(v.codes, code)
-}
-
-// SemverSortByVersionDesc sorts version names in
-// descending semver order keeping version code in
-// lock-step with version name.
-// Assumes version name is valid semver.
-func (v *Versions) SemverSortByVersionDesc() (err error) {
-	if len(v.names) < 1 {
-		return
-	}
-
-	type pair struct {
-		ver  semver.Version
-		name string
-		code string
-	}
-
-	pairs := make([]pair, len(v.names))
-
-	for i, name := range v.names {
-		semver, err := semver.Parse(name)
-		if err != nil {
-			return err
-		}
-		pairs[i] = pair{
-			ver:  semver,
-			name: name,
-			code: v.codes[i],
-		}
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].ver.GT(pairs[j].ver)
-	})
-
-	sortedNames := make([]string, len(pairs))
-	sortedCodes := make([]string, len(pairs))
-
-	for i, p := range pairs {
-		sortedNames[i] = p.name
-		sortedCodes[i] = p.code
-	}
-
-	v.names = sortedNames
-	v.codes = sortedCodes
-
-	return
-}
-
-// IsValidSemver determines if all version names
-// adhere to semver specification.
-func (v Versions) IsValidSemver() bool {
-	if len(v.names) < 1 {
-		return false
-	}
-
-	for _, name := range v.names {
-		if _, err := semver.Parse(name); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
-// HasVersions returns true if at least
-// 1 (version, code) pair exists.
-func (v Versions) HasVersions() bool {
-	return len(v.names) > 0
-}
-
-// Versions gets the version names.
-func (v Versions) Versions() []string {
-	return v.names
-}
-
-// Codes gets the version codes.
-func (v Versions) Codes() []string {
-	return v.codes
-}
-
-// exclude figures out the set of excluded versions
-// from sets of all versions and sets of selected
-// versions.
-func exclude(allV, allC, selV, selC []string) (versions Versions) {
-	selCount := make(map[string]int)
-	for i := range selV {
-		key := selV[i] + "\x00" + selC[i]
-		selCount[key]++
-	}
-
-	for i := range allV {
-		key := allV[i] + "\x00" + allC[i]
-		if selCount[key] > 0 {
-			selCount[key]--
-			continue
-		}
-		versions.Add(allV[i], allC[i])
-	}
 
 	return
 }
