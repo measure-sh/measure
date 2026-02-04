@@ -54,6 +54,26 @@ type ANRGroup struct {
 	UpdatedAt  time.Time        `json:"updated_at" db:"updated_at"`
 }
 
+// unique deduplicates the source slice of
+// string.
+func unique(source []string) []string {
+	if len(source) == 0 {
+		return []string{}
+	}
+
+	seen := make(map[string]struct{}, len(source))
+	result := make([]string, 0, len(source))
+
+	for _, s := range source {
+		if _, exists := seen[s]; !exists {
+			seen[s] = struct{}{}
+			result = append(result, s)
+		}
+	}
+
+	return result
+}
+
 // GetId provides the exception's
 // Id.
 func (e ExceptionGroup) GetId() string {
@@ -214,6 +234,136 @@ func SortANRGroups(groups []ANRGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		return groups[i].Count > groups[j].Count
 	})
+}
+
+// GetExceptionGroupsFromFingerprints fetches exception groups
+// matched by app filter(s) & exception fingerprint.
+func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, input []string) (exceptionGroups []ExceptionGroup, err error) {
+	fingerprints := unique(input)
+
+	if len(fingerprints) == 0 {
+		return
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.
+		From("unhandled_exception_groups_new final").
+		Select("id").
+		Select("any(type) as type").
+		Select("any(message) as message").
+		Select("any(method_name) as method_name").
+		Select("any(file_name) as file_name").
+		Select("any(line_number) as line_number").
+		Select("sumMerge(count) as count").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	defer stmt.Close()
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	stmt.Where("id").In(fingerprints)
+	stmt.GroupBy("id")
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var exceptionGroup ExceptionGroup
+
+		if err = rows.Scan(
+			&exceptionGroup.ID,
+			&exceptionGroup.Type,
+			&exceptionGroup.Message,
+			&exceptionGroup.MethodName,
+			&exceptionGroup.FileName,
+			&exceptionGroup.LineNumber,
+			&exceptionGroup.Count,
+		); err != nil {
+			return
+		}
+
+		exceptionGroups = append(exceptionGroups, exceptionGroup)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// GetANRGroupsFromFingerprints fetches ANR groups
+// matched by app filter(s) & ANR fingerprint.
+func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, input []string) (anrGroups []ANRGroup, err error) {
+	fingerprints := unique(input)
+
+	if len(fingerprints) == 0 {
+		return
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.
+		From("anr_groups_new final").
+		Select("id").
+		Select("any(type) as type").
+		Select("any(message) as message").
+		Select("any(method_name) as method_name").
+		Select("any(file_name) as file_name").
+		Select("any(line_number) as line_number").
+		Select("sumMerge(count) as count").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	defer stmt.Close()
+
+	if af.HasVersions() {
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	}
+
+	stmt.Where("id").In(fingerprints)
+	stmt.GroupBy("id")
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var anrGroup ANRGroup
+
+		if err = rows.Scan(
+			&anrGroup.ID,
+			&anrGroup.Type,
+			&anrGroup.Message,
+			&anrGroup.MethodName,
+			&anrGroup.FileName,
+			&anrGroup.LineNumber,
+			&anrGroup.Count,
+		); err != nil {
+			return
+		}
+
+		anrGroups = append(anrGroups, anrGroup)
+	}
+
+	err = rows.Err()
+
+	return
 }
 
 // GetExceptionGroupsFromExceptionIds gets exception groups

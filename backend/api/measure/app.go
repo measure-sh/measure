@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"backend/api/ambient"
+	"backend/api/config"
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
@@ -3478,6 +3479,9 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Select(`type`).
 		Select(`timestamp`).
 		Select(`session_id`).
+		Select(`screen_view.name`).
+		Select(`exception.fingerprint`).
+		Select(`anr.fingerprint`).
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID)
 
@@ -3504,8 +3508,6 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`lifecycle_swift_ui.type`).
 			Select(`lifecycle_swift_ui.class_name`)
 	}
-
-	stmt.Select(`screen_view.name`)
 
 	if opts.All {
 		switch opsys.ToFamily(a.OSName) {
@@ -3578,12 +3580,17 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleSwiftUIType string
 		var lifecycleSwiftUIClassName string
 		var screenViewName string
+		var exceptionFingerprint string
+		var anrFingerprint string
 
 		dest := []any{
 			&ev.ID,
 			&ev.Type,
 			&ev.Timestamp,
 			&ev.SessionID,
+			&screenViewName,
+			&exceptionFingerprint,
+			&anrFingerprint,
 		}
 
 		switch opsys.ToFamily(a.OSName) {
@@ -3596,7 +3603,6 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentClassName,
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
-				&screenViewName,
 			)
 		case opsys.AppleFamily:
 			dest = append(
@@ -3605,7 +3611,6 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleViewControllerClassName,
 				&lifecycleSwiftUIType,
 				&lifecycleSwiftUIClassName,
-				&screenViewName,
 			)
 		}
 
@@ -3640,9 +3645,13 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				Name: screenViewName,
 			}
 		} else if ev.IsException() {
-			ev.Exception = &event.Exception{}
+			ev.Exception = &event.Exception{
+				Fingerprint: exceptionFingerprint,
+			}
 		} else if ev.IsANR() {
-			ev.ANR = &event.ANR{}
+			ev.ANR = &event.ANR{
+				Fingerprint: anrFingerprint,
+			}
 		}
 
 		events = append(events, ev)
@@ -4700,6 +4709,8 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
+	ctx = ambient.WithTeamId(ctx, *team.ID)
+
 	msg = `failed to compute app's journey`
 	opts := filter.JourneyOpts{
 		All: true,
@@ -4744,7 +4755,7 @@ func GetAppJourney(c *gin.Context) {
 	type Issue struct {
 		ID    string `json:"id"`
 		Title string `json:"title"`
-		Count int    `json:"count"`
+		Count uint64 `json:"count"`
 	}
 
 	type Node struct {
@@ -4768,48 +4779,66 @@ func GetAppJourney(c *gin.Context) {
 
 	switch j := journeyGraph.(type) {
 	case *journey.JourneyAndroid:
-		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-			// do not hit database if no event ids
-			// to query
-			if len(eventIds) == 0 {
-				return
-			}
+		// if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		// 	// do not hit database if no event ids
+		// 	// to query
+		// 	if len(eventIds) == 0 {
+		// 		return
+		// 	}
 
-			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
+		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
 
-			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-			if err != nil {
-				return
-			}
+		// 	exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+		// 	if err != nil {
+		// 		return
+		// 	}
 
-			return
-		}); err != nil {
+		// 	return
+		// }); err != nil {
+		// 	fmt.Println(msg, err)
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": msg,
+		// 	})
+		// 	return
+		// }
+
+		// if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+		// 	// do not hit database if no event ids
+		// 	// to query
+		// 	if len(eventIds) == 0 {
+		// 		return
+		// 	}
+
+		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups_from_ids")
+
+		// 	anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
+		// 	if err != nil {
+		// 		return
+		// 	}
+
+		// 	return
+		// }); err != nil {
+		// 	fmt.Println(msg, err)
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": msg,
+		// 	})
+		// 	return
+		// }
+
+		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+				"error":   msg,
+				"details": err.Error(),
 			})
 			return
 		}
 
-		if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
-			// do not hit database if no event ids
-			// to query
-			if len(eventIds) == 0 {
-				return
-			}
-
-			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups_from_ids")
-
-			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
-			if err != nil {
-				return
-			}
-
-			return
-		}); err != nil {
+		if err := j.SetANRGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+				"error":   msg,
+				"details": err.Error(),
 			})
 			return
 		}
@@ -4835,7 +4864,8 @@ func GetAppJourney(c *gin.Context) {
 				issue := Issue{
 					ID:    exceptionGroups[i].ID,
 					Title: exceptionGroups[i].GetDisplayTitle(),
-					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+					// Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+					Count: exceptionGroups[i].Count,
 				}
 				crashes = append(crashes, issue)
 			}
@@ -4852,7 +4882,8 @@ func GetAppJourney(c *gin.Context) {
 				issue := Issue{
 					ID:    anrGroups[i].ID,
 					Title: anrGroups[i].GetDisplayTitle(),
-					Count: j.GetNodeANRCount(v, anrGroups[i].ID),
+					// Count: j.GetNodeANRCount(v, anrGroups[i].ID),
+					Count: anrGroups[i].Count,
 				}
 				anrs = append(anrs, issue)
 			}
@@ -4870,25 +4901,34 @@ func GetAppJourney(c *gin.Context) {
 			nodes = append(nodes, node)
 		}
 	case *journey.JourneyiOS:
-		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-			// do not hit database if no event ids
-			// to query
-			if len(eventIds) == 0 {
-				return
-			}
+		// if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		// 	// do not hit database if no event ids
+		// 	// to query
+		// 	if len(eventIds) == 0 {
+		// 		return
+		// 	}
 
-			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
+		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
 
-			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-			if err != nil {
-				return
-			}
+		// 	exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+		// 	if err != nil {
+		// 		return
+		// 	}
 
-			return
-		}); err != nil {
+		// 	return
+		// }); err != nil {
+		// 	fmt.Println(msg, err)
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": msg,
+		// 	})
+		// 	return
+		// }
+
+		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+				"error":   msg,
+				"details": err.Error(),
 			})
 			return
 		}
@@ -4914,7 +4954,8 @@ func GetAppJourney(c *gin.Context) {
 				issue := Issue{
 					ID:    exceptionGroups[i].ID,
 					Title: exceptionGroups[i].GetDisplayTitle(),
-					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+					// Count: uint64(j.GetNodeExceptionCount(v, exceptionGroups[i].ID)),
+					Count: exceptionGroups[i].Count,
 				}
 				crashes = append(crashes, issue)
 			}
@@ -5078,7 +5119,9 @@ func GetAppMetrics(c *gin.Context) {
 	metricsGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "adoption")
 
@@ -5096,7 +5139,9 @@ func GetAppMetrics(c *gin.Context) {
 	metricsGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "issue_free")
 
@@ -5111,7 +5156,9 @@ func GetAppMetrics(c *gin.Context) {
 	metricsGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "launch")
 
@@ -5127,7 +5174,9 @@ func GetAppMetrics(c *gin.Context) {
 		metricsGroup.Go(func() (err error) {
 			lc := logcomment.New(2)
 			settings := clickhouse.Settings{
-				"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+				"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
+				"use_query_cache": gin.Mode() == gin.ReleaseMode,
+				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 			}
 			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sizes")
 

@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/ambient"
+	"backend/api/config"
 	"backend/api/event"
 	"backend/api/logcomment"
 	"backend/api/opsys"
@@ -37,17 +38,6 @@ const MaxPaginationLimit = 1000
 // DefaultPaginationLimit is the number of items used
 // as default for paginating items.
 const DefaultPaginationLimit = 10
-
-// defaultQueryCacheTTL is the default query cache
-// TTL duration.
-const defaultQueryCacheTTL = time.Minute * 10
-
-// appFiltersTable is the name of the for event filters.
-const appFiltersTable = "app_filters_new final"
-
-// spanFiltersTable is the name of the table for span
-// filters.
-const spanFiltersTable = "span_filters final"
 
 // Operator represents a comparison operator
 // like `eq` for `equal` or `gte` for `greater
@@ -618,7 +608,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			// not at session level.
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache for 10 mins
-			"query_cache_ttl":   int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":   int(config.DefaultQueryCacheTTL.Seconds()),
 			"force_primary_key": gin.Mode() == gin.DebugMode,
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
@@ -639,7 +629,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 
@@ -659,7 +649,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
 
@@ -678,7 +668,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
 
@@ -697,7 +687,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
 
@@ -716,7 +706,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
 
@@ -735,7 +725,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
 
@@ -754,7 +744,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
 
@@ -773,7 +763,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
 
@@ -828,10 +818,10 @@ func (af AppFilter) hasKeyTimestamp() bool {
 // Additionally, filters for `exception` and `anr` event
 // types.
 func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -902,10 +892,10 @@ func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getOSVersions(ctx context.Context) (osNames, osVersions []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -958,10 +948,10 @@ func (af AppFilter) getOSVersions(ctx context.Context) (osNames, osVersions []st
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1010,10 +1000,10 @@ func (af AppFilter) getCountries(ctx context.Context) (countries []string, err e
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1062,10 +1052,10 @@ func (af AppFilter) getNetworkProviders(ctx context.Context) (networkProviders [
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1114,10 +1104,10 @@ func (af AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string,
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1169,10 +1159,10 @@ func (af AppFilter) getNetworkGenerations(ctx context.Context) (networkGeneratio
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1221,10 +1211,10 @@ func (af AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []strin
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)
@@ -1273,10 +1263,10 @@ func (af AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufactu
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
-	table := appFiltersTable
+	table := config.AppFiltersTable
 
 	if af.Span {
-		table = spanFiltersTable
+		table = config.SpanFiltersTable
 	}
 
 	teamId, err := ambient.TeamId(ctx)

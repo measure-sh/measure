@@ -2,8 +2,10 @@ package journey
 
 import (
 	"backend/api/event"
+	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/set"
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -72,6 +74,9 @@ type JourneyiOS struct {
 	// edges where keys look like "v->w"
 	// pointing to a UUID set.
 	metalut map[string]*set.UUIDSet
+
+	exceptionGroups map[string]*group.ExceptionGroup
+	anrGroups       map[string]*group.ANRGroup
 
 	// options is the journey's options
 	options *Options
@@ -275,6 +280,36 @@ func (j *JourneyiOS) SetNodeExceptionGroups(iterator func(eventIds []uuid.UUID) 
 
 		j.nodelut[k].exceptionGroups = exceptionGroups
 	}
+	return
+}
+
+func (j *JourneyiOS) SetExceptionGroups(ctx context.Context, af *filter.AppFilter) (err error) {
+	fingerprints := make([]string, 0, len(j.exceptionGroups))
+	for k := range j.exceptionGroups {
+		fingerprints = append(fingerprints, k)
+	}
+
+	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, af, fingerprints)
+	if err != nil {
+		return
+	}
+
+	for i := range groups {
+		j.exceptionGroups[groups[i].ID] = &groups[i]
+	}
+
+	for k := range j.nodelut {
+		for i := range groups {
+			for _, fingerprint := range j.nodelut[k].exceptionFingerprints {
+				if groups[i].ID == fingerprint && !slices.ContainsFunc(j.nodelut[k].exceptionGroups, func(g group.ExceptionGroup) bool {
+					return g.ID == groups[i].ID
+				}) {
+					j.nodelut[k].exceptionGroups = append(j.nodelut[k].exceptionGroups, groups[i])
+				}
+			}
+		}
+	}
+
 	return
 }
 
