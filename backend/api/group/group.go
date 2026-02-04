@@ -570,8 +570,7 @@ func NewExceptionGroup(appId uuid.UUID, fingerprint string, exceptionType, messa
 		MethodName: methodName,
 		FileName:   fileName,
 		LineNumber: lineNumber,
-		// UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
-		UpdatedAt: time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 }
 
@@ -585,7 +584,6 @@ func NewANRGroup(appId uuid.UUID, fingerprint string, anrType, message, methodNa
 		MethodName: methodName,
 		FileName:   fileName,
 		LineNumber: lineNumber,
-		// UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
-		UpdatedAt: time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 }
