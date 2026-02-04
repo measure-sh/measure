@@ -436,8 +436,6 @@ func (t *Team) changeRole(ctx context.Context, memberId *uuid.UUID, role rank) e
 		Where("team_id = ? and user_id = ?", nil, nil)
 	defer stmt.Close()
 
-	fmt.Println("stmt", stmt.String())
-
 	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
 		return err
 	}
