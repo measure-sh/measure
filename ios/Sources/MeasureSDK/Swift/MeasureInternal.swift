@@ -330,7 +330,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
     
     func getDynamicConfigPath() -> String? {
-        return systemFileManager.getDynamicConfigPath(directory: FileManager.SearchPathDirectory.documentDirectory)
+        return systemFileManager.getDynamicConfigPath()
     }
 
     func trackHttpEvent(url: String,
