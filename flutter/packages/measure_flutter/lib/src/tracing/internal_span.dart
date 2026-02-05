@@ -44,6 +44,11 @@ abstract class InternalSpan extends Span {
   /// Adds an attribute to this span.
   void setInternalAttribute(MapEntry<String, dynamic> attribute);
 
+  /// Updates the sampling status of the span.
+  ///
+  /// @param sampled whether the span is sampled or not.
+  void setSamplingRate(bool sampled);
+
   /// Converts the span to a data class for further processing and export.
   SpanData toSpanData();
 }

@@ -1,7 +1,7 @@
 import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_builder.dart';
 import 'package:measure_flutter/src/tracing/span_processor.dart';
-import 'package:measure_flutter/src/tracing/trace_sampler.dart';
+import 'package:measure_flutter/src/utils/sampler.dart';
 
 import '../logger/logger.dart';
 import '../time/time_provider.dart';
@@ -13,7 +13,7 @@ class MsrSpanBuilder extends SpanBuilder {
   final IdProvider _idProvider;
   final TimeProvider _timeProvider;
   final SpanProcessor _spanProcessor;
-  final TraceSampler _traceSampler;
+  final Sampler _sampler;
   final Logger _logger;
 
   Span? _parentSpan;
@@ -23,12 +23,12 @@ class MsrSpanBuilder extends SpanBuilder {
     required IdProvider idProvider,
     required TimeProvider timeProvider,
     required SpanProcessor spanProcessor,
-    required TraceSampler traceSampler,
+    required Sampler sampler,
     required Logger logger,
   })  : _idProvider = idProvider,
         _timeProvider = timeProvider,
         _spanProcessor = spanProcessor,
-        _traceSampler = traceSampler,
+        _sampler = sampler,
         _logger = logger;
 
   @override
@@ -46,7 +46,7 @@ class MsrSpanBuilder extends SpanBuilder {
       spanProcessor: _spanProcessor,
       idProvider: _idProvider,
       parentSpan: _parentSpan,
-      traceSampler: _traceSampler,
+      sampler: _sampler,
       timestamp: timestamp,
     );
   }

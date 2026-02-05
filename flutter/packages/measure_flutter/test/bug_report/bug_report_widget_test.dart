@@ -180,10 +180,6 @@ void main() {
       final measure = Measure.withMethodChannel(testMethodChannel);
       await measure.init(
         () {},
-        clientInfo: ClientInfo(
-          apiKey: "msrsh-123",
-          apiUrl: "https://example.com",
-        ),
       );
 
       await tester.pumpWidget(

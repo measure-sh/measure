@@ -5,6 +5,7 @@ import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
@@ -26,6 +27,7 @@ import sh.measure.android.utils.toJsonElement
  */
 internal class InternalSignalCollector(
     private val logger: Logger,
+    private val configProvider: ConfigProvider,
     private val signalProcessor: SignalProcessor,
     private val processInfoProvider: ProcessInfoProvider,
     private val sessionManager: SessionManager,
@@ -210,10 +212,10 @@ internal class InternalSignalCollector(
         isSampled: Boolean,
     ) {
         val sessionId = sessionManager.getSessionId()
-
         spanAttributeProcessors.forEach {
             it.appendAttributes(attributes)
         }
+        val spanIsSampled = configProvider.enableFullCollectionMode || isSampled
 
         try {
             val spanData = SpanData(
@@ -230,7 +232,7 @@ internal class InternalSignalCollector(
                 userDefinedAttrs = userDefinedAttrs,
                 checkpoints = checkpoints.map { Checkpoint(it.key, it.value) }.toMutableList(),
                 hasEnded = hasEnded,
-                isSampled = isSampled,
+                isSampled = spanIsSampled,
             )
             signalProcessor.trackSpan(spanData)
         } catch (e: Exception) {
