@@ -12,7 +12,7 @@ import Measure
 
     let config = BaseMeasureConfig(
       enableLogging: true,
-      samplingRateForErrorFreeSessions: 1.0
+      enableFullCollectionMode: true
     )
 
     let clientInfo: ClientInfo

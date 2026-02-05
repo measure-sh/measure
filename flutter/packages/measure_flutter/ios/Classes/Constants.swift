@@ -11,7 +11,6 @@ enum MethodConstants {
     // functions
     static let functionTrackEvent = "trackEvent"
     static let functionTriggerNativeCrash = "triggerNativeCrash"
-    static let functionInitializeNativeSdk = "initializeNativeSDK"
     static let functionGetSessionId = "getSessionId"
     static let functionTrackSpan = "trackSpan"
     static let functionStart = "start"
@@ -21,6 +20,7 @@ enum MethodConstants {
     static let functionGetAttachmentDirectory = "getAttachmentDirectory"
     static let functionEnableShakeDetection = "enableShakeDetector"
     static let functionDisableShakeDetection = "disableShakeDetector"
+    static let functionGetDynamicConfigPath = "getDynamicConfigPath"
 
     // arguments
     static let argEventData = "event_data"

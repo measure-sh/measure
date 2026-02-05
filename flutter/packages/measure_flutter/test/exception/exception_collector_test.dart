@@ -66,7 +66,7 @@ void main() {
       expect(collector.isEnabled(), false);
     });
 
-    test('tracks exception with un-obfuscated stacktrace', () {
+    test('tracks exception with un-obfuscated stacktrace', () async {
       final error = Object();
       final stackTrace = StackTrace.fromString([
         '#0      _MyAppState._throwException (package:measure_flutter_example/main.dart:84:5)',
@@ -117,7 +117,7 @@ void main() {
       );
 
       collector.register();
-      collector.trackError(
+      await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
         attributes: {},
@@ -131,7 +131,7 @@ void main() {
       );
     });
 
-    test('tracks exception with obfuscated stacktrace', () {
+    test('tracks exception with obfuscated stacktrace', () async {
       final error = Object();
       final stackTrace = StackTrace.fromString('''
 *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
@@ -174,7 +174,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       );
 
       collector.register();
-      collector.trackError(
+      await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
         attributes: {},
@@ -189,7 +189,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
     });
 
     test('tracks exception with screenshot if enabled', () async {
-      configProvider.trackScreenshotOnCrash = true;
+      configProvider.crashTakeScreenshot = true;
 
       final error = Object();
       final stackTrace = StackTrace.fromString([
@@ -267,7 +267,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       final attributes = {"key": StringAttr("value")};
 
       collector.register();
-      collector.trackError(
+      await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
         attributes: attributes,

@@ -35,7 +35,7 @@ class MsrInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (!_measure.shouldTrackHttpUrl(response.requestOptions.uri.toString())) {
+    if (!_measure.shouldTrackHttpEvent(response.requestOptions.uri.toString())) {
       handler.next(response);
       return;
     }
@@ -48,7 +48,7 @@ class MsrInterceptor extends Interceptor {
       final endTime = Measure.instance.getCurrentTime();
       final requestHeaders = _getRequestHeaders(request);
       final requestBody = _getRequestBody(request);
-      final responseHeaders = _getResponseHeaders(response);
+      final responseHeaders = _getResponseHeaders(request, response);
       final responseBody = _getResponseBody(response, request);
 
       if (startTime == null) {
@@ -84,8 +84,7 @@ class MsrInterceptor extends Interceptor {
       final method = _getMethod(request);
       // The start time should never be null, but this happens in tests
       // hence setting a default value.
-      final startTime =
-          _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
+      final startTime = _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
       final endTime = Measure.instance.getCurrentTime();
       final failureReason = _getFailureReason(err);
       final failureDescription = _getFailureDescription(err);
@@ -119,8 +118,7 @@ class MsrInterceptor extends Interceptor {
     }
   }
 
-  String? _getFailureDescription(DioException err) =>
-      err.message ?? err.error?.toString();
+  String? _getFailureDescription(DioException err) => err.message ?? err.error?.toString();
 
   String? _getResponseBody(Response<dynamic> response, RequestOptions request) {
     final data = response.data;
@@ -131,7 +129,7 @@ class MsrInterceptor extends Interceptor {
       return null;
     }
     final url = _getRequestUrl(request);
-    if (!_measure.shouldTrackHttpBody(url, request.contentType)) {
+    if (!_measure.shouldTrackHttpResponseBody(url)) {
       return null;
     }
     return data.toString();
@@ -147,9 +145,8 @@ class MsrInterceptor extends Interceptor {
     }
 
     final url = _getRequestUrl(request);
-    final contentType = request.headers['content-type']?.toString();
 
-    if (!_measure.shouldTrackHttpBody(url, contentType)) {
+    if (!_measure.shouldTrackHttpRequestBody(url)) {
       return null;
     }
 
@@ -163,17 +160,20 @@ class MsrInterceptor extends Interceptor {
     }
 
     final filteredHeaders = <String, String>{};
+    final url = _getRequestUrl(request);
 
-    for (final entry in headers.entries) {
-      if (_measure.shouldTrackHttpHeader(entry.key)) {
-        filteredHeaders[entry.key] = entry.value.toString();
+    if (_measure.shouldTrackHttpRequestBody(url)) {
+      for (final entry in headers.entries) {
+        if (_measure.shouldTrackHttpHeader(entry.key)) {
+          filteredHeaders[entry.key] = entry.value.toString();
+        }
       }
     }
 
     return filteredHeaders.isEmpty ? null : filteredHeaders;
   }
 
-  Map<String, String>? _getResponseHeaders(Response<dynamic> response) {
+  Map<String, String>? _getResponseHeaders(RequestOptions request, Response<dynamic> response) {
     final headers = response.headers;
     if (headers.isEmpty) {
       return null;
@@ -181,9 +181,13 @@ class MsrInterceptor extends Interceptor {
 
     final filteredHeaders = <String, String>{};
 
-    for (final entry in headers.map.entries) {
-      if (_measure.shouldTrackHttpHeader(entry.key)) {
-        filteredHeaders[entry.key] = entry.value.toString();
+    final url = _getRequestUrl(request);
+
+    if (_measure.shouldTrackHttpResponseBody(url)) {
+      for (final entry in headers.map.entries) {
+        if (_measure.shouldTrackHttpHeader(entry.key)) {
+          filteredHeaders[entry.key] = entry.value.toString();
+        }
       }
     }
 

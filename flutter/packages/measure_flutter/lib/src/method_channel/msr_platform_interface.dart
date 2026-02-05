@@ -34,13 +34,6 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
     throw UnimplementedError('triggerNativeCrash() has not been implemented.');
   }
 
-  Future<void> initializeNativeSDK(
-    Map<String, dynamic> config,
-    Map<String, String> clientInfo,
-  ) {
-    throw UnimplementedError('initializeNativeSDK() has not been implemented.');
-  }
-
   Future<void> start() {
     throw UnimplementedError('start() has not been implemented.');
   }
@@ -77,5 +70,9 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   Future<void> disableShakeDetector() {
     throw UnimplementedError(
         'disableShakeDetector() has not been implemented.');
+  }
+
+  Future<String?> getDynamicConfigPath() {
+    throw UnimplementedError('getDynamicConfigPath() has not been implemented.');
   }
 }

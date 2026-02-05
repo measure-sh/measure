@@ -5,11 +5,11 @@ PODS:
   - integration_test (0.0.1):
     - Flutter
   - measure-sh (0.8.1):
-    - PLCrashReporter (= 1.11.2)
+    - PLCrashReporter (= 1.12.0)
   - measure_flutter (0.3.0):
     - Flutter
     - measure-sh (= 0.8.1)
-  - PLCrashReporter (1.11.2)
+  - PLCrashReporter (1.12.0)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
@@ -38,9 +38,9 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  measure-sh: dbc4c2c505a1392817127d1adc580fdbf2a227eb
+  measure-sh: 22611ef94b48051ec62bd0f572976b0718558f06
   measure_flutter: 04265a60f6931a7eb69a5477d8498b0ffb0c7581
-  PLCrashReporter: 499c53b0104f95c302d94fd723ebb03c56d9bac8
+  PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
 
 PODFILE CHECKSUM: dffbadd7b7e96b7c7b59224b1d5faba2eedb1358
 
