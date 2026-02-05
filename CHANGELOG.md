@@ -32,17 +32,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
 - (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
 - (**backend**): Update last_seen for API key by @anupcowkur in #2903
+- (**frontend**): Include custom date range filter in url
 - (**frontend**): Fix date filters by @anupcowkur in #3116
 - (**frontend**): Suppress theme change hydration warnings by @anupcowkur in #3101
 - (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
 ### :hammer: Misc
 
+- (**backend**): Refactor & remove unused code
+- (**backend**): Remove unused code
+- (**backend**): Remove a log line
+- (**backend**): Update query optimization script
+- (**backend**): Optimize journey api
+- (**backend**): Update optimization query
 - (**backend**): Update /usage api response in docs by @anupcowkur in #3108
 - (**backend**): Update ingestion metrics by @anupcowkur in #3107
 - (**backend**): Update go dependencies (#3098) by @detj in #3098
 - (**backend**): Update retention periods by @anupcowkur in #3091
 - (**backend**): Add migration guide entry for v0.10.x (#3074) by @abhaysood in #3074
+- (**backend**): Update optimization migration script
+- (**backend**): Remove new migrations
+- (**backend**): Remove crash & anr journey route
+- (**backend**): Search handled & unhandled excpetions in sessions
+- (**backend**): Update queries to improve read performance
+- (**backend**): Update user def attrs cleanup
+- (**backend**): Add issue distribution struct
+- (**backend**): Add new root types in logcomment
+- (**backend**): Update percentage in group structs
+- (**backend**): Improve user def attrs json marshal lint warnings
+- (**backend**): Improve journey string debug output to fix lint warnings
+- (**backend**): Wip
+- (**backend**): Improve query optimization script
+- (**backend**): Wip read optimizations
 - (**backend**): Sync go.work (#3050) by @detj in #3050
 - (**backend**): Update go image tag (#3032) by @detj in #3032
 - (**backend**): Handle an invalid payload condition to debug panics (#3029) by @detj in #3029
@@ -65,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Add new session timeline filters
+- (**frontend**): Frontend changes for read perf optimisation (#3124)
 - (**frontend**): Update pricing breakdown labels by @anupcowkur in #3112
 - (**frontend**): Change label size of usage pie chart by @anupcowkur in #3111
 - (**frontend**): Show combined events in usage by @anupcowkur in #3110
@@ -87,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update dashboard api documentation
 - Update outdated sdk docs (#3004) by @abhaysood in #3004
 - Fix placeholder key for API URL (#2896) by @Shabinder in #2896
 
