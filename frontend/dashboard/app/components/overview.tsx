@@ -67,7 +67,7 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
                     showAppSelector={true}
                     showAppVersions={true}
                     showDates={true}
-                    showSessionType={false}
+                    showSessionTypes={false}
                     showOsVersions={false}
                     showCountries={false}
                     showNetworkTypes={false}

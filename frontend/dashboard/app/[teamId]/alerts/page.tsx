@@ -102,7 +102,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                 showAppSelector={true}
                 showAppVersions={false}
                 showDates={true}
-                showSessionType={false}
+                showSessionTypes={false}
                 showOsVersions={false}
                 showCountries={false}
                 showNetworkTypes={false}

@@ -384,10 +384,12 @@ export enum UpdateSdkConfigApiStatus {
 }
 
 export enum SessionType {
-  All = "All Sessions",
   Crashes = "Crash Sessions",
   ANRs = "ANR Sessions",
-  Issues = "Crash & ANR Sessions",
+  BugReports = "Bug Report Sessions",
+  UserInteraction = "User Interaction Sessions",
+  Foreground = "Foreground Sessions",
+  Background = "Background Sessions"
 }
 
 export enum SpanStatus {
@@ -1196,14 +1198,30 @@ async function applyGenericFiltersToUrl(
     searchParams.append("filter_short_code", filterShortCode)
   }
 
-  // Append session type if needed
-  if (filters.sessionType === SessionType.Issues) {
-    searchParams.append("crash", "1")
-    searchParams.append("anr", "1")
-  } else if (filters.sessionType === SessionType.Crashes) {
-    searchParams.append("crash", "1")
-  } else if (filters.sessionType === SessionType.ANRs) {
-    searchParams.append("anr", "1")
+  // Append session types if needed
+  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
+    filters.sessionTypes.selected.forEach((v) => {
+      switch (v) {
+        case SessionType.Crashes:
+          searchParams.append("crash", "1")
+          break;
+        case SessionType.ANRs:
+          searchParams.append("anr", "1")
+          break;
+        case SessionType.BugReports:
+          searchParams.append("bug_report", "1")
+          break;
+        case SessionType.UserInteraction:
+          searchParams.append("user_interaction", "1")
+          break;
+        case SessionType.Foreground:
+          searchParams.append("foreground", "1")
+          break;
+        case SessionType.Background:
+          searchParams.append("background", "1")
+          break;
+      }
+    })
   }
 
   // Append span name if needed

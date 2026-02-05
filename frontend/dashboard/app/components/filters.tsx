@@ -55,7 +55,7 @@ interface FiltersProps {
   showDates: boolean
   showAppVersions: boolean
   showOsVersions: boolean
-  showSessionType: boolean
+  showSessionTypes: boolean
   showCountries: boolean
   showNetworkProviders: boolean
   showNetworkTypes: boolean
@@ -96,7 +96,7 @@ export type Filters = {
   startDate: string
   endDate: string
   versions: { selected: AppVersion[], all: boolean }
-  sessionType: SessionType
+  sessionTypes: { selected: SessionType[], all: boolean }
   spanStatuses: { selected: SpanStatus[], all: boolean }
   bugReportStatuses: { selected: BugReportStatus[], all: boolean }
   osVersions: { selected: OsVersion[], all: boolean }
@@ -126,7 +126,7 @@ type URLFilters = {
   endDate?: string
   dateRange?: DateRange
   versions?: number[]
-  sessionType?: SessionType
+  sessionTypes?: SessionType[]
   spanStatuses?: SpanStatus[]
   bugReportStatuses?: BugReportStatus[]
   osVersions?: number[]
@@ -148,7 +148,7 @@ export const defaultFilters: Filters = {
   startDate: "",
   endDate: "",
   versions: { selected: [], all: false },
-  sessionType: SessionType.All,
+  sessionTypes: { selected: [], all: false },
   spanStatuses: { selected: [], all: false },
   bugReportStatuses: { selected: [], all: false },
   osVersions: { selected: [], all: false },
@@ -177,7 +177,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       showDates,
       showAppVersions,
       showOsVersions,
-      showSessionType,
+      showSessionTypes,
       showCountries,
       showNetworkTypes,
       showNetworkProviders,
@@ -200,7 +200,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       startDate: "sd",
       endDate: "ed",
       versions: "v",
-      sessionType: "st",
+      sessionTypes: "st",
       spanStatuses: "ss",
       bugReportStatuses: "bs",
       osVersions: "os",
@@ -271,8 +271,8 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
           case "osVersions":
             if (!showOsVersions) return
             break
-          case "sessionType":
-            if (!showSessionType) return
+          case "sessionTypes":
+            if (!showSessionTypes) return
             break
           case "countries":
             if (!showCountries) return
@@ -353,9 +353,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             serializedValue = (value as string[]).join(",")
             break
 
-          case "sessionType":
-            if (value === SessionType.All) return
-            serializedValue = value.toString()
+          case "sessionTypes":
+            if ((value as SessionType[]).length === 0) return
+            serializedValue = (value as SessionType[]).join(",")
             break
 
           case "dateRange":
@@ -427,8 +427,12 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 )
               break
 
-            case "sessionType":
-              result[originalKey] = getSessionTypeFromString(value)
+            case "sessionTypes":
+              result[originalKey] = value
+                .split(",")
+                .filter((s): s is SessionType =>
+                  Object.values(SessionType).includes(s as SessionType),
+                )
               break
 
             case "dateRange":
@@ -464,20 +468,6 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         "endDate",
         "freeText",
       ].includes(key)
-    }
-
-    function getSessionTypeFromString(value: string): SessionType {
-      const enumValues = Object.values(SessionType) as string[]
-      const enumKeys = Object.keys(SessionType) as Array<
-        keyof typeof SessionType
-      >
-
-      const index = enumValues.indexOf(value)
-      if (index !== -1) {
-        return SessionType[enumKeys[index]]
-      }
-
-      throw "Invalid string cannot be mapped to SessionType: " + value
     }
 
     function mapDateRangeToDate(dateRange: string) {
@@ -557,8 +547,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       [] as AppVersion[],
     )
 
-    const [selectedSessionType, setSelectedSessionType] = useState(
-      SessionType.All,
+    const sessionTypes = [SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.Background, SessionType.UserInteraction]
+    const [selectedSessionTypes, setSelectedSessionTypes] = useState(
+      [SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.UserInteraction],
     )
 
     const [osVersions, setOsVersions] = useState([] as OsVersion[])
@@ -768,7 +759,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
     const clearFiltersOnFilterApiFail = () => {
       console.log("Filters API failed, clearing filters")
       setSelectedVersions(defaultFilters.versions.selected)
-      setSelectedSessionType(defaultFilters.sessionType)
+      setSelectedSessionTypes(defaultFilters.sessionTypes.selected)
       setSelectedOsVersions(defaultFilters.osVersions.selected)
       setSelectedCountries(defaultFilters.countries.selected)
       setSelectedNetworkProviders(defaultFilters.networkProviders.selected)
@@ -1044,10 +1035,15 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             setSelectedBugReportStatuses([BugReportStatus.Open])
           }
 
-          if (urlFilters.appId === selectedApp!.id && urlFilters.sessionType) {
-            setSelectedSessionType(urlFilters.sessionType)
+          if (urlFilters.appId === selectedApp!.id && urlFilters.sessionTypes) {
+            const selectedSessionTypes = urlFilters.sessionTypes
+              .filter((s: string) =>
+                Object.values(SessionType).includes(s as SessionType),
+              )
+              .map((s: string) => s as SessionType)
+            setSelectedSessionTypes(selectedSessionTypes)
           } else {
-            setSelectedSessionType(SessionType.All)
+            setSelectedSessionTypes([SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.UserInteraction])
           }
 
           if (urlFilters.appId === selectedApp!.id && urlFilters.freeText) {
@@ -1127,7 +1123,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             (ver) => ver.name === v.name && ver.code === v.code,
           ),
         ),
-        sessionType: selectedSessionType,
+        sessionTypes: selectedSessionTypes,
         spanStatuses: selectedSpanStatuses,
         bugReportStatuses: selectedBugReportStatuses,
         osVersions: selectedOsVersions.map((os) =>
@@ -1161,7 +1157,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         startDate: selectedStartDate,
         endDate: selectedEndDate,
         versions: { selected: selectedVersions, all: versions.length === selectedVersions.length },
-        sessionType: selectedSessionType,
+        sessionTypes: { selected: selectedSessionTypes, all: selectedSessionTypes.length === sessionTypes.length },
         spanStatuses: { selected: selectedSpanStatuses, all: selectedSpanStatuses.length === spanStatuses.length },
         bugReportStatuses: { selected: selectedBugReportStatuses, all: selectedBugReportStatuses.length === bugReportStatuses.length },
         osVersions: { selected: selectedOsVersions, all: selectedOsVersions.length === osVersions.length },
@@ -1196,7 +1192,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       selectedStartDate,
       selectedEndDate,
       selectedVersions,
-      selectedSessionType,
+      selectedSessionTypes,
       selectedOsVersions,
       selectedCountries,
       selectedNetworkProviders,
@@ -1457,16 +1453,14 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     }
                   />
                 )}
-                {showSessionType && (
+                {showSessionTypes && (
                   <DropdownSelect
                     title="Session Types"
-                    type={DropdownSelectType.SingleString}
+                    type={DropdownSelectType.MultiString}
                     items={Object.values(SessionType)}
-                    initialSelected={selectedSessionType}
-                    onChangeSelected={(item) =>
-                      setSelectedSessionType(
-                        getSessionTypeFromString(item as string),
-                      )
+                    initialSelected={selectedSessionTypes}
+                    onChangeSelected={(items) =>
+                      setSelectedSessionTypes(items as SessionType[])
                     }
                   />
                 )}
@@ -1620,7 +1614,11 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                       .join(", ")}
                   />
                 )}
-                {showSessionType && <FilterPill title={selectedSessionType} />}
+                {showSessionTypes && selectedSessionTypes.length > 0 && (
+                  <FilterPill
+                    title={Array.from(selectedSessionTypes).join(", ")}
+                  />
+                )}
                 {filterSource === FilterSource.Spans &&
                   selectedSpanStatuses.length > 0 && (
                     <FilterPill
