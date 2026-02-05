@@ -105,7 +105,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                 showAppSelector={true}
                 showAppVersions={true}
                 showDates={true}
-                showSessionType={true}
+                showSessionTypes={true}
                 showOsVersions={true}
                 showCountries={true}
                 showNetworkTypes={true}

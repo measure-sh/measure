@@ -102,7 +102,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showAppSelector={true}
                 showAppVersions={true}
                 showDates={true}
-                showSessionType={false}
+                showSessionTypes={false}
                 showOsVersions={true}
                 showCountries={true}
                 showNetworkTypes={true}

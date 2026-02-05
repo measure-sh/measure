@@ -103,7 +103,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 showAppSelector={true}
                 showAppVersions={true}
                 showDates={true}
-                showSessionType={false}
+                showSessionTypes={false}
                 showOsVersions={true}
                 showCountries={true}
                 showNetworkTypes={true}
