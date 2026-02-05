@@ -359,7 +359,6 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             break
 
           case "dateRange":
-            if (value === DateRange.Last6Hours) return // Or your default date range
             serializedValue = value.toString()
             break
 
@@ -608,7 +607,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
     const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
 
     const [selectedStartDate, setSelectedStartDate] = useState(
-      urlFilters.dateRange ?
+      urlFilters.dateRange && urlFilters.dateRange !== DateRange.Custom ?
         mapDateRangeToDate(initDateRange)!.toISO() :
         urlFilters.startDate
           ? urlFilters.startDate
@@ -620,7 +619,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
     )
 
     const [selectedEndDate, setSelectedEndDate] = useState(
-      urlFilters.dateRange ?
+      urlFilters.dateRange && urlFilters.dateRange !== DateRange.Custom ?
         DateTime.now().toISO() :
         urlFilters.endDate
           ? urlFilters.endDate
@@ -1191,6 +1190,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       filtersApiStatus,
       selectedStartDate,
       selectedEndDate,
+      selectedDateRange,
       selectedVersions,
       selectedSessionTypes,
       selectedOsVersions,
