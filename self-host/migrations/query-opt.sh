@@ -695,6 +695,7 @@ create or replace table spans_new
 )
 engine = ReplacingMergeTree
 partition by toYYYYMM(start_time)
+primary key (team_id, app_id, attribute.app_version.1, attribute.app_version.2)
 order by (team_id, app_id, attribute.app_version.1, attribute.app_version.2, span_name, start_time, trace_id, span_id)
 settings index_granularity = 8192
 comment 'spans table'
@@ -1541,7 +1542,7 @@ replay_events() {
     for part in "${PARTITIONS[@]}"; do
       echo "  ✔ Starting partition $part"
 
-      local offset=280000000
+      local offset=0
       while true; do
         local chunk_count
         chunk_count=$(clickhouse_query --query "
