@@ -1675,24 +1675,26 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 	// Allow the user to mix & match fine-grained
 	// timeline selection parameters.
 	{
+		exprs := []string{}
+
 		if af.Crash {
-			base.Having("sumMerge(crash_count) >= 1")
+			exprs = append(exprs, "sumMerge(crash_count) >= 1")
 		}
 
 		if af.ANR {
-			base.Having("sumMerge(anr_count) >= 1")
+			exprs = append(exprs, "sumMerge(anr_count) >= 1")
 		}
 
 		if af.BugReport {
-			base.Having("sumMerge(bug_report_count) >= 1")
+			exprs = append(exprs, "sumMerge(bug_report_count) >= 1")
 		}
 
 		if af.Background {
-			base.Having("sumMerge(background_count) >= 1")
+			exprs = append(exprs, "sumMerge(background_count) >= 1")
 		}
 
 		if af.Foreground {
-			base.Having("sumMerge(foreground_count) >= 1")
+			exprs = append(exprs, "sumMerge(foreground_count) >= 1")
 		}
 
 		if af.UserInteraction {
@@ -1702,7 +1704,12 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 			//
 			// the cast using '::Map(T, U)' is critical
 			// the series of 'OR' expressions is also critical
-			base.Having("(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+			exprs = append(exprs, "(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+		}
+
+		if len(exprs) > 0 {
+			cond := strings.Join(exprs, " or ")
+			base.Having("(" + cond + ")")
 		}
 	}
 
@@ -1892,24 +1899,26 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	// Allow the user to mix & match fine-grained
 	// timeline selection parameters.
 	{
+		exprs := []string{}
+
 		if af.Crash {
-			base.Having("sumMerge(crash_count) >= 1")
+			exprs = append(exprs, "sumMerge(crash_count) >= 1")
 		}
 
 		if af.ANR {
-			base.Having("sumMerge(anr_count) >= 1")
+			exprs = append(exprs, "sumMerge(anr_count) >= 1")
 		}
 
 		if af.BugReport {
-			base.Having("sumMerge(bug_report_count) >= 1")
+			exprs = append(exprs, "sumMerge(bug_report_count) >= 1")
 		}
 
 		if af.Background {
-			base.Having("sumMerge(background_count) >= 1")
+			exprs = append(exprs, "sumMerge(background_count) >= 1")
 		}
 
 		if af.Foreground {
-			base.Having("sumMerge(foreground_count) >= 1")
+			exprs = append(exprs, "sumMerge(foreground_count) >= 1")
 		}
 
 		if af.UserInteraction {
@@ -1919,7 +1928,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			//
 			// the cast using '::Map(T, U)' is critical
 			// the series of 'OR' expressions is also critical
-			base.Having("(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+			exprs = append(exprs, "(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+		}
+
+		if len(exprs) > 0 {
+			cond := strings.Join(exprs, " or ")
+			base.Having("(" + cond + ")")
 		}
 	}
 
@@ -2230,14 +2244,15 @@ func (a App) FetchRootSpanNames(ctx context.Context) (traceNames []string, err e
 // FetchTracesForSessionId returns list of traces for a given app id and session id
 func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (sessionTraces []span.TraceSessionTimelineDisplay, err error) {
 	stmt := sqlf.
-		Select("toString(span_name)").
-		Select("toString(trace_id)").
-		Select("toString(attribute.thread_name)").
+		Select("span_name").
+		Select("trace_id").
+		Select("attribute.thread_name").
 		Select("start_time").
 		Select("end_time").
 		From("spans_new final").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
+		Where("session_id = toUUID(?)", sessionID).
 		Where("parent_id = ''").
 		OrderBy("start_time desc")
 
@@ -6732,7 +6747,7 @@ func GetSessionsOverview(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sessions_list")
+	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
 	sessions, next, previous, err := app.GetSessionsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
