@@ -4,7 +4,6 @@ object MethodConstants {
     // functions
     const val FUNCTION_TRACK_EVENT = "trackEvent"
     const val FUNCTION_TRIGGER_NATIVE_CRASH = "triggerNativeCrash"
-    const val FUNCTION_INITIALIZE_NATIVE_SDK = "initializeNativeSDK"
     const val FUNCTION_GET_SESSION_ID = "getSessionId"
     const val FUNCTION_TRACK_SPAN = "trackSpan"
     const val FUNCTION_START = "start"
@@ -14,6 +13,7 @@ object MethodConstants {
     const val FUNCTION_GET_ATTACHMENT_DIRECTORY = "getAttachmentDirectory"
     const val FUNCTION_ENABLE_SHAKE_DETECTOR = "enableShakeDetector"
     const val FUNCTION_DISABLE_SHAKE_DETECTOR = "disableShakeDetector"
+    const val FUNCTION_GET_DYNAMIC_CONFIG_PATH = "getDynamicConfigPath"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"

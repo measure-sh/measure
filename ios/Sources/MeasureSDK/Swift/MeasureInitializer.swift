@@ -419,7 +419,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    signalProcessor: signalProcessor,
                                                                    sessionManager: sessionManager,
                                                                    attributeProcessors: attributeProcessors,
-                                                                   signalSampler: signalSampler)
+                                                                   signalSampler: signalSampler,
+                                                                   configProvider: configProvider)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
                                                            logger: logger,
                                                            attachmentProcessor: attachmentProcessor,

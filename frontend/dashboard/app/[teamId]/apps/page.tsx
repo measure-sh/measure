@@ -189,7 +189,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showAppSelector={true}
         showAppVersions={false}
         showDates={false}
-        showSessionType={false}
+        showSessionTypes={false}
         showOsVersions={false}
         showCountries={false}
         showNetworkTypes={false}

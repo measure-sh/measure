@@ -330,7 +330,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                    signalProcessor: self.signalProcessor,
                                                                    sessionManager: self.sessionManager,
                                                                    attributeProcessors: self.attributeProcessors,
-                                                                   signalSampler: self.signalSampler)
+                                                                   signalSampler: self.signalSampler,
+                                                                   configProvider: self.configProvider)
         self.screenshotGenerator = screenshotGenerator ?? BaseScreenshotGenerator(configProvider: self.configProvider,
                                                            logger: self.logger,
                                                            attachmentProcessor: self.attachmentProcessor,

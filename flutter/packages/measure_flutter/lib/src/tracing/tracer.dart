@@ -1,7 +1,7 @@
 import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_builder.dart';
 import 'package:measure_flutter/src/tracing/span_processor.dart';
-import 'package:measure_flutter/src/tracing/trace_sampler.dart';
+import 'package:measure_flutter/src/utils/sampler.dart';
 
 import '../logger/logger.dart';
 import '../time/time_provider.dart';
@@ -21,19 +21,19 @@ class MsrTracer implements Tracer {
   final IdProvider _idProvider;
   final TimeProvider _timeProvider;
   final SpanProcessor _spanProcessor;
-  final TraceSampler _traceSampler;
+  final Sampler _sampler;
 
   MsrTracer({
     required Logger logger,
     required IdProvider idProvider,
     required TimeProvider timeProvider,
     required SpanProcessor spanProcessor,
-    required TraceSampler traceSampler,
+    required Sampler sampler,
   })  : _logger = logger,
         _idProvider = idProvider,
         _timeProvider = timeProvider,
         _spanProcessor = spanProcessor,
-        _traceSampler = traceSampler;
+        _sampler = sampler;
 
   @override
   SpanBuilder spanBuilder(String name) {
@@ -42,7 +42,7 @@ class MsrTracer implements Tracer {
       idProvider: _idProvider,
       timeProvider: _timeProvider,
       spanProcessor: _spanProcessor,
-      traceSampler: _traceSampler,
+      sampler: _sampler,
       logger: _logger,
     );
   }

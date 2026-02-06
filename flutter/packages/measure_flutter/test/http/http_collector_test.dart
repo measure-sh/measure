@@ -100,206 +100,6 @@ void main() {
       expect(httpData.statusCode, null);
     });
 
-    test('does not track when URL is blocked', () {
-      configProvider.httpUrlBlocklist = ['api.example.com'];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-      );
-
-      expect(signalProcessor.trackedEvents.length, 0);
-    });
-
-    test('tracks URL when allowlist is empty and URL not in blocklist', () {
-      configProvider.httpUrlAllowlist = [];
-      configProvider.httpUrlBlocklist = [];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-    });
-
-    test('tracks URL when in allowlist and not in blocklist', () {
-      configProvider.httpUrlAllowlist = ['api.example.com'];
-      configProvider.httpUrlBlocklist = [];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-    });
-
-    test('does not track URL when not in allowlist', () {
-      configProvider.httpUrlAllowlist = ['api.allowed.com'];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-      );
-
-      expect(signalProcessor.trackedEvents.length, 0);
-    });
-
-    test('filters request headers based on config', () {
-      configProvider.trackHttpHeaders = true;
-      configProvider.httpHeadersBlocklist = ['authorization'];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.post,
-        startTime: 1234567890,
-        statusCode: 201,
-        requestHeaders: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer secret-token',
-          'User-Agent': 'MyApp/1.0',
-        },
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.requestHeaders, {
-        'Content-Type': 'application/json',
-        'User-Agent': 'MyApp/1.0',
-      });
-    });
-
-    test('filters response headers based on config', () {
-      configProvider.trackHttpHeaders = true;
-      configProvider.httpHeadersBlocklist = ['set-cookie'];
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-        responseHeaders: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': 'session=abc123',
-          'Cache-Control': 'no-cache',
-        },
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.responseHeaders, {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-      });
-    });
-
-    test('does not track headers when trackHttpHeaders is false', () {
-      configProvider.trackHttpHeaders = false;
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.post,
-        startTime: 1234567890,
-        statusCode: 201,
-        requestHeaders: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer token',
-        },
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.requestHeaders, {});
-    });
-
-    test('filters request body when config says not to track', () {
-      configProvider.trackHttpBody = false;
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.post,
-        startTime: 1234567890,
-        statusCode: 201,
-        requestHeaders: {'Content-Type': 'application/json'},
-        requestBody: '{"sensitive": "data"}',
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.requestBody, null);
-    });
-
-    test('filters response body when config says not to track', () {
-      configProvider.trackHttpBody = false;
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-        responseHeaders: {'Content-Type': 'application/json'},
-        responseBody: '{"sensitive": "response"}',
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.responseBody, null);
-    });
-
-    test('tracks request body when config allows it', () {
-      configProvider.trackHttpBody = true;
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.post,
-        startTime: 1234567890,
-        statusCode: 201,
-        requestHeaders: {'Content-Type': 'application/json'},
-        requestBody: '{"name": "John"}',
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.requestBody, '{"name": "John"}');
-    });
-
-    test('tracks response body when config allows it', () {
-      configProvider.trackHttpBody = true;
-      collector.register();
-
-      collector.trackHttpEvent(
-        url: 'https://api.example.com/users',
-        method: HttpMethod.get,
-        startTime: 1234567890,
-        statusCode: 200,
-        responseHeaders: {'Content-Type': 'application/json'},
-        responseBody: '{"id": 123}',
-      );
-
-      expect(signalProcessor.trackedEvents.length, 1);
-      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
-      expect(httpData.responseBody, '{"id": 123}');
-    });
-
     test('uses default client name when not provided', () {
       collector.register();
 
@@ -340,6 +140,243 @@ void main() {
         final httpData = signalProcessor.trackedEvents[i].data as HttpData;
         expect(httpData.method, methods[i].name);
       }
+    });
+
+    group('HTTP config filtering', () {
+      test('does not track event when URL is disabled by config', () {
+        configProvider.shouldTrackHttpEventResult = false;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://blocked.example.com/api',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+        );
+
+        expect(signalProcessor.trackedEvents.length, 0);
+      });
+
+      test('filters blocked request headers', () {
+        configProvider.shouldTrackHttpHeaderResults = {
+          'authorization': false,
+          'content-type': true,
+          'user-agent': true,
+        };
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          startTime: 1234567890,
+          statusCode: 200,
+          requestHeaders: {
+            'authorization': 'Bearer token123',
+            'content-type': 'application/json',
+            'user-agent': 'MyApp/1.0',
+          },
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestHeaders?.containsKey('authorization'), false);
+        expect(httpData.requestHeaders?['content-type'], 'application/json');
+        expect(httpData.requestHeaders?['user-agent'], 'MyApp/1.0');
+      });
+
+      test('filters blocked response headers', () {
+        configProvider.shouldTrackHttpHeaderResults = {
+          'set-cookie': false,
+          'content-type': true,
+          'cache-control': true,
+        };
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+          responseHeaders: {
+            'set-cookie': 'session=abc123',
+            'content-type': 'application/json',
+            'cache-control': 'no-cache',
+          },
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.responseHeaders?.containsKey('set-cookie'), false);
+        expect(httpData.responseHeaders?['content-type'], 'application/json');
+        expect(httpData.responseHeaders?['cache-control'], 'no-cache');
+      });
+
+      test('removes request body when URL is not configured for tracking', () {
+        configProvider.shouldTrackHttpRequestBodyResult = false;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          startTime: 1234567890,
+          statusCode: 201,
+          requestBody: '{"name": "John", "email": "john@example.com"}',
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestBody, null);
+      });
+
+      test('tracks request body and headers when URL is configured for tracking', () {
+        configProvider.shouldTrackHttpRequestBodyResult = true;
+        collector.register();
+
+        const requestBody = '{"name": "John", "email": "john@example.com"}';
+        const requestHeaders = {"content-type": "application/json"};
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          requestHeaders: requestHeaders,
+          startTime: 1234567890,
+          statusCode: 201,
+          requestBody: requestBody,
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestBody, requestBody);
+        expect(httpData.requestHeaders, requestHeaders);
+      });
+
+      test('removes response body when URL is not configured for tracking', () {
+        configProvider.shouldTrackHttpResponseBodyResult = false;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+          responseBody: '{"id": 1, "name": "John"}',
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.responseBody, null);
+      });
+
+      test('tracks response body and headers when URL is configured for tracking', () {
+        configProvider.shouldTrackHttpResponseBodyResult = true;
+        collector.register();
+
+        const responseBody = '{"id": 1, "name": "John"}';
+        const responseHeaders = {"content-type": "application/json"};
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          responseHeaders: responseHeaders,
+          startTime: 1234567890,
+          statusCode: 200,
+          responseBody: responseBody,
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.responseBody, responseBody);
+        expect(httpData.responseHeaders, responseHeaders);
+      });
+
+      test('handles null headers gracefully', () {
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+          requestHeaders: null,
+          responseHeaders: null,
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestHeaders, null);
+        expect(httpData.responseHeaders, null);
+      });
+
+      test('applies all config filters together', () {
+        configProvider.shouldTrackHttpHeaderResults = {
+          'authorization': false,
+          'content-type': true,
+        };
+        configProvider.shouldTrackHttpRequestBodyResult = false;
+        configProvider.shouldTrackHttpResponseBodyResult = true;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          startTime: 1234567890,
+          statusCode: 200,
+          requestHeaders: {
+            'authorization': 'Bearer token',
+            'content-type': 'application/json',
+          },
+          responseHeaders: {
+            'content-type': 'application/json',
+          },
+          requestBody: '{"secret": "data"}',
+          responseBody: '{"id": 1}',
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+
+        // Request headers filtered
+        expect(httpData.requestHeaders?.containsKey('authorization'), false);
+        expect(httpData.requestHeaders?['content-type'], 'application/json');
+
+        // Response headers not filtered (all allowed)
+        expect(httpData.responseHeaders?['content-type'], 'application/json');
+
+        // Request body removed
+        expect(httpData.requestBody, null);
+
+        // Response body kept
+        expect(httpData.responseBody, '{"id": 1}');
+      });
+    });
+
+    group('registration state', () {
+      test('can be unregistered and re-registered', () {
+        collector.register();
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+        );
+        expect(signalProcessor.trackedEvents.length, 1);
+
+        collector.unregister();
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567891,
+          statusCode: 200,
+        );
+        expect(signalProcessor.trackedEvents.length, 1); // Still 1, not tracked
+
+        collector.register();
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567892,
+          statusCode: 200,
+        );
+        expect(signalProcessor.trackedEvents.length, 2); // Now tracked again
+      });
     });
   });
 }

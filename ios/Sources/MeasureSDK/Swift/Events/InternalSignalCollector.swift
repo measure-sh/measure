@@ -52,6 +52,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let sessionManager: SessionManager
     private let attributeProcessors: [AttributeProcessor]
     private let signalSampler: SignalSampler
+    private let configProvider: ConfigProvider
 
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
@@ -61,13 +62,15 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
          signalProcessor: SignalProcessor,
          sessionManager: SessionManager,
          attributeProcessors: [AttributeProcessor],
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         configProvider: ConfigProvider) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.sessionManager = sessionManager
         self.timeProvider = timeProvider
         self.attributeProcessors = attributeProcessors
         self.signalSampler = signalSampler
+        self.configProvider = configProvider
         self.isForeground = true
     }
 
@@ -274,6 +277,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         for attributeProcessor in attributeProcessors {
             attributeProcessor.appendAttributes(parsedAttributes)
         }
+        
+        let spanIsSampled = configProvider.enableFullCollectionMode || isSampled
 
         // deserialize checkpoints
         let parsedCheckpoints: [Checkpoint] = checkpoints.compactMap { entry in
@@ -297,7 +302,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
             userDefinedAttrs: userDefinedAttrs,
             checkpoints: parsedCheckpoints,
             hasEnded: hasEnded,
-            isSampled: isSampled
+            isSampled: spanIsSampled
         )
 
         signalProcessor.trackSpan(spanData)

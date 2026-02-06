@@ -2,7 +2,6 @@ class MethodConstants {
   // Function names
   static const String functionTrackEvent = 'trackEvent';
   static const String functionTriggerNativeCrash = 'triggerNativeCrash';
-  static const String functionInitializeNativeSDK = 'initializeNativeSDK';
   static const String functionStart = 'start';
   static const String functionStop = 'stop';
   static const String functionGetSessionId = 'getSessionId';
@@ -12,6 +11,7 @@ class MethodConstants {
   static const String functionGetAttachmentDirectory = 'getAttachmentDirectory';
   static const String functionEnableShakeDetector = 'enableShakeDetector';
   static const String functionDisableShakeDetector = 'disableShakeDetector';
+  static const String functionGetDynamicConfigPath = 'getDynamicConfigPath';
 
   // Argument keys
   static const String argEventData = 'event_data';

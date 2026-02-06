@@ -6,7 +6,6 @@ import android.net.Uri
 import android.os.Build
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
-import sh.measure.android.config.ClientInfo
 import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
@@ -29,8 +28,8 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
     private var isStarted: Boolean = false
     private val lock = Any()
 
-    fun init(clientInfo: ClientInfo? = null) {
-        if (!setupNetworkClient(clientInfo)) {
+    fun init() {
+        if (!setupNetworkClient()) {
             return
         }
 
@@ -310,10 +309,13 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         )
     }
 
-    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean = if (clientInfo != null) {
-        initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
-    } else {
-        initializeFromManifest()
+    private fun setupNetworkClient(): Boolean {
+        val manifest = measure.manifestReader.load()
+        if (manifest == null) {
+            return false
+        }
+
+        return initializeWithCredentials(manifest.url, manifest.apiKey)
     }
 
     private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? = when {
@@ -321,15 +323,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         apiKey.isNullOrEmpty() -> "API Key is missing"
         !apiKey.startsWith("msrsh") -> "invalid API Key"
         else -> null
-    }
-
-    private fun initializeFromManifest(): Boolean {
-        val manifest = measure.manifestReader.load()
-        if (manifest == null) {
-            return false
-        }
-
-        return initializeWithCredentials(manifest.url, manifest.apiKey)
     }
 
     private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
@@ -399,4 +392,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.unhandledExceptionCollector.unregister()
         measure.anrCollector.unregister()
     }
+
+    fun getDynamicConfigPath(): String? = measure.fileStorage.getConfigPath()
 }

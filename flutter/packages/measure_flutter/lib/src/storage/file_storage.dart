@@ -20,6 +20,20 @@ class FileStorage {
     return _rootPath;
   }
 
+  Future<String?> getDynamicConfigPath() async {
+    try {
+      final dynamicConfigPath = await _methodChannel.getDynamicConfigPath();
+      if (dynamicConfigPath == null) {
+        return null;
+      }
+      final file = File(dynamicConfigPath);
+      return await file.readAsString();
+    } catch (e, stacktrace) {
+      _logger.log(LogLevel.error, 'Error loading dynamic config', e, stacktrace);
+      return null;
+    }
+  }
+
   Future<File?> writeFile(Uint8List data, String fileName) async {
     try {
       _rootPath ??= await _methodChannel.getAttachmentDirectory();

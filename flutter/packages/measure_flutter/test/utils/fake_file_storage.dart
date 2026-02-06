@@ -42,4 +42,9 @@ class FakeFileStorage implements FileStorage {
   Future<String?> getRootPath() async {
     return _rootPath;
   }
+
+  @override
+  Future<String?> getDynamicConfigPath() async {
+    return _rootPath;
+  }
 }
