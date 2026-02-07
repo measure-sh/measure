@@ -1,54 +1,64 @@
-import type { ConfigProvider } from "../config/configProvider";
-import type { Randomizer } from "../utils/randomizer";
+import type { IConfigProvider } from "../config/configProvider";
 
 /**
- * Protocol for determining if a span should be sampled.
+ * Protocol for determining if a trace should be sampled.
  */
 export interface ITraceSampler {
-    /**
-     * Determines if a span should be sampled.
-     * @returns true if the span should be sampled, false otherwise.
-     */
-    shouldSample(): boolean;
+  shouldSampleTrace(traceId: string): boolean;
 }
 
 /**
- * A simple trace sampler that uses a fixed sampling rate.
+ * Deterministic trace sampler based on traceId.
+ * Matches Flutter implementation.
  */
 export class TraceSampler implements ITraceSampler {
-    configProvider: ConfigProvider;
-    randomizer: Randomizer;
+  private configProvider: IConfigProvider;
 
-    /**
-     * Initializes the BaseTraceSampler.
-     * @param configProvider Provides the trace sampling rate.
-     * @param randomizer Provides a random number for sampling decisions.
-     */
-    constructor(configProvider: ConfigProvider, randomizer: Randomizer) {
-        this.configProvider = configProvider;
-        this.randomizer = randomizer;
+  constructor(configProvider: IConfigProvider) {
+    this.configProvider = configProvider;
+  }
+
+  shouldSampleTrace(traceId: string): boolean {
+    const rate = this.configProvider.traceSamplingRate;
+
+    // 0% → never
+    if (rate === 0.0) {
+      return false;
     }
 
-    /**
-     * Determines if a span should be sampled based on the configured rate.
-     * Sampling logic:
-     * - Rate 0.0: Never samples.
-     * - Rate 1.0: Always samples.
-     * - Rate (0.0, 1.0): Samples if a random number is less than the rate.
-     * @returns true if the span should be sampled, false otherwise.
-     */
-    shouldSample(): boolean {
-        const rate = this.configProvider.traceSamplingRate;
-
-        if (rate === 0.0) {
-            return false;
-        }
-
-        if (rate === 1.0) {
-            return true;
-        }
-
-        // Generate a random number [0, 1) and compare it to the rate.
-        return this.randomizer.random() < rate;
+    // 100% → always
+    if (rate === 100.0) {
+      return true;
     }
+
+    // Convert percent to fraction
+    const sampleRate = rate / 100;
+
+    const idLo = this.longFromBase16String(traceId, 16);
+
+    // JS can't represent int64 safely, so we use BigInt
+    const mask = BigInt("0x7FFFFFFFFFFFFFFF");
+    const threshold = BigInt(Math.floor(Number(mask) * sampleRate));
+
+    return (idLo & mask) < threshold;
+  }
+
+  /**
+   * Converts lower 64 bits of hex traceId to BigInt.
+   * Matches Flutter logic.
+   */
+  private longFromBase16String(input: string, index: number): bigint {
+    if (index < 0 || index >= input.length) {
+      return BigInt(0);
+    }
+
+    const endIndex = Math.min(index + 16, input.length);
+    const hexSubstring = input.substring(index, endIndex);
+
+    try {
+      return BigInt("0x" + hexSubstring);
+    } catch {
+      return BigInt(0);
+    }
+  }
 }

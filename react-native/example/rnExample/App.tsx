@@ -13,7 +13,6 @@ import {
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {
   Measure,
-  ClientInfo,
   MeasureConfig,
   ScreenshotMaskLevel,
 } from '@measuresh/react-native';

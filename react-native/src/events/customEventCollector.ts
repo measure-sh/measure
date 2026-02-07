@@ -1,6 +1,6 @@
 import type { Logger } from '../utils/logger';
 import type { TimeProvider } from '../utils/timeProvider';
-import type { ConfigProvider } from '../config/configProvider';
+import type { IConfigProvider } from '../config/configProvider';
 import { EventType } from './eventType';
 import {
   validateAttributes,
@@ -33,14 +33,14 @@ export interface ICustomEventCollector {
 export class CustomEventCollector implements ICustomEventCollector {
   private logger: Logger;
   private timeProvider: TimeProvider;
-  private configProvider: ConfigProvider;
+  private configProvider: IConfigProvider;
   private enabled = false;
   private signalProcessor: ISignalProcessor;
 
   constructor(opts: {
     logger: Logger;
     timeProvider: TimeProvider;
-    configProvider: ConfigProvider;
+    configProvider: IConfigProvider;
     signalProcessor: ISignalProcessor;
   }) {
     this.logger = opts.logger;

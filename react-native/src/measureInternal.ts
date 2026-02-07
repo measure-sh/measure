@@ -1,15 +1,12 @@
-import type { Client } from './config/clientInfo';
-import { DefaultConfig } from './config/defaultConfig';
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
 import {
-  initializeNativeSDK,
   setShakeListener,
-  start,
-  stop,
   getSessionId as getNativeSessionId,
+  enableNativeModule,
+  disableNativeModule,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -51,40 +48,28 @@ export class MeasureInternal {
     this.measureInitializer.bugReportCollector.unregister();
   }
 
-  init(client: Client, config: MeasureConfig | null): Promise<any> {
+  init(config: MeasureConfig | null): void {
+    this.measureInitializer.configLoader.loadDynamicConfig().then((dynamicConfig) => {
+      if (dynamicConfig) {
+        this.measureInitializer.configProvider.setDynamicConfig(dynamicConfig);
+      }
+      this.measureInitializer.spanProcessor.onConfigLoaded();
+    });
+    config = config;
     if (config?.autoStart) {
       this.registerCollectors();
     }
-    return initializeNativeSDK(
-      client,
-      config ??
-        new MeasureConfig({
-          enableLogging: DefaultConfig.enableLogging,
-          samplingRateForErrorFreeSessions: DefaultConfig.sessionSamplingRate,
-          coldLaunchSamplingRate: DefaultConfig.coldLaunchSamplingRate,
-          warmLaunchSamplingRate: DefaultConfig.warmLaunchSamplingRate,
-          hotLaunchSamplingRate: DefaultConfig.hotLaunchSamplingRate,
-          journeySamplingRate: DefaultConfig.journeySamplingRate,
-          traceSamplingRate: DefaultConfig.traceSamplingRate,
-          trackHttpHeaders: DefaultConfig.trackHttpHeaders,
-          trackHttpBody: DefaultConfig.trackHttpBody,
-          httpHeadersBlocklist: DefaultConfig.httpHeadersBlocklist,
-          httpUrlBlocklist: DefaultConfig.httpUrlBlocklist,
-          httpUrlAllowlist: DefaultConfig.httpUrlAllowlist,
-          autoStart: DefaultConfig.autoStart,
-          screenshotMaskLevel: DefaultConfig.screenshotMaskLevel,
-          maxDiskUsageInMb: DefaultConfig.maxDiskUsageInMb,
-        }),
-      this.measureInitializer.logger
-    );
   }
 
-  start = (): Promise<any> => {
+  start(): void {
     this.registerCollectors();
-    return start();
+    enableNativeModule()
   };
 
-  stop = (): Promise<any> => stop();
+  stop(): void {
+    this.unregisterCollectors();
+    disableNativeModule()
+  }
 
   trackEvent = (
     name: string,

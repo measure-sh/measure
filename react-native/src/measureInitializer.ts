@@ -1,9 +1,8 @@
-import type { Client } from './config/clientInfo';
 import { Config } from './config/config';
-import { BaseConfigLoader, type ConfigLoader } from './config/configLoader';
+import { ConfigLoader } from './config/configLoader';
 import {
-  BaseConfigProvider,
-  type ConfigProvider,
+  ConfigProvider,
+  type IConfigProvider,
 } from './config/configProvider';
 import { MeasureConfig } from './config/measureConfig';
 import { MeasureLogger, type Logger } from './utils/logger';
@@ -39,10 +38,9 @@ import {
 import { ScreenshotCollector, type IScreenshotCollector } from './screenshot/screenshotCollector';
 import { LayoutSnapshotCollector, type ILayoutSnapshotCollector } from './layoutSnapshot/layoutSnapshotCollector';
 
-export interface MeasureInitializer {
+export interface IMeasureInitializer {
   logger: Logger;
-  client: Client;
-  configProvider: ConfigProvider;
+  configProvider: IConfigProvider;
   configLoader: ConfigLoader;
   config: Config;
   timeProvider: TimeProvider;
@@ -62,10 +60,9 @@ export interface MeasureInitializer {
   layoutSnapshotCollector: ILayoutSnapshotCollector;
 }
 
-export class BaseMeasureInitializer implements MeasureInitializer {
+export class MeasureInitializer implements IMeasureInitializer {
   logger: Logger;
-  client: Client;
-  configProvider: ConfigProvider;
+  configProvider: IConfigProvider;
   configLoader: ConfigLoader;
   config: Config;
   timeProvider: TimeProvider;
@@ -84,35 +81,18 @@ export class BaseMeasureInitializer implements MeasureInitializer {
   screenshotCollector: IScreenshotCollector;
   layoutSnapshotCollector: ILayoutSnapshotCollector;
 
-  constructor(client: Client, config: MeasureConfig | null) {
+  constructor(config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
       'Measure',
       config?.enableLogging ?? true,
       true
     );
-    this.client = client;
     this.config = new Config(
       config?.enableLogging,
-      config?.samplingRateForErrorFreeSessions,
-      config?.coldLaunchSamplingRate,
-      config?.warmLaunchSamplingRate,
-      config?.hotLaunchSamplingRate,
-      config?.journeySamplingRate,
-      config?.traceSamplingRate,
-      config?.trackHttpHeaders,
-      config?.trackHttpBody,
-      config?.httpHeadersBlocklist,
-      config?.httpUrlBlocklist,
-      config?.httpUrlAllowlist,
       config?.autoStart,
-      config?.screenshotMaskLevel,
-      config?.maxDiskUsageInMb
     );
-    this.configLoader = new BaseConfigLoader();
-    this.configProvider = new BaseConfigProvider(
-      this.config,
-      this.configLoader
-    );
+    this.configLoader = new ConfigLoader(this.logger);
+    this.configProvider = new ConfigProvider(this.config);
     this.timeProvider = new MeasureTimeProvider();
     this.signalProcessor = new SignalProcessor(this.logger);
     this.customEventCollector = new CustomEventCollector({
