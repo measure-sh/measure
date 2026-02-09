@@ -90,6 +90,7 @@ export class MeasureInitializer implements IMeasureInitializer {
     this.config = new Config(
       config?.enableLogging,
       config?.autoStart,
+      config?.enableFullCollectionMode
     );
     this.configLoader = new ConfigLoader(this.logger);
     this.configProvider = new ConfigProvider(this.config);
@@ -109,12 +110,13 @@ export class MeasureInitializer implements IMeasureInitializer {
     this.uuidGenerator = new UuidGenerator();
     this.randormizer = new Randomizer();
     this.idProvider = new IdProvider(this.randormizer, this.uuidGenerator);
+    this.traceSampler = new TraceSampler(this.configProvider);
     this.spanProcessor = new SpanProcessor(
       this.logger,
       this.signalProcessor,
-      this.configProvider
+      this.configProvider,
+      this.traceSampler
     );
-    this.traceSampler = new TraceSampler(this.configProvider, this.randormizer);
     this.tracer = new MsrTracer(
       this.logger,
       this.idProvider,

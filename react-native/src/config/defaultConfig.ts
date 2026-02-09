@@ -2,5 +2,6 @@
 export const DefaultConfig = {
   enableLogging: false,
   autoStart: true,
+  enableFullCollectionMode: false,
   customEventNameRegex: "^[a-zA-Z0-9_-]+\$",
 };

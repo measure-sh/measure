@@ -9,7 +9,6 @@ export interface ITraceSampler {
 
 /**
  * Deterministic trace sampler based on traceId.
- * Matches Flutter implementation.
  */
 export class TraceSampler implements ITraceSampler {
   private configProvider: IConfigProvider;
@@ -19,14 +18,15 @@ export class TraceSampler implements ITraceSampler {
   }
 
   shouldSampleTrace(traceId: string): boolean {
+    if (this.configProvider.enableFullCollectionMode) {
+      return true;
+    }
     const rate = this.configProvider.traceSamplingRate;
 
-    // 0% → never
     if (rate === 0.0) {
       return false;
     }
 
-    // 100% → always
     if (rate === 100.0) {
       return true;
     }
@@ -36,7 +36,6 @@ export class TraceSampler implements ITraceSampler {
 
     const idLo = this.longFromBase16String(traceId, 16);
 
-    // JS can't represent int64 safely, so we use BigInt
     const mask = BigInt("0x7FFFFFFFFFFFFFFF");
     const threshold = BigInt(Math.floor(Number(mask) * sampleRate));
 
@@ -45,7 +44,6 @@ export class TraceSampler implements ITraceSampler {
 
   /**
    * Converts lower 64 bits of hex traceId to BigInt.
-   * Matches Flutter logic.
    */
   private longFromBase16String(input: string, index: number): bigint {
     if (index < 0 || index >= input.length) {

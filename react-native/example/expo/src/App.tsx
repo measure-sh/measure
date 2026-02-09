@@ -23,6 +23,7 @@ export default function App() {
       const measureConfig = new MeasureConfig({
         enableLogging: true,
         autoStart: true,
+        enableFullCollectionMode: false,
       });
 
       await Measure.init(measureConfig);

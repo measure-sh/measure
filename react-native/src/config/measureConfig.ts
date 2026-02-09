@@ -16,6 +16,12 @@ export interface IMeasureConfig {
    * Defaults to true.
    */
   autoStart: boolean;
+
+  /** 
+   * Override all sampling configs and track all events and traces.
+   * **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+  */
+  enableFullCollectionMode: boolean;
 }
 
 /**
@@ -24,6 +30,7 @@ export interface IMeasureConfig {
 export class MeasureConfig implements IMeasureConfig {
   enableLogging: boolean;
   autoStart: boolean;
+  enableFullCollectionMode: boolean;
 
   /**
    * Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -34,5 +41,6 @@ export class MeasureConfig implements IMeasureConfig {
   constructor(options: Partial<IMeasureConfig> = {}) {
     this.enableLogging = options.enableLogging ?? DefaultConfig.enableLogging;
     this.autoStart = options.autoStart ?? DefaultConfig.autoStart;
+    this.enableFullCollectionMode = options.enableFullCollectionMode ?? DefaultConfig.enableFullCollectionMode;
   }
 }
