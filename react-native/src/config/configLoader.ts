@@ -12,7 +12,7 @@ export class ConfigLoader {
       json = await getDynamicConfig();
     } catch (e) {
       this.logger.log(
-        'error',
+        'info',
         'ConfigLoader: Failed to load dynamic config',
         e
       );
@@ -28,9 +28,10 @@ export class ConfigLoader {
     }
 
       this.logger.log(
-        'debug',
+        'info',
         'ConfigLoader: Dynamic config loaded successfully'
       );
+      console.log('Loaded dynamic config:', json);
 
       return DynamicConfig.fromNative(json);
   }

@@ -15,6 +15,7 @@ import type { ValidAttributeValue } from './utils/attributeValueValidator';
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
   private shakeHandler?: (() => void) | null;
+  private started = false;
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
@@ -48,27 +49,45 @@ export class MeasureInternal {
     this.measureInitializer.bugReportCollector.unregister();
   }
 
-  init(config: MeasureConfig | null): void {
-    this.measureInitializer.configLoader.loadDynamicConfig().then((dynamicConfig) => {
-      if (dynamicConfig) {
-        this.measureInitializer.configProvider.setDynamicConfig(dynamicConfig);
-      }
-      this.measureInitializer.spanProcessor.onConfigLoaded();
-    });
-    config = config;
+  async init(config: MeasureConfig | null): Promise<void> {
+    const dynamicConfig = await this.measureInitializer.configLoader.loadDynamicConfig();
+
+    if (dynamicConfig) {
+      this.measureInitializer.configProvider.setDynamicConfig(dynamicConfig);
+    }
+
+    this.measureInitializer.spanProcessor.onConfigLoaded();
+
     if (config?.autoStart) {
+      this.started = true;
       this.registerCollectors();
     }
   }
 
   start(): void {
+    if (this.started) {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Measure.start() called but Measure is already started.'
+      );
+      return;
+    }
+    this.started = true;
     this.registerCollectors();
-    enableNativeModule()
-  };
+    enableNativeModule();
+  }
 
   stop(): void {
+    if (!this.started) {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Measure.stop() called but Measure is not started.'
+      );
+      return;
+    }
+    this.started = false;
     this.unregisterCollectors();
-    disableNativeModule()
+    disableNativeModule();
   }
 
   trackEvent = (
@@ -182,13 +201,12 @@ export class MeasureInternal {
   }
 
   getSessionId(): Promise<string | null> {
-    return getNativeSessionId()
-      .catch(() => {
-        this.measureInitializer.logger.internalLog(
-          'warning',
-          'Failed to fetch session ID from native layer.'
-        );
-        return null;
-      });
+    return getNativeSessionId().catch(() => {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Failed to fetch session ID from native layer.'
+      );
+      return null;
+    });
   }
 }

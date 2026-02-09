@@ -72,6 +72,10 @@ export class SpanProcessor implements ISpanProcessor {
   onEnded(span: InternalSpan): void {
     const isConfigLoaded = this.spansBuffer === null;
 
+    this.logger.log('debug', `Span ending: ${span.name}`, null, {
+      step: 'onEnded',
+    });
+
     // Config not loaded yet → only sanitize + keep/remove from buffer
     if (!isConfigLoaded) {
       const spanData = span.toSpanData();

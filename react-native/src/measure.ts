@@ -51,14 +51,16 @@ export const Measure = {
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise((resolve, reject) => {
+    _initializationPromise = new Promise(async (resolve, reject) => {
       try {
         console.info('Initializing Measure SDK ...');
 
         _measureInitializer = new MeasureInitializer(config);
         _measureInternal = new MeasureInternal(_measureInitializer);
 
-        _measureInternal.init(config)
+        await _measureInternal.init(config);
+
+        resolve();
       } catch (error) {
         _initializationPromise = null;
         reject(error);
@@ -166,7 +168,9 @@ export const Measure = {
    */
   getCurrentTime(): number {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Returning standard Date.now().');
+      console.warn(
+        'Measure is not initialized. Returning standard Date.now().'
+      );
       return Date.now();
     }
     return _measureInternal.getCurrentTime();
@@ -232,7 +236,7 @@ export const Measure = {
     return _measureInternal.getTraceParentHeaderKey();
   },
 
-    /**
+  /**
    * Sets the user ID for the current user.
    *
    * User ID is persisted by the native SDK and used across sessions.
@@ -266,7 +270,7 @@ export const Measure = {
     _measureInternal.clearUserId();
   },
 
-    /**
+  /**
    * Tracks an HTTP event manually.
    *
    * @param url - The URL to which the request was made
@@ -330,7 +334,7 @@ export const Measure = {
     );
   },
 
-   /**
+  /**
    * Registers a shake listener that triggers a callback when a shake gesture is detected.
    *
    * Calling this method with a function enables shake detection.
@@ -439,11 +443,15 @@ export const Measure = {
   ): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
-        new Error("Measure is not initialized. Call init() first.")
+        new Error('Measure is not initialized. Call init() first.')
       );
     }
 
-    return _measureInternal.trackBugReport(description, attachments, attributes);
+    return _measureInternal.trackBugReport(
+      description,
+      attachments,
+      attributes
+    );
   },
 
   /**
