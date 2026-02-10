@@ -2,7 +2,10 @@
 
 import { FilterSource, HttpOriginsApiStatus, fetchHttpOriginsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import { Input } from '@/app/components/input'
+import LoadingSpinner from '@/app/components/loading_spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -10,7 +13,14 @@ interface PageState {
     filters: typeof defaultFilters
     httpOriginsApiStatus: HttpOriginsApiStatus
     httpOrigins: string[]
-    selectedOrigin: string
+}
+
+const httpMethods = ["Any Method", "GET", "PUT", "POST", "DELETE", "PATCH"]
+
+interface SearchState {
+    origin: string
+    method: string
+    pathPattern: string
 }
 
 export default function NetworkOverview({ params }: { params: { teamId: string } }) {
@@ -20,10 +30,19 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         filters: defaultFilters,
         httpOriginsApiStatus: HttpOriginsApiStatus.Loading,
         httpOrigins: [],
-        selectedOrigin: "",
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
+
+    const [searchState, setSearchState] = useState<SearchState>({
+        origin: "",
+        method: httpMethods[0],
+        pathPattern: "",
+    })
+
+    const updateSearchState = (newState: Partial<SearchState>) => {
+        setSearchState(prevState => ({ ...prevState, ...newState }))
+    }
 
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
@@ -62,22 +81,22 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                     updatePageState({
                         httpOriginsApiStatus: HttpOriginsApiStatus.Success,
                         httpOrigins: origins,
-                        selectedOrigin: origins[0],
                     })
+                    updateSearchState({ origin: origins[0] })
                     break
                 case HttpOriginsApiStatus.NoData:
                     updatePageState({
                         httpOriginsApiStatus: HttpOriginsApiStatus.NoData,
                         httpOrigins: [],
-                        selectedOrigin: "",
                     })
+                    updateSearchState({ origin: "" })
                     break
                 default:
                     updatePageState({
                         httpOriginsApiStatus: HttpOriginsApiStatus.Error,
                         httpOrigins: [],
-                        selectedOrigin: "",
                     })
+                    updateSearchState({ origin: "" })
                     break
             }
         })
@@ -110,16 +129,55 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 showUdAttrs={false}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
+
             <div className="py-4" />
 
+            {pageState.filters.ready && pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading &&
+                <LoadingSpinner />
+            }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
-                <DropdownSelect
-                    type={DropdownSelectType.SingleString}
-                    title="Origin"
-                    items={pageState.httpOrigins}
-                    initialSelected={pageState.selectedOrigin}
-                    onChangeSelected={(item) => updatePageState({ selectedOrigin: item as string })}
-                />
+                <>
+                    <p className="font-display text-xl max-w-6xl">Search</p>
+
+                    <div className="py-2" />
+
+                    <div className="flex flex-row items-center">
+                        <DropdownSelect
+                            type={DropdownSelectType.SingleString}
+                            title="Method"
+                            items={httpMethods}
+                            initialSelected={searchState.method}
+                            onChangeSelected={(item) => updateSearchState({ method: item as string })}
+                        />
+                        <div className="px-2" />
+                        <DropdownSelect
+                            type={DropdownSelectType.SingleString}
+                            title="Origin"
+                            items={pageState.httpOrigins}
+                            initialSelected={searchState.origin}
+                            onChangeSelected={(item) => updateSearchState({ origin: item as string })}
+                        />
+                        <div className="px-2" />
+                        <Input
+                            type="text"
+                            placeholder="Enter a path like /v1/users/*/profile"
+                            className="w-96 font-body"
+                            value={searchState.pathPattern}
+                            onChange={(e) => updateSearchState({ pathPattern: e.target.value })}
+                        />
+                        <Button
+                            variant="outline"
+                            className="m-4"
+                            disabled={searchState.pathPattern.trim() === ""}
+                            onClick={() => console.log(searchState)}>
+                            Search
+                        </Button>
+                    </div>
+
+                    <div className="py-4" />
+
+                    <p className="font-display text-xl max-w-6xl">Overview</p>
+                </>
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
                 <p className="font-body text-sm">Error fetching origins, please change filters & try again</p>
