@@ -6773,104 +6773,13 @@ func GetNetworkMetrics(c *gin.Context) {
 		return
 	}
 
-	// Fetch latency metrics
-	latencyMetrics, err := network.FetchLatencyMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
+	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
 	if err != nil {
-		msg := "failed to get latency metrics"
+		msg := "failed to get network metrics"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	// Fetch status code metrics
-	statusCodeMetrics, err := network.FetchStatusCodeMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
-	if err != nil {
-		msg := "failed to get status code metrics"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	// Fetch frequency metrics
-	frequencyMetrics, err := network.FetchFrequencyMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
-	if err != nil {
-		msg := "failed to get frequency metrics"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	// Group latency metrics by version
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
-	latencyLut := make(map[string]int)
-	var latencyInstances []instance
-	for i := range latencyMetrics {
-		inst := instance{
-			ID: latencyMetrics[i].Version,
-			Data: []gin.H{{
-				"datetime": latencyMetrics[i].DateTime,
-				"p50":      latencyMetrics[i].P50,
-				"p90":      latencyMetrics[i].P90,
-				"p95":      latencyMetrics[i].P95,
-				"p99":      latencyMetrics[i].P99,
-			}},
-		}
-		ndx, ok := latencyLut[latencyMetrics[i].Version]
-		if ok {
-			latencyInstances[ndx].Data = append(latencyInstances[ndx].Data, inst.Data...)
-		} else {
-			latencyInstances = append(latencyInstances, inst)
-			latencyLut[latencyMetrics[i].Version] = len(latencyInstances) - 1
-		}
-	}
-
-	// Group status code metrics by status code
-	statusCodeLut := make(map[string]int)
-	var statusCodeInstances []instance
-	for i := range statusCodeMetrics {
-		inst := instance{
-			ID: statusCodeMetrics[i].StatusCode,
-			Data: []gin.H{{
-				"datetime": statusCodeMetrics[i].DateTime,
-				"count":    statusCodeMetrics[i].Count,
-			}},
-		}
-		ndx, ok := statusCodeLut[statusCodeMetrics[i].StatusCode]
-		if ok {
-			statusCodeInstances[ndx].Data = append(statusCodeInstances[ndx].Data, inst.Data...)
-		} else {
-			statusCodeInstances = append(statusCodeInstances, inst)
-			statusCodeLut[statusCodeMetrics[i].StatusCode] = len(statusCodeInstances) - 1
-		}
-	}
-
-	// Group frequency metrics by version
-	frequencyLut := make(map[string]int)
-	var frequencyInstances []instance
-	for i := range frequencyMetrics {
-		inst := instance{
-			ID: frequencyMetrics[i].Version,
-			Data: []gin.H{{
-				"datetime": frequencyMetrics[i].DateTime,
-				"count":    frequencyMetrics[i].Count,
-			}},
-		}
-		ndx, ok := frequencyLut[frequencyMetrics[i].Version]
-		if ok {
-			frequencyInstances[ndx].Data = append(frequencyInstances[ndx].Data, inst.Data...)
-		} else {
-			frequencyInstances = append(frequencyInstances, inst)
-			frequencyLut[frequencyMetrics[i].Version] = len(frequencyInstances) - 1
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"latency":      latencyInstances,
-		"status_codes": statusCodeInstances,
-		"frequency":    frequencyInstances,
-	})
+	c.JSON(http.StatusOK, result)
 }
