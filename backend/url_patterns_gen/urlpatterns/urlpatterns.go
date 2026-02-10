@@ -126,7 +126,7 @@ func processApp(ctx context.Context, teamID, appID uuid.UUID) error {
 	for pattern, count := range patternCounts {
 		if id, exists := existingMap[pattern]; exists {
 			updateIDs = append(updateIDs, id)
-		} else if count > minRequestCount {
+		} else if count >= minRequestCount {
 			newPatterns = append(newPatterns, pattern)
 		}
 	}
