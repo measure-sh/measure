@@ -15,11 +15,8 @@ interface PageState {
     httpOrigins: string[]
 }
 
-const httpMethods = ["Any Method", "GET", "PUT", "POST", "DELETE", "PATCH"]
-
 interface SearchState {
     origin: string
-    method: string
     pathPattern: string
 }
 
@@ -36,7 +33,6 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
     const [searchState, setSearchState] = useState<SearchState>({
         origin: "",
-        method: httpMethods[0],
         pathPattern: "",
     })
 
@@ -141,15 +137,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <div className="py-2" />
 
-                    <div className="flex flex-row items-center">
-                        <DropdownSelect
-                            type={DropdownSelectType.SingleString}
-                            title="Method"
-                            items={httpMethods}
-                            initialSelected={searchState.method}
-                            onChangeSelected={(item) => updateSearchState({ method: item as string })}
-                        />
-                        <div className="px-2" />
+                    <div className="flex flex-row items-center w-full">
                         <DropdownSelect
                             type={DropdownSelectType.SingleString}
                             title="Origin"
@@ -161,7 +149,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                         <Input
                             type="text"
                             placeholder="Enter a path like /v1/users/*/profile"
-                            className="w-96 font-body"
+                            className="flex-1 font-body"
                             value={searchState.pathPattern}
                             onChange={(e) => updateSearchState({ pathPattern: e.target.value })}
                         />
@@ -169,7 +157,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             variant="outline"
                             className="m-4"
                             disabled={searchState.pathPattern.trim() === ""}
-                            onClick={() => console.log(searchState)}>
+                            onClick={() => router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(searchState.origin + '/' + searchState.pathPattern)}`)}>
                             Search
                         </Button>
                     </div>
