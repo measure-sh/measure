@@ -3,10 +3,8 @@ CREATE MATERIALIZED VIEW http_metrics_mv TO http_metrics AS
 SELECT
     `team_id`,
     `app_id`,
-    protocol(`http.url`) AS `protocol`,
-    domain(`http.url`) AS `host`,
+    concat(protocol(`http.url`), '://', domain(`http.url`)) AS `origin`,
     toString(`http.method`) AS `method`,
-    -- very high cardinality, should be converted to a normalzied format in the events ingestion
     path(`http.url`) AS `path`,
     toStartOfFiveMinutes(`timestamp`) AS `bucket`,
     `http.status_code` AS `status_code`,
@@ -21,11 +19,12 @@ SELECT
     ) AS `latency_quantile`
 FROM
     events
+WHERE
+    type = 'http'
 GROUP BY
     `team_id`,
     `app_id`,
-    `protocol`,
-    `host`,
+    `origin`,
     `method`,
     `path`,
     `bucket`,

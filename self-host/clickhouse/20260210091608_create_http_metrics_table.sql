@@ -1,9 +1,8 @@
 -- migrate:up
 CREATE TABLE http_metrics (
-    `team_id` UInt64,
+    `team_id` String,
     `app_id` String,
-    `protocol` LowCardinality(String),
-    `host` LowCardinality(String),
+    `origin` LowCardinality(String),
     `method` LowCardinality(String),
     `path` String,
     `bucket` DateTime CODEC(DoubleDelta, ZSTD(1)),
@@ -21,8 +20,7 @@ ORDER BY
     (
         `team_id`,
         `app_id`,
-        `protocol`,
-        `host`,
+        `origin`,
         `method`,
         `path`,
         `bucket`,

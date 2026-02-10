@@ -8,13 +8,15 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// FetchOrigins returns distinct origins (protocol://host) from http_metrics for an app.
+// FetchOrigins returns list of
+// unique origins for a given
+// app and team.
 func FetchOrigins(ctx context.Context, appId, teamId uuid.UUID) (origins []string, err error) {
 	stmt := sqlf.
-		Select("distinct concat(protocol, '://', host) as origin").
+		Select("distinct origin").
 		From("http_metrics").
-		Where("app_id = ?", appId).
 		Where("team_id = ?", teamId).
+		Where("app_id = ?", appId).
 		OrderBy("origin")
 
 	defer stmt.Close()
