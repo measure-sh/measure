@@ -45,6 +45,14 @@ export enum SpanMetricsPlotApiStatus {
   Cancelled,
 }
 
+export enum HttpOriginsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SpansApiStatus {
   Loading,
   Success,
@@ -1339,6 +1347,28 @@ export const fetchRootSpanNamesFromServer = async (selectedApp: App) => {
     return { status: RootSpanNamesApiStatus.Success, data: data }
   } catch {
     return { status: RootSpanNamesApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchHttpOriginsFromServer = async (selectedApp: App) => {
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${selectedApp.id}/httpMetrics/origins`,
+    )
+
+    if (!res.ok) {
+      return { status: HttpOriginsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null || data.results.length === 0) {
+      return { status: HttpOriginsApiStatus.NoData, data: null }
+    }
+
+    return { status: HttpOriginsApiStatus.Success, data: data }
+  } catch {
+    return { status: HttpOriginsApiStatus.Cancelled, data: null }
   }
 }
 

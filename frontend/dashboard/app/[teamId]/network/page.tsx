@@ -1,19 +1,27 @@
 "use client"
 
-import { FilterSource } from '@/app/api/api_calls'
+import { FilterSource, HttpOriginsApiStatus, fetchHttpOriginsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import LoadingSpinner from '@/app/components/loading_spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface PageState {
     filters: typeof defaultFilters
+    httpOriginsApiStatus: HttpOriginsApiStatus
+    httpOrigins: string[]
+    selectedOrigin: string
 }
 
 export default function NetworkOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
 
     const initialState: PageState = {
-        filters: defaultFilters
+        filters: defaultFilters,
+        httpOriginsApiStatus: HttpOriginsApiStatus.Loading,
+        httpOrigins: [],
+        selectedOrigin: "",
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -39,6 +47,41 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         }
 
         router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
+    }, [pageState.filters])
+
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app) {
+            return
+        }
+
+        updatePageState({ httpOriginsApiStatus: HttpOriginsApiStatus.Loading })
+
+        fetchHttpOriginsFromServer(pageState.filters.app).then(result => {
+            switch (result.status) {
+                case HttpOriginsApiStatus.Success:
+                    const origins = result.data.results as string[]
+                    updatePageState({
+                        httpOriginsApiStatus: HttpOriginsApiStatus.Success,
+                        httpOrigins: origins,
+                        selectedOrigin: origins[0],
+                    })
+                    break
+                case HttpOriginsApiStatus.NoData:
+                    updatePageState({
+                        httpOriginsApiStatus: HttpOriginsApiStatus.NoData,
+                        httpOrigins: [],
+                        selectedOrigin: "",
+                    })
+                    break
+                default:
+                    updatePageState({
+                        httpOriginsApiStatus: HttpOriginsApiStatus.Error,
+                        httpOrigins: [],
+                        selectedOrigin: "",
+                    })
+                    break
+            }
+        })
     }, [pageState.filters])
 
     return (
@@ -69,6 +112,23 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
+
+            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading && <LoadingSpinner />}
+            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
+                <DropdownSelect
+                    type={DropdownSelectType.SingleString}
+                    title="Origin"
+                    items={pageState.httpOrigins}
+                    initialSelected={pageState.selectedOrigin}
+                    onChangeSelected={(item) => updatePageState({ selectedOrigin: item as string })}
+                />
+            }
+            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
+                <p className="text-lg font-display">Error fetching origins, please change filters & try again</p>
+            }
+            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.NoData &&
+                <p className="text-lg font-display">No origins available for the selected app</p>
+            }
         </div>
     )
 }
