@@ -3,7 +3,6 @@
 import { FilterSource, HttpOriginsApiStatus, fetchHttpOriginsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
-import LoadingSpinner from '@/app/components/loading_spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -113,14 +112,14 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
-            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading && <LoadingSpinner />}
-            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
+            {(pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading || (pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0)) &&
                 <DropdownSelect
                     type={DropdownSelectType.SingleString}
                     title="Origin"
-                    items={pageState.httpOrigins}
-                    initialSelected={pageState.selectedOrigin}
+                    items={pageState.httpOrigins.length > 0 ? pageState.httpOrigins : ["Origin"]}
+                    initialSelected={pageState.selectedOrigin || "Origin"}
                     onChangeSelected={(item) => updatePageState({ selectedOrigin: item as string })}
+                    disabled={pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading}
                 />
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
