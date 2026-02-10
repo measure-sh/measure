@@ -87,7 +87,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             <Filters
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
-                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
+                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
@@ -120,6 +120,8 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             }
             {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics &&
                 <div className="flex flex-col w-full">
+                    <div className="py-6" />
+                    
                     <p className="font-display text-xl">Latency</p>
                     <NetworkLatencyPlot data={pageState.networkMetrics.latency} />
 

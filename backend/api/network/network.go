@@ -26,9 +26,9 @@ type MetricDataPoint struct {
 // MetricsResponse contains all network metrics
 // grouped by category.
 type MetricsResponse struct {
-	Latency     []MetricDataPoint `json:"latency"`
-	StatusCodes []MetricDataPoint `json:"status_codes"`
-	Frequency   []MetricDataPoint `json:"frequency"`
+	Latency     []MetricsDataPoint `json:"latency"`
+	StatusCodes []MetricDataPoint  `json:"status_codes"`
+	Frequency   []MetricsDataPoint `json:"frequency"`
 }
 
 // ParseURL splits a full URL into origin (scheme://host)
@@ -140,7 +140,6 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 
 	// Fetch latency metrics
 	latencyStmt := sqlf.From("http_metrics").
-		Select("concat(`attribute.app_version`, ' ', '(', `attribute.app_build`, ')') as app_version_fmt").
 		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("quantilesMerge(0.50, 0.90, 0.95, 0.99)(latency_quantile) as latencies").
 		Clause("prewhere team_id = ? and app_id = ? and origin = ? and bucket >= ? and bucket <= ?", teamId, appId, origin, af.From, af.To)
@@ -148,8 +147,8 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 	applyPathFilter(latencyStmt, pathPattern)
 	applyFilters(latencyStmt, af)
 
-	latencyStmt.GroupBy("`attribute.app_version`, `attribute.app_build`, datetime")
-	latencyStmt.OrderBy("datetime, `attribute.app_build` desc")
+	latencyStmt.GroupBy("datetime")
+	latencyStmt.OrderBy("datetime")
 
 	defer latencyStmt.Close()
 
@@ -158,11 +157,10 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 		return
 	}
 
-	latencyLut := make(map[string]int)
 	for latencyRows.Next() {
-		var version, datetime string
+		var datetime string
 		var latencies []float32
-		if err = latencyRows.Scan(&version, &datetime, &latencies); err != nil {
+		if err = latencyRows.Scan(&datetime, &latencies); err != nil {
 			return
 		}
 		if err = latencyRows.Err(); err != nil {
@@ -175,7 +173,7 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 			data["p95"] = roundPtr(float64(latencies[2]))
 			data["p99"] = roundPtr(float64(latencies[3]))
 		}
-		groupByID(version, data, latencyLut, &result.Latency)
+		result.Latency = append(result.Latency, data)
 	}
 	if err = latencyRows.Err(); err != nil {
 		return
@@ -219,7 +217,6 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 
 	// Fetch frequency metrics
 	freqStmt := sqlf.From("http_metrics").
-		Select("concat(`attribute.app_version`, ' ', '(', `attribute.app_build`, ')') as app_version_fmt").
 		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("sum(request_count) as count").
 		Clause("prewhere team_id = ? and app_id = ? and origin = ? and bucket >= ? and bucket <= ?", teamId, appId, origin, af.From, af.To)
@@ -227,8 +224,8 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 	applyPathFilter(freqStmt, pathPattern)
 	applyFilters(freqStmt, af)
 
-	freqStmt.GroupBy("`attribute.app_version`, `attribute.app_build`, datetime")
-	freqStmt.OrderBy("datetime, `attribute.app_build` desc")
+	freqStmt.GroupBy("datetime")
+	freqStmt.OrderBy("datetime")
 
 	defer freqStmt.Close()
 
@@ -237,17 +234,16 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 		return
 	}
 
-	freqLut := make(map[string]int)
 	for freqRows.Next() {
-		var version, datetime string
+		var datetime string
 		var count uint64
-		if err = freqRows.Scan(&version, &datetime, &count); err != nil {
+		if err = freqRows.Scan(&datetime, &count); err != nil {
 			return
 		}
 		if err = freqRows.Err(); err != nil {
 			return
 		}
-		groupByID(version, MetricsDataPoint{"datetime": datetime, "count": count}, freqLut, &result.Frequency)
+		result.Frequency = append(result.Frequency, MetricsDataPoint{"datetime": datetime, "count": count})
 	}
 	err = freqRows.Err()
 	return

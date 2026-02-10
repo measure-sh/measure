@@ -35,14 +35,14 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
   useEffect(() => {
     if (!data) return
 
-    const newPlot = data.map((item: any) => ({
-      id: item.id,
-      data: item.data.map((d: any, index: number) => ({
-        id: item.id + '.' + index,
+    const newPlot: PlotData = [{
+      id: quantile,
+      data: data.map((d: any, index: number) => ({
+        id: quantile + '.' + index,
         x: d.datetime,
         y: d[quantile]
       }))
-    }))
+    }]
 
     setPlot(newPlot)
   }, [data, quantile])
@@ -117,8 +117,6 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
               {slice.points.map((point) => (
                 <div className="flex flex-row items-center p-2" key={point.id}>
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
-                  <div className="px-2" />
-                  <p>{point.serieId.toString()} - </p>
                   <div className="px-2" />
                   <p>{formatMillisToHumanReadable(point.data.yFormatted as number)} ({quantile})</p>
                 </div>
