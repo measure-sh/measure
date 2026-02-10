@@ -81,7 +81,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
     return (
         <div className="flex flex-col items-start w-full">
-            <p className="font-display text-4xl max-w-6xl text-center">{url}</p>
+            <p className="font-code text-4xl max-w-6xl text-center">{url}</p>
             <div className="py-4" />
 
             <Filters
