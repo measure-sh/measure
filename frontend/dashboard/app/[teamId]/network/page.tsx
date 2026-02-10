@@ -112,14 +112,13 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
-            {(pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading || (pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0)) &&
+            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
                 <DropdownSelect
                     type={DropdownSelectType.SingleString}
                     title="Origin"
-                    items={pageState.httpOrigins.length > 0 ? pageState.httpOrigins : ["Origin"]}
-                    initialSelected={pageState.selectedOrigin || "Origin"}
+                    items={pageState.httpOrigins}
+                    initialSelected={pageState.selectedOrigin}
                     onChangeSelected={(item) => updatePageState({ selectedOrigin: item as string })}
-                    disabled={pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading}
                 />
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
