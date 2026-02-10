@@ -40,6 +40,13 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         setSearchState(prevState => ({ ...prevState, ...newState }))
     }
 
+    const handleSearch = () => {
+        if (searchState.pathPattern.trim() === "") return
+        const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
+        const origin = searchState.origin.endsWith('/') ? searchState.origin.slice(0, -1) : searchState.origin
+        router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(origin + path)}`)
+    }
+
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
             const updatedState = { ...prevState, ...newState }
@@ -151,17 +158,14 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             placeholder="Enter a path like /v1/users/*/profile"
                             className="flex-1 font-body"
                             value={searchState.pathPattern}
-                            onChange={(e) => updateSearchState({ pathPattern: e.target.value })}
+                            onChange={(e) => updateSearchState({ pathPattern: e.target.value.replace(/\s/g, '') })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
                         />
                         <Button
                             variant="outline"
                             className="m-4"
                             disabled={searchState.pathPattern.trim() === ""}
-                            onClick={() => {
-                                const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
-                                const origin = searchState.origin.endsWith('/') ? searchState.origin.slice(0, -1) : searchState.origin
-                                router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(origin + path)}`)
-                            }}>
+                            onClick={handleSearch}>
                             Search
                         </Button>
                     </div>
