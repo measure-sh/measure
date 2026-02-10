@@ -122,10 +122,10 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 />
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
-                <p className="text-lg font-display">Error fetching origins, please change filters & try again</p>
+                <p className="font-body text-sm">Error fetching origins, please change filters & try again</p>
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.NoData &&
-                <p className="text-lg font-display">No origins available for the selected app</p>
+                <p className="font-body text-sm">No data available for the selected app</p>
             }
         </div>
     )
