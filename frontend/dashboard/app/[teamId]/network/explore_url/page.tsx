@@ -2,6 +2,10 @@
 
 import { FilterSource, NetworkMetricsApiStatus, fetchNetworkMetricsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import LoadingSpinner from '@/app/components/loading_spinner'
+import NetworkFrequencyPlot from '@/app/components/network_frequency_plot'
+import NetworkLatencyPlot from '@/app/components/network_latency_plot'
+import NetworkStatusCodesPlot from '@/app/components/network_status_codes_plot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -76,7 +80,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
     }, [pageState.filters])
 
     return (
-        <div className="flex flex-col items-start">
+        <div className="flex flex-col items-start w-full">
             <p className="font-display text-4xl max-w-6xl text-center">{url}</p>
             <div className="py-4" />
 
@@ -102,6 +106,34 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                 showUdAttrs={false}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
+
+            <div className="py-4" />
+
+            {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Loading &&
+                <LoadingSpinner />
+            }
+            {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Error &&
+                <p className="font-body text-sm">Error fetching metrics, please change filters & try again</p>
+            }
+            {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.NoData &&
+                <p className="font-body text-sm">No data available for the selected filters</p>
+            }
+            {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics &&
+                <div className="flex flex-col w-full">
+                    <p className="font-display text-xl">Latency</p>
+                    <NetworkLatencyPlot data={pageState.networkMetrics.latency} />
+
+                    <div className="py-6" />
+
+                    <p className="font-display text-xl">Status Codes</p>
+                    <NetworkStatusCodesPlot data={pageState.networkMetrics.status_codes} />
+
+                    <div className="py-6" />
+
+                    <p className="font-display text-xl">Frequency</p>
+                    <NetworkFrequencyPlot data={pageState.networkMetrics.frequency} />
+                </div>
+            }
         </div>
     )
 }
