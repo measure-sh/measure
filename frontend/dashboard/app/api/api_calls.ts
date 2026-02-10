@@ -391,6 +391,14 @@ export enum HttpOriginsApiStatus {
   Cancelled,
 }
 
+export enum NetworkMetricsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2531,5 +2539,33 @@ export const fetchHttpOriginsFromServer = async (selectedApp: App) => {
     return { status: HttpOriginsApiStatus.Success, data: data }
   } catch {
     return { status: HttpOriginsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkMetricsFromServer = async (filters: Filters, url: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networks/metrics?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("url", url)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkMetricsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkMetricsApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkMetricsApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkMetricsApiStatus.Cancelled, data: null }
   }
 }

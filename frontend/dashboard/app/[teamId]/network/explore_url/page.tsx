@@ -1,12 +1,14 @@
 "use client"
 
-import { FilterSource } from '@/app/api/api_calls'
+import { FilterSource, NetworkMetricsApiStatus, fetchNetworkMetricsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface PageState {
     filters: typeof defaultFilters
+    networkMetricsApiStatus: NetworkMetricsApiStatus
+    networkMetrics: any
 }
 
 export default function ExploreUrl({ params }: { params: { teamId: string } }) {
@@ -16,6 +18,8 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
     const [pageState, setPageState] = useState<PageState>({
         filters: defaultFilters,
+        networkMetricsApiStatus: NetworkMetricsApiStatus.Loading,
+        networkMetrics: null,
     })
 
     const updatePageState = (newState: Partial<PageState>) => {
@@ -38,6 +42,37 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
         const params = new URLSearchParams(pageState.filters.serialisedFilters!)
         params.set("url", url)
         router.replace(`?${params.toString()}`, { scroll: false })
+    }, [pageState.filters])
+
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app || !url) {
+            return
+        }
+
+        updatePageState({ networkMetricsApiStatus: NetworkMetricsApiStatus.Loading })
+
+        fetchNetworkMetricsFromServer(pageState.filters, url).then(result => {
+            switch (result.status) {
+                case NetworkMetricsApiStatus.Success:
+                    updatePageState({
+                        networkMetricsApiStatus: NetworkMetricsApiStatus.Success,
+                        networkMetrics: result.data,
+                    })
+                    break
+                case NetworkMetricsApiStatus.NoData:
+                    updatePageState({
+                        networkMetricsApiStatus: NetworkMetricsApiStatus.NoData,
+                        networkMetrics: null,
+                    })
+                    break
+                default:
+                    updatePageState({
+                        networkMetricsApiStatus: NetworkMetricsApiStatus.Error,
+                        networkMetrics: null,
+                    })
+                    break
+            }
+        })
     }, [pageState.filters])
 
     return (

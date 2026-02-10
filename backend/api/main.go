@@ -124,6 +124,7 @@ func main() {
 		apps.GET(":id/config", measure.GetConfig)
 		apps.PATCH(":id/config", measure.PatchConfig)
 		apps.GET(":id/networks/origins", measure.GetNetworkOrigins)
+		apps.GET(":id/networks/metrics", measure.GetNetworkMetrics)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

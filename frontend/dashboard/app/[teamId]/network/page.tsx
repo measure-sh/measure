@@ -157,7 +157,11 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             variant="outline"
                             className="m-4"
                             disabled={searchState.pathPattern.trim() === ""}
-                            onClick={() => router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(searchState.origin + '/' + searchState.pathPattern)}`)}>
+                            onClick={() => {
+                                const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
+                                const origin = searchState.origin.endsWith('/') ? searchState.origin.slice(0, -1) : searchState.origin
+                                router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(origin + path)}`)
+                            }}>
                             Search
                         </Button>
                     </div>

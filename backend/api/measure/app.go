@@ -6657,3 +6657,220 @@ func GetNetworkOrigins(c *gin.Context) {
 		"results": origins,
 	})
 }
+
+func GetNetworkMetrics(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	rawURL := c.Query("url")
+	if rawURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing url query param"})
+		return
+	}
+
+	origin, pathPattern, err := network.ParseURL(rawURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url query param"})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "network metrics request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// Fetch latency metrics
+	latencyMetrics, err := network.FetchLatencyMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
+	if err != nil {
+		msg := "failed to get latency metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Fetch status code metrics
+	statusCodeMetrics, err := network.FetchStatusCodeMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
+	if err != nil {
+		msg := "failed to get status code metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Fetch frequency metrics
+	frequencyMetrics, err := network.FetchFrequencyMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
+	if err != nil {
+		msg := "failed to get frequency metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Group latency metrics by version
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	latencyLut := make(map[string]int)
+	var latencyInstances []instance
+	for i := range latencyMetrics {
+		inst := instance{
+			ID: latencyMetrics[i].Version,
+			Data: []gin.H{{
+				"datetime": latencyMetrics[i].DateTime,
+				"p50":      latencyMetrics[i].P50,
+				"p90":      latencyMetrics[i].P90,
+				"p95":      latencyMetrics[i].P95,
+				"p99":      latencyMetrics[i].P99,
+			}},
+		}
+		ndx, ok := latencyLut[latencyMetrics[i].Version]
+		if ok {
+			latencyInstances[ndx].Data = append(latencyInstances[ndx].Data, inst.Data...)
+		} else {
+			latencyInstances = append(latencyInstances, inst)
+			latencyLut[latencyMetrics[i].Version] = len(latencyInstances) - 1
+		}
+	}
+
+	// Group status code metrics by status code
+	statusCodeLut := make(map[string]int)
+	var statusCodeInstances []instance
+	for i := range statusCodeMetrics {
+		inst := instance{
+			ID: statusCodeMetrics[i].StatusCode,
+			Data: []gin.H{{
+				"datetime": statusCodeMetrics[i].DateTime,
+				"count":    statusCodeMetrics[i].Count,
+			}},
+		}
+		ndx, ok := statusCodeLut[statusCodeMetrics[i].StatusCode]
+		if ok {
+			statusCodeInstances[ndx].Data = append(statusCodeInstances[ndx].Data, inst.Data...)
+		} else {
+			statusCodeInstances = append(statusCodeInstances, inst)
+			statusCodeLut[statusCodeMetrics[i].StatusCode] = len(statusCodeInstances) - 1
+		}
+	}
+
+	// Group frequency metrics by version
+	frequencyLut := make(map[string]int)
+	var frequencyInstances []instance
+	for i := range frequencyMetrics {
+		inst := instance{
+			ID: frequencyMetrics[i].Version,
+			Data: []gin.H{{
+				"datetime": frequencyMetrics[i].DateTime,
+				"count":    frequencyMetrics[i].Count,
+			}},
+		}
+		ndx, ok := frequencyLut[frequencyMetrics[i].Version]
+		if ok {
+			frequencyInstances[ndx].Data = append(frequencyInstances[ndx].Data, inst.Data...)
+		} else {
+			frequencyInstances = append(frequencyInstances, inst)
+			frequencyLut[frequencyMetrics[i].Version] = len(frequencyInstances) - 1
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"latency":      latencyInstances,
+		"status_codes": statusCodeInstances,
+		"frequency":    frequencyInstances,
+	})
+}
