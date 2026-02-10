@@ -7,5 +7,6 @@ use (
 	./backend/metering
 	./backend/migrator
 	./backend/symboloader
+	./backend/url_patterns_gen
 	./self-host/sessionator
 )
