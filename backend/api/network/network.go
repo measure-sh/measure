@@ -145,9 +145,9 @@ type OverviewEndpoint struct {
 // OverviewResponse contains high-level network
 // performance summary metrics.
 type OverviewResponse struct {
-	SlowestEndpoints    []OverviewEndpoint `json:"slowest_endpoints"`
-	ErrorProneEndpoints []OverviewEndpoint `json:"error_prone_endpoints"`
-	BusiestEndpoints    []OverviewEndpoint `json:"busiest_endpoints"`
+	TopNLatency   []OverviewEndpoint `json:"top_n_latency"`
+	TopNErrorRate []OverviewEndpoint `json:"top_n_error_rate"`
+	TopNFrequency []OverviewEndpoint `json:"top_n_frequency"`
 }
 
 // topN is the default number of endpoints to return
@@ -209,11 +209,11 @@ SELECT 'frequency' as category, origin, path_pattern, p95_latency, error_rate, f
 		ep.ErrorRate = roundPtr(errorRate)
 		switch category {
 		case "latency":
-			result.SlowestEndpoints = append(result.SlowestEndpoints, ep)
+			result.TopNLatency = append(result.TopNLatency, ep)
 		case "error_rate":
-			result.ErrorProneEndpoints = append(result.ErrorProneEndpoints, ep)
+			result.TopNErrorRate = append(result.TopNErrorRate, ep)
 		case "frequency":
-			result.BusiestEndpoints = append(result.BusiestEndpoints, ep)
+			result.TopNFrequency = append(result.TopNFrequency, ep)
 		}
 	}
 	if err := rows.Err(); err != nil {
