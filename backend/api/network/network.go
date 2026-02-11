@@ -132,6 +132,97 @@ func groupByID(id string, data MetricsDataPoint, lut map[string]int, instances *
 	}
 }
 
+// OverviewEndpoint represents a single endpoint
+// in the network overview.
+type OverviewEndpoint struct {
+	Origin      string   `json:"origin"`
+	PathPattern string   `json:"path_pattern"`
+	P95Latency  *float64 `json:"p95_latency"`
+	ErrorRate   *float64 `json:"error_rate"`
+	Frequency   uint64   `json:"frequency"`
+}
+
+// OverviewResponse contains high-level network
+// performance summary metrics.
+type OverviewResponse struct {
+	SlowestEndpoints    []OverviewEndpoint `json:"slowest_endpoints"`
+	ErrorProneEndpoints []OverviewEndpoint `json:"error_prone_endpoints"`
+	BusiestEndpoints    []OverviewEndpoint `json:"busiest_endpoints"`
+}
+
+// topN is the default number of endpoints to return
+// in each overview category.
+const topN = 10
+
+// FetchOverview returns a high-level summary of
+// network performance for a given app.
+func FetchOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*OverviewResponse, error) {
+	inner := sqlf.From("http").
+		Select("origin").
+		Select(`replaceRegexpAll(
+      replaceRegexpAll(
+        replaceRegexpAll(
+          replaceRegexpAll(
+            replaceRegexpAll(
+              replaceRegexpAll(path,
+                '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', '*'),
+              '[0-9a-fA-F]{40}', '*'),
+            '[0-9a-fA-F]{32}', '*'),
+          '0[xX][0-9a-fA-F]+', '*'),
+        '[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]', '*'),
+      '/[^/]*[0-9]{2,}[^/]*', '/*') AS path_pattern`).
+		Select("quantile(0.95)(duration) AS p95_latency").
+		Select("countIf(status_code >= 400 AND status_code < 600) * 100.0 / count() AS error_rate").
+		Select("count() AS frequency").
+		Clause("prewhere team_id = ? and app_id = ? and bucket >= ? and bucket <= ?", teamId, appId, af.From, af.To).
+		GroupBy("origin, path_pattern")
+
+	applyFilters(inner, af)
+
+	defer inner.Close()
+
+	query := fmt.Sprintf(`WITH grouped AS (%s)
+SELECT 'latency' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY p95_latency DESC LIMIT %d
+UNION ALL
+SELECT 'error_rate' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY error_rate DESC LIMIT %d
+UNION ALL
+SELECT 'frequency' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY frequency DESC LIMIT %d`,
+		inner.String(), topN, topN, topN)
+
+	rows, err := server.Server.ChPool.Query(ctx, query, inner.Args()...)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &OverviewResponse{}
+	for rows.Next() {
+		var category string
+		var ep OverviewEndpoint
+		var p95Latency, errorRate float64
+		if err := rows.Scan(&category, &ep.Origin, &ep.PathPattern, &p95Latency, &errorRate, &ep.Frequency); err != nil {
+			return nil, err
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		ep.P95Latency = roundPtr(p95Latency)
+		ep.ErrorRate = roundPtr(errorRate)
+		switch category {
+		case "latency":
+			result.SlowestEndpoints = append(result.SlowestEndpoints, ep)
+		case "error_rate":
+			result.ErrorProneEndpoints = append(result.ErrorProneEndpoints, ep)
+		case "frequency":
+			result.BusiestEndpoints = append(result.BusiestEndpoints, ep)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // FetchMetrics queries http for latency
 // percentiles, status code distribution and request
 // frequency for the given origin and path pattern.
