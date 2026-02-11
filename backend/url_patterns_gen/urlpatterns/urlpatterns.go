@@ -10,6 +10,7 @@ import (
 
 	"backend/url_patterns_gen/server"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
@@ -22,7 +23,7 @@ const nanoTimeFormat = "2006-01-02 15:04:05.000000000"
 
 // minRequestCount is the minimum number of requests a pattern must
 // have to be created as a new entry.
-const minRequestCount = 5
+const minRequestCount = 1
 
 type team struct {
 	ID uuid.UUID
@@ -34,8 +35,15 @@ type app struct {
 }
 
 type existingPattern struct {
-	ID      uuid.UUID
-	Pattern string
+	ID          uuid.UUID
+	Origin      string
+	PathPattern string
+}
+
+// patternKey is a composite key for origin + path_pattern.
+type patternKey struct {
+	Origin      string
+	PathPattern string
 }
 
 // patternRule defines a regex and its replacement placeholder.
@@ -102,11 +110,19 @@ func processApp(ctx context.Context, teamID, appID uuid.UUID) error {
 		return nil
 	}
 
-	// apply regex to each URL, sum counts per pattern
-	patternCounts := make(map[string]uint64)
+	// apply regex to each URL, sum counts per (origin, path_pattern) pair
+	patternCounts := make(map[patternKey]uint64)
 	for rawURL, count := range urlCounts {
 		pattern := generatePattern(rawURL)
-		patternCounts[pattern] += count
+		u, err := url.Parse(pattern)
+		if err != nil {
+			continue
+		}
+		key := patternKey{
+			Origin:      u.Scheme + "://" + u.Host,
+			PathPattern: u.Path,
+		}
+		patternCounts[key] += count
 	}
 
 	// get existing patterns for this team+app
@@ -114,20 +130,20 @@ func processApp(ctx context.Context, teamID, appID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("fetching existing patterns: %w", err)
 	}
-	existingMap := make(map[string]uuid.UUID, len(existing))
+	existingMap := make(map[patternKey]uuid.UUID, len(existing))
 	for _, ep := range existing {
-		existingMap[ep.Pattern] = ep.ID
+		existingMap[patternKey{Origin: ep.Origin, PathPattern: ep.PathPattern}] = ep.ID
 	}
 
 	// partition into update vs insert
 	var updateIDs []uuid.UUID
-	var newPatterns []string
+	var newPatterns []patternKey
 
-	for pattern, count := range patternCounts {
-		if id, exists := existingMap[pattern]; exists {
+	for key, count := range patternCounts {
+		if id, exists := existingMap[key]; exists {
 			updateIDs = append(updateIDs, id)
 		} else if count >= minRequestCount {
-			newPatterns = append(newPatterns, pattern)
+			newPatterns = append(newPatterns, key)
 		}
 	}
 
@@ -260,7 +276,8 @@ func getExistingPatterns(ctx context.Context, teamID, appID uuid.UUID) ([]existi
 	stmt := sqlf.
 		From("url_patterns").
 		Select("id").
-		Select("pattern").
+		Select("origin").
+		Select("path_pattern").
 		Where("team_id = toUUID(?)", teamID).
 		Where("app_id = toUUID(?)", appID)
 	defer stmt.Close()
@@ -274,7 +291,7 @@ func getExistingPatterns(ctx context.Context, teamID, appID uuid.UUID) ([]existi
 	var patterns []existingPattern
 	for rows.Next() {
 		var ep existingPattern
-		if err := rows.Scan(&ep.ID, &ep.Pattern); err != nil {
+		if err := rows.Scan(&ep.ID, &ep.Origin, &ep.PathPattern); err != nil {
 			return nil, err
 		}
 		patterns = append(patterns, ep)
@@ -298,21 +315,23 @@ func updateLastSeen(ctx context.Context, ids []uuid.UUID, now time.Time) error {
 	return server.Server.ChPool.Exec(ctx, query)
 }
 
-func insertPatterns(ctx context.Context, teamID, appID uuid.UUID, patterns []string, now time.Time) error {
-	for _, pattern := range patterns {
+func insertPatterns(ctx context.Context, teamID, appID uuid.UUID, patterns []patternKey, now time.Time) error {
+	for _, p := range patterns {
 		stmt := sqlf.
 			InsertInto("url_patterns").
 			Set("id", uuid.New()).
 			Set("team_id", teamID).
 			Set("app_id", appID).
-			Set("pattern", pattern).
+			Set("origin", p.Origin).
+			Set("path_pattern", p.PathPattern).
 			Set("created_at", now.Format(nanoTimeFormat)).
 			Set("created_by", systemUUID).
 			Set("updated_by", systemUUID).
 			Set("last_seen_at", now.Format(nanoTimeFormat)).
 			Set("is_blocked", false)
 
-		if err := server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...); err != nil {
+		asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+		if err := server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...); err != nil {
 			stmt.Close()
 			return err
 		}
