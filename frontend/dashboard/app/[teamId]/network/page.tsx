@@ -1,23 +1,66 @@
 "use client"
 
-import { FilterSource, HttpOriginsApiStatus, fetchHttpOriginsFromServer } from '@/app/api/api_calls'
+import { FilterSource, HttpOriginsApiStatus, NetworkOverviewApiStatus, fetchHttpOriginsFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Input } from '@/app/components/input'
+import LoadingBar from '@/app/components/loading_bar'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import TabSelect from '@/app/components/tab_select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+
+interface OverviewEndpoint {
+    origin: string
+    path_pattern: string
+    p95_latency: number | null
+    error_rate: number | null
+    frequency: number
+}
+
+interface NetworkOverview {
+    top_n_latency: OverviewEndpoint[]
+    top_n_error_rate: OverviewEndpoint[]
+    top_n_frequency: OverviewEndpoint[]
+}
+
+enum OverviewTab {
+    Latency = "Slowest",
+    ErrorRate = "Highest Error Rate",
+    Frequency = "Most Frequent",
+}
 
 interface PageState {
     filters: typeof defaultFilters
     httpOriginsApiStatus: HttpOriginsApiStatus
     httpOrigins: string[]
+    networkOverviewApiStatus: NetworkOverviewApiStatus
+    networkOverview: NetworkOverview
+    selectedOverviewTab: OverviewTab
 }
 
 interface SearchState {
     origin: string
     pathPattern: string
+}
+
+const emptyOverview: NetworkOverview = {
+    top_n_latency: [],
+    top_n_error_rate: [],
+    top_n_frequency: [],
+}
+
+function getActiveTabData(overview: NetworkOverview, tab: OverviewTab): OverviewEndpoint[] {
+    switch (tab) {
+        case OverviewTab.Latency:
+            return overview.top_n_latency
+        case OverviewTab.ErrorRate:
+            return overview.top_n_error_rate
+        case OverviewTab.Frequency:
+            return overview.top_n_frequency
+    }
 }
 
 export default function NetworkOverview({ params }: { params: { teamId: string } }) {
@@ -27,6 +70,9 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         filters: defaultFilters,
         httpOriginsApiStatus: HttpOriginsApiStatus.Loading,
         httpOrigins: [],
+        networkOverviewApiStatus: NetworkOverviewApiStatus.Loading,
+        networkOverview: emptyOverview,
+        selectedOverviewTab: OverviewTab.Latency,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
@@ -105,6 +151,39 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         })
     }, [pageState.filters])
 
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app) {
+            return
+        }
+
+        updatePageState({ networkOverviewApiStatus: NetworkOverviewApiStatus.Loading })
+
+        fetchNetworkOverviewFromServer(pageState.filters).then(result => {
+            switch (result.status) {
+                case NetworkOverviewApiStatus.Success:
+                    updatePageState({
+                        networkOverviewApiStatus: NetworkOverviewApiStatus.Success,
+                        networkOverview: result.data as NetworkOverview,
+                    })
+                    break
+                case NetworkOverviewApiStatus.NoData:
+                    updatePageState({
+                        networkOverviewApiStatus: NetworkOverviewApiStatus.NoData,
+                        networkOverview: emptyOverview,
+                    })
+                    break
+                default:
+                    updatePageState({
+                        networkOverviewApiStatus: NetworkOverviewApiStatus.Error,
+                        networkOverview: emptyOverview,
+                    })
+                    break
+            }
+        })
+    }, [pageState.filters])
+
+    const activeTabData = getActiveTabData(pageState.networkOverview, pageState.selectedOverviewTab)
+
     return (
         <div className="flex flex-col items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Network</p>
@@ -113,7 +192,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
             <Filters
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
-                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
+                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
@@ -173,6 +252,62 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                     <div className="py-4" />
 
                     <p className="font-display text-xl max-w-6xl">Overview</p>
+
+                    <div className="py-2" />
+
+                    <TabSelect
+                        items={Object.values(OverviewTab)}
+                        selected={pageState.selectedOverviewTab}
+                        onChangeSelected={(item) => updatePageState({ selectedOverviewTab: item as OverviewTab })}
+                    />
+
+                    <div className="py-2" />
+
+                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Loading &&
+                        <div className="w-full">
+                            <LoadingBar />
+                        </div>
+                    }
+
+                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Success && activeTabData.length > 0 &&
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead style={{ width: '40%' }}>Endpoint</TableHead>
+                                    <TableHead style={{ width: '20%' }}>P95 Latency</TableHead>
+                                    <TableHead style={{ width: '20%' }}>Error Rate %</TableHead>
+                                    <TableHead style={{ width: '20%' }}>Count</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {activeTabData.map((ep, index) => (
+                                    <TableRow
+                                        key={index}
+                                        className="cursor-pointer"
+                                        onClick={() => router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(ep.origin + ep.path_pattern)}`)}
+                                    >
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-mono truncate">{ep.origin}{ep.path_pattern}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-body">{ep.p95_latency !== null ? `${ep.p95_latency}ms` : '-'}</TableCell>
+                                        <TableCell className="font-body">{ep.error_rate !== null ? `${ep.error_rate}%` : '-'}</TableCell>
+                                        <TableCell className="font-body">{ep.frequency}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    }
+
+                    {(pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.NoData ||
+                        (pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Success && activeTabData.length === 0)) &&
+                        <p className="font-body text-sm">No data available for the selected filters</p>
+                    }
+
+                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Error &&
+                        <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
+                    }
                 </>
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&

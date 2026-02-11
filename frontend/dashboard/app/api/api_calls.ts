@@ -399,6 +399,14 @@ export enum NetworkMetricsApiStatus {
   Cancelled,
 }
 
+export enum NetworkOverviewApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2567,5 +2575,29 @@ export const fetchNetworkMetricsFromServer = async (filters: Filters, url: strin
     return { status: NetworkMetricsApiStatus.Success, data: data }
   } catch {
     return { status: NetworkMetricsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networks/overview?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkOverviewApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkOverviewApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkOverviewApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkOverviewApiStatus.Cancelled, data: null }
   }
 }

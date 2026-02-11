@@ -120,19 +120,20 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             }
             {pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics &&
                 <div className="flex flex-col w-full">
+
                     <div className="py-6" />
-                    
                     <p className="font-display text-xl">Latency</p>
+                    <div className="py-2" />
                     <NetworkLatencyPlot data={pageState.networkMetrics.latency} />
 
                     <div className="py-6" />
-
                     <p className="font-display text-xl">Status Codes</p>
+                    <div className="py-2" />
                     <NetworkStatusCodesPlot data={pageState.networkMetrics.status_codes} />
 
                     <div className="py-6" />
-
                     <p className="font-display text-xl">Frequency</p>
+                    <div className="py-2" />
                     <NetworkFrequencyPlot data={pageState.networkMetrics.frequency} />
                 </div>
             }
