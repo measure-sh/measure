@@ -49,7 +49,7 @@ func ParseURL(rawURL string) (origin, path string, err error) {
 func FetchOrigins(ctx context.Context, appId, teamId uuid.UUID) (origins []string, err error) {
 	stmt := sqlf.
 		Select("distinct origin").
-		From("http_metrics").
+		From("http").
 		Where("team_id = ?", teamId).
 		Where("app_id = ?", appId).
 		OrderBy("origin")
@@ -132,16 +132,16 @@ func groupByID(id string, data MetricsDataPoint, lut map[string]int, instances *
 	}
 }
 
-// FetchMetrics queries http_metrics for latency
+// FetchMetrics queries http for latency
 // percentiles, status code distribution and request
 // frequency for the given origin and path pattern.
 func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPattern string, af *filter.AppFilter) (result *MetricsResponse, err error) {
 	result = &MetricsResponse{}
 
 	// Fetch latency metrics
-	latencyStmt := sqlf.From("http_metrics").
+	latencyStmt := sqlf.From("http").
 		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("quantilesMerge(0.50, 0.90, 0.95, 0.99)(latency_quantile) as latencies").
+		Select("quantiles(0.50, 0.90, 0.95, 0.99)(duration) as latencies").
 		Clause("prewhere team_id = ? and app_id = ? and origin = ? and bucket >= ? and bucket <= ?", teamId, appId, origin, af.From, af.To)
 
 	applyPathFilter(latencyStmt, pathPattern)
@@ -159,7 +159,7 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 
 	for latencyRows.Next() {
 		var datetime string
-		var latencies []float32
+		var latencies []float64
 		if err = latencyRows.Scan(&datetime, &latencies); err != nil {
 			return
 		}
@@ -180,10 +180,10 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 	}
 
 	// Fetch status code metrics
-	statusStmt := sqlf.From("http_metrics").
+	statusStmt := sqlf.From("http").
 		Select("toString(status_code) as status_code_str").
 		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("sum(request_count) as count").
+		Select("count() as count").
 		Clause("prewhere team_id = ? and app_id = ? and origin = ? and bucket >= ? and bucket <= ?", teamId, appId, origin, af.From, af.To)
 
 	applyPathFilter(statusStmt, pathPattern)
@@ -216,9 +216,9 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 	}
 
 	// Fetch frequency metrics
-	freqStmt := sqlf.From("http_metrics").
+	freqStmt := sqlf.From("http").
 		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("sum(request_count) as count").
+		Select("count() as count").
 		Clause("prewhere team_id = ? and app_id = ? and origin = ? and bucket >= ? and bucket <= ?", teamId, appId, origin, af.From, af.To)
 
 	applyPathFilter(freqStmt, pathPattern)
