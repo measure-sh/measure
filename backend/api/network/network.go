@@ -110,10 +110,10 @@ func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	}
 }
 
-// roundPtr rounds a float64 to 2 decimal places
+// roundPtr rounds a float64 to 1 decimal place
 // and returns a pointer.
 func roundPtr(v float64) *float64 {
-	rounded := math.Round(v*100) / 100
+	rounded := math.Round(v*10) / 10
 	return &rounded
 }
 
@@ -194,7 +194,11 @@ SELECT 'frequency' as category, origin, path_pattern, p95_latency, error_rate, f
 		return nil, err
 	}
 
-	result := &OverviewResponse{}
+	result := &OverviewResponse{
+		TopNLatency:   []OverviewEndpoint{},
+		TopNErrorRate: []OverviewEndpoint{},
+		TopNFrequency: []OverviewEndpoint{},
+	}
 	for rows.Next() {
 		var category string
 		var ep OverviewEndpoint
@@ -290,20 +294,36 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 		return
 	}
 
-	statusLut := make(map[string]int)
+	type statusRow struct {
+		statusCode string
+		datetime   string
+		count      uint64
+	}
+	var statusData []statusRow
+	datetimeTotals := make(map[string]uint64)
+
 	for statusRows.Next() {
-		var statusCode, datetime string
-		var count uint64
-		if err = statusRows.Scan(&statusCode, &datetime, &count); err != nil {
+		var r statusRow
+		if err = statusRows.Scan(&r.statusCode, &r.datetime, &r.count); err != nil {
 			return
 		}
 		if err = statusRows.Err(); err != nil {
 			return
 		}
-		groupByID(statusCode, MetricsDataPoint{"datetime": datetime, "count": count}, statusLut, &result.StatusCodes)
+		statusData = append(statusData, r)
+		datetimeTotals[r.datetime] += r.count
 	}
 	if err = statusRows.Err(); err != nil {
 		return
+	}
+
+	statusLut := make(map[string]int)
+	for _, r := range statusData {
+		var pct float64
+		if total := datetimeTotals[r.datetime]; total > 0 {
+			pct = float64(r.count) * 100.0 / float64(total)
+		}
+		groupByID(r.statusCode, MetricsDataPoint{"datetime": r.datetime, "percentage": roundPtr(pct)}, statusLut, &result.StatusCodes)
 	}
 
 	// Fetch frequency metrics

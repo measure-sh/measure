@@ -31,7 +31,7 @@ const NetworkStatusCodesPlot: React.FC<NetworkStatusCodesPlotProps> = ({ data })
       data: item.data.map((d: any, index: number) => ({
         id: item.id + '.' + index,
         x: d.datetime,
-        y: d.count
+        y: d.percentage
       }))
     }))
 
@@ -68,7 +68,7 @@ const NetworkStatusCodesPlot: React.FC<NetworkStatusCodesPlotProps> = ({ data })
           min: 0,
           max: 'auto'
         }}
-        yFormat=".0f"
+        yFormat=".1f"
         axisTop={null}
         axisRight={null}
         axisBottom={{
@@ -82,8 +82,8 @@ const NetworkStatusCodesPlot: React.FC<NetworkStatusCodesPlotProps> = ({ data })
         axisLeft={{
           tickSize: 1,
           tickPadding: 5,
-          format: value => Number.isInteger(value) ? value : '',
-          legend: 'Request Count',
+          format: value => `${value}%`,
+          legend: 'Percentage (%)',
           legendOffset: -80,
           legendPosition: 'middle'
         }}
@@ -108,7 +108,7 @@ const NetworkStatusCodesPlot: React.FC<NetworkStatusCodesPlotProps> = ({ data })
                 <div className="px-2" />
                 <p>Status {point.serieId.toString()} - </p>
                 <div className="px-2" />
-                <p>{point.data.yFormatted} requests</p>
+                <p>{point.data.yFormatted}%</p>
               </div>
             ))}
           </div>
