@@ -44,13 +44,6 @@ ORDER BY
         `team_id`,
         `app_id`,
         `origin`,
-        `method`,
-        `status_code`,
-        `attribute.network_type`,
-        `attribute.network_generation`,
-        `attribute.network_provider`,
-        `attribute.app_version`,
-        `attribute.app_build`,
         `bucket`,
         `event_id`
     );

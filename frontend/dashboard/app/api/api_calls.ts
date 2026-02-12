@@ -407,6 +407,14 @@ export enum NetworkOverviewApiStatus {
   Cancelled,
 }
 
+export enum NetworkErrorRatePlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2599,5 +2607,29 @@ export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
     return { status: NetworkOverviewApiStatus.Success, data: data }
   } catch {
     return { status: NetworkOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkErrorRatePlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networks/plots/error_rate?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkErrorRatePlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || (Array.isArray(data) && data.length === 0)) {
+      return { status: NetworkErrorRatePlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkErrorRatePlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkErrorRatePlotApiStatus.Cancelled, data: null }
   }
 }

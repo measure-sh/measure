@@ -157,36 +157,23 @@ const topN = 10
 // FetchOverview returns a high-level summary of
 // network performance for a given app.
 func FetchOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*OverviewResponse, error) {
-	inner := sqlf.From("http").
+	inner := sqlf.From("http_overview").
 		Select("origin").
-		Select(`replaceRegexpAll(
-      replaceRegexpAll(
-        replaceRegexpAll(
-          replaceRegexpAll(
-            replaceRegexpAll(
-              replaceRegexpAll(path,
-                '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', '*'),
-              '[0-9a-fA-F]{40}', '*'),
-            '[0-9a-fA-F]{32}', '*'),
-          '0[xX][0-9a-fA-F]+', '*'),
-        '[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]', '*'),
-      '/[^/]*[0-9]{2,}[^/]*', '/*') AS path_pattern`).
-		Select("quantile(0.95)(duration) AS p95_latency").
-		Select("countIf(status_code >= 400 AND status_code < 600) * 100.0 / count() AS error_rate").
-		Select("count() AS frequency").
-		Clause("prewhere team_id = ? and app_id = ? and bucket >= ? and bucket <= ?", teamId, appId, af.From, af.To).
-		GroupBy("origin, path_pattern")
-
-	applyFilters(inner, af)
+		Select("path").
+		Select("quantileMerge(0.95)(duration_quantile) AS p95_latency").
+		Select("sum(error_count) * 100.0 / sum(count) AS error_rate").
+		Select("sum(count) AS frequency").
+		Where("team_id = ? and app_id = ? and bucket >= ? and bucket <= ?", teamId, appId, af.From, af.To).
+		GroupBy("origin, path")
 
 	defer inner.Close()
 
 	query := fmt.Sprintf(`WITH grouped AS (%s)
-SELECT 'latency' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY p95_latency DESC LIMIT %d
+SELECT 'latency' as category, origin, path, p95_latency, error_rate, frequency FROM grouped ORDER BY p95_latency DESC LIMIT %d
 UNION ALL
-SELECT 'error_rate' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY error_rate DESC LIMIT %d
+SELECT 'error_rate' as category, origin, path, p95_latency, error_rate, frequency FROM grouped ORDER BY error_rate DESC LIMIT %d
 UNION ALL
-SELECT 'frequency' as category, origin, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY frequency DESC LIMIT %d`,
+SELECT 'frequency' as category, origin, path, p95_latency, error_rate, frequency FROM grouped ORDER BY frequency DESC LIMIT %d`,
 		inner.String(), topN, topN, topN)
 
 	rows, err := server.Server.ChPool.Query(ctx, query, inner.Args()...)
@@ -357,5 +344,42 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, origin, pathPatt
 		result.Frequency = append(result.Frequency, MetricsDataPoint{"datetime": datetime, "count": count})
 	}
 	err = freqRows.Err()
+	return
+}
+
+func GetErrorRatePlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
+	stmt := sqlf.From("http_overview").
+		Select("formatDateTime(bucket, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select("sum(error_count) as error_count").
+		Select("sum(count) as total_count").
+		Where("team_id = ? and app_id = ? and bucket >= ? and bucket <= ?", teamId, appId, af.From, af.To)
+
+	stmt.GroupBy("datetime")
+	stmt.OrderBy("datetime")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	result = []MetricsDataPoint{}
+	for rows.Next() {
+		var datetime string
+		var errorCount, totalCount uint64
+		if err = rows.Scan(&datetime, &errorCount, &totalCount); err != nil {
+			return
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+		result = append(result, MetricsDataPoint{
+			"datetime":    datetime,
+			"error_count": errorCount,
+			"total_count": totalCount,
+		})
+	}
+	err = rows.Err()
 	return
 }

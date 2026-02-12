@@ -1,12 +1,13 @@
 "use client"
 
-import { FilterSource, HttpOriginsApiStatus, NetworkOverviewApiStatus, fetchHttpOriginsFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
+import { FilterSource, HttpOriginsApiStatus, NetworkErrorRatePlotApiStatus, NetworkOverviewApiStatus, fetchHttpOriginsFromServer, fetchNetworkErrorRatePlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Input } from '@/app/components/input'
 import LoadingBar from '@/app/components/loading_bar'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import NetworkErrorRatePlot from '@/app/components/network_error_rate_plot'
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { useRouter } from 'next/navigation'
@@ -36,6 +37,8 @@ interface PageState {
     filters: typeof defaultFilters
     httpOriginsApiStatus: HttpOriginsApiStatus
     httpOrigins: string[]
+    errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus
+    errorRatePlotData: any[]
     networkOverviewApiStatus: NetworkOverviewApiStatus
     networkOverview: NetworkOverview
     selectedOverviewTab: OverviewTab
@@ -70,6 +73,8 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         filters: defaultFilters,
         httpOriginsApiStatus: HttpOriginsApiStatus.Loading,
         httpOrigins: [],
+        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Loading,
+        errorRatePlotData: [],
         networkOverviewApiStatus: NetworkOverviewApiStatus.Loading,
         networkOverview: emptyOverview,
         selectedOverviewTab: OverviewTab.Latency,
@@ -182,6 +187,37 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         })
     }, [pageState.filters])
 
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app) {
+            return
+        }
+
+        updatePageState({ errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Loading })
+
+        fetchNetworkErrorRatePlotFromServer(pageState.filters).then(result => {
+            switch (result.status) {
+                case NetworkErrorRatePlotApiStatus.Success:
+                    updatePageState({
+                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Success,
+                        errorRatePlotData: result.data,
+                    })
+                    break
+                case NetworkErrorRatePlotApiStatus.NoData:
+                    updatePageState({
+                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.NoData,
+                        errorRatePlotData: [],
+                    })
+                    break
+                default:
+                    updatePageState({
+                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Error,
+                        errorRatePlotData: [],
+                    })
+                    break
+            }
+        })
+    }, [pageState.filters])
+
     const activeTabData = getActiveTabData(pageState.networkOverview, pageState.selectedOverviewTab)
 
     return (
@@ -251,6 +287,32 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <div className="py-4" />
 
+                    <p className="font-display text-xl max-w-6xl">HTTP Requests</p>
+
+                    <div className="py-2" />
+
+                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Loading &&
+                        <div className="w-full">
+                            <LoadingBar />
+                        </div>
+                    }
+
+                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Success &&
+                        <div className="w-full">
+                            <NetworkErrorRatePlot data={pageState.errorRatePlotData} />
+                        </div>
+                    }
+
+                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.NoData &&
+                        <p className="font-body text-sm">No error rate data available for the selected filters</p>
+                    }
+
+                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Error &&
+                        <p className="font-body text-sm">Error fetching error rate plot, please change filters & try again</p>
+                    }
+
+                    <div className="py-4" />
+
                     <p className="font-display text-xl max-w-6xl">Overview</p>
 
                     <div className="py-2" />
@@ -273,10 +335,10 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead style={{ width: '40%' }}>Endpoint</TableHead>
-                                    <TableHead style={{ width: '20%' }}>P95 Latency</TableHead>
-                                    <TableHead style={{ width: '20%' }}>Error Rate %</TableHead>
-                                    <TableHead style={{ width: '20%' }}>Count</TableHead>
+                                    <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
+                                    <TableHead style={{ width: '15%' }}>P95 Latency</TableHead>
+                                    <TableHead style={{ width: '15%' }}>Error Rate %</TableHead>
+                                    <TableHead style={{ width: '15%' }}>Count</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

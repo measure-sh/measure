@@ -126,6 +126,7 @@ func main() {
 		apps.GET(":id/networks/origins", measure.GetNetworkOrigins)
 		apps.GET(":id/networks/metrics", measure.GetNetworkMetrics)
 		apps.GET(":id/networks/overview", measure.GetNetworkOverview)
+		apps.GET(":id/networks/plots/error_rate", measure.GetNetworkErrorRatePlot)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())
