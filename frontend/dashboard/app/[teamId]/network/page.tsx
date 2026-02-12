@@ -10,6 +10,7 @@ import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkErrorRatePlot from '@/app/components/network_error_rate_plot'
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -222,7 +223,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Network</p>
+            <p className="font-display text-4xl max-w-6xl text-center">Network Performance</p>
             <div className="py-4" />
 
             <Filters
@@ -255,10 +256,6 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
             }
             {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
                 <>
-                    <p className="font-display text-xl max-w-6xl">Search</p>
-
-                    <div className="py-2" />
-
                     <div className="flex flex-row items-center w-full">
                         <DropdownSelect
                             type={DropdownSelectType.SingleString}
@@ -285,11 +282,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                         </Button>
                     </div>
 
-                    <div className="py-4" />
-
-                    <p className="font-display text-xl max-w-6xl">HTTP Requests</p>
-
-                    <div className="py-2" />
+                    <div className="py-6" />
 
                     {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Loading &&
                         <div className="w-full">
@@ -313,17 +306,16 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <div className="py-4" />
 
-                    <p className="font-display text-xl max-w-6xl">Overview</p>
+                    <div className="flex flex-row items-center justify-between w-full">
+                        <p className="font-display text-xl">Top Endpoints</p>
+                        <TabSelect
+                            items={Object.values(OverviewTab)}
+                            selected={pageState.selectedOverviewTab}
+                            onChangeSelected={(item) => updatePageState({ selectedOverviewTab: item as OverviewTab })}
+                        />
+                    </div>
 
-                    <div className="py-2" />
-
-                    <TabSelect
-                        items={Object.values(OverviewTab)}
-                        selected={pageState.selectedOverviewTab}
-                        onChangeSelected={(item) => updatePageState({ selectedOverviewTab: item as OverviewTab })}
-                    />
-
-                    <div className="py-2" />
+                    <div className="py-4" />
 
                     {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Loading &&
                         <div className="w-full">
@@ -336,9 +328,9 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             <TableHeader>
                                 <TableRow>
                                     <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                    <TableHead style={{ width: '15%' }}>P95 Latency</TableHead>
-                                    <TableHead style={{ width: '15%' }}>Error Rate %</TableHead>
-                                    <TableHead style={{ width: '15%' }}>Count</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.Frequency ? underlineLinkStyle : ''}>Count</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
