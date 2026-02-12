@@ -50,13 +50,20 @@ export class MeasureInternal {
   }
 
   async init(config: MeasureConfig | null): Promise<void> {
-    const dynamicConfig = await this.measureInitializer.configLoader.loadDynamicConfig();
+    this.measureInitializer.configLoader
+      .loadDynamicConfig()
+      .then((dynamicConfig) => {
+        if (dynamicConfig) {
+          this.measureInitializer.configProvider.setDynamicConfig(
+            dynamicConfig
+          );
+        }
 
-    if (dynamicConfig) {
-      this.measureInitializer.configProvider.setDynamicConfig(dynamicConfig);
-    }
-
-    this.measureInitializer.spanProcessor.onConfigLoaded();
+        this.measureInitializer.spanProcessor.onConfigLoaded();
+      })
+      .catch((error) => {
+        console.error('Failed to load dynamic config', error);
+      });
 
     if (config?.autoStart) {
       this.started = true;

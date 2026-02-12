@@ -86,7 +86,7 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
 
             val userAttrs: MutableMap<String, Any?> =
                 userDefinedAttrs
-                    ?.let { MapUtils.toMutableMap(it).toMutableMap() }
+                    ?.let { MapUtils.toMutableMap(it) }
                     ?: mutableMapOf()
 
             val checkpointsMap = mutableMapOf<String, Long>()
