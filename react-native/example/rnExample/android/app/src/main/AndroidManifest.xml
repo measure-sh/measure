@@ -22,5 +22,7 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+        <meta-data android:name="sh.measure.android.API_KEY" android:value="msrsh_77cd91f21b75bd9b3875645d18d1f7da9e59a11d7778d1f5bf82c73f8a23dec5_023bc456"/>
+        <meta-data android:name="sh.measure.android.API_URL" android:value="https://staging-ingest.measure.sh"/>
     </application>
 </manifest>

@@ -49,4 +49,10 @@ export interface InternalSpan extends Span {
      * @returns A complete SpanData structure ready for serialization.
      */
     toSpanData(): SpanData;
+
+    /**
+     * Marks the span as sampled or not sampled.
+     * @param sampled true if the span is selected for export, false otherwise.
+     */
+    setSampled(sampled: boolean): void;
 }

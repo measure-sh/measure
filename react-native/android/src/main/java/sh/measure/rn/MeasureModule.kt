@@ -11,54 +11,16 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
+import org.json.JSONObject
 import sh.measure.android.Measure
 import sh.measure.android.MsrAttachment
 import sh.measure.android.bugreport.MsrShakeListener
-import sh.measure.android.config.ClientInfo
-import sh.measure.android.config.MeasureConfig
 import java.io.File
 
 class MeasureModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     override fun getName(): String = ModuleConstants.MODULE_NAME
-
-    @ReactMethod
-    fun initialize(clientMap: ReadableMap, configMap: ReadableMap, promise: Promise) {
-        try {
-            val context = reactContext.applicationContext
-
-            val clientJson = MapUtils.toStringMap(clientMap)
-            val configJson = MapUtils.toMap(configMap)
-
-            val clientInfo = ClientInfo.fromJson(clientJson)
-            val config = MeasureConfig.fromJson(configJson)
-
-            UiThreadUtil.runOnUiThread {
-                try {
-                    Measure.init(context, measureConfig = config, clientInfo = clientInfo)
-                    promise.resolve("Native Measure SDK initialized successfully")
-                } catch (e: Exception) {
-                    promise.reject(ErrorCode.INIT_ERROR, e)
-                }
-            }
-
-        } catch (e: Exception) {
-            promise.reject(ErrorCode.INIT_ERROR, "Failed to initialize Measure SDK", e)
-        }
-    }
-
-    @ReactMethod
-    fun start(promise: Promise) {
-        Measure.start()
-        promise.resolve("Measure SDK started successfully")
-    }
-
-    @ReactMethod
-    fun stop(promise: Promise) {
-        Measure.stop()
-        promise.resolve("Measure SDK stopped successfully")
-    }
 
     @ReactMethod
     fun trackEvent(
@@ -122,9 +84,10 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             val attributesMap =
                 if (attributes != null) MapUtils.toMutableMap(attributes) else mutableMapOf<String, Any?>()
 
-            val userAttrs =
-                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) }
-                    ?: mutableMapOf<String, Any>()
+            val userAttrs: MutableMap<String, Any?> =
+                userDefinedAttrs
+                    ?.let { MapUtils.toMutableMap(it) }
+                    ?: mutableMapOf()
 
             val checkpointsMap = mutableMapOf<String, Long>()
 
@@ -390,6 +353,75 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             promise.resolve("Bug report tracked successfully")
         } catch (e: Exception) {
             promise.reject("TRACK_BUG_REPORT_FAILED", e)
+        }
+    }
+
+    @ReactMethod
+    fun getDynamicConfig(promise: Promise) {
+        try {
+            val path = Measure.getDynamicConfigPath()
+
+            if (path.isNullOrEmpty()) {
+                promise.resolve(null)
+                return
+            }
+
+            val file = File(path)
+            if (!file.exists()) {
+                promise.resolve(null)
+                return
+            }
+
+            val jsonString = file.inputStream()
+                .bufferedReader(Charsets.UTF_8)
+                .use { it.readText() }
+
+            val jsonObject = JSONObject(jsonString)
+            val writableMap = Arguments.createMap()
+
+            val keys = jsonObject.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                putJsonValue(writableMap, key, jsonObject.get(key))
+            }
+
+            promise.resolve(writableMap)
+        } catch (e: Exception) {
+            promise.reject(
+                "dynamic_config_error",
+                "Failed to read or parse dynamic config",
+                e
+            )
+        }
+    }
+
+    private fun putJsonValue(
+        map: com.facebook.react.bridge.WritableMap,
+        key: String,
+        value: Any?
+    ) {
+        when (value) {
+            null -> map.putNull(key)
+            is Boolean -> map.putBoolean(key, value)
+            is Int -> map.putInt(key, value)
+            is Long -> map.putDouble(key, value.toDouble())
+            is Double -> map.putDouble(key, value)
+            is String -> map.putString(key, value)
+
+            is JSONObject -> {
+                val childMap = Arguments.createMap()
+                val keys = value.keys()
+                while (keys.hasNext()) {
+                    val childKey = keys.next()
+                    putJsonValue(childMap, childKey, value.get(childKey))
+                }
+                map.putMap(key, childMap)
+            }
+
+            else -> {
+                // Ignore arrays / unsupported types for now
+                map.putString(key, value.toString())
+            }
         }
     }
 

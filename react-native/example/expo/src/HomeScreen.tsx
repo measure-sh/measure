@@ -20,15 +20,11 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const stopMeasure = () => {
-  Measure.stop()
-    .then(() => console.log('Measure SDK stopped successfully'))
-    .catch((error) => console.error('Failed to stop Measure SDK:', error));
+  Measure.stop();
 };
 
 const startMeasure = () => {
-  Measure.start()
-    .then(() => console.log('Measure SDK started successfully'))
-    .catch((error) => console.error('Failed to start Measure SDK:', error));
+  Measure.start();
 };
 
 const simulateJSException = () => {

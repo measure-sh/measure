@@ -3,14 +3,6 @@
 
 @interface RCT_EXTERN_MODULE(MeasureModule, NSObject)
 
-RCT_EXTERN_METHOD(initialize:(NSDictionary *)clientDict
-                  configDict:(NSDictionary *)configDict
-                  resolver:(RCTPromiseResolveBlock)resolve
-                  rejecter:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(start:(RCTPromiseResolveBlock)resolve
-                  rejecter:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(stop:(RCTPromiseResolveBlock)resolve
-                  rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackEvent:(NSDictionary *)data
                   type:(NSString *)type
                   timestamp:(nonnull NSNumber *)timestamp
@@ -72,5 +64,7 @@ RCT_EXTERN_METHOD(trackBugReport:(NSString *)description
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getSessionId:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(getDynamicConfig:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 @end

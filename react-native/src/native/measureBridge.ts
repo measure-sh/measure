@@ -1,7 +1,4 @@
 import { NativeModules, Platform, NativeEventEmitter } from 'react-native';
-import type { Logger } from '../utils/logger';
-import { ClientInfoInternal, type Client } from '../config/clientInfo';
-import type { MeasureConfig } from '../config/measureConfig';
 import type { ValidAttributeValue } from '../utils/attributeValueValidator';
 
 const LINKING_ERROR =
@@ -23,60 +20,26 @@ const MeasureModule = NativeModules.MeasureModule
 
 let ShakeEmitter: NativeEventEmitter | null = null;
 
+let isNativeModuleEnabled = true;
+
+export function enableNativeModule(): void {
+  isNativeModuleEnabled = true;
+}
+
+export function disableNativeModule(): void {
+  isNativeModuleEnabled = false;
+}
+
+function isDisabled(): boolean {
+  return !isNativeModuleEnabled;
+}
+
 function getShakeEmitter() {
   if (!ShakeEmitter) {
     const native = NativeModules.MeasureOnShake || {};
     ShakeEmitter = new NativeEventEmitter(native);
   }
   return ShakeEmitter;
-}
-
-export function initializeNativeSDK(
-  client: Client,
-  config: MeasureConfig,
-  logger: Logger
-): Promise<any> {
-  if (MeasureModule.initialize) {
-    let clientInfo: ClientInfoInternal;
-    if (Platform.OS === 'ios') {
-      clientInfo = new ClientInfoInternal(client.apiKeyIos, client.apiUrl);
-    } else {
-      clientInfo = new ClientInfoInternal(client.apiKeyAndroid, client.apiUrl);
-    }
-    return initNativeSDK(clientInfo, config, logger);
-  } else {
-    logger.log('error', '[MeasureBridge] Native module not found.');
-    return Promise.reject(
-      new Error('[MeasureBridge] Native module not found.')
-    );
-  }
-}
-
-function initNativeSDK(
-  client: ClientInfoInternal,
-  config: MeasureConfig,
-  logger: Logger
-): Promise<any> {
-  return MeasureModule.initialize(client, config)
-    .then((result: any) => {
-      logger.log(
-        'info',
-        '[MeasureBridge] Native initialize returned: ' + result
-      );
-      return result;
-    })
-    .catch((err: any) => {
-      logger.log('error', '[MeasureBridge] Native initialize failed: ' + err);
-      throw err;
-    });
-}
-
-export function start(): Promise<any> {
-  return MeasureModule.start();
-}
-
-export function stop(): Promise<any> {
-  return MeasureModule.stop();
 }
 
 export function trackEvent(
@@ -90,7 +53,7 @@ export function trackEvent(
   threadName?: string,
   attachments: any[] = []
 ): Promise<any> {
-  if (!MeasureModule.trackEvent) {
+  if (!MeasureModule.trackEvent || isDisabled()) {
     return Promise.reject(new Error('trackEvent native method not available.'));
   }
 
@@ -122,7 +85,7 @@ export function trackSpan(
   hasEnded: boolean,
   isSampled: boolean
 ): Promise<any> {
-  if (!MeasureModule.trackSpan) {
+  if (!MeasureModule.trackSpan || isDisabled()) {
     return Promise.reject(new Error('trackSpan native method not available.'));
   }
 
@@ -144,14 +107,14 @@ export function trackSpan(
 }
 
 export function setUserId(userId: string): Promise<any> {
-  if (!MeasureModule.setUserId) {
+  if (!MeasureModule.setUserId || isDisabled()) {
     return Promise.reject(new Error('setUserId native method not available.'));
   }
   return MeasureModule.setUserId(userId);
 }
 
 export function clearUserId(): Promise<any> {
-  if (!MeasureModule.clearUserId) {
+  if (!MeasureModule.clearUserId || isDisabled()) {
     return Promise.reject(
       new Error('clearUserId native method not available.')
     );
@@ -172,7 +135,7 @@ export function trackHttpEvent(
   responseBody?: string | null,
   client: string = 'unknown'
 ): Promise<any> {
-  if (!MeasureModule.trackHttpEvent) {
+  if (!MeasureModule.trackHttpEvent || isDisabled()) {
     return Promise.reject(
       new Error('trackHttpEvent native method not available.')
     );
@@ -198,7 +161,7 @@ export function launchBugReport(
   bugReportConfig: Record<string, any> = {},
   attributes: Record<string, ValidAttributeValue> = {}
 ): Promise<void> {
-  if (!MeasureModule.launchBugReport) {
+  if (!MeasureModule.launchBugReport || isDisabled()) {
     return Promise.reject(
       new Error('launchBugReport native method not available.')
     );
@@ -212,7 +175,7 @@ export function launchBugReport(
 }
 
 export function setShakeListener(enable: boolean, handler?: () => void): void {
-  if (!MeasureModule.setShakeListener) {
+  if (!MeasureModule.setShakeListener || isDisabled()) {
     throw new Error('setShakeListener native method not available.');
   }
 
@@ -235,7 +198,7 @@ export function captureScreenshot(): Promise<{
   size: number;
   id: string;
 }> {
-  if (!MeasureModule.captureScreenshot) {
+  if (!MeasureModule.captureScreenshot || isDisabled()) {
     return Promise.reject(
       new Error('captureScreenshot native method not available.')
     );
@@ -251,7 +214,7 @@ export function captureLayoutSnapshot(): Promise<{
   size: number;
   id: string;
 }> {
-  if (!MeasureModule.captureLayoutSnapshot) {
+  if (!MeasureModule.captureLayoutSnapshot || isDisabled()) {
     return Promise.reject(
       new Error('captureLayoutSnapshot native method not available.')
     );
@@ -265,7 +228,7 @@ export function trackBugReport(
   attachments: any[] = [],
   attributes: Record<string, ValidAttributeValue> = {}
 ): Promise<void> {
-  if (!MeasureModule.trackBugReport) {
+  if (!MeasureModule.trackBugReport || isDisabled()) {
     return Promise.reject(
       new Error('trackBugReport native method not available.')
     );
@@ -275,11 +238,21 @@ export function trackBugReport(
 }
 
 export function getSessionId(): Promise<string | null> {
-  if (!MeasureModule.getSessionId) {
+  if (!MeasureModule.getSessionId || isDisabled()) {
     return Promise.reject(
       new Error('getSessionId native method not available.')
     );
   }
 
   return MeasureModule.getSessionId();
+}
+
+export function getDynamicConfig(): Promise<Record<string, any> | null> {
+  if (!MeasureModule.getDynamicConfig || isDisabled()) {
+    return Promise.reject(
+      new Error('getDynamicConfig native method not available.')
+    );
+  }
+
+  return MeasureModule.getDynamicConfig();
 }

@@ -1,9 +1,8 @@
-import type { Client } from './config/clientInfo';
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import {
-  BaseMeasureInitializer,
-  type MeasureInitializer,
+  MeasureInitializer,
+  type IMeasureInitializer,
 } from './measureInitializer';
 import { MeasureInternal } from './measureInternal';
 import { InvalidSpan } from './tracing/invalidSpan';
@@ -12,7 +11,7 @@ import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 let _initializationPromise: Promise<void> | null = null;
-let _measureInitializer: MeasureInitializer;
+let _measureInitializer: IMeasureInitializer;
 let _measureInternal: MeasureInternal;
 
 export const Measure = {
@@ -36,45 +35,32 @@ export const Measure = {
    * with the encountered error.
    * @example
    * ts
-   * import { Measure, Client, BaseMeasureConfig } from '@measure/react-native';
-   *
-   * const client = new Client('your-api-key', 'https://api.measure.sh');
+   * import { Measure, BaseMeasureConfig } from '@measure/react-native';
    *
    * const measureConfig = new MeasureConfig(
    * true,   // enableLogging
-   * 0.7,    // samplingRateForErrorFreeSessions
-   * 0.1,    // traceSamplingRate
-   * false,  // trackHttpHeaders
-   * false,  // trackHttpBody
-   * [],     // httpHeadersBlocklist
-   * [],     // httpUrlBlocklist
-   * [],     // httpUrlAllowlist
    * false,  // autoStart
    * );
    *
    * Measure.init(client, measureConfig);
    *
    */
-  init(client: Client, config: MeasureConfig | null): Promise<any> {
+  init(config: MeasureConfig | null): Promise<any> {
     if (_initializationPromise) {
       console.warn('Measure SDK is already initialized or being initialized.');
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise((resolve, reject) => {
+    _initializationPromise = new Promise(async (resolve, reject) => {
       try {
         console.info('Initializing Measure SDK ...');
 
-        _measureInitializer = new BaseMeasureInitializer(client, config);
+        _measureInitializer = new MeasureInitializer(config);
         _measureInternal = new MeasureInternal(_measureInitializer);
 
-        _measureInternal
-          .init(client, config)
-          .then(() => resolve())
-          .catch((error) => {
-            _initializationPromise = null;
-            reject(error);
-          });
+        await _measureInternal.init(config);
+
+        resolve();
       } catch (error) {
         _initializationPromise = null;
         reject(error);
@@ -87,11 +73,9 @@ export const Measure = {
   /**
    * Start the Measure SDK manually (if `autoStart` is false).
    */
-  start(): Promise<any> {
+  start(): void {
     if (!_measureInternal) {
-      return Promise.reject(
-        new Error('Measure is not initialized. Call init() first.')
-      );
+      console.warn('Measure is not initialized. Call init() first.');
     }
     return _measureInternal.start();
   },
@@ -99,11 +83,9 @@ export const Measure = {
   /**
    * Stop the Measure SDK.
    */
-  stop(): Promise<any> {
+  stop(): void {
     if (!_measureInternal) {
-      return Promise.reject(
-        new Error('Measure is not initialized. Call init() first.')
-      );
+      console.warn('Measure is not initialized. Call init() first.');
     }
     return _measureInternal.stop();
   },
@@ -186,7 +168,9 @@ export const Measure = {
    */
   getCurrentTime(): number {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Returning standard Date.now().');
+      console.warn(
+        'Measure is not initialized. Returning standard Date.now().'
+      );
       return Date.now();
     }
     return _measureInternal.getCurrentTime();
@@ -252,7 +236,7 @@ export const Measure = {
     return _measureInternal.getTraceParentHeaderKey();
   },
 
-    /**
+  /**
    * Sets the user ID for the current user.
    *
    * User ID is persisted by the native SDK and used across sessions.
@@ -286,7 +270,7 @@ export const Measure = {
     _measureInternal.clearUserId();
   },
 
-    /**
+  /**
    * Tracks an HTTP event manually.
    *
    * @param url - The URL to which the request was made
@@ -350,7 +334,7 @@ export const Measure = {
     );
   },
 
-   /**
+  /**
    * Registers a shake listener that triggers a callback when a shake gesture is detected.
    *
    * Calling this method with a function enables shake detection.
@@ -459,11 +443,15 @@ export const Measure = {
   ): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
-        new Error("Measure is not initialized. Call init() first.")
+        new Error('Measure is not initialized. Call init() first.')
       );
     }
 
-    return _measureInternal.trackBugReport(description, attachments, attributes);
+    return _measureInternal.trackBugReport(
+      description,
+      attachments,
+      attributes
+    );
   },
 
   /**

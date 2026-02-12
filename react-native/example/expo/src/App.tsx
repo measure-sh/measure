@@ -5,12 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
 import {
   Measure,
-  ClientInfo,
   MeasureConfig,
-  ScreenshotMaskLevel,
 } from '@measuresh/react-native';
 import TracesScreen from './TracesScreen';
-import { Screen } from 'react-native-screens';
 import ComponentScreen from './ComponentScreen';
 
 export type RootStackParamList = {
@@ -23,31 +20,13 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function App() {
   const initializeMeasure = async () => {
     try {
-      const clientInfo = new ClientInfo(
-        'msrsh_3533778aec068f99683da...',
-        'msrsh_78e21553fc5ddaf2a3043...',
-        'https://localhost:8080'
-      );
-
       const measureConfig = new MeasureConfig({
         enableLogging: true,
-        samplingRateForErrorFreeSessions: 1.0,
-        coldLaunchSamplingRate: 1.0,
-        warmLaunchSamplingRate: 1.0,
-        hotLaunchSamplingRate: 1.0,
-        journeySamplingRate: 1.0,
-        traceSamplingRate: 1.0,
-        trackHttpHeaders: true,
-        trackHttpBody: true,
-        httpHeadersBlocklist: [],
-        httpUrlBlocklist: [],
-        httpUrlAllowlist: [],
         autoStart: true,
-        screenshotMaskLevel: ScreenshotMaskLevel.allText,
-        maxDiskUsageInMb: 50,
+        enableFullCollectionMode: false,
       });
 
-      await Measure.init(clientInfo, measureConfig);
+      await Measure.init(measureConfig);
 
       Measure.onShake(() => {
         console.log('Shake detected — launching bug report flow!');
