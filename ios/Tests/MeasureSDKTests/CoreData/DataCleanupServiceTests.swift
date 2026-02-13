@@ -19,6 +19,7 @@ final class DataCleanupServiceTests: XCTestCase {
     var dataCleanupService: BaseDataCleanupService!
     var sessionManager: MockSessionManager!
     var configProvider: MockConfigProvider!
+    var systemFileManager: MockSystemFileManager!
 
     var tempBugReportDir: URL?
 
@@ -31,7 +32,8 @@ final class DataCleanupServiceTests: XCTestCase {
         eventStore = BaseEventStore(coreDataManager: coreDataManager, logger: logger)
         spanStore = BaseSpanStore(coreDataManager: coreDataManager, logger: logger)
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager, logger: logger)
-        attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager, logger: logger)
+        systemFileManager = MockSystemFileManager()
+        attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager, systemFileManager: systemFileManager, logger: logger)
 
         sessionManager = MockSessionManager(sessionId: "currentSession")
         configProvider = MockConfigProvider()
