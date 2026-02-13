@@ -149,17 +149,15 @@ final class BaseGestureCollector: GestureCollector {
                                       touchDownTime: touchDownTime,
                                       touchUpTime: touchUpTime)
 
-                collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) { attachment in
-                    self.signalProcessor.track(data: data,
-                                               timestamp: self.timeProvider.now(),
-                                               type: .gestureScroll,
-                                               attributes: nil,
-                                               sessionId: nil,
-                                               attachments: attachment == nil ? nil : [attachment!],
-                                               userDefinedAttributes: nil,
-                                               threadName: nil,
-                                               needsReporting: false)
-                }
+                self.signalProcessor.track(data: data,
+                                           timestamp: self.timeProvider.now(),
+                                           type: .gestureScroll,
+                                           attributes: nil,
+                                           sessionId: nil,
+                                           attachments: nil,
+                                           userDefinedAttributes: nil,
+                                           threadName: nil,
+                                           needsReporting: false)
             }
         }
         // swiftlint:enable identifier_name
