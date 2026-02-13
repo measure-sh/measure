@@ -126,7 +126,10 @@ Note that wildcards are not supported yet.
 ### Track HTTP headers
 
 Use `trackHttpHeaders` to control whether HTTP headers should be tracked for network requests. By default, this is set
-to `false`.
+to `false`. 
+
+To track headers, set `trackHttpHeaders` to true. This applies to both automatically captured network requests and 
+manually tracked requests via `trackHttpEvent`.
 
 By default, the following headers are always disallowed to prevent sensitive information from
 leaking:
