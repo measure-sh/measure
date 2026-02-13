@@ -40,27 +40,30 @@ class HttpCollector {
     if (!_enabled) {
       return;
     }
-
     if (!configProvider.shouldTrackHttpUrl(url)) {
       return;
     }
 
-    requestHeaders?.removeWhere(
+    final filteredRequestHeaders =
+        requestHeaders != null ? Map.of(requestHeaders) : null;
+    final filteredResponseHeaders =
+        responseHeaders != null ? Map.of(responseHeaders) : null;
+
+    filteredRequestHeaders?.removeWhere(
       (key, value) => !configProvider.shouldTrackHttpHeader(key),
     );
-    responseHeaders?.removeWhere(
+    filteredResponseHeaders?.removeWhere(
       (key, value) => !configProvider.shouldTrackHttpHeader(key),
     );
 
-    if (!configProvider.shouldTrackHttpBody(
-        url, requestHeaders?['Content-Type'])) {
-      requestBody = null;
-    }
-
-    if (!configProvider.shouldTrackHttpBody(
-        url, responseHeaders?['Content-Type'])) {
-      responseBody = null;
-    }
+    final trackedRequestBody = configProvider.shouldTrackHttpBody(
+            url, filteredRequestHeaders?['Content-Type'])
+        ? requestBody
+        : null;
+    final trackedResponseBody = configProvider.shouldTrackHttpBody(
+            url, filteredResponseHeaders?['Content-Type'])
+        ? responseBody
+        : null;
 
     final data = HttpData(
       url: url,
@@ -70,10 +73,10 @@ class HttpCollector {
       endTime: endTime,
       failureReason: failureReason,
       failureDescription: failureDescription,
-      requestHeaders: requestHeaders,
-      responseHeaders: responseHeaders,
-      requestBody: requestBody,
-      responseBody: responseBody,
+      requestHeaders: filteredRequestHeaders,
+      responseHeaders: filteredResponseHeaders,
+      requestBody: trackedRequestBody,
+      responseBody: trackedResponseBody,
       client: client ?? 'unknown',
     );
     signalProcessor.trackEvent(
