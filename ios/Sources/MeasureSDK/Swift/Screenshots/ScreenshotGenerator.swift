@@ -70,7 +70,6 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
 
                 let attachment = self.attachmentProcessor.getAttachmentObject(
                     for: compressedData,
-                    name: name,
                     storageType: storageType,
                     attachmentType: .screenshot
                 )

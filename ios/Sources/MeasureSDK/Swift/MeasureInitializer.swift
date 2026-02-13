@@ -248,6 +248,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)
         self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
+                                                   systemFileManager: systemFileManager,
                                                    logger: logger)
         self.randomizer = BaseRandomizer()
         self.signalSampler = BaseSignalSampler(configProvider: configProvider,

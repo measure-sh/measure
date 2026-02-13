@@ -200,7 +200,7 @@ final class BaseExporter: Exporter {
     private func uploadAttachmentSync(_ attachment: MsrUploadAttachment) -> Bool {
         var bytes: Data?
         if let path = attachment.path {
-            bytes = systemFileManager.retrieveFile(name: path, folderName: nil, directory: FileManager.SearchPathDirectory.documentDirectory)
+            bytes = systemFileManager.retrieveFile(atPath: path)
         }
         guard
             let bytes = bytes ?? attachment.bytes,

@@ -21,6 +21,7 @@ protocol SystemFileManager {
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
     func getDynamicConfigPath() -> String?
     func retrieveFile(atPath path: String) -> Data?
+    func deleteFile(atPath path: String)
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -28,7 +29,7 @@ final class BaseSystemFileManager: SystemFileManager {
     private let fileManager: FileManager
     private var cacheDirectory: URL? {
         guard let cacheDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "Unable to access cache directory", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access cache directory", error: nil, data: nil)
             return nil
         }
         return cacheDirectory.appendingPathComponent(cacheDirectoryName)
@@ -46,7 +47,7 @@ final class BaseSystemFileManager: SystemFileManager {
                 try fileManager.createDirectory(at: crashReportDirectory, withIntermediateDirectories: true, attributes: nil)
             }
         } catch {
-            logger.internalLog(level: .error, message: "Failed to create crash report directory.", error: error, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Failed to create crash report directory.", error: error, data: nil)
             return nil
         }
         return crashReportDirectory.appendingPathComponent(crashDataFileName)
@@ -54,7 +55,7 @@ final class BaseSystemFileManager: SystemFileManager {
 
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL? {
         guard let directoryURL = fileManager.urls(for: directory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "Unable to access directory \(directory)", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(directory)", error: nil, data: nil)
             return nil
         }
 
@@ -66,7 +67,7 @@ final class BaseSystemFileManager: SystemFileManager {
             do {
                 try fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to create folder \(folderName!) in directory \(directory)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SystemFileManager: Failed to create folder \(folderName!) in directory \(directory)", error: error, data: nil)
                 return nil
             }
         }
@@ -77,7 +78,7 @@ final class BaseSystemFileManager: SystemFileManager {
             do {
                 try fileManager.removeItem(at: fileURL)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to remove existing file \(name) in folder \(folderName ?? "root")", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SystemFileManager: Failed to remove existing file \(name) in folder \(folderName ?? "root")", error: error, data: nil)
                 return nil
             }
         }
@@ -86,14 +87,14 @@ final class BaseSystemFileManager: SystemFileManager {
             try data.write(to: fileURL, options: .atomic)
             return fileURL
         } catch {
-            logger.internalLog(level: .error, message: "Failed to save file \(name) to folder \(folderName ?? "root") in directory \(directory)", error: error, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Failed to save file \(name) to folder \(folderName ?? "root") in directory \(directory)", error: error, data: nil)
             return nil
         }
     }
 
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data? {
         guard let directoryURL = fileManager.urls(for: directory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "Unable to access directory \(directory)", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(directory)", error: nil, data: nil)
             return nil
         }
 
@@ -104,14 +105,14 @@ final class BaseSystemFileManager: SystemFileManager {
             let data = try Data(contentsOf: fileURL)
             return data
         } catch {
-            logger.internalLog(level: .error, message: "Failed to retrieve file \(name) from folder \(folderName ?? "root") in directory \(directory)", error: error, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Failed to retrieve file \(name) from folder \(folderName ?? "root") in directory \(directory)", error: error, data: nil)
             return nil
         }
     }
 
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String? {
         guard let directoryURL = fileManager.urls(for: directory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "Unable to access directory \(directory)", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(directory)", error: nil, data: nil)
             return nil
         }
         return directoryURL.path
@@ -119,7 +120,7 @@ final class BaseSystemFileManager: SystemFileManager {
 
     func getDynamicConfigPath() -> String? {
         guard let directoryURL = fileManager.urls(for: ConfigFileConstants.directory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "Unable to access directory \(ConfigFileConstants.directory)", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(ConfigFileConstants.directory)", error: nil, data: nil)
             return nil
         }
 
@@ -134,7 +135,7 @@ final class BaseSystemFileManager: SystemFileManager {
 
         guard fileManager.fileExists(atPath: fileURL.path) else {
             logger.internalLog(level: .error,
-                message: "File does not exist at path \(path)",
+                message: "SystemFileManager: File does not exist at path \(path)",
                 error: nil,
                 data: nil
             )
@@ -146,11 +147,28 @@ final class BaseSystemFileManager: SystemFileManager {
         } catch {
             logger.internalLog(
                 level: .error,
-                message: "Failed to retrieve file at path \(path)",
+                message: "SystemFileManager: Failed to retrieve file at path \(path)",
                 error: error,
                 data: nil
             )
             return nil
+        }
+    }
+
+    func deleteFile(atPath path: String) {
+        let fileURL = URL(fileURLWithPath: path)
+
+        guard fileManager.fileExists(atPath: fileURL.path) else { return }
+
+        do {
+            try fileManager.removeItem(at: fileURL)
+        } catch {
+            logger.internalLog(
+                level: .error,
+                message: "SystemFileManager: Failed to delete file at path \(path)",
+                error: error,
+                data: nil
+            )
         }
     }
 }
