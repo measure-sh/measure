@@ -341,5 +341,44 @@ void main() {
         expect(httpData.method, methods[i].name);
       }
     });
+
+    test('does not mutate caller request and response headers', () {
+      configProvider.trackHttpHeaders = true;
+      configProvider.httpHeadersBlocklist = ['authorization', 'set-cookie'];
+      collector.register();
+
+      final requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer secret-token',
+      };
+      final responseHeaders = {
+        'Content-Type': 'application/json',
+        'Set-Cookie': 'session=abc123',
+      };
+
+      collector.trackHttpEvent(
+        url: 'https://api.example.com/users',
+        method: HttpMethod.post,
+        startTime: 1234567890,
+        statusCode: 201,
+        requestHeaders: requestHeaders,
+        responseHeaders: responseHeaders,
+      );
+
+      // Caller's maps remain unchanged
+      expect(requestHeaders, {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer secret-token',
+      });
+      expect(responseHeaders, {
+        'Content-Type': 'application/json',
+        'Set-Cookie': 'session=abc123',
+      });
+
+      // Tracked data has filtered headers
+      final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+      expect(httpData.requestHeaders, {'Content-Type': 'application/json'});
+      expect(httpData.responseHeaders, {'Content-Type': 'application/json'});
+    });
   });
 }
