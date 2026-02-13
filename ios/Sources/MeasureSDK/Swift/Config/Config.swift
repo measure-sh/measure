@@ -118,6 +118,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
         self.timeoutIntervalForRequest = 30
         self.maxBodySizeBytes = 3_000_000
-        self.httpUrlBlocklist = ["https://storage.googleapis.com/"]
+        self.httpUrlBlocklist = ["storage.googleapis.com"]
     }
 }

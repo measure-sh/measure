@@ -36,4 +36,8 @@ final class MockSystemFileManager: SystemFileManager {
     func getDynamicConfigPath() -> String? {
         return dynamicConfigPath
     }
+
+    func retrieveFile(atPath path: String) -> Data? {
+        return savedFiles[path]
+    }
 }

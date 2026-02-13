@@ -18,6 +18,7 @@ final class BaseExporterTests: XCTestCase {
     private var attachmentStore: MockAttachmentStore!
     private var sessionStore: MockSessionStore!
     private var config: MockConfigProvider!
+    private var systemFileManager: MockSystemFileManager!
 
     override func setUp() {
         super.setUp()
@@ -30,6 +31,7 @@ final class BaseExporterTests: XCTestCase {
         attachmentStore = MockAttachmentStore()
         sessionStore = MockSessionStore()
         config = MockConfigProvider()
+        systemFileManager = MockSystemFileManager()
 
         exporter = BaseExporter(
             logger: MockLogger(),
@@ -43,7 +45,8 @@ final class BaseExporterTests: XCTestCase {
             batchStore: batchStore,
             attachmentStore: attachmentStore,
             sessionStore: sessionStore,
-            configProvider: config
+            configProvider: config,
+            systemFileManager: systemFileManager
         )
     }
 
@@ -57,6 +60,7 @@ final class BaseExporterTests: XCTestCase {
         attachmentStore = nil
         sessionStore = nil
         config = nil
+        systemFileManager = nil
     }
 
     private func makeEvent(id: String, sessionId: String) -> EventEntity {
