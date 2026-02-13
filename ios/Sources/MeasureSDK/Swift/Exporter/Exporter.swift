@@ -26,6 +26,7 @@ final class BaseExporter: Exporter {
     private let sessionStore: SessionStore
     private let configProvider: ConfigProvider
     private let isExporting = AtomicBool(false)
+    private let systemFileManager: SystemFileManager
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
 
     init(
@@ -40,7 +41,8 @@ final class BaseExporter: Exporter {
         batchStore: BatchStore,
         attachmentStore: AttachmentStore,
         sessionStore: SessionStore,
-        configProvider: ConfigProvider
+        configProvider: ConfigProvider,
+        systemFileManager: SystemFileManager
     ) {
         self.logger = logger
         self.idProvider = idProvider
@@ -54,6 +56,7 @@ final class BaseExporter: Exporter {
         self.attachmentStore = attachmentStore
         self.sessionStore = sessionStore
         self.configProvider = configProvider
+        self.systemFileManager = systemFileManager
     }
 
     func export() {
@@ -195,8 +198,12 @@ final class BaseExporter: Exporter {
     }
 
     private func uploadAttachmentSync(_ attachment: MsrUploadAttachment) -> Bool {
+        var bytes: Data?
+        if let path = attachment.path {
+            bytes = systemFileManager.retrieveFile(name: path, folderName: nil, directory: FileManager.SearchPathDirectory.documentDirectory)
+        }
         guard
-            let bytes = attachment.bytes,
+            let bytes = bytes ?? attachment.bytes,
             let uploadUrlString = attachment.uploadUrl,
             let uploadUrl = URL(string: uploadUrlString),
             let headersData = attachment.headers,
@@ -210,6 +217,7 @@ final class BaseExporter: Exporter {
 
         let response = httpClient.uploadFile(url: uploadUrl, method: .put, contentType: contentType, headers: headers, fileData: bytes)
 
+        logger.log(level: .info, message: "Exporter: attachement response: \(response)", error: nil, data: nil)
         switch response {
         case .success:
             attachmentStore.deleteAttachments(attachmentIds: [attachment.id])

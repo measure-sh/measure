@@ -298,7 +298,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                      batchStore: batchStore,
                                      attachmentStore: attachmentStore,
                                      sessionStore: sessionStore,
-                                     configProvider: configProvider)
+                                     configProvider: configProvider,
+                                     systemFileManager: systemFileManager)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,

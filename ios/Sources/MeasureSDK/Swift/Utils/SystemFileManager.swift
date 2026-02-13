@@ -20,6 +20,7 @@ protocol SystemFileManager {
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL?
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
     func getDynamicConfigPath() -> String?
+    func retrieveFile(atPath path: String) -> Data?
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -126,5 +127,30 @@ final class BaseSystemFileManager: SystemFileManager {
         let fileURL = folderURL.appendingPathComponent(ConfigFileConstants.fileName)
 
         return fileURL.path
+    }
+    
+    func retrieveFile(atPath path: String) -> Data? {
+        let fileURL = URL(fileURLWithPath: path)
+
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            logger.internalLog(level: .error,
+                message: "File does not exist at path \(path)",
+                error: nil,
+                data: nil
+            )
+            return nil
+        }
+
+        do {
+            return try Data(contentsOf: fileURL)
+        } catch {
+            logger.internalLog(
+                level: .error,
+                message: "Failed to retrieve file at path \(path)",
+                error: error,
+                data: nil
+            )
+            return nil
+        }
     }
 }
