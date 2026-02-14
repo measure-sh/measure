@@ -126,7 +126,7 @@ export default function TraceDetails({ params = { teamId: 'demo-team-id', appId:
 
             {traceApiStatus === TraceApiStatus.Loading && <LoadingSpinner />}
 
-            {traceApiStatus === TraceApiStatus.Error && <p className="font-body text-sm">Error fetching trace, please refresh page try again</p>}
+            {traceApiStatus === TraceApiStatus.Error && <p className="font-body text-sm">Error fetching trace, please refresh page to try again</p>}
 
             {traceApiStatus === TraceApiStatus.Success &&
                 <div className="w-full">

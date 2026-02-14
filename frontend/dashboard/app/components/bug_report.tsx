@@ -137,7 +137,7 @@ export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'd
 
             {bugReportApiStatus === BugReportApiStatus.Loading && <LoadingSpinner />}
 
-            {bugReportApiStatus === BugReportApiStatus.Error && <p className="font-body text-sm">Error fetching bug report, please refresh page try again</p>}
+            {bugReportApiStatus === BugReportApiStatus.Error && <p className="font-body text-sm">Error fetching bug report, please refresh page to try again</p>}
 
             {bugReportApiStatus === BugReportApiStatus.Success &&
                 <div>
