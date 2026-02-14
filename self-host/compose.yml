@@ -423,7 +423,7 @@ services:
       - ./postgres/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.8-alpine
+    image: clickhouse/clickhouse-server:25.10-alpine
     environment:
       - CLICKHOUSE_DB=measure
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
