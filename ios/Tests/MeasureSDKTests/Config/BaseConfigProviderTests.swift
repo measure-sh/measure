@@ -177,6 +177,42 @@ final class ConfigProviderTests: XCTestCase {
         XCTAssertTrue(provider.shouldTrackHttpUrl(url: "https://api.example.com/pathquery=value"))
     }
 
+    func testShouldTrackHttpUrl_blocksDomainFromDefaultBlocklist() {
+        provider = BaseConfigProvider(defaultConfig: defaultConfig)
+
+        XCTAssertFalse(
+            provider.shouldTrackHttpUrl(
+                url: "https://storage.googleapis.com/msr/file.svg"
+            )
+        )
+    }
+
+    func testShouldTrackHttpUrl_domainBlocklistIsCaseInsensitive() {
+        provider = BaseConfigProvider(defaultConfig: defaultConfig)
+
+        XCTAssertFalse(
+            provider.shouldTrackHttpUrl(
+                url: "https://STORAGE.GOOGLEAPIS.COM/file"
+            )
+        )
+    }
+
+    func testShouldTrackHttpUrl_doesNotBlockOtherDomains() {
+        provider = BaseConfigProvider(defaultConfig: defaultConfig)
+
+        XCTAssertTrue(
+            provider.shouldTrackHttpUrl(
+                url: "https://api.example.com/data"
+            )
+        )
+    }
+
+    func testShouldTrackHttpUrl_malformedUrlReturnsTrue() {
+        provider = BaseConfigProvider(defaultConfig: defaultConfig)
+
+        XCTAssertTrue(provider.shouldTrackHttpUrl(url: "not a url"))
+    }
+
     private func copy(
         _ base: BaseDynamicConfig,
         disable: [String] = [],

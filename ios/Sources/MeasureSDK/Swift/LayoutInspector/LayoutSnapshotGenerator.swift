@@ -89,7 +89,6 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
 
             let attachment = attachmentProcessor.getAttachmentObject(
                 for: layoutSnapshot,
-                name: layoutSnapshotName,
                 storageType: .data,
                 attachmentType: .layoutSnapshot
             )
