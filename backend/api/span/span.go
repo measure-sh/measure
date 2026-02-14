@@ -1,8 +1,10 @@
 package span
 
 import (
+	"backend/api/config"
 	"backend/api/event"
 	"backend/api/opsys"
+	"backend/api/server"
 	"fmt"
 	"regexp"
 	"slices"
@@ -218,6 +220,25 @@ func (s *SpanField) Validate() error {
 
 	if s.EndTime.IsZero() {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `end_time`)
+	}
+
+	// Don't allow batches that contain spans too far in the past or future
+	//
+	// Since, these timestamps affect the creation of partitions in the database
+	// without any enforcement, we lose control on the number of partitions which leads to fragmented query performance.
+	//
+	// For testing, it might be useful to disable this check which can be controlled using the "INGEST_ENFORCE_TIME_WINDOW" environment variable.
+	if server.Server.Config.IngestEnforceTimeWindow {
+		now := time.Now()
+		lower := now.Add(-config.MaxPastOffset)
+		upper := now.Add(config.MaxFutureOffset)
+		drift := s.StartTime.Sub(now)
+
+		if s.StartTime.Before(lower) {
+			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxPastOffset)
+		} else if s.StartTime.After(upper) {
+			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxFutureOffset)
+		}
 	}
 
 	if len(s.CheckPoints) > maxNumberOfCheckpoints {

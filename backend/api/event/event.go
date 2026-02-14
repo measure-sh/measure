@@ -1,7 +1,9 @@
 package event
 
 import (
+	"backend/api/config"
 	"backend/api/opsys"
+	"backend/api/server"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -666,6 +668,25 @@ func (e *EventField) Validate() error {
 
 	if e.Timestamp.IsZero() {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `timestamp`)
+	}
+
+	// Don't allow batches that contain events too far in the past or future
+	//
+	// Since, these timestamps affect the creation of partitions in the database
+	// without any enforcement, we lose control on the number of partitions which leads to fragmented query performance.
+	//
+	// For testing, it might be useful to disable this check which can be controlled using the "INGEST_ENFORCE_TIME_WINDOW" environment variable.
+	if server.Server.Config.IngestEnforceTimeWindow {
+		now := time.Now()
+		lower := now.Add(-config.MaxPastOffset)
+		upper := now.Add(config.MaxFutureOffset)
+		drift := e.Timestamp.Sub(now)
+
+		if e.Timestamp.Before(lower) {
+			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, config.MaxPastOffset)
+		} else if e.Timestamp.After(upper) {
+			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, config.MaxFutureOffset)
+		}
 	}
 
 	if e.IsANR() {
