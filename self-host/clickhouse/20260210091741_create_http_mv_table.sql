@@ -4,44 +4,50 @@ SELECT
     `team_id`,
     `app_id`,
     concat(protocol(`http.url`), '://', domain(`http.url`)) AS `origin`,
-    toString(`http.method`) AS `method`,
-    path(`http.url`) AS `path`,
-    `id` AS `event_id`,
-    toStartOfFiveMinutes(`timestamp`) AS `bucket`,
+    -- Path normalization: 2-pass regex to collapse high-cardinality segments into *
+    -- Inline tokens (matched anywhere in the path):
+    --   [0-9a-fA-F]{8}-...-[0-9a-fA-F]{12}  UUIDs
+    --   [0-9a-fA-F]{40}                       SHA1 hashes (before MD5 to avoid partial match)
+    --   [0-9a-fA-F]{32}                       MD5 hashes
+    --   0[xX][0-9a-fA-F]+                     Hex literals (0x1A3F)
+    --   [0-9]{4}-..T..:..:..]                 ISO 8601 timestamps
+    -- Segment-level patterns (full segments between slashes):
+    --   [0-9]+                                Purely numeric (/42/)
+    --   [^/]*[0-9]{2,}[^/]*                   Contains 2+ consecutive digits (/item42name/)
+    --   [^/]{60,}                             60+ chars, likely dynamic identifiers
+    replaceRegexpAll(
+        replaceRegexpAll(
+            path(`http.url`),
+            '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{40}|[0-9a-fA-F]{32}|0[xX][0-9a-fA-F]+|[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]',
+            '*'
+        ),
+        '/([0-9]+|[^/]*[0-9]{2,}[^/]*|[^/]{60,})(/|$)',
+        '/*\\2'
+    ) AS `path`,
     `http.status_code` AS `status_code`,
-    `http.end_time` - `http.start_time` AS `duration`,
-    toString(`attribute.installation_id`) AS `attribute.installation_id`,
-    toString(`attribute.app_unique_id`) AS `attribute.app_unique_id`,
-    toString(`attribute.platform`) AS `attribute.platform`,
-    toString(`attribute.measure_sdk_version`) AS `attribute.measure_sdk_version`,
-    toString(`attribute.thread_name`) AS `attribute.thread_name`,
-    toString(`attribute.user_id`) AS `attribute.user_id`,
-    toString(`attribute.device_name`) AS `attribute.device_name`,
-    toString(`attribute.device_model`) AS `attribute.device_model`,
-    toString(`attribute.device_manufacturer`) AS `attribute.device_manufacturer`,
-    toString(`attribute.device_type`) AS `attribute.device_type`,
-    `attribute.device_is_foldable`,
-    `attribute.device_is_physical`,
-    `attribute.device_density_dpi`,
-    `attribute.device_width_px`,
-    `attribute.device_height_px`,
-    `attribute.device_density`,
-    toString(`attribute.device_locale`) AS `attribute.device_locale`,
-    `attribute.device_low_power_mode`,
-    `attribute.device_thermal_throttling_enabled`,
-    toString(`attribute.device_cpu_arch`) AS `attribute.device_cpu_arch`,
-    toString(`attribute.os_name`) AS `attribute.os_name`,
-    toString(`attribute.os_version`) AS `attribute.os_version`,
-    `attribute.os_page_size`,
-    toString(`attribute.network_type`) AS `attribute.network_type`,
-    toString(`attribute.network_generation`) AS `attribute.network_generation`,
-    toString(`attribute.network_provider`) AS `attribute.network_provider`,
-    toString(`attribute.app_version`) AS `attribute.app_version`,
-    toString(`attribute.app_build`) AS `attribute.app_build`
+    `http.method` AS `method`,
+    toStartOfFifteenMinutes(`timestamp`) AS `bucket`,
+    
+    -- Aggregated metrics
+    countState() AS `request_count`,
+    quantilesState(0.5, 0.9, 0.95, 0.99)(`http.end_time` - `http.start_time`) AS `duration_quantiles`,
+    
+    -- Sample attributes (same pattern as sessions)
+    anyLast((toString(`attribute.app_version`), toString(`attribute.app_build`))) AS `app_version`,
+    anyLast((toString(`attribute.os_name`), toString(`attribute.os_version`))) AS `os_version`,
+    anyLast(toString(`attribute.network_provider`)) AS `network_provider`,
+    anyLast(toString(`attribute.network_type`)) AS `network_type`,
+    anyLast(toString(`attribute.network_generation`)) AS `network_generation`,
+    anyLast(toString(`attribute.device_locale`)) AS `device_locale`,
+    anyLast(toString(`attribute.device_manufacturer`)) AS `device_manufacturer`,
+    anyLast(toString(`attribute.device_name`)) AS `device_name`,
+    anyLast(toString(`attribute.device_model`)) AS `device_model`
 FROM
     events
 WHERE
-    type = 'http';
+    type = 'http'
+GROUP BY
+    `team_id`, `app_id`, `origin`, `path`, `status_code`, `method`, `bucket`;
 
 -- migrate:down
 DROP VIEW IF EXISTS http_mv;

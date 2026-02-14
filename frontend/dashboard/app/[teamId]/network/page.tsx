@@ -230,8 +230,8 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showNoData={true}
-                showNotOnboarded={true}
+                showNoData={false}
+                showNotOnboarded={false}
                 showAppSelector={true}
                 showAppVersions={false}
                 showDates={true}
