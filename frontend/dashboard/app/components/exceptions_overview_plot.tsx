@@ -91,7 +91,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           yScale={{
             type: 'linear',
             min: 0,
-            max: 100
+            max: 'auto'
           }}
           yFormat=" >-.2f"
           axisTop={null}
