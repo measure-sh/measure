@@ -107,7 +107,7 @@ update_env_variable() {
     return
   fi
 
-   # Escape & and \ so sed won't expand them
+  # Escape & and \ so sed won't expand them
   local escaped_value
   escaped_value=$(printf '%s' "$new_value" | sed -e 's/[&/\]/\\&/g')
 
@@ -149,7 +149,7 @@ ${key}=${escaped_value}
     fi
   else
     # Append at the end if no after_key provided or not found
-    echo "${key}=${value}" >> "$env_file"
+    echo "${key}=${value}" >>"$env_file"
   fi
 }
 
