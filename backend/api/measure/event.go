@@ -1005,15 +1005,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 
 		row := stmt.NewRow().
 			Set(`id`, e.events[i].ID).
-			Set(`type`, e.events[i].Type).
-			Set(`session_id`, e.events[i].SessionID).
 			Set(`team_id`, e.teamId).
 			Set(`app_id`, e.events[i].AppID).
+			Set(`session_id`, e.events[i].SessionID).
+			Set(`timestamp`, e.events[i].Timestamp.Format(chrono.MSTimeFormat)).
+			Set(`type`, e.events[i].Type).
+			Set(`user_triggered`, e.events[i].UserTriggered).
 			Set(`inet.ipv4`, e.events[i].IPv4).
 			Set(`inet.ipv6`, e.events[i].IPv6).
 			Set(`inet.country_code`, e.events[i].CountryCode).
-			Set(`timestamp`, e.events[i].Timestamp.Format(chrono.NanoTimeFormat)).
-			Set(`user_triggered`, e.events[i].UserTriggered).
 
 			// attribute
 			Set(`attribute.installation_id`, e.events[i].Attribute.InstallationID).
@@ -1519,16 +1519,15 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 		appVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.AppVersion, e.spans[i].Attributes.AppBuild)
 		osVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.OSName, e.spans[i].Attributes.OSVersion)
 
-		formattedCheckpoints := "["
-		for j, cp := range e.spans[i].CheckPoints {
-			timestamp := cp.Timestamp.Format(chrono.NanoTimeFormat)
-			formattedCheckpoints += fmt.Sprintf("('%s', '%s')", cp.Name, timestamp)
-
-			if j < len(e.spans[i].CheckPoints)-1 {
-				formattedCheckpoints += ", "
-			}
+		var b strings.Builder
+		var checkpoints []string
+		b.WriteString("[")
+		for _, cp := range e.spans[i].CheckPoints {
+			checkpoints = append(checkpoints, fmt.Sprintf("('%s','%s')", cp.Name, cp.Timestamp.Format(chrono.MSTimeFormat)))
 		}
-		formattedCheckpoints += "]"
+		b.WriteString(strings.Join(checkpoints, ","))
+		b.WriteString("]")
+		formattedCheckpoints := b.String()
 
 		stmt.NewRow().
 			Set(`team_id`, e.teamId).
@@ -1539,8 +1538,8 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`trace_id`, e.spans[i].TraceID).
 			Set(`session_id`, e.spans[i].SessionID).
 			Set(`status`, e.spans[i].Status).
-			Set(`start_time`, e.spans[i].StartTime).
-			Set(`end_time`, e.spans[i].EndTime).
+			Set(`start_time`, e.spans[i].StartTime.Format(chrono.MSTimeFormat)).
+			Set(`end_time`, e.spans[i].EndTime.Format(chrono.MSTimeFormat)).
 			Set(`checkpoints`, formattedCheckpoints).
 			Set(`attribute.app_unique_id`, e.spans[i].Attributes.AppUniqueID).
 			Set(`attribute.installation_id`, e.spans[i].Attributes.InstallationID).
