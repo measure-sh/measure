@@ -34,6 +34,8 @@ type IssueGroup interface {
 type ExceptionGroup struct {
 	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
 	ID              string                 `json:"id" db:"id"`
+	CountryCode     string                 `json:"country_code"`
+	Attribute       event.Attribute        `json:"-"`
 	Type            string                 `json:"type" db:"type"`
 	Message         string                 `json:"message" db:"message"`
 	MethodName      string                 `json:"method_name" db:"method_name"`
@@ -47,18 +49,20 @@ type ExceptionGroup struct {
 }
 
 type ANRGroup struct {
-	AppID      uuid.UUID        `json:"app_id" db:"app_id"`
-	ID         string           `json:"id" db:"id"`
-	Type       string           `json:"type" db:"type"`
-	Message    string           `json:"message" db:"message"`
-	MethodName string           `json:"method_name" db:"method_name"`
-	FileName   string           `json:"file_name" db:"file_name"`
-	LineNumber int32            `json:"line_number" db:"line_number"`
-	Count      uint64           `json:"count"`
-	EventIDs   []uuid.UUID      `json:"event_ids,omitempty"`
-	EventANRs  []event.EventANR `json:"anr_events,omitempty"`
-	Percentage float64          `json:"percentage_contribution"`
-	UpdatedAt  time.Time        `json:"updated_at" db:"updated_at"`
+	AppID       uuid.UUID        `json:"app_id" db:"app_id"`
+	ID          string           `json:"id" db:"id"`
+	CountryCode string           `json:"country_code"`
+	Attribute   event.Attribute  `json:"-"`
+	Type        string           `json:"type" db:"type"`
+	Message     string           `json:"message" db:"message"`
+	MethodName  string           `json:"method_name" db:"method_name"`
+	FileName    string           `json:"file_name" db:"file_name"`
+	LineNumber  int32            `json:"line_number" db:"line_number"`
+	Count       uint64           `json:"count"`
+	EventIDs    []uuid.UUID      `json:"event_ids,omitempty"`
+	EventANRs   []event.EventANR `json:"anr_events,omitempty"`
+	Percentage  float64          `json:"percentage_contribution"`
+	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
 }
 
 // unique deduplicates the source slice of
@@ -109,47 +113,54 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 	}
 
 	stmt := sqlf.
-		InsertInto("unhandled_exception_groups").
-		Set("team_id", teamId).
-		Set("app_id", e.AppID).
-		Set("id", e.ID).
-		Set("type", e.Type).
-		Set("message", e.Message).
-		Set("method_name", e.MethodName).
-		Set("file_name", e.FileName).
-		Set("line_number", e.LineNumber).
-		Set("created_at", time.Now()).
-		Set("updated_at", e.UpdatedAt)
+		New("insert into unhandled_exception_groups_new").
+		Clause("(").
+		Expr("team_id").
+		Expr("app_id").
+		Expr("id").
+		Expr("app_version").
+		Expr("type").
+		Expr("message").
+		Expr("method_name").
+		Expr("file_name").
+		Expr("line_number").
+		Expr("os_versions").
+		Expr("country_codes").
+		Expr("network_providers").
+		Expr("network_types").
+		Expr("network_generations").
+		Expr("device_locales").
+		Expr("device_manufacturers").
+		Expr("device_names").
+		Expr("device_models").
+		Expr("count").
+		Expr("timestamp").
+		Clause(")").
+		Clause("select").
+		Expr("?", teamId).
+		Expr("?", e.AppID).
+		Expr("?", e.ID).
+		Expr("(?, ?)", e.Attribute.AppVersion, e.Attribute.AppBuild).
+		Expr("?", e.Type).
+		Expr("?", e.Message).
+		Expr("?", e.MethodName).
+		Expr("?", e.FileName).
+		Expr("?", e.LineNumber).
+		Expr("groupUniqArrayState(tuple(?, ?))", e.Attribute.OSName, e.Attribute.OSVersion).
+		Expr("groupUniqArrayState(?)", e.CountryCode).
+		Expr("groupUniqArrayState(?)", e.Attribute.NetworkProvider).
+		Expr("groupUniqArrayState(?)", e.Attribute.NetworkType).
+		Expr("groupUniqArrayState(?)", e.Attribute.NetworkGeneration).
+		Expr("groupUniqArrayState(?)", e.Attribute.DeviceLocale).
+		Expr("groupUniqArrayState(?)", e.Attribute.DeviceManufacturer).
+		Expr("groupUniqArrayState(?)", e.Attribute.DeviceName).
+		Expr("groupUniqArrayState(?)", e.Attribute.DeviceModel).
+		Expr("sumState(toUInt64(1))").
+		Expr("?", e.UpdatedAt.Format(chrono.MSTimeFormat))
 
 	defer stmt.Close()
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
-}
-
-func (e ExceptionGroup) Upsert(ctx context.Context) (err error) {
-	teamId, err := ambient.TeamId(ctx)
-	if err != nil {
-		return err
-	}
-
-	count := 0
-
-	{
-		stmt := sqlf.
-			From("unhandled_exception_groups_new").
-			Select("count").
-			Where("team_id = toUUID(?)", teamId).
-			Where("app_id = toUUID(?)", e.AppID).
-			Where("id = toUUID(?)", e.ID)
-
-		defer stmt.Close()
-
-		if err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count); err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 // GetId provides the ANR's
@@ -180,17 +191,50 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 	}
 
 	stmt := sqlf.
-		InsertInto("anr_groups").
-		Set("team_id", teamId).
-		Set("app_id", a.AppID).
-		Set("id", a.ID).
-		Set("type", a.Type).
-		Set("message", a.Message).
-		Set("method_name", a.MethodName).
-		Set("file_name", a.FileName).
-		Set("line_number", a.LineNumber).
-		Set("created_at", time.Now()).
-		Set("updated_at", a.UpdatedAt.Format(chrono.NanoTimeFormat))
+		New("insert into anr_groups_new").
+		Clause("(").
+		Expr("team_id").
+		Expr("app_id").
+		Expr("id").
+		Expr("app_version").
+		Expr("type").
+		Expr("message").
+		Expr("method_name").
+		Expr("file_name").
+		Expr("line_number").
+		Expr("os_versions").
+		Expr("country_codes").
+		Expr("network_providers").
+		Expr("network_types").
+		Expr("network_generations").
+		Expr("device_locales").
+		Expr("device_manufacturers").
+		Expr("device_names").
+		Expr("device_models").
+		Expr("count").
+		Expr("timestamp").
+		Clause(")").
+		Clause("select").
+		Expr("?", teamId).
+		Expr("?", a.AppID).
+		Expr("?", a.ID).
+		Expr("(?, ?)", a.Attribute.AppVersion, a.Attribute.AppBuild).
+		Expr("?", a.Type).
+		Expr("?", a.Message).
+		Expr("?", a.MethodName).
+		Expr("?", a.FileName).
+		Expr("?", a.LineNumber).
+		Expr("groupUniqArrayState(tuple(?, ?))", a.Attribute.OSName, a.Attribute.OSVersion).
+		Expr("groupUniqArrayState(?)", a.CountryCode).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkProvider).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkType).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkGeneration).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceLocale).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceManufacturer).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceName).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceModel).
+		Expr("sumState(toUInt64(1))").
+		Expr("?", a.UpdatedAt.Format(chrono.MSTimeFormat))
 
 	defer stmt.Close()
 
@@ -568,29 +612,33 @@ func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds 
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, firstTime time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, timestamp time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
-		AppID:      appId,
-		ID:         fingerprint,
-		Type:       exceptionType,
-		Message:    message,
-		MethodName: methodName,
-		FileName:   fileName,
-		LineNumber: lineNumber,
-		UpdatedAt:  time.Now(),
+		AppID:       appId,
+		CountryCode: countryCode,
+		Attribute:   attribute,
+		ID:          fingerprint,
+		Type:        exceptionType,
+		Message:     message,
+		MethodName:  methodName,
+		FileName:    fileName,
+		LineNumber:  lineNumber,
+		UpdatedAt:   timestamp,
 	}
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, fingerprint string, anrType, message, methodName, fileName string, lineNumber int32, firstTime time.Time) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, anrType, message, methodName, fileName string, lineNumber int32, timestamp time.Time) *ANRGroup {
 	return &ANRGroup{
-		AppID:      appId,
-		ID:         fingerprint,
-		Type:       anrType,
-		Message:    message,
-		MethodName: methodName,
-		FileName:   fileName,
-		LineNumber: lineNumber,
-		UpdatedAt:  time.Now(),
+		AppID:       appId,
+		CountryCode: countryCode,
+		Attribute:   attribute,
+		ID:          fingerprint,
+		Type:        anrType,
+		Message:     message,
+		MethodName:  methodName,
+		FileName:    fileName,
+		LineNumber:  lineNumber,
+		UpdatedAt:   timestamp,
 	}
 }

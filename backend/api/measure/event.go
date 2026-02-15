@@ -832,7 +832,19 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 			continue
 		}
 
-		exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.Fingerprint, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Timestamp)
+		exceptionGroup := group.NewExceptionGroup(
+			events[i].AppID,
+			events[i].CountryCode,
+			events[i].Attribute,
+			events[i].Exception.Fingerprint,
+			events[i].Exception.GetType(),
+			events[i].Exception.GetMessage(),
+			events[i].Exception.GetMethodName(),
+			events[i].Exception.GetFileName(),
+			events[i].Exception.GetLineNumber(),
+			events[i].Timestamp,
+		)
+
 		if err = exceptionGroup.Insert(ctx); err != nil {
 			return
 		}
@@ -852,7 +864,19 @@ func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 			continue
 		}
 
-		anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.Fingerprint, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].Timestamp)
+		anrGroup := group.NewANRGroup(
+			events[i].AppID,
+			events[i].CountryCode,
+			events[i].Attribute,
+			events[i].ANR.Fingerprint,
+			events[i].ANR.GetType(),
+			events[i].ANR.GetMessage(),
+			events[i].ANR.GetMethodName(),
+			events[i].ANR.GetFileName(),
+			events[i].ANR.GetLineNumber(),
+			events[i].Timestamp,
+		)
+
 		if err := anrGroup.Insert(ctx); err != nil {
 			return err
 		}
