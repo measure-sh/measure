@@ -17,6 +17,13 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+type GroupType string
+
+const (
+	GroupTypeCrash GroupType = "crash"
+	GroupTypeANR   GroupType = "anr"
+)
+
 // IssueGroup interface represents
 // common interface for issue group
 // types like ExceptionGroup & ANRGroup.

@@ -12,9 +12,9 @@ import (
 func ExtractMatches(
 	needle, userId, sessionId string,
 	types, customTypeNames, logStrings,
-	viewClassnames, subviewClassnames []string,
-	unhandledExceptions, handledExceptions, anrs,
-	clickTargets, longclickTargets, scrollTargets []map[string]string,
+	viewClassnames, subviewClassnames, exceptionErrors []string,
+	unhandledExceptions, handledExceptions, anrs []map[string]string,
+	clickTargets, longclickTargets, scrollTargets [][]string,
 ) (matched string) {
 	if needle == "" {
 		return
@@ -140,6 +140,14 @@ func ExtractMatches(
 		}
 	}
 
+	// exception errors
+	for i := range exceptionErrors {
+		if strings.Contains(strings.ToLower(exceptionErrors[i]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Error: %s", exceptionErrors[i]))
+			break
+		}
+	}
+
 	// anrs
 	for i := range anrs {
 		length := len(buff)
@@ -179,13 +187,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(clickTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", clickTargets[i]["1"]))
+		targetClass := clickTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(clickTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", clickTargets[i]["2"]))
+		targetId := clickTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {
@@ -198,13 +208,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(longclickTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", longclickTargets[i]["1"]))
+		targetClass := longclickTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(longclickTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", longclickTargets[i]["2"]))
+		targetId := longclickTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {
@@ -217,13 +229,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(scrollTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", scrollTargets[i]["1"]))
+		targetClass := scrollTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(scrollTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", scrollTargets[i]["2"]))
+		targetId := scrollTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {

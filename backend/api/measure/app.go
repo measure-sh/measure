@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -96,79 +97,26 @@ func (a App) rename() error {
 	return nil
 }
 
-// GetExceptionGroup queries a single exception group by its id.
-func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *group.ExceptionGroup, err error) {
+// IssueGroupExists checks if the group exists by its
+// fingerprint and type.
+func (a App) IssueGroupExists(ctx context.Context, groupType group.GroupType, fingerprint string) (ok bool, err error) {
+	table := "unhandled_exception_groups_new"
+
+	if groupType == group.GroupTypeANR {
+		table = "anr_groups_new"
+	}
+
 	stmt := sqlf.
-		From("unhandled_exception_groups final").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("id = ?", id)
+		From(table).
+		Select("1").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("id = ?", fingerprint).
+		Limit(1)
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	row := group.ExceptionGroup{}
-	if rows.Next() {
-		if err := rows.Scan(
-			&row.AppID,
-			&row.ID,
-			&row.Type,
-			&row.Message,
-			&row.MethodName,
-			&row.FileName,
-			&row.LineNumber,
-			&row.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, nil
-	}
-
-	exceptionGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`events final`).
-		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and type = ? and exception.fingerprint = ? and exception.handled = false", a.ID, event.TypeException, exceptionGroup.ID).
-		GroupBy("id")
-
-	defer eventDataStmt.Close()
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if err = eventDataRows.Err(); err != nil {
-		return
-	}
-
-	exceptionGroup.EventIDs = eventIds
-	exceptionGroup.Count = uint64(len(eventIds))
+	err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&ok)
 
 	return
 }
@@ -702,81 +650,6 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af
 	if af.Offset > 0 {
 		previous = true
 	}
-
-	return
-}
-
-// GetANRGroup queries a single ANR group by its id.
-func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGroup, err error) {
-	stmt := sqlf.
-		From("anr_groups final").
-		Select("app_id").
-		Select("id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("id = ?", id)
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	row := group.ANRGroup{}
-	if rows.Next() {
-		if err := rows.Scan(
-			&row.AppID,
-			&row.ID,
-			&row.Type,
-			&row.Message,
-			&row.MethodName,
-			&row.FileName,
-			&row.LineNumber,
-			&row.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, nil
-	}
-
-	anrGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`events final`).
-		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and type = ? and anr.fingerprint = ?", a.ID, event.TypeANR, anrGroup.ID).
-		GroupBy("id")
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if err = eventDataRows.Err(); err != nil {
-		return
-	}
-
-	anrGroup.EventIDs = eventIds
-	anrGroup.Count = uint64(len(eventIds))
 
 	return
 }
@@ -1649,18 +1522,19 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 
 	if af.HasFreeText() {
 		base.
-			Select("groupUniqArrayMerge(user_ids) as user_ids").
-			Select("groupUniqArrayMerge(unique_types) as unique_types").
-			Select("groupUniqArrayMerge(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
-			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
-			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayMerge(unique_unhandled_exceptions) as unique_unhandled_exceptions").
-			Select("groupUniqArrayMerge(unique_handled_exceptions) as unique_handled_exceptions").
-			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
-			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
-			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
-			Select("groupUniqArrayMerge(unique_scroll_targets) as unique_scroll_targets")
+			Select("groupUniqArrayArray(user_ids) as user_ids").
+			Select("groupUniqArrayArray(unique_types) as unique_types").
+			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
+			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
+			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
+			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
+			Select("groupUniqArrayArray(unique_errors) as unique_errors").
+			Select("groupUniqArrayArray(unique_anrs) as unique_anrs").
+			Select("groupUniqArrayArray(unique_click_targets) as unique_click_targets").
+			Select("groupUniqArrayArray(unique_longclick_targets) as unique_longclick_targets").
+			Select("groupUniqArrayArray(unique_scroll_targets) as unique_scroll_targets")
 	}
 
 	if af.HasVersions() {
@@ -1675,41 +1549,52 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 	// Allow the user to mix & match fine-grained
 	// timeline selection parameters.
 	{
-		exprs := []string{}
+		orExprs := []string{}
+		andExprs := []string{}
 
 		if af.Crash {
-			exprs = append(exprs, "sumMerge(crash_count) >= 1")
+			orExprs = append(orExprs, "crash_count >= 1")
 		}
 
 		if af.ANR {
-			exprs = append(exprs, "sumMerge(anr_count) >= 1")
+			orExprs = append(orExprs, "anr_count >= 1")
 		}
 
 		if af.BugReport {
-			exprs = append(exprs, "sumMerge(bug_report_count) >= 1")
+			orExprs = append(orExprs, "bug_report_count >= 1")
 		}
 
-		if af.Background {
-			exprs = append(exprs, "sumMerge(background_count) >= 1")
-		}
-
-		if af.Foreground {
-			exprs = append(exprs, "sumMerge(foreground_count) >= 1")
-		}
-
+		// wrap the entire condition in parenthesis as
+		// to evaluate as a whole
 		if af.UserInteraction {
-			// wrap the entire user interaction detection condition
-			// in parenthesis because we want to evaluate it as
-			// a whole
-			//
-			// the cast using '::Map(T, U)' is critical
-			// the series of 'OR' expressions is also critical
-			exprs = append(exprs, "(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
 		}
 
-		if len(exprs) > 0 {
-			cond := strings.Join(exprs, " or ")
-			base.Having("(" + cond + ")")
+		// only apply background or foreground as AND
+		// if either of them are true
+		//
+		// background or foreground inclusion is orthogonal
+		// to the rest of the filters like crash, anr, bug_report or user_interaction.
+		//
+		// if both background and foreground are true, then
+		// we don't need to filter, inlcude everything
+		if af.Background != af.Foreground {
+			if af.Foreground {
+				andExprs = append(andExprs, "foreground_count >= 1")
+			}
+			if af.Background {
+				andExprs = append(andExprs, "background_count >= 1")
+			}
+		}
+
+		if len(orExprs) > 0 {
+			cond := strings.Join(orExprs, " or ")
+			base.Where("(" + cond + ")")
+		}
+
+		if len(andExprs) > 0 {
+			cond := strings.Join(andExprs, " and ")
+			base.Where("(" + cond + ")")
 		}
 	}
 
@@ -1723,23 +1608,23 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 	}
 
 	if af.HasCountries() {
-		base.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
+		base.Where("hasAll(country_codes, ?)", af.Countries)
 	}
 
 	if af.HasNetworkProviders() {
-		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+		base.Where("hasAll(network_providers, ?)", af.NetworkProviders)
 	}
 
 	if af.HasNetworkTypes() {
-		base.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+		base.Where("hasAll(network_types, ?)", af.NetworkTypes)
 	}
 
 	if af.HasNetworkGenerations() {
-		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkGenerations)
+		base.Where("hasAll(network_generations, ?)", af.NetworkGenerations)
 	}
 
 	if af.HasDeviceLocales() {
-		base.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+		base.Where("hasAll(device_locales, ?)", af.Locales)
 	}
 
 	if af.HasDeviceManufacturers() {
@@ -1821,6 +1706,8 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
+				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_click_targets)", partial, partial).
@@ -1873,18 +1760,19 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 
 	if af.HasFreeText() {
 		base.
-			Select("groupUniqArrayMerge(user_ids) as user_ids").
-			Select("groupUniqArrayMerge(unique_types) as unique_types").
-			Select("groupUniqArrayMerge(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayMerge(unique_strings) as unique_strings").
-			Select("groupUniqArrayMerge(unique_view_classnames) as unique_view_classnames").
-			Select("groupUniqArrayMerge(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayMerge(unique_unhandled_exceptions) as unique_unhandled_exceptions").
-			Select("groupUniqArrayMerge(unique_handled_exceptions) as unique_handled_exceptions").
-			Select("groupUniqArrayMerge(unique_anrs) as unique_anrs").
-			Select("groupUniqArrayMerge(unique_click_targets) as unique_click_targets").
-			Select("groupUniqArrayMerge(unique_longclick_targets) as unique_longclick_targets").
-			Select("groupUniqArrayMerge(unique_scroll_targets) as unique_scroll_targets")
+			Select("groupUniqArrayArray(user_ids) as user_ids").
+			Select("groupUniqArrayArray(unique_types) as unique_types").
+			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
+			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
+			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
+			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
+			Select("groupUniqArrayArray(unique_errors) as unique_errors").
+			Select("groupUniqArrayArray(unique_anrs) as unique_anrs").
+			Select("groupUniqArrayArray(unique_click_targets) as unique_click_targets").
+			Select("groupUniqArrayArray(unique_longclick_targets) as unique_longclick_targets").
+			Select("groupUniqArrayArray(unique_scroll_targets) as unique_scroll_targets")
 	}
 
 	if af.HasVersions() {
@@ -1899,41 +1787,52 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	// Allow the user to mix & match fine-grained
 	// timeline selection parameters.
 	{
-		exprs := []string{}
+		orExprs := []string{}
+		andExprs := []string{}
 
 		if af.Crash {
-			exprs = append(exprs, "sumMerge(crash_count) >= 1")
+			orExprs = append(orExprs, "crash_count >= 1")
 		}
 
 		if af.ANR {
-			exprs = append(exprs, "sumMerge(anr_count) >= 1")
+			orExprs = append(orExprs, "anr_count >= 1")
 		}
 
 		if af.BugReport {
-			exprs = append(exprs, "sumMerge(bug_report_count) >= 1")
+			orExprs = append(orExprs, "bug_report_count >= 1")
 		}
 
-		if af.Background {
-			exprs = append(exprs, "sumMerge(background_count) >= 1")
-		}
-
-		if af.Foreground {
-			exprs = append(exprs, "sumMerge(foreground_count) >= 1")
-		}
-
+		// wrap the entire condition in parenthesis as
+		// to evaluate as a whole
 		if af.UserInteraction {
-			// wrap the entire user interaction detection condition
-			// in parenthesis because we want to evaluate it as
-			// a whole
-			//
-			// the cast using '::Map(T, U)' is critical
-			// the series of 'OR' expressions is also critical
-			exprs = append(exprs, "(sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_long_click'] >= 1 or sumMapMerge(event_type_counts)::Map(String, UInt64)['gesture_scroll'] >= 1)")
+			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
 		}
 
-		if len(exprs) > 0 {
-			cond := strings.Join(exprs, " or ")
-			base.Having("(" + cond + ")")
+		// only apply background or foreground as AND
+		// if either of them are true
+		//
+		// background or foreground inclusion is orthogonal
+		// to the rest of the filters like crash, anr, bug_report or user_interaction.
+		//
+		// if both background and foreground are true, then
+		// we don't need to filter, inlcude everything
+		if af.Background != af.Foreground {
+			if af.Foreground {
+				andExprs = append(andExprs, "foreground_count >= 1")
+			}
+			if af.Background {
+				andExprs = append(andExprs, "background_count >= 1")
+			}
+		}
+
+		if len(orExprs) > 0 {
+			cond := strings.Join(orExprs, " or ")
+			base.Where("(" + cond + ")")
+		}
+
+		if len(andExprs) > 0 {
+			cond := strings.Join(andExprs, " and ")
+			base.Where("(" + cond + ")")
 		}
 	}
 
@@ -1947,23 +1846,23 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	}
 
 	if af.HasCountries() {
-		base.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
+		base.Where("hasAll(country_codes, ?)", af.Countries)
 	}
 
 	if af.HasNetworkProviders() {
-		base.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+		base.Where("hasAll(network_providers, ?)", af.NetworkProviders)
 	}
 
 	if af.HasNetworkTypes() {
-		base.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+		base.Where("hasAll(network_types, ?)", af.NetworkTypes)
 	}
 
 	if af.HasNetworkGenerations() {
-		base.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+		base.Where("hasAll(network_generations, ?)", af.NetworkGenerations)
 	}
 
 	if af.HasDeviceLocales() {
-		base.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+		base.Where("hasAll(device_locales, ?)", af.Locales)
 	}
 
 	if af.HasDeviceManufacturers() {
@@ -2058,13 +1957,13 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			New("").
 			SubQuery("(", ")", sqlf.
 				New("").
-				Clause("arrayExists(x -> x ilike ?, user_ids)", af.FreeText).
+				Clause("arrayExists(x -> x like ?, user_ids)", af.FreeText).
 				Clause("or").
-				Clause("toString(session_id) ilike ?", af.FreeText).
+				Clause("toString(session_id) like ?", af.FreeText).
 				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_types)", partial).
+				Clause("arrayExists(x -> x like ?, unique_types)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_custom_type_names)", partial).
+				Clause("arrayExists(x -> x like ?, unique_custom_type_names)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
 				Clause("or").
@@ -2075,6 +1974,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
@@ -2093,6 +1994,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("unique_subview_classnames").
 			Select("unique_unhandled_exceptions").
 			Select("unique_handled_exceptions").
+			Select("unique_errors").
 			Select("unique_anrs").
 			Select("unique_click_targets").
 			Select("unique_longclick_targets").
@@ -2108,13 +2010,13 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 
 	for rows.Next() {
 		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
-			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames []string
+			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
 		uniqueUnhandledExceptions := []map[string]string{}
 		uniqueHandledExceptions := []map[string]string{}
 		uniqueANRs := []map[string]string{}
-		uniqueClickTargets := []map[string]string{}
-		uniqueLongclickTargets := []map[string]string{}
-		uniqueScrollTargets := []map[string]string{}
+		rawClickTargets := []clickhouse.ArraySet{}
+		rawLongclickTargets := []clickhouse.ArraySet{}
+		rawScrollTargets := []clickhouse.ArraySet{}
 
 		var sess SessionDisplay
 		sess.Session = new(Session)
@@ -2145,10 +2047,11 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				&uniqueSubviewClassnames,
 				&uniqueUnhandledExceptions,
 				&uniqueHandledExceptions,
+				&uniqueErrors,
 				&uniqueANRs,
-				&uniqueClickTargets,
-				&uniqueLongclickTargets,
-				&uniqueScrollTargets,
+				&rawClickTargets,
+				&rawLongclickTargets,
+				&rawScrollTargets,
 			)
 		}
 
@@ -2159,6 +2062,22 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 
 		if err = rows.Err(); err != nil {
 			return
+		}
+
+		// convert array of tuple types
+		uniqueClickTargets := make([][]string, len(rawClickTargets))
+		for i, tuple := range rawClickTargets {
+			uniqueClickTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
+		}
+
+		uniqueLongclickTargets := make([][]string, len(rawLongclickTargets))
+		for i, tuple := range rawLongclickTargets {
+			uniqueLongclickTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
+		}
+
+		uniqueScrollTargets := make([][]string, len(rawScrollTargets))
+		for i, tuple := range rawScrollTargets {
+			uniqueScrollTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
 		}
 
 		if len(uniqueUserIds) > 0 {
@@ -2178,6 +2097,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			uniqueStrings,
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
+			uniqueErrors,
 			uniqueUnhandledExceptions,
 			uniqueHandledExceptions,
 			uniqueANRs,
@@ -7034,12 +6954,11 @@ func GetSession(c *gin.Context) {
 		return
 	}
 
-	if len(session.Events) < 1 {
+	if errors.Is(err, sql.ErrNoRows) {
 		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": msg,
 		})
-		return
 	}
 
 	// generate pre-sign URLs for
@@ -7286,6 +7205,12 @@ func GetSession(c *gin.Context) {
 			"error": msg,
 		})
 		return
+	}
+
+	// temporary workaround to let the session detail page
+	// work when there are no events in the session
+	if !session.hasEvents() {
+		session.Attribute = &event.Attribute{}
 	}
 
 	response := gin.H{
