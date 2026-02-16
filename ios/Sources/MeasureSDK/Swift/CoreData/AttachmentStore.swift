@@ -13,6 +13,7 @@ protocol AttachmentStore {
     func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?)
     func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment]
     func deleteAttachments(forSessionIds sessionIds: [String])
+    func getAllAttachmentPaths() -> Set<String>
 }
 
 final class BaseAttachmentStore: AttachmentStore {
@@ -191,6 +192,39 @@ final class BaseAttachmentStore: AttachmentStore {
             }
         }
         attachmentsToDeleteFromFS.forEach { systemFileManager.deleteFile(atPath: $0) }
+    }
+
+    func getAllAttachmentPaths() -> Set<String> {
+        guard let context = coreDataManager.backgroundContext else {
+            return []
+        }
+
+        var paths = Set<String>()
+
+        context.performAndWait {
+            let fetchRequest = NSFetchRequest<NSDictionary>(entityName: "AttachmentOb")
+            fetchRequest.resultType = .dictionaryResultType
+            fetchRequest.propertiesToFetch = ["path"]
+
+            do {
+                let results = try context.fetch(fetchRequest)
+
+                for result in results {
+                    if let path = result["path"] as? String {
+                        paths.insert(path)
+                    }
+                }
+            } catch {
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to fetch attachment paths for orphan cleanup.",
+                    error: error,
+                    data: nil
+                )
+            }
+        }
+
+        return paths
     }
 }
 

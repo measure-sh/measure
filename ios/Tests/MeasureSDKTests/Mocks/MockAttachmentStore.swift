@@ -103,4 +103,11 @@ final class MockAttachmentStore: AttachmentStore {
 
         return attachments.values.map { $0.attachment }
     }
+
+    func getAllAttachmentPaths() -> Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return Set(attachments.values.compactMap { $0.attachment.path })
+    }
 }

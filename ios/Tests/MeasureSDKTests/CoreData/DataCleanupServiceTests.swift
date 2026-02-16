@@ -15,7 +15,7 @@ final class DataCleanupServiceTests: XCTestCase {
     var eventStore: EventStore!
     var spanStore: SpanStore!
     var sessionStore: SessionStore!
-    var attachmentStore: AttachmentStore!
+    var attachmentStore: MockAttachmentStore!
     var dataCleanupService: BaseDataCleanupService!
     var sessionManager: MockSessionManager!
     var configProvider: MockConfigProvider!
@@ -33,7 +33,7 @@ final class DataCleanupServiceTests: XCTestCase {
         spanStore = BaseSpanStore(coreDataManager: coreDataManager, logger: logger)
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager, logger: logger)
         systemFileManager = MockSystemFileManager()
-        attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager, systemFileManager: systemFileManager, logger: logger)
+        attachmentStore = MockAttachmentStore()
 
         sessionManager = MockSessionManager(sessionId: "currentSession")
         configProvider = MockConfigProvider()
@@ -45,7 +45,8 @@ final class DataCleanupServiceTests: XCTestCase {
             logger: logger,
             sessionManager: sessionManager,
             configProvider: configProvider,
-            attachmentStore: attachmentStore
+            attachmentStore: attachmentStore,
+            systemFileManager: systemFileManager
         )
     }
 

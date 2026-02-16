@@ -19,6 +19,7 @@ final class BaseDataCleanupService: DataCleanupService {
     private let sessionManager: SessionManager
     private let configProvider: ConfigProvider
     private let attachmentStore: AttachmentStore
+    private let systemFileManager: SystemFileManager
 
     init(eventStore: EventStore,
          spanStore: SpanStore,
@@ -26,7 +27,8 @@ final class BaseDataCleanupService: DataCleanupService {
          logger: Logger,
          sessionManager: SessionManager,
          configProvider: ConfigProvider,
-         attachmentStore: AttachmentStore) {
+         attachmentStore: AttachmentStore,
+         systemFileManager: SystemFileManager) {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.sessionStore = sessionStore
@@ -34,10 +36,12 @@ final class BaseDataCleanupService: DataCleanupService {
         self.sessionManager = sessionManager
         self.configProvider = configProvider
         self.attachmentStore = attachmentStore
+        self.systemFileManager = systemFileManager
     }
 
     func clearStaleData() {
         trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
+        cleanupOrphanedAttachments()
 
         guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
             return
@@ -141,5 +145,14 @@ final class BaseDataCleanupService: DataCleanupService {
         eventStore.deleteEvents(sessionIds: sessionIds)
         spanStore.deleteSpans(sessionIds: sessionIds)
         attachmentStore.deleteAttachments(forSessionIds: sessionIds)
+    }
+
+    private func cleanupOrphanedAttachments() {
+        guard let attachmentDirectoryPath = systemFileManager.getDirectoryPath(directory: .documentDirectory)?.appending("/\(cacheDirectoryName)/attachments") else { return }
+
+        let directoryURL = URL(fileURLWithPath: attachmentDirectoryPath)
+        let validPaths = attachmentStore.getAllAttachmentPaths()
+
+        systemFileManager.cleanupOrphanedAttachmentFiles(validPaths: validPaths)
     }
 }

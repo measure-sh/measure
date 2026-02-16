@@ -22,6 +22,7 @@ protocol SystemFileManager {
     func getDynamicConfigPath() -> String?
     func retrieveFile(atPath path: String) -> Data?
     func deleteFile(atPath path: String)
+    func cleanupOrphanedAttachmentFiles(validPaths: Set<String>)
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -34,7 +35,6 @@ final class BaseSystemFileManager: SystemFileManager {
         }
         return cacheDirectory.appendingPathComponent(cacheDirectoryName)
     }
-
     init(logger: Logger) {
         self.logger = logger
         self.fileManager = FileManager.default
@@ -169,6 +169,35 @@ final class BaseSystemFileManager: SystemFileManager {
                 error: error,
                 data: nil
             )
+        }
+    }
+
+    func cleanupOrphanedAttachmentFiles(validPaths: Set<String>) {
+        guard let attachmentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory documents directory.", error: nil, data: nil)
+            return
+        }
+
+        guard let enumerator = fileManager.enumerator(
+            at: attachmentsDirectory,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for case let fileURL as URL in enumerator {
+            let path = fileURL.path
+
+            if !validPaths.contains(path) {
+                do {
+                    try fileManager.removeItem(at: fileURL)
+                } catch {
+                    logger.internalLog(
+                        level: .error,
+                        message: "SystemFileManager: Failed to delete orphaned attachment at path \(path)",
+                        error: error,
+                        data: nil
+                    )
+                }
+            }
         }
     }
 }

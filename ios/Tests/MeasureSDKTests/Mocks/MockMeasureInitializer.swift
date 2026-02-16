@@ -310,12 +310,13 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                            sessionManager: self.sessionManager,
                                                                            signalSampler: self.signalSampler)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
-                                                         spanStore: self.spanStore,
-                                                         sessionStore: self.sessionStore,
-                                                         logger: self.logger,
-                                                         sessionManager: self.sessionManager,
-                                                         configProvider: self.configProvider,
-                                                         attachmentStore: self.attachmentStore)
+                                                                               spanStore: self.spanStore,
+                                                                               sessionStore: self.sessionStore,
+                                                                               logger: self.logger,
+                                                                               sessionManager: self.sessionManager,
+                                                                               configProvider: self.configProvider,
+                                                                               attachmentStore: self.attachmentStore,
+                                                                               systemFileManager: self.systemFileManager)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
                                                          signalProcessor: self.signalProcessor,
