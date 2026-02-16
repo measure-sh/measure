@@ -1096,10 +1096,10 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.
 				From("unhandled_exception_groups final").
-				Select("type").
-				Select("file_name").
-				Select("method_name").
-				Select("message").
+				Select("argMax(type, timestamp)").
+				Select("argMax(file_name, timestamp)").
+				Select("argMax(method_name, timestamp)").
+				Select("argMax(message, timestamp)").
 				Where("team_id = toUUID(?)", team.ID).
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
@@ -1222,10 +1222,10 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 		if anrGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.From("anr_groups final").
-				Select("type").
-				Select("file_name").
-				Select("method_name").
-				Select("message").
+				Select("argMax(type, timestamp)").
+				Select("argMax(file_name, timestamp)").
+				Select("argMax(method_name, timestamp)").
+				Select("argMax(message, timestamp)").
 				Where("team_id = toUUID(?)", team.ID).
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
