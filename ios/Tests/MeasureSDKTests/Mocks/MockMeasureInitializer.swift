@@ -316,7 +316,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                sessionManager: self.sessionManager,
                                                                                configProvider: self.configProvider,
                                                                                attachmentStore: self.attachmentStore,
-                                                                               systemFileManager: self.systemFileManager)
+                                                                               systemFileManager: self.systemFileManager,
+                                                                               userDefaultsStorage: self.userDefaultStorage)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
                                                          signalProcessor: self.signalProcessor,

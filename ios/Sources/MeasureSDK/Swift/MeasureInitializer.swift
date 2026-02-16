@@ -406,7 +406,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sessionManager: sessionManager,
                                                          configProvider: configProvider,
                                                          attachmentStore: attachmentStore,
-                                                         systemFileManager: systemFileManager)
+                                                         systemFileManager: systemFileManager,
+                                                         userDefaultsStorage: userDefaultStorage)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,

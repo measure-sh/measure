@@ -20,6 +20,7 @@ final class BaseDataCleanupService: DataCleanupService {
     private let configProvider: ConfigProvider
     private let attachmentStore: AttachmentStore
     private let systemFileManager: SystemFileManager
+    private let userDefaultsStorage: UserDefaultStorage
 
     init(eventStore: EventStore,
          spanStore: SpanStore,
@@ -28,7 +29,8 @@ final class BaseDataCleanupService: DataCleanupService {
          sessionManager: SessionManager,
          configProvider: ConfigProvider,
          attachmentStore: AttachmentStore,
-         systemFileManager: SystemFileManager) {
+         systemFileManager: SystemFileManager,
+         userDefaultsStorage: UserDefaultStorage) {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.sessionStore = sessionStore
@@ -37,6 +39,7 @@ final class BaseDataCleanupService: DataCleanupService {
         self.configProvider = configProvider
         self.attachmentStore = attachmentStore
         self.systemFileManager = systemFileManager
+        self.userDefaultsStorage = userDefaultsStorage
     }
 
     func clearStaleData() {
@@ -148,11 +151,12 @@ final class BaseDataCleanupService: DataCleanupService {
     }
 
     private func cleanupOrphanedAttachments() {
-        guard let attachmentDirectoryPath = systemFileManager.getDirectoryPath(directory: .documentDirectory)?.appending("/\(cacheDirectoryName)/attachments") else { return }
+        guard !userDefaultsStorage.hasRunOrphanAttachmentCleanup() else { return }
 
-        let directoryURL = URL(fileURLWithPath: attachmentDirectoryPath)
         let validPaths = attachmentStore.getAllAttachmentPaths()
 
         systemFileManager.cleanupOrphanedAttachmentFiles(validPaths: validPaths)
+
+        userDefaultsStorage.setHasRunOrphanAttachmentCleanup(true)
     }
 }

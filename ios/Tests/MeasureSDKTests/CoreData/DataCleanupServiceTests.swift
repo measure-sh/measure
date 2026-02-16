@@ -20,6 +20,7 @@ final class DataCleanupServiceTests: XCTestCase {
     var sessionManager: MockSessionManager!
     var configProvider: MockConfigProvider!
     var systemFileManager: MockSystemFileManager!
+    var userDefaultStorage: MockUserDefaultStorage!
 
     var tempBugReportDir: URL?
 
@@ -37,6 +38,7 @@ final class DataCleanupServiceTests: XCTestCase {
 
         sessionManager = MockSessionManager(sessionId: "currentSession")
         configProvider = MockConfigProvider()
+        userDefaultStorage = MockUserDefaultStorage()
 
         dataCleanupService = BaseDataCleanupService(
             eventStore: eventStore,
@@ -46,7 +48,8 @@ final class DataCleanupServiceTests: XCTestCase {
             sessionManager: sessionManager,
             configProvider: configProvider,
             attachmentStore: attachmentStore,
-            systemFileManager: systemFileManager
+            systemFileManager: systemFileManager,
+            userDefaultsStorage: userDefaultStorage
         )
     }
 
@@ -65,6 +68,7 @@ final class DataCleanupServiceTests: XCTestCase {
         configProvider = nil
         sessionManager = nil
         dataCleanupService = nil
+        userDefaultStorage = nil
 
         super.tearDown()
     }
