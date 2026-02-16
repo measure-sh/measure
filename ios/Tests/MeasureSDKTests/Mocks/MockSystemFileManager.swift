@@ -44,4 +44,14 @@ final class MockSystemFileManager: SystemFileManager {
     func deleteFile(atPath path: String) {
         savedFiles.removeValue(forKey: path)
     }
+
+    func cleanupOrphanedAttachmentFiles(validPaths: Set<String>) {
+        let allPaths = Array(savedFiles.keys)
+
+        for path in allPaths {
+            if !validPaths.contains(path) {
+                savedFiles.removeValue(forKey: path)
+            }
+        }
+    }
 }

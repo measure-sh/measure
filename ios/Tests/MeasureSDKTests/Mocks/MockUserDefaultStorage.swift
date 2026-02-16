@@ -20,6 +20,7 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     var eTag: String?
     var configFetchTimestamp: Number?
     var configCacheControl: Number?
+    var hasRunOrphanAttachmentCleanupBool: Bool = false
 
     func getInstallationId() -> String? {
         return installationId
@@ -102,4 +103,13 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     func setConfigCacheControl(_ duration: Number) {
         configCacheControl = duration
     }
+
+    func hasRunOrphanAttachmentCleanup() -> Bool {
+        return hasRunOrphanAttachmentCleanupBool
+    }
+
+    func setHasRunOrphanAttachmentCleanup(_ value: Bool) {
+        hasRunOrphanAttachmentCleanupBool = value
+    }
+    
 }
