@@ -20,9 +20,6 @@ SELECT
         `http.status_code` >= 100, '1xx',
         'unknown'
     ) AS `status_code_bucket`,
-    `http.status_code` >= 400 AS `is_error`,
-    `http.status_code` >= 500 AS `is_server_error`,
-    `http.status_code` = 0 OR `http.status_code` IS NULL AS `is_failed_request`,
     `http.failure_reason` AS `failure_reason`,
     `http.failure_description` AS `failure_description`,
     `timestamp` AS `timestamp`,
@@ -36,8 +33,7 @@ SELECT
     `attribute.network_generation` AS `network_generation`,
     `attribute.device_locale` AS `device_locale`,
     `attribute.device_manufacturer` AS `device_manufacturer`,
-    `attribute.device_name` AS `device_name`,
-    `attribute.device_model` AS `device_model`,
+    `attribute.device_name` AS `device_name`
 FROM
     events
 WHERE
