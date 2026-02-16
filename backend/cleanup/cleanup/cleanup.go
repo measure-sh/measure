@@ -72,8 +72,14 @@ func DeleteStaleData(ctx context.Context) {
 	// delete bug reports
 	deleteBugReports(ctx, appRetentions)
 
+	// delete sessions index
+	deleteSessionsIndex(ctx, appRetentions)
+
 	// delete sessions
 	deleteSessions(ctx, appRetentions)
+
+	// delete journeys
+	deleteJourneys(ctx, appRetentions)
 
 	// delete spans
 	deleteSpans(ctx, appRetentions)
@@ -94,6 +100,8 @@ func deleteStaleAuthSessions(ctx context.Context) {
 	stmt := sqlf.PostgreSQL.DeleteFrom("auth_sessions").
 		Where("rt_expiry_at < ?", threshold)
 
+	defer stmt.Close()
+
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale auth sessions: %v\n", err)
@@ -109,6 +117,8 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 	threshold := time.Now().Add(-60 * time.Minute) // 1 hour expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("short_filters").
 		Where("created_at < ?", threshold)
+
+	defer stmt.Close()
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -126,6 +136,8 @@ func deleteStaleInvites(ctx context.Context) {
 	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
 		Where("updated_at < ?", threshold)
 
+	defer stmt.Close()
+
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale invites: %v\n", err)
@@ -142,6 +154,7 @@ func deleteEventFilters(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("app_filters").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("end_of_month < ?", retention.Threshold)
 
@@ -167,6 +180,7 @@ func deleteEventMetrics(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("app_metrics").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
@@ -192,6 +206,7 @@ func deleteSpanFilters(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_filters").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("end_of_month < ?", retention.Threshold)
 
@@ -217,6 +232,7 @@ func deleteSpanMetrics(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_metrics").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
@@ -294,6 +310,7 @@ func deleteBugReports(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("bug_reports").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
@@ -312,6 +329,32 @@ func deleteBugReports(ctx context.Context, retentions []AppRetention) {
 	}
 }
 
+// deleteSessionsIndex deletes stale sessions index for each
+// app's retention threshold.
+func deleteSessionsIndex(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("sessions_index").
+			Where("team_id = toUUID(?)", retention.TeamID).
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("first_event_timestamp < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale sessions index for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale sessions index")
+	}
+}
+
 // deleteSessions deletes stale sessions for each
 // app's retention threshold.
 func deleteSessions(ctx context.Context, retentions []AppRetention) {
@@ -319,6 +362,7 @@ func deleteSessions(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("sessions").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("first_event_timestamp < ?", retention.Threshold)
 
@@ -337,6 +381,32 @@ func deleteSessions(ctx context.Context, retentions []AppRetention) {
 	}
 }
 
+// deleteJourneys deletes stale journeys for each
+// app's retention threshold.
+func deleteJourneys(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("journeys").
+			Where("team_id = toUUID(?)", retention.TeamID).
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("timestamp < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale journeys for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale journeys")
+	}
+}
+
 // deleteSpans deletes stale spans for each
 // app's retention threshold.
 func deleteSpans(ctx context.Context, retentions []AppRetention) {
@@ -344,6 +414,7 @@ func deleteSpans(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("spans").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("start_time < ?", retention.Threshold)
 
@@ -372,12 +443,14 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		fetchAttachmentsStmt := sqlf.
 			Select("attachments").
 			From("events final").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
 		attachmentRows, err := server.Server.RchPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to fetch stale events from ClickHouse: %v\n", err)
+			fetchAttachmentsStmt.Close()
 			continue
 		}
 
@@ -411,6 +484,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		// Delete stale events
 		stmt := sqlf.
 			DeleteFrom("events").
+			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
@@ -510,6 +584,8 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 			Where("app_id = ?", retention.AppID).
 			Where("created_at < ?", retention.Threshold)
 
+		defer stmt.Close()
+
 		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to delete stale alerts: %v\n", err)
@@ -525,6 +601,8 @@ func deleteStalePendingAlertMessages(ctx context.Context) {
 	threshold := time.Now().Add(-24 * time.Hour) // 1 day expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
 		Where("created_at < ?", threshold)
+
+	defer stmt.Close()
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
