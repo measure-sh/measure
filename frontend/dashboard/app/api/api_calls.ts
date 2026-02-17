@@ -383,7 +383,7 @@ export enum UpdateSdkConfigApiStatus {
   Cancelled,
 }
 
-export enum HttpOriginsApiStatus {
+export enum HttpDomainsApiStatus {
   Loading,
   Success,
   Error,
@@ -2536,25 +2536,25 @@ export const updateSdkConfigFromServer = async (appId: string, config: Partial<S
   }
 }
 
-export const fetchHttpOriginsFromServer = async (selectedApp: App) => {
+export const fetchHttpDomainsFromServer = async (selectedApp: App) => {
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/apps/${selectedApp.id}/networks/origins`,
+      `/api/apps/${selectedApp.id}/networks/domains`,
     )
 
     if (!res.ok) {
-      return { status: HttpOriginsApiStatus.Error, data: null }
+      return { status: HttpDomainsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data.results === null || data.results.length === 0) {
-      return { status: HttpOriginsApiStatus.NoData, data: null }
+      return { status: HttpDomainsApiStatus.NoData, data: null }
     }
 
-    return { status: HttpOriginsApiStatus.Success, data: data }
+    return { status: HttpDomainsApiStatus.Success, data: data }
   } catch {
-    return { status: HttpOriginsApiStatus.Cancelled, data: null }
+    return { status: HttpDomainsApiStatus.Cancelled, data: null }
   }
 }
 

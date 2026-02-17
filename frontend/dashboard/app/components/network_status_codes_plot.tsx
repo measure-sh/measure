@@ -6,8 +6,18 @@ import React, { useEffect, useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 
+interface StatusCodeDataPoint {
+  datetime: string
+  percentage: number | null
+}
+
+interface StatusCodeSeries {
+  id: string
+  data: StatusCodeDataPoint[]
+}
+
 interface NetworkStatusCodesPlotProps {
-  data: any[]
+  data: StatusCodeSeries[]
 }
 
 type PlotData = {
@@ -26,12 +36,12 @@ const NetworkStatusCodesPlot: React.FC<NetworkStatusCodesPlotProps> = ({ data })
   useEffect(() => {
     if (!data) return
 
-    const newPlot = data.map((item: any) => ({
+    const newPlot = data.map((item) => ({
       id: item.id,
-      data: item.data.map((d: any, index: number) => ({
+      data: item.data.map((d, index) => ({
         id: item.id + '.' + index,
         x: d.datetime,
-        y: d.percentage
+        y: d.percentage ?? 0
       }))
     }))
 

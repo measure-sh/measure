@@ -6,8 +6,14 @@ import React, { useEffect, useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 
+interface ErrorRateDataPoint {
+  datetime: string
+  error_count: number
+  total_count: number
+}
+
 interface NetworkErrorRatePlotProps {
-  data: any[]
+  data: ErrorRateDataPoint[]
 }
 
 type PlotData = {
@@ -35,7 +41,7 @@ const NetworkErrorRatePlot: React.FC<NetworkErrorRatePlotProps> = ({ data }) => 
     const newPlot: PlotData = [
       {
         id: 'Total',
-        data: data.map((d: any, index: number) => ({
+        data: data.map((d, index) => ({
           id: 'total.' + index,
           x: d.datetime,
           y: d.total_count
@@ -43,7 +49,7 @@ const NetworkErrorRatePlot: React.FC<NetworkErrorRatePlotProps> = ({ data }) => 
       },
       {
         id: 'Errors',
-        data: data.map((d: any, index: number) => ({
+        data: data.map((d, index) => ({
           id: 'errors.' + index,
           x: d.datetime,
           y: d.error_count

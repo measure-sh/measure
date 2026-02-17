@@ -1,6 +1,7 @@
 "use client"
 
-import { FilterSource, HttpOriginsApiStatus, NetworkErrorRatePlotApiStatus, NetworkOverviewApiStatus, fetchHttpOriginsFromServer, fetchNetworkErrorRatePlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
+import { FilterSource, HttpDomainsApiStatus, NetworkErrorRatePlotApiStatus, NetworkOverviewApiStatus, fetchHttpDomainsFromServer, fetchNetworkErrorRatePlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
+import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
@@ -15,7 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface OverviewEndpoint {
-    origin: string
+    domain: string
     path_pattern: string
     p95_latency: number | null
     error_rate: number | null
@@ -36,8 +37,8 @@ enum OverviewTab {
 
 interface PageState {
     filters: typeof defaultFilters
-    httpOriginsApiStatus: HttpOriginsApiStatus
-    httpOrigins: string[]
+    httpDomainsApiStatus: HttpDomainsApiStatus
+    httpDomains: string[]
     errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus
     errorRatePlotData: any[]
     networkOverviewApiStatus: NetworkOverviewApiStatus
@@ -46,7 +47,7 @@ interface PageState {
 }
 
 interface SearchState {
-    origin: string
+    domain: string
     pathPattern: string
 }
 
@@ -72,8 +73,8 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
     const initialState: PageState = {
         filters: defaultFilters,
-        httpOriginsApiStatus: HttpOriginsApiStatus.Loading,
-        httpOrigins: [],
+        httpDomainsApiStatus: HttpDomainsApiStatus.Loading,
+        httpDomains: [],
         errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Loading,
         errorRatePlotData: [],
         networkOverviewApiStatus: NetworkOverviewApiStatus.Loading,
@@ -84,7 +85,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
     const [pageState, setPageState] = useState<PageState>(initialState)
 
     const [searchState, setSearchState] = useState<SearchState>({
-        origin: "",
+        domain: "",
         pathPattern: "",
     })
 
@@ -95,8 +96,8 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
     const handleSearch = () => {
         if (searchState.pathPattern.trim() === "") return
         const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
-        const origin = searchState.origin.endsWith('/') ? searchState.origin.slice(0, -1) : searchState.origin
-        router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(origin + path)}`)
+        const domain = searchState.domain.endsWith('/') ? searchState.domain.slice(0, -1) : searchState.domain
+        router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(domain + path)}`)
     }
 
     const updatePageState = (newState: Partial<PageState>) => {
@@ -127,31 +128,31 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
             return
         }
 
-        updatePageState({ httpOriginsApiStatus: HttpOriginsApiStatus.Loading })
+        updatePageState({ httpDomainsApiStatus: HttpDomainsApiStatus.Loading })
 
-        fetchHttpOriginsFromServer(pageState.filters.app).then(result => {
+        fetchHttpDomainsFromServer(pageState.filters.app).then(result => {
             switch (result.status) {
-                case HttpOriginsApiStatus.Success:
-                    const origins = result.data.results as string[]
+                case HttpDomainsApiStatus.Success:
+                    const domains = result.data.results as string[]
                     updatePageState({
-                        httpOriginsApiStatus: HttpOriginsApiStatus.Success,
-                        httpOrigins: origins,
+                        httpDomainsApiStatus: HttpDomainsApiStatus.Success,
+                        httpDomains: domains,
                     })
-                    updateSearchState({ origin: origins[0] })
+                    updateSearchState({ domain: domains[0] })
                     break
-                case HttpOriginsApiStatus.NoData:
+                case HttpDomainsApiStatus.NoData:
                     updatePageState({
-                        httpOriginsApiStatus: HttpOriginsApiStatus.NoData,
-                        httpOrigins: [],
+                        httpDomainsApiStatus: HttpDomainsApiStatus.NoData,
+                        httpDomains: [],
                     })
-                    updateSearchState({ origin: "" })
+                    updateSearchState({ domain: "" })
                     break
                 default:
                     updatePageState({
-                        httpOriginsApiStatus: HttpOriginsApiStatus.Error,
-                        httpOrigins: [],
+                        httpDomainsApiStatus: HttpDomainsApiStatus.Error,
+                        httpDomains: [],
                     })
-                    updateSearchState({ origin: "" })
+                    updateSearchState({ domain: "" })
                     break
             }
         })
@@ -251,18 +252,20 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
             <div className="py-4" />
 
-            {pageState.filters.ready && pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Loading &&
+            {pageState.filters.ready && pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Loading &&
                 <LoadingSpinner />
             }
-            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Success && pageState.httpOrigins.length > 0 &&
+            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Success && pageState.httpDomains.length > 0 &&
                 <>
+                    <p className="font-display text-xl">Search Endpoint</p>
+                    <div className="py-2" />
                     <div className="flex flex-row items-center w-full">
                         <DropdownSelect
                             type={DropdownSelectType.SingleString}
-                            title="Origin"
-                            items={pageState.httpOrigins}
-                            initialSelected={searchState.origin}
-                            onChangeSelected={(item) => updateSearchState({ origin: item as string })}
+                            title="Domain"
+                            items={pageState.httpDomains}
+                            initialSelected={searchState.domain}
+                            onChangeSelected={(item) => updateSearchState({ domain: item as string })}
                         />
                         <div className="px-2" />
                         <Input
@@ -283,6 +286,9 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                     </div>
 
                     <div className="py-6" />
+
+                    <p className="font-display text-xl">HTTP Traffic Overview</p>
+                    <div className="py-2" />
 
                     {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Loading &&
                         <div className="w-full">
@@ -338,14 +344,14 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                     <TableRow
                                         key={index}
                                         className="cursor-pointer"
-                                        onClick={() => router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(ep.origin + ep.path_pattern)}`)}
+                                        onClick={() => router.push(`/${params.teamId}/network/explore_url?url=${encodeURIComponent(ep.domain + ep.path_pattern)}`)}
                                     >
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-mono truncate">{ep.origin}{ep.path_pattern}</span>
+                                                <span className="font-mono truncate">{ep.domain}{ep.path_pattern}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-body">{ep.p95_latency !== null ? `${ep.p95_latency}ms` : '-'}</TableCell>
+                                        <TableCell className="font-body">{ep.p95_latency !== null ? formatMillisToHumanReadable(ep.p95_latency) : '-'}</TableCell>
                                         <TableCell className="font-body">{ep.error_rate !== null ? `${ep.error_rate}%` : '-'}</TableCell>
                                         <TableCell className="font-body">{ep.frequency}</TableCell>
                                     </TableRow>
@@ -364,10 +370,10 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                     }
                 </>
             }
-            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.Error &&
-                <p className="font-body text-sm">Error fetching origins, please change filters & try again</p>
+            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Error &&
+                <p className="font-body text-sm">Error fetching domains, please change filters & try again</p>
             }
-            {pageState.httpOriginsApiStatus === HttpOriginsApiStatus.NoData &&
+            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.NoData &&
                 <p className="font-body text-sm">No data available for the selected app</p>
             }
         </div>

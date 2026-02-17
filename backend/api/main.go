@@ -123,7 +123,7 @@ func main() {
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
 		apps.GET(":id/config", measure.GetConfig)
 		apps.PATCH(":id/config", measure.PatchConfig)
-		apps.GET(":id/networks/origins", measure.GetNetworkOrigins)
+		apps.GET(":id/networks/domains", measure.GetNetworkDomains)
 		apps.GET(":id/networks/metrics", measure.GetNetworkMetrics)
 		apps.GET(":id/networks/overview", measure.GetNetworkOverview)
 		apps.GET(":id/networks/plots/error_rate", measure.GetNetworkErrorRatePlot)

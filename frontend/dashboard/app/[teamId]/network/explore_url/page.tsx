@@ -9,10 +9,39 @@ import NetworkStatusCodesPlot from '@/app/components/network_status_codes_plot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+interface LatencyDataPoint {
+    datetime: string
+    p50: number | null
+    p90: number | null
+    p95: number | null
+    p99: number | null
+}
+
+interface StatusCodeDataPoint {
+    datetime: string
+    percentage: number | null
+}
+
+interface StatusCodeSeries {
+    id: string
+    data: StatusCodeDataPoint[]
+}
+
+interface FrequencyDataPoint {
+    datetime: string
+    count: number
+}
+
+interface NetworkMetrics {
+    latency: LatencyDataPoint[]
+    status_codes: StatusCodeSeries[]
+    frequency: FrequencyDataPoint[]
+}
+
 interface PageState {
     filters: typeof defaultFilters
     networkMetricsApiStatus: NetworkMetricsApiStatus
-    networkMetrics: any
+    networkMetrics: NetworkMetrics | null
 }
 
 export default function ExploreUrl({ params }: { params: { teamId: string } }) {
@@ -60,7 +89,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                 case NetworkMetricsApiStatus.Success:
                     updatePageState({
                         networkMetricsApiStatus: NetworkMetricsApiStatus.Success,
-                        networkMetrics: result.data,
+                        networkMetrics: result.data as NetworkMetrics,
                     })
                     break
                 case NetworkMetricsApiStatus.NoData:
@@ -88,7 +117,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showNoData={true}
+                showNoData={false}
                 showNotOnboarded={true}
                 showAppSelector={true}
                 showAppVersions={true}

@@ -6,8 +6,13 @@ import React, { useEffect, useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 
+interface FrequencyDataPoint {
+  datetime: string
+  count: number
+}
+
 interface NetworkFrequencyPlotProps {
-  data: any[]
+  data: FrequencyDataPoint[]
 }
 
 type PlotData = {
@@ -28,7 +33,7 @@ const NetworkFrequencyPlot: React.FC<NetworkFrequencyPlotProps> = ({ data }) => 
 
     const newPlot: PlotData = [{
       id: 'requests',
-      data: data.map((d: any, index: number) => ({
+      data: data.map((d, index) => ({
         id: 'requests.' + index,
         x: d.datetime,
         y: d.count

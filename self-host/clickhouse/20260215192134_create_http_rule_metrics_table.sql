@@ -23,6 +23,7 @@ CREATE TABLE http_rule_metrics
     `status_3xx_count` SimpleAggregateFunction(sum, UInt64),
     `status_4xx_count` SimpleAggregateFunction(sum, UInt64),
     `status_5xx_count` SimpleAggregateFunction(sum, UInt64),
+    `latency_quantiles` AggregateFunction(quantiles(0.5, 0.9, 0.95, 0.99), Int64),
     INDEX idx_status_code status_code TYPE set(100) GRANULARITY 4,
     INDEX idx_method method TYPE set(10) GRANULARITY 4,
     INDEX idx_protocol protocol TYPE set(10) GRANULARITY 4,

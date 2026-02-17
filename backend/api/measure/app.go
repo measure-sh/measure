@@ -6596,7 +6596,7 @@ func PatchConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "config updated successfully"})
 }
 
-func GetNetworkOrigins(c *gin.Context) {
+func GetNetworkDomains(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -6645,9 +6645,9 @@ func GetNetworkOrigins(c *gin.Context) {
 		return
 	}
 
-	origins, err := network.FetchOrigins(ctx, *app.ID, *team.ID)
+	origins, err := network.FetchDomains(ctx, *app.ID, *team.ID)
 	if err != nil {
-		msg := "failed to get network origins"
+		msg := "failed to get network domains"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -6674,7 +6674,7 @@ func GetNetworkMetrics(c *gin.Context) {
 		return
 	}
 
-	origin, pathPattern, err := network.ParseURL(rawURL)
+	domain, pathPattern, err := network.ParseURL(rawURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url query param"})
 		return
@@ -6773,7 +6773,7 @@ func GetNetworkMetrics(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, origin, pathPattern, &af)
+	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, pathPattern, &af)
 	if err != nil {
 		msg := "failed to get network metrics"
 		fmt.Println(msg, err)

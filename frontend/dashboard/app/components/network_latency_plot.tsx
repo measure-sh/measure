@@ -7,8 +7,16 @@ import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils'
 import TabSelect from './tab_select'
 
+interface LatencyDataPoint {
+  datetime: string
+  p50: number | null
+  p90: number | null
+  p95: number | null
+  p99: number | null
+}
+
 interface NetworkLatencyPlotProps {
-  data: any[]
+  data: LatencyDataPoint[]
 }
 
 type PlotData = {
@@ -37,10 +45,10 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
 
     const newPlot: PlotData = [{
       id: quantile,
-      data: data.map((d: any, index: number) => ({
+      data: data.map((d, index) => ({
         id: quantile + '.' + index,
         x: d.datetime,
-        y: d[quantile]
+        y: d[quantile] ?? 0
       }))
     }]
 
