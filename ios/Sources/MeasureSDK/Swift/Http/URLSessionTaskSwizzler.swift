@@ -6,16 +6,25 @@
 //
 
 import Foundation
+import ObjectiveC.runtime
 
 final class URLSessionTaskSwizzler {
+    private static var hasSwizzled = false
+    private static let swizzleLock = NSLock()
+
     func swizzleURLSessionTask() {
+        Self.swizzleLock.lock()
+        defer { Self.swizzleLock.unlock() }
+
+        guard !Self.hasSwizzled else { return }
+        Self.hasSwizzled = true
+
         let classesToSwizzle = URLSessionTaskSearch.urlSessionTaskClasses()
         guard !classesToSwizzle.isEmpty else { return }
 
         let setStateSelector = NSSelectorFromString("setState:")
 
         for classToSwizzle in classesToSwizzle {
-            // Swizzle the setState: method
             swizzle(
                 classToSwizzle,
                 originalSelector: setStateSelector,
@@ -98,9 +107,25 @@ private class URLSessionTaskSearch {
     }
 }
 
+private var isHandlingStateKey: UInt8 = 9
+
 extension URLSessionTask {
     @objc fileprivate func setStateSwizzled(state: URLSessionTask.State) {
-        URLSessionTaskInterceptor.shared.urlSessionTask(self, setState: state)
+        if objc_getAssociatedObject(self, &isHandlingStateKey) as? Bool == true {
+            self.setStateSwizzled(state: state)
+            return
+        }
+
+        objc_setAssociatedObject(self, &isHandlingStateKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+
+        defer {
+            objc_setAssociatedObject(self, &isHandlingStateKey, false, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+
+        DispatchQueue.global(qos: .utility).async {
+            URLSessionTaskInterceptor.shared.urlSessionTask(self, setState: state)
+        }
+
         self.setStateSwizzled(state: state)
     }
 }
