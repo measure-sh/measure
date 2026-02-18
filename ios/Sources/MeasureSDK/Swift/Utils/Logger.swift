@@ -64,8 +64,8 @@ final class MeasureLogger: Logger {
     }
 
     func internalLog(level: LogLevel, message: String, error: Error? = nil, data: Encodable? = nil) {
-//#if INTERNAL_LOGGING
+#if INTERNAL_LOGGING
         log(level: level, message: "Internal: \(message)", error: error, data: data)
-//#endif
+#endif
     }
 }
