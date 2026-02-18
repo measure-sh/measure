@@ -7,16 +7,16 @@ import "time"
 const DefaultQueryCacheTTL = time.Minute * 10
 
 // AppFiltersTable is the name of the table for event filters.
-const AppFiltersTable = "app_filters_new final"
+const AppFiltersTable = "app_filters"
 
 // SpanFiltersTable is the name of the table for span
 // filters.
-const SpanFiltersTable = "span_filters final"
+const SpanFiltersTable = "span_filters"
 
 // AppMetricsTable is the name of the table for app's
 // metrics.
-const AppMetricsTable = "app_metrics_new final"
+const AppMetricsTable = "app_metrics final"
 
 // EventsTable is the name of the table for app's
 // raw events.
-const EventsTable = "events_new"
+const EventsTable = "events"

@@ -18,7 +18,7 @@
 // # Exported Constants
 //
 // - DefaultQueryCacheTTL: Default TTL for query caches (10 minutes).
-// - AppFiltersTable: "app_filters_new final".
+// - AppFiltersTable: "app_filters final".
 // - SpanFiltersTable: "span_filters final".
 //
 // # Notes

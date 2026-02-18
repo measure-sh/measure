@@ -113,7 +113,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 	}
 
 	stmt := sqlf.
-		New("insert into unhandled_exception_groups_new").
+		New("insert into unhandled_exception_groups").
 		Clause("(").
 		Expr("team_id").
 		Expr("app_id").
@@ -191,7 +191,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 	}
 
 	stmt := sqlf.
-		New("insert into anr_groups_new").
+		New("insert into anr_groups").
 		Clause("(").
 		Expr("team_id").
 		Expr("app_id").
@@ -302,7 +302,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilte
 	}
 
 	stmt := sqlf.
-		From("unhandled_exception_groups_new final").
+		From("unhandled_exception_groups final").
 		Select("id").
 		Select("any(type) as type").
 		Select("any(message) as message").
@@ -367,7 +367,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, inp
 	}
 
 	stmt := sqlf.
-		From("anr_groups_new final").
+		From("anr_groups final").
 		Select("id").
 		Select("any(type) as type").
 		Select("any(message) as message").

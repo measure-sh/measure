@@ -100,10 +100,10 @@ func (a App) rename() error {
 // IssueGroupExists checks if the group exists by its
 // fingerprint and type.
 func (a App) IssueGroupExists(ctx context.Context, groupType group.GroupType, fingerprint string) (ok bool, err error) {
-	table := "unhandled_exception_groups_new"
+	table := "unhandled_exception_groups"
 
 	if groupType == group.GroupTypeANR {
-		table = "anr_groups_new"
+		table = "anr_groups"
 	}
 
 	stmt := sqlf.
@@ -128,7 +128,7 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 	}
 
 	stmt := sqlf.
-		From(`events_new`).
+		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
 		Select("count(id) as instances").
@@ -206,7 +206,7 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
 	stmt := sqlf.
-		From("unhandled_exception_groups_new final").
+		From("unhandled_exception_groups final").
 		Select("app_id").
 		Select("id").
 		Select("argMax(type, timestamp)").
@@ -338,7 +338,7 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 	}
 
 	stmt := sqlf.
-		From("events_new final").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
 		Select("count() as total_exceptions").
@@ -418,7 +418,7 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 // plotting crash attribute distribution.
 func (a App) GetExceptionAttributesDistribution(ctx context.Context, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
 	stmt := sqlf.
-		From("events_new").
+		From("events").
 		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
 		Select("concat(attribute.os_name, ' ', attribute.os_version) as os_version").
 		Select("inet.country_code as country").
@@ -527,7 +527,7 @@ func (a App) GetExceptionAttributesDistribution(ctx context.Context, fingerprint
 // exception fingerprint. Also matches filters
 // and handles pagination.
 func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
-	stmt := sqlf.From("events_new").
+	stmt := sqlf.From("events").
 		Select("id").
 		Select("type").
 		Select("timestamp").
@@ -661,7 +661,7 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, a
 	}
 
 	stmt := sqlf.
-		From(`events_new`).
+		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
 		Select("count(id) as instances").
@@ -742,7 +742,7 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 	}
 
 	stmt := sqlf.
-		From("events_new final").
+		From("events final").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
 		Select("count() as total_anrs").
@@ -821,7 +821,7 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 // plotting crash attribute distribution.
 func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
 	stmt := sqlf.
-		From("events_new").
+		From("events").
 		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
 		Select("concat(attribute.os_name, ' ', attribute.os_version) as os_version").
 		Select("inet.country_code as country").
@@ -928,7 +928,7 @@ func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint strin
 // GetANRGroupsWithFilter fetches ANR groups of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
 	stmt := sqlf.
-		From("anr_groups_new final").
+		From("anr_groups final").
 		Select("app_id").
 		Select("id").
 		Select("argMax(type, timestamp)").
@@ -1054,7 +1054,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 // GetANRsWithFilter fetches ANR events for a matching ANR fingerprint.
 // Also matches filters and handles pagination.
 func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
-	stmt := sqlf.From("events_new").
+	stmt := sqlf.From("events").
 		Select("id").
 		Select("type").
 		Select("timestamp").
@@ -1511,7 +1511,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching various filters.
 func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
-	base := sqlf.From("sessions_new").
+	base := sqlf.From("sessions").
 		Select("session_id").
 		Select("min(first_event_timestamp) as start_time").
 		Select("app_version").
@@ -1637,7 +1637,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("user_def_attrs_new").
+			From("user_def_attrs").
 			Select("session_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -1743,7 +1743,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 // filter criteria in a paginated fashion.
 func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []SessionDisplay, next, previous bool, err error) {
 	base := sqlf.
-		From("sessions_new").
+		From("sessions").
 		Select("session_id").
 		Select("app_version.1 as app_version_major").
 		Select("app_version.2 as app_version_minor").
@@ -1875,7 +1875,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("user_def_attrs_new").
+			From("user_def_attrs").
 			Select("session_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -2129,7 +2129,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 // FetchRootSpanNames returns list of root span names for a given app id
 func (a App) FetchRootSpanNames(ctx context.Context) (traceNames []string, err error) {
 	stmt := sqlf.
-		From("spans_new").
+		From("spans").
 		Select("span_name").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -2169,7 +2169,7 @@ func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (
 		Select("attribute.thread_name").
 		Select("start_time").
 		Select("end_time").
-		From("spans_new final").
+		From("spans final").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("session_id = toUUID(?)", sessionID).
@@ -2205,7 +2205,7 @@ func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (
 // filter criteria in a paginated fashion.
 func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
 	stmt := sqlf.
-		From("spans_new final").
+		From("spans final").
 		Select("app_id").
 		Select("toString(span_name)").
 		Select("toString(span_id)").
@@ -2272,7 +2272,7 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string,
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("span_user_def_attrs_new").
+			From("span_user_def_attrs").
 			Select("span_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -2361,7 +2361,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 	}
 
 	stmt := sqlf.
-		From("span_metrics_new").
+		From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
 		Select("round(quantileMerge(0.50)(p50), 2) as p50").
@@ -2421,7 +2421,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("span_user_def_attrs_new").
+			From("span_user_def_attrs").
 			Select("span_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -2479,7 +2479,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 // a given traceId
 func (a App) GetTrace(ctx context.Context, traceId string) (trace span.TraceDisplay, err error) {
 	stmt := sqlf.
-		From("spans_new final").
+		From("spans final").
 		Select("app_id").
 		Select("toString(trace_id)").
 		Select("session_id").
@@ -2611,7 +2611,7 @@ func (a App) GetTrace(ctx context.Context, traceId string) (trace span.TraceDisp
 // filter criteria in a paginated fashion.
 func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
 	stmt := sqlf.
-		From("bug_reports_new final").
+		From("bug_reports final").
 		Select("event_id").
 		Select("session_id").
 		Select("timestamp").
@@ -2688,7 +2688,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("user_def_attrs_new").
+			From("user_def_attrs").
 			Select("event_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -2796,7 +2796,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 // GetBugReportInstancesPlot provides aggregated bug report instances
 // matching various filters.
 func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
-	base := sqlf.From("bug_reports_new final").
+	base := sqlf.From("bug_reports final").
 		Select("event_id").
 		Select("app_version").
 		Select("timestamp").
@@ -2871,7 +2871,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.
-			From("user_def_attrs_new").
+			From("user_def_attrs").
 			Select("event_id").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
@@ -2938,7 +2938,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 // GetBugReport fetches a bug report by its event id.
 func (a App) GetBugReportById(ctx context.Context, bugReportId string) (bugReport BugReport, err error) {
 	stmt := sqlf.
-		From("bug_reports_new final").
+		From("bug_reports final").
 		Select("event_id").
 		Select("app_id").
 		Select("session_id").
@@ -3041,7 +3041,7 @@ func (a App) UpdateBugReportStatusById(ctx context.Context, bugReportId string, 
 	}
 
 	stmt := sqlf.
-		Update("bug_reports_new").
+		Update("bug_reports").
 		Set("status", status).
 		Set("updated_at", time.Now()).
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -3112,7 +3112,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`journey_new`).
+		From(`journey`).
 		Select(`id`).
 		Select(`type`).
 		Select(`timestamp`).
@@ -3500,7 +3500,7 @@ func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName,
 
 // GetSessionEvents fetches all the events of an app's session.
 func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
-	sessionAppVersion := sqlf.From("sessions_index_new").
+	sessionAppVersion := sqlf.From("sessions_index").
 		Select("argMax(app_version, last_event_timestamp) as app_version").
 		Select("min(first_event_timestamp) as start_time").
 		Select("max(last_event_timestamp) as end_time").
@@ -3694,7 +3694,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	//
 	// This allows us to stay on the fast binary search path
 	// using the table's native ORDER BY sequence.
-	stmt := sqlf.From("events_new").
+	stmt := sqlf.From("events").
 		With("session_app_version", sessionAppVersion)
 
 	defer stmt.Close()

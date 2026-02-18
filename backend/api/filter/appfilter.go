@@ -1275,10 +1275,10 @@ func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, e
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types.
 func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
-	table := "user_def_attrs_new final"
+	table := "user_def_attrs final"
 
 	if af.Span {
-		table = "span_user_def_attrs_new final"
+		table = "span_user_def_attrs final"
 	}
 
 	teamId, err := ambient.TeamId(ctx)
