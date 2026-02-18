@@ -108,7 +108,7 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:flipper-integration")
     implementation project(':measuresh-react-native')
-    implementation("sh.measure:measure-android:0.15.0")
+    implementation("sh.measure:measure-android:0.16.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
