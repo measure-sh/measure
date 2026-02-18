@@ -109,6 +109,8 @@ export 'src/bug_report/ui/bug_report_theme.dart';
 export 'src/config/measure_config.dart';
 export 'src/events/attachment_type.dart';
 export 'src/events/msr_attachment.dart';
+export 'src/gestures/layout_snapshot_capture.dart';
+export 'src/gestures/snapshot_node.dart';
 export 'src/http/http_method.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
@@ -498,13 +500,13 @@ class Measure implements MeasureApi {
   /// - [createBugReportWidget] for the built-in bug reporting UI
   /// - [captureScreenshot] for capturing screen attachments
   @override
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
-  }) {
+  }) async {
     if (_isInitialized) {
-      _measure.trackBugReport(
+      await _measure.trackBugReport(
         description,
         attachments,
         attributes,
@@ -920,6 +922,7 @@ class Measure implements MeasureApi {
   ///
   /// **Parameters:**
   /// - [clickData]: Data containing click position, target widget info, and timestamp
+  /// - [snapshot]: An optional layout snapshot to attach with the event
   ///
   /// **Example:**
   /// ```dart
@@ -937,9 +940,9 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackClick(ClickData clickData) {
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
     if (isInitialized) {
-      _measure.trackClick(clickData);
+      return _measure.trackClick(clickData, snapshot);
     }
   }
 
@@ -950,6 +953,7 @@ class Measure implements MeasureApi {
   ///
   /// **Parameters:**
   /// - [longClickData]: Data containing long press position, target widget info, and timestamp
+  /// - [snapshot]: An optional layout snapshot to attach with the event
   ///
   /// **Example:**
   /// ```dart
@@ -961,15 +965,15 @@ class Measure implements MeasureApi {
   ///   timestamp: Measure.instance.getCurrentTime(),
   /// );
   ///
-  /// Measure.instance.trackLongClick(longClickData);
+  /// await Measure.instance.trackLongClick(longClickData);
   /// ```
   ///
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackLongClick(LongClickData longClickData) {
+  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot) async {
     if (isInitialized) {
-      _measure.trackLongClick(longClickData);
+      return _measure.trackLongClick(longClickData, snapshot);
     }
   }
 
@@ -998,9 +1002,18 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  void trackScroll(ScrollData scrollData) {
+  Future<void> trackScroll(ScrollData scrollData) async {
     if (isInitialized) {
-      _measure.trackScroll(scrollData);
+      return _measure.trackScroll(scrollData);
+    }
+  }
+
+  @override
+  Map<Type, String> getLayoutSnapshotWidgetFilter() {
+    if (_isInitialized) {
+      return _measure.getLayoutSnapshotWidgetFilter();
+    } else {
+      return {};
     }
   }
 

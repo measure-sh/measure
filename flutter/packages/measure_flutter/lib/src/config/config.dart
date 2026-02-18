@@ -17,6 +17,7 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
     this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
     this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
+    this.widgetFilter = DefaultConfig.widgetFilter,
   });
 
   @override
@@ -45,6 +46,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxUserDefinedAttributeKeyLength;
   @override
   final int maxUserDefinedAttributeValueLength;
+  @override
+  final Map<Type, String> widgetFilter;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist => const ["application/json"];

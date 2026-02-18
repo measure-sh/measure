@@ -29,6 +29,7 @@ final class MockHttpClient: HttpClient {
         url: URL,
         method: HttpMethod,
         contentType: String,
+        contentEncoding: String?,
         headers: [String: String],
         fileData: Data
     ) -> HttpResponse {

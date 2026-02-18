@@ -46,7 +46,7 @@ void main() {
         // Arrange
         const screenName = 'HomeScreen';
         const userTriggered = true;
-        final attributes = { "key": StringAttr("value") };
+        final attributes = {"key": StringAttr("value")};
 
         // Act
         await navigationCollector.trackScreenViewEvent(

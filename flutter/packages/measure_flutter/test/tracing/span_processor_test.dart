@@ -205,8 +205,7 @@ void main() {
         startTime: timeProvider.now() - 1000,
       );
       spanProcessor.onStart(span);
-      final longCheckpointName =
-          "s" * (configProvider.maxCheckpointNameLength + 1);
+      final longCheckpointName = "s" * (configProvider.maxCheckpointNameLength + 1);
       span.setCheckpoint(longCheckpointName);
       span.end();
 
@@ -215,35 +214,33 @@ void main() {
       expect(signalProcessor.trackedSpans.first.checkpoints.length, 0);
     });
 
-    test(
-        "discards checkpoints to keep them within max checkpoints per span limit",
-            () {
-          final span = MsrSpan(
-            logger: logger,
-            spanProcessor: spanProcessor,
-            timeProvider: timeProvider,
-            isSampled: true,
-            name: "span-name",
-            spanId: "span-id",
-            traceId: "trace-id",
-            parentId: null,
-            startTime: timeProvider.now() - 1000,
-          );
-          spanProcessor.onStart(span);
+    test("discards checkpoints to keep them within max checkpoints per span limit", () {
+      final span = MsrSpan(
+        logger: logger,
+        spanProcessor: spanProcessor,
+        timeProvider: timeProvider,
+        isSampled: true,
+        name: "span-name",
+        spanId: "span-id",
+        traceId: "trace-id",
+        parentId: null,
+        startTime: timeProvider.now() - 1000,
+      );
+      spanProcessor.onStart(span);
 
-          // Add one more checkpoint than the maximum allowed
-          for (int i = 0; i <= configProvider.maxCheckpointsPerSpan; i++) {
-            span.setCheckpoint("checkpoint-$i");
-          }
+      // Add one more checkpoint than the maximum allowed
+      for (int i = 0; i <= configProvider.maxCheckpointsPerSpan; i++) {
+        span.setCheckpoint("checkpoint-$i");
+      }
 
-          span.end();
-          spanProcessor.onConfigLoaded();
+      span.end();
+      spanProcessor.onConfigLoaded();
 
-          expect(
-            signalProcessor.trackedSpans.first.checkpoints.length,
-            configProvider.maxCheckpointsPerSpan,
-          );
-        });
+      expect(
+        signalProcessor.trackedSpans.first.checkpoints.length,
+        configProvider.maxCheckpointsPerSpan,
+      );
+    });
 
     test("discards span if duration is negative", () {
       final span = MsrSpan(

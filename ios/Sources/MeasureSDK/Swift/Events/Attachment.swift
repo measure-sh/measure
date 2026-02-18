@@ -54,4 +54,24 @@ struct MsrUploadAttachment {
     let uploadUrl: String?
     let expiresAt: String?
     let headers: Data?
+
+    var contentType: String {
+        switch type {
+        case .layoutSnapshot:
+            return layoutSnapshotContentType
+        case .layoutSnapshotJson:
+            return layoutSnapshotJsonContentType
+        case .screenshot:
+            return screenshotContentType
+        }
+    }
+
+    var contentEncoding: String? {
+        switch type {
+        case .layoutSnapshotJson:
+            return layoutSnapshotJsonContentEncoding
+        default:
+            return nil
+        }
+    }
 }

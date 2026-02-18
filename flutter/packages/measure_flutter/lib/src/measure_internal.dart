@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
@@ -9,6 +12,7 @@ import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
+import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -41,6 +45,7 @@ final class MeasureInternal {
   final ShakeDetector _shakeDetector;
   final ConfigLoader _configLoader;
   final SpanProcessor _spanProcessor;
+  final FileProcessingIsolate _fileProcessingIsolate;
 
   MeasureInternal({
     required this.initializer,
@@ -59,11 +64,12 @@ final class MeasureInternal {
         _idProvider = initializer.idProvider,
         _shakeDetector = initializer.shakeDetector,
         _configLoader = initializer.configLoader,
-        _spanProcessor = initializer.spanProcessor;
+        _spanProcessor = initializer.spanProcessor,
+        _fileProcessingIsolate = initializer.fileProcessingIsolate;
 
   Future<void> init() async {
     if (configProvider.autoStart) {
-      registerCollectors();
+      await registerCollectors();
     }
     _configLoader.loadDynamicConfig().then((dynamicConfig) {
       if (dynamicConfig != null) {
@@ -73,7 +79,8 @@ final class MeasureInternal {
     });
   }
 
-  void registerCollectors() {
+  Future<void> registerCollectors() async {
+    await _fileProcessingIsolate.init();
     _exceptionCollector.register();
     _customEventCollector.register();
     _httpCollector.register();
@@ -83,7 +90,7 @@ final class MeasureInternal {
     _gestureCollector.register();
   }
 
-  void unregisterCollectors() {
+  Future<void> unregisterCollectors() async {
     _exceptionCollector.unregister();
     _customEventCollector.unregister();
     _httpCollector.unregister();
@@ -91,6 +98,7 @@ final class MeasureInternal {
     _bugReportCollector.unregister();
     _shakeDetector.unregister();
     _gestureCollector.unregister();
+    await initializer.fileProcessingIsolate.dispose();
   }
 
   void trackCustomEvent(String name, int? timestamp, Map<String, AttributeValue> attributes) {
@@ -152,12 +160,12 @@ final class MeasureInternal {
   }
 
   Future<void> start() async {
-    registerCollectors();
+    await registerCollectors();
     return methodChannel.start();
   }
 
   Future<void> stop() async {
-    unregisterCollectors();
+    await unregisterCollectors();
     return methodChannel.stop();
   }
 
@@ -189,8 +197,9 @@ final class MeasureInternal {
     return methodChannel.getSessionId();
   }
 
-  void trackBugReport(String description, List<MsrAttachment> attachments, Map<String, AttributeValue> attributes) {
-    _bugReportCollector.trackBugReport(description, attachments, attributes);
+  Future<void> trackBugReport(
+      String description, List<MsrAttachment> attachments, Map<String, AttributeValue> attributes) async {
+    await _bugReportCollector.trackBugReport(description, attachments, attributes);
   }
 
   Future<MsrAttachment?> captureScreenshot() {
@@ -215,15 +224,26 @@ final class MeasureInternal {
     _shakeDetector.setShakeListener(onShake);
   }
 
-  void trackClick(ClickData clickData) {
-    _gestureCollector.trackGestureClick(clickData);
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
+    developer.log("snapshot: ${json.encode(snapshot?.toJson())}");
+    _gestureCollector.trackGestureClick(
+      clickData,
+      snapshot: snapshot,
+    );
   }
 
-  void trackLongClick(LongClickData longClickData) {
-    _gestureCollector.trackGestureLongClick(longClickData);
+  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot) async {
+    _gestureCollector.trackGestureLongClick(
+      longClickData,
+      snapshot: snapshot,
+    );
   }
 
-  void trackScroll(ScrollData scrollData) {
+  Future<void> trackScroll(ScrollData scrollData) async {
     _gestureCollector.trackGestureScroll(scrollData);
+  }
+
+  Map<Type, String> getLayoutSnapshotWidgetFilter() {
+    return configProvider.widgetFilter;
   }
 }

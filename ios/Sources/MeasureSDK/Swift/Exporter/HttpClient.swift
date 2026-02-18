@@ -9,7 +9,10 @@ import Foundation
 
 protocol HttpClient {
     func sendJsonRequest(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data) -> HttpResponse
-    func uploadFile(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data) -> HttpResponse
+    func uploadFile(
+        url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
+        headers: [String: String], fileData: Data
+    ) -> HttpResponse
 }
 
 final class BaseHttpClient: HttpClient {
@@ -55,17 +58,22 @@ final class BaseHttpClient: HttpClient {
         return response
     }
 
-    func uploadFile(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data) -> HttpResponse {
-        return uploadFileWithRedirects(url: url, method: method, contentType: contentType, headers: headers, fileData: fileData, redirectCount: 0)
+    func uploadFile(url: URL, method: HttpMethod, contentType: String, contentEncoding: String?, headers: [String: String], fileData: Data) -> HttpResponse {
+        return uploadFileWithRedirects(url: url, method: method, contentType: contentType, contentEncoding: contentEncoding, headers: headers, fileData: fileData, redirectCount: 0)
     }
 
-    private func uploadFileWithRedirects(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data, redirectCount: Int) -> HttpResponse {
+    private func uploadFileWithRedirects(
+        url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
+        headers: [String: String], fileData: Data, redirectCount: Int
+    ) -> HttpResponse {
         if redirectCount >= maxRedirects {
             self.logger.internalLog(level: .error, message: "Too many redirects for file upload to \(url.absoluteString)", error: nil, data: nil)
             return .error(.unknownError("Too many redirects"))
         }
 
-        var request = createFileUploadRequest(url: url, method: method, contentType: contentType, headers: headers, fileSize: Int64(fileData.count))
+        var request = createFileUploadRequest(
+            url: url, method: method, contentType: contentType, contentEncoding: contentEncoding,
+            headers: headers, fileSize: Int64(fileData.count))
         request.httpBody = fileData
 
         let semaphore = DispatchSemaphore(value: 0)
@@ -74,7 +82,7 @@ final class BaseHttpClient: HttpClient {
         let task = session.dataTask(with: request) { data, urlResponse, error in
             response = self.handleRequestCompletion(data: data, urlResponse: urlResponse, error: error) { newUrl in
                 // Handle recursive redirect for file upload
-                self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
+                self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, contentEncoding: contentEncoding, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
             }
             semaphore.signal()  
         }
@@ -125,12 +133,19 @@ final class BaseHttpClient: HttpClient {
         return request
     }
 
-    func createFileUploadRequest(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileSize: Int64) -> URLRequest {
+    func createFileUploadRequest(
+        url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
+        headers: [String: String], fileSize: Int64
+    ) -> URLRequest {
         var request = URLRequest(url: url)
         request.timeoutInterval = configProvider.timeoutIntervalForRequest
         request.httpMethod = method.rawValue
 
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+
+        if let contentEncoding = contentEncoding, !contentEncoding.isEmpty {
+            request.setValue(contentEncoding, forHTTPHeaderField: "Content-Encoding")
+        }
 
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         if let customHeaders = getCustomHeaders() {

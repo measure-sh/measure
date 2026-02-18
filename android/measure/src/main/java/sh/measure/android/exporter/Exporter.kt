@@ -214,6 +214,7 @@ internal class ExporterImpl(
                 contentType = attachment.contentType,
                 headers = attachment.headers,
                 fileSize = file.length(),
+                contentEncoding = attachment.contentEncoding,
             ) { sink ->
                 sink.writeAll(file.source())
             }
