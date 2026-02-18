@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:measure_dio/measure_dio.dart';
 import 'package:measure_flutter/measure_flutter.dart';
+import 'package:measure_flutter_example/src/bottom_nav.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
 import 'package:measure_flutter_example/src/toggle_list_item.dart';
 import 'package:stack_trace/stack_trace.dart';
 
+import 'layout_snapshot_page.dart';
 import 'list_item.dart';
 import 'screen_text_overflow.dart';
 
@@ -71,8 +73,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
           ListSection(title: "Crashes"),
           ListItem(title: "Track custom event", onPressed: _trackCustomEvent),
           ListItem(title: "Throw error", onPressed: _trackError),
-          ListItem(
-              title: "Error in microtask", onPressed: _trackMicroTaskError),
+          ListItem(title: "Error in microtask", onPressed: _trackMicroTaskError),
           ListItem(title: "Error in isolate", onPressed: _trackIsolateError),
           ListItem(title: "Throw exception", onPressed: _throwException),
           ListItem(
@@ -142,6 +143,19 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
           ListItem(title: "Track bug report", onPressed: _trackBugReport),
           ListItem(title: "Launch bug report", onPressed: _launchBugReport),
           ListSection(title: "misc"),
+          ListItem(title: "Layout snapshot", onPressed: _launchLayoutSnapshot),
+          ListItem(
+            title: "Bottom Nav",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<BottomNavDemo>(
+                  builder: (context) => const BottomNavDemo(),
+                  settings: RouteSettings(name: '/bottom_nav_demo'),
+                ),
+              );
+            },
+          ),
           ListItem(title: "Set user", onPressed: _setUserId),
           ListItem(title: "Clear user", onPressed: _clearUserId),
         ],
@@ -175,8 +189,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
   Future<void> _throwAsyncException() async {
     Chain.capture(() async {
       await Future.delayed(const Duration(seconds: 2));
-      throw FormatException(
-          "This is an exception using Chain.capture from an async block");
+      throw FormatException("This is an exception using Chain.capture from an async block");
     });
   }
 
@@ -186,8 +199,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
 
   void _trackMicroTaskError() {
     Future.microtask(() {
-      throw FormatException(
-          "This is an exception from inside Future.microtask");
+      throw FormatException("This is an exception from inside Future.microtask");
     });
   }
 
@@ -213,8 +225,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
   }
 
   void _noMethodChannel() async {
-    await MethodChannel('non_existent_channel')
-        .invokeMethod('non_existent_method');
+    await MethodChannel('non_existent_channel').invokeMethod('non_existent_method');
   }
 
   void _makeDioGetHttpRequest() async {
@@ -234,12 +245,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
     try {
       await dio.post(
         'https://fakestoreapi.com/users',
-        data: {
-          "id": 0,
-          "username": "string",
-          "email": "string",
-          "password": "string"
-        },
+        data: {"id": 0, "username": "string", "email": "string", "password": "string"},
         options: Options(
           headers: {
             'X-Custom-Header': 'custom_value',
@@ -275,10 +281,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
 
   void _trackNestedSpan() async {
     // Main operation: Load user profile
-    final profileAttributes = AttributeBuilder()
-        .add("user_id", "user_12345")
-        .add("cache_enabled", true)
-        .build();
+    final profileAttributes = AttributeBuilder().add("user_id", "user_12345").add("cache_enabled", true).build();
 
     final profileSpan = Measure.instance
         .startSpan("load-user-profile")
@@ -294,19 +297,15 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
 
       profileSpan.setCheckpoint("profile-loaded").setStatus(SpanStatus.ok);
     } catch (e) {
-      profileSpan
-          .setCheckpoint("profile-load-failed")
-          .setStatus(SpanStatus.error);
+      profileSpan.setCheckpoint("profile-load-failed").setStatus(SpanStatus.error);
     } finally {
       profileSpan.end();
     }
   }
 
   Future<void> _checkCache(Span parentSpan) async {
-    final cacheSpan = Measure.instance
-        .startSpan("check-profile-cache")
-        .setParent(parentSpan)
-        .setCheckpoint("cache-check-started");
+    final cacheSpan =
+        Measure.instance.startSpan("check-profile-cache").setParent(parentSpan).setCheckpoint("cache-check-started");
 
     try {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -317,10 +316,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
   }
 
   Future<void> _fetchFromAPI(Span parentSpan) async {
-    final apiAttributes = AttributeBuilder()
-        .add("endpoint", "/api/v1/user/profile")
-        .add("timeout_ms", 5000)
-        .build();
+    final apiAttributes = AttributeBuilder().add("endpoint", "/api/v1/user/profile").add("timeout_ms", 5000).build();
 
     final apiSpan = Measure.instance
         .startSpan("fetch-profile-api")
@@ -387,6 +383,16 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
     } else {
       disableShakeDetection();
     }
+  }
+
+  void _launchLayoutSnapshot() {
+    final navigatorState = Navigator.of(context);
+    navigatorState.push(
+      MaterialPageRoute<Widget>(
+        builder: (context) => const LayoutSnapshotPage(),
+        settings: RouteSettings(name: '/msr_bug_report'),
+      ),
+    );
   }
 }
 

@@ -11,8 +11,8 @@ import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
-import '../bug_report/attachment_processing.dart';
 import '../events/event_type.dart';
+import '../isolate/file_processor.dart';
 import '../storage/file_storage.dart';
 
 final class ExceptionCollector {
@@ -21,8 +21,7 @@ final class ExceptionCollector {
   final ConfigProvider configProvider;
   final FileStorage fileStorage;
   final ScreenshotCollector screenshotCollector;
-  final Future<FileProcessingResult> Function(CompressAndSaveParams)
-      compressAndSave;
+  final Future<FileProcessingResult> Function(CompressAndSaveParams) compressAndSave;
   final TimeProvider timeProvider;
   bool _enabled = false;
 
@@ -50,8 +49,7 @@ final class ExceptionCollector {
     required Map<String, AttributeValue> attributes,
   }) async {
     if (!_enabled) return;
-    final ExceptionData? exceptionData =
-        ExceptionFactory.from(details, handled);
+    final ExceptionData? exceptionData = ExceptionFactory.from(details, handled);
     if (exceptionData == null) {
       logger.log(LogLevel.error, "Failed to parse exception");
       return;
@@ -99,8 +97,12 @@ final class ExceptionCollector {
       );
 
       final filePath = result.filePath;
-      final compressedSize = result.compressedSize;
+      final compressedSize = result.size;
       if (filePath != null && compressedSize != null) {
+        logger.log(
+          LogLevel.debug,
+          'ExceptionCollector: Successfully stored screenshot attachment (id: ${screenshot.id}, size: $compressedSize bytes, path: $filePath)',
+        );
         attachments.add(
           MsrAttachment(
             name: screenshot.id,
@@ -110,6 +112,11 @@ final class ExceptionCollector {
             size: compressedSize,
             bytes: null,
           ),
+        );
+      } else {
+        logger.log(
+          LogLevel.debug,
+          'ExceptionCollector: Failed to store screenshot attachment: ${result.error}',
         );
       }
     }

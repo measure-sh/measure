@@ -15,6 +15,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
@@ -41,7 +42,8 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 internal class ExporterTest {
     private val logger = NoopLogger()
-    private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
+    private val attachmentExecutorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
+    private val eventExecutorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
     private val context =
         InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
@@ -64,8 +66,8 @@ internal class ExporterTest {
         idProvider = idProvider,
         httpClient = httpClient,
         sleeper = sleeper,
-        attachmentExportService = executorService,
-        eventExportService = executorService,
+        attachmentExportService = attachmentExecutorService,
+        eventExportService = eventExecutorService,
     )
 
     @Test
@@ -427,7 +429,7 @@ internal class ExporterTest {
     fun `uploads attachments after events export`() {
         val responseJson = attachmentResponseJson("attachment-1")
         whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(responseJson))
-        whenever(httpClient.uploadFile(any(), any(), any(), any(), any())).thenReturn(HttpResponse.Success())
+        whenever(httpClient.uploadFile(any(), any(), anyOrNull(), any(), any(), any())).thenReturn(HttpResponse.Success())
 
         val attachmentFile = createTempAttachmentFile("attachment-1")
         insertSessionInDb("session1")
@@ -451,6 +453,7 @@ internal class ExporterTest {
         verify(httpClient).uploadFile(
             eq("https://example.com/upload/attachment-1"),
             any(),
+            anyOrNull(),
             any(),
             any(),
             any(),
@@ -469,6 +472,7 @@ internal class ExporterTest {
             httpClient.uploadFile(
                 any(),
                 any(),
+                anyOrNull(),
                 any(),
                 any(),
                 any(),
@@ -502,18 +506,10 @@ internal class ExporterTest {
     fun `deletes attachment file and DB entry on client error`() {
         val responseJson = attachmentResponseJson("attachment-1")
         whenever(networkClient.execute(any(), any(), any())).thenReturn(
-            HttpResponse.Success(
-                responseJson,
-            ),
+            HttpResponse.Success(responseJson),
         )
         whenever(
-            httpClient.uploadFile(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-            ),
+            httpClient.uploadFile(any(), any(), anyOrNull(), any(), any(), any()),
         ).thenReturn(HttpResponse.Error.ClientError(400))
 
         val attachmentFile = createTempAttachmentFile("attachment-1")
@@ -532,9 +528,7 @@ internal class ExporterTest {
             ),
         )
         insertBatchInDb("batch1", eventIds = setOf("event1"))
-
         exporter.export()
-
         assertEquals(0, database.getAttachmentsToUpload(10).size)
         assertFalse(attachmentFile.exists())
     }
@@ -549,6 +543,7 @@ internal class ExporterTest {
         )
         whenever(
             httpClient.uploadFile(
+                any(),
                 any(),
                 any(),
                 any(),
@@ -608,7 +603,7 @@ internal class ExporterTest {
 
         exporter.export()
 
-        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any())
+        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any(), any())
         assertEquals(0, database.getAttachmentsToUpload(10).size)
     }
 
@@ -622,7 +617,7 @@ internal class ExporterTest {
 
         exporter.export()
 
-        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any())
+        verify(httpClient, never()).uploadFile(any(), any(), any(), any(), any(), any())
     }
 
     @Test
@@ -637,6 +632,7 @@ internal class ExporterTest {
             httpClient.uploadFile(
                 any(),
                 any(),
+                anyOrNull(),
                 any(),
                 any(),
                 any(),

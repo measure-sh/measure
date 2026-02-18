@@ -5,11 +5,11 @@ import 'package:measure_flutter/src/bug_report/ui/image_picker.dart';
 import 'package:measure_flutter/src/bug_report/ui/platform_wrapper.dart';
 import 'package:measure_flutter/src/bug_report/ui/send_button.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
+import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import '../../../measure_flutter.dart';
 import '../../config/config_provider.dart';
-import '../../logger/logger.dart';
 import 'add_image_button.dart';
 import 'bug_report_input.dart';
 import 'bug_report_state.dart';

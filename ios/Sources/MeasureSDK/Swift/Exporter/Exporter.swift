@@ -213,9 +213,9 @@ final class BaseExporter: Exporter {
             return false
         }
 
-        let contentType = attachment.type == .screenshot ? screenshotContentType : layoutSnapshotContentType
-
-        let response = httpClient.uploadFile(url: uploadUrl, method: .put, contentType: contentType, headers: headers, fileData: bytes)
+        let response = httpClient.uploadFile(
+            url: uploadUrl, method: .put, contentType: attachment.contentType,
+            contentEncoding: attachment.contentEncoding, headers: headers, fileData: bytes)
 
         logger.log(level: .info, message: "Exporter: attachement response: \(response)", error: nil, data: nil)
         switch response {

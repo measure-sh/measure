@@ -16,7 +16,6 @@ abstract class ScreenshotCollector {
   Future<MsrAttachment?> capture();
 }
 
-
 /// Captures screenshots of Flutter widget, stores it as a File and returns
 /// a [MsrAttachment]. Must be used along with [MeasureWidget].
 class DefaultScreenshotCollector extends ScreenshotCollector {
