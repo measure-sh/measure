@@ -15,6 +15,8 @@ import com.facebook.react.modules.network.OkHttpClientProvider
 import com.facebook.react.modules.network.ReactCookieJarContainer
 import com.facebook.soloader.SoLoader
 import okhttp3.OkHttpClient
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
 import sh.measure.android.okhttp.MeasureOkHttpApplicationInterceptor
 import sh.measure.rn.MeasurePackage
 
@@ -43,6 +45,16 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    Measure.init(
+      this,
+      measureConfig = MeasureConfig(
+        enableLogging = true,
+        trackActivityIntentData = true,
+        autoStart = true,
+        maxDiskUsageInMb = 1500,
+        enableFullCollectionMode = false,
+      )
+    )
     SoLoader.init(this, false)
 
     OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {

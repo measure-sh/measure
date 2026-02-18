@@ -1,15 +1,12 @@
-import type { Client } from './config/clientInfo';
-import { DefaultConfig } from './config/defaultConfig';
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
 import {
-  initializeNativeSDK,
   setShakeListener,
-  start,
-  stop,
   getSessionId as getNativeSessionId,
+  enableNativeModule,
+  disableNativeModule,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -18,6 +15,7 @@ import type { ValidAttributeValue } from './utils/attributeValueValidator';
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
   private shakeHandler?: (() => void) | null;
+  private started = false;
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
@@ -51,40 +49,53 @@ export class MeasureInternal {
     this.measureInitializer.bugReportCollector.unregister();
   }
 
-  init(client: Client, config: MeasureConfig | null): Promise<any> {
+  async init(config: MeasureConfig | null): Promise<void> {
+    this.measureInitializer.configLoader
+      .loadDynamicConfig()
+      .then((dynamicConfig) => {
+        if (dynamicConfig) {
+          this.measureInitializer.configProvider.setDynamicConfig(
+            dynamicConfig
+          );
+        }
+
+        this.measureInitializer.spanProcessor.onConfigLoaded();
+      })
+      .catch((error) => {
+        console.error('Failed to load dynamic config', error);
+      });
+
     if (config?.autoStart) {
+      this.started = true;
       this.registerCollectors();
     }
-    return initializeNativeSDK(
-      client,
-      config ??
-        new MeasureConfig({
-          enableLogging: DefaultConfig.enableLogging,
-          samplingRateForErrorFreeSessions: DefaultConfig.sessionSamplingRate,
-          coldLaunchSamplingRate: DefaultConfig.coldLaunchSamplingRate,
-          warmLaunchSamplingRate: DefaultConfig.warmLaunchSamplingRate,
-          hotLaunchSamplingRate: DefaultConfig.hotLaunchSamplingRate,
-          journeySamplingRate: DefaultConfig.journeySamplingRate,
-          traceSamplingRate: DefaultConfig.traceSamplingRate,
-          trackHttpHeaders: DefaultConfig.trackHttpHeaders,
-          trackHttpBody: DefaultConfig.trackHttpBody,
-          httpHeadersBlocklist: DefaultConfig.httpHeadersBlocklist,
-          httpUrlBlocklist: DefaultConfig.httpUrlBlocklist,
-          httpUrlAllowlist: DefaultConfig.httpUrlAllowlist,
-          autoStart: DefaultConfig.autoStart,
-          screenshotMaskLevel: DefaultConfig.screenshotMaskLevel,
-          maxDiskUsageInMb: DefaultConfig.maxDiskUsageInMb,
-        }),
-      this.measureInitializer.logger
-    );
   }
 
-  start = (): Promise<any> => {
+  start(): void {
+    if (this.started) {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Measure.start() called but Measure is already started.'
+      );
+      return;
+    }
+    this.started = true;
     this.registerCollectors();
-    return start();
-  };
+    enableNativeModule();
+  }
 
-  stop = (): Promise<any> => stop();
+  stop(): void {
+    if (!this.started) {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Measure.stop() called but Measure is not started.'
+      );
+      return;
+    }
+    this.started = false;
+    this.unregisterCollectors();
+    disableNativeModule();
+  }
 
   trackEvent = (
     name: string,
@@ -197,13 +208,12 @@ export class MeasureInternal {
   }
 
   getSessionId(): Promise<string | null> {
-    return getNativeSessionId()
-      .catch(() => {
-        this.measureInitializer.logger.internalLog(
-          'warning',
-          'Failed to fetch session ID from native layer.'
-        );
-        return null;
-      });
+    return getNativeSessionId().catch(() => {
+      this.measureInitializer.logger.internalLog(
+        'warning',
+        'Failed to fetch session ID from native layer.'
+      );
+      return null;
+    });
   }
 }

@@ -248,6 +248,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)
         self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
+                                                   systemFileManager: systemFileManager,
                                                    logger: logger)
         self.randomizer = BaseRandomizer()
         self.signalSampler = BaseSignalSampler(configProvider: configProvider,
@@ -298,7 +299,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                      batchStore: batchStore,
                                      attachmentStore: attachmentStore,
                                      sessionStore: sessionStore,
-                                     configProvider: configProvider)
+                                     configProvider: configProvider,
+                                     systemFileManager: systemFileManager)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,
@@ -403,7 +405,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          logger: logger,
                                                          sessionManager: sessionManager,
                                                          configProvider: configProvider,
-                                                         attachmentStore: attachmentStore)
+                                                         attachmentStore: attachmentStore,
+                                                         systemFileManager: systemFileManager,
+                                                         userDefaultsStorage: userDefaultStorage)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,

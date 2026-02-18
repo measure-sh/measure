@@ -67,7 +67,7 @@ export class MsrSpan implements InternalSpan {
     const startTime = timestamp;
     const spanId = idProvider.spanId();
     const traceId = parentSpan?.traceId ?? idProvider.traceId();
-    const isSampled = parentSpan?.isSampled ?? traceSampler.shouldSample();
+    const isSampled = parentSpan?.isSampled ?? traceSampler.shouldSampleTrace(traceId);
 
     const span = new MsrSpan(
       timeProvider,
@@ -168,6 +168,10 @@ export class MsrSpan implements InternalSpan {
 
   getDuration(): number {
     return this.calculateDuration();
+  }
+
+  setSampled(sampled: boolean): void {
+    this.isSampled = sampled;
   }
 
   toSpanData(): SpanData {

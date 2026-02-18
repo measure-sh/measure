@@ -17,12 +17,13 @@ describe('MsrSpan', () => {
       traceId: jest.fn(() => 'trace-xyz'),
     };
     mockTraceSampler = {
-      shouldSample: jest.fn(() => true),
+      shouldSampleTrace: jest.fn(() => true),
     };
     mockSpanProcessor = {
       onStart: jest.fn(),
       onEnding: jest.fn(),
       onEnded: jest.fn(),
+      onConfigLoaded: jest.fn(),
     };
   });
 

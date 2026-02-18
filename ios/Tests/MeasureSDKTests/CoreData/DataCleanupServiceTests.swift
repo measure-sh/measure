@@ -15,10 +15,12 @@ final class DataCleanupServiceTests: XCTestCase {
     var eventStore: EventStore!
     var spanStore: SpanStore!
     var sessionStore: SessionStore!
-    var attachmentStore: AttachmentStore!
+    var attachmentStore: MockAttachmentStore!
     var dataCleanupService: BaseDataCleanupService!
     var sessionManager: MockSessionManager!
     var configProvider: MockConfigProvider!
+    var systemFileManager: MockSystemFileManager!
+    var userDefaultStorage: MockUserDefaultStorage!
 
     var tempBugReportDir: URL?
 
@@ -31,10 +33,12 @@ final class DataCleanupServiceTests: XCTestCase {
         eventStore = BaseEventStore(coreDataManager: coreDataManager, logger: logger)
         spanStore = BaseSpanStore(coreDataManager: coreDataManager, logger: logger)
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager, logger: logger)
-        attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager, logger: logger)
+        systemFileManager = MockSystemFileManager()
+        attachmentStore = MockAttachmentStore()
 
         sessionManager = MockSessionManager(sessionId: "currentSession")
         configProvider = MockConfigProvider()
+        userDefaultStorage = MockUserDefaultStorage()
 
         dataCleanupService = BaseDataCleanupService(
             eventStore: eventStore,
@@ -43,7 +47,9 @@ final class DataCleanupServiceTests: XCTestCase {
             logger: logger,
             sessionManager: sessionManager,
             configProvider: configProvider,
-            attachmentStore: attachmentStore
+            attachmentStore: attachmentStore,
+            systemFileManager: systemFileManager,
+            userDefaultsStorage: userDefaultStorage
         )
     }
 
@@ -62,6 +68,7 @@ final class DataCleanupServiceTests: XCTestCase {
         configProvider = nil
         sessionManager = nil
         dataCleanupService = nil
+        userDefaultStorage = nil
 
         super.tearDown()
     }

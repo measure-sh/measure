@@ -141,13 +141,21 @@ final class BaseConfigProvider: ConfigProvider {
 
     func shouldTrackHttpUrl(url: String) -> Bool {
         let state = httpPatternState
-        let range = NSRange(location: 0, length: url.utf16.count)
 
-        if state.blocklistPatterns.contains(where: {
-            $0.firstMatch(in: url, options: [], range: range) != nil
-        }) {
+        guard let parsedUrl = URL(string: url),
+              let host = parsedUrl.host?.lowercased() else {
+            return true
+        }
+
+        let isBlockedByDomain = httpUrlBlocklist.contains { blockedDomain in
+            host.contains(blockedDomain.lowercased())
+        }
+
+        if isBlockedByDomain {
             return false
         }
+
+        let range = NSRange(location: 0, length: url.utf16.count)
 
         if state.disableEventPatterns.contains(where: {
             $0.firstMatch(in: url, options: [], range: range) != nil

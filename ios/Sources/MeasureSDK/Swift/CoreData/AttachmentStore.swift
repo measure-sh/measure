@@ -13,14 +13,17 @@ protocol AttachmentStore {
     func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?)
     func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment]
     func deleteAttachments(forSessionIds sessionIds: [String])
+    func getAllAttachmentPaths() -> Set<String>
 }
 
 final class BaseAttachmentStore: AttachmentStore {
     private let coreDataManager: CoreDataManager
     private let logger: Logger
+    private let systemFileManager: SystemFileManager
 
-    init(coreDataManager: CoreDataManager, logger: Logger) {
+    init(coreDataManager: CoreDataManager, systemFileManager: SystemFileManager, logger: Logger) {
         self.coreDataManager = coreDataManager
+        self.systemFileManager = systemFileManager
         self.logger = logger
     }
 
@@ -37,13 +40,20 @@ final class BaseAttachmentStore: AttachmentStore {
             return
         }
 
+        var attachmentsToDeleteFromFS = [String]()
         context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id IN %@", attachmentIds)
 
             do {
                 let attachments = try context.fetch(fetchRequest)
-                attachments.forEach { context.delete($0) }
+                attachments.forEach {
+                    if let path = $0.path {
+                        attachmentsToDeleteFromFS.append(path)
+                    }
+                    context.delete($0)
+                }
+                
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(
@@ -54,6 +64,7 @@ final class BaseAttachmentStore: AttachmentStore {
                 )
             }
         }
+        attachmentsToDeleteFromFS.forEach { systemFileManager.deleteFile(atPath: $0) }
     }
 
     func updateUploadDetails(
@@ -149,6 +160,7 @@ final class BaseAttachmentStore: AttachmentStore {
             return
         }
 
+        var attachmentsToDeleteFromFS = [String]()
         context.performAndWait {
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
@@ -163,7 +175,12 @@ final class BaseAttachmentStore: AttachmentStore {
                     data: ["sessionIds": sessionIds]
                 )
 
-                attachments.forEach { context.delete($0) }
+                attachments.forEach {
+                    if let path = $0.path {
+                        attachmentsToDeleteFromFS.append(path)
+                    }
+                    context.delete($0)
+                }
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(
@@ -174,6 +191,40 @@ final class BaseAttachmentStore: AttachmentStore {
                 )
             }
         }
+        attachmentsToDeleteFromFS.forEach { systemFileManager.deleteFile(atPath: $0) }
+    }
+
+    func getAllAttachmentPaths() -> Set<String> {
+        guard let context = coreDataManager.backgroundContext else {
+            return []
+        }
+
+        var paths = Set<String>()
+
+        context.performAndWait {
+            let fetchRequest = NSFetchRequest<NSDictionary>(entityName: "AttachmentOb")
+            fetchRequest.resultType = .dictionaryResultType
+            fetchRequest.propertiesToFetch = ["path"]
+
+            do {
+                let results = try context.fetch(fetchRequest)
+
+                for result in results {
+                    if let path = result["path"] as? String {
+                        paths.insert(path)
+                    }
+                }
+            } catch {
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to fetch attachment paths for orphan cleanup.",
+                    error: error,
+                    data: nil
+                )
+            }
+        }
+
+        return paths
     }
 }
 

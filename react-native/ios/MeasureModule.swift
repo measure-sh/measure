@@ -13,41 +13,6 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     @objc
-    func initialize(_ clientDict: NSDictionary,
-                    configDict: NSDictionary,
-                    resolver resolve: @escaping RCTPromiseResolveBlock,
-                    rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard let clientInfo = clientDict.decoded(as: ClientInfo.self) else {
-            reject(ErrorMessages.invalidArguments, "Could not decode clientDict", nil)
-            return
-        }
-        
-        guard let config = configDict.decoded(as: BaseMeasureConfig.self) else {
-            reject(ErrorMessages.invalidArguments, "Could not decode configDict", nil)
-            return
-        }
-        
-        DispatchQueue.main.async {
-            Measure.initialize(with: clientInfo, config: config)
-        }
-        resolve("Native Measure SDK initialized successfully")
-    }
-    
-    @objc
-    func start(_ resolve: @escaping RCTPromiseResolveBlock,
-               rejecter reject: @escaping RCTPromiseRejectBlock) {
-        Measure.start()
-        resolve("Measure SDK started successfully")
-    }
-    
-    @objc
-    func stop(_ resolve: @escaping RCTPromiseResolveBlock,
-              rejecter reject: @escaping RCTPromiseRejectBlock) {
-        Measure.stop()
-        resolve("Measure SDK stopped successfully")
-    }
-    
-    @objc
     func trackEvent(_ data: NSDictionary,
                     type: NSString,
                     timestamp: NSNumber,
@@ -296,6 +261,40 @@ class MeasureModule: NSObject, RCTBridgeModule {
         )
         
         resolve("Bug report tracked")
+    }
+    
+    @objc
+    func getDynamicConfig(_ resolve: @escaping RCTPromiseResolveBlock,
+                          rejecter reject: @escaping RCTPromiseRejectBlock) {
+
+        guard let path = Measure.internalGetDynamicConfigPath() else {
+            resolve(nil)
+            return
+        }
+
+        let url = URL(fileURLWithPath: path)
+
+        do {
+            let data = try Data(contentsOf: url)
+
+            let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
+
+            if let dict = jsonObject as? [String: Any] {
+                resolve(dict)
+            } else {
+                reject(
+                    "invalid_json",
+                    "Dynamic config is not a JSON object",
+                    nil
+                )
+            }
+        } catch {
+            reject(
+                "dynamic_config_error",
+                "Failed to read or parse dynamic config",
+                error
+            )
+        }
     }
     
     func getMsrAttachments(_ attachments: NSArray) -> [MsrAttachment] {

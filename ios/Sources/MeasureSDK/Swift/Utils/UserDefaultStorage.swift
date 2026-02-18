@@ -27,6 +27,8 @@ protocol UserDefaultStorage {
     func setConfigFetchTimestamp(_ timestamp: Number)
     func getConfigCacheControl() -> Number
     func setConfigCacheControl(_ duration: Number)
+    func hasRunOrphanAttachmentCleanup() -> Bool
+    func setHasRunOrphanAttachmentCleanup(_ value: Bool)
 }
 
 final class BaseUserDefaultStorage: UserDefaultStorage {
@@ -140,5 +142,13 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
 
     func setConfigCacheControl(_ duration: Number) {
         userDefaults.set(duration, forKey: configCacheControlKey)
+    }
+
+    func hasRunOrphanAttachmentCleanup() -> Bool {
+        userDefaults.bool(forKey: orphanCleanupKey)
+    }
+
+    func setHasRunOrphanAttachmentCleanup(_ value: Bool) {
+        userDefaults.set(value, forKey: orphanCleanupKey)
     }
 }
