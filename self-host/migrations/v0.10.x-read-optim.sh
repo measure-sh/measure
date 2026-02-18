@@ -3,8 +3,92 @@
 # exit on error
 set -e
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../shared.sh"
+######################
+# Migration Settings #
+######################
+# Use these settings to tune the migration
+# according to your needs.
+#
+# There are various migration scenarios.
+#
+# - DEBUG
+#   - Complete:   Recreate resources, replay data, finalize
+#     - RECREATE_RESOURCES=1
+#     - REPLAY_DATA=1
+#     - INITIAL_OFFSET=0
+#     - FINALIZE=1
+#   - Partial:    Recreate resources, replay data, don't finalize
+#     - RECREATE_RESOURCES=1
+#     - REPLAY_DATA=1
+#     - INITIAL_OFFSET=0
+#     - FINALIZE=0
+#   - Resume:     Don't recreate resources, replay data with offset, don't finalize
+#     - RECREATE_RESOURCES=0
+#     - REPLAY_DATA=1
+#     - INITIAL_OFFSET=xxxxx
+#     - FINALIZE=0
+#
+# - PRODUCTION
+#   - Complete:   Recreate resources, replay data, finalize
+#     - RECREATE_RESOURCES=1
+#     - REPLAY_DATA=1
+#     - INITIAL_OFFSET=0
+#     - FINALIZE=1
+#   - Resume:     Don't recreate resources, replay data with offset, don't finalize
+#     - RECREATE_RESOURCES=0
+#     - REPLAY_DATA=1
+#     - INITIAL_OFFSET=xxxxx
+#     - FINALIZE=0
+
+# Run in cloud mode
+USE_CLOUD="${USE_CLOUD:-0}"
+# Test connectivity only, no data will be read
+# or written. Only tables will be listed.
+#
+# Exits early.
+CONNECTIVITY="${CONNECTIVITY:-0}"
+# Re-create new tables and materialized views
+RECREATE_RESOURCES="${RECREATE_RESOURCES:-1}"
+# Replay all root table data like:
+#
+# - events
+# - unhandled_exception_groups
+# - anr_groups
+REPLAY_DATA="${REPLAY_DATA:-1}"
+# Offset to resume from
+INITIAL_OFFSET="${INITIAL_OFFSET:-0}"
+# Exchange and drop all resources after
+# successful migration.
+FINALIZE="${FINALIZE:-1}"
+
+# Events replay chunk size
+CHUNK_SIZE=10000
+
+if [[ "$USE_CLOUD" -eq 1 ]]; then
+  CHUNK_SIZE=10000000
+fi
+
+# List of partitions to migrate
+# PARTITIONS=(202509 202510 202511 202512 202601)
+PARTITIONS=(202601)
+
+echo "Migration Settings"
+echo "=================="
+echo "USE_CLOUD: $USE_CLOUD"
+echo "RECREATE_RESOURCES: $RECREATE_RESOURCES"
+echo "REPLAY_DATA: $REPLAY_DATA"
+echo "INITIAL_OFFSET: $INITIAL_OFFSET"
+echo "FINALIZE: $FINALIZE"
+echo "PARTITIONS: ${PARTITIONS[@]}"
+echo
+echo "CHUNK_SIZE: $CHUNK_SIZE"
+echo
+
+############################
+# Core Migration Procedure #
+############################
+# Any modification beyond this point
+# should be done with care.
 
 events_new_table=$(
   cat <<'EOF'
@@ -217,21 +301,20 @@ create or replace table events_new
     `custom.name` LowCardinality(String) comment 'name of the custom event',
     `attachments` String comment 'attachment metadata' CODEC(ZSTD(3)),
 
-    index type_idx type type set(100) granularity 2,
+    index type_set_idx type type set(100) granularity 2,
     index exception_handled_idx `exception.handled` type minmax granularity 2,
-    index attribute_os_name_idx `attribute.os_name` type minmax granularity 2,
-    index attribute_os_version_idx `attribute.os_version` type minmax granularity 2,
-    index inet_country_code_idx `inet.country_code` type minmax granularity 2,
-    index attribute_device_name_idx `attribute.device_name` type minmax granularity 2,
-    index attribute_device_manufacturer_idx `attribute.device_manufacturer` type minmax granularity 2,
-    index attribute_device_locale_idx `attribute.device_locale` type minmax granularity 2,
-    index attribute_network_provider_idx `attribute.network_provider` type minmax granularity 2,
-    index attribute_network_type_idx `attribute.network_type` type minmax granularity 2,
-    index exception_fingerprint_bloom_idx `exception.fingerprint` type bloom_filter granularity 4,
-    index anr_fingerprint_bloom_idx `anr.fingerprint` type bloom_filter granularity 4,
-    index user_defined_attribute_key_bloom_idx mapKeys(user_defined_attribute) type bloom_filter(0.01) granularity 16,
-    index user_defined_attribute_key_minmax_idx mapKeys(user_defined_attribute) type minmax granularity 16,
-    index custom_name_bloom_idx `custom.name` type bloom_filter granularity 2,
+    index attribute_os_name_set_idx `attribute.os_name` type set(100) granularity 2,
+    index attribute_os_version_set_idx `attribute.os_version` type set(500) granularity 2,
+    index inet_country_code_set_idx `inet.country_code` type set(500) granularity 2,
+    index attribute_device_name_bloom_idx `attribute.device_name` type bloom_filter(0.25) granularity 2,
+    index attribute_device_manufacturer_set_idx `attribute.device_manufacturer` type set(2000) granularity 2,
+    index attribute_device_locale_set_idx `attribute.device_locale` type set(3000) granularity 2,
+    index attribute_network_provider_set_idx `attribute.network_provider` type set(5000) granularity 2,
+    index attribute_network_type_set_idx `attribute.network_type` type set(100) granularity 2,
+    index exception_fingerprint_bloom_idx `exception.fingerprint` type bloom_filter(0.025) granularity 4,
+    index anr_fingerprint_bloom_idx `anr.fingerprint` type bloom_filter(0.025) granularity 4,
+    index user_defined_attribute_key_bloom_idx mapKeys(user_defined_attribute) type bloom_filter(0.01) granularity 8,
+    index custom_name_bloom_idx `custom.name` type bloom_filter(0.025) granularity 2,
     index timestamp_minmax_idx `timestamp` type minmax granularity 1
 )
 engine = ReplacingMergeTree
@@ -308,12 +391,13 @@ create or replace table app_metrics_new
     `warm_launch_p95` AggregateFunction(quantile(0.95), UInt32) comment 'p95 quantile of warm launch duration' CODEC(ZSTD(3)),
     `hot_launch_p95` AggregateFunction(quantile(0.95), UInt32) comment 'p95 quantile of hot launch duration' CODEC(ZSTD(3)),
 
-    index app_version_name_idx app_version.1 type set(100) granularity 2,
-    index app_version_code_idx app_version.2 type set(100) granularity 2
+    index app_version_name_idx app_version.1 type set(1000) granularity 2,
+    index app_version_code_idx app_version.2 type set(1000) granularity 2
 )
 engine = AggregatingMergeTree
 partition by toYYYYMM(timestamp)
-order by (team_id, app_id, timestamp)
+primary key (team_id, app_id, timestamp)
+order by (team_id, app_id, timestamp, app_version)
 settings index_granularity = 8192
 comment 'aggregated app metrics by a fixed time window'
 EOF
@@ -462,8 +546,8 @@ create or replace table sessions_index_new
         LowCardinality(String),
         LowCardinality(String)) comment 'associated app version' CODEC(ZSTD(3)),
     `session_id` UUID comment 'associated session id' CODEC(LZ4),
-    `first_event_timestamp` DateTime64(3, 'UTC') comment 'first event timestamp of the block of events' CODEC(DoubleDelta, ZSTD(3)),
-    `last_event_timestamp` DateTime64(3, 'UTC') comment 'last event timestamp of the block of events' CODEC(DoubleDelta, ZSTD(3)),
+    `first_event_timestamp` DateTime64(3, 'UTC') comment 'first event timestamp of the block of inputs' CODEC(DoubleDelta, ZSTD(3)),
+    `last_event_timestamp` DateTime64(3, 'UTC') comment 'last event timestamp of the block of inputs' CODEC(DoubleDelta, ZSTD(3)),
 
     index first_event_timestamp_minmax_idx first_event_timestamp type minmax granularity 1,
     index last_event_timestamp_minmax_idx last_event_timestamp type minmax granularity 1
@@ -485,60 +569,77 @@ create or replace table sessions_new
   `app_id` LowCardinality(UUID) comment 'unique id of the app' CODEC(LZ4),
   `first_event_timestamp` SimpleAggregateFunction(min, DateTime64(3, 'UTC')) comment 'timestamp of the first event' CODEC(DoubleDelta, ZSTD(3)),
   `last_event_timestamp` SimpleAggregateFunction(max, DateTime64(3, 'UTC')) comment 'timestamp of the last event' CODEC(DoubleDelta, ZSTD(3)),
+
   `app_version` Tuple(
     LowCardinality(String),
     LowCardinality(String)) comment 'composite app version' CODEC(ZSTD(3)),
   `os_version` Tuple(
     LowCardinality(String),
     LowCardinality(String)) comment 'composite os version' CODEC(ZSTD(3)),
-  `country_codes` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique country codes',
-  `network_providers` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network service providers',
-  `network_types` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network types',
-  `network_generations` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network generations',
-  `device_locales` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device locales',
-  `device_manufacturer` LowCardinality(String) comment 'manufacturer of the device' CODEC(ZSTD(3)),
-  `device_name` LowCardinality(String) comment 'name of the device' CODEC(ZSTD(3)),
-  `device_model` LowCardinality(String) comment 'model of the device' CODEC(ZSTD(3)),
-  `user_ids` AggregateFunction(groupUniqArray, String) comment 'list of all user ids',
-  `unique_types` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of unique event type' CODEC(ZSTD(3)),
-  `unique_custom_type_names` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of unique custom event type names' CODEC(ZSTD(3)),
-  `unique_strings` AggregateFunction(groupUniqArray, String) comment 'list of unique log string values' CODEC(ZSTD(3)),
-  `unique_view_classnames` AggregateFunction(groupUniqArray, String) comment 'list of unique view class names' CODEC(ZSTD(3)),
-  `unique_subview_classnames` AggregateFunction(groupUniqArray, String) comment 'list of unique subview class names' CODEC(ZSTD(3)),
-  `unique_unhandled_exceptions` AggregateFunction(groupUniqArray, Tuple(
+
+  `country_codes` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique country codes',
+  `network_providers` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network service providers',
+  `network_types` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network types',
+  `network_generations` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network generations',
+  `device_locales` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique device locales',
+
+  `device_manufacturer` String comment 'manufacturer of the device' CODEC(ZSTD(3)),
+  `device_name` String comment 'name of the device' CODEC(ZSTD(3)),
+  `device_model` String comment 'model of the device' CODEC(ZSTD(3)),
+
+  `user_ids` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all user ids',
+  `unique_types` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique event type' CODEC(ZSTD(3)),
+  `unique_custom_type_names` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique custom event type names' CODEC(ZSTD(3)),
+  `unique_strings` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique log string values' CODEC(ZSTD(3)),
+  `unique_view_classnames` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique view class names' CODEC(ZSTD(3)),
+  `unique_subview_classnames` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique subview class names' CODEC(ZSTD(3)),
+
+  `unique_unhandled_exceptions` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     type String,
     message String,
     file_name String,
     class_name String,
-    method_name String)) comment 'list of unique tuples of unhandled exception details' CODEC(ZSTD(3)),
-  `unique_handled_exceptions` AggregateFunction(groupUniqArray, Tuple(
+    method_name String))) comment 'list of unique tuples of unhandled exception details' CODEC(ZSTD(3)),
+  `unique_handled_exceptions` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     type String,
     message String,
     file_name String,
     class_name String,
-    method_name String)) comment 'list of unique tuples of handled exception details' CODEC(ZSTD(3)),
-  `unique_anrs` AggregateFunction(groupUniqArray, Tuple(
+    method_name String))) comment 'list of unique tuples of handled exception details' CODEC(ZSTD(3)),
+  `unique_errors` SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of unique exception error values' CODEC(ZSTD(3)),
+  `unique_anrs` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     type String,
     message String,
     file_name String,
     class_name String,
-    method_name String)) comment 'list of unique tuples of anr details' CODEC(ZSTD(3)),
-  `unique_click_targets` AggregateFunction(groupUniqArray, Tuple(
+    method_name String))) comment 'list of unique tuples of anr details' CODEC(ZSTD(3)),
+  `unique_click_targets` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     String,
-    String)) comment 'list of unique tuples of click targets and ids' CODEC(ZSTD(3)),
-  `unique_longclick_targets` AggregateFunction(groupUniqArray, Tuple(
+    String))) comment 'list of unique tuples of click targets and ids' CODEC(ZSTD(3)),
+  `unique_longclick_targets` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     String,
-    String)) comment 'list of unique tuples of long click targets and ids' CODEC(ZSTD(3)),
-  `unique_scroll_targets` AggregateFunction(groupUniqArray, Tuple(
+    String))) comment 'list of unique tuples of long click targets and ids' CODEC(ZSTD(3)),
+  `unique_scroll_targets` SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(
     String,
-    String)) comment 'list of unique tuples of scroll targets and ids' CODEC(ZSTD(3)),
-  `event_count` AggregateFunction(sum, UInt64) comment 'count of events in this session' CODEC(ZSTD(3)),
-  `crash_count` AggregateFunction(sum, UInt64) comment 'count of crash events in this session' CODEC(ZSTD(3)),
-  `anr_count` AggregateFunction(sum, UInt64) comment 'count of ANR events in this session' CODEC(ZSTD(3)),
-  `bug_report_count` AggregateFunction(sum, UInt64) comment 'count of bug report events in this session' CODEC(ZSTD(3)),
-  `background_count` AggregateFunction(sum, UInt64) comment 'count of background events in this session' CODEC(ZSTD(3)),
-  `foreground_count` AggregateFunction(sum, UInt64) comment 'count of foreground events in this session' CODEC(ZSTD(3)),
-  `event_type_counts` AggregateFunction(sumMap, Tuple(Array(String), Array(UInt64))) comment 'count of event types in this session' CODEC(ZSTD(3)),
+    String))) comment 'list of unique tuples of scroll targets and ids' CODEC(ZSTD(3)),
+
+  `event_count` SimpleAggregateFunction(sum, UInt64) comment 'count of events in this session' CODEC(ZSTD(3)),
+  `crash_count` SimpleAggregateFunction(sum, UInt64) comment 'count of crash events in this session' CODEC(ZSTD(3)),
+  `anr_count` SimpleAggregateFunction(sum, UInt64) comment 'count of ANR events in this session' CODEC(ZSTD(3)),
+  `bug_report_count` SimpleAggregateFunction(sum, UInt64) comment 'count of bug report events in this session' CODEC(ZSTD(3)),
+  `background_count` SimpleAggregateFunction(sum, UInt64) comment 'count of background events in this session' CODEC(ZSTD(3)),
+  `foreground_count` SimpleAggregateFunction(sum, UInt64) comment 'count of foreground events in this session' CODEC(ZSTD(3)),
+
+  `event_type_counts` SimpleAggregateFunction(sumMap, Map(String, UInt64)) comment 'count of event types in this session' CODEC(ZSTD(3)),
+
+  index session_id_bloom_idx session_id type bloom_filter(0.01) granularity 1,
+
+  index crash_count_minmax_idx crash_count type minmax granularity 1,
+  index anr_count_minmax_idx anr_count type minmax granularity 1,
+  index bug_report_count_minmax_idx bug_report_count type minmax granularity 1,
+  index background_count_minmax_idx background_count type minmax granularity 1,
+  index foreground_count_minmax_idx foreground_count type minmax granularity 1,
+  index event_type_counts_bloom_idx mapKeys(event_type_counts) type bloom_filter(0.025) granularity 1,
 
   index first_event_timestamp_minmax_idx first_event_timestamp type minmax granularity 1,
   index last_event_timestamp_minmax_idx last_event_timestamp type minmax granularity 1
@@ -581,6 +682,7 @@ create or replace table unhandled_exception_groups_new
   `count` AggregateFunction(sum, UInt64) comment 'count of unhandled exception instances' CODEC(ZSTD(3)),
   `timestamp` DateTime64(3, 'UTC') comment 'timestamp of the exception event' CODEC(DoubleDelta, ZSTD(3)),
 
+  index id_bloom_idx id type bloom_filter(0.01) granularity 1,
   index timestamp_minmax_idx timestamp type minmax granularity 1
 )
 engine = AggregatingMergeTree
@@ -621,6 +723,7 @@ create or replace table anr_groups_new
   `count` AggregateFunction(sum, UInt64) comment 'count of ANR instances' CODEC(ZSTD(3)),
   `timestamp` DateTime64(3, 'UTC') comment 'timestamp of the ANR event' CODEC(DoubleDelta, ZSTD(3)),
 
+  index id_bloom_idx id type bloom_filter(0.01) granularity 1,
   index timestamp_minmax_idx timestamp type minmax granularity 1
 )
 engine = AggregatingMergeTree
@@ -675,21 +778,23 @@ create or replace table spans_new
         Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
         String)) comment 'user defined attributes' CODEC(ZSTD(3)),
 
-    index span_name_bloom_idx span_name type bloom_filter granularity 2,
-    index span_id_bloom_idx span_id type bloom_filter granularity 2,
-    index trace_id_bloom_idx trace_id type bloom_filter granularity 2,
-    index parent_id_bloom_idx parent_id type bloom_filter granularity 2,
-    index start_time_minmax_idx start_time type minmax granularity 2,
-    index end_time_minmax_idx end_time type minmax granularity 2,
+    index span_name_bloom_idx span_name type bloom_filter(0.025) granularity 2,
+    index span_id_bloom_idx span_id type bloom_filter(0.025) granularity 2,
+    index trace_id_bloom_idx trace_id type bloom_filter(0.01) granularity 1,
+    index session_id_bloom_idx session_id type bloom_filter(0.01) granularity 2,
+    index parent_id_bloom_idx parent_id type bloom_filter(0.025) granularity 2,
+
+    index start_time_minmax_idx start_time type minmax granularity 1,
+    index end_time_minmax_idx end_time type minmax granularity 1,
 
     index os_version_set_idx `attribute.os_version` type set(100) granularity 2,
-    index country_code_set_idx `attribute.country_code` type set(100) granularity 2,
-    index network_provider_set_idx `attribute.network_provider` type set(100) granularity 2,
+    index country_code_set_idx `attribute.country_code` type set(1000) granularity 2,
+    index network_provider_set_idx `attribute.network_provider` type set(5000) granularity 2,
     index network_type_set_idx `attribute.network_type` type set(100) granularity 2,
     index network_generation_set_idx `attribute.network_generation` type set(100) granularity 2,
-    index device_locale_set_idx `attribute.device_locale` type set(100) granularity 2,
-    index device_manufacturer_set_idx `attribute.device_manufacturer` type set(100) granularity 2,
-    index device_name_set_idx `attribute.device_name` type set(100) granularity 2,
+    index device_locale_set_idx `attribute.device_locale` type set(1000) granularity 2,
+    index device_manufacturer_set_idx `attribute.device_manufacturer` type set(2000) granularity 2,
+    index device_name_set_idx `attribute.device_name` type set(2000) granularity 2,
 
     index user_defined_attribute_key_bloom_idx mapKeys(user_defined_attribute) type bloom_filter(0.01) granularity 8
 )
@@ -762,14 +867,14 @@ create or replace table span_metrics_new
     `p99` AggregateFunction(quantile(0.5), Int64) comment 'p99 quantile of span duration' CODEC(ZSTD(3)),
 
     index status_set_idx status type set(100) granularity 2,
-    index os_version_set_idx os_version type set(100) granularity 2,
-    index country_code_set_idx country_code type set(100) granularity 2,
-    index network_provider_set_idx network_provider type set(100) granularity 2,
+    index os_version_set_idx os_version type set(1000) granularity 2,
+    index country_code_set_idx country_code type set(1000) granularity 2,
+    index network_provider_set_idx network_provider type set(5000) granularity 2,
     index network_type_set_idx network_type type set(100) granularity 2,
     index network_generation_set_idx network_generation type set(100) granularity 2,
-    index device_locale_set_idx device_locale type set(100) granularity 2,
-    index device_manufacturer_set_idx device_manufacturer type set(100) granularity 2,
-    index device_name_set_idx device_name type set(100) granularity 2
+    index device_locale_set_idx device_locale type set(5000) granularity 2,
+    index device_manufacturer_set_idx device_manufacturer type set(5000) granularity 2,
+    index device_name_set_idx device_name type set(5000) granularity 2
 )
 engine = AggregatingMergeTree
 order by (team_id, app_id, app_version.1, app_version.2, span_name, timestamp, span_id)
@@ -1143,73 +1248,155 @@ sessions_mv() {
     session_id,
     team_id,
     app_id,
+    minSimpleState(timestamp) as first_event_timestamp,
+    maxSimpleState(timestamp) as last_event_timestamp,
+
     (attribute.app_version, attribute.app_build) as app_version,
     (attribute.os_name, attribute.os_version) as os_version,
-    min(timestamp) as first_event_timestamp,
-    max(timestamp) as last_event_timestamp,
-    groupUniqArrayStateIf(\`attribute.user_id\`, \`attribute.user_id\` != '') as user_ids,
-    groupUniqArrayState(\`inet.country_code\`) as country_codes,
-    groupUniqArrayState(\`attribute.network_provider\`) as network_providers,
-    groupUniqArrayState(\`attribute.network_type\`) as network_types,
-    groupUniqArrayState(\`attribute.network_generation\`) as network_generations,
-    groupUniqArrayState(\`type\`) as unique_types,
-    groupUniqArrayStateIf(\`custom.name\`, \`type\` = 'custom') as unique_custom_type_names,
-    groupUniqArrayStateIf(\`string.string\`, \`string.string\` != '') as unique_strings,
-    groupUniqArrayStateIf(lifecycle_activity.class_name, type = 'lifecycle_activity' and lifecycle_activity.class_name != '') as unique_view_classnames,
-    groupUniqArrayStateIf(lifecycle_fragment.class_name, type = 'lifecycle_fragment' and lifecycle_fragment.class_name != '') as unique_subview_classnames,
-    groupUniqArrayStateIf(
-      tuple(
-        simpleJSONExtractString(\`exception.exceptions\`, 'type'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'message'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'file_name'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'class_name'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'method_name')
-      ),
-      type = 'exception' and exception.handled = 0
+
+    groupUniqArrayArraySimpleState(
+      if(inet.country_code != '', [inet.country_code], [])
+    ) as country_codes,
+    groupUniqArrayArraySimpleState(
+      if(attribute.network_provider != '', [attribute.network_provider], [])
+    ) as network_providers,
+    groupUniqArrayArraySimpleState(
+      if(attribute.network_type != '', [attribute.network_type], [])
+    ) as network_types,
+    groupUniqArrayArraySimpleState(
+      if(attribute.network_generation != '', [attribute.network_generation], [])
+    ) as network_generations,
+    groupUniqArrayArraySimpleState([attribute.device_locale]) as device_locales,
+
+    argMax(attribute.device_name, timestamp) as device_name,
+    argMax(attribute.device_manufacturer, timestamp) as device_manufacturer,
+    argMax(attribute.device_model, timestamp) as device_model,
+
+    groupUniqArrayArraySimpleState(
+      if(attribute.user_id != '', [attribute.user_id], [])
+    ) as user_ids,
+    groupUniqArrayArraySimpleState([type]) as unique_types,
+    groupUniqArrayArraySimpleState(
+      if(\`type\` = 'custom', [custom.name], [])
+    ) as unique_custom_type_names,
+    groupUniqArrayArraySimpleState(
+      if(\`string.string\` != '', [\`string.string\`], [])
+    ) as unique_strings,
+    groupUniqArrayArraySimpleState(
+      if(type = 'lifecycle_activity' and lifecycle_activity.class_name != '', [lifecycle_activity.class_name], [])
+    ) as unique_view_classnames,
+    groupUniqArrayArraySimpleState(
+      if(type = 'lifecycle_fragment' and lifecycle_fragment.class_name != '', [lifecycle_fragment.class_name], [])
+    ) as unique_subview_classnames,
+
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'exception' and exception.handled = 0,
+        [
+          tuple(
+            simpleJSONExtractString(\`exception.exceptions\`, 'type'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'message'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'file_name'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'class_name'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'method_name')
+          )
+        ],
+        []
+      )
     ) as unique_unhandled_exceptions,
-    groupUniqArrayStateIf(
-      tuple(
-        simpleJSONExtractString(\`exception.exceptions\`, 'type'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'message'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'file_name'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'class_name'),
-        simpleJSONExtractString(\`exception.exceptions\`, 'method_name')
-      ),
-      type = 'exception' and exception.handled = 1
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'exception' and exception.handled = 1,
+        [
+          tuple(
+            simpleJSONExtractString(\`exception.exceptions\`, 'type'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'message'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'file_name'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'class_name'),
+            simpleJSONExtractString(\`exception.exceptions\`, 'method_name')
+          )
+        ],
+        []
+      )
     ) as unique_handled_exceptions,
-    groupUniqArrayStateIf(
-      tuple(
-        simpleJSONExtractString(\`anr.exceptions\`, 'type'),
-        simpleJSONExtractString(\`anr.exceptions\`, 'message'),
-        simpleJSONExtractString(\`anr.exceptions\`, 'file_name'),
-        simpleJSONExtractString(\`anr.exceptions\`, 'class_name'),
-        simpleJSONExtractString(\`anr.exceptions\`, 'method_name')
-      ),
-      type = 'anr'
+    groupUniqArrayArraySimpleState(
+      if(type = 'exception' and exception.error != '' and exception.error != '{}', [exception.error], [])
+    ) as unique_errors,
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'anr',
+        [
+          tuple(
+            simpleJSONExtractString(\`anr.exceptions\`, 'type'),
+            simpleJSONExtractString(\`anr.exceptions\`, 'message'),
+            simpleJSONExtractString(\`anr.exceptions\`, 'file_name'),
+            simpleJSONExtractString(\`anr.exceptions\`, 'class_name'),
+            simpleJSONExtractString(\`anr.exceptions\`, 'method_name')
+          )
+        ],
+        []
+      )
     ) as unique_anrs,
-    groupUniqArrayStateIf(
-      tuple(\`gesture_click.target\`, \`gesture_click.target_id\`),
-      type = 'gesture_click'
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'gesture_click',
+        [tuple(gesture_click.target, gesture_click.target_id)],
+        []
+      )
     ) as unique_click_targets,
-    groupUniqArrayStateIf(
-      tuple(\`gesture_long_click.target\`, \`gesture_long_click.target_id\`),
-      type = 'gesture_long_click'
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'gesture_long_click',
+        [tuple(gesture_long_click.target, gesture_long_click.target_id)],
+        []
+      )
     ) as unique_longclick_targets,
-    groupUniqArrayStateIf(
-      tuple(\`gesture_scroll.target\`, \`gesture_scroll.target_id\`),
-      type = 'gesture_scroll'
+    groupUniqArrayArraySimpleState(
+      if(
+        type = 'gesture_scroll',
+        [tuple(gesture_scroll.target, gesture_scroll.target_id)],
+        []
+      )
     ) as unique_scroll_targets,
-    sumState(toUInt64(1)) as event_count,
-    sumStateIf(toUInt64(1), type = 'exception' and exception.handled = 0) as crash_count,
-    sumStateIf(toUInt64(1), type = 'anr') as anr_count,
-    sumStateIf(toUInt64(1), type = 'bug_report') as bug_report_count,
-    sumStateIf(toUInt64(1), lifecycle_app.type = 'background') as background_count,
-    sumStateIf(toUInt64(1), lifecycle_app.type = 'foreground') as foreground_count,
-    sumMapState(tuple(array(type), array(toUInt64(1)))) as event_type_counts,
-    argMax(\`attribute.device_name\`, timestamp) as device_name,
-    argMax(\`attribute.device_manufacturer\`, timestamp) as device_manufacturer,
-    argMax(\`attribute.device_model\`, timestamp) as device_model,
-    groupUniqArrayState(\`attribute.device_locale\`) as device_locales
+
+    sumSimpleState(toUInt64(1)) as event_count,
+    sumSimpleState(
+      if(
+        type = 'exception' and exception.handled = 0,
+        toUInt64(1),
+        toUInt64(0)
+      )
+    ) as crash_count,
+    sumSimpleState(
+      if(
+        type = 'anr',
+        toUInt64(1),
+        toUInt64(0)
+      )
+    ) as anr_count,
+    sumSimpleState(
+      if(
+        type = 'bug_report',
+        toUInt64(1),
+        toUInt64(0)
+      )
+    ) as bug_report_count,
+    sumSimpleState(
+      if(
+        type = 'lifecycle_app' and lifecycle_app.type = 'background',
+        toUInt64(1),
+        toUInt64(0)
+      )
+    ) as background_count,
+    sumSimpleState(
+      if(
+        type = 'lifecycle_app' and lifecycle_app.type = 'foreground',
+        toUInt64(1),
+        toUInt64(0)
+      )
+    ) as foreground_count,
+
+    sumMapSimpleState(map(type, toUInt64(1))) as event_type_counts
   from $source
   group by
     team_id,
@@ -1413,34 +1600,110 @@ group by
 EOF
 }
 
-# connect to cloud database
-USE_CLOUD=1
+sessions_span_index_mv() {
+  local mv_name="$1"
+  local source="$2"
+  local dest="$3"
 
-# replay chunk size
-CHUNK_SIZE=10000
+  cat <<EOF
+create materialized view $mv_name to $dest
+as select
+  team_id,
+  app_id,
+  attribute.app_version as app_version,
+  session_id,
+  min(start_time) as first_event_timestamp,
+  max(end_time) as last_event_timestamp
+from $source
+group by
+  team_id,
+  app_id,
+  app_version,
+  session_id
+EOF
+}
 
-if [[ "$USE_CLOUD" -eq 1 ]]; then
-  CHUNK_SIZE=10000000
-fi
+sessions_span_mv() {
+  local mv_name="$1"
+  local source="$2"
+  local dest="$3"
 
-# list of partitions to migrate
-# PARTITIONS=(202509 202510 202511 202512 202601)
-PARTITIONS=(202601)
+  cat <<EOF
+create materialized view $mv_name to $dest
+as select
+  session_id,
+  team_id,
+  app_id,
+
+  -- Timestamps from span boundaries
+  minSimpleState(start_time) as first_event_timestamp,
+  maxSimpleState(end_time) as last_event_timestamp,
+
+  -- Session attributes (take from span attributes)
+  argMax(attribute.app_version, start_time) as app_version,
+  argMax(attribute.os_version, start_time) as os_version,
+
+  -- Aggregate attributes avaialble in spans
+  groupUniqArrayArraySimpleState([attribute.country_code]) as country_codes,
+  groupUniqArrayArraySimpleState([attribute.network_provider]) as network_providers,
+  groupUniqArrayArraySimpleState([attribute.network_type]) as network_types,
+  groupUniqArrayArraySimpleState([attribute.network_generation]) as network_generations,
+  groupUniqArrayArraySimpleState([attribute.device_locale]) as device_locales,
+
+  -- Scalar attributes
+  argMax(attribute.device_manufacturer, start_time) as device_manufacturer,
+  argMax(attribute.device_name, start_time) as device_name,
+  argMax(attribute.device_model, start_time) as device_model,
+
+  -- User IDs from spans
+  groupUniqArrayArraySimpleState([attribute.user_id]) as user_ids,
+
+  -- Event specific aggregates: empty states (spans don't produce these)
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_types,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_custom_type_names,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_strings,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_view_classnames,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_subview_classnames,
+  groupUniqArrayArraySimpleState([]::Array(Tuple(String, String, String, String, String))) as unique_unhandled_exceptions,
+  groupUniqArrayArraySimpleState([]::Array(Tuple(String, String, String, String, String))) as unique_handled_exceptions,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_errors,
+  groupUniqArrayArraySimpleState([]::Array(Tuple(String, String, String, String, String))) as unique_anrs,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_click_targets,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_longclick_targets,
+  groupUniqArrayArraySimpleState([]::Array(String)) as unique_scroll_targets,
+
+  -- Zero counts
+  sumSimpleState(toUInt64(0)) as event_count,
+  sumSimpleState(toUInt64(0)) as crash_count,
+  sumSimpleState(toUInt64(0)) as anr_count,
+  sumSimpleState(toUInt64(0)) as bug_report_count,
+  sumSimpleState(toUInt64(0)) as background_count,
+  sumSimpleState(toUInt64(0)) as foreground_count,
+
+  -- Empty event type counts map
+  sumMapSimpleState(map()::Map(String, UInt64)) as event_type_counts
+from $source
+group by
+  team_id,
+  app_id,
+  attribute.app_version,
+  session_id
+EOF
+}
 
 clickhouse_query() {
   local admin_user
   local admin_password
   local dbname
 
-  # admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
-  # admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
-  admin_user="app_admin"
-  admin_password="Da2a-5Up8R.nRJXks5RiFL-jr"
   dbname=measure
 
   if [[ "$USE_CLOUD" -eq 1 ]]; then
-    host="pa5ct2shp1.us-central1.gcp.clickhouse.cloud"
-    clickhouse_client \
+    local host="$CLICKHOUSE_HOST"
+    admin_user="$CLICKHOUSE_ADMIN_USER"
+    admin_password="$CLICKHOUSE_ADMIN_PASSWORD"
+
+    clickhouse client \
       --user "$admin_user" \
       --password "$admin_password" \
       --database "$dbname" \
@@ -1449,21 +1712,29 @@ clickhouse_query() {
       --secure \
       --progress \
       --receive_timeout 3600 \
+      --format TabSeparatedRaw \
       "$@"
   else
+    admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
+    admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
+
     clickhouse_client \
       --user "$admin_user" \
       --password "$admin_password" \
       --database "$dbname" \
-      --receive_timeout 3600 \
       --progress \
+      --receive_timeout 3600 \
+      --format TabSeparatedRaw \
       "$@"
   fi
 }
 
-create_resources() {
+recreate_resources() {
   echo "  ✔ Create new events"
   clickhouse_query --query "$events_new_table"
+
+  echo "  ✔ Create new spans"
+  clickhouse_query --query "$spans_new_table"
 
   echo "  ✔ Create new event filters"
   clickhouse_query --query "$app_filters_new_table"
@@ -1494,20 +1765,21 @@ create_resources() {
   clickhouse_query --query "$sessions_index_new_table"
   clickhouse_query --query "drop table if exists sessions_index_new_mv sync"
   clickhouse_query --query "$(sessions_index_mv 'sessions_index_new_mv' 'events_new' 'sessions_index_new')"
+  clickhouse_query --query "drop table if exists sessions_span_index_new_mv sync"
+  clickhouse_query --query "$(sessions_span_index_mv 'sessions_span_index_new_mv' 'spans_new' 'sessions_index_new')"
 
   echo "  ✔ Create new sessions"
   clickhouse_query --query "$sessions_new_table"
   clickhouse_query --query "drop table if exists sessions_new_mv sync"
   clickhouse_query --query "$(sessions_mv 'sessions_new_mv' 'events_new' 'sessions_new')"
+  clickhouse_query --query "drop table if exists sessions_span_new_mv sync"
+  clickhouse_query --query "$(sessions_span_mv 'sessions_span_new_mv' 'spans_new' 'sessions_new')"
 
   echo "  ✔ Create new unhandled exception groups"
   clickhouse_query --query "$unhandled_exception_groups_new_table"
 
   echo "  ✔ Create new anr groups"
   clickhouse_query --query "$anr_groups_new_table"
-
-  echo "  ✔ Create new spans"
-  clickhouse_query --query "$spans_new_table"
 
   echo "  ✔ Create new span filters"
   clickhouse_query --query "$span_filters_new_table"
@@ -1537,12 +1809,11 @@ replay_events() {
     echo "  ✔ Preparing row counts"
     local event_rows
     event_rows=$(count_rows 'events')
-    local moved_rows=0
 
     for part in "${PARTITIONS[@]}"; do
       echo "  ✔ Starting partition $part"
 
-      local offset=0
+      local -i offset=$INITIAL_OFFSET
       while true; do
         local chunk_count
         chunk_count=$(clickhouse_query --query "
@@ -1557,8 +1828,8 @@ replay_events() {
         ")
 
         # trim leading/trailing whitespace
-        chunk_count=${chunk_count##[[:space:]]*}
-        chunk_count=${chunk_count%%[[:space:]]*}
+        chunk_count=${chunk_count//$'\n'/}
+        chunk_count=${chunk_count//$'\r'/}
 
         if [[ -z "$chunk_count" || "$chunk_count" -eq 0 ]]; then
           echo "  ✔ Finished partition $part"
@@ -1601,16 +1872,13 @@ replay_events() {
           return 1
         fi
 
-        offset=$((offset + CHUNK_SIZE))
-        moved_rows=$((moved_rows + CHUNK_SIZE))
-        echo "  ✔ Progress ($((moved_rows / event_rows)))"
+        ((offset += CHUNK_SIZE))
       done
     done
 
-    echo "  ✔ Total Rows Moved: $moved_rows"
     echo "  ✔ Finished replaying all cloud partitions"
   else
-    local offset=0
+    local -i offset=$INITIAL_OFFSET
     while true; do
       local chunk_count
       chunk_count=$(clickhouse_query --query "
@@ -1624,8 +1892,8 @@ replay_events() {
       ")
 
       # trim leading/trailing whitespace
-      chunk_count=${chunk_count##[[:space:]]*}
-      chunk_count=${chunk_count%%[[:space:]]*}
+      chunk_count=${chunk_count//$'\n'/}
+      chunk_count=${chunk_count//$'\r'/}
 
       if [[ -z "$chunk_count" || "$chunk_count" -eq 0 ]]; then
         echo "  ✔ Finished replaying all events"
@@ -1663,7 +1931,7 @@ replay_events() {
         return 1
       fi
 
-      offset=$((offset + CHUNK_SIZE))
+      ((offset += CHUNK_SIZE))
     done
   fi
 }
@@ -1885,14 +2153,40 @@ replay_anr_groups() {
 
 replay_spans() {
   echo "  ✔ Replaying spans"
-  if ! clickhouse_query --query "
-    insert into spans_new
-    select
-      *
-    from spans
-  "; then
-    echo "  ✗ Insert failed while replaying spans_new"
-    return 1
+
+  if [[ "$USE_CLOUD" -eq 1 ]]; then
+    if [[ ${#PARTITIONS[@]} -eq 0 ]]; then
+      echo "  ✗ partitions array is empty – set it globally before calling replay_spans in cloud mode"
+      return 1
+    fi
+
+    echo "  ✔ Preparing row counts"
+    local span_rows
+    span_rows=$(count_rows 'spans')
+
+    for part in "${PARTITIONS[@]}"; do
+      echo "  ✔ Starting partition $part"
+      if ! clickhouse_query --query "
+        insert into spans_new
+        select
+          *
+        from spans
+        where toYYYYMM(start_time) = $part
+      "; then
+        echo "  ✗ Insert failed while replaying spans_new"
+        return 1
+      fi
+    done
+  else
+    if ! clickhouse_query --query "
+      insert into spans_new
+      select
+        *
+      from spans
+    "; then
+      echo "  ✗ Insert failed while replaying spans_new"
+      return 1
+    fi
   fi
 }
 
@@ -1912,8 +2206,8 @@ exchange_resources() {
   echo "  ✔ Exchange user defined attributes"
   clickhouse_query --query "exchange tables user_def_attrs_new and user_def_attrs"
 
-  # echo "  ✔ Exchange sessions index"
-  # clickhouse_query --query "exchange tables sessions_index_new and sessions_index"
+  echo "  ✔ Exchange sessions index"
+  clickhouse_query --query "exchange tables sessions_index_new and sessions_index"
 
   echo "  ✔ Exchange sessions"
   clickhouse_query --query "exchange tables sessions_new and sessions"
@@ -1965,9 +2259,17 @@ recreate_mvs() {
   clickhouse_query --query "drop table if exists sessions_index_mv sync"
   clickhouse_query --query "$(sessions_index_mv 'sessions_index_mv' 'events' 'sessions_index')"
 
+  echo "  ✔ Recreate sessions span index mv"
+  clickhouse_query --query "drop table if exists sessions_span_index_mv sync"
+  clickhouse_query --query "$(sessions_span_index_mv 'sessions_span_index_mv' 'spans' 'sessions_index')"
+
   echo "  ✔ Recreate sessions mv"
   clickhouse_query --query "drop table if exists sessions_mv sync"
   clickhouse_query --query "$(sessions_mv 'sessions_mv' 'events' 'sessions')"
+
+  echo "  ✔ Recreate sessions span mv"
+  clickhouse_query --query "drop table if exists sessions_span_mv sync"
+  clickhouse_query --query "$(sessions_span_mv 'sessions_span_mv' 'spans' 'sessions')"
 
   echo "  ✔ Recreate span filters mv"
   clickhouse_query --query "drop table if exists span_filters_mv sync"
@@ -2003,8 +2305,17 @@ drop_resources() {
   clickhouse_query --query "drop table if exists user_def_attrs_new_mv sync"
   clickhouse_query --query "drop table if exists user_def_attrs_new sync"
 
+  echo "  ✔ Drop span user defined attributes"
+  clickhouse_query --query "drop table if exists span_user_def_attrs_new_mv sync"
+  clickhouse_query --query "drop table if exists span_user_def_attrs_new sync"
+
   echo "  ✔ Drop sessions"
+  clickhouse_query --query "drop table if exists sessions_index_new_mv sync"
+  clickhouse_query --query "drop table if exists sessions_span_index_new_mv sync"
+  clickhouse_query --query "drop table if exists sessions_span_new_mv sync"
+
   clickhouse_query --query "drop table if exists sessions_new_mv sync"
+  clickhouse_query --query "drop table if exists sessions_index_new sync"
   clickhouse_query --query "drop table if exists sessions_new sync"
 
   echo "  ✔ Drop unhandled_exception_groups"
@@ -2025,7 +2336,7 @@ drop_resources() {
   clickhouse_query --query "drop table if exists events_new sync"
 
   echo "  ✔ Drop spans"
-  clickhouse_query --query "drop table if exists span_new sync"
+  clickhouse_query --query "drop table if exists spans_new sync"
 }
 
 verify_resources() {
@@ -2199,35 +2510,50 @@ count_rows() {
   echo "$result"
 }
 
+# set up environment
+if [[ "$USE_CLOUD" -eq 0 ]]; then
+  SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  source "${SCRIPT_DIR}/../shared.sh"
+
+  check_base_dir
+  set_docker_compose
+fi
+
 # kick things off
-check_base_dir
-set_docker_compose
+if [[ "$CONNECTIVITY" -eq 1 ]]; then
+  echo "Testing connectivity..."
+  clickhouse_query --query "show tables;"
+  exit 0
+fi
 
-# echo "Create resources..."
-# create_resources
+if [[ "$RECREATE_RESOURCES" -eq 1 ]]; then
+  echo "Re-create resources..."
+  recreate_resources
+fi
 
-echo
-echo "Replay data..."
-replay_events
-echo
-replay_unhandled_exception_groups
-echo
-replay_anr_groups
-echo
-replay_spans
-echo
+if [[ "$REPLAY_DATA" -eq 1 ]]; then
+  echo
+  echo "Replay data..."
+  replay_events
+  echo
+  replay_unhandled_exception_groups
+  echo
+  replay_anr_groups
+  echo
+  replay_spans
+  echo
 
-echo "Verify backfill..."
-verify_resources
+  echo "Verify backfill..."
+  verify_resources
+fi
 
-# echo "Exchange resources..."
-# exchange_resources
+if [[ "$FINALIZE" -eq 1 ]]; then
+  echo "Exchange resources..."
+  exchange_resources
 
-# echo "Recreate materialized views..."
-# recreate_mvs
+  echo "Recreate materialized views..."
+  recreate_mvs
 
-# echo "Drop resources..."
-# drop_resources
-
-# echo "Testing..."
-# clickhouse_query --query "show tables;"
+  echo "Drop resources..."
+  drop_resources
+fi
