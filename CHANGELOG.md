@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Optimize & improve dashboard read queries (#3139) by @detj in #3139
 - (**backend**): Update /usage api response in docs by @anupcowkur in #3108
 - (**backend**): Update ingestion metrics by @anupcowkur in #3107
 - (**backend**): Update go dependencies (#3098) by @detj in #3098
