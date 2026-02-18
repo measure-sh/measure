@@ -175,13 +175,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.15.1")
+implementation("sh.measure:measure-android:0.16.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.15.1'
+implementation 'sh.measure:measure-android:0.16.0'
 ```
 
 ### Initialize the SDK
