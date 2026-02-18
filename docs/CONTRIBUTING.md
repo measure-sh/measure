@@ -328,6 +328,7 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
 
    ```sh
     ./migrations/v0.9.x-data-backfills.sh
+    ./migrations/v0.10.x-read-optim.sh
     ```
 
 5. Start development

@@ -175,8 +175,8 @@ describe('ExceptionsOverview Component - Crashes', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check URL update with kId, pl, and filters
-        expect(replaceMock).toHaveBeenCalledWith('?pl=5&updated', { scroll: false })
+        // Check URL update with po (pagination offset) and filters
+        expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
 
         // Verify main UI components are rendered
         expect(await screen.findByTestId('exceptions-overview-plot-mock')).toBeInTheDocument()
@@ -318,17 +318,17 @@ describe('ExceptionsOverview Component - Crashes', () => {
         expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException')
     })
 
-    describe('Pagination key ID handling', () => {
-        it('initializes without keyId when none is provided', async () => {
+    describe('Pagination offset handling', () => {
+        it('initializes pagination offset to 0 when no offset is provided', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
             const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
                 fireEvent.click(updateButton)
             })
-            expect(replaceMock).toHaveBeenCalledWith('?pl=5&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
         })
 
-        it('sets keyId to last result ID when Next is clicked', async () => {
+        it('increments pagination offset when Next is clicked', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
             const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
@@ -338,47 +338,61 @@ describe('ExceptionsOverview Component - Crashes', () => {
             await act(async () => {
                 fireEvent.click(nextButton)
             })
-            // The keyId should be set to the ID of the last item in results
-            expect(replaceMock).toHaveBeenLastCalledWith('?kId=exception1&pl=5&updated', { scroll: false })
+            // The pagination limit is 5 so offset should be 5.
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
         })
 
-        it('sets keyId to first result ID when Prev is clicked', async () => {
-            // Render component
+        it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
             const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
                 fireEvent.click(updateButton)
             })
+            const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
             const prevButton = await screen.findByTestId('prev-button')
             await act(async () => {
                 fireEvent.click(prevButton)
             })
-            expect(replaceMock).toHaveBeenCalledWith('?kId=exception1&pl=-5&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
+            await act(async () => {
+                fireEvent.click(prevButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
         })
 
-        it('resets keyId when filters change if previous filters were non-default', async () => {
-            // Override useSearchParams to simulate an initial keyId
+        it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
+            // Override useSearchParams to simulate an initial offset.
             const { useSearchParams } = jest.requireActual('next/navigation')
             const useSearchParamsSpy = jest
                 .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?kId=previousKey&pl=5'))
+                .mockReturnValue(new URLSearchParams('?po=5'))
 
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
             const updateButton = screen.getByTestId('update-filters')
-
-            // First update: filters become ready with "updated" and keyId from URL is "previousKey"
+            // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
                 fireEvent.click(updateButton)
             })
-            expect(replaceMock).toHaveBeenCalledWith('?kId=previousKey&pl=5&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
 
-            // Now simulate a filter change with a different value
+            // Click Next to further increment the offset.
+            const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=10&updated', { scroll: false })
+
+            // Now simulate a filter change with a different value.
             const updateButton2 = screen.getByTestId('update-filters-2')
             await act(async () => {
                 fireEvent.click(updateButton2)
+                await new Promise(resolve => setTimeout(resolve, 0))
             })
-            // Should reset keyId and use default limit
-            expect(replaceMock).toHaveBeenLastCalledWith('?pl=5&updated2', { scroll: false })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
             useSearchParamsSpy.mockRestore()
         })
     })

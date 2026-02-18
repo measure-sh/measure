@@ -107,7 +107,7 @@ update_env_variable() {
     return
   fi
 
-   # Escape & and \ so sed won't expand them
+  # Escape & and \ so sed won't expand them
   local escaped_value
   escaped_value=$(printf '%s' "$new_value" | sed -e 's/[&/\]/\\&/g')
 
@@ -149,7 +149,7 @@ ${key}=${escaped_value}
     fi
   else
     # Append at the end if no after_key provided or not found
-    echo "${key}=${value}" >> "$env_file"
+    echo "${key}=${value}" >>"$env_file"
   fi
 }
 
@@ -199,4 +199,20 @@ shutdown_clickhouse_service() {
 is_compose_service_up() {
   local svc="$1"
   $DOCKER_COMPOSE ps -q "$svc" 2>/dev/null | grep -q .
+}
+
+# ------------------------------------------------------------------------------
+# clickhouse_client runs clickhouse-client using docker-compose
+# ------------------------------------------------------------------------------
+clickhouse_client() {
+  if [[ -z "${DOCKER_COMPOSE+x}" ]]; then
+    set_docker_compose
+  fi
+
+  if ! is_compose_service_up clickhouse; then
+    start_clickhouse_service
+  fi
+
+  $DOCKER_COMPOSE \
+    exec clickhouse clickhouse-client "$@"
 }

@@ -1,11 +1,10 @@
 package span
 
 import (
+	"backend/api/config"
 	"backend/api/event"
-	"backend/api/filter"
 	"backend/api/opsys"
 	"backend/api/server"
-	"context"
 	"fmt"
 	"regexp"
 	"slices"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/leporo/sqlf"
 )
 
 const NetworkGeneration2G = "2g"
@@ -103,6 +101,72 @@ type SpanAttributes struct {
 	ThermalThrottlingEnabled bool      `json:"device_thermal_throttling_enabled"`
 }
 
+type RootSpanDisplay struct {
+	AppID              uuid.UUID     `json:"app_id" binding:"required"`
+	SpanName           string        `json:"span_name" binding:"required"`
+	SpanID             string        `json:"span_id" binding:"required"`
+	TraceID            string        `json:"trace_id" binding:"required"`
+	Status             uint8         `json:"status" binding:"required"`
+	StartTime          time.Time     `json:"start_time" binding:"required"`
+	EndTime            time.Time     `json:"end_time" binding:"required"`
+	Duration           time.Duration `json:"duration" binding:"required"`
+	AppVersion         string        `json:"app_version" binding:"required"`
+	AppBuild           string        `json:"app_build" binding:"required"`
+	OSName             string        `json:"os_name" binding:"required"`
+	OSVersion          string        `json:"os_version" binding:"required"`
+	DeviceModel        string        `json:"device_model"`
+	DeviceManufacturer string        `json:"device_manufacturer"`
+}
+
+type SpanDisplay struct {
+	SpanName                 string            `json:"span_name" binding:"required"`
+	SpanID                   string            `json:"span_id" binding:"required"`
+	ParentID                 string            `json:"parent_id" binding:"required"`
+	Status                   uint8             `json:"status" binding:"required"`
+	StartTime                time.Time         `json:"start_time" binding:"required"`
+	EndTime                  time.Time         `json:"end_time" binding:"required"`
+	Duration                 time.Duration     `json:"duration" binding:"required"`
+	ThreadName               string            `json:"thread_name"`
+	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
+	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
+	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
+	CheckPoints              []CheckPointField `json:"checkpoints"`
+}
+
+type TraceDisplay struct {
+	AppID              uuid.UUID     `json:"app_id" binding:"required"`
+	TraceID            string        `json:"trace_id" binding:"required"`
+	SessionID          uuid.UUID     `json:"session_id" binding:"required"`
+	UserID             string        `json:"user_id"`
+	StartTime          time.Time     `json:"start_time" binding:"required"`
+	EndTime            time.Time     `json:"end_time" binding:"required"`
+	Duration           time.Duration `json:"duration" binding:"required"`
+	AppVersion         string        `json:"app_version"`
+	OSVersion          string        `json:"os_version" binding:"required"`
+	DeviceManufacturer string        `json:"device_manufacturer"`
+	DeviceModel        string        `json:"device_model"`
+	NetworkType        string        `json:"network_type"`
+	Spans              []SpanDisplay `json:"spans"  binding:"required"`
+}
+
+type TraceSessionTimelineDisplay struct {
+	TraceID    string        `json:"trace_id" binding:"required"`
+	TraceName  string        `json:"trace_name" binding:"required"`
+	ThreadName string        `json:"thread_name"`
+	StartTime  time.Time     `json:"start_time" binding:"required"`
+	EndTime    time.Time     `json:"end_time" binding:"required"`
+	Duration   time.Duration `json:"duration" binding:"required"`
+}
+
+type SpanMetricsPlotInstance struct {
+	Version  string   `json:"version"`
+	DateTime string   `json:"datetime"`
+	P50      *float64 `json:"p50"`
+	P90      *float64 `json:"p90"`
+	P95      *float64 `json:"p95"`
+	P99      *float64 `json:"p99"`
+}
+
 type SpanField struct {
 	AppID                uuid.UUID         `json:"app_id" binding:"required"`
 	SpanName             string            `json:"name" binding:"required"`
@@ -156,6 +220,25 @@ func (s *SpanField) Validate() error {
 
 	if s.EndTime.IsZero() {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `end_time`)
+	}
+
+	// Don't allow batches that contain spans too far in the past or future
+	//
+	// Since, these timestamps affect the creation of partitions in the database
+	// without any enforcement, we lose control on the number of partitions which leads to fragmented query performance.
+	//
+	// For testing, it might be useful to disable this check which can be controlled using the "INGEST_ENFORCE_TIME_WINDOW" environment variable.
+	if server.Server.Config.IngestEnforceTimeWindow {
+		now := time.Now()
+		lower := now.Add(-config.MaxPastOffset)
+		upper := now.Add(config.MaxFutureOffset)
+		drift := s.StartTime.Sub(now)
+
+		if s.StartTime.Before(lower) {
+			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxPastOffset)
+		} else if s.StartTime.After(upper) {
+			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxFutureOffset)
+		}
 	}
 
 	if len(s.CheckPoints) > maxNumberOfCheckpoints {
@@ -275,6 +358,17 @@ func (s *SpanField) Validate() error {
 	return nil
 }
 
+// SetTTIDClass sets the class name of the span
+// matching the TTID span naming pattern.
+func (s *SpanField) SetTTIDClass(c string) {
+	index := strings.LastIndex(s.SpanName, " ")
+	if index == -1 {
+		return
+	}
+
+	s.SpanName = s.SpanName[:index+1] + c
+}
+
 // NeedsSymbolication returns true if the span needs
 // symbolication, false otherwise.
 func (s SpanField) NeedsSymbolication() (result bool) {
@@ -305,512 +399,4 @@ func (s SpanField) GetTTIDClass() (class string) {
 	}
 
 	return matches[1]
-}
-
-// SetTTIDClass sets the class name of the span
-// matching the TTID span naming pattern.
-func (s *SpanField) SetTTIDClass(c string) {
-	index := strings.LastIndex(s.SpanName, " ")
-	if index == -1 {
-		return
-	}
-
-	s.SpanName = s.SpanName[:index+1] + c
-}
-
-type RootSpanDisplay struct {
-	AppID              uuid.UUID     `json:"app_id" binding:"required"`
-	SpanName           string        `json:"span_name" binding:"required"`
-	SpanID             string        `json:"span_id" binding:"required"`
-	TraceID            string        `json:"trace_id" binding:"required"`
-	Status             uint8         `json:"status" binding:"required"`
-	StartTime          time.Time     `json:"start_time" binding:"required"`
-	EndTime            time.Time     `json:"end_time" binding:"required"`
-	Duration           time.Duration `json:"duration" binding:"required"`
-	AppVersion         string        `json:"app_version" binding:"required"`
-	AppBuild           string        `json:"app_build" binding:"required"`
-	OSName             string        `json:"os_name" binding:"required"`
-	OSVersion          string        `json:"os_version" binding:"required"`
-	DeviceModel        string        `json:"device_model"`
-	DeviceManufacturer string        `json:"device_manufacturer"`
-}
-
-type SpanDisplay struct {
-	SpanName                 string            `json:"span_name" binding:"required"`
-	SpanID                   string            `json:"span_id" binding:"required"`
-	ParentID                 string            `json:"parent_id" binding:"required"`
-	Status                   uint8             `json:"status" binding:"required"`
-	StartTime                time.Time         `json:"start_time" binding:"required"`
-	EndTime                  time.Time         `json:"end_time" binding:"required"`
-	Duration                 time.Duration     `json:"duration" binding:"required"`
-	ThreadName               string            `json:"thread_name"`
-	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
-	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
-	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
-	CheckPoints              []CheckPointField `json:"checkpoints"`
-}
-
-type TraceDisplay struct {
-	AppID              uuid.UUID     `json:"app_id" binding:"required"`
-	TraceID            string        `json:"trace_id" binding:"required"`
-	SessionID          uuid.UUID     `json:"session_id" binding:"required"`
-	UserID             string        `json:"user_id"`
-	StartTime          time.Time     `json:"start_time" binding:"required"`
-	EndTime            time.Time     `json:"end_time" binding:"required"`
-	Duration           time.Duration `json:"duration" binding:"required"`
-	AppVersion         string        `json:"app_version"`
-	OSVersion          string        `json:"os_version" binding:"required"`
-	DeviceManufacturer string        `json:"device_manufacturer"`
-	DeviceModel        string        `json:"device_model"`
-	NetworkType        string        `json:"network_type"`
-	Spans              []SpanDisplay `json:"spans"  binding:"required"`
-}
-
-type TraceSessionTimelineDisplay struct {
-	TraceID    string        `json:"trace_id" binding:"required"`
-	TraceName  string        `json:"trace_name" binding:"required"`
-	ThreadName string        `json:"thread_name"`
-	StartTime  time.Time     `json:"start_time" binding:"required"`
-	EndTime    time.Time     `json:"end_time" binding:"required"`
-	Duration   time.Duration `json:"duration" binding:"required"`
-}
-
-type SpanMetricsPlotInstance struct {
-	Version  string   `json:"version"`
-	DateTime string   `json:"datetime"`
-	P50      *float64 `json:"p50"`
-	P90      *float64 `json:"p90"`
-	P95      *float64 `json:"p95"`
-	P99      *float64 `json:"p99"`
-}
-
-// FetchRootSpanNames returns list of root span names for a given app id
-func FetchRootSpanNames(ctx context.Context, appId uuid.UUID) (traceNames []string, err error) {
-	stmt := sqlf.
-		Select("distinct toString(span_name)").
-		From("spans final").
-		Where("app_id = ?", appId).
-		Where("parent_id = ''").
-		OrderBy("start_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var traceName string
-
-		if err = rows.Scan(&traceName); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if err = rows.Err(); err != nil {
-			return
-		}
-
-		traceNames = append(traceNames, traceName)
-	}
-
-	err = rows.Err()
-	return
-
-}
-
-// FetchTracesForSessionId returns list of traces for a given app id and session id
-func FetchTracesForSessionId(ctx context.Context, appId uuid.UUID, sessionID uuid.UUID) (sessionTraces []TraceSessionTimelineDisplay, err error) {
-	stmt := sqlf.
-		Select("toString(span_name)").
-		Select("toString(trace_id)").
-		Select("toString(attribute.thread_name)").
-		Select("start_time").
-		Select("end_time").
-		From("spans final").
-		Clause("prewhere app_id = toUUID(?) and session_id = ? and parent_id = ''", appId, sessionID).
-		OrderBy("start_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		sessionTrace := TraceSessionTimelineDisplay{}
-
-		if err = rows.Scan(&sessionTrace.TraceName, &sessionTrace.TraceID, &sessionTrace.ThreadName, &sessionTrace.StartTime, &sessionTrace.EndTime); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if err = rows.Err(); err != nil {
-			return
-		}
-
-		sessionTrace.Duration = time.Duration(sessionTrace.EndTime.Sub(sessionTrace.StartTime).Milliseconds())
-
-		sessionTraces = append(sessionTraces, sessionTrace)
-	}
-
-	err = rows.Err()
-
-	return
-}
-
-// GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
-// filter criteria in a paginated fashion.
-func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []RootSpanDisplay, next, previous bool, err error) {
-	stmt := sqlf.
-		Select("app_id").
-		Select("toString(span_name)").
-		Select("toString(span_id)").
-		Select("toString(trace_id)").
-		Select("status").
-		Select("start_time").
-		Select("end_time").
-		Select("tupleElement(attribute.app_version, 1)").
-		Select("tupleElement(attribute.app_version, 2)").
-		Select("tupleElement(attribute.os_version, 1)").
-		Select("tupleElement(attribute.os_version, 2)").
-		Select("attribute.device_manufacturer").
-		Select("attribute.device_model").
-		From("spans final").
-		Clause("prewhere app_id = toUUID(?) and span_name = ? and start_time >= ? and end_time <= ?", af.AppID, spanName, af.From, af.To)
-
-	if len(af.SpanStatuses) > 0 {
-		stmt.Where("status").In(af.SpanStatuses)
-	}
-
-	if af.HasVersions() {
-		selectedVersions, err := af.VersionPairs()
-		if err != nil {
-			return rootSpans, next, previous, err
-		}
-
-		stmt.Where("attribute.app_version in (?)", selectedVersions.Parameterize())
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return rootSpans, next, previous, err
-		}
-
-		stmt.Where("attribute.os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		stmt.Where("attribute.country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("attribute.network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("attribute.device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("attribute.device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("span_user_def_attrs final").
-			Select("span_id id").
-			Clause("final").
-			Where("app_id = toUUID(?)", af.AppID)
-		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)
-	}
-
-	stmt.OrderBy("start_time desc")
-
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
-	}
-
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
-	}
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		rootSpan := RootSpanDisplay{}
-
-		if err = rows.Scan(&rootSpan.AppID, &rootSpan.SpanName, &rootSpan.SpanID, &rootSpan.TraceID, &rootSpan.Status, &rootSpan.StartTime, &rootSpan.EndTime, &rootSpan.AppVersion, &rootSpan.AppBuild, &rootSpan.OSName, &rootSpan.OSVersion, &rootSpan.DeviceManufacturer, &rootSpan.DeviceModel); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if err = rows.Err(); err != nil {
-			return
-		}
-
-		rootSpan.Duration = time.Duration(rootSpan.EndTime.Sub(rootSpan.StartTime).Milliseconds())
-
-		rootSpans = append(rootSpans, rootSpan)
-	}
-
-	err = rows.Err()
-
-	resultLen := len(rootSpans)
-
-	// Set pagination next & previous flags
-	if resultLen > af.Limit {
-		rootSpans = rootSpans[:resultLen-1]
-		next = true
-	}
-	if af.Offset > 0 {
-		previous = true
-	}
-
-	return
-}
-
-// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
-// for the given span name with the applied filtering criteria
-func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []SpanMetricsPlotInstance, err error) {
-	stmt := sqlf.From("span_metrics").
-		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
-		Select("round(quantileMerge(0.50)(p50), 2) as p50").
-		Select("round(quantileMerge(0.90)(p90), 2) as p90").
-		Select("round(quantileMerge(0.95)(p95), 2) as p95").
-		Select("round(quantileMerge(0.99)(p99), 2) as p99").
-		Clause("prewhere app_id = toUUID(?) and span_name = ? and timestamp >= ? and timestamp <= ?", af.AppID, spanName, af.From, af.To)
-
-	if len(af.SpanStatuses) > 0 {
-		stmt.Where("status").In(af.SpanStatuses)
-	}
-
-	if af.HasVersions() {
-		selectedVersions, err := af.VersionPairs()
-		if err != nil {
-			return nil, err
-		}
-
-		stmt.Where("app_version in (?)", selectedVersions.Parameterize())
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return nil, err
-		}
-
-		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		stmt.Where("country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.From("span_user_def_attrs final").
-			Select("span_id id").
-			Clause("final").
-			Where("app_id = toUUID(?)", af.AppID)
-		af.UDExpression.Augment(subQuery)
-		stmt.SubQuery("span_id in (", ")", subQuery)
-	}
-
-	stmt.GroupBy("app_version, datetime")
-	stmt.OrderBy("datetime, tupleElement(app_version, 2) desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var spanMetricsPlotInstance SpanMetricsPlotInstance
-		if err = rows.Scan(&spanMetricsPlotInstance.Version, &spanMetricsPlotInstance.DateTime, &spanMetricsPlotInstance.P50, &spanMetricsPlotInstance.P90, &spanMetricsPlotInstance.P95, &spanMetricsPlotInstance.P99); err != nil {
-			return
-		}
-
-		spanMetricsPlotInstances = append(spanMetricsPlotInstances, spanMetricsPlotInstance)
-	}
-
-	err = rows.Err()
-
-	return
-}
-
-// GetTrace constructs and returns a trace for
-// a given traceId
-func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err error) {
-	stmt := sqlf.
-		Select("app_id").
-		Select("toString(trace_id)").
-		Select("session_id").
-		Select("attribute.user_id").
-		Select("toString(span_id)").
-		Select("toString(span_name)").
-		Select("toString(parent_id)").
-		Select("start_time").
-		Select("end_time").
-		Select("status").
-		Select("checkpoints").
-		Select("tupleElement(attribute.app_version, 1)").
-		Select("tupleElement(attribute.app_version, 2)").
-		Select("tupleElement(attribute.os_version, 1)").
-		Select("tupleElement(attribute.os_version, 2)").
-		Select("attribute.device_manufacturer").
-		Select("attribute.device_model").
-		Select("attribute.network_type").
-		Select("toString(attribute.thread_name)").
-		Select("attribute.device_low_power_mode").
-		Select("attribute.device_thermal_throttling_enabled").
-		Select("user_defined_attribute").
-		From("spans final").
-		Where("trace_id = ?", traceId).
-		OrderBy("start_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	spans := []SpanField{}
-
-	for rows.Next() {
-		var rawCheckpoints [][]interface{}
-		var rawUserDefAttr map[string][]any
-		span := SpanField{}
-
-		if err = rows.Scan(&span.AppID, &span.TraceID, &span.SessionID, &span.Attributes.UserID, &span.SpanID, &span.SpanName, &span.ParentID, &span.StartTime, &span.EndTime, &span.Status, &rawCheckpoints, &span.Attributes.AppVersion, &span.Attributes.AppBuild, &span.Attributes.OSName, &span.Attributes.OSVersion, &span.Attributes.DeviceManufacturer, &span.Attributes.DeviceModel, &span.Attributes.NetworkType, &span.Attributes.ThreadName, &span.Attributes.LowPowerModeEnabled, &span.Attributes.ThermalThrottlingEnabled, &rawUserDefAttr); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if err = rows.Err(); err != nil {
-			return
-		}
-
-		// Map rawUserDefAttr
-		if len(rawUserDefAttr) > 0 {
-			span.UserDefinedAttribute.Scan(rawUserDefAttr)
-		}
-
-		// Map rawCheckpoints
-		for _, cp := range rawCheckpoints {
-			rawName, _ := cp[0].(string)
-			name := strings.ReplaceAll(rawName, "\u0000", "")
-			timestamp, _ := cp[1].(time.Time)
-			span.CheckPoints = append(span.CheckPoints, CheckPointField{
-				Name:      name,
-				Timestamp: timestamp,
-			})
-		}
-
-		spans = append(spans, span)
-	}
-
-	if len(spans) == 0 {
-		return trace, fmt.Errorf("no spans found for traceId: %v", traceId)
-	}
-
-	spanDisplays := []SpanDisplay{}
-	var minStartTime time.Time
-	var maxEndTime time.Time
-
-	for i, span := range spans {
-		spanDisplay := SpanDisplay{
-			span.SpanName,
-			span.SpanID,
-			span.ParentID,
-			span.Status,
-			span.StartTime,
-			span.EndTime,
-			time.Duration(span.EndTime.Sub(span.StartTime).Milliseconds()),
-			span.Attributes.ThreadName,
-			span.Attributes.LowPowerModeEnabled,
-			span.Attributes.ThermalThrottlingEnabled,
-			span.UserDefinedAttribute,
-			span.CheckPoints,
-		}
-
-		spanDisplays = append(spanDisplays, spanDisplay)
-
-		// Initialize minStartTime and maxEndTime on the first iteration
-		if i == 0 {
-			minStartTime = span.StartTime
-			maxEndTime = span.EndTime
-		} else {
-			// Update minStartTime and maxEndTime as necessary
-			if span.StartTime.Before(minStartTime) {
-				minStartTime = span.StartTime
-			}
-			if span.EndTime.After(maxEndTime) {
-				maxEndTime = span.EndTime
-			}
-		}
-	}
-
-	trace.AppID = spans[0].AppID
-	trace.TraceID = spans[0].TraceID
-	trace.SessionID = spans[0].SessionID
-	trace.UserID = spans[0].Attributes.UserID
-	trace.StartTime = minStartTime
-	trace.EndTime = maxEndTime
-	trace.Duration = time.Duration(maxEndTime.Sub(minStartTime).Milliseconds())
-	trace.AppVersion = spans[0].Attributes.AppVersion + "(" + spans[0].Attributes.AppBuild + ")"
-	trace.OSVersion = spans[0].Attributes.OSName + " " + spans[0].Attributes.OSVersion
-	trace.DeviceManufacturer = spans[0].Attributes.DeviceManufacturer
-	trace.DeviceModel = spans[0].Attributes.DeviceModel
-	trace.NetworkType = spans[0].Attributes.NetworkType
-	trace.Spans = spanDisplays
-
-	return
 }

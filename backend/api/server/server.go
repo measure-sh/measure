@@ -91,6 +91,7 @@ type ServerConfig struct {
 	SlackClientSecret          string
 	OtelServiceName            string
 	CloudEnv                   bool
+	IngestEnforceTimeWindow    bool
 }
 
 // IsCloud is true if the service is assumed
@@ -287,6 +288,7 @@ func NewConfig() *ServerConfig {
 	}
 
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
+	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
 
 	return &ServerConfig{
 		PG: PostgresConfig{
@@ -329,6 +331,7 @@ func NewConfig() *ServerConfig {
 		SlackClientSecret:          slackClientSecret,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
+		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
 	}
 }
 

@@ -111,7 +111,8 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 			var sessionCount uint64
 			sessionCountStmt := sqlf.From("events final").
 				Select("count(distinct session_id) as session_count").
-				Where("app_id = ?", app.ID).
+				Where("team_id = toUUID(?)", app.TeamID).
+				Where("app_id = toUUID(?)", app.ID).
 				Where("timestamp >= ? and timestamp <= ?", from, to)
 
 			defer sessionCountStmt.Close()
@@ -157,7 +158,6 @@ func CreateDailySummary(ctx context.Context) {
 		}
 
 		for _, app := range apps {
-
 			appName, err := getAppNameByID(ctx, app.ID)
 			if err != nil {
 				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
@@ -166,7 +166,7 @@ func CreateDailySummary(ctx context.Context) {
 
 			dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
 
-			metrics, err := getDailySummaryMetrics(ctx, date, app.ID)
+			metrics, err := getDailySummaryMetrics(ctx, date, &app)
 			if err != nil {
 				fmt.Printf("Error fetching daily summary data for app %v: %v\n", app.ID, err)
 				continue
@@ -184,7 +184,9 @@ func getTeams(ctx context.Context) ([]Team, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		From("teams")
+
 	defer stmt.Close()
+
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String())
 	if err != nil {
 		return nil, err
@@ -207,7 +209,9 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
 		Select("team_id").
 		From("apps").
 		Where("team_id = ?", teamID)
+
 	defer stmt.Close()
+
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
@@ -228,7 +232,9 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 		Select("app_name").
 		From("apps").
 		Where("id = ?", appID)
+
 	defer appNameStmt.Close()
+
 	var appName string
 	err := server.Server.PgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
 	if err != nil {
@@ -237,7 +243,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 	return appName, nil
 }
 
-func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID) ([]MetricData, error) {
+func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]MetricData, error) {
 	query := `
 		WITH
             toDate(?) AS target_date,
@@ -257,7 +263,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 FROM app_metrics
                 WHERE timestamp >= target_date - INTERVAL 1 DAY
                     AND timestamp < target_date + INTERVAL 1 DAY
-                    AND app_id = ?
+                    AND team_id = toUUID(?)
+                    AND app_id = toUUID(?)
                 GROUP BY app_id, date
             ),
 
@@ -380,7 +387,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
         LEFT JOIN previous_day pd ON cd.app_id = pd.app_id
         ORDER BY cd.app_id
 	`
-	row := server.Server.ChPool.QueryRow(ctx, query, date, appID)
+	row := server.Server.ChPool.QueryRow(ctx, query, date, app.TeamID, app.ID)
 
 	var summary DailySummaryRow
 	err := row.Scan(
@@ -480,7 +487,9 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 		Where("type = ?", alertType).
 		OrderBy("created_at DESC").
 		Limit(1)
+
 	defer stmt.Close()
+
 	var createdAt time.Time
 	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
 	err := row.Scan(&createdAt)
@@ -498,6 +507,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Select("user_id").
 		From("team_membership").
 		Where("team_id = ?", alert.TeamID)
+
 	defer memberStmt.Close()
 
 	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
@@ -519,6 +529,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Select("email").
 			From("users").
 			Where("id = ?", userID)
+
 		defer emailStmt.Close()
 
 		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
@@ -556,6 +567,9 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
+
+		defer insertStmt.Close()
+
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
@@ -621,6 +635,8 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 
+		defer insertStmt.Close()
+
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Error inserting pending Slack alert message for channel %v: %v\n", channelId, err)
@@ -634,6 +650,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		Select("user_id").
 		From("team_membership").
 		Where("team_id = ?", teamId)
+
 	defer memberStmt.Close()
 
 	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
@@ -655,6 +672,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Select("email").
 			From("users").
 			Where("id = ?", userID)
+
 		defer emailStmt.Close()
 
 		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
@@ -685,6 +703,9 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
+
+		defer insertStmt.Close()
+
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
@@ -742,6 +763,8 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
+
+		defer insertStmt.Close()
 
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
@@ -1025,13 +1048,18 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 }
 
 func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
-	crashGroupStmt := sqlf.From("events final").
+	crashGroupStmt := sqlf.
+		From("events final").
 		Select("exception.fingerprint, count() as crash_count").
+		Where("team_id = toUUID(?)", team.ID).
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'exception'").
 		Where("exception.handled = false").
 		Where("timestamp >= ? and timestamp <= ?", from, to).
 		GroupBy("exception.fingerprint")
+
+	defer crashGroupStmt.Close()
+
 	crashGroupRows, err := server.Server.RchPool.Query(ctx, crashGroupStmt.String(), crashGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
@@ -1066,13 +1094,17 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 		if crashGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
-			groupInfoStmt := sqlf.From("unhandled_exception_groups final").
-				Select("type").
-				Select("file_name").
-				Select("method_name").
-				Select("message").
+			groupInfoStmt := sqlf.
+				From("unhandled_exception_groups final").
+				Select("argMax(type, timestamp)").
+				Select("argMax(file_name, timestamp)").
+				Select("argMax(method_name, timestamp)").
+				Select("argMax(message, timestamp)").
+				Where("team_id = toUUID(?)", team.ID).
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
+
+			defer groupInfoStmt.Close()
 
 			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
@@ -1111,6 +1143,9 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 				Set("url", alertUrl).
 				Set("created_at", time.Now()).
 				Set("updated_at", time.Now())
+
+			defer alertInsert.Close()
+
 			_, err = server.Server.PgPool.Exec(ctx, alertInsert.String(), alertInsert.Args()...)
 			if err != nil {
 				fmt.Printf("Error inserting alert for crash group %s: %v\n", fingerprint, err)
@@ -1144,10 +1179,14 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
 	anrGroupStmt := sqlf.From("events final").
 		Select("anr.fingerprint, count() as anr_count").
+		Where("team_id = toUUID(?)", team.ID).
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'anr'").
 		Where("timestamp >= ? and timestamp <= ?", from, to).
 		GroupBy("anr.fingerprint")
+
+	defer anrGroupStmt.Close()
+
 	anrGroupRows, err := server.Server.RchPool.Query(ctx, anrGroupStmt.String(), anrGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
@@ -1183,12 +1222,15 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 		if anrGroupRate >= crashOrAnrSpikeThreshold {
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.From("anr_groups final").
-				Select("type").
-				Select("file_name").
-				Select("method_name").
-				Select("message").
+				Select("argMax(type, timestamp)").
+				Select("argMax(file_name, timestamp)").
+				Select("argMax(method_name, timestamp)").
+				Select("argMax(message, timestamp)").
+				Where("team_id = toUUID(?)", team.ID).
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
+
+			defer groupInfoStmt.Close()
 
 			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
@@ -1227,11 +1269,16 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 				Set("url", alertUrl).
 				Set("created_at", time.Now()).
 				Set("updated_at", time.Now())
+
+			defer alertInsert.Close()
+
 			_, err = server.Server.PgPool.Exec(ctx, alertInsert.String(), alertInsert.Args()...)
 			if err != nil {
 				fmt.Printf("Error inserting alert for anr group %s: %v\n", fingerprint, err)
 				continue
 			}
+
+			defer alertInsert.Close()
 
 			appName, err := getAppNameByID(ctx, app.ID)
 			if err != nil {

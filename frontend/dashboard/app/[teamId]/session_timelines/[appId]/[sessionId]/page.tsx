@@ -37,7 +37,7 @@ export default function Session({ params }: { params: { teamId: string, appId: s
 
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Loading && <LoadingSpinner />}
 
-      {sessionTimelineApiStatus === SessionTimelineApiStatus.Error && <p className="font-body text-sm">Error fetching session timeline, please refresh page try again</p>}
+      {sessionTimelineApiStatus === SessionTimelineApiStatus.Error && <p className="font-body text-sm">Error fetching session timeline, please refresh page to try again</p>}
 
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Success &&
         <div className="w-full">

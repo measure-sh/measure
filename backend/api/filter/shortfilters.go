@@ -147,7 +147,3 @@ func GetFiltersFromCode(ctx context.Context, filterShortCode string, appId uuid.
 
 	return &filters, nil
 }
-
-func (shortFilters *ShortFilters) String() string {
-	return fmt.Sprintf("ShortFilters - code: %s, app_id: %s, filters: %v, created_at: %v, updated_at: %v ", shortFilters.Code, shortFilters.AppId, shortFilters.Filters, shortFilters.CreatedAt, shortFilters.UpdatedAt)
-}

@@ -96,6 +96,14 @@ type nodebag struct {
 	// node.
 	nodeid int
 
+	// exceptionFingerprints is the list
+	// of exception events fingerprints.
+	exceptionFingerprints []string
+
+	// anrFingerprints is the list
+	// of ANR events fingerprints.
+	anrFingerprints []string
+
 	// exceptionIds stores a set
 	// of UUIDs associated with
 	// this node.

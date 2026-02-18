@@ -17,7 +17,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Content Type](#content-type-1)
     - [Response Body](#response-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-  - [POST `/auth/validateInvite`](#post-validateinvite)
+  - [POST `/auth/validateInvite`](#post-authvalidateinvite)
     - [Usage Notes](#usage-notes-2)
     - [Request Body](#request-body-2)
     - [Content Type](#content-type-2)
@@ -109,7 +109,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-- [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
+  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-20)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-20)
@@ -131,13 +131,13 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
   - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-24)
-    - [Request Body](#request-body-3)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
   - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-25)
-    - [Request Body](#request-body-4)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
@@ -148,13 +148,13 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
   - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
     - [Usage Notes](#usage-notes-27)
-    - [Request Body](#request-body-5)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
   - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-28)
-    - [Request Body](#request-body-6)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
@@ -195,7 +195,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
   - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-36)
-    - [Request Body](#request-body-7)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
@@ -227,7 +227,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-41)
-    - [Request Body](#request-body-9)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
@@ -238,7 +238,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
   - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-43)
-    - [Request Body](#request-body-10)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
@@ -254,7 +254,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-46)
-    - [Request Body](#request-body-11)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
@@ -270,7 +270,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
   - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-49)
-    - [Request Body](#request-body-12)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
@@ -291,11 +291,11 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
   - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
     - [Usage Notes](#usage-notes-53)
-    - [Request Body](#request-body-13)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [POST `/teams/:id/slack/test`](#patch-teamsidslacktest)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-54)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
@@ -766,8 +766,8 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/anrGroups/:id/path`**](#get-appsidanrgroupsidpath) - Fetch an ANR group's common path.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
-- [**GET `/apps/:id/sessions`**](#get-appsidsessions) - Fetch an app's sessions by applying various optional filters.
-- [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
+- [**GET `/apps/:id/sessions`**](#get-appsidsessions) - Fetch an app's session timlines by applying various optional filters.
+- [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session timeline.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
 - [**PATCH `/apps/:id/rename`**](#patch-appsidrename) - Modify the name of an app.
@@ -2914,10 +2914,14 @@ Fetch an app's sessions by applying various optional filters.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
-  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
-  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
   - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
   - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
+  - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
+  - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.
+  - `user_interaction` (_optional_) - Boolean true/false to control if only sessions that contain user interactions should be fetched.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
   - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
   - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
@@ -2929,7 +2933,7 @@ Fetch an app's sessions by applying various optional filters.
   - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
   - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
-  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
+  - `ud_expression` (_optional_) - JSON string expression to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 - Pass `limit` and `offset` values to paginate results
 

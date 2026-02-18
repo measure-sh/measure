@@ -10,16 +10,17 @@ import (
 // matching any text on the session's type, lifecycle
 // events or user's id.
 func ExtractMatches(
-	needle, userId string, sessionId string,
-	types, logStrings, viewClassnames, subviewClassnames []string,
-	exceptions, anrs, clickTargets, longclickTargets, scrollTargets []map[string]string,
+	needle, userId, sessionId string,
+	types, customTypeNames, logStrings,
+	viewClassnames, subviewClassnames, exceptionErrors []string,
+	unhandledExceptions, handledExceptions, anrs []map[string]string,
+	clickTargets, longclickTargets, scrollTargets [][]string,
 ) (matched string) {
 	if needle == "" {
 		return
 	}
 
 	buff := []string{}
-	const sep = " "
 
 	// user id
 	if strings.Contains(strings.ToLower(userId), strings.ToLower(needle)) {
@@ -35,6 +36,14 @@ func ExtractMatches(
 	for i := range types {
 		if strings.Contains(strings.ToLower(types[i]), strings.ToLower(needle)) {
 			buff = append(buff, fmt.Sprintf("Type: %s", types[i]))
+			break
+		}
+	}
+
+	// custom type names
+	for i := range customTypeNames {
+		if strings.Contains(strings.ToLower(customTypeNames[i]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Custom Type: %s", customTypeNames[i]))
 			break
 		}
 	}
@@ -63,36 +72,78 @@ func ExtractMatches(
 		}
 	}
 
-	// exceptions
-	for i := range exceptions {
+	// unhandled exceptions
+	for i := range unhandledExceptions {
 		length := len(buff)
 
 		// type
-		if strings.Contains(strings.ToLower(exceptions[i]["type"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashType: %s", exceptions[i]["type"]))
+		if strings.Contains(strings.ToLower(unhandledExceptions[i]["type"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashType: %s", unhandledExceptions[i]["type"]))
 		}
 
 		// message
-		if strings.Contains(strings.ToLower(exceptions[i]["message"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashMessage: %s", exceptions[i]["message"]))
+		if strings.Contains(strings.ToLower(unhandledExceptions[i]["message"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashMessage: %s", unhandledExceptions[i]["message"]))
 		}
 
 		// file name
-		if strings.Contains(strings.ToLower(exceptions[i]["file_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashFile: %s", exceptions[i]["file_name"]))
+		if strings.Contains(strings.ToLower(unhandledExceptions[i]["file_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashFile: %s", unhandledExceptions[i]["file_name"]))
 		}
 
 		// class name
-		if strings.Contains(strings.ToLower(exceptions[i]["class_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashClass: %s", exceptions[i]["class_name"]))
+		if strings.Contains(strings.ToLower(unhandledExceptions[i]["class_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashClass: %s", unhandledExceptions[i]["class_name"]))
 		}
 
 		// method name
-		if strings.Contains(strings.ToLower(exceptions[i]["method_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashMethod: %s", exceptions[i]["method_name"]))
+		if strings.Contains(strings.ToLower(unhandledExceptions[i]["method_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashMethod: %s", unhandledExceptions[i]["method_name"]))
 		}
 
 		if len(buff)-length > 2 {
+			break
+		}
+	}
+
+	// handled exceptions
+	for i := range handledExceptions {
+		length := len(buff)
+
+		// type
+		if strings.Contains(strings.ToLower(handledExceptions[i]["type"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("ErrorType: %s", handledExceptions[i]["type"]))
+		}
+
+		// message
+		if strings.Contains(strings.ToLower(handledExceptions[i]["message"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("ErrorMessage: %s", handledExceptions[i]["message"]))
+		}
+
+		// file name
+		if strings.Contains(strings.ToLower(handledExceptions[i]["file_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("ErrorFile: %s", handledExceptions[i]["file_name"]))
+		}
+
+		// class name
+		if strings.Contains(strings.ToLower(handledExceptions[i]["class_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("ErrorClass: %s", handledExceptions[i]["class_name"]))
+		}
+
+		// method name
+		if strings.Contains(strings.ToLower(handledExceptions[i]["method_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("ErrorMethod: %s", handledExceptions[i]["method_name"]))
+		}
+
+		if len(buff)-length > 2 {
+			break
+		}
+	}
+
+	// exception errors
+	for i := range exceptionErrors {
+		if strings.Contains(strings.ToLower(exceptionErrors[i]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Error: %s", exceptionErrors[i]))
 			break
 		}
 	}
@@ -136,13 +187,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(clickTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", clickTargets[i]["1"]))
+		targetClass := clickTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(clickTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", clickTargets[i]["2"]))
+		targetId := clickTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {
@@ -155,13 +208,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(longclickTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", longclickTargets[i]["1"]))
+		targetClass := longclickTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(longclickTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", longclickTargets[i]["2"]))
+		targetId := longclickTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {
@@ -174,13 +229,15 @@ func ExtractMatches(
 		length := len(buff)
 
 		// target class
-		if strings.Contains(strings.ToLower(scrollTargets[i]["1"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target: %s", scrollTargets[i]["1"]))
+		targetClass := scrollTargets[i][0]
+		if strings.Contains(strings.ToLower(targetClass), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target: %s", targetClass))
 		}
 
 		// target id
-		if strings.Contains(strings.ToLower(scrollTargets[i]["2"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("Target ID: %s", scrollTargets[i]["2"]))
+		targetId := scrollTargets[i][1]
+		if strings.Contains(strings.ToLower(targetId), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Target ID: %s", targetId))
 		}
 
 		if len(buff)-length > 1 {
@@ -188,7 +245,7 @@ func ExtractMatches(
 		}
 	}
 
-	matched = strings.Join(buff, sep)
+	matched = strings.Join(buff, " ")
 
 	return
 }

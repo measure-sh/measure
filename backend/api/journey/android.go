@@ -2,8 +2,10 @@ package journey
 
 import (
 	"backend/api/event"
+	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/set"
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -76,6 +78,9 @@ type JourneyAndroid struct {
 	// pointing to a UUID set.
 	metalut map[string]*set.UUIDSet
 
+	exceptionGroups map[string]*group.ExceptionGroup
+	anrGroups       map[string]*group.ANRGroup
+
 	// options is the journey's options
 	options *Options
 }
@@ -96,8 +101,20 @@ func (j *JourneyAndroid) computeIssues() {
 			}
 			if issueEvent.IsUnhandledException() {
 				bag.exceptionIds.Add(issueEvent.ID)
+				bag.exceptionFingerprints = append(bag.exceptionFingerprints, issueEvent.Exception.Fingerprint)
+
+				if j.exceptionGroups == nil {
+					j.exceptionGroups = make(map[string]*group.ExceptionGroup)
+				}
+				j.exceptionGroups[issueEvent.Exception.Fingerprint] = nil
 			} else if issueEvent.IsANR() {
 				bag.anrIds.Add(issueEvent.ID)
+				bag.anrFingerprints = append(bag.anrFingerprints, issueEvent.ANR.Fingerprint)
+
+				if j.anrGroups == nil {
+					j.anrGroups = make(map[string]*group.ANRGroup)
+					j.anrGroups[issueEvent.ANR.Fingerprint] = nil
+				}
 			}
 		}
 	}
@@ -306,6 +323,66 @@ func (j *JourneyAndroid) SetNodeExceptionGroups(iterator func(eventIds []uuid.UU
 	return
 }
 
+func (j *JourneyAndroid) SetExceptionGroups(ctx context.Context, af *filter.AppFilter) (err error) {
+	fingerprints := make([]string, 0, len(j.exceptionGroups))
+	for k := range j.exceptionGroups {
+		fingerprints = append(fingerprints, k)
+	}
+
+	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, af, fingerprints)
+	if err != nil {
+		return
+	}
+
+	for i := range groups {
+		j.exceptionGroups[groups[i].ID] = &groups[i]
+	}
+
+	for k := range j.nodelut {
+		for i := range groups {
+			for _, fingerprint := range j.nodelut[k].exceptionFingerprints {
+				if groups[i].ID == fingerprint && !slices.ContainsFunc(j.nodelut[k].exceptionGroups, func(g group.ExceptionGroup) bool {
+					return g.ID == groups[i].ID
+				}) {
+					j.nodelut[k].exceptionGroups = append(j.nodelut[k].exceptionGroups, groups[i])
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func (j *JourneyAndroid) SetANRGroups(ctx context.Context, af *filter.AppFilter) (err error) {
+	fingerprints := make([]string, 0, len(j.anrGroups))
+	for k := range j.anrGroups {
+		fingerprints = append(fingerprints, k)
+	}
+
+	groups, err := group.GetANRGroupsFromFingerprints(ctx, af, fingerprints)
+	if err != nil {
+		return
+	}
+
+	for i := range groups {
+		j.anrGroups[groups[i].ID] = &groups[i]
+	}
+
+	for k := range j.nodelut {
+		for i := range groups {
+			for _, fingerprint := range j.nodelut[k].anrFingerprints {
+				if groups[i].ID == fingerprint && !slices.ContainsFunc(j.nodelut[k].anrGroups, func(g group.ANRGroup) bool {
+					return g.ID == groups[i].ID
+				}) {
+					j.nodelut[k].anrGroups = append(j.nodelut[k].anrGroups, groups[i])
+				}
+			}
+		}
+	}
+
+	return
+}
+
 // SetNodeANRGroups iterates over each node passing
 // down exception event ids and expecting matching
 // exception groups. It applies received exception
@@ -349,7 +426,12 @@ func (j JourneyAndroid) String() string {
 			key := j.makeKey(v, w)
 			n := j.metalut[key].Size()
 
-			b.WriteString(fmt.Sprintf("  %s -> %s [label=\"%d session(s)\"];\n", fmt.Sprintf("\"(%d) %s\"", v, vName), fmt.Sprintf("\"(%d) %s\"", w, wName), n))
+			fmt.Fprintf(&b,
+				"  \"(%d) %s\" -> \"(%d) %s\" [label=\"%d session(s)\"];\n",
+				v, vName,
+				w, wName,
+				n,
+			)
 
 			return false
 		})

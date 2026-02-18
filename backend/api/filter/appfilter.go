@@ -1,6 +1,8 @@
 package filter
 
 import (
+	"backend/api/ambient"
+	"backend/api/config"
 	"backend/api/event"
 	"backend/api/logcomment"
 	"backend/api/opsys"
@@ -11,12 +13,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/blang/semver/v4"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -35,10 +36,6 @@ const MaxPaginationLimit = 1000
 // DefaultPaginationLimit is the number of items used
 // as default for paginating items.
 const DefaultPaginationLimit = 10
-
-// defaultQueryCacheTTL is the default query cache
-// TTL duration.
-const defaultQueryCacheTTL = time.Minute * 10
 
 // Operator represents a comparison operator
 // like `eq` for `equal` or `gte` for `greater
@@ -132,6 +129,10 @@ type AppFilter struct {
 	// consider ANR events.
 	ANR bool `form:"anr"`
 
+	// BugReport indicates the filtering should
+	// only consider bug report events.
+	BugReport bool `form:"bug_report"`
+
 	// UDAttrKeys indicates a request to receive
 	// list of user defined attribute key &
 	// types.
@@ -157,17 +158,9 @@ type AppFilter struct {
 	// a bug report to be filtered on.
 	BugReportStatuses []int8 `form:"bug_report_statuses"`
 
-	// KeyID is the anchor point for keyset
-	// pagination.
-	KeyID string `form:"key_id"`
-
 	// FreeText is a free form text string that can be used
 	// to filter over logs, exceptions, events etc
 	FreeText string `form:"free_text"`
-
-	// KeyTimestamp is the anchor point for
-	// keyset pagination.
-	KeyTimestamp time.Time `form:"key_timestamp"`
 
 	// Limit is the count of matching rows to
 	// return.
@@ -177,9 +170,29 @@ type AppFilter struct {
 	// skip.
 	Offset int `form:"offset"`
 
+	// Background represents if matching should
+	// be applied to background events or sessions.
+	//
+	// A background session is defined as any session
+	// that has at least 1 `lifecycle_app` event with
+	// type as `background`.
+	Background bool `form:"background"`
+
+	// Foreground represents if matching should
+	// be applied to foreground events or sessions.
+	//
+	// A foreground session is defined as any session
+	// that has at least 1 `lifecycle_app` event with
+	// type as `foreground`.
+	Foreground bool `form:"foreground"`
+
+	// UserInteraction represents if matching should
+	// be applied to events or sessions pertaining
+	// to user interactions, like gesture events.
+	UserInteraction bool `form:"user_interaction"`
+
 	// BiGraph represents if journey plot
-	// constructions should be bidirectional
-	// or not.
+	// constructions should be bidirectional.
 	BiGraph bool `form:"bigraph"`
 }
 
@@ -202,107 +215,24 @@ type FilterList struct {
 	UDExpressionRaw     string            `json:"ud_expression"`
 }
 
-// Versions represents a list of
-// (version, code) pairs.
-type Versions struct {
-	names, codes []string
+// ExtendLimit extends the limit by one
+// in a signed way.
+func (af *AppFilter) ExtendLimit() int {
+	if af.HasPositiveLimit() {
+		return af.Limit + 1
+	} else {
+		return af.Limit - 1
+	}
 }
 
-// Validate validates each app filtering parameter and sets
-// defaults for unspecified parameters. Returns error if any
-// parameter is invalid or incomplete.
-func (af *AppFilter) Validate() error {
-	// app UUID validations
-	if af.AppID == uuid.Nil {
-		return fmt.Errorf("app id is invalid or empty")
-	}
+// SetDefaultTimeRange sets the time range to last
+// default duration from current UTC time
+func (af *AppFilter) SetDefaultTimeRange() {
+	to := time.Now().UTC()
+	from := to.Add(-DefaultDuration)
 
-	if af.AppID.Version().String() != "VERSION_4" {
-		return fmt.Errorf("app id version is not UUID v4")
-	}
-
-	// time validations
-	if af.From.IsZero() && !af.To.IsZero() {
-		return fmt.Errorf("both `from` and `to` time must be set")
-	}
-
-	if af.To.IsZero() && !af.From.IsZero() {
-		return fmt.Errorf("both `from` and `to` time must be set")
-	}
-
-	if af.To.Before(af.From) {
-		return fmt.Errorf("`to` must be later time than `from`")
-	}
-
-	if af.From.After(time.Now().UTC()) {
-		return fmt.Errorf("`from` cannot be later than now")
-	}
-
-	if af.Limit == 0 {
-		return errors.New("`limit` cannot be zero")
-	}
-
-	if af.Limit > MaxPaginationLimit {
-		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
-	}
-
-	if af.UDExpressionRaw != "" {
-		if err := af.parseUDExpression(); err != nil {
-			return fmt.Errorf("`ud_expresssion` is invalid")
-		}
-
-		if err := af.UDExpression.Validate(); err != nil {
-			return fmt.Errorf("`ud_expression` is invalid. %s", err.Error())
-		}
-	}
-
-	for _, status := range af.SpanStatuses {
-		if status < 0 || status > 2 {
-			return fmt.Errorf("`span_statuses` values must be 0 (Unset), 1 (Ok) or 2 (Error)")
-		}
-	}
-
-	return nil
-}
-
-// ValidateVersions validates presence of valid
-// version name and version code.
-func (af *AppFilter) ValidateVersions() error {
-	presence := len(af.Versions) > 0 && len(af.VersionCodes) > 0
-	arity := len(af.Versions) == len(af.VersionCodes)
-
-	if !presence {
-		return fmt.Errorf(`%q and %q both are required`, "versions", "version_codes")
-	}
-	if !arity {
-		return fmt.Errorf(`%q and %q both should be of same length`, "versions", "version_codes")
-	}
-
-	return nil
-}
-
-// VersionPairs provides a convenient wrapper over versions
-// and version codes representing them in paired-up way, like
-// tuples. For many cases, a paired up version is more useful
-// than individual version names and codes.
-func (af *AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err error) {
-	versions, err = pairs.NewPairs(af.Versions, af.VersionCodes)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// OSVersionPairs provides a convenient wrapper over OS name
-// and OS version representing them in paired-up way, like
-// tuples. For many cases, a paired up version is more useful
-// than individual OS names and versions.
-func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], err error) {
-	osVersions, err = pairs.NewPairs(af.OsNames, af.OsVersions)
-	if err != nil {
-		return
-	}
-	return
+	af.From = from
+	af.To = to
 }
 
 // Expand populates app filters by fetching stored filters
@@ -324,39 +254,51 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 		if len(filters.Versions) > 0 {
 			af.Versions = filters.Versions
 		}
+
 		if len(filters.VersionCodes) > 0 {
 			af.VersionCodes = filters.VersionCodes
 		}
+
 		if len(filters.OsNames) > 0 {
 			af.OsNames = filters.OsNames
 		}
+
 		if len(filters.OsVersions) > 0 {
 			af.OsVersions = filters.OsVersions
 		}
+
 		if len(filters.Countries) > 0 {
 			af.Countries = filters.Countries
 		}
+
 		if len(filters.DeviceNames) > 0 {
 			af.DeviceNames = filters.DeviceNames
 		}
+
 		if len(filters.DeviceManufacturers) > 0 {
 			af.DeviceManufacturers = filters.DeviceManufacturers
 		}
+
 		if len(filters.DeviceLocales) > 0 {
 			af.Locales = filters.DeviceLocales
 		}
+
 		if len(filters.NetworkProviders) > 0 {
 			af.NetworkProviders = filters.NetworkProviders
 		}
+
 		if len(filters.NetworkTypes) > 0 {
 			af.NetworkTypes = filters.NetworkTypes
 		}
+
 		if len(filters.NetworkGenerations) > 0 {
 			af.NetworkGenerations = filters.NetworkGenerations
 		}
+
 		if filters.UDExpressionRaw != "" {
 			af.UDExpressionRaw = filters.UDExpressionRaw
 		}
+
 		return
 	}
 
@@ -416,94 +358,64 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 // attribute expression value.
 func (af *AppFilter) parseUDExpression() (err error) {
 	af.UDExpression = &event.UDExpression{}
-	if err = json.Unmarshal([]byte(af.UDExpressionRaw), af.UDExpression); err != nil {
-		return
+	return json.Unmarshal([]byte(af.UDExpressionRaw), af.UDExpression)
+}
+
+// Validate validates each app filtering parameter and sets
+// defaults for unspecified parameters. Returns error if any
+// parameter is invalid or incomplete.
+func (af *AppFilter) Validate() error {
+	// app UUID validations
+	if af.AppID == uuid.Nil {
+		return fmt.Errorf("app id is invalid or empty")
 	}
-	return
-}
 
-// HasTimeRange checks if the time values are
-// appropriately set.
-func (af *AppFilter) HasTimeRange() bool {
-	return !af.From.IsZero() && !af.To.IsZero()
-}
+	if af.AppID.Version().String() != "VERSION_4" {
+		return fmt.Errorf("app id version is not UUID v4")
+	}
 
-// HasKeyset checks if key id and key timestamp
-// values are present and valid.
-func (af *AppFilter) HasKeyset() bool {
-	return af.hasKeyID() && af.hasKeyTimestamp()
-}
+	// time validations
+	if af.From.IsZero() && !af.To.IsZero() {
+		return fmt.Errorf("both `from` and `to` time must be set")
+	}
 
-// HasPositiveLimit checks if limit is greater
-// than zero.
-func (af *AppFilter) HasPositiveLimit() bool {
-	return af.Limit > 0
-}
+	if af.To.IsZero() && !af.From.IsZero() {
+		return fmt.Errorf("both `from` and `to` time must be set")
+	}
 
-// HasVersions returns true if at least one
-// app version is requested.
-func (af *AppFilter) HasVersions() bool {
-	return len(af.Versions) > 0 && len(af.VersionCodes) > 0
-}
+	if af.To.Before(af.From) {
+		return fmt.Errorf("`to` must be later time than `from`")
+	}
 
-// HasOSVersions returns true if there at least
-// one OS Version is requested.
-func (af *AppFilter) HasOSVersions() bool {
-	return len(af.OsNames) > 0 && len(af.OsVersions) > 0
-}
+	if af.From.After(time.Now().UTC()) {
+		return fmt.Errorf("`from` cannot be later than now")
+	}
 
-// HasMultiVersions checks if multiple versions
-// are requested.
-func (af *AppFilter) HasMultiVersions() bool {
-	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
-}
+	if af.Limit == 0 {
+		return errors.New("`limit` cannot be zero")
+	}
 
-// HasCountries returns true if at least one
-// country is requested.
-func (af *AppFilter) HasCountries() bool {
-	return len(af.Countries) > 0
-}
+	if af.Limit > MaxPaginationLimit {
+		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
+	}
 
-// HasNetworkProviders returns true if at least
-// one network provider is requested.
-func (af *AppFilter) HasNetworkProviders() bool {
-	return len(af.NetworkProviders) > 0
-}
+	if af.UDExpressionRaw != "" {
+		if err := af.parseUDExpression(); err != nil {
+			return fmt.Errorf("failed to parse %q: %v", `ud_expression`, err.Error())
+		}
 
-// HasNetworkTypes returns true if at least
-// one network type is requested.
-func (af *AppFilter) HasNetworkTypes() bool {
-	return len(af.NetworkTypes) > 0
-}
+		if err := af.UDExpression.Validate(); err != nil {
+			return fmt.Errorf("failed to validate %q: %v", `ud_expression`, err.Error())
+		}
+	}
 
-// HasNetworkGenerations returns true if at least
-// one network generation is requested.
-func (af *AppFilter) HasNetworkGenerations() bool {
-	return len(af.NetworkGenerations) > 0
-}
+	for _, status := range af.SpanStatuses {
+		if status < 0 || status > 2 {
+			return fmt.Errorf("`span_statuses` values must be 0 (Unset), 1 (Ok) or 2 (Error)")
+		}
+	}
 
-// HasDeviceLocales returns true if at least
-// one device locale is requested.
-func (af *AppFilter) HasDeviceLocales() bool {
-	return len(af.Locales) > 0
-}
-
-// HasDeviceManufacturers returns true if at least
-// one device manufacturer is requested.
-func (af *AppFilter) HasDeviceManufacturers() bool {
-	return len(af.DeviceManufacturers) > 0
-}
-
-// HasDeviceNames returns true if at least
-// one device name is requested.
-func (af *AppFilter) HasDeviceNames() bool {
-	return len(af.DeviceNames) > 0
-}
-
-// HasTimezone returns true if a timezone
-// is requested.
-func (af *AppFilter) HasTimezone() bool {
-	return af.Timezone != ""
+	return nil
 }
 
 // HasUDExpression returns true if a user
@@ -512,52 +424,168 @@ func (af *AppFilter) HasUDExpression() bool {
 	return af.UDExpressionRaw != "" && af.UDExpression != nil
 }
 
+// ValidateVersions validates presence of valid
+// version name and version code.
+func (af AppFilter) ValidateVersions() error {
+	presence := len(af.Versions) > 0 && len(af.VersionCodes) > 0
+	arity := len(af.Versions) == len(af.VersionCodes)
+
+	if !presence {
+		return fmt.Errorf(`%q and %q both are required`, "versions", "version_codes")
+	}
+	if !arity {
+		return fmt.Errorf(`%q and %q both should be of same length`, "versions", "version_codes")
+	}
+
+	return nil
+}
+
+// VersionPairs provides a convenient wrapper over versions
+// and version codes representing them in paired-up way, like
+// tuples. For many cases, a paired up version is more useful
+// than individual version names and codes.
+func (af AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err error) {
+	versions, err = pairs.NewPairs(af.Versions, af.VersionCodes)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// OSVersionPairs provides a convenient wrapper over OS name
+// and OS version representing them in paired-up way, like
+// tuples. For many cases, a paired up version is more useful
+// than individual OS names and versions.
+func (af AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], err error) {
+	osVersions, err = pairs.NewPairs(af.OsNames, af.OsVersions)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// HasTimeRange checks if the time values are
+// appropriately set.
+func (af AppFilter) HasTimeRange() bool {
+	return !af.From.IsZero() && !af.To.IsZero()
+}
+
+// HasPositiveLimit checks if limit is greater
+// than zero.
+func (af AppFilter) HasPositiveLimit() bool {
+	return af.Limit > 0
+}
+
+// HasVersions returns true if at least one
+// app version is requested.
+func (af AppFilter) HasVersions() bool {
+	return len(af.Versions) > 0 && len(af.VersionCodes) > 0
+}
+
+// HasOSVersions returns true if there at least
+// one OS Version is requested.
+func (af AppFilter) HasOSVersions() bool {
+	return len(af.OsNames) > 0 && len(af.OsVersions) > 0
+}
+
+// HasMultiVersions checks if multiple versions
+// are requested.
+func (af AppFilter) HasMultiVersions() bool {
+	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
+}
+
+// HasCountries returns true if at least one
+// country is requested.
+func (af AppFilter) HasCountries() bool {
+	return len(af.Countries) > 0
+}
+
+// HasNetworkProviders returns true if at least
+// one network provider is requested.
+func (af AppFilter) HasNetworkProviders() bool {
+	return len(af.NetworkProviders) > 0
+}
+
+// HasNetworkTypes returns true if at least
+// one network type is requested.
+func (af AppFilter) HasNetworkTypes() bool {
+	return len(af.NetworkTypes) > 0
+}
+
+// HasNetworkGenerations returns true if at least
+// one network generation is requested.
+func (af AppFilter) HasNetworkGenerations() bool {
+	return len(af.NetworkGenerations) > 0
+}
+
+// HasDeviceLocales returns true if at least
+// one device locale is requested.
+func (af AppFilter) HasDeviceLocales() bool {
+	return len(af.Locales) > 0
+}
+
+// HasDeviceManufacturers returns true if at least
+// one device manufacturer is requested.
+func (af AppFilter) HasDeviceManufacturers() bool {
+	return len(af.DeviceManufacturers) > 0
+}
+
+// HasDeviceNames returns true if at least
+// one device name is requested.
+func (af AppFilter) HasDeviceNames() bool {
+	return len(af.DeviceNames) > 0
+}
+
+// HasTimezone returns true if a timezone
+// is requested.
+func (af AppFilter) HasTimezone() bool {
+	return af.Timezone != ""
+}
+
+// HasFreeText returns true if a free text
+// keyword was supplied.
+func (af AppFilter) HasFreeText() bool {
+	return af.FreeText != ""
+}
+
+// HasSpanStatuses returns true if at least
+// one span statuses are requested.
+func (af AppFilter) HasSpanStatuses() bool {
+	return len(af.SpanStatuses) > 0
+}
+
+// HasBugReportStatuses returns true if at least
+// one bug report statuses are requested.
+func (af AppFilter) HasBugReportStatuses() bool {
+	return len(af.BugReportStatuses) > 0
+}
+
 // LimitAbs returns the absolute value of limit
-func (af *AppFilter) LimitAbs() int {
+func (af AppFilter) LimitAbs() int {
 	if !af.HasPositiveLimit() {
 		return -af.Limit
 	}
 	return af.Limit
 }
 
-// ExtendLimit extends the limit by one
-// in a signed way.
-func (af *AppFilter) ExtendLimit() int {
-	if af.HasPositiveLimit() {
-		return af.Limit + 1
-	} else {
-		return af.Limit - 1
-	}
-}
-
-// SetDefaultTimeRange sets the time range to last
-// default duration from current UTC time
-func (af *AppFilter) SetDefaultTimeRange() {
-	to := time.Now().UTC()
-	from := to.Add(-DefaultDuration)
-
-	af.From = from
-	af.To = to
-}
-
 // GetGenericFilters finds distinct values of app versions, network type,
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
-func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
+func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
 	var filterGroup errgroup.Group
 
 	// each go routine isolates log comment &
 	// clickhouse settings for safe concurrency
-
 	filterGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment": lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			// only query level caching is supported in ClickHouse Cloud,
 			// not at session level.
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":   int(config.DefaultQueryCacheTTL.Seconds()),
+			"force_primary_key": gin.Mode() == gin.DebugMode,
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
@@ -575,13 +603,13 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 
-		osNames, osVersions, err := af.getOsVersions(ctx)
+		osNames, osVersions, err := af.getOSVersions(ctx)
 		if err != nil {
 			return
 		}
@@ -595,9 +623,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
 
@@ -614,9 +642,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
 
@@ -633,9 +661,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
 
@@ -652,9 +680,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
 
@@ -671,9 +699,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
 
@@ -690,9 +718,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
 
@@ -709,9 +737,9 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
-			"use_query_cache": 1,
+			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(defaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
 
@@ -734,7 +762,7 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 // GetUserDefinedAttrKeys provides list of unique user defined
 // attribute keys and its data types by matching a subset of
 // filters.
-func (af *AppFilter) GetUserDefinedAttrKeys(ctx context.Context, fl *FilterList) (err error) {
+func (af AppFilter) GetUserDefinedAttrKeys(ctx context.Context, fl *FilterList) (err error) {
 	if af.UDAttrKeys {
 		keytypes, err := af.getUDAttrKeys(ctx)
 		if err != nil {
@@ -746,35 +774,31 @@ func (af *AppFilter) GetUserDefinedAttrKeys(ctx context.Context, fl *FilterList)
 	return
 }
 
-// hasKeyID checks if key id is a valid non-empty
-// value.
-func (af *AppFilter) hasKeyID() bool {
-	return af.KeyID != ""
-}
-
-// hasKeyTimestamp checks if key timestamp is a valid non-empty
-// value.
-func (af *AppFilter) hasKeyTimestamp() bool {
-	return !time.Time.IsZero(af.KeyTimestamp)
-}
-
 // getAppVersions finds distinct pairs of app versions &
 // app build no from available filters.
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
-func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
-	var table_name string
+func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct toString(tupleElement(app_version, 1)) as version, toString(tupleElement(app_version, 2)) as code").
+		From(table).
+		Select("app_version.1 as version").
+		Select("app_version.2 as code").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("version").
+		GroupBy("code").
 		OrderBy("code desc, version")
 
 	defer stmt.Close()
@@ -825,24 +849,31 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 	return
 }
 
-// getOsVersions finds distinct values of os versions
+// getOSVersions finds distinct values of os versions
 // from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
-	var table_name string
+func (af AppFilter) getOSVersions(ctx context.Context) (osNames, osVersions []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct toString(tupleElement(os_version, 1)) as name, toString(tupleElement(os_version, 2)) as version").
-		GroupBy("name, version").
-		OrderBy("version desc, name").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("os_version.1 as name").
+		Select("os_version.2 as version").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("name").
+		GroupBy("version").
+		OrderBy("version desc, name")
 
 	defer stmt.Close()
 
@@ -878,18 +909,24 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 // from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
-	var table_name string
+func (af AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters final"
-	} else {
-		table_name = "app_filters final"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct country_code").
+		From(table).
+		Select("country_code").
+		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("country_code").
 		OrderBy("country_code")
 
 	defer stmt.Close()
@@ -924,19 +961,25 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 // providers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
-	var table_name string
+func (af AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct network_provider").
-		OrderBy("network_provider").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("network_provider").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("network_provider").
+		OrderBy("network_provider")
 
 	defer stmt.Close()
 
@@ -970,19 +1013,25 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 // types from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
-	var table_name string
+func (af AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct network_type").
-		OrderBy("network_type").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("network_type").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("network_type").
+		OrderBy("network_type")
 
 	defer stmt.Close()
 
@@ -1016,19 +1065,25 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 // generations from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
-	var table_name string
+func (af AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct network_generation").
-		OrderBy("network_generation").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("network_generation").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("network_generation").
+		OrderBy("network_generation")
 
 	defer stmt.Close()
 
@@ -1065,19 +1120,25 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 // locales from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
-	var table_name string
+func (af AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct device_locale").
-		OrderBy("device_locale").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("device_locale").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("device_locale").
+		OrderBy("device_locale")
 
 	defer stmt.Close()
 
@@ -1111,19 +1172,25 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 // manufacturers from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
-	var table_name string
+func (af AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct device_manufacturer").
-		OrderBy("device_manufacturer").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("device_manufacturer").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("device_manufacturer").
+		OrderBy("device_manufacturer")
 
 	defer stmt.Close()
 
@@ -1157,19 +1224,25 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 // names from available filters.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
-	var table_name string
+func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
+	table := config.AppFiltersTable
+
 	if af.Span {
-		table_name = "span_filters"
-	} else {
-		table_name = "app_filters"
+		table = config.SpanFiltersTable
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.
-		From(table_name).
-		Select("distinct device_name").
-		OrderBy("device_name").
-		Where("app_id = toUUID(?)", af.AppID)
+		From(table).
+		Select("device_name").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		GroupBy("device_name").
+		OrderBy("device_name")
 
 	defer stmt.Close()
 
@@ -1201,30 +1274,33 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types.
-func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
-	var table string
+func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
+	table := "user_def_attrs final"
+
 	if af.Span {
 		table = "span_user_def_attrs final"
-	} else {
-		table = "user_def_attrs final"
+	}
+
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
 	}
 
 	stmt := sqlf.From(table).
 		Select("key").
-		Select("argMax(type, ver) as type").
-		Clause("prewhere app_id = toUUID(?)", af.AppID).
+		Select("argMax(type, timestamp) as type").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
 		GroupBy("key").
-		OrderBy("key")
+		OrderBy("key").
+		// most granules will be read anyway
+		// applying skip indexes unlikely to
+		// benefit
+		// clickhouse may waste effort reading
+		// & analyzing skip indexes in vain
+		Clause("settings use_skip_indexes = 0")
 
 	defer stmt.Close()
-
-	if af.Crash {
-		stmt.Where("exception = true")
-	}
-
-	if af.ANR {
-		stmt.Where("anr = true")
-	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -1247,7 +1323,7 @@ func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyT
 
 // GetExcludedVersions computes list of app version
 // and version codes that are excluded from app filter.
-func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions, err error) {
+func (af AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions, err error) {
 	allVersions, allCodes, err := af.getAppVersions(ctx)
 	if err != nil {
 		return
@@ -1270,111 +1346,4 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 	versions = exclude(allVersions, allCodes, af.Versions, af.VersionCodes)
 
 	return
-}
-
-// exclude figures out the set of excluded versions
-// from sets of all versions and sets of selected
-// versions.
-func exclude(allV, allC, selV, selC []string) (versions Versions) {
-	selCount := make(map[string]int)
-	for i := range selV {
-		key := selV[i] + "\x00" + selC[i]
-		selCount[key]++
-	}
-
-	for i := range allV {
-		key := allV[i] + "\x00" + allC[i]
-		if selCount[key] > 0 {
-			selCount[key]--
-			continue
-		}
-		versions.Add(allV[i], allC[i])
-	}
-
-	return
-}
-
-// Add adds a version name and code pair
-// to versions.
-func (v *Versions) Add(name, code string) {
-	v.names = append(v.names, name)
-	v.codes = append(v.codes, code)
-}
-
-// IsValidSemver determines if all version names
-// adhere to semver specification.
-func (v Versions) IsValidSemver() bool {
-	if len(v.names) < 1 {
-		return false
-	}
-
-	for _, name := range v.names {
-		if _, err := semver.Parse(name); err != nil {
-			return false
-		}
-	}
-	return true
-}
-
-// SemverSortByVersionDesc sorts version names in
-// descending semver order keeping version code in
-// lock-step with version name.
-// Assumes version name is valid semver.
-func (v *Versions) SemverSortByVersionDesc() (err error) {
-	if len(v.names) < 1 {
-		return
-	}
-
-	type pair struct {
-		ver  semver.Version
-		name string
-		code string
-	}
-
-	pairs := make([]pair, len(v.names))
-
-	for i, name := range v.names {
-		semver, err := semver.Parse(name)
-		if err != nil {
-			return err
-		}
-		pairs[i] = pair{
-			ver:  semver,
-			name: name,
-			code: v.codes[i],
-		}
-	}
-
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].ver.GT(pairs[j].ver)
-	})
-
-	sortedNames := make([]string, len(pairs))
-	sortedCodes := make([]string, len(pairs))
-
-	for i, p := range pairs {
-		sortedNames[i] = p.name
-		sortedCodes[i] = p.code
-	}
-
-	v.names = sortedNames
-	v.codes = sortedCodes
-
-	return
-}
-
-// HasVersions returns true if at least
-// 1 (version, code) pair exists.
-func (v Versions) HasVersions() bool {
-	return len(v.names) > 0
-}
-
-// Versions gets the version names.
-func (v Versions) Versions() []string {
-	return v.names
-}
-
-// Codes gets the version codes.
-func (v Versions) Codes() []string {
-	return v.codes
 }

@@ -13,9 +13,11 @@ interface PageState {
   exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
   filters: typeof defaultFilters
   exceptionsOverview: typeof emptyExceptionsOverviewResponse
-  keyId: string | null,
-  limit: number
+  paginationOffset: number
 }
+
+const paginationLimit = 5
+const paginationOffsetUrlKey = "po"
 
 interface ExceptionsOverviewProps {
   exceptionsType: ExceptionsType,
@@ -23,10 +25,6 @@ interface ExceptionsOverviewProps {
 }
 
 export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptionsType, teamId }) => {
-  const defaultPaginationLimit = 5
-  const keyIdUrlKey = "kId"
-  const paginationLimitUrlKey = "pl"
-
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -34,8 +32,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading,
     filters: defaultFilters,
     exceptionsOverview: emptyExceptionsOverviewResponse,
-    keyId: searchParams.get(keyIdUrlKey) ? searchParams.get(keyIdUrlKey) : null,
-    limit: searchParams.get(paginationLimitUrlKey) ? parseInt(searchParams.get(paginationLimitUrlKey)!) : defaultPaginationLimit
+    paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
   }
 
   const [pageState, setPageState] = useState<PageState>(initialState)
@@ -52,7 +49,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   const getExceptionsOverview = async () => {
     updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading })
 
-    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, pageState.keyId, pageState.limit)
+    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, paginationLimit, pageState.paginationOffset)
 
     switch (result.status) {
       case ExceptionsOverviewApiStatus.Error:
@@ -70,28 +67,17 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
       updatePageState({
         filters: updatedFilters,
         // Reset pagination on filters change if previous filters were not default filters
-        keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? null : pageState.keyId,
-        limit: pageState.filters.serialisedFilters && searchParams.get(paginationLimitUrlKey) ? defaultPaginationLimit : pageState.limit
+        paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
       })
     }
   }
 
   const handleNextPage = () => {
-    let keyId = null
-    if (pageState.exceptionsOverview.results !== null && pageState.exceptionsOverview.results.length > 0) {
-      keyId = pageState.exceptionsOverview.results[pageState.exceptionsOverview.results.length - 1].id
-    }
-
-    updatePageState({ keyId: keyId, limit: defaultPaginationLimit })
+    updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
   }
 
   const handlePrevPage = () => {
-    let keyId = null
-    if (pageState.exceptionsOverview.results !== null && pageState.exceptionsOverview.results.length > 0) {
-      keyId = pageState.exceptionsOverview.results[0].id
-    }
-
-    updatePageState({ keyId: keyId, limit: -defaultPaginationLimit })
+    updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
   }
 
   useEffect(() => {
@@ -100,11 +86,10 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     }
 
     // update url
-    const queryParams = `${pageState.keyId !== null ? `${keyIdUrlKey}=${encodeURIComponent(pageState.keyId)}&` : ''}${paginationLimitUrlKey}=${encodeURIComponent(pageState.limit)}&${pageState.filters.serialisedFilters!}`
-    router.replace(`?${queryParams}`, { scroll: false })
+    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
 
     getExceptionsOverview()
-  }, [pageState.keyId, pageState.filters])
+  }, [pageState.paginationOffset, pageState.filters])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -120,7 +105,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showAppSelector={true}
         showAppVersions={true}
         showDates={true}
-        showSessionType={false}
+        showSessionTypes={false}
         showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}

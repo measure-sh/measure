@@ -68,7 +68,7 @@ func (f *Fields) Put(key, value string) error {
 	return nil
 }
 
-// MustPut puts or panics on invalid input.
+// MustPut puts the field's key & value or panics on invalid input.
 func (f *Fields) MustPut(key, value string) *Fields {
 	if err := f.Put(key, value); err != nil {
 		panic(err)
