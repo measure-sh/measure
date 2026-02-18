@@ -121,18 +121,18 @@ is_debian() {
 # ------------------------------------------------------------------------------
 detect_os() {
   case "$(uname)" in
-  Linux*)
-    DETECTED_OS="Linux"
-    ;;
-  Darwin*)
-    DETECTED_OS="macOS"
-    ;;
-  CYGWIN* | MSYS* | MINGW*)
-    DETECTED_OS="Windows"
-    ;;
-  *)
-    DETECTED_OS="unknown"
-    ;;
+    Linux*)
+      DETECTED_OS="Linux"
+      ;;
+    Darwin*)
+      DETECTED_OS="macOS"
+      ;;
+    CYGWIN* | MSYS* | MINGW*)
+      DETECTED_OS="Windows"
+      ;;
+    *)
+      DETECTED_OS="unknown"
+      ;;
   esac
 }
 
@@ -315,28 +315,28 @@ EOF
 
   # validate architecture
   case "$arch_name" in
-  x86_64 | amd64)
-    target_arch="x86_64"
-    ;;
-  aarch64 | arm64)
-    target_arch="aarch64"
-    ;;
-  *)
-    error "Unsupported architecture: $arch_name"
-    ;;
+    x86_64 | amd64)
+      target_arch="x86_64"
+      ;;
+    aarch64 | arm64)
+      target_arch="aarch64"
+      ;;
+    *)
+      error "Unsupported architecture: $arch_name"
+      ;;
   esac
 
   # validate operating system
   case "$os_name" in
-  linux)
-    target_os="linux"
-    ;;
-  darwin)
-    target_os="darwin"
-    ;;
-  *)
-    error "Unsupported operating system: $os_name"
-    ;;
+    linux)
+      target_os="linux"
+      ;;
+    darwin)
+      target_os="darwin"
+      ;;
+    *)
+      error "Unsupported operating system: $os_name"
+      ;;
   esac
 
   local asset_name="docker-compose-${target_os}-${target_arch}"
@@ -479,7 +479,7 @@ add_env_variable() {
     return
   fi
 
-  echo "${key}=${value}" >> "$env_file"
+  echo "${key}=${value}" >>"$env_file"
 }
 
 # ------------------------------------------------------------------------------
@@ -546,6 +546,7 @@ function remove_minio_mc_image() {
 run_backfills() {
   if [[ "$FRESH_INSTALL" == "true" ]]; then
     source ./migrations/v0.9.x-data-backfills.sh
+    source ./migrations/v0.10.x-read-optim.sh
   fi
 }
 
