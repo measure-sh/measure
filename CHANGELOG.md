@@ -87,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Add upgrade docs for sdks (#3142) by @abhaysood in #3142
 - Update sdk integration guide (#3109) by @abhaysood in #3109
 - Clarify http headers collection (#3133) by @abhaysood in #3133
 - Update outdated sdk docs (#3004) by @abhaysood in #3004
