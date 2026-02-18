@@ -12,9 +12,9 @@ import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import '../../measure_flutter.dart';
+import '../isolate/file_processor.dart';
 import '../logger/logger.dart';
 import '../storage/file_storage.dart';
-import 'attachment_processing.dart';
 import 'bug_report_data.dart';
 
 class BugReportCollector {
@@ -89,25 +89,30 @@ class BugReportCollector {
         );
 
         final filePath = result.filePath;
-        final compressedSize = result.compressedSize;
+        final compressedSize = result.size;
         if (filePath != null && compressedSize != null) {
+          _logger.log(
+            LogLevel.debug,
+            'BugReportCollector: Successfully stored screenshot attachment (id: $uuid, size: $compressedSize bytes, path: $filePath)',
+          );
           storedAttachments.add(
             MsrAttachment(
               name: uuid,
               path: filePath,
-              type: AttachmentType.screenshot,
+              type: attachment.type,
               id: uuid,
               size: compressedSize,
               bytes: null,
             ),
           );
         } else {
-          _logger.log(LogLevel.error, "Failed to process attachment");
+          _logger.log(LogLevel.error,
+              "BugReportCollector: Failed to process attachment: ${result.error}");
         }
       }
 
       _logger.log(LogLevel.debug,
-          "Processed ${attachments.length} attachments for bug_report");
+          "BugReportCollector: Processed ${attachments.length} attachments for bug_report");
 
       final data = BugReportData(description: description);
       _signalProcessor.trackEvent(

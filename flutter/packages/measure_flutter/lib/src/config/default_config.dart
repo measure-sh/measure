@@ -27,4 +27,5 @@ class DefaultConfig {
   static const double warmLaunchSamplingRate = 0.0001;
   static const double hotLaunchSamplingRate = 0.0001;
   static const double journeySamplingRate = 0;
+  static const Map<Type, String> widgetFilter = {};
 }

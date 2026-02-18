@@ -50,6 +50,8 @@ let recentAppVersion = "recentAppVersion"
 let recentAppBuildNumber = "recentAppBuildNumber"
 let screenshotContentType = "image/png"
 let layoutSnapshotContentType = "image/svg+xml"
+let layoutSnapshotJsonContentType = "application/json"
+let layoutSnapshotJsonContentEncoding = "gzip"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

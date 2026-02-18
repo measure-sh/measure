@@ -26,4 +26,5 @@ Map<String, dynamic> _$MsrAttachmentToJson(MsrAttachment instance) =>
 
 const _$AttachmentTypeEnumMap = {
   AttachmentType.screenshot: 'screenshot',
+  AttachmentType.layoutSnapshotJson: 'layout_snapshot_json',
 };

@@ -6,6 +6,8 @@ import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
+import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
+import 'package:measure_flutter/src/isolate/file_processor.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/method_channel_callbacks.dart';
@@ -46,6 +48,7 @@ final class MeasureInitializer {
   late final ShakeDetector _shakeDetector;
   late final ConfigLoader _configLoader;
   late final Sampler _sampler;
+  late final FileProcessingIsolate _fileProcessingIsolate;
 
   Logger get logger => _logger;
 
@@ -83,6 +86,8 @@ final class MeasureInitializer {
 
   ShakeDetector get shakeDetector => _shakeDetector;
 
+  FileProcessingIsolate get fileProcessingIsolate => _fileProcessingIsolate;
+
   ConfigLoader get configLoader => _configLoader;
 
   MeasureInitializer(MeasureConfig inputConfig) {
@@ -97,8 +102,12 @@ final class MeasureInitializer {
     final randomizer = RandomizerImpl();
     _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
+
     _fileStorage = FileStorage(methodChannel, logger);
+    _fileProcessingIsolate = FileProcessingIsolate(logger: _logger);
+    initializeFileProcessingIsolate(_fileProcessingIsolate);
     _configLoader = ConfigLoader(logger: _logger, fileStorage: _fileStorage);
+
     _configProvider = ConfigProviderImpl(
       defaultConfig: Config(
         enableLogging: inputConfig.enableLogging,
@@ -133,7 +142,7 @@ final class MeasureInitializer {
       signalProcessor: signalProcessor,
       configProvider: configProvider,
     );
-    _gestureCollector = GestureCollector(signalProcessor, timeProvider);
+    _gestureCollector = GestureCollector(signalProcessor, timeProvider, _fileStorage, logger, _idProvider);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,

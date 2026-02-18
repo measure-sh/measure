@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../measure_flutter.dart';
 
 /// A [NavigatorObserver] that automatically tracks screen navigation events.
-/// 
+///
 /// [MsrNavigatorObserver] monitors route changes in your Flutter app and
 /// automatically reports screen view events to the Measure SDK. This provides
 /// insight into user navigation patterns and screen popularity.
-/// 
+///
 /// **Usage:**
 /// ```dart
 /// class MyApp extends StatelessWidget {
@@ -24,13 +24,13 @@ import '../../measure_flutter.dart';
 ///   }
 /// }
 /// ```
-/// 
+///
 /// **Named Routes:**
 /// For automatic screen tracking to work properly, use named routes:
 /// ```dart
 /// // Good - will be tracked as 'ProfileScreen'
 /// Navigator.pushNamed(context, '/profile');
-/// 
+///
 /// // Or provide explicit names
 /// Navigator.push(
 ///   context,

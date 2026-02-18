@@ -30,11 +30,11 @@ class FakeConfigProvider implements ConfigProvider {
   Map<String, bool> shouldTrackHttpHeaderResults = {};
   bool shouldTrackHttpRequestBodyResult = true;
   bool shouldTrackHttpResponseBodyResult = true;
+  final Map<Type, String> _widgetFilter = {};
 
   // Getters
   @override
-  List<String> get defaultHttpContentTypeAllowlist =>
-      _defaultHttpContentTypeAllowlist;
+  List<String> get defaultHttpContentTypeAllowlist => _defaultHttpContentTypeAllowlist;
 
   @override
   List<String> get defaultHttpHeadersBlocklist => _defaultHttpHeadersBlocklist;
@@ -100,6 +100,9 @@ class FakeConfigProvider implements ConfigProvider {
   double get traceSamplingRate => _traceSamplingRate;
 
   @override
+  Map<Type, String> get widgetFilter => _widgetFilter;
+
+  @override
   void setDynamicConfig(DynamicConfig dynamicConfig) {
     throw UnimplementedError();
   }
@@ -130,11 +133,9 @@ class FakeConfigProvider implements ConfigProvider {
   }
 
   // Setters
-  set defaultHttpContentTypeAllowlist(List<String> value) =>
-      _defaultHttpContentTypeAllowlist = value;
+  set defaultHttpContentTypeAllowlist(List<String> value) => _defaultHttpContentTypeAllowlist = value;
 
-  set defaultHttpHeadersBlocklist(List<String> value) =>
-      _defaultHttpHeadersBlocklist = value;
+  set defaultHttpHeadersBlocklist(List<String> value) => _defaultHttpHeadersBlocklist = value;
 
   set enableLogging(bool value) => _enableLogging = value;
 
@@ -149,14 +150,11 @@ class FakeConfigProvider implements ConfigProvider {
 
   set autoStart(bool value) => _autoStart = value;
 
-  set maxAttachmentsInBugReport(int value) =>
-      _maxAttachmentsInBugReport = value;
+  set maxAttachmentsInBugReport(int value) => _maxAttachmentsInBugReport = value;
 
-  set maxDescriptionLengthInBugReport(int value) =>
-      _maxDescriptionLengthInBugReport = value;
+  set maxDescriptionLengthInBugReport(int value) => _maxDescriptionLengthInBugReport = value;
 
-  set screenshotCompressionQuality(int value) =>
-      _screenshotCompressionQuality = value;
+  set screenshotCompressionQuality(int value) => _screenshotCompressionQuality = value;
 
   set customEventNameRegex(String value) => _customEventNameRegex = value;
 

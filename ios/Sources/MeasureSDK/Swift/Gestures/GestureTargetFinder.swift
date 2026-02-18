@@ -71,6 +71,10 @@ final class BaseGestureTargetFinder: GestureTargetFinder {
         let scrollableTypes: [UIView.Type] = [UIScrollView.self, UIDatePicker.self, UIPickerView.self]
 
         if scrollableTypes.contains(where: { view.isKind(of: $0) }) {
+            if String(describing: type(of: view)) == "FlutterSemanticsScrollView" {
+                return nil
+            }
+
             let viewFrameInWindow = view.convert(view.bounds, to: view.window)
             if viewFrameInWindow.contains(startPointInWindow) && viewFrameInWindow.contains(endPointInWindow) {
                 return view

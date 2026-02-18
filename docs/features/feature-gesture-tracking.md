@@ -2,10 +2,11 @@
 
 * [**Overview**](#overview)
 * [**Layout Snapshots**](#layout-snapshots)
+    * [**Flutter**](#flutter)
 * [**How it works**](#how-it-works)
     * [**Android**](#android)
     * [**iOS**](#ios)
-    * [**Flutter**](#flutter)
+    * [**Flutter**](#flutter-1)
 * [**Benchmark Results**](#benchmark-results)
     * [**Android**](#android-1)
     * [**iOS**](#ios-1)
@@ -21,8 +22,8 @@ and the state of the UI at that moment.
 ## Layout Snapshots
 
 Layout snapshots provide a lightweight way to capture the structure of your UI at key user interactions.
-They are automatically collected during click events (with throttling) and store the layout hierarchy as SVG rather than
-full screenshots.
+They are automatically collected during click events (with throttling) and store the layout hierarchy as a wireframe
+rather than full screenshots.
 This approach gives valuable context about the UI state during user interactions while being significantly more
 efficient to capture and store than traditional screenshots.
 
@@ -32,7 +33,46 @@ efficient to capture and store than traditional screenshots.
 
 Layout snapshots are captured along with every gesture click event with throttling (750ms between consecutive
 snapshots). This ensures that you get a representative snapshot of the UI without overwhelming the system with too many
-images. The snapshots are stored in a lightweight SVG format, which is efficient for both storage and rendering.
+images. The snapshots are stored in a compressed lightweight format, which is efficient for both storage and rendering.
+
+### Flutter
+
+Layout snapshots are collected by default for Flutter applications. However, only the widgets shown in the table are
+used to build the layout snapshot. To make the layout snapshot more useful, you can use a build time script to also
+add any other widgets that are used in your application.
+See [measure_build](../../flutter/packages/measure_build/README.md) package for more details.
+
+| Default Widget Types    |
+|-------------------------|
+| `FilledButton`          |
+| `OutlinedButton`        |
+| `TextButton`            |
+| `ElevatedButton`        |
+| `CupertinoButton`       |
+| `ButtonStyleButton`     |
+| `MaterialButton`        |
+| `IconButton`            |
+| `FloatingActionButton`  |
+| `ListTile`              |
+| `PopupMenuButton`       |
+| `PopupMenuItem`         |
+| `DropdownButton`        |
+| `DropdownMenuItem`      |
+| `ExpansionTile`         |
+| `Card`                  |
+| `Scaffold`              |
+| `CupertinoPageScaffold` |
+| `MaterialApp`           |
+| `CupertinoApp`          |
+| `Container`             |
+| `Row`                   |
+| `Column`                |
+| `ListView`              |
+| `PageView`              |
+| `SingleChildScrollView` |
+| `ScrollView`            |
+| `Text`                  |
+| `RichText`              | 
 
 ## How it works
 
@@ -185,6 +225,19 @@ widgets, while for scrolls, it looks for scrollable widgets.
 | `PageView`              |
 | `SingleChildScrollView` |
 
+### Layout snapshots
+
+Layout snapshots capture your app's UI structure by traversing the widget tree from the root widget. The SDK collects
+key information about each widget—including its type, position, size, and hierarchy—to build a lightweight
+representation of your UI.
+
+The entire layout snapshot is generated in a single pass through the widget tree using the `visitChildElements` method.
+Since a typical Flutter screen can contain thousands of widgets, the snapshot is optimized to include only relevant
+widget types to maintain performance and clarity.
+
+To include custom widgets or additional widget types in your snapshots, use
+the [measure_build](../../flutter/packages/measure_build/README.md) package to generate a comprehensive list of all
+widget types used in your app.
 
 ## Benchmark results
 
@@ -202,7 +255,21 @@ TLDR;
 - On average, it takes **4 ms** to identify the clicked view in a view hierarchy with a depth of **1,500**.
 - For more common scenarios, a view hierarchy with a depth of **20** takes approximately **0.2 ms**.
 - You can find the benchmark tests
-  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests/Gestures/GestureTargetFinderTests.swift).
+  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests//GestureTargetFinderTests.swift).
+
+### Flutter
+
+- On average, it takes **3ms** to generate a layout snapshot and identify the clicked widget in a widget tree with a
+  depth of **50** widgets.
+- The time to generate the layout snapshot increases linearly with the depth of the widget tree.
+- The benchmark tests can be found in [Layout Snapshot Perf Tests](../../flutter/example/integration_test/layout_snapshot_performance_test.dart). 
+
+### Flutter
+
+- On average, it takes **10ms** to generate a layout snapshot and identify the clicked widget in a widget tree with a
+  depth of **100** widgets.
+- The time to generate the layout snapshot increases linearly with the depth of the widget tree.
+- The benchmark tests can be found [here](../../flutter/example/integration_test/layout_snapshot_performance_test.dart).
 
 ## Data collected
 

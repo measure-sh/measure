@@ -306,6 +306,7 @@ class HttpUrlConnectionClientTest {
             contentType = "image/png",
             fileSize = 12L,
             headers = mapOf(),
+            contentEncoding = null,
         ) { sink ->
             sink.writeUtf8("file-content")
         }
@@ -326,6 +327,7 @@ class HttpUrlConnectionClientTest {
             contentType = "text/plain",
             fileSize = 0L,
             headers = mapOf(),
+            contentEncoding = null,
         ) { sink ->
             sink.writeUtf8("test")
         }
@@ -342,6 +344,7 @@ class HttpUrlConnectionClientTest {
             contentType = "image/jpeg",
             fileSize = 10L,
             headers = mapOf(),
+            contentEncoding = null,
         ) { sink ->
             sink.writeUtf8("test-image")
         }
@@ -359,6 +362,7 @@ class HttpUrlConnectionClientTest {
             contentType = "application/pdf",
             fileSize = 4L,
             headers = mapOf(),
+            contentEncoding = null,
         ) { sink ->
             sink.writeUtf8("test")
         }

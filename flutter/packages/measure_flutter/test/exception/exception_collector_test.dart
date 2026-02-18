@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/measure_flutter.dart';
-import 'package:measure_flutter/src/bug_report/attachment_processing.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_framework.dart';
+import 'package:measure_flutter/src/isolate/file_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_config_provider.dart';
@@ -16,10 +16,11 @@ import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
 
 // Mock the isolate function
-Future<FileProcessingResult> mockCompressAndSaveInIsolate(CompressAndSaveParams params) async {
+Future<FileProcessingResult> mockCompressAndSaveInIsolate(
+    CompressAndSaveParams params) async {
   return FileProcessingResult(
     filePath: '/mock/path/screenshot.jpg',
-    compressedSize: 1024,
+    size: 1024,
   );
 }
 

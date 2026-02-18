@@ -119,6 +119,7 @@ internal class InternalSignalCollector(
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
                         userTriggered = userTriggered,
                     )
                 }
@@ -131,13 +132,14 @@ internal class InternalSignalCollector(
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
                         userTriggered = userTriggered,
                     )
                 }
 
                 EventType.BUG_REPORT -> {
                     val extractedData = extractBugReportData(data)
-                    signalProcessor.track(
+                    signalProcessor.trackBugReport(
                         data = extractedData,
                         timestamp = timestamp,
                         type = eventType,

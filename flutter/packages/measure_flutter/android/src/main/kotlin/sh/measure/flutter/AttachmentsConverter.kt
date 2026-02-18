@@ -17,7 +17,8 @@ class AttachmentsConverter {
 
                     val name = jsonObject.getString("name")
                     val path = jsonObject.getString("path")
-                    attachments.add(MsrAttachment(name = name, path = path, "screenshot"))
+                    val type = jsonObject.getString("type")
+                    attachments.add(MsrAttachment(name = name, path = path, type = type))
                 }
                 return attachments
             } catch (e: Exception) {

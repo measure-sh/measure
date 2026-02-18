@@ -7,6 +7,7 @@
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
 * [**Data Control**](#data-control) — Techniques to manage data collection and storage costs
 * [**Performance Impact**](#performance-impact) — Assess the SDK's impact on app performance
+* [**SDK Upgrade Guides**](sdk-upgrade-guides/README.md) — Upgrade to the latest SDK versions for Android and iOS
 
 **Further Reading**
 
@@ -59,7 +60,7 @@ available in two ways:
 * **Remote Configuration Options** — Configured remotely from the Measure dashboard. Changes take effect without releasing a new
   app version.
 
-Read more about [Configuration Options](#configuration-options).
+Read more about [Configuration Options](features/configuration-options.md).
 
 # Data Retention
 

@@ -1,0 +1,7 @@
+builders:
+  widget_analyzer:
+    import: "package:measure_build/builder.dart"
+    builder_factories: ["widgetAnalyzerBuilder"]
+    auto_apply: root_package
+    build_to: source
+    build_extensions: { "$lib$": ["msr_widgets.g.dart"] }
