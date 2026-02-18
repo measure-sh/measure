@@ -13,12 +13,10 @@
 
 Create a new app by visiting the _Apps_ section on the dashboard.
 
-![Create new app](features/assets/create-app.png)
-
 Once the app is created, note the `API URL` & `API Key` for your app. This will be used in the SDK configuration
 in later steps.
 
-![Get API Key and URL](features/assets/get-api-key.png)
+![Create new app](features/assets/create-app.png)
 
 ## 2. Set Up the SDK
 
@@ -198,7 +196,7 @@ Add the following to your app's Application class `onCreate` method.
 Measure.init(
     context, MeasureConfig(
         // Enable full collection in debug mode
-        // to verify installations.
+        // to verify installation
         enableFullCollectionMode = true,
     )
 )
@@ -270,9 +268,9 @@ import Measure
 func application(_ application: UIApplication,
                  didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     let config = BaseMeasureConfig(
-        // Set to 1 to track all sessions
+        // Set to true to track all sessions
         // useful to verify the installation
-        samplingRateForErrorFreeSessions: 1
+        enableFullCollectionMode: true
     )
     let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
     Measure.initialize(with: clientInfo, config: config)
@@ -287,16 +285,7 @@ func application(_ application: UIApplication,
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
     BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
-                                                           samplingRateForErrorFreeSessions:1.0
-                                                           traceSamplingRate:1.0
-                                                           trackHttpHeaders:YES
-                                                           trackHttpBody:YES
-                                                           httpHeadersBlocklist:@[]
-                                                           httpUrlBlocklist:@[]
-                                                           httpUrlAllowlist:@[]
                                                            autoStart:true
-                                                           trackViewControllerLoadTime:true
-                                                           screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
                                                            requestHeadersProvider:nil];
     [Measure initializeWith:clientInfo config:config];
     return YES;
@@ -343,12 +332,8 @@ dependencies:
 To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
 
 - Run app inside the callback passed to the `init` method. This ensures that the Measure SDK can set up error handlers
-  to
-  track uncaught exceptions.
+  to track uncaught exceptions.
 - Wrap your app with the `MeasureWidget`, this is required for gesture tracking and screenshots.
-- Set the `sessionSamplingRate` and `samplingRateForErrorFreeSessions` in the `MeasureConfig` as per your requirements.
-  Ideally, set to `1` for debug.
-- Provide different API Keys for iOS and Android by creating two separate apps on the dashboard.
 
 > [!IMPORTANT]
 > To detect early native crashes and to ensure accurate launch time metrics, initialize the Android SDK in
@@ -360,17 +345,14 @@ To initialize the SDK, you need to call the `Measure.instance.init` method in yo
 ```dart
 Future<void> main() async {
   await Measure.instance.init(
-        () =>
-        runApp(
-          MeasureWidget(child: MyApp()), // wrap your app with MeasureWidget
-        ),
-    config: const MeasureConfig( // SDK configuration
-      traceSamplingRate: 1,
-      samplingRateForErrorFreeSessions: 1,
-    ),
-    clientInfo: ClientInfo( // API Key & URL
-      apiKey: Platform.isAndroid ? "ANDROID_API_KEY" : "IOS_API_KEY",
-      apiUrl: "YOUR_API_URL",
+            () =>
+            runApp(
+              // wrap your app with MeasureWidget
+              MeasureWidget(child: MyApp()),
+            ),
+    // SDK configuration
+    config: const MeasureConfig(
+      enableLogging: true,
     ),
   );
 }
@@ -378,29 +360,27 @@ Future<void> main() async {
 
 This does the following:
 
-* Initializes the Measure SDK with the provided `clientInfo` and `config`.
-* Wraps your app with the `MeasureWidget`.
+* Initializes the Measure SDK with the provided `config`.
+* Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
 * Sets up the error handlers to track uncaught exceptions.
-* Initializes the native Measure SDKs for Android and iOS with the same `clientInfo` and `config`.
 
-### Setup Android Gradle Plugin
+### Flutter Android Setup
 
-To ensure stacktraces in crash reports are symbolicated correctly, you need to add the Measure Android Gradle Plugin
-to your `android/build.gradle` file. This plugin automatically uploads the Flutter symbol files to the Measure server
-when you build your app. See the [Add the Gradle Plugin](#add-the-gradle-plugin) section above for instructions.
 
-### Setup Android Manifest
+Measure Flutter SDK depends on the native Android SDK, so you need to follow all the steps mentioned in the
+[Android](#android) section to set up the Android SDK properly.
 
-Add the API URL & API Key to your application's `AndroidManifest.xml` file. This is required by
-the Android Gradle Plugin to upload mapping and symbol files automatically to the Measure server.
+1. [Add API Key & API URL to Android Manifest](#add-the-api-key--api-url)
+2. [Add Android Gradle Plugin](#add-the-gradle-plugin)
+3. [Initialize the SDK](#initialize-the-sdk)
 
-```xml
+### Flutter iOS Setup
 
-<application>
-    <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY"/>
-    <meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL"/>
-</application>
-```
+Measure Flutter SDK depends on the native iOS SDK, so you need to follow all the steps mentioned in the
+[iOS](#ios) section to set up the iOS SDK properly.
+
+1. [Install the SDK using CocoaPods or SPM](#install-the-sdk)
+2. [Initialize the SDK](#initialize-the-sdk-1)
 
 ### Track navigation
 
@@ -411,11 +391,20 @@ navigation events.
 
 See [Network Monitoring](features/feature-network-monitoring.md) for instructions on how to track HTTP requests.
 
+### Gesture tracking & Layout Snapshots
+ 
+The Flutter SDK automatically captures gestures like clicks, long clicks and scrolls. It also captures layout snapshots
+on every click to help visualize user interactions. To enable these features, simply wrap your app with the 
+`MeasureWidget` as shown in the initialization step above.
+
+Read more about adding custom widget names in the layout snapshots
+in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
+
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
-so it may take a few seconds to appear. Checkout the `Usage` section in the dashboard or navigate to the `Sessions` tab
-to see the sessions being tracked.
+so it may take a few seconds to appear. Checkout the `Usage` section in the dashboard or navigate to the 
+`Session Timelines` tab to see the data.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
 _______
@@ -432,17 +421,17 @@ to balance signal vs noise and optimize costs.
 
 ## Troubleshoot
 
-### Verify Sampling Rate
+### Enable full collection mode for debug builds
 
-Try setting `samplingRateForErrorFreeSessions` to `1`, which would enforce all sessions to be sent to the server. It's
-typically a good idea to set this to `1` for debug builds.
+Set `enableFullCollectionMode` to `true`, which would enforce all data to be sent to the server. Do note that for
+production this can lead to high costs, so it should only be used for debugging purposes.
 
 <details>
     <summary>Android</summary>
 
 ```kotlin
 val config = MeasureConfig(
-    samplingRateForErrorFreeSessions = 1f, // Set to 1 to track all sessions
+  enableFullCollectionMode = true,
 )
 Measure.init(context, config)
 ```
@@ -454,9 +443,7 @@ Measure.init(context, config)
 
 ```swift
 let config = BaseMeasureConfig(
-    // Set to 1 to track all sessions
-    // useful to verify the installation
-    samplingRateForErrorFreeSessions: 1
+    enableFullCollectionMode: 1
 )
 Measure.initialize(with: clientInfo, config: config)
 ```
@@ -466,26 +453,8 @@ Measure.initialize(with: clientInfo, config: config)
 <details>
     <summary>Flutter</summary>
 
-```dart
-await
-Measure.instance.init
-(
-() => runApp(
-MeasureWidget(child: MyApp()),
-),
-config: const MeasureConfig(
-// Set to 1 to track all sessions
-// useful to verify the installation
-samplingRateForErrorFreeSessions: 1,
-),
-clientInfo: ClientInfo(
-apiKey: "YOUR_API_KEY",
-apiUrl: "YOUR_API_URL"
-,
-)
-,
-);
-```
+Flutter SDK depends on the native SDKs, so you need to set `enableFullCollectionMode` to `true` in both
+Android and iOS native SDK initializations.
 
 </details>
 
@@ -522,33 +491,12 @@ Measure.initialize(with: clientInfo, config: config)
 <details>
     <summary>Flutter</summary>
 
-Verify the API URL and API key are set correctly in the `ClientInfo` object when initializing the SDK.
-
-```dart
-await
-Measure.instance.init
-(
-() => runApp(
-MeasureWidget(child: MyApp()),
-),
-config: const MeasureConfig(
-samplingRateForErrorFreeSessions: 1,
-),
-clientInfo: ClientInfo(
-apiKey: "YOUR_API_KEY",
-apiUrl: "YOUR_API_URL"
-,
-)
-,
-);
-```
-
-When running on Android do ensure the same API URL and API key are set in the `AndroidManifest.xml` file as well as
-it's required for the Android Gradle Plugin to upload mapping and symbol files automatically to the Measure server.
+Flutter SDK depends on the native SDKs, so verify that the API URL and API key are set correctly in both
+Android and iOS native SDK initializations.
 
 </details>
 
-### Connecting to Locally-hosted Server
+### Connecting to Locally-hosted Server (for self-host customers)
 
 **iOS**
 
@@ -602,20 +550,8 @@ Measure.initialize(with: clientInfo, config: config)
 Enable logging during SDK initialization.
 
 ```dart
-await
-Measure.instance.init
-(
-() => runApp(
-MeasureWidget(child: MyApp()),
-),
-config: const MeasureConfig(
-enableLogging
-:
-true
-,
-)
-,
-);
+await Measure.instance.init(() => runApp(MeasureWidget(child: MyApp())),
+config: const MeasureConfig(enableLogging:true));
 ```
 
 </details>

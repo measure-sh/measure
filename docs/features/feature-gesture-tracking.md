@@ -202,7 +202,14 @@ TLDR;
 - On average, it takes **4 ms** to identify the clicked view in a view hierarchy with a depth of **1,500**.
 - For more common scenarios, a view hierarchy with a depth of **20** takes approximately **0.2 ms**.
 - You can find the benchmark tests
-  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests/Gestures/GestureTargetFinderTests.swift).
+  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests//GestureTargetFinderTests.swift).
+
+### Flutter
+
+- On average, it takes **3ms** to generate a layout snapshot and identify the clicked widget in a widget tree with a
+  depth of **50** widgets.
+- The time to generate the layout snapshot increases linearly with the depth of the widget tree.
+- The benchmark tests can be found in [Layout Snapshot Perf Tests](../../flutter/example/integration_test/layout_snapshot_performance_test.dart). 
 
 ## Data collected
 

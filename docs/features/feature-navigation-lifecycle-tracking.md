@@ -9,6 +9,7 @@
     - [**iOS**](#ios)
         - [**View Controller Lifecycle**](#view-controller-lifecycle)
         - [**SwiftUI lifecycle**](#swiftui-lifecycle)
+    - [**Flutter**](#flutter)
 - [**Manually track screen views**](#manually-track-screen-views)
 - [**Application foregrounded/backgrounded**](#application-foregroundedbackgrounded)
 
