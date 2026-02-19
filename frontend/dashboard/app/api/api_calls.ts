@@ -475,7 +475,7 @@ export enum NetworkOverviewApiStatus {
   Cancelled,
 }
 
-export enum NetworkErrorRatePlotApiStatus {
+export enum NetworkStatusOverviewPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -2891,8 +2891,8 @@ export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
   }
 }
 
-export const fetchNetworkErrorRatePlotFromServer = async (filters: Filters) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/errors?`
+export const fetchNetworkStatusOverviewPlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/statusOverview?`
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
 
@@ -2900,17 +2900,17 @@ export const fetchNetworkErrorRatePlotFromServer = async (filters: Filters) => {
     const res = await measureAuth.fetchMeasure(apiUrl)
 
     if (!res.ok) {
-      return { status: NetworkErrorRatePlotApiStatus.Error, data: null }
+      return { status: NetworkStatusOverviewPlotApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null || (Array.isArray(data) && data.length === 0)) {
-      return { status: NetworkErrorRatePlotApiStatus.NoData, data: null }
+      return { status: NetworkStatusOverviewPlotApiStatus.NoData, data: null }
     }
 
-    return { status: NetworkErrorRatePlotApiStatus.Success, data: data }
+    return { status: NetworkStatusOverviewPlotApiStatus.Success, data: data }
   } catch {
-    return { status: NetworkErrorRatePlotApiStatus.Cancelled, data: null }
+    return { status: NetworkStatusOverviewPlotApiStatus.Cancelled, data: null }
   }
 }
