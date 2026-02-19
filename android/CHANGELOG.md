@@ -5,12 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.16.0] - 2026-02-18
+
+### :sparkles: New features
+
+- (**android**): Generate baseline profile (#3096) by @abhaysood in #3096
+- (**android**): Implement dynamic config with new session definition (#3069) by @abhaysood in #3069
+
+### :bug: Bug fixes
+
+- (**android**): Improve event and span validations (#3081) by @abhaysood in #3081
+- (**android**): Filter events with data in an invalid or empty file (#3079) by @abhaysood in #3079
+- (**android**): Handle exceptions when registering for network changes (#3078) by @abhaysood in #3078
+- (**android**): Fixes screenshot masking (#3053) by @abhaysood in #3053
+
+### :hammer: Misc
+
+- (**android**): Add demo page for testing http configs (#3113) by @abhaysood in #3113
+- (**android**): Fix database schema version (#3105) by @abhaysood in #3105
+- (**android**): Add baseline profile CI infrastructure (#3095) by @abhaysood in #3095
+
+### :recycle: Refactor
+
+- (**android**): Remove usused config (#3117) by @abhaysood in #3117
+
 ## [android-v0.15.1] - 2025-12-10
 
 ### :bug: Bug fixes
 
 - (**android**): Remove debug assertion for cold launch sampling (#3010) by @abhaysood in #3010
 - (**android**): Remove unnecessary consumer-rules.pro keep attribute (#2936) by @Shabinder in #2936
+
+### :hammer: Misc
+
+- (**android**): Prepare sdk release 0.15.1 (#3012) by @abhaysood in #3012
 
 ## [android-v0.15.0] - 2025-11-24
 
@@ -822,6 +850,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.16.0]: https://github.com/measure-sh/measure/compare/android-v0.15.1..android-v0.16.0
 [android-v0.15.1]: https://github.com/measure-sh/measure/compare/android-v0.15.0..android-v0.15.1
 [android-v0.15.0]: https://github.com/measure-sh/measure/compare/android-v0.14.0..android-v0.15.0
 [android-v0.14.0]: https://github.com/measure-sh/measure/compare/android-v0.13.0..android-v0.14.0
