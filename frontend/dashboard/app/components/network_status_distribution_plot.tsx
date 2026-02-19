@@ -16,7 +16,7 @@ interface StatusOverviewDataPoint {
   count_5xx: number
 }
 
-interface NetworkStatusOverviewPlotProps {
+interface NetworkStatusDistributionPlotProps {
   data: StatusOverviewDataPoint[]
 }
 
@@ -40,7 +40,7 @@ const seriesConfig = [
   { key: 'count_5xx', id: '5xx' },
 ] as const
 
-const NetworkStatusOverviewPlot: React.FC<NetworkStatusOverviewPlotProps> = ({ data }) => {
+const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps> = ({ data }) => {
   const [plot, setPlot] = useState<PlotData>()
   const { theme } = useTheme()
 
@@ -160,4 +160,4 @@ const NetworkStatusOverviewPlot: React.FC<NetworkStatusOverviewPlotProps> = ({ d
   )
 }
 
-export default NetworkStatusOverviewPlot
+export default NetworkStatusDistributionPlot

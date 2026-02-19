@@ -19,18 +19,11 @@ import (
 // in a time series.
 type MetricsDataPoint map[string]any
 
-// MetricDataPoint represents a named time series.
-type MetricDataPoint struct {
-	ID   string             `json:"id"`
-	Data []MetricsDataPoint `json:"data"`
-}
-
 // MetricsResponse contains all network metrics
 // grouped by category.
 type MetricsResponse struct {
 	Latency     []MetricsDataPoint `json:"latency"`
-	StatusCodes []MetricDataPoint  `json:"status_codes"`
-	Frequency   []MetricsDataPoint `json:"frequency"`
+	StatusCodes []MetricsDataPoint `json:"status_codes"`
 }
 
 // TopNEndpoint represents metrics for
@@ -145,14 +138,14 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 		return
 	}
 
+	fmt.Printf("No rule-based paths found for domain '%s', falling back to raw events\n", domain)
 	// Fallback: query http_events when no rule-based paths found
 	fallbackStmt := sqlf.
 		Select("path").
 		From("http_events").
 		Where("team_id = ?", teamId).
 		Where("app_id = ?", appId).
-		Where("domain = ?", domain).
-		Where("timestamp >= now() - INTERVAL 1 DAY")
+		Where("domain = ?", domain)
 
 	if search != "" {
 		fallbackStmt.Where("positionCaseInsensitive(path, ?) > 0", search)
@@ -437,21 +430,6 @@ func roundPtr(v float64) *float64 {
 	return &rounded
 }
 
-// groupByID groups rows into MetricsInstance slices
-// keyed by id field.
-func groupByID(id string, data MetricsDataPoint, lut map[string]int, instances *[]MetricDataPoint) {
-	ndx, ok := lut[id]
-	if ok {
-		(*instances)[ndx].Data = append((*instances)[ndx].Data, data)
-	} else {
-		*instances = append(*instances, MetricDataPoint{
-			ID:   id,
-			Data: []MetricsDataPoint{data},
-		})
-		lut[id] = len(*instances) - 1
-	}
-}
-
 // isActiveRule checks if a domain+path combination
 // has an active rule in the http_rules postgres table.
 func isActiveRule(ctx context.Context, teamId, appId uuid.UUID, domain, path string) (bool, error) {
@@ -474,36 +452,11 @@ func isActiveRule(ctx context.Context, teamId, appId uuid.UUID, domain, path str
 }
 
 // mergeMetricsResponses concatenates two MetricsResponse values.
-// Latency and Frequency are simple appends. StatusCodes are
-// merged by ID so the same status code from both sources gets
-// its data points combined under one entry.
 func mergeMetricsResponses(a, b *MetricsResponse) *MetricsResponse {
-	result := &MetricsResponse{
-		Latency:   append(a.Latency, b.Latency...),
-		Frequency: append(a.Frequency, b.Frequency...),
+	return &MetricsResponse{
+		Latency:     append(a.Latency, b.Latency...),
+		StatusCodes: append(a.StatusCodes, b.StatusCodes...),
 	}
-
-	lut := make(map[string]int)
-	for _, sc := range a.StatusCodes {
-		lut[sc.ID] = len(result.StatusCodes)
-		result.StatusCodes = append(result.StatusCodes, MetricDataPoint{
-			ID:   sc.ID,
-			Data: append([]MetricsDataPoint{}, sc.Data...),
-		})
-	}
-	for _, sc := range b.StatusCodes {
-		if ndx, ok := lut[sc.ID]; ok {
-			result.StatusCodes[ndx].Data = append(result.StatusCodes[ndx].Data, sc.Data...)
-		} else {
-			lut[sc.ID] = len(result.StatusCodes)
-			result.StatusCodes = append(result.StatusCodes, MetricDataPoint{
-				ID:   sc.ID,
-				Data: append([]MetricsDataPoint{}, sc.Data...),
-			})
-		}
-	}
-
-	return result
 }
 
 // fetchMetricsFromRules queries pre-aggregated data
@@ -517,6 +470,7 @@ func fetchMetricsFromRules(ctx context.Context, appId, teamId uuid.UUID, domain,
 	latencyStmt := sqlf.From("http_rule_metrics").
 		Select(fmt.Sprintf("formatDateTime(time_bucket, '%s', ?) as datetime", format), af.Timezone).
 		Select("quantilesMerge(0.5, 0.9, 0.95, 0.99)(latency_quantiles) as latencies").
+		Select("sumIf(request_count, status_code >= 200 and status_code < 600) as count").
 		Where("team_id = ? and app_id = ? and domain = ? and path = ? and time_bucket >= ? and time_bucket <= ?", teamId, appId, domain, path, from, to)
 
 	applyFilters(latencyStmt, af)
@@ -534,13 +488,14 @@ func fetchMetricsFromRules(ctx context.Context, appId, teamId uuid.UUID, domain,
 	for latencyRows.Next() {
 		var datetime string
 		var latencies []float64
-		if err = latencyRows.Scan(&datetime, &latencies); err != nil {
+		var count uint64
+		if err = latencyRows.Scan(&datetime, &latencies, &count); err != nil {
 			return
 		}
 		if err = latencyRows.Err(); err != nil {
 			return
 		}
-		data := MetricsDataPoint{"datetime": datetime}
+		data := MetricsDataPoint{"datetime": datetime, "count": count}
 		if len(latencies) >= 4 {
 			data["p50"] = roundPtr(float64(latencies[0]))
 			data["p90"] = roundPtr(float64(latencies[1]))
@@ -555,16 +510,19 @@ func fetchMetricsFromRules(ctx context.Context, appId, teamId uuid.UUID, domain,
 
 	// Fetch status code metrics
 	statusStmt := sqlf.From("http_rule_metrics").
-		Select("toString(status_code) as status_code_str").
 		Select(fmt.Sprintf("formatDateTime(time_bucket, '%s', ?) as datetime", format), af.Timezone).
-		Select("sum(request_count) as count").
+		Select("sumIf(request_count, status_code >= 200 and status_code < 600) as total_count").
+		Select("sumIf(request_count, status_code >= 200 and status_code < 300) as count_2xx").
+		Select("sumIf(request_count, status_code >= 300 and status_code < 400) as count_3xx").
+		Select("sumIf(request_count, status_code >= 400 and status_code < 500) as count_4xx").
+		Select("sumIf(request_count, status_code >= 500 and status_code < 600) as count_5xx").
 		Where("team_id = ? and app_id = ? and domain = ? and path = ? and time_bucket >= ? and time_bucket <= ?", teamId, appId, domain, path, from, to).
 		Where("status_code != 0")
 
 	applyFilters(statusStmt, af)
 
-	statusStmt.GroupBy("status_code, datetime")
-	statusStmt.OrderBy("datetime, status_code")
+	statusStmt.GroupBy("datetime")
+	statusStmt.OrderBy("datetime")
 
 	defer statusStmt.Close()
 
@@ -573,68 +531,28 @@ func fetchMetricsFromRules(ctx context.Context, appId, teamId uuid.UUID, domain,
 		return
 	}
 
-	type statusRow struct {
-		statusCode string
-		datetime   string
-		count      uint64
-	}
-	var statusData []statusRow
-	datetimeTotals := make(map[string]uint64)
-
 	for statusRows.Next() {
-		var r statusRow
-		if err = statusRows.Scan(&r.statusCode, &r.datetime, &r.count); err != nil {
+		var datetime string
+		var totalCount, count2xx, count3xx, count4xx, count5xx uint64
+		if err = statusRows.Scan(&datetime, &totalCount, &count2xx, &count3xx, &count4xx, &count5xx); err != nil {
 			return
 		}
 		if err = statusRows.Err(); err != nil {
 			return
 		}
-		statusData = append(statusData, r)
-		datetimeTotals[r.datetime] += r.count
+		result.StatusCodes = append(result.StatusCodes, MetricsDataPoint{
+			"datetime":    datetime,
+			"total_count": totalCount,
+			"count_2xx":   count2xx,
+			"count_3xx":   count3xx,
+			"count_4xx":   count4xx,
+			"count_5xx":   count5xx,
+		})
 	}
 	if err = statusRows.Err(); err != nil {
 		return
 	}
 
-	statusLut := make(map[string]int)
-	for _, r := range statusData {
-		var pct float64
-		if total := datetimeTotals[r.datetime]; total > 0 {
-			pct = float64(r.count) * 100.0 / float64(total)
-		}
-		groupByID(r.statusCode, MetricsDataPoint{"datetime": r.datetime, "percentage": roundPtr(pct)}, statusLut, &result.StatusCodes)
-	}
-
-	// Fetch frequency metrics
-	freqStmt := sqlf.From("http_rule_metrics").
-		Select(fmt.Sprintf("formatDateTime(time_bucket, '%s', ?) as datetime", format), af.Timezone).
-		Select("sum(request_count) as count").
-		Where("team_id = ? and app_id = ? and domain = ? and path = ? and time_bucket >= ? and time_bucket <= ?", teamId, appId, domain, path, from, to)
-
-	applyFilters(freqStmt, af)
-
-	freqStmt.GroupBy("datetime")
-	freqStmt.OrderBy("datetime")
-
-	defer freqStmt.Close()
-
-	freqRows, err := server.Server.ChPool.Query(ctx, freqStmt.String(), freqStmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for freqRows.Next() {
-		var datetime string
-		var count uint64
-		if err = freqRows.Scan(&datetime, &count); err != nil {
-			return
-		}
-		if err = freqRows.Err(); err != nil {
-			return
-		}
-		result.Frequency = append(result.Frequency, MetricsDataPoint{"datetime": datetime, "count": count})
-	}
-	err = freqRows.Err()
 	return
 }
 
@@ -654,6 +572,7 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	}
 	latencyStmt.
 		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
+		Select("countIf(status_code >= 200 and status_code < 600) as count").
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to)
 
 	applyPathFilter(latencyStmt, pathPattern)
@@ -672,13 +591,14 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	for latencyRows.Next() {
 		var datetime string
 		var latencies []float64
-		if err = latencyRows.Scan(&datetime, &latencies); err != nil {
+		var count uint64
+		if err = latencyRows.Scan(&datetime, &latencies, &count); err != nil {
 			return
 		}
 		if err = latencyRows.Err(); err != nil {
 			return
 		}
-		data := MetricsDataPoint{"datetime": datetime}
+		data := MetricsDataPoint{"datetime": datetime, "count": count}
 		if len(latencies) >= 4 {
 			data["p50"] = roundPtr(float64(latencies[0]))
 			data["p90"] = roundPtr(float64(latencies[1]))
@@ -692,23 +612,26 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	}
 
 	// Fetch status code metrics
-	statusStmt := sqlf.From("http_events").
-		Select("toString(status_code) as status_code_str")
+	statusStmt := sqlf.From("http_events")
 	if format == "%Y-%m-%d %H:%M" {
 		statusStmt.Select(fmt.Sprintf("formatDateTime(toStartOfInterval(timestamp, toIntervalMinute(15), ?), '%s', ?) as datetime", format), af.Timezone, af.Timezone)
 	} else {
 		statusStmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
 	}
 	statusStmt.
-		Select("count() as count").
+		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
+		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
+		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").
+		Select("countIf(status_code >= 400 and status_code < 500) as count_4xx").
+		Select("countIf(status_code >= 500 and status_code < 600) as count_5xx").
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to).
 		Where("status_code != 0")
 
 	applyPathFilter(statusStmt, pathPattern)
 	applyFilters(statusStmt, af)
 
-	statusStmt.GroupBy("status_code, datetime")
-	statusStmt.OrderBy("datetime, status_code")
+	statusStmt.GroupBy("datetime")
+	statusStmt.OrderBy("datetime")
 
 	defer statusStmt.Close()
 
@@ -717,73 +640,27 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		return
 	}
 
-	type statusRow struct {
-		statusCode string
-		datetime   string
-		count      uint64
-	}
-	var statusData []statusRow
-	datetimeTotals := make(map[string]uint64)
-
 	for statusRows.Next() {
-		var r statusRow
-		if err = statusRows.Scan(&r.statusCode, &r.datetime, &r.count); err != nil {
+		var datetime string
+		var totalCount, count2xx, count3xx, count4xx, count5xx uint64
+		if err = statusRows.Scan(&datetime, &totalCount, &count2xx, &count3xx, &count4xx, &count5xx); err != nil {
 			return
 		}
 		if err = statusRows.Err(); err != nil {
 			return
 		}
-		statusData = append(statusData, r)
-		datetimeTotals[r.datetime] += r.count
+		result.StatusCodes = append(result.StatusCodes, MetricsDataPoint{
+			"datetime":    datetime,
+			"total_count": totalCount,
+			"count_2xx":   count2xx,
+			"count_3xx":   count3xx,
+			"count_4xx":   count4xx,
+			"count_5xx":   count5xx,
+		})
 	}
 	if err = statusRows.Err(); err != nil {
 		return
 	}
 
-	statusLut := make(map[string]int)
-	for _, r := range statusData {
-		var pct float64
-		if total := datetimeTotals[r.datetime]; total > 0 {
-			pct = float64(r.count) * 100.0 / float64(total)
-		}
-		groupByID(r.statusCode, MetricsDataPoint{"datetime": r.datetime, "percentage": roundPtr(pct)}, statusLut, &result.StatusCodes)
-	}
-
-	// Fetch frequency metrics
-	freqStmt := sqlf.From("http_events")
-	if format == "%Y-%m-%d %H:%M" {
-		freqStmt.Select(fmt.Sprintf("formatDateTime(toStartOfInterval(timestamp, toIntervalMinute(15), ?), '%s', ?) as datetime", format), af.Timezone, af.Timezone)
-	} else {
-		freqStmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
-	}
-	freqStmt.
-		Select("count() as count").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to)
-
-	applyPathFilter(freqStmt, pathPattern)
-	applyFilters(freqStmt, af)
-
-	freqStmt.GroupBy("datetime")
-	freqStmt.OrderBy("datetime")
-
-	defer freqStmt.Close()
-
-	freqRows, err := server.Server.ChPool.Query(ctx, freqStmt.String(), freqStmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for freqRows.Next() {
-		var datetime string
-		var count uint64
-		if err = freqRows.Scan(&datetime, &count); err != nil {
-			return
-		}
-		if err = freqRows.Err(); err != nil {
-			return
-		}
-		result.Frequency = append(result.Frequency, MetricsDataPoint{"datetime": datetime, "count": count})
-	}
-	err = freqRows.Err()
 	return
 }

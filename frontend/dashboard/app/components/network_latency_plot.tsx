@@ -13,6 +13,7 @@ interface LatencyDataPoint {
   p90: number | null
   p95: number | null
   p99: number | null
+  count: number
 }
 
 interface NetworkLatencyPlotProps {
@@ -25,6 +26,7 @@ type PlotData = {
     id: string
     x: string
     y: number
+    count: number
   }[]
 }[]
 
@@ -48,7 +50,8 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
       data: data.map((d, index) => ({
         id: quantile + '.' + index,
         x: d.datetime,
-        y: d[quantile] ?? 0
+        y: d[quantile] ?? 0,
+        count: d.count,
       }))
     }]
 
@@ -119,18 +122,23 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
           enableGridX={false}
           enableGridY={false}
           enableSlices="x"
-          sliceTooltip={({ slice }) => (
-            <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-              <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
-              {slice.points.map((point) => (
-                <div className="flex flex-row items-center p-2" key={point.id}>
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
-                  <div className="px-2" />
-                  <p>{formatMillisToHumanReadable(point.data.yFormatted as number)} ({quantile})</p>
-                </div>
-              ))}
-            </div>
-          )}
+          sliceTooltip={({ slice }) => {
+            const pointData = slice.points[0]?.data as unknown as { count: number }
+            const count = pointData?.count ?? 0
+            return (
+              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+                <p className='p-2 font-semibold'>{formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='px-2 pb-1'>Requests: {count.toLocaleString()}</p>
+                {slice.points.map((point) => (
+                  <div className="flex flex-row items-center px-2 py-0.5" key={point.id}>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-1" />
+                    <p>{quantile}: {formatMillisToHumanReadable(point.data.yFormatted as number)}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          }}
         />
       </div>
     </div>
