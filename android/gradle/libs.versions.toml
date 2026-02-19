@@ -11,7 +11,7 @@ android-tools = "31.13.0"
 kotlin = "1.9.21"
 # Use the latest snapshot (local maven) version of measure-android for
 # gradle plugin functional tests
-measure-android = "0.16.0"
+measure-android = "0.17.0-SNAPSHOT"
 androidx-navigation = "2.9.5"
 androidx-activity = "1.10.1"
 androidx-fragment-ktx = "1.8.9"
@@ -24,7 +24,6 @@ androidx-compose-material3 = "1.4.0"
 androidx-runtime-android = "1.9.4"
 kotlinx-serialization-json = "1.6.2"
 google-material = "1.13.0"
-material_icons_core = "1.7.8"
 asm-util = "9.6"
 squareup-curtains = "1.2.5"
 squareup-okhttp = "4.12.0"
@@ -62,7 +61,6 @@ androidx-annotation = { module = "androidx.annotation:annotation", version.ref =
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
 androidx-benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", version.ref = "androidx-benchmark-macro-junit4" }
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro-junit4" }
-androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "material_icons_core" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
@@ -71,15 +69,12 @@ androidx-fragment-testing = { module = "androidx.fragment:fragment-testing", ver
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-junit" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidx-compose-ui" }
-androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "androidx-compose-ui" }
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
-androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime", version.ref = "androidx-lifecycle" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "androidx-compose-material3" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
 androidx-navigation-fragment = { module = "androidx.navigation:navigation-fragment", version.ref = "androidx-navigation" }
 androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "androidx-navigation" }
-androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "androidx-navigation" }
 androidx-rules = { module = "androidx.test:rules", version.ref = "androidx-test-rules" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-compose-ui" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose-ui" }

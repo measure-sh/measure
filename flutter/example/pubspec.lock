@@ -547,7 +547,7 @@ packages:
       path: "../packages/measure_flutter"
       relative: true
     source: path
-    version: "0.4.0"
+    version: "0.4.0+1"
   meta:
     dependency: transitive
     description:
