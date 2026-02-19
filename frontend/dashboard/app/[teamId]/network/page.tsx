@@ -8,7 +8,7 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import { Input } from '@/app/components/input'
 import LoadingBar from '@/app/components/loading_bar'
 import LoadingSpinner from '@/app/components/loading_spinner'
-import NetworkStatusOverviewPlot from '@/app/components/network_error_rate_plot'
+import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
@@ -317,7 +317,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Success &&
                         <div className="w-full">
-                            <NetworkStatusOverviewPlot data={pageState.statusOverviewPlotData} />
+                            <NetworkStatusDistributionPlot data={pageState.statusOverviewPlotData} />
                         </div>
                     }
 
@@ -331,7 +331,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <div className="py-6" />
 
-                    <p className="font-display text-xl">Search</p>
+                    <p className="font-display text-xl">Explore Endpoint</p>
                     <div className="py-2" />
                     <div className="flex flex-row items-center w-full">
                         <DropdownSelect
@@ -386,11 +386,11 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             className="m-4"
                             disabled={searchState.pathPattern.trim() === ""}
                             onClick={handleSearch}>
-                            Search
+                            Explore
                         </Button>
                     </div>
 
-                    <div className="py-6" />
+                    <div className="py-8" />
 
                     <p className="font-display text-xl">Top Endpoints</p>
                     <div className="py-2" />

@@ -3,9 +3,8 @@
 import { FilterSource, NetworkMetricsApiStatus, fetchNetworkMetricsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingSpinner from '@/app/components/loading_spinner'
-import NetworkFrequencyPlot from '@/app/components/network_frequency_plot'
 import NetworkLatencyPlot from '@/app/components/network_latency_plot'
-import NetworkStatusCodesPlot from '@/app/components/network_status_codes_plot'
+import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -15,27 +14,21 @@ interface LatencyDataPoint {
     p90: number | null
     p95: number | null
     p99: number | null
-}
-
-interface StatusCodeDataPoint {
-    datetime: string
-    percentage: number | null
-}
-
-interface StatusCodeSeries {
-    id: string
-    data: StatusCodeDataPoint[]
-}
-
-interface FrequencyDataPoint {
-    datetime: string
     count: number
+}
+
+interface StatusDistributionDataPoint {
+    datetime: string
+    total_count: number
+    count_2xx: number
+    count_3xx: number
+    count_4xx: number
+    count_5xx: number
 }
 
 interface NetworkMetrics {
     latency: LatencyDataPoint[]
-    status_codes: StatusCodeSeries[]
-    frequency: FrequencyDataPoint[]
+    status_codes: StatusDistributionDataPoint[]
 }
 
 interface PageState {
@@ -156,14 +149,10 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                     <NetworkLatencyPlot data={pageState.networkMetrics.latency} />
 
                     <div className="py-6" />
-                    <p className="font-display text-xl">Status Codes</p>
+                    <p className="font-display text-xl">Status Distribution</p>
                     <div className="py-2" />
-                    <NetworkStatusCodesPlot data={pageState.networkMetrics.status_codes} />
+                    <NetworkStatusDistributionPlot data={pageState.networkMetrics.status_codes} />
 
-                    <div className="py-6" />
-                    <p className="font-display text-xl">Frequency</p>
-                    <div className="py-2" />
-                    <NetworkFrequencyPlot data={pageState.networkMetrics.frequency} />
                 </div>
             }
         </div>
