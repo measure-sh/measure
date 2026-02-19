@@ -435,6 +435,48 @@ void main() {
       expect(_containsWidgetType(result!.snapshot, 'CustomWidget'), isTrue);
     });
 
+    testWidgets('filters previous route when dialog is shown', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                key: const ValueKey('home-button'),
+                onPressed: () {},
+                child: const Text('Home Button'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Push a dialog which uses BlockSemantics via its modal barrier
+      showDialog(
+        context: tester.element(find.byType(Scaffold)),
+        builder: (context) => AlertDialog(
+          title: const Text('Dialog Title'),
+          content: const Text('Dialog Content'),
+          actions: [
+            TextButton(
+              key: const ValueKey('dialog-button'),
+              onPressed: () {},
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final element = tester.element(find.byType(MaterialApp));
+      final result = LayoutSnapshotCapture.capture(element);
+
+      expect(result, isNotNull);
+      // The home route's button should be filtered out
+      expect(_containsWidgetType(result!.snapshot, 'ElevatedButton'), isFalse);
+      // The dialog's button should be present
+      expect(_containsWidgetType(result.snapshot, 'TextButton'), isTrue);
+    });
+
     testWidgets('sets element type for button widgets', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(

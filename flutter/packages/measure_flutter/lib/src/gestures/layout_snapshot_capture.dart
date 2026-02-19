@@ -163,8 +163,8 @@ class LayoutSnapshotCapture {
 
   /// Visits all children of an element.
   ///
-  /// Handles BlockSemantics flag: when set and we're at the Overlay level
-  /// (children are _OverlayEntryWidgets), clear previously collected siblings.
+  /// Handles BlockSemantics flag: when set and we're at the Overlay level,
+  /// clear previously collected siblings.
   static List<SnapshotNode> _visitChildren(
     Element element,
     _CaptureState state,
@@ -176,24 +176,34 @@ class LayoutSnapshotCapture {
       // Traverse child subtree
       final childResults = _recursiveTraverse(child, state, skipHitTest: skipHitTest);
 
-      // Handle BlockSemantics flag
-      if (state.shouldClearSiblings) {
-        final childWidgetType = child.widget.runtimeType.toString();
-        final isOverlayEntry = childWidgetType == '_OverlayEntryWidget';
-
-        if (isOverlayEntry) {
-          // Clear everything collected before this entry
-          children.clear();
-          state.gestureElement = null;
-          state.gestureElementType = null;
-          state.shouldClearSiblings = false;
-        }
+      // Handle BlockSemantics flag at the Overlay level
+      if (state.shouldClearSiblings && _isOverlayLevel(element)) {
+        // Clear everything collected before this entry
+        children.clear();
+        state.gestureElement = null;
+        state.gestureElementType = null;
+        state.shouldClearSiblings = false;
       }
 
       children.addAll(childResults);
     });
 
     return children;
+  }
+
+  /// Checks whether [element]'s immediate parent is the Overlay's
+  /// StatefulElement (i.e. its state is OverlayState).
+  /// Uses a public type check that survives obfuscated/release builds.
+  static bool _isOverlayLevel(Element element) {
+    bool found = false;
+    element.visitAncestorElements((ancestor) {
+      if (ancestor is StatefulElement && ancestor.state is OverlayState) {
+        found = true;
+        return false;
+      }
+      return false;
+    });
+    return found;
   }
 
   /// Performs hit test and updates gesture state if matched.

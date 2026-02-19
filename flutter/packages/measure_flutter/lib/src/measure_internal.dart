@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:developer' as developer;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
@@ -225,7 +222,6 @@ final class MeasureInternal {
   }
 
   Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
-    developer.log("snapshot: ${json.encode(snapshot?.toJson())}");
     _gestureCollector.trackGestureClick(
       clickData,
       snapshot: snapshot,
