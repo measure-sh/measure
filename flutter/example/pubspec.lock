@@ -533,7 +533,7 @@ packages:
       path: "../packages/measure_build"
       relative: true
     source: path
-    version: "0.0.0"
+    version: "0.1.0"
   measure_dio:
     dependency: "direct main"
     description:
@@ -547,7 +547,7 @@ packages:
       path: "../packages/measure_flutter"
       relative: true
     source: path
-    version: "0.3.2"
+    version: "0.4.0"
   meta:
     dependency: transitive
     description:

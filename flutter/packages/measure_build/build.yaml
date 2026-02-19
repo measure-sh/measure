@@ -1,6 +1,6 @@
 builders:
   widget_analyzer:
-    import: "package:measure_build/builder.dart"
+    import: "package:measure_build/measure_build.dart"
     builder_factories: ["widgetAnalyzerBuilder"]
     auto_apply: root_package
     build_to: source
