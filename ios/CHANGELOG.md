@@ -5,12 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.9.0] - 2026-02-19
+
+### :bug: Bug fixes
+
+
+- (**ios**): Swizzle url session task only once (#3137)
+
+### :hammer: Misc
+
+
+- (**ios**): Enable internal logging based on macro (#3141)
+- (**ios**): Add cleanup logic for stale attachments (#3135)
+- (**ios**): Update exporting logic (#3134)
+- (**ios**): Update plcrashreporter version (#3120)
+- (**ios**): Update ci checks (#3068)
+- (**ios**): Rename userJourneySamplingRate to journeySamplingRate (#2957)
+
+### :sparkles: New features
+
+
+- (**ios**): Implement dynamic config with new session definition (#3077)
+- (**ios**): Expose measure init api for cpp app delegate (#3028)
+
 ## [ios-v0.8.1] - 2025-11-26
 
 ### :bug: Bug fixes
 
 
 - (**ios**): Use correct coding keys for userJourneysSamplingRate (#2939)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.8.1 (#2941)
 
 ## [ios-v0.8.0] - 2025-11-25
 
@@ -305,6 +333,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.9.0]: https://github.com///compare/ios-v0.8.1..ios-v0.9.0
 [ios-v0.8.1]: https://github.com///compare/ios-v0.8.0..ios-v0.8.1
 [ios-v0.8.0]: https://github.com///compare/ios-v0.7.1..ios-v0.8.0
 [ios-v0.7.1]: https://github.com///compare/ios-v0.7.0..ios-v0.7.1
