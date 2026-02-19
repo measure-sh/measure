@@ -1,6 +1,11 @@
 name: measure_build
+repository: https://github.com/measure-sh/measure/tree/main/flutter/packages/measure_build
+issue_tracker: https://github.com/measure-sh/measure/issues
+description: A build package for generating code used by the measure_flutter SDK.
+version: 0.1.0
+
 environment:
-  sdk: ^3.5.0
+  sdk: '>=3.5.0 <4.0.0'
 dependencies:
   build: ^2.4.1
   analyzer: ^5.13.0
