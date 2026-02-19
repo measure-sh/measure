@@ -298,7 +298,7 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPatt
 	return mergeMetricsResponses(rulesResult, eventsResult), nil
 }
 
-func GetErrorsPlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
+func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
 	format := datetimeFormat(af.From, af.To)
 	stmt := sqlf.From("http_events")
 	if format == "%Y-%m-%d %H:%M" {
@@ -307,9 +307,11 @@ func GetErrorsPlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppF
 		stmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
 	}
 	stmt.
-		Select("if(count() = 0, 0, countIf(status_code >= 400) * 100.0 / count()) as error_rate").
-		Select("countIf(status_code >= 400) as error_count").
-		Select("count() as total_count").
+		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
+		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
+		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").
+		Select("countIf(status_code >= 400 and status_code < 500) as count_4xx").
+		Select("countIf(status_code >= 500 and status_code < 600) as count_5xx").
 		Where("team_id = ? and app_id = ? and timestamp >= ? and timestamp <= ?", teamId, appId, af.From, af.To)
 
 	stmt.GroupBy("datetime")
@@ -325,10 +327,12 @@ func GetErrorsPlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppF
 	result = []MetricsDataPoint{}
 	for rows.Next() {
 		var datetime string
-		var errorRate float64
-		var errorCount uint64
 		var totalCount uint64
-		if err = rows.Scan(&datetime, &errorRate, &errorCount, &totalCount); err != nil {
+		var count2xx uint64
+		var count3xx uint64
+		var count4xx uint64
+		var count5xx uint64
+		if err = rows.Scan(&datetime, &totalCount, &count2xx, &count3xx, &count4xx, &count5xx); err != nil {
 			return
 		}
 		if err = rows.Err(); err != nil {
@@ -336,9 +340,11 @@ func GetErrorsPlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppF
 		}
 		result = append(result, MetricsDataPoint{
 			"datetime":    datetime,
-			"error_rate":  errorRate,
-			"error_count": errorCount,
 			"total_count": totalCount,
+			"count_2xx":   count2xx,
+			"count_3xx":   count3xx,
+			"count_4xx":   count4xx,
+			"count_5xx":   count5xx,
 		})
 	}
 	err = rows.Err()

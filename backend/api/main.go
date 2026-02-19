@@ -139,7 +139,7 @@ func main() {
 		// network requests
 		apps.GET(":id/networkRequests/domains", measure.GetNetworkRequestsDomains)
 		apps.GET(":id/networkRequests/paths", measure.GetNetworkRequestsPaths)
-		apps.GET(":id/networkRequests/plots/errors", measure.GetNetworkErrorsPlot)
+		apps.GET(":id/networkRequests/plots/statusOverview", measure.GetNetworkStatusOverviewPlot)
 		apps.GET(":id/networkRequests/top", measure.GetNetworkRequestsTopEndpoints)
 		apps.GET(":id/networkRequests/metrics", measure.GetNetworkRequestsMetrics)
 

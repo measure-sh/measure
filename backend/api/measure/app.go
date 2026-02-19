@@ -9394,7 +9394,7 @@ func GetNetworkRequestsTopEndpoints(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func GetNetworkErrorsPlot(c *gin.Context) {
+func GetNetworkStatusOverviewPlot(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -9433,7 +9433,7 @@ func GetNetworkErrorsPlot(c *gin.Context) {
 		return
 	}
 
-	msg := "network error rate plot request validation failed"
+	msg := "network status overview plot request validation failed"
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -9497,9 +9497,9 @@ func GetNetworkErrorsPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetErrorsPlot(ctx, *app.ID, *team.ID, &af)
+	result, err := network.GetRequestStatusOverview(ctx, *app.ID, *team.ID, &af)
 	if err != nil {
-		msg := "failed to get network error rate plot"
+		msg := "failed to get network status overview plot"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return

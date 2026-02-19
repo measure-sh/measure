@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterSource, HttpDomainsApiStatus, HttpPathsApiStatus, NetworkErrorRatePlotApiStatus, NetworkOverviewApiStatus, fetchHttpDomainsFromServer, fetchHttpPathsFromServer, fetchNetworkErrorRatePlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
+import { FilterSource, HttpDomainsApiStatus, HttpPathsApiStatus, NetworkStatusOverviewPlotApiStatus, NetworkOverviewApiStatus, fetchHttpDomainsFromServer, fetchHttpPathsFromServer, fetchNetworkStatusOverviewPlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
 import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
@@ -8,7 +8,7 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import { Input } from '@/app/components/input'
 import LoadingBar from '@/app/components/loading_bar'
 import LoadingSpinner from '@/app/components/loading_spinner'
-import NetworkErrorRatePlot from '@/app/components/network_error_rate_plot'
+import NetworkStatusOverviewPlot from '@/app/components/network_error_rate_plot'
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
@@ -41,8 +41,8 @@ interface PageState {
     httpDomains: string[]
     httpPathsApiStatus: HttpPathsApiStatus
     httpPaths: string[]
-    errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus
-    errorRatePlotData: any[]
+    statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus
+    statusOverviewPlotData: any[]
     networkOverviewApiStatus: NetworkOverviewApiStatus
     networkOverview: NetworkOverview
     selectedOverviewTab: OverviewTab
@@ -79,8 +79,8 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         httpDomains: [],
         httpPathsApiStatus: HttpPathsApiStatus.Loading,
         httpPaths: [],
-        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Loading,
-        errorRatePlotData: [],
+        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Loading,
+        statusOverviewPlotData: [],
         networkOverviewApiStatus: NetworkOverviewApiStatus.Loading,
         networkOverview: emptyOverview,
         selectedOverviewTab: OverviewTab.Latency,
@@ -198,26 +198,26 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
             return
         }
 
-        updatePageState({ errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Loading })
+        updatePageState({ statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Loading })
 
-        fetchNetworkErrorRatePlotFromServer(pageState.filters).then(result => {
+        fetchNetworkStatusOverviewPlotFromServer(pageState.filters).then(result => {
             switch (result.status) {
-                case NetworkErrorRatePlotApiStatus.Success:
+                case NetworkStatusOverviewPlotApiStatus.Success:
                     updatePageState({
-                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Success,
-                        errorRatePlotData: result.data,
+                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Success,
+                        statusOverviewPlotData: result.data,
                     })
                     break
-                case NetworkErrorRatePlotApiStatus.NoData:
+                case NetworkStatusOverviewPlotApiStatus.NoData:
                     updatePageState({
-                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.NoData,
-                        errorRatePlotData: [],
+                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.NoData,
+                        statusOverviewPlotData: [],
                     })
                     break
                 default:
                     updatePageState({
-                        errorRatePlotApiStatus: NetworkErrorRatePlotApiStatus.Error,
-                        errorRatePlotData: [],
+                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Error,
+                        statusOverviewPlotData: [],
                     })
                     break
             }
@@ -309,6 +309,28 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
             }
             {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Success && pageState.httpDomains.length > 0 &&
                 <>
+                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Loading &&
+                        <div className="w-full">
+                            <LoadingBar />
+                        </div>
+                    }
+
+                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Success &&
+                        <div className="w-full">
+                            <NetworkStatusOverviewPlot data={pageState.statusOverviewPlotData} />
+                        </div>
+                    }
+
+                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
+                        <p className="font-body text-sm">No status overview data available for the selected filters</p>
+                    }
+
+                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Error &&
+                        <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
+                    }
+
+                    <div className="py-6" />
+
                     <p className="font-display text-xl">Search</p>
                     <div className="py-2" />
                     <div className="flex flex-row items-center w-full">
@@ -367,31 +389,6 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             Search
                         </Button>
                     </div>
-
-                    <div className="py-8" />
-
-                    <p className="font-display text-xl">Error Rate</p>
-                    <div className="py-2" />
-
-                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Loading &&
-                        <div className="w-full">
-                            <LoadingBar />
-                        </div>
-                    }
-
-                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Success &&
-                        <div className="w-full">
-                            <NetworkErrorRatePlot data={pageState.errorRatePlotData} />
-                        </div>
-                    }
-
-                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.NoData &&
-                        <p className="font-body text-sm">No error rate data available for the selected filters</p>
-                    }
-
-                    {pageState.errorRatePlotApiStatus === NetworkErrorRatePlotApiStatus.Error &&
-                        <p className="font-body text-sm">Error fetching error rate plot, please change filters & try again</p>
-                    }
 
                     <div className="py-6" />
 
