@@ -1,18 +1,20 @@
 'use client';
-import Link from "next/dist/client/link";
-import posthog from "posthog-js";
+
+import Link from "next/link";
+import { usePostHog } from "posthog-js/react";
 import { useEffect, useState } from "react";
 import { underlineLinkStyle } from "../utils/shared_styles";
 import { Button } from "./button";
 
 export function CookieBanner() {
+    const posthog = usePostHog();
     const [consentGiven, setConsentGiven] = useState('');
 
     useEffect(() => {
-        // We want this to only run once the client loads
-        // or else it causes a hydration error
-        setConsentGiven(posthog.get_explicit_consent_status());
-    }, []);
+        if (posthog) {
+            setConsentGiven(posthog.get_explicit_consent_status());
+        }
+    }, [posthog]);
 
     const handleAcceptCookies = () => {
         posthog.opt_in_capturing();
@@ -36,12 +38,11 @@ export function CookieBanner() {
                         </p>
                         <div className="flex flex-row gap-2 mt-4">
                             <Button variant="default" onClick={handleAcceptCookies}>Accept All</Button>
-                            <Button variant="ghost" onClick={handleDeclineCookies}>Accept Essential</Button>
+                            <Button variant="ghost" className={"text-accent-foreground/50"} onClick={handleDeclineCookies}>Accept Essential</Button>
                         </div>
                     </div>
                 </div >
-            )
-            }
+            )}
         </>
     );
 }
