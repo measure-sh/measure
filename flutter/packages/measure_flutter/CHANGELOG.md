@@ -5,11 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.4.0] - 2026-02-19
+
+### :sparkles: New features
+
+- (**flutter**): Add layout snapshot with widget analyzer (#2751)
+- (**flutter**): Add dynamic config and modify initialization (#3090)
+
+### :hammer: Misc
+
+- (**flutter**): Fix layout snapshots for release builds (#3145)
+
 ## [measure_flutter-v0.3.2] - 2026-01-13
 
 ### :bug: Bug fixes
 
 - (**flutter**): Update compatibility and dependency constraints (#3088)
+
+### :hammer: Misc
+
+- (**flutter**): Prepare measure_flutter-v0.3.2 (#3089)
 
 ## [measure_flutter-v0.3.1] - 2025-12-10
 

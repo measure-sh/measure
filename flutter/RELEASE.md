@@ -36,6 +36,26 @@
 - Create a pull request from `measure_flutter-next` to `main`.
 - Review and merge the pull request.
 
+## measure_build
+
+- Checkout a new branch named `measure_build-vx.y.z` from the `main` branch.
+- Update the `pubspec.yaml` file with the new version number.
+- Commit the changes `git commit -m "chore(flutter): prepare measure_build-vx.y.z"`.
+- Push the branch to the remote repository `git push origin measure_build-vx.y.z`.
+- Create a pull request from `measure_build-vx.y.z` to `main`.
+- Review and merge the pull request.
+- Tag the commit that was merged in the pull request with `measure_build-vx.y.z` to trigger the release workflow:
+  ```bash
+  git tag measure_build-vx.y.z
+  git push origin measure_build-vx.y.z
+  ```
+- Once the workflow completes:
+  - Go to Releases
+  - Find the draft release for `measure_build-vx.y.z`
+  - Add release notes
+  - Publish release
+
+
 ## measure_dio
 
 - Ensure `measure_flutter` is released and available in the pub.dev.
