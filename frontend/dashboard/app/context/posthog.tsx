@@ -1,38 +1,45 @@
 'use client'
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 
-// Create a noop PostHog client that matches the PostHog interface
-const createNoopPostHog = () => {
-    const noop = () => { }
-    const noopReturning = () => undefined
-
-    return new Proxy({} as typeof posthog, {
-        get: () => noop || noopReturning
-    })
-}
+// Returns 'denied' so the cookie banner doesn't show when PostHog is unavailable
+const createNoopPostHog = () => ({
+    get_explicit_consent_status: () => 'denied',
+    opt_in_capturing: () => {},
+    opt_out_capturing: () => {},
+    init: () => {},
+    capture: () => {},
+}) as unknown as typeof posthog
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+    const [isBlocked, setIsBlocked] = useState(false)
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY
-    const shouldInit = apiKey
+    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
+
+    useEffect(() => {
+        if (apiKey) {
+            // Canary fetch: fails instantly with ERR_BLOCKED_BY_CLIENT when ad-blocked
+            fetch(host, { mode: 'no-cors' }).catch(() => setIsBlocked(true))
+        }
+    }, [apiKey, host])
+
+    const shouldInit = !!apiKey && !isBlocked
 
     useEffect(() => {
         if (shouldInit) {
             posthog.init(apiKey as string, {
-                api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+                api_host: host,
                 person_profiles: 'identified_only',
                 defaults: '2025-05-24',
                 cookieless_mode: 'on_reject'
             })
         }
-    }, [shouldInit])
+    }, [shouldInit, apiKey, host])
 
-    const client = useMemo(() => {
-        return shouldInit ? posthog : createNoopPostHog()
-    }, [shouldInit])
+    const client = useMemo(() => (shouldInit ? posthog : createNoopPostHog()), [shouldInit])
 
     return (
         <PHProvider client={client}>
