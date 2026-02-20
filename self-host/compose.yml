@@ -153,6 +153,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/cleanup
+      args:
+        TARGETTYPE: debug
     ports:
       - "8081:8081"
     environment:
@@ -244,6 +246,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/symboloader
+      args:
+        TARGETTYPE: debug
     ports:
       - "8083:8083"
     environment:
@@ -324,11 +328,11 @@ services:
         required: false
 
   migrator:
-    profiles:
-      - migrate
     build:
       dockerfile: dockerfile
       context: ../backend/migrator
+      args:
+        TARGETTYPE: debug
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
