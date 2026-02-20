@@ -2,6 +2,27 @@
 
 ```mermaid
 flowchart TD
+    %% ── Billing enabled gate ────────────────────────────────────────
+    BillingEnabledCheck{"BILLING_ENABLED
+        env var?"}
+
+    BillingEnabledCheck -- "false (default)" --> BillingDisabled["Billing disabled:
+        • CheckIngestAllowedForApp → nil (ingest always allowed)
+        • CheckRetentionChangeAllowedInPlan → true (always allowed)
+        • GetTeamBilling / CreateCheckoutSession /
+          CancelAndDowngradeToFreePlan /
+          HandleStripeWebhook → HTTP 404
+        • Hourly + daily cron jobs not scheduled
+        • canChangeBilling = false in UI"]
+
+    BillingEnabledCheck -- "true" --> NewTeam
+
+    NoteBillingEnabled["ℹ Read from BILLING_ENABLED env var at startup
+        in api/server/server.go and metering/server/server.go.
+        IsBillingEnabled() guards every billing endpoint
+        and background job."]
+    BillingEnabledCheck -.- NoteBillingEnabled
+
     %% ── Team creation ──────────────────────────────────────────────
     NewTeam[New team created] --> FreeState
 
@@ -148,16 +169,33 @@ flowchart TD
         Stripe reports use idempotency key."]
     DailyMeter -.- NoteSnapshot
 
+    NoteCronGate["ℹ HourlyFree, HourlyPro, and DailyMeter
+        are only scheduled when BILLING_ENABLED=true
+        (metering/main.go)."]
+    HourlyFree -.- NoteCronGate
+    HourlyPro -.- NoteCronGate
+    DailyMeter -.- NoteCronGate
+
+    NoteApiGate["ℹ InitiateUpgrade (CreateCheckoutSession),
+        CancelAndDowngradeToFree, and HandleStripeWebhook
+        return HTTP 404 when BILLING_ENABLED=false
+        (billing.go guards)."]
+    CreateCheckout -.- NoteApiGate
+    ManualCancel -.- NoteApiGate
+    CheckoutWebhook -.- NoteApiGate
+
     %% ── Styling ────────────────────────────────────────────────────
     classDef email fill:#fef3c7,stroke:#d97706,color:#92400e
     classDef webhook fill:#dbeafe,stroke:#2563eb,color:#1e40af
     classDef block fill:#fee2e2,stroke:#dc2626,color:#991b1b
     classDef allow fill:#dcfce7,stroke:#16a34a,color:#166534
     classDef note fill:#f3e8ff,stroke:#9333ea,color:#581c87,stroke-dasharray:5 5
+    classDef disabled fill:#f1f5f9,stroke:#94a3b8,color:#475569
 
     class Notify75,Notify90,Notify100,UpgradeEmail,SubFailEmail,SubFailEmailNoSub,ManualEmail1,ManualEmail2,ManualEmail3 email
     class CheckoutWebhook,SubDeletedWebhook,SubUpdatedWebhook,HourlyFree,HourlyPro,DailyMeter webhook
     class BlockIngest,ProBlockTemp block
     class AllowIngest,ProAllowIngest allow
-    class NoteDowngrade,NoteHourlyFree,NoteHourlyPro,NoteSnapshot,NoteIngestCache,NoteConstants note
+    class NoteDowngrade,NoteHourlyFree,NoteHourlyPro,NoteSnapshot,NoteIngestCache,NoteConstants,NoteBillingEnabled,NoteCronGate,NoteApiGate note
+    class BillingDisabled disabled
 ```
