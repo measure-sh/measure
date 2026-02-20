@@ -22,7 +22,7 @@ function ConsentStatusChild() {
 beforeEach(() => {
     ; (posthog.get_explicit_consent_status as jest.Mock).mockReturnValue('pending')
     process.env.NEXT_PUBLIC_POSTHOG_API_KEY = 'test-key'
-    global.fetch = jest.fn().mockResolvedValue({})
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
 })
 
 afterEach(() => {
@@ -79,7 +79,7 @@ describe('PostHogProvider', () => {
         })
     })
 
-    it('canary fetch is called with no-cors mode', async () => {
+    it('canary fetch is called with the posthog host', async () => {
         render(
             <PostHogProvider>
                 <div />
@@ -87,10 +87,21 @@ describe('PostHogProvider', () => {
         )
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
-                'https://us.i.posthog.com',
-                expect.objectContaining({ mode: 'no-cors' })
-            )
+            expect(global.fetch).toHaveBeenCalledWith('https://us.i.posthog.com')
+        })
+    })
+
+    it('switches to noop client when canary fetch returns a non-success status', async () => {
+        global.fetch = jest.fn().mockResolvedValue({ ok: false })
+
+        render(
+            <PostHogProvider>
+                <ConsentStatusChild />
+            </PostHogProvider>
+        )
+
+        await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('denied')
         })
     })
 
@@ -104,10 +115,7 @@ describe('PostHogProvider', () => {
         )
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
-                'https://custom.posthog.com',
-                expect.objectContaining({ mode: 'no-cors' })
-            )
+            expect(global.fetch).toHaveBeenCalledWith('https://custom.posthog.com')
             expect(posthog.init).toHaveBeenCalledWith(
                 'test-key',
                 expect.objectContaining({ api_host: 'https://custom.posthog.com' })
