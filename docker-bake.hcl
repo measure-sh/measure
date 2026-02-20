@@ -3,6 +3,10 @@ target "docker-metadata-action" {}
 target "api" {
   inherits = ["docker-metadata-action"]
   context = "backend/api"
+  contexts = {
+    email = "backend/email"
+    billing = "backend/billing"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

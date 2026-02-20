@@ -62,8 +62,13 @@ services:
 
   api:
     build:
-      dockerfile: api/dockerfile
-      context: ../backend
+      args:
+        TARGETTYPE: debug
+      dockerfile: dockerfile
+      context: ../backend/api
+      additional_contexts:
+        email: ../backend/email
+        billing: ../backend/billing
     ports:
       - "8080:8080"
     environment:

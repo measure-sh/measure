@@ -21,6 +21,9 @@ services:
         max-size: 10m
 
   api:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
