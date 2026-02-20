@@ -26,9 +26,9 @@ type MetricsResponse struct {
 	StatusCodes []MetricsDataPoint `json:"status_codes"`
 }
 
-// TopNEndpoint represents metrics for
+// TrendsEndpoint represents metrics for
 // a single endpoint.
-type TopNEndpoint struct {
+type TrendsEndpoint struct {
 	Domain      string   `json:"domain"`
 	PathPattern string   `json:"path_pattern"`
 	P95Latency  *float64 `json:"p95_latency"`
@@ -36,12 +36,12 @@ type TopNEndpoint struct {
 	Frequency   uint64   `json:"frequency"`
 }
 
-// TopNResponse contains high-level network
+// TrendsResponse contains high-level network
 // performance summary metrics.
-type TopNResponse struct {
-	TopNLatency   []TopNEndpoint `json:"top_n_latency"`
-	TopNErrorRate []TopNEndpoint `json:"top_n_error_rate"`
-	TopNFrequency []TopNEndpoint `json:"top_n_frequency"`
+type TrendsResponse struct {
+	TrendsLatency   []TrendsEndpoint `json:"trends_latency"`
+	TrendsErrorRate []TrendsEndpoint `json:"trends_error_rate"`
+	TrendsFrequency []TrendsEndpoint `json:"trends_frequency"`
 }
 
 // topN is the default number of endpoints to return
@@ -177,9 +177,9 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 	return
 }
 
-// FetchTopEndpoints returns a high-level summary of
+// FetchTrends returns a high-level summary of
 // network performance for a given app.
-func FetchTopEndpoints(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*TopNResponse, error) {
+func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*TrendsResponse, error) {
 	inner := sqlf.From("http_rule_metrics").
 		Select("domain").
 		Select("path").
@@ -204,14 +204,14 @@ func FetchTopEndpoints(ctx context.Context, appId, teamId uuid.UUID, af *filter.
 		return nil, err
 	}
 
-	result := &TopNResponse{
-		TopNLatency:   []TopNEndpoint{},
-		TopNErrorRate: []TopNEndpoint{},
-		TopNFrequency: []TopNEndpoint{},
+	result := &TrendsResponse{
+		TrendsLatency:   []TrendsEndpoint{},
+		TrendsErrorRate: []TrendsEndpoint{},
+		TrendsFrequency: []TrendsEndpoint{},
 	}
 	for rows.Next() {
 		var category string
-		var ep TopNEndpoint
+		var ep TrendsEndpoint
 		var p95Latency, errorRate float64
 		if err := rows.Scan(&category, &ep.Domain, &ep.PathPattern, &p95Latency, &errorRate, &ep.Frequency); err != nil {
 			return nil, err
@@ -223,11 +223,11 @@ func FetchTopEndpoints(ctx context.Context, appId, teamId uuid.UUID, af *filter.
 		ep.ErrorRate = roundPtr(errorRate)
 		switch category {
 		case "latency":
-			result.TopNLatency = append(result.TopNLatency, ep)
+			result.TrendsLatency = append(result.TrendsLatency, ep)
 		case "error_rate":
-			result.TopNErrorRate = append(result.TopNErrorRate, ep)
+			result.TrendsErrorRate = append(result.TrendsErrorRate, ep)
 		case "frequency":
-			result.TopNFrequency = append(result.TopNFrequency, ep)
+			result.TrendsFrequency = append(result.TrendsFrequency, ep)
 		}
 	}
 	if err := rows.Err(); err != nil {

@@ -9315,7 +9315,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func GetNetworkRequestsTopEndpoints(c *gin.Context) {
+func GetNetworkRequestsTrends(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -9418,7 +9418,7 @@ func GetNetworkRequestsTopEndpoints(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchTopEndpoints(ctx, *app.ID, *team.ID, &af)
+	result, err := network.FetchTrends(ctx, *app.ID, *team.ID, &af)
 	if err != nil {
 		msg := "failed to get network overview"
 		fmt.Println(msg, err)
