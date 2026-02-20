@@ -15,7 +15,7 @@ ALTER TABLE measure.ingestion_metrics
 
 -- migrate:down
 ALTER TABLE measure.ingestion_metrics
-    DROP COLUMN metrics
+    DROP COLUMN metrics,
     ADD COLUMN `trace_count` AggregateFunction(sum, UInt32) CODEC(ZSTD(3)),
     ADD COLUMN `session_count_days` AggregateFunction(sum, UInt32) CODEC(ZSTD(3)),
     ADD COLUMN `event_count_days` AggregateFunction(sum, UInt32) CODEC(ZSTD(3)),
@@ -25,5 +25,5 @@ ALTER TABLE measure.ingestion_metrics
     RENAME COLUMN sessions TO session_count,
     RENAME COLUMN events TO event_count,
     RENAME COLUMN spans TO span_count,
-    RENAME COLUMN amttachments TO attachment_count
+    RENAME COLUMN attachments TO attachment_count
     SETTINGS mutations_sync = 2;
