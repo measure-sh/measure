@@ -328,6 +328,8 @@ services:
         required: false
 
   migrator:
+    profiles:
+      - migrate
     build:
       dockerfile: dockerfile
       context: ../backend/migrator
