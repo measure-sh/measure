@@ -140,7 +140,7 @@ func main() {
 		apps.GET(":id/networkRequests/domains", measure.GetNetworkRequestsDomains)
 		apps.GET(":id/networkRequests/paths", measure.GetNetworkRequestsPaths)
 		apps.GET(":id/networkRequests/plots/statusOverview", measure.GetNetworkStatusOverviewPlot)
-		apps.GET(":id/networkRequests/top", measure.GetNetworkRequestsTopEndpoints)
+		apps.GET(":id/networkRequests/trends", measure.GetNetworkRequestsTrends)
 		apps.GET(":id/networkRequests/metrics", measure.GetNetworkRequestsMetrics)
 
 		// misc

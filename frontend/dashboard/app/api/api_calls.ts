@@ -413,7 +413,7 @@ export enum UpdateSdkConfigApiStatus {
   Cancelled,
 }
 
-export enum HttpDomainsApiStatus {
+export enum NetworkDomainsApiStatus {
   Loading,
   Success,
   Error,
@@ -421,7 +421,7 @@ export enum HttpDomainsApiStatus {
   Cancelled,
 }
 
-export enum HttpPathsApiStatus {
+export enum NetworkPathsApiStatus {
   Loading,
   Success,
   Error,
@@ -437,7 +437,7 @@ export enum NetworkMetricsApiStatus {
   Cancelled,
 }
 
-export enum NetworkOverviewApiStatus {
+export enum NetworkTrendsApiStatus {
   Loading,
   Success,
   Error,
@@ -2672,47 +2672,47 @@ export const updateSdkConfigFromServer = async (appId: string, config: Partial<S
   }
 }
 
-export const fetchHttpDomainsFromServer = async (selectedApp: App) => {
+export const fetchNetworkDomainsFromServer = async (selectedApp: App) => {
   try {
     const res = await measureAuth.fetchMeasure(
       `/api/apps/${selectedApp.id}/networkRequests/domains`,
     )
 
     if (!res.ok) {
-      return { status: HttpDomainsApiStatus.Error, data: null }
+      return { status: NetworkDomainsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data.results === null || data.results.length === 0) {
-      return { status: HttpDomainsApiStatus.NoData, data: null }
+      return { status: NetworkDomainsApiStatus.NoData, data: null }
     }
 
-    return { status: HttpDomainsApiStatus.Success, data: data }
+    return { status: NetworkDomainsApiStatus.Success, data: data }
   } catch {
-    return { status: HttpDomainsApiStatus.Cancelled, data: null }
+    return { status: NetworkDomainsApiStatus.Cancelled, data: null }
   }
 }
 
-export const fetchHttpPathsFromServer = async (selectedApp: App, domain: string, search: string) => {
+export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: string, search: string) => {
   try {
     const res = await measureAuth.fetchMeasure(
       `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}`,
     )
 
     if (!res.ok) {
-      return { status: HttpPathsApiStatus.Error, data: null }
+      return { status: NetworkPathsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data.results === null || data.results.length === 0) {
-      return { status: HttpPathsApiStatus.NoData, data: null }
+      return { status: NetworkPathsApiStatus.NoData, data: null }
     }
 
-    return { status: HttpPathsApiStatus.Success, data: data }
+    return { status: NetworkPathsApiStatus.Success, data: data }
   } catch {
-    return { status: HttpPathsApiStatus.Cancelled, data: null }
+    return { status: NetworkPathsApiStatus.Cancelled, data: null }
   }
 }
 
@@ -2744,8 +2744,8 @@ export const fetchNetworkMetricsFromServer = async (filters: Filters, url: strin
   }
 }
 
-export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/top?`
+export const fetchNetworkTrendsFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/trends?`
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
 
@@ -2753,18 +2753,18 @@ export const fetchNetworkOverviewFromServer = async (filters: Filters) => {
     const res = await measureAuth.fetchMeasure(apiUrl)
 
     if (!res.ok) {
-      return { status: NetworkOverviewApiStatus.Error, data: null }
+      return { status: NetworkTrendsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null) {
-      return { status: NetworkOverviewApiStatus.NoData, data: null }
+      return { status: NetworkTrendsApiStatus.NoData, data: null }
     }
 
-    return { status: NetworkOverviewApiStatus.Success, data: data }
+    return { status: NetworkTrendsApiStatus.Success, data: data }
   } catch {
-    return { status: NetworkOverviewApiStatus.Cancelled, data: null }
+    return { status: NetworkTrendsApiStatus.Cancelled, data: null }
   }
 }
 

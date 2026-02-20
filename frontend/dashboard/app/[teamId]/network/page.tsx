@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterSource, HttpDomainsApiStatus, HttpPathsApiStatus, NetworkStatusOverviewPlotApiStatus, NetworkOverviewApiStatus, fetchHttpDomainsFromServer, fetchHttpPathsFromServer, fetchNetworkStatusOverviewPlotFromServer, fetchNetworkOverviewFromServer } from '@/app/api/api_calls'
+import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkStatusOverviewPlotApiStatus, NetworkTrendsApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkStatusOverviewPlotFromServer, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
 import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
@@ -17,7 +17,7 @@ import { History } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-interface OverviewEndpoint {
+interface TrendsEndpoint {
     domain: string
     path_pattern: string
     p95_latency: number | null
@@ -25,13 +25,13 @@ interface OverviewEndpoint {
     frequency: number
 }
 
-interface NetworkOverview {
-    top_n_latency: OverviewEndpoint[]
-    top_n_error_rate: OverviewEndpoint[]
-    top_n_frequency: OverviewEndpoint[]
+interface NetworkTrends {
+    trends_latency: TrendsEndpoint[]
+    trends_error_rate: TrendsEndpoint[]
+    trends_frequency: TrendsEndpoint[]
 }
 
-enum OverviewTab {
+enum TrendsTab {
     Latency = "Slowest",
     ErrorRate = "Highest Error Rate",
     Frequency = "Most Frequent",
@@ -39,15 +39,15 @@ enum OverviewTab {
 
 interface PageState {
     filters: typeof defaultFilters
-    domainsStatus: HttpDomainsApiStatus
+    domainsStatus: NetworkDomainsApiStatus
     domains: string[]
-    pathsStatus: HttpPathsApiStatus
+    pathsStatus: NetworkPathsApiStatus
     paths: string[]
     statusPlotStatus: NetworkStatusOverviewPlotApiStatus
     statusPlotData: any[]
-    overviewStatus: NetworkOverviewApiStatus
-    overview: NetworkOverview
-    selectedTab: OverviewTab
+    trendsStatus: NetworkTrendsApiStatus
+    trends: NetworkTrends
+    selectedTab: TrendsTab
 }
 
 interface SearchState {
@@ -55,20 +55,20 @@ interface SearchState {
     pathPattern: string
 }
 
-const emptyOverview: NetworkOverview = {
-    top_n_latency: [],
-    top_n_error_rate: [],
-    top_n_frequency: [],
+const emptyTrends: NetworkTrends = {
+    trends_latency: [],
+    trends_error_rate: [],
+    trends_frequency: [],
 }
 
-function getActiveTabData(overview: NetworkOverview, tab: OverviewTab): OverviewEndpoint[] {
+function getActiveTabData(trends: NetworkTrends, tab: TrendsTab): TrendsEndpoint[] {
     switch (tab) {
-        case OverviewTab.Latency:
-            return overview.top_n_latency
-        case OverviewTab.ErrorRate:
-            return overview.top_n_error_rate
-        case OverviewTab.Frequency:
-            return overview.top_n_frequency
+        case TrendsTab.Latency:
+            return trends.trends_latency
+        case TrendsTab.ErrorRate:
+            return trends.trends_error_rate
+        case TrendsTab.Frequency:
+            return trends.trends_frequency
     }
 }
 
@@ -77,15 +77,15 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
     const [pageState, setPageState] = useState<PageState>({
         filters: defaultFilters,
-        domainsStatus: HttpDomainsApiStatus.Loading,
+        domainsStatus: NetworkDomainsApiStatus.Loading,
         domains: [],
-        pathsStatus: HttpPathsApiStatus.Loading,
+        pathsStatus: NetworkPathsApiStatus.Loading,
         paths: [],
         statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         statusPlotData: [],
-        overviewStatus: NetworkOverviewApiStatus.Loading,
-        overview: emptyOverview,
-        selectedTab: OverviewTab.Latency,
+        trendsStatus: NetworkTrendsApiStatus.Loading,
+        trends: emptyTrends,
+        selectedTab: TrendsTab.Latency,
     })
 
     const [searchState, setSearchState] = useState<SearchState>({
@@ -112,7 +112,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(domain + path)}`)
     }
 
-    const navigateToEndpoint = (endpoint: OverviewEndpoint) => {
+    const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(endpoint.domain + endpoint.path_pattern)}`)
     }
 
@@ -132,24 +132,24 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app) return
 
-        updatePageState({ domainsStatus: HttpDomainsApiStatus.Loading })
+        updatePageState({ domainsStatus: NetworkDomainsApiStatus.Loading })
 
-        fetchHttpDomainsFromServer(pageState.filters.app).then(result => {
+        fetchNetworkDomainsFromServer(pageState.filters.app).then(result => {
             switch (result.status) {
-                case HttpDomainsApiStatus.Success:
+                case NetworkDomainsApiStatus.Success:
                     const domains = result.data.results as string[]
                     updatePageState({
-                        domainsStatus: HttpDomainsApiStatus.Success,
+                        domainsStatus: NetworkDomainsApiStatus.Success,
                         domains,
                     })
                     updateSearchState({ domain: domains[0] })
                     break
-                case HttpDomainsApiStatus.NoData:
-                    updatePageState({ domainsStatus: HttpDomainsApiStatus.NoData, domains: [] })
+                case NetworkDomainsApiStatus.NoData:
+                    updatePageState({ domainsStatus: NetworkDomainsApiStatus.NoData, domains: [] })
                     updateSearchState({ domain: "" })
                     break
                 default:
-                    updatePageState({ domainsStatus: HttpDomainsApiStatus.Error, domains: [] })
+                    updatePageState({ domainsStatus: NetworkDomainsApiStatus.Error, domains: [] })
                     updateSearchState({ domain: "" })
                     break
             }
@@ -161,23 +161,23 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         if (!pageState.filters.ready || !pageState.filters.app) return
 
         updatePageState({
-            overviewStatus: NetworkOverviewApiStatus.Loading,
+            trendsStatus: NetworkTrendsApiStatus.Loading,
             statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         })
 
-        fetchNetworkOverviewFromServer(pageState.filters).then(result => {
+        fetchNetworkTrendsFromServer(pageState.filters).then(result => {
             switch (result.status) {
-                case NetworkOverviewApiStatus.Success:
+                case NetworkTrendsApiStatus.Success:
                     updatePageState({
-                        overviewStatus: NetworkOverviewApiStatus.Success,
-                        overview: result.data as NetworkOverview,
+                        trendsStatus: NetworkTrendsApiStatus.Success,
+                        trends: result.data as NetworkTrends,
                     })
                     break
-                case NetworkOverviewApiStatus.NoData:
-                    updatePageState({ overviewStatus: NetworkOverviewApiStatus.NoData, overview: emptyOverview })
+                case NetworkTrendsApiStatus.NoData:
+                    updatePageState({ trendsStatus: NetworkTrendsApiStatus.NoData, trends: emptyTrends })
                     break
                 default:
-                    updatePageState({ overviewStatus: NetworkOverviewApiStatus.Error, overview: emptyOverview })
+                    updatePageState({ trendsStatus: NetworkTrendsApiStatus.Error, trends: emptyTrends })
                     break
             }
         })
@@ -204,22 +204,22 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app || searchState.domain === "") return
 
-        updatePageState({ pathsStatus: HttpPathsApiStatus.Loading, paths: [] })
+        updatePageState({ pathsStatus: NetworkPathsApiStatus.Loading, paths: [] })
 
         const timer = setTimeout(() => {
-            fetchHttpPathsFromServer(pageState.filters.app!, searchState.domain, searchState.pathPattern).then(result => {
+            fetchNetworkPathsFromServer(pageState.filters.app!, searchState.domain, searchState.pathPattern).then(result => {
                 switch (result.status) {
-                    case HttpPathsApiStatus.Success:
+                    case NetworkPathsApiStatus.Success:
                         updatePageState({
-                            pathsStatus: HttpPathsApiStatus.Success,
+                            pathsStatus: NetworkPathsApiStatus.Success,
                             paths: result.data.results as string[],
                         })
                         break
-                    case HttpPathsApiStatus.NoData:
-                        updatePageState({ pathsStatus: HttpPathsApiStatus.NoData, paths: [] })
+                    case NetworkPathsApiStatus.NoData:
+                        updatePageState({ pathsStatus: NetworkPathsApiStatus.NoData, paths: [] })
                         break
                     default:
-                        updatePageState({ pathsStatus: HttpPathsApiStatus.Error, paths: [] })
+                        updatePageState({ pathsStatus: NetworkPathsApiStatus.Error, paths: [] })
                         break
                 }
             })
@@ -237,7 +237,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         }
     }, [searchState.domain, searchState.pathPattern])
 
-    const activeTabData = getActiveTabData(pageState.overview, pageState.selectedTab)
+    const activeTabData = getActiveTabData(pageState.trends, pageState.selectedTab)
 
     return (
         <div className="flex flex-col items-start">
@@ -269,10 +269,10 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
             <div className="py-4" />
 
-            {pageState.filters.ready && pageState.domainsStatus === HttpDomainsApiStatus.Loading &&
+            {pageState.filters.ready && pageState.domainsStatus === NetworkDomainsApiStatus.Loading &&
                 <LoadingSpinner />
             }
-            {pageState.domainsStatus === HttpDomainsApiStatus.Success && pageState.domains.length > 0 &&
+            {pageState.domainsStatus === NetworkDomainsApiStatus.Success && pageState.domains.length > 0 &&
                 <>
                     {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading &&
                         <div className="w-full">
@@ -398,20 +398,20 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
                     <p className="font-display text-xl">Trends</p>
                     <div className="py-2" />
-                    {pageState.overviewStatus === NetworkOverviewApiStatus.Loading &&
+                    {pageState.trendsStatus === NetworkTrendsApiStatus.Loading &&
                         <div className="w-full">
                             <LoadingBar />
                         </div>
                     }
 
-                    {pageState.overviewStatus === NetworkOverviewApiStatus.Success && activeTabData.length > 0 &&
+                    {pageState.trendsStatus === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
                         <>
                         <div className="py-2" />
                         <div className="flex justify-start w-full">
                             <TabSelect
-                                items={Object.values(OverviewTab)}
+                                items={Object.values(TrendsTab)}
                                 selected={pageState.selectedTab}
-                                onChangeSelected={(item) => updatePageState({ selectedTab: item as OverviewTab })}
+                                onChangeSelected={(item) => updatePageState({ selectedTab: item as TrendsTab })}
                             />
                         </div>
                         <div className="py-2" />
@@ -419,9 +419,9 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                             <TableHeader>
                                 <TableRow>
                                     <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.Frequency ? underlineLinkStyle : ''}>Count</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}>Frequency</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -446,20 +446,20 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                         </>
                     }
 
-                    {(pageState.overviewStatus === NetworkOverviewApiStatus.NoData ||
-                        (pageState.overviewStatus === NetworkOverviewApiStatus.Success && activeTabData.length === 0)) &&
+                    {(pageState.trendsStatus === NetworkTrendsApiStatus.NoData ||
+                        (pageState.trendsStatus === NetworkTrendsApiStatus.Success && activeTabData.length === 0)) &&
                         <p className="font-body text-sm">No data available for the selected filters</p>
                     }
 
-                    {pageState.overviewStatus === NetworkOverviewApiStatus.Error &&
+                    {pageState.trendsStatus === NetworkTrendsApiStatus.Error &&
                         <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
                     }
                 </>
             }
-            {pageState.domainsStatus === HttpDomainsApiStatus.Error &&
+            {pageState.domainsStatus === NetworkDomainsApiStatus.Error &&
                 <p className="font-body text-sm">Error fetching domains, please change filters & try again</p>
             }
-            {pageState.domainsStatus === HttpDomainsApiStatus.NoData &&
+            {pageState.domainsStatus === NetworkDomainsApiStatus.NoData &&
                 <p className="font-body text-sm">No data available for the selected app</p>
             }
         </div>
