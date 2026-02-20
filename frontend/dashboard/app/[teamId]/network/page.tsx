@@ -332,7 +332,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <div className="py-6" />
 
-                    <p className="font-display text-xl">Explore Endpoint</p>
+                    <p className="font-display text-xl">Search Endpoint</p>
                     <div className="py-2" />
                     <div className="flex flex-row items-center w-full">
                         <DropdownSelect
@@ -427,15 +427,15 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             className="m-4"
                             disabled={searchState.pathPattern.trim() === ""}
                             onClick={handleSearch}>
-                            Explore
+                            Search
                         </Button>
                     </div>
 
-                    <div className="py-8" />
+                    <div className="py-12" />
 
-                    <p className="font-display text-xl">Top Endpoints</p>
+                    <p className="font-display text-xl">Trends</p>
                     <div className="py-2" />
-                    <div className="flex justify-end w-full">
+                    <div className="flex justify-start w-full">
                         <TabSelect
                             items={Object.values(OverviewTab)}
                             selected={pageState.selectedOverviewTab}
