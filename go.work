@@ -8,6 +8,7 @@ use (
 	./backend/email
 	./backend/metering
 	./backend/migrator
+	./backend/url-processor
 	./backend/symboloader
 	./backend/testinfra
 	./self-host/sessionator
