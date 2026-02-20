@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**frontend**): Fix cookie banner issues by @anupcowkur in #3154
+
 ### :hammer: Misc
 
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
