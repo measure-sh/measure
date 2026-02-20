@@ -1,11 +1,9 @@
 const STORAGE_KEY = "network_recent_searches"
-const MAX_ENTRIES = 20
 const MAX_RESULTS = 5
 
 interface RecentSearchEntry {
     domain: string
     path: string
-    timestamp: number
 }
 
 function readEntries(): RecentSearchEntry[] {
@@ -27,10 +25,16 @@ function writeEntries(entries: RecentSearchEntry[]): void {
 }
 
 export function addRecentSearch(domain: string, path: string): void {
-    const entries = readEntries()
-    const filtered = entries.filter(e => !(e.domain === domain && e.path === path))
-    filtered.unshift({ domain, path, timestamp: Date.now() })
-    writeEntries(filtered.slice(0, MAX_ENTRIES))
+    let entries = readEntries()
+    entries = entries.filter(e => !(e.domain === domain && e.path === path))
+    entries.unshift({ domain, path })
+    // Keep only MAX_RESULTS per domain
+    const domainCount: Record<string, number> = {}
+    entries = entries.filter(e => {
+        domainCount[e.domain] = (domainCount[e.domain] || 0) + 1
+        return domainCount[e.domain] <= MAX_RESULTS
+    })
+    writeEntries(entries)
 }
 
 export function removeRecentSearch(domain: string, path: string): void {
@@ -39,9 +43,7 @@ export function removeRecentSearch(domain: string, path: string): void {
 }
 
 export function getRecentSearchesForDomain(domain: string, query?: string): string[] {
-    const entries = readEntries()
-        .filter(e => e.domain === domain)
-        .sort((a, b) => b.timestamp - a.timestamp)
+    const entries = readEntries().filter(e => e.domain === domain)
 
     const filtered = query
         ? entries.filter(e => e.path.toLowerCase().includes(query.toLowerCase()))

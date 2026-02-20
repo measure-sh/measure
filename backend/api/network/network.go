@@ -293,13 +293,8 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPatt
 
 func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
 	format := datetimeFormat(af.From, af.To)
-	stmt := sqlf.From("http_events")
-	if format == "%Y-%m-%d %H:%M" {
-		stmt.Select(fmt.Sprintf("formatDateTime(toStartOfInterval(timestamp, toIntervalMinute(15), ?), '%s', ?) as datetime", format), af.Timezone, af.Timezone)
-	} else {
-		stmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
-	}
-	stmt.
+	stmt := sqlf.From("http_events").
+		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
 		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
 		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
 		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").
@@ -414,12 +409,8 @@ func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 }
 
 // datetimeFormat returns the ClickHouse format string
-// based on the time range. For ranges ≤24h, it includes
-// hours and minutes; otherwise date only.
+// for date-only grouping.
 func datetimeFormat(from, to time.Time) string {
-	if to.Sub(from) <= 24*time.Hour {
-		return "%Y-%m-%d %H:%M"
-	}
 	return "%Y-%m-%d"
 }
 
@@ -564,13 +555,8 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 
 	// Fetch latency metrics
 	format := datetimeFormat(af.From, af.To)
-	latencyStmt := sqlf.From("http_events")
-	if format == "%Y-%m-%d %H:%M" {
-		latencyStmt.Select(fmt.Sprintf("formatDateTime(toStartOfInterval(timestamp, toIntervalMinute(15), ?), '%s', ?) as datetime", format), af.Timezone, af.Timezone)
-	} else {
-		latencyStmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
-	}
-	latencyStmt.
+	latencyStmt := sqlf.From("http_events").
+		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
 		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
 		Select("countIf(status_code >= 200 and status_code < 600) as count").
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to)
@@ -612,13 +598,8 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	}
 
 	// Fetch status code metrics
-	statusStmt := sqlf.From("http_events")
-	if format == "%Y-%m-%d %H:%M" {
-		statusStmt.Select(fmt.Sprintf("formatDateTime(toStartOfInterval(timestamp, toIntervalMinute(15), ?), '%s', ?) as datetime", format), af.Timezone, af.Timezone)
-	} else {
-		statusStmt.Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone)
-	}
-	statusStmt.
+	statusStmt := sqlf.From("http_events").
+		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
 		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
 		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
 		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").

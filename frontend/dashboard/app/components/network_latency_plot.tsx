@@ -2,7 +2,7 @@
 
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils'
 import TabSelect from './tab_select'
@@ -39,13 +39,12 @@ enum Quantile {
 
 const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
   const [quantile, setQuantile] = useState(Quantile.p95)
-  const [plot, setPlot] = useState<PlotData>()
   const { theme } = useTheme()
 
-  useEffect(() => {
-    if (!data) return
+  const plot = useMemo<PlotData | undefined>(() => {
+    if (!data) return undefined
 
-    const newPlot: PlotData = [{
+    return [{
       id: quantile,
       data: data.map((d, index) => ({
         id: quantile + '.' + index,
@@ -54,8 +53,6 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
         count: d.count,
       }))
     }]
-
-    setPlot(newPlot)
   }, [data, quantile])
 
   if (!plot || plot.length === 0) {

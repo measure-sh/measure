@@ -13,6 +13,7 @@ import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
+import { History } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -367,15 +368,16 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                 <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-lg p-1">
                                     {recentPaths.length > 0 && (
                                         <>
-                                            {pageState.httpPaths.length > 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Recent</div>}
+                                            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Recent</p>
                                             {recentPaths.map((path) => (
                                                 <div
                                                     key={`recent-${path}`}
-                                                    className="flex items-center rounded-sm px-2 py-1.5 hover:bg-accent hover:text-accent-foreground group"
+                                                    className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent hover:text-accent-foreground group"
                                                 >
+                                                    <History className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-accent-foreground" />
                                                     <button
                                                         type="button"
-                                                        className="flex-1 text-left text-sm font-mono cursor-pointer"
+                                                        className="flex-1 text-left text-sm font-mono group-hover:text-accent-foreground cursor-pointer"
                                                         onMouseDown={(e) => {
                                                             e.preventDefault()
                                                             updateSearchState({ pathPattern: path })
@@ -386,14 +388,14 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        className="px-1 text-muted-foreground group-hover:text-accent-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                        className="px-2 py-0.5 text-xs text-muted-foreground group-hover:text-accent-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
                                                         onMouseDown={(e) => {
                                                             e.preventDefault()
                                                             removeRecentSearch(searchState.domain, path)
                                                             setRecentPaths(prev => prev.filter(p => p !== path))
                                                         }}
                                                     >
-                                                        &times;
+                                                        Remove
                                                     </button>
                                                 </div>
                                             ))}
@@ -401,7 +403,6 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                     )}
                                     {pageState.httpPaths.length > 0 && (
                                         <>
-                                            {recentPaths.length > 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Suggestions</div>}
                                             {pageState.httpPaths.map((path) => (
                                                 <button
                                                     key={`suggestion-${path}`}

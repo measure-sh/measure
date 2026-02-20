@@ -2,7 +2,7 @@
 
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
+import React, { useMemo } from 'react'
 import { numberToKMB } from '../utils/number_utils'
 import { chartTheme } from '../utils/shared_styles'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
@@ -41,16 +41,15 @@ const seriesConfig = [
 ] as const
 
 const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps> = ({ data }) => {
-  const [plot, setPlot] = useState<PlotData>()
   const { theme } = useTheme()
 
-  useEffect(() => {
-    if (!data) return
+  const plot = useMemo<PlotData | undefined>(() => {
+    if (!data) return undefined
 
-    const newPlot: PlotData = seriesConfig.map(({ key, id }) => ({
+    return seriesConfig.map(({ key, id }) => ({
       id,
       data: data.map((d) => ({
-        x: d.datetime.replace(' ', 'T'),
+        x: d.datetime,
         y: d[key],
         total_count: d.total_count,
         count_2xx: d.count_2xx,
@@ -59,8 +58,6 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
         count_5xx: d.count_5xx,
       }))
     }))
-
-    setPlot(newPlot)
   }, [data])
 
   if (!plot || plot.length === 0) {
