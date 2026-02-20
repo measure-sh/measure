@@ -15,7 +15,7 @@ const createNoopPostHog = () => ({
 }) as unknown as typeof posthog
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-    const [isBlocked, setIsBlocked] = useState(false)
+    const [isBlocked, setIsBlocked] = useState(true)
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY
     const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
 
@@ -26,6 +26,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
                 .then(res => {
                     if (!res.ok) {
                         setIsBlocked(true)
+                    } else {
+                        setIsBlocked(false)
                     }
                 })
                 .catch(() => setIsBlocked(true))
