@@ -8,10 +8,10 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react'
 // Returns 'denied' so the cookie banner doesn't show when PostHog is unavailable
 const createNoopPostHog = () => ({
     get_explicit_consent_status: () => 'denied',
-    opt_in_capturing: () => {},
-    opt_out_capturing: () => {},
-    init: () => {},
-    capture: () => {},
+    opt_in_capturing: () => { },
+    opt_out_capturing: () => { },
+    init: () => { },
+    capture: () => { },
 }) as unknown as typeof posthog
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
@@ -22,7 +22,13 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (apiKey) {
             // Canary fetch: fails instantly with ERR_BLOCKED_BY_CLIENT when ad-blocked
-            fetch(host, { mode: 'no-cors' }).catch(() => setIsBlocked(true))
+            fetch(host)
+                .then(res => {
+                    if (!res.ok) {
+                        setIsBlocked(true)
+                    }
+                })
+                .catch(() => setIsBlocked(true))
         }
     }, [apiKey, host])
 
