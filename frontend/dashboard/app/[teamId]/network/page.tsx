@@ -39,15 +39,15 @@ enum OverviewTab {
 
 interface PageState {
     filters: typeof defaultFilters
-    httpDomainsApiStatus: HttpDomainsApiStatus
-    httpDomains: string[]
-    httpPathsApiStatus: HttpPathsApiStatus
-    httpPaths: string[]
-    statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus
-    statusOverviewPlotData: any[]
-    networkOverviewApiStatus: NetworkOverviewApiStatus
-    networkOverview: NetworkOverview
-    selectedOverviewTab: OverviewTab
+    domainsStatus: HttpDomainsApiStatus
+    domains: string[]
+    pathsStatus: HttpPathsApiStatus
+    paths: string[]
+    statusPlotStatus: NetworkStatusOverviewPlotApiStatus
+    statusPlotData: any[]
+    overviewStatus: NetworkOverviewApiStatus
+    overview: NetworkOverview
+    selectedTab: OverviewTab
 }
 
 interface SearchState {
@@ -72,31 +72,36 @@ function getActiveTabData(overview: NetworkOverview, tab: OverviewTab): Overview
     }
 }
 
-export default function NetworkOverview({ params }: { params: { teamId: string } }) {
+export default function NetworkPage({ params }: { params: { teamId: string } }) {
     const router = useRouter()
 
-    const initialState: PageState = {
+    const [pageState, setPageState] = useState<PageState>({
         filters: defaultFilters,
-        httpDomainsApiStatus: HttpDomainsApiStatus.Loading,
-        httpDomains: [],
-        httpPathsApiStatus: HttpPathsApiStatus.Loading,
-        httpPaths: [],
-        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Loading,
-        statusOverviewPlotData: [],
-        networkOverviewApiStatus: NetworkOverviewApiStatus.Loading,
-        networkOverview: emptyOverview,
-        selectedOverviewTab: OverviewTab.Latency,
-    }
-
-    const [pageState, setPageState] = useState<PageState>(initialState)
+        domainsStatus: HttpDomainsApiStatus.Loading,
+        domains: [],
+        pathsStatus: HttpPathsApiStatus.Loading,
+        paths: [],
+        statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
+        statusPlotData: [],
+        overviewStatus: NetworkOverviewApiStatus.Loading,
+        overview: emptyOverview,
+        selectedTab: OverviewTab.Latency,
+    })
 
     const [searchState, setSearchState] = useState<SearchState>({
         domain: "",
         pathPattern: "",
     })
 
+    const [showSuggestions, setShowSuggestions] = useState(false)
+    const [recentPaths, setRecentPaths] = useState<string[]>([])
+
+    const updatePageState = (newState: Partial<PageState>) => {
+        setPageState(prev => ({ ...prev, ...newState }))
+    }
+
     const updateSearchState = (newState: Partial<SearchState>) => {
-        setSearchState(prevState => ({ ...prevState, ...newState }))
+        setSearchState(prev => ({ ...prev, ...newState }))
     }
 
     const handleSearch = () => {
@@ -107,156 +112,114 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(domain + path)}`)
     }
 
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
+    const navigateToEndpoint = (endpoint: OverviewEndpoint) => {
+        router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(endpoint.domain + endpoint.path_pattern)}`)
     }
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
         if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters
-            })
+            updatePageState({ filters: updatedFilters })
         }
     }
 
+    // Sync filters to URL
     useEffect(() => {
-        if (!pageState.filters.ready) {
-            return
-        }
-
+        if (!pageState.filters.ready) return
         router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
     }, [pageState.filters])
 
+    // Fetch domains when filters change
     useEffect(() => {
-        if (!pageState.filters.ready || !pageState.filters.app) {
-            return
-        }
+        if (!pageState.filters.ready || !pageState.filters.app) return
 
-        updatePageState({ httpDomainsApiStatus: HttpDomainsApiStatus.Loading })
+        updatePageState({ domainsStatus: HttpDomainsApiStatus.Loading })
 
         fetchHttpDomainsFromServer(pageState.filters.app).then(result => {
             switch (result.status) {
                 case HttpDomainsApiStatus.Success:
                     const domains = result.data.results as string[]
                     updatePageState({
-                        httpDomainsApiStatus: HttpDomainsApiStatus.Success,
-                        httpDomains: domains,
+                        domainsStatus: HttpDomainsApiStatus.Success,
+                        domains,
                     })
                     updateSearchState({ domain: domains[0] })
                     break
                 case HttpDomainsApiStatus.NoData:
-                    updatePageState({
-                        httpDomainsApiStatus: HttpDomainsApiStatus.NoData,
-                        httpDomains: [],
-                    })
+                    updatePageState({ domainsStatus: HttpDomainsApiStatus.NoData, domains: [] })
                     updateSearchState({ domain: "" })
                     break
                 default:
-                    updatePageState({
-                        httpDomainsApiStatus: HttpDomainsApiStatus.Error,
-                        httpDomains: [],
-                    })
+                    updatePageState({ domainsStatus: HttpDomainsApiStatus.Error, domains: [] })
                     updateSearchState({ domain: "" })
                     break
             }
         })
     }, [pageState.filters])
 
+    // Fetch overview and status plot when filters change
     useEffect(() => {
-        if (!pageState.filters.ready || !pageState.filters.app) {
-            return
-        }
+        if (!pageState.filters.ready || !pageState.filters.app) return
 
-        updatePageState({ networkOverviewApiStatus: NetworkOverviewApiStatus.Loading })
+        updatePageState({
+            overviewStatus: NetworkOverviewApiStatus.Loading,
+            statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
+        })
 
         fetchNetworkOverviewFromServer(pageState.filters).then(result => {
             switch (result.status) {
                 case NetworkOverviewApiStatus.Success:
                     updatePageState({
-                        networkOverviewApiStatus: NetworkOverviewApiStatus.Success,
-                        networkOverview: result.data as NetworkOverview,
+                        overviewStatus: NetworkOverviewApiStatus.Success,
+                        overview: result.data as NetworkOverview,
                     })
                     break
                 case NetworkOverviewApiStatus.NoData:
-                    updatePageState({
-                        networkOverviewApiStatus: NetworkOverviewApiStatus.NoData,
-                        networkOverview: emptyOverview,
-                    })
+                    updatePageState({ overviewStatus: NetworkOverviewApiStatus.NoData, overview: emptyOverview })
                     break
                 default:
-                    updatePageState({
-                        networkOverviewApiStatus: NetworkOverviewApiStatus.Error,
-                        networkOverview: emptyOverview,
-                    })
+                    updatePageState({ overviewStatus: NetworkOverviewApiStatus.Error, overview: emptyOverview })
                     break
             }
         })
-    }, [pageState.filters])
-
-    useEffect(() => {
-        if (!pageState.filters.ready || !pageState.filters.app) {
-            return
-        }
-
-        updatePageState({ statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Loading })
 
         fetchNetworkStatusOverviewPlotFromServer(pageState.filters).then(result => {
             switch (result.status) {
                 case NetworkStatusOverviewPlotApiStatus.Success:
                     updatePageState({
-                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Success,
-                        statusOverviewPlotData: result.data,
+                        statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Success,
+                        statusPlotData: result.data,
                     })
                     break
                 case NetworkStatusOverviewPlotApiStatus.NoData:
-                    updatePageState({
-                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.NoData,
-                        statusOverviewPlotData: [],
-                    })
+                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.NoData, statusPlotData: [] })
                     break
                 default:
-                    updatePageState({
-                        statusOverviewPlotApiStatus: NetworkStatusOverviewPlotApiStatus.Error,
-                        statusOverviewPlotData: [],
-                    })
+                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Error, statusPlotData: [] })
                     break
             }
         })
     }, [pageState.filters])
 
-    const [showSuggestions, setShowSuggestions] = useState(false)
-    const [recentPaths, setRecentPaths] = useState<string[]>([])
-
+    // Fetch path suggestions with debounce
     useEffect(() => {
-        if (!pageState.filters.ready || !pageState.filters.app || searchState.domain === "") {
-            return
-        }
+        if (!pageState.filters.ready || !pageState.filters.app || searchState.domain === "") return
 
-        updatePageState({ httpPathsApiStatus: HttpPathsApiStatus.Loading, httpPaths: [] })
+        updatePageState({ pathsStatus: HttpPathsApiStatus.Loading, paths: [] })
 
         const timer = setTimeout(() => {
             fetchHttpPathsFromServer(pageState.filters.app!, searchState.domain, searchState.pathPattern).then(result => {
                 switch (result.status) {
                     case HttpPathsApiStatus.Success:
                         updatePageState({
-                            httpPathsApiStatus: HttpPathsApiStatus.Success,
-                            httpPaths: result.data.results as string[],
+                            pathsStatus: HttpPathsApiStatus.Success,
+                            paths: result.data.results as string[],
                         })
                         break
                     case HttpPathsApiStatus.NoData:
-                        updatePageState({
-                            httpPathsApiStatus: HttpPathsApiStatus.NoData,
-                            httpPaths: [],
-                        })
+                        updatePageState({ pathsStatus: HttpPathsApiStatus.NoData, paths: [] })
                         break
                     default:
-                        updatePageState({
-                            httpPathsApiStatus: HttpPathsApiStatus.Error,
-                            httpPaths: [],
-                        })
+                        updatePageState({ pathsStatus: HttpPathsApiStatus.Error, paths: [] })
                         break
                 }
             })
@@ -265,6 +228,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         return () => clearTimeout(timer)
     }, [searchState.domain, searchState.pathPattern, pageState.filters.app])
 
+    // Update recent paths when domain or pattern changes
     useEffect(() => {
         if (searchState.domain) {
             setRecentPaths(getRecentSearchesForDomain(searchState.domain, searchState.pathPattern))
@@ -273,7 +237,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         }
     }, [searchState.domain, searchState.pathPattern])
 
-    const activeTabData = getActiveTabData(pageState.networkOverview, pageState.selectedOverviewTab)
+    const activeTabData = getActiveTabData(pageState.overview, pageState.selectedTab)
 
     return (
         <div className="flex flex-col items-start">
@@ -305,28 +269,28 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
             <div className="py-4" />
 
-            {pageState.filters.ready && pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Loading &&
+            {pageState.filters.ready && pageState.domainsStatus === HttpDomainsApiStatus.Loading &&
                 <LoadingSpinner />
             }
-            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Success && pageState.httpDomains.length > 0 &&
+            {pageState.domainsStatus === HttpDomainsApiStatus.Success && pageState.domains.length > 0 &&
                 <>
-                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Loading &&
+                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading &&
                         <div className="w-full">
                             <LoadingBar />
                         </div>
                     }
 
-                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Success &&
+                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success &&
                         <div className="w-full">
-                            <NetworkStatusDistributionPlot data={pageState.statusOverviewPlotData} />
+                            <NetworkStatusDistributionPlot data={pageState.statusPlotData} />
                         </div>
                     }
 
-                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
+                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
                         <p className="font-body text-sm">No status overview data available for the selected filters</p>
                     }
 
-                    {pageState.statusOverviewPlotApiStatus === NetworkStatusOverviewPlotApiStatus.Error &&
+                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
                         <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
                     }
 
@@ -338,7 +302,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                         <DropdownSelect
                             type={DropdownSelectType.SingleString}
                             title="Domain"
-                            items={pageState.httpDomains}
+                            items={pageState.domains}
                             initialSelected={searchState.domain}
                             onChangeSelected={(item) => updateSearchState({ domain: item as string })}
                         />
@@ -364,11 +328,10 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                     }
                                 }}
                             />
-                            {showSuggestions && (recentPaths.length > 0 || pageState.httpPaths.length > 0) && (
+                            {showSuggestions && (recentPaths.length > 0 || pageState.paths.length > 0) && (
                                 <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-lg p-1">
                                     {recentPaths.length > 0 && (
                                         <>
-                                            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Recent</p>
                                             {recentPaths.map((path) => (
                                                 <div
                                                     key={`recent-${path}`}
@@ -401,9 +364,9 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                             ))}
                                         </>
                                     )}
-                                    {pageState.httpPaths.length > 0 && (
+                                    {pageState.paths.length > 0 && (
                                         <div className={recentPaths.length > 0 ? "mt-4" : ""}>
-                                            {pageState.httpPaths.map((path) => (
+                                            {pageState.paths.map((path) => (
                                                 <button
                                                     key={`suggestion-${path}`}
                                                     type="button"
@@ -435,66 +398,68 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
 
                     <p className="font-display text-xl">Trends</p>
                     <div className="py-2" />
-                    <div className="flex justify-start w-full">
-                        <TabSelect
-                            items={Object.values(OverviewTab)}
-                            selected={pageState.selectedOverviewTab}
-                            onChangeSelected={(item) => updatePageState({ selectedOverviewTab: item as OverviewTab })}
-                        />
-                    </div>
-                    <div className="py-2" />
-
-                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Loading &&
+                    {pageState.overviewStatus === NetworkOverviewApiStatus.Loading &&
                         <div className="w-full">
                             <LoadingBar />
                         </div>
                     }
 
-                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Success && activeTabData.length > 0 &&
+                    {pageState.overviewStatus === NetworkOverviewApiStatus.Success && activeTabData.length > 0 &&
+                        <>
+                        <div className="py-2" />
+                        <div className="flex justify-start w-full">
+                            <TabSelect
+                                items={Object.values(OverviewTab)}
+                                selected={pageState.selectedTab}
+                                onChangeSelected={(item) => updatePageState({ selectedTab: item as OverviewTab })}
+                            />
+                        </div>
+                        <div className="py-2" />
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedOverviewTab === OverviewTab.Frequency ? underlineLinkStyle : ''}>Count</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
+                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === OverviewTab.Frequency ? underlineLinkStyle : ''}>Count</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {activeTabData.map((ep, index) => (
+                                {activeTabData.map((endpoint, index) => (
                                     <TableRow
                                         key={index}
                                         className="cursor-pointer"
-                                        onClick={() => router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(ep.domain + ep.path_pattern)}`)}
+                                        onClick={() => navigateToEndpoint(endpoint)}
                                     >
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-mono truncate">{ep.domain}{ep.path_pattern}</span>
+                                                <span className="font-mono truncate">{endpoint.domain}{endpoint.path_pattern}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-body">{ep.p95_latency !== null ? formatMillisToHumanReadable(ep.p95_latency) : '-'}</TableCell>
-                                        <TableCell className="font-body">{ep.error_rate !== null ? `${ep.error_rate}%` : '-'}</TableCell>
-                                        <TableCell className="font-body">{ep.frequency}</TableCell>
+                                        <TableCell className="font-body">{endpoint.p95_latency !== null ? formatMillisToHumanReadable(endpoint.p95_latency) : '-'}</TableCell>
+                                        <TableCell className="font-body">{endpoint.error_rate !== null ? `${endpoint.error_rate}%` : '-'}</TableCell>
+                                        <TableCell className="font-body">{endpoint.frequency}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
+                        </>
                     }
 
-                    {(pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.NoData ||
-                        (pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Success && activeTabData.length === 0)) &&
+                    {(pageState.overviewStatus === NetworkOverviewApiStatus.NoData ||
+                        (pageState.overviewStatus === NetworkOverviewApiStatus.Success && activeTabData.length === 0)) &&
                         <p className="font-body text-sm">No data available for the selected filters</p>
                     }
 
-                    {pageState.networkOverviewApiStatus === NetworkOverviewApiStatus.Error &&
+                    {pageState.overviewStatus === NetworkOverviewApiStatus.Error &&
                         <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
                     }
                 </>
             }
-            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.Error &&
+            {pageState.domainsStatus === HttpDomainsApiStatus.Error &&
                 <p className="font-body text-sm">Error fetching domains, please change filters & try again</p>
             }
-            {pageState.httpDomainsApiStatus === HttpDomainsApiStatus.NoData &&
+            {pageState.domainsStatus === HttpDomainsApiStatus.NoData &&
                 <p className="font-body text-sm">No data available for the selected app</p>
             }
         </div>
