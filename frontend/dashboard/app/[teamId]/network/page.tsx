@@ -11,9 +11,10 @@ import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface OverviewEndpoint {
     domain: string
@@ -101,6 +102,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
         if (searchState.pathPattern.trim() === "") return
         const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
         const domain = searchState.domain.endsWith('/') ? searchState.domain.slice(0, -1) : searchState.domain
+        addRecentSearch(domain, path)
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(domain + path)}`)
     }
 
@@ -225,7 +227,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
     }, [pageState.filters])
 
     const [showSuggestions, setShowSuggestions] = useState(false)
-    const autocompleteRef = useRef<HTMLDivElement>(null)
+    const [recentPaths, setRecentPaths] = useState<string[]>([])
 
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app || searchState.domain === "") {
@@ -263,14 +265,12 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
     }, [searchState.domain, searchState.pathPattern, pageState.filters.app])
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
-                setShowSuggestions(false)
-            }
+        if (searchState.domain) {
+            setRecentPaths(getRecentSearchesForDomain(searchState.domain, searchState.pathPattern))
+        } else {
+            setRecentPaths([])
         }
-        document.addEventListener("mousedown", handleClickOutside)
-        return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+    }, [searchState.domain, searchState.pathPattern])
 
     const activeTabData = getActiveTabData(pageState.networkOverview, pageState.selectedOverviewTab)
 
@@ -342,7 +342,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                             onChangeSelected={(item) => updateSearchState({ domain: item as string })}
                         />
                         <div className="px-2" />
-                        <div ref={autocompleteRef} className="relative flex-1">
+                        <div className="relative flex-1">
                             <Input
                                 type="text"
                                 placeholder="Enter a path like /v1/users/*/profile"
@@ -353,6 +353,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                     setShowSuggestions(true)
                                 }}
                                 onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setShowSuggestions(false)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         setShowSuggestions(false)
@@ -362,22 +363,61 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                     }
                                 }}
                             />
-                            {showSuggestions && pageState.httpPaths.length > 0 && (
+                            {showSuggestions && (recentPaths.length > 0 || pageState.httpPaths.length > 0) && (
                                 <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-background shadow-lg">
-                                    {pageState.httpPaths.map((path) => (
-                                        <button
-                                            key={path}
-                                            type="button"
-                                            className="w-full px-3 py-2 text-left text-sm font-mono hover:bg-accent cursor-pointer"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault()
-                                                updateSearchState({ pathPattern: path })
-                                                setShowSuggestions(false)
-                                            }}
-                                        >
-                                            {path}
-                                        </button>
-                                    ))}
+                                    {recentPaths.length > 0 && (
+                                        <>
+                                            {pageState.httpPaths.length > 0 && <div className="px-3 py-1.5 text-xs text-muted-foreground">Recent</div>}
+                                            {recentPaths.map((path) => (
+                                                <div
+                                                    key={`recent-${path}`}
+                                                    className="flex items-center hover:bg-accent group"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="flex-1 px-3 py-2 text-left text-sm font-mono cursor-pointer"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault()
+                                                            updateSearchState({ pathPattern: path })
+                                                            setShowSuggestions(false)
+                                                        }}
+                                                    >
+                                                        {path}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 mr-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault()
+                                                            removeRecentSearch(searchState.domain, path)
+                                                            setRecentPaths(prev => prev.filter(p => p !== path))
+                                                        }}
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                    {pageState.httpPaths.length > 0 && (
+                                        <>
+                                            {recentPaths.length > 0 && <div className="px-3 py-1.5 text-xs text-muted-foreground">Suggestions</div>}
+                                            {pageState.httpPaths.map((path) => (
+                                                <button
+                                                    key={`suggestion-${path}`}
+                                                    type="button"
+                                                    className="w-full px-3 py-2 text-left text-sm font-mono hover:bg-accent cursor-pointer"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault()
+                                                        updateSearchState({ pathPattern: path })
+                                                        setShowSuggestions(false)
+                                                    }}
+                                                >
+                                                    {path}
+                                                </button>
+                                            ))}
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
