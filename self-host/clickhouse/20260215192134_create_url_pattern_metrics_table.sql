@@ -1,5 +1,5 @@
 -- migrate:up
-CREATE TABLE http_rule_metrics
+CREATE TABLE url_pattern_metrics
 (
     `team_id` UUID,
     `app_id` UUID,
@@ -41,4 +41,4 @@ PARTITION BY toYYYYMM(time_bucket)
 ORDER BY (team_id, app_id, domain, path, status_code, method, time_bucket)
 
 -- migrate:down
-DROP TABLE IF EXISTS http_rule_metrics;
+DROP TABLE IF EXISTS url_pattern_metrics;
