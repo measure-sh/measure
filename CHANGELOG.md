@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
 
 ## [measure_build-v0.1.0] - 2026-02-19
