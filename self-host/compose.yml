@@ -62,13 +62,13 @@ services:
 
   api:
     build:
-      args:
-        TARGETTYPE: debug
       dockerfile: dockerfile
       context: ../backend/api
       additional_contexts:
         email: ../backend/email
         billing: ../backend/billing
+      args:
+        TARGETTYPE: debug
     ports:
       - "8080:8080"
     environment:
@@ -196,8 +196,12 @@ services:
 
   alerts:
     build:
-      dockerfile: alerts/dockerfile
-      context: ../backend
+      dockerfile: dockerfile
+      context: ../backend/alerts
+      additional_contexts:
+        email: ../backend/email
+      args:
+        TARGETTYPE: debug
     ports:
       - "8082:8082"
     environment:
@@ -273,8 +277,13 @@ services:
 
   metering:
     build:
-      dockerfile: metering/dockerfile
-      context: ../backend
+      dockerfile: dockerfile
+      context: ../backend/metering
+      additional_contexts:
+        email: ../backend/email
+        billing: ../backend/billing
+      args:
+        TARGETTYPE: debug
     ports:
       - "8084:8084"
     environment:
