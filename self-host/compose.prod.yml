@@ -21,6 +21,9 @@ services:
         max-size: 10m
 
   api:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -32,6 +35,9 @@ services:
         max-file: 5
 
   cleanup:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -43,6 +49,9 @@ services:
         max-file: 5
 
   alerts:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -54,6 +63,9 @@ services:
         max-file: 5
 
   metering:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -65,6 +77,9 @@ services:
         max-file: 5
 
   symboloader:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -76,6 +91,9 @@ services:
         max-file: 5
 
   migrator:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
     develop: !reset null
     logging:
       driver: local

@@ -3,6 +3,10 @@ target "docker-metadata-action" {}
 target "api" {
   inherits = ["docker-metadata-action"]
   context = "backend/api"
+  contexts = {
+    email = "backend/email"
+    billing = "backend/billing"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
@@ -12,6 +16,9 @@ target "api" {
 target "alerts" {
   inherits = ["docker-metadata-action"]
   context = "backend/alerts"
+  contexts = {
+    email = "backend/email"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
@@ -30,6 +37,10 @@ target "symboloader" {
 target "metering" {
   inherits = ["docker-metadata-action"]
   context = "backend/metering"
+  contexts = {
+    email = "backend/email"
+    billing = "backend/billing"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

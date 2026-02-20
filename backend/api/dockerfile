@@ -2,22 +2,32 @@
 FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETTYPE
 WORKDIR /go/src
 
 # Copy dependency modules first for caching
-COPY email/go.mod email/go.sum ./email/
-COPY billing/go.mod billing/go.sum ./billing/
-COPY api/go.mod api/go.sum ./api/
-RUN cd api && go mod download
+COPY --from=email go.mod go.sum ../email/
+COPY --from=billing go.mod go.sum ../billing/
+COPY ["go.mod", "go.sum", "./"]
+
+RUN go mod download
 
 # Copy source
-COPY email/ ./email/
-COPY billing/ ./billing/
-COPY api/ ./api/
+COPY --from=email . ../email/
+COPY --from=billing . ../billing/
+COPY . .
 
+# Build statically linked binary
+# Conditionally strip symbols if TARGETTYPE is production
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  cd api && GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/app -v .
+  if [ "$TARGETTYPE" = "debug" ]; then \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -o /go/bin/app -v .; \
+  else \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -ldflags="-s -w" -o /go/bin/app -v .; \
+  fi
 
 # final stage
 FROM public.ecr.aws/docker/library/alpine:latest

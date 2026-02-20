@@ -62,8 +62,13 @@ services:
 
   api:
     build:
-      dockerfile: api/dockerfile
-      context: ../backend
+      dockerfile: dockerfile
+      context: ../backend/api
+      additional_contexts:
+        email: ../backend/email
+        billing: ../backend/billing
+      args:
+        TARGETTYPE: debug
     ports:
       - "8080:8080"
     environment:
@@ -148,6 +153,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/cleanup
+      args:
+        TARGETTYPE: debug
     ports:
       - "8081:8081"
     environment:
@@ -191,8 +198,12 @@ services:
 
   alerts:
     build:
-      dockerfile: alerts/dockerfile
-      context: ../backend
+      dockerfile: dockerfile
+      context: ../backend/alerts
+      additional_contexts:
+        email: ../backend/email
+      args:
+        TARGETTYPE: debug
     ports:
       - "8082:8082"
     environment:
@@ -235,6 +246,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/symboloader
+      args:
+        TARGETTYPE: debug
     ports:
       - "8083:8083"
     environment:
@@ -268,8 +281,13 @@ services:
 
   metering:
     build:
-      dockerfile: metering/dockerfile
-      context: ../backend
+      dockerfile: dockerfile
+      context: ../backend/metering
+      additional_contexts:
+        email: ../backend/email
+        billing: ../backend/billing
+      args:
+        TARGETTYPE: debug
     ports:
       - "8084:8084"
     environment:
@@ -315,6 +333,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/migrator
+      args:
+        TARGETTYPE: debug
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
