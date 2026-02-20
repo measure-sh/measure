@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**frontend**): Handle posthog canary fetch non-200 status case by @anupcowkur in #3177
 - (**frontend**): Fix cookie banner issues by @anupcowkur in #3154
 
 ### :hammer: Misc
