@@ -327,6 +327,40 @@ services:
         condition: service_completed_successfully
         required: false
 
+  url-processor:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/url-processor
+    ports:
+      - "8085:8085"
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+    develop:
+      watch:
+        - path: ../backend/url-processor
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
+        condition: service_completed_successfully
+        required: false
+
   migrator:
     profiles:
       - migrate
