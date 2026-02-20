@@ -402,7 +402,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                         </>
                                     )}
                                     {pageState.httpPaths.length > 0 && (
-                                        <>
+                                        <div className={recentPaths.length > 0 ? "mt-4" : ""}>
                                             {pageState.httpPaths.map((path) => (
                                                 <button
                                                     key={`suggestion-${path}`}
@@ -417,7 +417,7 @@ export default function NetworkOverview({ params }: { params: { teamId: string }
                                                     {path}
                                                 </button>
                                             ))}
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             )}
