@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
 - (**backend**): Migrate ingestion metrics synchronously (#3180) by @detj in #3180
 - (**frontend**): Set posthog blocked status to true by default by @anupcowkur in #3179
 - (**frontend**): Handle posthog canary fetch non-200 status case by @anupcowkur in #3177
