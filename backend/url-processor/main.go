@@ -67,8 +67,8 @@ func main() {
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
 
-	// run every minute
-	if _, err := cron.AddFunc("* * * * *", func() { processor.Process(ctx) }); err != nil {
+	// run every hour
+	if _, err := cron.AddFunc("0 * * * *", func() { processor.Process(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule url processor job: %v\n", err)
 	}
 
