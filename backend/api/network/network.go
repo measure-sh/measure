@@ -134,8 +134,8 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 		return
 	}
 
-	fmt.Printf("No url_patterns found for domain '%s', falling back to raw events\n", domain)
-	fallbackStmt := sqlf.
+	fmt.Printf("No url_patterns found for domain '%s', querying raw events\n", domain)
+	eventsStmt := sqlf.
 		Select("path").
 		From("http_events").
 		Where("team_id = ?", teamId).
@@ -143,32 +143,32 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 		Where("domain = ?", domain)
 
 	if search != "" {
-		fallbackStmt.Where("positionCaseInsensitive(path, ?) > 0", search)
+		eventsStmt.Where("positionCaseInsensitive(path, ?) > 0", search)
 	}
 
-	fallbackStmt.GroupBy("path").
+	eventsStmt.GroupBy("path").
 		OrderBy("count() DESC").
 		Limit(10)
 
-	defer fallbackStmt.Close()
+	defer eventsStmt.Close()
 
-	fallbackRows, err := server.Server.ChPool.Query(ctx, fallbackStmt.String(), fallbackStmt.Args()...)
+	eventsRows, err := server.Server.ChPool.Query(ctx, eventsStmt.String(), eventsStmt.Args()...)
 	if err != nil {
 		return
 	}
 
-	for fallbackRows.Next() {
+	for eventsRows.Next() {
 		var path string
-		if err = fallbackRows.Scan(&path); err != nil {
+		if err = eventsRows.Scan(&path); err != nil {
 			return
 		}
-		if err = fallbackRows.Err(); err != nil {
+		if err = eventsRows.Err(); err != nil {
 			return
 		}
 		paths = append(paths, path)
 	}
 
-	err = fallbackRows.Err()
+	err = eventsRows.Err()
 	return
 }
 
@@ -188,7 +188,13 @@ func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFil
 			AND e.timestamp >= $5 AND e.timestamp <= $6
 			AND e.latency_ms <= 60000
 			AND e.domain = p.domain
-			AND e.path LIKE replaceAll(p.path, '*', '%%')
+			AND multiIf(
+				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
+					startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
+				position(p.path, '*') > 0,
+					e.path LIKE replaceAll(p.path, '*', '%%'),
+				e.path = p.path
+			)
 		GROUP BY e.domain, p.path
 	)
 	SELECT 'latency' as category, domain, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY p95_latency DESC LIMIT %d
