@@ -222,6 +222,157 @@ func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID
 	}
 }
 
+// SeedGenericEvents inserts count generic ("test" type) events at the given
+// timestamp using a single bulk INSERT…SELECT FROM numbers(count). Each row
+// gets a server-generated UUID for its id, session_id, and installation_id,
+// so every event represents a distinct session.
+func (h *TestHelper) SeedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`) "+
+			`SELECT generateUUIDv4(), 'test', generateUUIDv4(), '%s', '%s', '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', 'android', '0.1' FROM numbers(%d)`,
+		appID, teamID, ts.UTC().Format("2006-01-02 15:04:05"), count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed generic events: %v", err)
+	}
+}
+
+// SeedUnhandledEvent inserts a single unhandled exception or ANR event.
+// eventType is "exception" or "anr". Pass fingerprint="" for no fingerprint
+// (zero-byte default); pass a 32-character string to set a specific fingerprint.
+// Both exception.fingerprint and anr.fingerprint are always written so the row
+// is valid regardless of which columns the query filters on.
+func (h *TestHelper) SeedUnhandledEvent(ctx context.Context, t *testing.T, teamID, appID, eventType, fingerprint string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `anr.handled`, `anr.foreground`, `anr.fingerprint`) "+
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', false, true, '%s', false, true, '%s')`,
+		uuid.New().String(), eventType, uuid.New().String(), appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
+		fingerprint, fingerprint)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed unhandled event (%s): %v", eventType, err)
+	}
+}
+
+// SeedHandledException inserts a handled exception (exception.handled=true).
+// Handled exceptions must not trigger crash-spike alerts or count toward
+// crash_sessions in app metrics.
+func (h *TestHelper) SeedHandledException(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`exception.handled`, `exception.foreground`) "+
+			`VALUES ('%s', 'exception', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', true, true)`,
+		uuid.New().String(), uuid.New().String(), appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String())
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed handled exception: %v", err)
+	}
+}
+
+// SeedExceptionGroup inserts a row into unhandled_exception_groups so that
+// crash-alert group-info lookups succeed. fingerprint must be exactly 32
+// characters to match the FixedString(32) id column.
+func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.unhandled_exception_groups
+		(team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, timestamp)
+		VALUES (toUUID('%s'), toUUID('%s'), '%s', ('v1', '1'), 'java.lang.RuntimeException', 'Test crash', 'testMethod', 'TestFile.java', 42, now())`,
+		teamID, appID, fingerprint)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed exception group: %v", err)
+	}
+}
+
+// SeedAnrGroup inserts a row into anr_groups so that ANR-alert group-info
+// lookups succeed. fingerprint must be exactly 32 characters.
+func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.anr_groups
+		(team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, timestamp)
+		VALUES (toUUID('%s'), toUUID('%s'), '%s', ('v1', '1'), 'ANR', 'Test ANR', 'testMethod', 'TestFile.java', 42, now())`,
+		teamID, appID, fingerprint)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed ANR group: %v", err)
+	}
+}
+
+// SeedAppMetrics inserts generic, unhandled-exception, and ANR events so that
+// the app_metrics_mv materialised view populates app_metrics. Each event gets
+// a unique session_id, so:
+//
+//	total_sessions = genericCount + crashCount + anrCount
+//	crash_sessions = crashCount   (type="exception", exception.handled=false)
+//	anr_sessions   = anrCount     (type="anr")
+func (h *TestHelper) SeedAppMetrics(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, genericCount, crashCount, anrCount int) {
+	t.Helper()
+	if genericCount > 0 {
+		h.SeedGenericEvents(ctx, t, teamID, appID, genericCount, ts)
+	}
+	for i := 0; i < crashCount; i++ {
+		h.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", "", ts)
+	}
+	for i := 0; i < anrCount; i++ {
+		h.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", "", ts)
+	}
+}
+
+// SeedLaunchEvent inserts a single cold_launch, warm_launch, or hot_launch
+// event with the given p95-contributing duration. durationMs must be > 0.
+func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, appID, launchType string, durationMs uint32, ts time.Time) {
+	t.Helper()
+	durationCol := fmt.Sprintf("`%s.duration`", launchType)
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"%s) "+
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %d)`,
+		durationCol,
+		uuid.New().String(), launchType, uuid.New().String(), appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), durationMs)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed launch event (%s): %v", launchType, err)
+	}
+}
+
+// SeedBugReport inserts a single bug report into the bug_reports table.
+func (h *TestHelper) SeedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(`
+		INSERT INTO measure.bug_reports
+		(team_id, event_id, app_id, session_id, timestamp, updated_at, status, description, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_model, user_id, device_low_power_mode, device_thermal_throttling_enabled, user_defined_attribute, attachments)
+		VALUES (toUUID('%s'), '%s', '%s', '%s', '%s', '%s', 1, '%s', ('v1', 'b1'), ('Android', '14'), 'US', 'Verizon', 'wifi', '4g', 'en-US', 'Google', 'Pixel', 'Pixel 6', 'u1', false, false, map('test', (1, 'val')), '')`,
+		teamID, eventID, appID, uuid.New().String(), ts.UTC().Format("2006-01-02 15:04:05"), ts.UTC().Format("2006-01-02 15:04:05"), description)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed bug report: %v", err)
+	}
+}
+
+// SeedTeamSlack inserts an active Slack integration for a team.
+// channelIDs may be empty (integration exists but no channels configured).
+func (h *TestHelper) SeedTeamSlack(ctx context.Context, t *testing.T, teamID string, channelIDs []string) {
+	t.Helper()
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO team_slack
+		(team_id, slack_team_id, slack_team_name, bot_token, bot_user_id, channel_ids, is_active, created_at, updated_at)
+		VALUES ($1, left($1::text, 8), 'Test Workspace', 'xoxb-test-token', 'U12345', $2, true, now(), now())`,
+		teamID, channelIDs)
+	if err != nil {
+		t.Fatalf("seed team_slack: %v", err)
+	}
+}
+
 func (h *TestHelper) SeedSpans(ctx context.Context, t *testing.T, teamID, appID string, count int) {
 	t.Helper()
 	for i := 0; i < count; i++ {

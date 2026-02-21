@@ -37,6 +37,7 @@ type AlertType string
 const (
 	AlertTypeCrashSpike AlertType = "crash_spike"
 	AlertTypeAnrSpike   AlertType = "anr_spike"
+	AlertTypeBugReport  AlertType = "bug_report"
 )
 
 type DailySummaryRow struct {
@@ -75,11 +76,10 @@ type DailySummaryRow struct {
 }
 
 const crashOrAnrSpikeTimePeriod = time.Hour
-
 const minCrashOrAnrCountThreshold = 100
-
 const crashOrAnrSpikeThreshold = 0.5               // percent
 const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
+const bugReportTimePeriod = 15 * time.Minute
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
 	fmt.Println("Checking for Crash and ANR alerts...")
@@ -127,6 +127,119 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 
 			createCrashAlertsForApp(ctx, team, app, from, to, sessionCount)
 			createAnrAlertsForApp(ctx, team, app, from, to, sessionCount)
+		}
+	}
+}
+
+func CreateBugReportAlerts(ctx context.Context) {
+	fmt.Println("Checking for new Bug Report alerts...")
+	teams, err := getTeams(ctx)
+	if err != nil {
+		fmt.Printf("Error fetching teams: %v\n", err)
+		return
+	}
+
+	for _, team := range teams {
+		apps, err := getAppsForTeam(ctx, team.ID)
+		if err != nil {
+			fmt.Printf("Error fetching apps for team %v: %v\n", team.ID, err)
+			continue
+		}
+
+		for _, app := range apps {
+			from := time.Now().UTC().Add(-bugReportTimePeriod)
+			to := time.Now().UTC()
+
+			bugReportStmt := sqlf.From("bug_reports final").
+				Select("event_id, description").
+				Where("team_id = toUUID(?)", app.TeamID).
+				Where("app_id = toUUID(?)", app.ID).
+				Where("timestamp >= ? and timestamp <= ?", from, to)
+
+			defer bugReportStmt.Close()
+
+			bugReportRows, err := server.Server.RchPool.Query(ctx, bugReportStmt.String(), bugReportStmt.Args()...)
+			if err != nil {
+				fmt.Printf("Error fetching bug reports for app %v: %v\n", app.ID, err)
+				continue
+			}
+
+			appName, err := getAppNameByID(ctx, app.ID)
+			if err != nil {
+				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
+				continue
+			}
+
+			for bugReportRows.Next() {
+				var bugReportId string
+				var description string
+				if err := bugReportRows.Scan(&bugReportId, &description); err != nil {
+					fmt.Printf("Error scanning bug report row: %v\n", err)
+					continue
+				}
+
+				// Check if we already alerted for this specific bug report
+				alertExistsStmt := sqlf.PostgreSQL.
+					Select("id").
+					From("alerts").
+					Where("team_id = ?", team.ID).
+					Where("app_id = ?", app.ID).
+					Where("entity_id = ?", bugReportId).
+					Where("type = ?", string(AlertTypeBugReport)).
+					Limit(1)
+
+				defer alertExistsStmt.Close()
+
+				var existingAlertId uuid.UUID
+				err = server.Server.PgPool.QueryRow(ctx, alertExistsStmt.String(), alertExistsStmt.Args()...).Scan(&existingAlertId)
+				if err == nil {
+					// Alert already exists for this bug report, skip
+					continue
+				} else if err != pgx.ErrNoRows {
+					fmt.Printf("Error checking existing alert for bug report %s: %v\n", bugReportId, err)
+					continue
+				}
+
+				alertMsg := email.BugReportAlertMessage(description)
+				alertUrl := email.BugReportAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), bugReportId)
+
+				fmt.Printf("Inserting alert for bug report %s\n", bugReportId)
+
+				alertID := uuid.New()
+				alertInsert := sqlf.PostgreSQL.InsertInto("alerts").
+					Set("id", alertID).
+					Set("team_id", team.ID).
+					Set("app_id", app.ID).
+					Set("entity_id", bugReportId).
+					Set("type", string(AlertTypeBugReport)).
+					Set("message", alertMsg).
+					Set("url", alertUrl).
+					Set("created_at", time.Now()).
+					Set("updated_at", time.Now())
+
+				defer alertInsert.Close()
+
+				_, err = server.Server.PgPool.Exec(ctx, alertInsert.String(), alertInsert.Args()...)
+				if err != nil {
+					fmt.Printf("Error inserting alert for bug report %s: %v\n", bugReportId, err)
+					continue
+				}
+
+				alert := Alert{
+					ID:       alertID,
+					TeamID:   team.ID,
+					AppID:    app.ID,
+					EntityID: bugReportId,
+					Type:     string(AlertTypeBugReport),
+				}
+
+				scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
+				scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
+			}
+
+			if bugReportRows != nil {
+				bugReportRows.Close()
+			}
 		}
 	}
 }
@@ -274,7 +387,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
             toString(cd.total_sessions) AS sessions_value,
             'Sessions' AS sessions_label,
             CASE
-                WHEN pd.total_sessions IS NULL THEN 'No previous day data'
+                WHEN pd.total_sessions IS NULL OR pd.total_sessions = 0 THEN 'No previous day data'
                 WHEN cd.total_sessions > pd.total_sessions THEN concat(toString(cd.total_sessions - pd.total_sessions), ' greater than yesterday')
                 WHEN cd.total_sessions < pd.total_sessions THEN concat(toString(pd.total_sessions - cd.total_sessions), ' less than yesterday')
                 ELSE 'No change from yesterday'
@@ -465,6 +578,40 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 		},
 	}
 
+	bugReportCountQuery := `
+		WITH toDate(?) AS target_date
+		SELECT
+			countIf(toDate(timestamp) = target_date)     AS today_count,
+			countIf(toDate(timestamp) = target_date - 1) AS yesterday_count
+		FROM bug_reports
+		WHERE app_id = toUUID(?)
+		  AND toDate(timestamp) >= target_date - 1
+		  AND toDate(timestamp) <= target_date
+	`
+	var todayBugReportCount, yesterdayBugReportCount uint64
+	bugCountRow := server.Server.ChPool.QueryRow(ctx, bugReportCountQuery, date, app.ID)
+	if err := bugCountRow.Scan(&todayBugReportCount, &yesterdayBugReportCount); err != nil {
+		return nil, fmt.Errorf("failed to scan bug report count: %w", err)
+	}
+	if todayBugReportCount > 0 {
+		bugSubtitle := "No previous day data"
+		if yesterdayBugReportCount > 0 {
+			switch {
+			case todayBugReportCount > yesterdayBugReportCount:
+				bugSubtitle = fmt.Sprintf("%d greater than yesterday", todayBugReportCount-yesterdayBugReportCount)
+			case todayBugReportCount < yesterdayBugReportCount:
+				bugSubtitle = fmt.Sprintf("%d less than yesterday", yesterdayBugReportCount-todayBugReportCount)
+			default:
+				bugSubtitle = "No change from yesterday"
+			}
+		}
+		metrics = append(metrics, email.MetricData{
+			Value:    fmt.Sprintf("%d", todayBugReportCount),
+			Label:    "Bug reports",
+			Subtitle: bugSubtitle,
+		})
+	}
+
 	return metrics, nil
 }
 
@@ -499,6 +646,8 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		subject, body = email.CrashSpikeAlertEmail(appName, message, url)
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		subject, body = email.AnrSpikeAlertEmail(appName, message, url)
+	} else if alert.Type == string(AlertTypeBugReport) {
+		subject, body = email.BugReportAlertEmail(appName, message, url)
 	} else {
 		subject = appName + " - Alert"
 		body = email.RenderEmailBody(subject, email.MessageContent(message), "View in Dashboard", url)
@@ -545,6 +694,8 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 		title = appName + " - Crash Spike Alert"
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		title = appName + " - ANR Spike Alert"
+	} else if alert.Type == string(AlertTypeBugReport) {
+		title = appName + " - New Bug Report"
 	}
 
 	slackMessage := formatSlackAlertMessage(title, message, url)
@@ -1004,8 +1155,6 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 				fmt.Printf("Error inserting alert for anr group %s: %v\n", fingerprint, err)
 				continue
 			}
-
-			defer alertInsert.Close()
 
 			appName, err := getAppNameByID(ctx, app.ID)
 			if err != nil {

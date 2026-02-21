@@ -94,6 +94,13 @@ func initCron(ctx context.Context) *cron.Cron {
 
 	fmt.Println("Scheduled crash & ANR job")
 
+	// run every 15m
+	if _, err := cron.AddFunc("*/15 * * * *", func() { alerts.CreateBugReportAlerts(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule bug report alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled bug report alert job")
+
 	// run every 5m
 	if _, err := cron.AddFunc("@every 5m", func() { alerts.SendPendingAlertEmails(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule email alert job: %v\n", err)

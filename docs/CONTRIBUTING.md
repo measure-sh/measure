@@ -141,13 +141,13 @@ cd backend/email && go test -tags=integration ./...
 Note that functional tests take more time than Go's default 10m timeout to run so a custom timeout should be passed in.
 
 ```sh
-cd backend/billing && go test -tags=functional ./... -timeout 1h
+go test backend/... -tags=functional ./... -timeout 1h -v
 ```
 
-Run all backend tests together:
+Run all backend tests together without cache:
 
 ```sh
-cd backend/billing && go test -tags=integration,functional ./...
+go test backend/... --tags=integration,functional -timeout 1h -v -count=1
 ```
 
 ### Frontend Dashboard

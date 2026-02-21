@@ -100,6 +100,28 @@ func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body strin
 	return
 }
 
+// BugReportAlertMessage builds the alert message string for bug report alerts.
+// This message is shared across email and Slack notifications.
+func BugReportAlertMessage(description string) string {
+	if description == "" {
+		description = "No description provided."
+	}
+	return fmt.Sprintf("A new bug report has been submitted:<br><br>%s", description)
+}
+
+// BugReportAlertURL builds the dashboard URL for a bug report alert.
+// This URL is shared across email and Slack notifications.
+func BugReportAlertURL(siteOrigin, teamId, appId, bugReportId string) string {
+	return fmt.Sprintf("%s/%s/bug_reports/%s/%s", siteOrigin, teamId, appId, bugReportId)
+}
+
+// BugReportAlertEmail builds the bug report alert email.
+func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
+	subject = appName + " - New Bug Report"
+	body = RenderEmailBody(subject, MessageContent(alertMsg), "View in Dashboard", alertURL)
+	return
+}
+
 // DailySummaryEmail builds the daily summary email for an app.
 func DailySummaryEmail(appName string, date time.Time, metrics []MetricData, siteOrigin, teamId, appId string) (subject, body string) {
 	subject = appName + " Daily Summary"
