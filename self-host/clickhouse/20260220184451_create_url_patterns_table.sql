@@ -5,7 +5,6 @@ CREATE TABLE url_patterns
     `app_id` UUID,
     `domain` String,
     `path` String,
-    `created_at` DateTime,
     `last_accessed_at` DateTime
 )
 ENGINE = ReplacingMergeTree(last_accessed_at)
