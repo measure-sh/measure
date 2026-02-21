@@ -74,6 +74,13 @@ func main() {
 	_, body = email.AnrSpikeAlertEmail("MyApp", alertMsg, alertURL)
 	add("07-anr-spike-alert.html", body)
 
+	// --- Alerts: Bug Report ---
+
+	alertMsg = email.BugReportAlertMessage("The app crashes when I click the login button after entering a very long password.")
+	alertURL = email.BugReportAlertURL("https://measure.sh", "team-abc", "app-123", "bug-report-456")
+	_, body = email.BugReportAlertEmail("MyApp", alertMsg, alertURL)
+	add("07b-bug-report-alert.html", body)
+
 	// --- Billing: Usage limits ---
 
 	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75, 750000, 1000000)
@@ -105,6 +112,7 @@ func main() {
 		{Value: "892ms", Label: "Cold launch p95", Subtitle: "45ms less than yesterday", HasWarning: false, HasError: false},
 		{Value: "234ms", Label: "Warm launch p95", Subtitle: "12ms greater than yesterday", HasWarning: false, HasError: false},
 		{Value: "98ms", Label: "Hot launch p95", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
+		{Value: "7", Label: "Bug reports", Subtitle: "3 less than yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), healthyMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("14-daily-summary-healthy.html", body)
@@ -116,6 +124,7 @@ func main() {
 		{Value: "1,450ms", Label: "Cold launch p95", Subtitle: "320ms greater than yesterday", HasWarning: false, HasError: false},
 		{Value: "567ms", Label: "Warm launch p95", Subtitle: "201ms greater than yesterday", HasWarning: false, HasError: false},
 		{Value: "145ms", Label: "Hot launch p95", Subtitle: "47ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "18", Label: "Bug reports", Subtitle: "6 greater than yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), warningMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("15-daily-summary-warnings.html", body)
