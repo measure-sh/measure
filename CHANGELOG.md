@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Send alerts on bug reports by @anupcowkur in #3183
+
 ### :bug: Bug fixes
 
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
