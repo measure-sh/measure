@@ -3,7 +3,6 @@ package processor
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	"backend/url-processor/server"
@@ -29,6 +28,15 @@ type PatternResult struct {
 	Count uint64
 }
 
+const (
+	// lookbackWindow is how far back to query http_events.
+	lookbackWindow = -1 // months
+
+	// minPatternCount is the minimum request count a pattern
+	// must have to be kept.
+	minPatternCount = 100
+)
+
 // groupKey identifies a unique (team, app, domain) combination.
 type groupKey struct {
 	TeamID uuid.UUID
@@ -51,7 +59,7 @@ type insertKey struct {
 func Process(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
-	from := now.AddDate(0, -1, 0)
+	from := now.AddDate(0, lookbackWindow, 0)
 
 	fmt.Printf("URL pattern processing started at %s, lookback window: %s to %s\n",
 		start.Format(time.RFC3339), from.Format(time.RFC3339), now.Format(time.RFC3339))
@@ -105,13 +113,14 @@ func Process(ctx context.Context) {
 
 		patterns := trie.ExtractPatterns()
 
-		// Take top 10 by count.
-		sort.Slice(patterns, func(i, j int) bool {
-			return patterns[i].Count > patterns[j].Count
-		})
-		if len(patterns) > 10 {
-			patterns = patterns[:10]
+		// Filter out low-frequency patterns.
+		filtered := patterns[:0]
+		for _, p := range patterns {
+			if p.Count >= minPatternCount {
+				filtered = append(filtered, p)
+			}
 		}
+		patterns = filtered
 
 		fmt.Printf("Group team=%s app=%s domain=%s: %d unique paths -> %d patterns\n",
 			key.TeamID, key.AppID, key.Domain, len(paths), len(patterns))

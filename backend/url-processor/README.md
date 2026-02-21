@@ -7,7 +7,7 @@ Discovers URL patterns from raw HTTP traffic and stores them in the `url_pattern
 1. Fetches raw paths from `http_events` for the last month, grouped by team, app, and domain
 2. Normalizes dynamic path segments (UUIDs, hashes, dates, hex values, integers) to `*`
 3. Consolidates similar paths using a trie with eager collapsing
-4. Stores the top 10 patterns per (team, app, domain) in `url_patterns`
+4. Stores patterns with at least 100 requests per (team, app, domain) in `url_patterns`
 
 ## How collapsing works
 
