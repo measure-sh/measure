@@ -11,9 +11,9 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// RawPathRow represents a single row from the http_events
+// HttpEvent represents a single row from the http_events
 // query, pre-aggregated by ClickHouse.
-type RawPathRow struct {
+type HttpEvent struct {
 	TeamID uuid.UUID
 	AppID  uuid.UUID
 	Domain string
@@ -52,11 +52,11 @@ type insertKey struct {
 	Path   string
 }
 
-// Process is the main entry point called by the cron job.
+// GeneratePatterns is the main entry point called by the cron job.
 // It discovers URL patterns from raw HTTP traffic,
 // normalizes dynamic path segments, consolidates similar
 // paths via a trie, and stores the top patterns.
-func Process(ctx context.Context) {
+func GeneratePatterns(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 	from := now.AddDate(0, lookbackWindow, 0)
@@ -163,7 +163,7 @@ func Process(ctx context.Context) {
 
 // fetchRawPaths queries http_events for the given time
 // range, pre-aggregated by (team_id, app_id, domain, path).
-func fetchRawPaths(ctx context.Context, from, now time.Time) ([]RawPathRow, error) {
+func fetchRawPaths(ctx context.Context, from, now time.Time) ([]HttpEvent, error) {
 	stmt := sqlf.
 		Select("team_id, app_id, domain, path, count() as cnt").
 		From("http_events").
@@ -180,9 +180,9 @@ func fetchRawPaths(ctx context.Context, from, now time.Time) ([]RawPathRow, erro
 		return nil, fmt.Errorf("query http_events: %w", err)
 	}
 
-	var result []RawPathRow
+	var result []HttpEvent
 	for rows.Next() {
-		var row RawPathRow
+		var row HttpEvent
 		if err := rows.Scan(&row.TeamID, &row.AppID, &row.Domain, &row.Path, &row.Count); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
