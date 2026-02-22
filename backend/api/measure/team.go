@@ -85,7 +85,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 		Select(`apps.created_at`, nil).
 		Select(`apps.updated_at`, nil).
 		From(`apps`).
-		LeftJoin(`api_keys`, `api_keys.app_Id = apps.id`).
+		LeftJoin(`api_keys`, `api_keys.app_Id = apps.id and api_keys.revoked = false`).
 		Where(`apps.team_id = ?`, nil).
 		OrderBy(`apps.app_name`)
 

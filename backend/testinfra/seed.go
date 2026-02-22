@@ -159,6 +159,25 @@ func (h *TestHelper) SeedTeamIngestBlocked(ctx context.Context, t *testing.T, te
 	}
 }
 
+func (h *TestHelper) SeedAPIKey(
+	ctx context.Context,
+	t *testing.T,
+	appID, keyPrefix, keyValue, checksum string,
+	revoked bool,
+	lastSeen *time.Time,
+	createdAt time.Time,
+) {
+	t.Helper()
+
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO api_keys (app_id, key_prefix, key_value, checksum, revoked, last_seen, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		appID, keyPrefix, keyValue, checksum, revoked, lastSeen, createdAt)
+	if err != nil {
+		t.Fatalf("seed api_key: %v", err)
+	}
+}
+
 func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics uint64, reported bool) {
 	t.Helper()
 	var reportedAt interface{}

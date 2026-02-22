@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -80,6 +81,18 @@ func seedTeamBilling(ctx context.Context, t *testing.T, teamID uuid.UUID, plan s
 
 func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, reason string) {
 	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
+}
+
+func seedAPIKey(
+	ctx context.Context,
+	t *testing.T,
+	appID uuid.UUID,
+	keyPrefix, keyValue, checksum string,
+	revoked bool,
+	lastSeen *time.Time,
+	createdAt time.Time,
+) {
+	th.SeedAPIKey(ctx, t, appID.String(), keyPrefix, keyValue, checksum, revoked, lastSeen, createdAt)
 }
 
 // --------------------------------------------------------------------------
@@ -190,6 +203,56 @@ func getAppRetention(ctx context.Context, t *testing.T, appID uuid.UUID) int {
 		t.Fatalf("get app retention: %v", err)
 	}
 	return retention
+}
+
+type apiKeyRow struct {
+	ID        uuid.UUID
+	AppID     uuid.UUID
+	KeyPrefix string
+	KeyValue  string
+	Checksum  string
+	Revoked   bool
+	LastSeen  *time.Time
+	CreatedAt time.Time
+}
+
+func getAPIKeysByAppID(ctx context.Context, t *testing.T, appID uuid.UUID) []apiKeyRow {
+	t.Helper()
+
+	rows, err := th.PgPool.Query(ctx,
+		`SELECT id, app_id, key_prefix, key_value, checksum, revoked, last_seen, created_at
+		 FROM api_keys WHERE app_id = $1 ORDER BY created_at`, appID)
+	if err != nil {
+		t.Fatalf("get api_keys by app_id: %v", err)
+	}
+	defer rows.Close()
+
+	var out []apiKeyRow
+	for rows.Next() {
+		var r apiKeyRow
+		if err := rows.Scan(&r.ID, &r.AppID, &r.KeyPrefix, &r.KeyValue, &r.Checksum, &r.Revoked, &r.LastSeen, &r.CreatedAt); err != nil {
+			t.Fatalf("scan api_key row: %v", err)
+		}
+		out = append(out, r)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows err api_key: %v", err)
+	}
+	return out
+}
+
+func getAPIKeyByValue(ctx context.Context, t *testing.T, keyValue string) *apiKeyRow {
+	t.Helper()
+
+	var r apiKeyRow
+	err := th.PgPool.QueryRow(ctx,
+		`SELECT id, app_id, key_prefix, key_value, checksum, revoked, last_seen, created_at
+		 FROM api_keys WHERE key_value = $1`, keyValue).
+		Scan(&r.ID, &r.AppID, &r.KeyPrefix, &r.KeyValue, &r.Checksum, &r.Revoked, &r.LastSeen, &r.CreatedAt)
+	if err != nil {
+		return nil
+	}
+	return &r
 }
 
 func getTeamIngestBlockedReason(ctx context.Context, t *testing.T, teamID uuid.UUID) *string {

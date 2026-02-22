@@ -1,6 +1,6 @@
 "use client"
 
-import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer } from "@/app/api/api_calls"
+import { AppApiKeyChangeApiStatus, AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppApiKeyFromServer, changeAppNameFromServer, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
@@ -43,7 +43,9 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
   const [appNameConfirmationDialogOpen, setAppNameConfirmationDialogOpen] = useState(false)
+  const [appApiKeyConfirmationDialogOpen, setAppApiKeyConfirmationDialogOpen] = useState(false)
   const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init)
+  const [appApiKeyChangeApiStatus, setAppApiKeyChangeApiStatus] = useState(AppApiKeyChangeApiStatus.Init)
   const [appName, setAppName] = useState('')
 
   // SDK configuration state - null until loaded from server
@@ -64,7 +66,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           return
         }
 
-        const currentUserRole = result.data.members.find((member: any) => member.id === session.user.id)!.role
+        const currentUser = result.data.members.find((member: any) => member.id === session.user.id)
+        if (!currentUser) {
+          setCurrentUserCanChangeAppSettings(false)
+          return
+        }
+
+        const currentUserRole = currentUser.role
         if (currentUserRole === 'owner' || currentUserRole === 'admin') {
           setCurrentUserCanChangeAppSettings(true)
         } else {
@@ -160,6 +168,9 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         setAppRetention(updatedAppRetention)
         toastPositive("Your app settings have been saved")
         break
+      case UpdateAppRetentionApiStatus.Cancelled:
+        setUpdateAppRetentionApiStatus(UpdateAppRetentionApiStatus.Cancelled)
+        break
     }
   }
 
@@ -198,6 +209,32 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         if (filtersRef.current?.refresh) {
           filtersRef.current.refresh()
         }
+        break
+      case AppNameChangeApiStatus.Cancelled:
+        setAppNameChangeApiStatus(AppNameChangeApiStatus.Cancelled)
+        break
+    }
+  }
+
+  const changeAppApiKey = async () => {
+    setAppApiKeyChangeApiStatus(AppApiKeyChangeApiStatus.Loading)
+
+    const result = await changeAppApiKeyFromServer(filters.app!.id)
+
+    switch (result.status) {
+      case AppApiKeyChangeApiStatus.Error:
+        setAppApiKeyChangeApiStatus(AppApiKeyChangeApiStatus.Error)
+        toastNegative("Error rotating API key")
+        break
+      case AppApiKeyChangeApiStatus.Success:
+        setAppApiKeyChangeApiStatus(AppApiKeyChangeApiStatus.Success)
+        toastPositive("API key rotated")
+        if (filtersRef.current?.refresh) {
+          filtersRef.current.refresh()
+        }
+        break
+      case AppApiKeyChangeApiStatus.Cancelled:
+        setAppApiKeyChangeApiStatus(AppApiKeyChangeApiStatus.Cancelled)
         break
     }
   }
@@ -262,6 +299,14 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               changeAppName()
             }}
             onCancelAction={() => setAppNameConfirmationDialogOpen(false)}
+          />
+
+          <DangerConfirmationDialog body={<p className="font-body">Are you sure you want to rotate the API key for app <span className="font-display font-bold">{filters.app!.name}</span>? <br /> <br /> All apps currently using this key won&apos;t be able to send data anymore until they are updated.</p>} open={appApiKeyConfirmationDialogOpen} affirmativeText="Yes, rotate key" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setAppApiKeyConfirmationDialogOpen(false)
+              changeAppApiKey()
+            }}
+            onCancelAction={() => setAppApiKeyConfirmationDialogOpen(false)}
           />
 
           {/* Dialog for confirming app retention period change */}
@@ -362,6 +407,22 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 onClick={() => setAppNameConfirmationDialogOpen(true)}>
                 Save
               </Button>
+            </div>
+            <div className="py-8" />
+            <p className="font-display text-xl max-w-6xl">Rotate API key</p>
+            <div className="flex flex-row items-center mt-2">
+              <p className="text-sm">API key</p>
+              <div className="px-3" />
+              <Input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96" />
+              {currentUserCanChangeAppSettings &&
+                <Button
+                  variant="destructive"
+                  disabled={appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
+                  className="mx-4 my-3"
+                  loading={appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
+                  onClick={() => setAppApiKeyConfirmationDialogOpen(true)}>
+                  Rotate
+                </Button>}
             </div>
           </div>
         </div>
