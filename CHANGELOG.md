@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement app api key rotation by @anupcowkur in #3188
 - (**backend**): Send alerts on bug reports by @anupcowkur in #3183
 
 ### :bug: Bug fixes
