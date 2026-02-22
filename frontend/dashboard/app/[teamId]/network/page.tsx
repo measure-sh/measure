@@ -269,33 +269,27 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
             <div className="py-4" />
 
-            {pageState.filters.ready && pageState.domainsStatus === NetworkDomainsApiStatus.Loading &&
-                <LoadingSpinner />
-            }
-            {pageState.domainsStatus === NetworkDomainsApiStatus.Success && pageState.domains.length > 0 &&
+            {pageState.filters.ready &&
+                pageState.domainsStatus !== NetworkDomainsApiStatus.Error &&
+                pageState.domainsStatus !== NetworkDomainsApiStatus.NoData &&
                 <>
-                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading &&
-                        <div className="w-full">
-                            <LoadingBar />
-                        </div>
-                    }
-
-                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success &&
-                        <div className="w-full">
+                    {/* Status code plot */}
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading && <LoadingSpinner />}
+                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success &&
                             <NetworkStatusDistributionPlot data={pageState.statusPlotData} />
-                        </div>
-                    }
-
-                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
-                        <p className="font-body text-sm">No status overview data available for the selected filters</p>
-                    }
-
-                    {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
-                        <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
-                    }
+                        }
+                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
+                            <p className="font-body text-sm">No status overview data available for the selected filters</p>
+                        }
+                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
+                            <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
+                        }
+                    </div>
 
                     <div className="py-6" />
 
+                    {/* Search endpoint */}
                     <p className="font-display text-xl">Search Endpoint</p>
                     <div className="py-2" />
                     <div className="flex flex-row items-center w-full">
@@ -303,8 +297,9 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                             type={DropdownSelectType.SingleString}
                             title="Domain"
                             items={pageState.domains}
-                            initialSelected={searchState.domain}
+                            initialSelected={pageState.domainsStatus === NetworkDomainsApiStatus.Loading ? "Loading..." : searchState.domain}
                             onChangeSelected={(item) => updateSearchState({ domain: item as string })}
+                            disabled={pageState.domainsStatus !== NetworkDomainsApiStatus.Success}
                         />
                         <div className="px-2" />
                         <div className="relative flex-1">
@@ -388,7 +383,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                         <Button
                             variant="outline"
                             className="m-4"
-                            disabled={searchState.pathPattern.trim() === ""}
+                            disabled={searchState.pathPattern.trim() === "" || pageState.domainsStatus !== NetworkDomainsApiStatus.Success}
                             onClick={handleSearch}>
                             Search
                         </Button>
@@ -396,6 +391,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
                     <div className="py-12" />
 
+                    {/* Trends */}
                     <p className="font-display text-xl">Trends</p>
                     <div className="py-2" />
                     {pageState.trendsStatus === NetworkTrendsApiStatus.Loading &&
