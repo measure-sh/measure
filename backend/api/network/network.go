@@ -42,9 +42,9 @@ type TrendsResponse struct {
 	TrendsFrequency []TrendsEndpoint `json:"trends_frequency"`
 }
 
-// topN is the default number of endpoints to return
-// in each overview category.
-const topN = 100
+// trendsLimit is the default number of endpoints to return
+// in each trends category.
+const trendsLimit = 100
 
 // ParseURL splits a full URL into domain (hostname)
 // and path components.
@@ -188,7 +188,7 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 		Where("timestamp <= ?", af.To).
 		GroupBy("domain, path").
 		OrderBy(orderBy).
-		Limit(topN)
+		Limit(trendsLimit)
 
 	defer stmt.Close()
 

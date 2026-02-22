@@ -2,19 +2,21 @@ package processor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"backend/url-processor/server"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
 const (
-	// patternLookback is how far back to query http_events
-	// for pattern discovery.
-	patternLookback = -1 // months
+	// patternsDefaultLookback is how far back to query
+	// http_events when no prior pattern generation timestamp exists.
+	patternsDefaultLookback = 7 * 24 * time.Hour
 
 	// minPatternCount is the minimum request count a pattern
 	// must have to be kept.
@@ -29,14 +31,6 @@ const (
 type appKey struct {
 	TeamID uuid.UUID
 	AppID  uuid.UUID
-}
-
-// groupKey identifies a unique (team, app, domain) combination
-// for pattern grouping.
-type groupKey struct {
-	TeamID uuid.UUID
-	AppID  uuid.UUID
-	Domain string
 }
 
 // patternKey deduplicates inserts by (team, app, domain, path).
@@ -70,96 +64,136 @@ type PatternResult struct {
 func GeneratePatterns(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
-	from := now.AddDate(0, patternLookback, 0)
 
-	fmt.Printf("GeneratePatterns: start from=%s to=%s\n",
-		from.Format(time.RFC3339), now.Format(time.RFC3339))
+	fmt.Printf("GeneratePatterns: start\n")
 
-	rows, err := fetchRawPaths(ctx, from, now)
+	apps, err := fetchApps(ctx)
 	if err != nil {
-		fmt.Printf("GeneratePatterns: failed to fetch raw paths: %v\n", err)
+		fmt.Printf("GeneratePatterns: failed to fetch apps: %v\n", err)
 		return
 	}
 
-	if len(rows) == 0 {
-		fmt.Printf("GeneratePatterns: end took=%v (no events found)\n", time.Since(start))
+	if len(apps) == 0 {
+		fmt.Printf("GeneratePatterns: end took=%v (no apps)\n", time.Since(start))
 		return
 	}
 
-	// Normalize paths and aggregate by (team, app, domain).
-	groups := make(map[groupKey]map[string]uint64)
-	for _, row := range rows {
-		key := groupKey{
-			TeamID: row.TeamID,
-			AppID:  row.AppID,
-			Domain: row.Domain,
+	var processed, skipped, failed int
+
+	for _, app := range apps {
+		from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.AppID)
+		if err != nil {
+			fmt.Printf("GeneratePatterns: failed to get last pattern_generated_at for team=%s app=%s: %v\n",
+				app.TeamID, app.AppID, err)
+			failed++
+			continue
 		}
 
-		normalized := NormalizePath(row.Path)
-
-		if groups[key] == nil {
-			groups[key] = make(map[string]uint64)
-		}
-		groups[key][normalized] += row.Count
-	}
-
-	// Build trie per group, extract patterns, deduplicate.
-	seen := make(map[patternKey]struct{})
-	var totalPatterns int
-
-	insertStmt := sqlf.InsertInto("url_patterns")
-	defer insertStmt.Close()
-
-	for key, paths := range groups {
-		trie := NewTrie()
-		for path, count := range paths {
-			trie.Insert(path, count)
+		if from == nil {
+			defaultFrom := now.Add(-patternsDefaultLookback)
+			from = &defaultFrom
 		}
 
-		patterns := trie.ExtractPatterns()
+		if !from.Before(now) {
+			skipped++
+			continue
+		}
 
-		filtered := patterns[:0]
-		for _, p := range patterns {
-			if p.Count >= minPatternCount {
-				filtered = append(filtered, p)
+		rows, err := fetchRawPaths(ctx, app.TeamID, app.AppID, *from, now)
+		if err != nil {
+			fmt.Printf("GeneratePatterns: failed to fetch raw paths for team=%s app=%s: %v\n",
+				app.TeamID, app.AppID, err)
+			failed++
+			continue
+		}
+
+		if len(rows) == 0 {
+			skipped++
+			continue
+		}
+
+		// Normalize paths and aggregate by domain.
+		groups := make(map[string]map[string]uint64)
+		for _, row := range rows {
+			normalized := NormalizePath(row.Path)
+			if groups[row.Domain] == nil {
+				groups[row.Domain] = make(map[string]uint64)
+			}
+			groups[row.Domain][normalized] += row.Count
+		}
+
+		// Build trie per domain, extract patterns, deduplicate.
+		seen := make(map[patternKey]struct{})
+		insertStmt := sqlf.InsertInto("url_patterns")
+
+		var totalPatterns int
+
+		for domain, paths := range groups {
+			trie := NewTrie()
+			for path, count := range paths {
+				trie.Insert(path, count)
+			}
+
+			patterns := trie.ExtractPatterns()
+
+			filtered := patterns[:0]
+			for _, p := range patterns {
+				if p.Count >= minPatternCount {
+					filtered = append(filtered, p)
+				}
+			}
+			patterns = filtered
+
+			for _, p := range patterns {
+				pk := patternKey{
+					TeamID: app.TeamID,
+					AppID:  app.AppID,
+					Domain: domain,
+					Path:   p.Path,
+				}
+				if _, exists := seen[pk]; exists {
+					continue
+				}
+				seen[pk] = struct{}{}
+
+				insertStmt.NewRow().
+					Set("team_id", app.TeamID).
+					Set("app_id", app.AppID).
+					Set("domain", domain).
+					Set("path", p.Path).
+					Set("last_accessed_at", now)
+				totalPatterns++
 			}
 		}
-		patterns = filtered
 
-		for _, p := range patterns {
-			pk := patternKey{
-				TeamID: key.TeamID,
-				AppID:  key.AppID,
-				Domain: key.Domain,
-				Path:   p.Path,
-			}
-			if _, exists := seen[pk]; exists {
-				continue
-			}
-			seen[pk] = struct{}{}
-
-			insertStmt.NewRow().
-				Set("team_id", key.TeamID).
-				Set("app_id", key.AppID).
-				Set("domain", key.Domain).
-				Set("path", p.Path).
-				Set("last_accessed_at", now)
-			totalPatterns++
+		if totalPatterns == 0 {
+			insertStmt.Close()
+			skipped++
+			continue
 		}
+
+		if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+			fmt.Printf("GeneratePatterns: failed to insert for team=%s app=%s: %v\n",
+				app.TeamID, app.AppID, err)
+			insertStmt.Close()
+			failed++
+			continue
+		}
+
+		insertStmt.Close()
+
+		if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.AppID, now); err != nil {
+			fmt.Printf("GeneratePatterns: failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
+				app.TeamID, app.AppID, err)
+			failed++
+			continue
+		}
+
+		processed++
 	}
 
-	if totalPatterns == 0 {
-		fmt.Printf("GeneratePatterns: end took=%v (no patterns above threshold)\n", time.Since(start))
-		return
-	}
-
-	if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
-		fmt.Printf("GeneratePatterns: failed to insert: %v\n", err)
-		return
-	}
-
-	fmt.Printf("GeneratePatterns: end took=%v patterns=%d\n",
-		time.Since(start), totalPatterns)
+	fmt.Printf("GeneratePatterns: end took=%v processed=%d skipped=%d failed=%d\n",
+		time.Since(start), processed, skipped, failed)
 }
 
 // GenerateMetrics pre-aggregates HTTP event data into
@@ -225,7 +259,10 @@ func GenerateMetrics(ctx context.Context) {
 
 // fetchApps queries the PG apps table for all (team_id, id) pairs.
 func fetchApps(ctx context.Context) ([]appKey, error) {
-	rows, err := server.Server.PgPool.Query(ctx, "SELECT team_id, id FROM apps")
+	stmt := sqlf.Select("team_id, id").From("apps")
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, fmt.Errorf("query apps: %w", err)
 	}
@@ -247,28 +284,54 @@ func fetchApps(ctx context.Context) ([]appKey, error) {
 	return apps, nil
 }
 
-// getLastReportedAt queries PG for the most recent reported_at
+// getLastReportedAt queries PG for the most recent metrics_reported_at
 // timestamp for the given team and app. Returns nil if no row exists.
 func getLastReportedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
+	stmt := sqlf.Select("metrics_reported_at").
+		From("network_metrics_reporting").
+		Where("team_id = ?", teamID).
+		Where("app_id = ?", appID)
+	defer stmt.Close()
+
 	var reportedAt *time.Time
-	err := server.Server.PgPool.QueryRow(ctx,
-		"SELECT MAX(reported_at) FROM network_metrics_reporting WHERE team_id = $1 AND app_id = $2",
-		teamID, appID,
-	).Scan(&reportedAt)
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&reportedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("query network_metrics_reporting: %w", err)
 	}
 
 	return reportedAt, nil
 }
 
+// getLastPatternGeneratedAt queries PG for the most recent pattern_generated_at
+// timestamp for the given team and app. Returns nil if no row exists.
+func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
+	stmt := sqlf.Select("pattern_generated_at").
+		From("network_metrics_reporting").
+		Where("team_id = ?", teamID).
+		Where("app_id = ?", appID)
+	defer stmt.Close()
+
+	var generatedAt *time.Time
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&generatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query network_metrics_reporting: %w", err)
+	}
+
+	return generatedAt, nil
+}
+
 // insertAggregatedMetrics executes an INSERT...SELECT on ClickHouse
 // that aggregates http_events into http_metrics for the given
 // team, app and time range.
 func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) error {
-	query := `INSERT INTO http_metrics
-SELECT
-    e.team_id, e.app_id,
+	stmt := sqlf.
+		Select(`e.team_id, e.app_id,
     toStartOfFifteenMinutes(e.timestamp) AS ts,
     e.protocol, e.port, e.domain,
     p.path AS path,
@@ -284,54 +347,81 @@ SELECT
     toUInt64(countIf(status_code >= 300 AND status_code < 400)),
     toUInt64(countIf(status_code >= 400 AND status_code < 500)),
     toUInt64(countIf(status_code >= 500 AND status_code < 600)),
-    quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)
-FROM http_events e
-INNER JOIN (
+    quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)`).
+		From(`http_events e
+JOIN (
     SELECT DISTINCT domain, path FROM url_patterns FINAL
-    WHERE team_id = $1 AND app_id = $2
+    WHERE team_id = ? AND app_id = ?
 ) p ON e.domain = p.domain AND multiIf(
     endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
         startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
     position(p.path, '*') > 0,
         e.path LIKE replaceAll(p.path, '*', '%'),
     e.path = p.path
-)
-WHERE e.team_id = $3 AND e.app_id = $4
-    AND e.timestamp >= $5 AND e.timestamp < $6
-    AND e.latency_ms <= 60000
-    AND e.status_code != 0
-    AND e.domain != '' AND e.path != ''
-GROUP BY e.team_id, e.app_id, ts, e.protocol, e.port, e.domain, p.path,
+)`, teamID, appID).
+		Where("e.team_id = ?", teamID).
+		Where("e.app_id = ?", appID).
+		Where("e.timestamp >= ?", from).
+		Where("e.timestamp < ?", to).
+		Where("e.latency_ms <= 60000").
+		Where("e.status_code != 0").
+		Where("e.domain != ''").
+		Where("e.path != ''").
+		GroupBy(`e.team_id, e.app_id, ts, e.protocol, e.port, e.domain, p.path,
          e.method, e.status_code, e.app_version, e.os_version,
-         e.device_manufacturer, e.device_name`
+         e.device_manufacturer, e.device_name`)
+	defer stmt.Close()
 
-	if err := server.Server.ChPool.Exec(ctx, query, teamID, appID, teamID, appID, from, to); err != nil {
+	query := "INSERT INTO http_metrics\n" + stmt.String()
+	if err := server.Server.ChPool.Exec(ctx, query, stmt.Args()...); err != nil {
 		return fmt.Errorf("insert aggregated metrics: %w", err)
 	}
 
 	return nil
 }
 
-// upsertReportedAt inserts a new reporting timestamp into
+// upsertReportedAt upserts the metrics reporting timestamp into
 // the PG network_metrics_reporting table.
 func upsertReportedAt(ctx context.Context, teamID, appID uuid.UUID, reportedAt time.Time) error {
-	_, err := server.Server.PgPool.Exec(ctx,
-		"INSERT INTO network_metrics_reporting (team_id, app_id, reported_at) VALUES ($1, $2, $3)",
-		teamID, appID, reportedAt,
-	)
-	if err != nil {
+	stmt := sqlf.InsertInto("network_metrics_reporting").
+		Set("team_id", teamID).
+		Set("app_id", appID).
+		Set("metrics_reported_at", reportedAt).
+		Clause("ON CONFLICT (team_id, app_id) DO UPDATE SET metrics_reported_at = EXCLUDED.metrics_reported_at")
+	defer stmt.Close()
+
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
 		return fmt.Errorf("upsert network_metrics_reporting: %w", err)
 	}
 
 	return nil
 }
 
-// fetchRawPaths queries http_events for the given time
-// range, pre-aggregated by (team_id, app_id, domain, path).
-func fetchRawPaths(ctx context.Context, from, to time.Time) ([]HttpEvent, error) {
+// upsertPatternGeneratedAt upserts the pattern generation timestamp into
+// the PG network_metrics_reporting table.
+func upsertPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID, generatedAt time.Time) error {
+	stmt := sqlf.InsertInto("network_metrics_reporting").
+		Set("team_id", teamID).
+		Set("app_id", appID).
+		Set("pattern_generated_at", generatedAt).
+		Clause("ON CONFLICT (team_id, app_id) DO UPDATE SET pattern_generated_at = EXCLUDED.pattern_generated_at")
+	defer stmt.Close()
+
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return fmt.Errorf("upsert network_metrics_reporting: %w", err)
+	}
+
+	return nil
+}
+
+// fetchRawPaths queries http_events for the given team, app and time
+// range, pre-aggregated by (domain, path).
+func fetchRawPaths(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) ([]HttpEvent, error) {
 	stmt := sqlf.
 		Select("team_id, app_id, domain, path, count() as cnt").
 		From("http_events").
+		Where("team_id = ?", teamID).
+		Where("app_id = ?", appID).
 		Where("timestamp >= ?", from).
 		Where("timestamp < ?", to).
 		Where("domain != ''").
