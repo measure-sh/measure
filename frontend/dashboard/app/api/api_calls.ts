@@ -200,6 +200,14 @@ export enum AppNameChangeApiStatus {
   Cancelled,
 }
 
+export enum AppApiKeyChangeApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum RoleChangeApiStatus {
   Init,
   Loading,
@@ -2331,6 +2339,23 @@ export const changeAppNameFromServer = async (
     return { status: AppNameChangeApiStatus.Success }
   } catch {
     return { status: AppNameChangeApiStatus.Cancelled }
+  }
+}
+
+export const changeAppApiKeyFromServer = async (appId: string) => {
+  const opts = {
+    method: "PATCH",
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/apiKey`, opts)
+    if (!res.ok) {
+      return { status: AppApiKeyChangeApiStatus.Error }
+    }
+
+    return { status: AppApiKeyChangeApiStatus.Success }
+  } catch {
+    return { status: AppApiKeyChangeApiStatus.Cancelled }
   }
 }
 

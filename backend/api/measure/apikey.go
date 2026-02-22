@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"backend/api/cipher"
 	"backend/api/server"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -93,6 +95,40 @@ func updateLastSeenForApiKey(ctx context.Context, apiKeyId uuid.UUID) error {
 	return err
 }
 
+func (a App) rotateAPIKey() (*APIKey, error) {
+	ctx := context.Background()
+	apiKey, err := NewAPIKey(*a.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	if err := apiKey.saveTx(tx); err != nil {
+		return nil, err
+	}
+
+	stmt := sqlf.PostgreSQL.Update("api_keys").
+		Set("revoked", true).
+		Where("app_id = ?", a.ID).
+		Where("key_value <> ?", apiKey.keyValue)
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
 func DecodeAPIKey(ctx context.Context, key string) (*uuid.UUID, error) {
 	defaultErr := errors.New("invalid api key")
 
@@ -148,4 +184,70 @@ func DecodeAPIKey(ctx context.Context, key string) (*uuid.UUID, error) {
 	}
 
 	return &appId, nil
+}
+
+func RotateApiKey(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to rotate app api keys in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	apiKey, err := app.rotateAPIKey()
+	if err != nil {
+		msg := "failed to rotate app api key"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"api_key": apiKey,
+		"ok":      "done",
+	})
 }

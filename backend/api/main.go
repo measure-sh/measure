@@ -136,6 +136,7 @@ func main() {
 		apps.GET(":id/retention", measure.GetAppRetention)
 		apps.PATCH(":id/retention", measure.UpdateAppRetention)
 		apps.PATCH(":id/rename", measure.RenameApp)
+		apps.PATCH(":id/apiKey", measure.RotateApiKey)
 
 		// filters
 		apps.POST(":id/shortFilters", measure.CreateShortFilters)

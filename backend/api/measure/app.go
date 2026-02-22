@@ -3390,7 +3390,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	stmt := sqlf.PostgreSQL.
 		Select(strings.Join(cols, ",")).
 		From("apps").
-		LeftJoin("api_keys", "api_keys.app_id = apps.id").
+		LeftJoin("api_keys", "api_keys.app_id = apps.id and api_keys.revoked = false").
 		Where("apps.id = ? and apps.team_id = ?", nil, nil)
 
 	defer stmt.Close()

@@ -141,175 +141,180 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [GET `/apps/:id/retention`](#get-appsidretention)
+  - [PATCH `/apps/:id/apiKey`](#patch-appsidapikey)
     - [Usage Notes](#usage-notes-26)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
+  - [GET `/apps/:id/retention`](#get-appsidretention)
     - [Usage Notes](#usage-notes-27)
-    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
     - [Usage Notes](#usage-notes-28)
-    - [Request body](#request-body-6)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-29)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [GET `/apps/:id/spans`](#get-appsidspans)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-30)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-31)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-32)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
     - [Usage Notes](#usage-notes-33)
     - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
     - [Usage Notes](#usage-notes-34)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
     - [Usage Notes](#usage-notes-35)
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-36)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [GET `/apps/:id/alerts`](#get-appsidalerts)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-37)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-35)
-    - [Request Body](#request-body-8)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
     - [Usage Notes](#usage-notes-38)
+    - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-36)
+    - [Request Body](#request-body-8)
+    - [Usage Notes](#usage-notes-39)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-39)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-40)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-41)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-42)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-43)
-    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-44)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-45)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-45)
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-46)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-47)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-48)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-48)
     - [Authorization \& Content Type](#authorization--content-type-46)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-49)
-    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-50)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-48)
     - [Response Body](#response-body-51)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
-  - [GET `/teams/:id/usage`](#get-teamsidusage)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-51)
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
-  - [GET `/teams/:id/slack`](#get-teamsidslack)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
     - [Usage Notes](#usage-notes-52)
     - [Authorization \& Content Type](#authorization--content-type-50)
     - [Response Body](#response-body-53)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
-  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
     - [Usage Notes](#usage-notes-53)
-    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
     - [Usage Notes](#usage-notes-54)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
-  - [GET `/teams/:id/config`](#get-teamsidconfig)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-55)
     - [Authorization \& Content Type](#authorization--content-type-53)
     - [Response Body](#response-body-56)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
-  - [PATCH `/teams/:id/config`](#patch-teamsidconfig)
+  - [GET `/apps/:id/config`](#get-appsidconfig)
     - [Usage Notes](#usage-notes-56)
     - [Authorization \& Content Type](#authorization--content-type-54)
     - [Response Body](#response-body-57)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
+  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+    - [Usage Notes](#usage-notes-57)
+    - [Authorization \& Content Type](#authorization--content-type-55)
+    - [Response Body](#response-body-58)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-58)
 
 ## Auth
 
@@ -771,6 +776,7 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
 - [**PATCH `/apps/:id/rename`**](#patch-appsidrename) - Modify the name of an app.
+- [**PATCH `/apps/:id/apiKey`**](#patch-appsidapikey) - Rotate an app's API key and revoke all previously active keys.
 - [**GET `/apps/:id/retention`**](#get-appsidretention) - Fetch an app's retention period in days. Must be between 30 and 365. Default is 30.
 - [**PATCH `/apps/:id/retention`**](#patch-appsidretention) - Update an app's retention period in days. Must be between 30 and 365.
 - [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
@@ -4130,6 +4136,74 @@ List of HTTP status codes for success and failures.
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/apiKey`
+
+Rotate an app's API key. All previously active API keys for the app are revoked. Only the newly generated key stays active.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- This endpoint does not require a request body
+- Existing clients using previously issued API keys will stop being able to ingest data until updated with the new key
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "apiKey": "msr_a5Hn7x..."
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, new API key returned and previous keys revoked.                                                   |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
