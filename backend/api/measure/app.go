@@ -5028,15 +5028,9 @@ func GetAppFilters(c *gin.Context) {
 		"key_types":      nil,
 	}
 
+	// set user defined attribute keys only if
+	// requested
 	if af.UDAttrKeys {
-		if err := af.GetUserDefinedAttrKeys(ctx, &fl); err != nil {
-			msg := `failed to query user defined attribute keys`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
 		udAttrs["operator_types"] = event.GetUDAttrsOpMap()
 		udAttrs["key_types"] = fl.UDKeyTypes
 	}
