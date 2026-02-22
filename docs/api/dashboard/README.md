@@ -6637,10 +6637,17 @@ Fetch authorization details of members for a team. Oldest members appear first i
 #### Usage Notes
 
 - Teams's UUID must be passed in the URI
-- The `can_invite` field in the response indicates what roles new team members can be invited as by the current user
+- The `can_invite_roles` field in the response indicates what roles new team members can be invited as by the current user
 - The `can_change_billing` field in the response indicates whether the current user is allowed to change billing settings (upgrade/downgrade plans) for the team. Only applicable to hosted cloud environment.
-- The `can_change_roles` field in the `authz` field in the response indicates what roles the current user is allowed to assign for that particular member
-- The `can_remove` flag in the `authz` field in the response indicates whether the current user is allowed to remove that particular member from the team
+- The `can_create_app` field indicates whether the current user can create apps in the team
+- The `can_rename_app` field indicates whether the current user can rename apps in the team
+- The `can_change_retention` field indicates whether the current user can update app retention settings in the team
+- The `can_rotate_api_key` field indicates whether the current user can rotate app API keys in the team
+- The `can_write_sdk_config` field indicates whether the current user can update SDK config for apps in the team
+- The `can_rename_team` field indicates whether the current user can rename the team
+- The `can_manage_slack` field indicates whether the current user can manage team Slack integration
+- The `current_user_assignable_roles_for_member` field in each member's `authz` object indicates what roles the current user is allowed to assign for that particular member
+- The `current_user_can_remove_member` flag in each member's `authz` object indicates whether the current user is allowed to remove that particular member from the team
 
 #### Authorization & Content Type
 
@@ -6668,13 +6675,20 @@ The required headers must be present in each request.
 
   ```json
   {
-    "can_invite": [
+    "can_invite_roles": [
         "owner",
         "admin",
         "developer",
         "viewer"
     ],
     "can_change_billing": true,
+    "can_create_app": true,
+    "can_rename_app": true,
+    "can_change_retention": true,
+    "can_rotate_api_key": true,
+    "can_write_sdk_config": true,
+    "can_rename_team": true,
+    "can_manage_slack": true,
     "members": [
         {
             "id": "7737299c-82cb-4769-8fed-b313a230aa9d",
@@ -6684,13 +6698,13 @@ The required headers must be present in each request.
             "last_sign_in_at": "2024-01-19T08:30:04.915Z",
             "created_at": "2024-01-17T08:22:28.274Z",
             "authz": {
-                "can_change_roles": [
+                "current_user_assignable_roles_for_member": [
                     "owner",
                     "admin",
                     "developer",
                     "viewer"
                 ],
-                "can_remove": true
+                "current_user_can_remove_member": true
             }
         },
         {
@@ -6701,13 +6715,13 @@ The required headers must be present in each request.
             "last_sign_in_at": "2024-01-19T08:27:04.38Z",
             "created_at": "2024-01-19T06:55:16.522Z",
             "authz": {
-                "can_change_roles": [
+                "current_user_assignable_roles_for_member": [
                     "owner",
                     "admin",
                     "developer",
                     "viewer"
                 ],
-                "can_remove": true
+                "current_user_can_remove_member": true
             }
         }
     ]

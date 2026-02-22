@@ -108,18 +108,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
-  function currentUserCanChangeTeamName(authzAndMembers: any, currentUserId: string | undefined): boolean {
-    if (currentUserId === undefined) {
-      return false
-    }
-    const currentUserRole = authzAndMembers.members.find((member: any) => member.id === currentUserId)?.role
-    if (currentUserRole === 'owner' || currentUserRole === 'admin') {
-      return true
-    } else {
-      return false
-    }
-  }
-
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
@@ -487,11 +475,18 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           <div className="flex flex-row items-center">
             <Input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 font-body" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
-            <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
+            <DropdownSelect
+              title="Roles"
+              type={DropdownSelectType.SingleString}
+              items={authzAndMembers.can_invite_roles.map((i) => formatToCamelCase(i))}
+              initialSelected={authzAndMembers.can_invite_roles.length > 0 ? formatToCamelCase(authzAndMembers.can_invite_roles[0]) : ""}
+              disabled={authzAndMembers.can_invite_roles.length === 0}
+              onChangeSelected={(item) => setInviteMemberRole(item as string)}
+            />
             <Button
               variant="outline"
               className="m-4"
-              disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""}
+              disabled={authzAndMembers.can_invite_roles.length === 0 || inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""}
               loading={inviteMemberApiStatus === InviteMemberApiStatus.Loading}
               onClick={inviteMember}>
               Invite
@@ -528,11 +523,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     {id !== currentUserId && (
                       <TableCell>
                         {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                        {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && (
+                        {authz.current_user_assignable_roles_for_member !== null && authz.current_user_assignable_roles_for_member.length > 0 && (
                           <DropdownSelect
                             title="Roles"
                             type={DropdownSelectType.SingleString}
-                            items={authz.can_change_roles.map((i) => formatToCamelCase(i))}
+                            items={authz.current_user_assignable_roles_for_member.map((i) => formatToCamelCase(i))}
                             initialSelected={formatToCamelCase(role)}
                             onChangeSelected={(i) => {
                               const newMap = new Map(selectedDropdownRolesMap)
@@ -542,7 +537,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                           />
                         )}
                         {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                        {(authz.can_change_roles === null || authz.can_change_roles.length === 0) && (
+                        {(authz.current_user_assignable_roles_for_member === null || authz.current_user_assignable_roles_for_member.length === 0) && (
                           <DropdownSelect
                             title="Current Role"
                             type={DropdownSelectType.SingleString}
@@ -578,7 +573,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       <TableCell>
                         <Button
                           variant="outline"
-                          disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
+                          disabled={authz.current_user_can_remove_member === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
                           loading={removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id}
                           onClick={() => {
                             setRemoveMemberId(id)
@@ -621,7 +616,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <TableCell>
                       <Button
                         variant="outline"
-                        disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading}
+                        disabled={!authzAndMembers.can_invite_roles.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading}
                         loading={resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading && resendPendingInviteId === id}
                         onClick={() => {
                           setResendPendingInviteId(id)
@@ -634,7 +629,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <TableCell>
                       <Button
                         variant="outline"
-                        disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading}
+                        disabled={!authzAndMembers.can_invite_roles.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading}
                         loading={removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading && removePendingInviteId === id}
                         onClick={() => {
                           setRemovePendingInviteId(id)
@@ -661,6 +656,12 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* slack not connected, show add to slack button */}
           {fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Success && fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Success && teamSlack === null ? <a
+            aria-disabled={!authzAndMembers.can_manage_slack}
+            onClick={(e) => {
+              if (!authzAndMembers.can_manage_slack) {
+                e.preventDefault()
+              }
+            }}
             href={teamSlackConnectUrl!}>
             <Image
               alt="Add to Slack"
@@ -678,7 +679,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
                 <Switch
                   className={"data-[state=checked]:bg-emerald-500"}
-                  disabled={updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
+                  disabled={!authzAndMembers.can_manage_slack || updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
                   checked={teamSlack.is_active}
                   onCheckedChange={(checked) => {
                     if (checked) {
@@ -695,7 +696,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               <Button
                 variant="outline"
                 className="w-fit"
-                disabled={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading || teamSlack.is_active === false}
+                disabled={!authzAndMembers.can_manage_slack || testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading || teamSlack.is_active === false}
                 loading={testSlackAlertApiStatus === TestSlackAlertApiStatus.Loading}
                 onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
               >
@@ -718,7 +719,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             <Button
               variant="outline"
               className="m-4"
-              disabled={!currentUserCanChangeTeamName(authzAndMembers, currentUserId) || saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              disabled={!authzAndMembers.can_rename_team || saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               onClick={() => setTeamNameConfirmationDialogOpen(true)}>
               Save

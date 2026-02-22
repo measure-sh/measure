@@ -1,10 +1,15 @@
 package measure
 
 import (
+	"backend/api/server"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const (
@@ -111,7 +116,7 @@ func (s scope) getRolesSameOrLower(r rank) []rank {
 var scopeMap = map[rank][]scope{
 	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll},
 	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
 	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
 }
 
@@ -216,4 +221,105 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 	default:
 		return false, nil
 	}
+}
+
+func GetAuthzRoles(c *gin.Context) {
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		ID: &userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have read permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	team := Team{
+		ID: &teamId,
+	}
+
+	members, err := team.getMembers(ctx)
+	if err != nil {
+		msg := `failed to retrieve team members`
+		fmt.Println(msg, err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	var membersWithAuthz []MemberWithAuthz
+
+	for _, member := range members {
+		var memberWithAuthz MemberWithAuthz
+		memberWithAuthz.Member = *member
+		memberRole := roleMap[*member.Role]
+		if userRole >= memberRole {
+			canChangeRoles := ScopeTeamChangeRoleSameOrLower.getRolesSameOrLower(userRole)
+			memberWithAuthz.CurrentUserAssignableRolesForMember = canChangeRoles
+			if len(canChangeRoles) > 0 {
+				memberWithAuthz.CurrentUserCanRemoveMember = true
+			}
+		}
+
+		membersWithAuthz = append(membersWithAuthz, memberWithAuthz)
+	}
+
+	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
+
+	canChangeBilling := server.Server.Config.IsBillingEnabled() && slices.Contains(scopeMap[userRole], *ScopeBillingAll)
+	canCreateApp := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canRenameApp := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canChangeRetention := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canRotateApiKey := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canWriteSdkConfig := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canRenameTeam := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
+	canManageSlack := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
+
+	c.JSON(http.StatusOK, gin.H{
+		"can_invite_roles":     inviteeRoles,
+		"can_change_billing":   canChangeBilling,
+		"can_create_app":       canCreateApp,
+		"can_rename_app":       canRenameApp,
+		"can_change_retention": canChangeRetention,
+		"can_rotate_api_key":   canRotateApiKey,
+		"can_write_sdk_config": canWriteSdkConfig,
+		"can_rename_team":      canRenameTeam,
+		"can_manage_slack":     canManageSlack,
+		"members":              membersWithAuthz,
+	})
 }

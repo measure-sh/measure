@@ -46,8 +46,8 @@ type Invite struct {
 }
 
 type MemberAuthz struct {
-	CanChangeRoles []rank `json:"can_change_roles"`
-	CanRemove      bool   `json:"can_remove"`
+	CurrentUserAssignableRolesForMember []rank `json:"current_user_assignable_roles_for_member"`
+	CurrentUserCanRemoveMember          bool   `json:"current_user_can_remove_member"`
 }
 
 type Member struct {
@@ -1335,93 +1335,6 @@ func RenameTeam(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
-}
-
-func GetAuthzRoles(c *gin.Context) {
-	ctx := c.Request.Context()
-	userId := c.GetString("userId")
-	teamId, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `team id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	user := &User{
-		ID: &userId,
-	}
-
-	userRole, err := user.getRole(teamId.String())
-	if err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if userRole == unknown {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead)
-	if err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if !ok {
-		msg := fmt.Sprintf(`you don't have read permissions to team [%s]`, teamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	team := Team{
-		ID: &teamId,
-	}
-
-	members, err := team.getMembers(ctx)
-	if err != nil {
-		msg := `failed to retrieve team members`
-		fmt.Println(msg, err)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
-	var membersWithAuthz []MemberWithAuthz
-
-	for _, member := range members {
-		var memberWithAuthz MemberWithAuthz
-		memberWithAuthz.Member = *member
-		memberRole := roleMap[*member.Role]
-		if userRole >= memberRole {
-			canChangeRoles := ScopeTeamChangeRoleSameOrLower.getRolesSameOrLower(userRole)
-			memberWithAuthz.CanChangeRoles = canChangeRoles
-			if len(canChangeRoles) > 0 {
-				memberWithAuthz.CanRemove = true
-			}
-		}
-
-		membersWithAuthz = append(membersWithAuthz, memberWithAuthz)
-	}
-
-	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
-
-	canChangeBilling := server.Server.Config.IsBillingEnabled() && slices.Contains(scopeMap[userRole], *ScopeBillingAll)
-
-	c.JSON(http.StatusOK, gin.H{
-		"can_invite":         inviteeRoles,
-		"can_change_billing": canChangeBilling,
-		"members":            membersWithAuthz,
-	})
 }
 
 func GetTeamMembers(c *gin.Context) {
