@@ -752,6 +752,40 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error
 		return
 	})
 
+	// fetching user defined attribute keys can be expensive, so
+	// only fetch if requested.
+	//
+	// this routine is common for fetching events & spans user defined
+	// attribute keys.
+	if af.UDAttrKeys {
+		filterGroup.Go(func() (err error) {
+			lc := logcomment.New(2)
+			settings := clickhouse.Settings{
+				"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+				"use_query_cache": gin.Mode() == gin.ReleaseMode,
+				// cache filters for 10 mins
+				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			}
+
+			name := "ud_attr_keys_events"
+
+			if af.Span {
+				name = "ud_attr_keys_spans"
+			}
+
+			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, name)
+
+			keytypes, err := af.getUDAttrKeys(ctx)
+			if err != nil {
+				return
+			}
+
+			fl.UDKeyTypes = append(fl.UDKeyTypes, keytypes...)
+
+			return
+		})
+	}
+
 	if err := filterGroup.Wait(); err != nil {
 		return err
 	}
@@ -1273,7 +1307,7 @@ func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, e
 }
 
 // getUDAttrKeys finds distinct user defined attribute
-// key and its types.
+// key and its types for events or spans.
 func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
 	table := "user_def_attrs final"
 
