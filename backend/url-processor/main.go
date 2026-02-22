@@ -67,12 +67,15 @@ func main() {
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
 
-	// run every minute
-	if _, err := cron.AddFunc("* * * * *", func() { processor.GeneratePatterns(ctx) }); err != nil {
+	// run every day
+	if _, err := cron.AddFunc("0 0 * * *", func() { processor.GeneratePatterns(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule url processor job: %v\n", err)
 	}
 
-	fmt.Println("Scheduled url processor job")
+	// run every hour
+	if _, err := cron.AddFunc("0 * * * *", func() { processor.GenerateMetrics(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule metrics generator job: %v\n", err)
+	}
 
 	cron.Start()
 	return cron

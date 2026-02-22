@@ -1,6 +1,6 @@
 # Network Queries
 
-All queries target ClickHouse. Replace date range as needed.
+All queries target ClickHouse. Date range: last 2 months.
 
 ```
 app_id:  cbfe4099-4591-4759-b615-8c038e98afd3
@@ -8,8 +8,6 @@ team_id: b31b7648-7a15-4c52-85e0-2748d0cb1911
 ```
 
 ## FetchDomains
-
-Returns unique domains ordered by request frequency.
 
 ```sql
 SELECT domain
@@ -23,8 +21,6 @@ ORDER BY count() DESC
 
 ## FetchPaths
 
-Returns unique paths for a domain. Queries `url_patterns` first, falls back to `http_events` if none found.
-
 ### Primary: url_patterns
 
 ```sql
@@ -32,56 +28,56 @@ SELECT path
 FROM url_patterns FINAL
 WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
   AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-  AND domain = 'api.example.com'
-  AND positionCaseInsensitive(path, 'health') > 0
+  AND domain = 'api.measure.sh'
+  AND positionCaseInsensitive(path, 'search') > 0
 ORDER BY path
 LIMIT 10
 ```
 
-### Events fallback (when no url_patterns exist)
+### Fallback: http_events
 
 ```sql
 SELECT path
 FROM http_events
 WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
   AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-  AND domain = 'api.example.com'
-  AND positionCaseInsensitive(path, 'health') > 0
+  AND domain = 'api.measure.sh'
+  AND positionCaseInsensitive(path, 'search') > 0
 GROUP BY path
 ORDER BY count() DESC
 LIMIT 10
 ```
 
-## FetchTrends
+## patternExists
 
-Returns top endpoints by latency, error rate, and frequency. Cross-joins `url_patterns` with `http_events` to compute metrics at query time.
+```sql
+SELECT 1
+FROM url_patterns FINAL
+WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
+  AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
+  AND domain = 'api.measure.sh'
+  AND path = '/api/users/*'
+LIMIT 1
+```
+
+## FetchTrends
 
 ```sql
 WITH grouped AS (
     SELECT
-        e.domain,
-        p.path AS path_pattern,
-        quantiles(0.50, 0.90, 0.95, 0.99)(e.latency_ms)[3] AS p95_latency,
-        countIf(e.status_code >= 400 AND e.status_code < 600) * 100.0 / count() AS error_rate,
-        count() AS frequency
-    FROM http_events e,
-        (SELECT DISTINCT domain, path FROM url_patterns FINAL
-         WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
-           AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3') p
-    WHERE e.team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
-      AND e.app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-      AND e.timestamp >= '2026-01-01 00:00:00'
-      AND e.timestamp <= '2026-02-20 23:59:59'
-      AND e.latency_ms <= 60000
-      AND e.domain = p.domain
-      AND multiIf(
-          endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
-              startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
-          position(p.path, '*') > 0,
-              e.path LIKE replaceAll(p.path, '*', '%'),
-          e.path = p.path
-      )
-    GROUP BY e.domain, p.path
+        domain,
+        path AS path_pattern,
+        quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles)[4] AS p95_latency,
+        if(sum(request_count) > 0,
+           (sum(count_4xx) + sum(count_5xx)) * 100.0 / sum(request_count),
+           0) AS error_rate,
+        sum(request_count) AS frequency
+    FROM http_metrics
+    WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
+      AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
+      AND timestamp >= now() - INTERVAL 2 MONTH
+      AND timestamp <= now()
+    GROUP BY domain, path
 )
 SELECT 'latency' as category, domain, path_pattern, p95_latency, error_rate, frequency
 FROM grouped ORDER BY p95_latency DESC LIMIT 100
@@ -95,9 +91,7 @@ FROM grouped ORDER BY frequency DESC LIMIT 100
 
 ## FetchMetrics
 
-Returns latency percentiles and status code distribution for a specific domain + path pattern. Delegates to `fetchMetricsFromEvents`.
-
-### Latency query
+### fetchMetricsFromEvents — Latency
 
 ```sql
 SELECT
@@ -107,16 +101,16 @@ SELECT
 FROM http_events
 WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
   AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-  AND domain = 'api.example.com'
-  AND timestamp >= '2025-01-01 00:00:00'
-  AND timestamp <= '2025-12-31 23:59:59'
+  AND domain = 'api.measure.sh'
+  AND timestamp >= now() - INTERVAL 2 MONTH
+  AND timestamp <= now()
   AND latency_ms <= 60000
-  AND path LIKE '/api/users/%'  -- applyPathFilter: * -> %, ** -> startsWith
+  AND path LIKE '/api/users/%'
 GROUP BY datetime
 ORDER BY datetime
 ```
 
-### Status codes query
+### fetchMetricsFromEvents — Status codes
 
 ```sql
 SELECT
@@ -129,9 +123,9 @@ SELECT
 FROM http_events
 WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
   AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-  AND domain = 'api.example.com'
-  AND timestamp >= '2025-01-01 00:00:00'
-  AND timestamp <= '2025-12-31 23:59:59'
+  AND domain = 'api.measure.sh'
+  AND timestamp >= now() - INTERVAL 2 MONTH
+  AND timestamp <= now()
   AND status_code != 0
   AND latency_ms <= 60000
   AND path LIKE '/api/users/%'
@@ -139,9 +133,46 @@ GROUP BY datetime
 ORDER BY datetime
 ```
 
-## GetRequestStatusOverview
+### fetchMetricsFromAggregated — Latency
 
-Returns daily status code distribution across all endpoints for an app.
+```sql
+SELECT
+    formatDateTime(timestamp, '%Y-%m-%d', 'UTC') as datetime,
+    quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles) as latencies,
+    sum(request_count) as count
+FROM http_metrics
+WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
+  AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
+  AND domain = 'api.measure.sh'
+  AND timestamp >= now() - INTERVAL 2 MONTH
+  AND timestamp < now()
+  AND path = '/api/users/*'
+GROUP BY datetime
+ORDER BY datetime
+```
+
+### fetchMetricsFromAggregated — Status codes
+
+```sql
+SELECT
+    formatDateTime(timestamp, '%Y-%m-%d', 'UTC') as datetime,
+    sum(request_count) as total_count,
+    sum(count_2xx) as count_2xx,
+    sum(count_3xx) as count_3xx,
+    sum(count_4xx) as count_4xx,
+    sum(count_5xx) as count_5xx
+FROM http_metrics
+WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
+  AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
+  AND domain = 'api.measure.sh'
+  AND timestamp >= now() - INTERVAL 2 MONTH
+  AND timestamp < now()
+  AND path = '/api/users/*'
+GROUP BY datetime
+ORDER BY datetime
+```
+
+## GetRequestStatusOverview
 
 ```sql
 SELECT
@@ -154,8 +185,8 @@ SELECT
 FROM http_events
 WHERE team_id = 'b31b7648-7a15-4c52-85e0-2748d0cb1911'
   AND app_id = 'cbfe4099-4591-4759-b615-8c038e98afd3'
-  AND timestamp >= '2025-01-01 00:00:00'
-  AND timestamp <= '2025-12-31 23:59:59'
+  AND timestamp >= now() - INTERVAL 2 MONTH
+  AND timestamp <= now()
 GROUP BY datetime
 ORDER BY datetime
 ```
