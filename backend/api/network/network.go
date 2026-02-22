@@ -134,7 +134,7 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 		return
 	}
 
-	fmt.Printf("No url_patterns found for domain '%s', querying raw events\n", domain)
+	fmt.Printf("FetchPaths: no url_patterns for domain %q, falling back to http_events\n", domain)
 	eventsStmt := sqlf.
 		Select("path").
 		From("http_events").
@@ -172,53 +172,36 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 	return
 }
 
-// FetchTrends returns a high-level summary of
-// network performance for a given app.
-func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*TrendsResponse, error) {
-	query := fmt.Sprintf(`WITH grouped AS (
-		SELECT
-			e.domain,
-			p.path AS path_pattern,
-			quantiles(0.50, 0.90, 0.95, 0.99)(e.latency_ms)[3] AS p95_latency,
-			countIf(e.status_code >= 400 AND e.status_code < 600) * 100.0 / count() AS error_rate,
-			count() AS frequency
-		FROM http_events e,
-			(SELECT DISTINCT domain, path FROM url_patterns FINAL WHERE team_id = $1 AND app_id = $2) p
-		WHERE e.team_id = $3 AND e.app_id = $4
-			AND e.timestamp >= $5 AND e.timestamp <= $6
-			AND e.latency_ms <= 60000
-			AND e.domain = p.domain
-			AND multiIf(
-				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
-					startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
-				position(p.path, '*') > 0,
-					e.path LIKE replaceAll(p.path, '*', '%%'),
-				e.path = p.path
-			)
-		GROUP BY e.domain, p.path
-	)
-	SELECT 'latency' as category, domain, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY p95_latency DESC LIMIT %d
-	UNION ALL
-	SELECT 'error_rate' as category, domain, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY error_rate DESC LIMIT %d
-	UNION ALL
-	SELECT 'frequency' as category, domain, path_pattern, p95_latency, error_rate, frequency FROM grouped ORDER BY frequency DESC LIMIT %d`,
-		topN, topN, topN)
+// fetchTrendsCategory queries a single trends category
+// (latency, error_rate, or frequency) from http_metrics.
+func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter, orderBy string) ([]TrendsEndpoint, error) {
+	stmt := sqlf.
+		Select("domain").
+		Select("path AS path_pattern").
+		Select("quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles)[4] AS p95_latency").
+		Select("if(sum(request_count) > 0, (sum(count_4xx) + sum(count_5xx)) * 100.0 / sum(request_count), 0) AS error_rate").
+		Select("sum(request_count) AS frequency").
+		From("http_metrics").
+		Where("team_id = ?", teamId).
+		Where("app_id = ?", appId).
+		Where("timestamp >= ?", af.From).
+		Where("timestamp <= ?", af.To).
+		GroupBy("domain, path").
+		OrderBy(orderBy).
+		Limit(topN)
 
-	rows, err := server.Server.ChPool.Query(ctx, query, teamId, appId, teamId, appId, af.From, af.To)
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &TrendsResponse{
-		TrendsLatency:   []TrendsEndpoint{},
-		TrendsErrorRate: []TrendsEndpoint{},
-		TrendsFrequency: []TrendsEndpoint{},
-	}
+	var endpoints []TrendsEndpoint
 	for rows.Next() {
-		var category string
 		var ep TrendsEndpoint
 		var p95Latency, errorRate float64
-		if err := rows.Scan(&category, &ep.Domain, &ep.PathPattern, &p95Latency, &errorRate, &ep.Frequency); err != nil {
+		if err := rows.Scan(&ep.Domain, &ep.PathPattern, &p95Latency, &errorRate, &ep.Frequency); err != nil {
 			return nil, err
 		}
 		if err := rows.Err(); err != nil {
@@ -226,27 +209,106 @@ func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFil
 		}
 		ep.P95Latency = roundPtr(p95Latency)
 		ep.ErrorRate = roundPtr(errorRate)
-		switch category {
-		case "latency":
-			result.TrendsLatency = append(result.TrendsLatency, ep)
-		case "error_rate":
-			result.TrendsErrorRate = append(result.TrendsErrorRate, ep)
-		case "frequency":
-			result.TrendsFrequency = append(result.TrendsFrequency, ep)
-		}
+		endpoints = append(endpoints, ep)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	if endpoints == nil {
+		endpoints = []TrendsEndpoint{}
+	}
+	return endpoints, nil
 }
 
-// FetchMetrics queries http_events for latency
-// percentiles, status code distribution and request
-// frequency for the given domain and path pattern.
+// FetchTrends returns a high-level summary of
+// network performance for a given app.
+func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (*TrendsResponse, error) {
+	trendsLatency, err := fetchTrendsCategory(ctx, appId, teamId, af, "p95_latency DESC")
+	if err != nil {
+		return nil, err
+	}
+
+	trendsErrorRate, err := fetchTrendsCategory(ctx, appId, teamId, af, "error_rate DESC")
+	if err != nil {
+		return nil, err
+	}
+
+	trendsFrequency, err := fetchTrendsCategory(ctx, appId, teamId, af, "frequency DESC")
+	if err != nil {
+		return nil, err
+	}
+
+	return &TrendsResponse{
+		TrendsLatency:   trendsLatency,
+		TrendsErrorRate: trendsErrorRate,
+		TrendsFrequency: trendsFrequency,
+	}, nil
+}
+
+// FetchMetrics returns latency percentiles and status
+// code distribution for the given domain and path pattern.
+// It reads historical data from pre-aggregated http_metrics
+// and only queries raw http_events for the current day,
+// falling back to http_events entirely when the pattern
+// is not in url_patterns or array-dimension filters are active.
 func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter) (*MetricsResponse, error) {
-	return fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
+	start := time.Now()
+	fmt.Printf("FetchMetrics: start domain=%s path=%s range=[%s, %s]\n", domain, pathPattern, af.From.Format(time.RFC3339), af.To.Format(time.RFC3339))
+
+	// Check if pattern exists in url_patterns
+	exists, err := patternExists(ctx, appId, teamId, domain, pathPattern)
+	if err != nil || !exists {
+		fmt.Printf("FetchMetrics: source=http_events (pattern not in url_patterns)\n")
+		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
+		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
+		return result, err
+	}
+
+	// Fall back if array-dimension filters are active
+	// TODO: this is BS and needs a way to store it in a way where can be used for filtering
+	if hasArrayFilters(af) {
+		fmt.Printf("FetchMetrics: source=http_events (array filters active)\n")
+		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
+		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
+		return result, err
+	}
+
+	// Compute day-aligned cutoff
+	cutoff := metricsCutoff(af.Timezone)
+
+	// If entire range is within current day, just use events
+	if !af.From.Before(cutoff) {
+		fmt.Printf("FetchMetrics: source=http_events (range within current day)\n")
+		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
+		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
+		return result, err
+	}
+
+	// If entire range is historical, just use metrics
+	if !af.To.After(cutoff) {
+		fmt.Printf("FetchMetrics: source=http_metrics (fully historical)\n")
+		result, err := fetchMetricsFromAggregated(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
+		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
+		return result, err
+	}
+
+	// Split: metrics for historical days, events for current day
+	fmt.Printf("FetchMetrics: source=split cutoff=%s\n", cutoff.Format(time.RFC3339))
+	aggregated, err := fetchMetricsFromAggregated(ctx, appId, teamId, domain, pathPattern, af, af.From, cutoff)
+	if err != nil {
+		fmt.Printf("FetchMetrics: end took=%v err=%v\n", time.Since(start), err)
+		return nil, err
+	}
+
+	events, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, cutoff, af.To)
+	if err != nil {
+		fmt.Printf("FetchMetrics: end took=%v err=%v\n", time.Since(start), err)
+		return nil, err
+	}
+
+	fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
+	return mergeMetricsResponses(aggregated, events), nil
 }
 
 func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
@@ -332,10 +394,8 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 // to the query statement.
 func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
-		selectedVersions, err := af.VersionPairs()
-		if err == nil {
-			stmt.Where("app_version in (?)", selectedVersions.Parameterize())
-		}
+		stmt.Where("app_version.1 in ?", af.Versions)
+		stmt.Where("app_version.2 in ?", af.VersionCodes)
 	}
 
 	if af.HasNetworkTypes() {
@@ -366,6 +426,31 @@ func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	}
 }
 
+// applyAggregatedFilters applies scalar-column filters
+// to http_metrics queries. Array-dimension filters
+// (network_type, network_generation, network_provider,
+// device_locale) are not applied here because they
+// trigger a full fallback to http_events.
+func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
+	if af.HasVersions() {
+		selectedVersions, err := af.VersionPairs()
+		if err == nil {
+			stmt.Where("app_version in (?)", selectedVersions.Parameterize())
+		}
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err == nil {
+			stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("device_manufacturer").In(af.DeviceManufacturers)
+	}
+}
+
 // datetimeFormat returns the ClickHouse format string
 // for date-only grouping.
 func datetimeFormat(from, to time.Time) string {
@@ -377,6 +462,50 @@ func datetimeFormat(from, to time.Time) string {
 func roundPtr(v float64) *float64 {
 	rounded := math.Round(v*10) / 10
 	return &rounded
+}
+
+// patternExists checks if a path pattern exists in
+// the url_patterns table for the given app and domain.
+func patternExists(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string) (bool, error) {
+	stmt := sqlf.
+		Select("1").
+		From("url_patterns FINAL").
+		Where("team_id = ?", teamId).
+		Where("app_id = ?", appId).
+		Where("domain = ?", domain).
+		Where("path = ?", pathPattern).
+		Limit(1)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return false, err
+	}
+
+	return rows.Next(), rows.Err()
+}
+
+// hasArrayFilters returns true if any array-dimension
+// filters are active. These dimensions are stored as
+// arrays in http_metrics and can't be filtered exactly,
+// so we must fall back to http_events.
+func hasArrayFilters(af *filter.AppFilter) bool {
+	return af.HasNetworkTypes() || af.HasNetworkGenerations() || af.HasNetworkProviders() || af.HasDeviceLocales()
+}
+
+// metricsCutoff returns the start of today in the given
+// timezone, converted to UTC. This provides a day-aligned
+// boundary for splitting queries between http_metrics and
+// http_events.
+func metricsCutoff(timezone string) time.Time {
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Now().UTC().Add(-24 * time.Hour)
+	}
+	now := time.Now().In(loc)
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	return startOfDay.UTC()
 }
 
 // fetchMetricsFromEvents queries raw http_events
@@ -399,6 +528,8 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 
 	latencyStmt.GroupBy("datetime")
 	latencyStmt.OrderBy("datetime")
+	// print the final query with arguments for debugging
+	fmt.Printf("fetchMetricsFromEvents latency query: %s\nargs: %v\n", latencyStmt.String(), latencyStmt.Args())
 
 	defer latencyStmt.Close()
 
@@ -478,4 +609,114 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	}
 
 	return
+}
+
+// fetchMetricsFromAggregated queries pre-aggregated
+// http_metrics for latency percentiles and status code
+// distribution. Uses quantilesMerge to combine the
+// pre-computed percentile states.
+func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time) (result *MetricsResponse, err error) {
+	result = &MetricsResponse{}
+
+	// Fetch latency metrics
+	format := datetimeFormat(af.From, af.To)
+	latencyStmt := sqlf.From("http_metrics").
+		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
+		Select("quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles) as latencies").
+		Select("sum(request_count) as count").
+		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
+		Where("path = ?", pathPattern)
+
+	applyAggregatedFilters(latencyStmt, af)
+
+	latencyStmt.GroupBy("datetime")
+	latencyStmt.OrderBy("datetime")
+
+	defer latencyStmt.Close()
+
+	latencyRows, err := server.Server.ChPool.Query(ctx, latencyStmt.String(), latencyStmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for latencyRows.Next() {
+		var datetime string
+		var latencies []float64
+		var count uint64
+		if err = latencyRows.Scan(&datetime, &latencies, &count); err != nil {
+			return
+		}
+		if err = latencyRows.Err(); err != nil {
+			return
+		}
+		data := MetricsDataPoint{"datetime": datetime, "count": count}
+		if len(latencies) >= 6 {
+			data["p50"] = roundPtr(latencies[0])
+			data["p90"] = roundPtr(latencies[2])
+			data["p95"] = roundPtr(latencies[3])
+			data["p99"] = roundPtr(latencies[4])
+		}
+		result.Latency = append(result.Latency, data)
+	}
+	if err = latencyRows.Err(); err != nil {
+		return
+	}
+
+	// Fetch status code metrics
+	statusStmt := sqlf.From("http_metrics").
+		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
+		Select("sum(request_count) as total_count").
+		Select("sum(count_2xx) as count_2xx").
+		Select("sum(count_3xx) as count_3xx").
+		Select("sum(count_4xx) as count_4xx").
+		Select("sum(count_5xx) as count_5xx").
+		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
+		Where("path = ?", pathPattern)
+
+	applyAggregatedFilters(statusStmt, af)
+
+	statusStmt.GroupBy("datetime")
+	statusStmt.OrderBy("datetime")
+
+	defer statusStmt.Close()
+
+	statusRows, err := server.Server.ChPool.Query(ctx, statusStmt.String(), statusStmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for statusRows.Next() {
+		var datetime string
+		var totalCount, count2xx, count3xx, count4xx, count5xx uint64
+		if err = statusRows.Scan(&datetime, &totalCount, &count2xx, &count3xx, &count4xx, &count5xx); err != nil {
+			return
+		}
+		if err = statusRows.Err(); err != nil {
+			return
+		}
+		result.StatusCodes = append(result.StatusCodes, MetricsDataPoint{
+			"datetime":    datetime,
+			"total_count": totalCount,
+			"count_2xx":   count2xx,
+			"count_3xx":   count3xx,
+			"count_4xx":   count4xx,
+			"count_5xx":   count5xx,
+		})
+	}
+	if err = statusRows.Err(); err != nil {
+		return
+	}
+
+	return
+}
+
+// mergeMetricsResponses concatenates the Latency and
+// StatusCodes slices from two MetricsResponses. Since
+// the time ranges are day-aligned and non-overlapping,
+// the result is already sorted by datetime.
+func mergeMetricsResponses(a, b *MetricsResponse) *MetricsResponse {
+	return &MetricsResponse{
+		Latency:     append(a.Latency, b.Latency...),
+		StatusCodes: append(a.StatusCodes, b.StatusCodes...),
+	}
 }

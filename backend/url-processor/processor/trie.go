@@ -53,8 +53,8 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 	segment := segments[0]
 	rest := segments[1:]
 
-	if _, exists := t.children[segment]; !exists && len(t.children) >= 2 && depth > 0 {
-		// Adding a 3rd child at depth > 0 triggers collapse.
+	if _, exists := t.children[segment]; !exists && len(t.children) >= 10 && depth > 0 {
+		// Adding a 11th child at depth > 0 triggers collapse.
 		t.count += subtreeCount(t) + count
 		t.children = make(map[string]*TrieNode)
 		t.isLeaf = true
