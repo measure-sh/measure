@@ -132,9 +132,11 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app) return
 
+        let stale = false
         updatePageState({ domainsStatus: NetworkDomainsApiStatus.Loading })
 
         fetchNetworkDomainsFromServer(pageState.filters.app).then(result => {
+            if (stale) return
             switch (result.status) {
                 case NetworkDomainsApiStatus.Success:
                     const domains = result.data.results as string[]
@@ -154,18 +156,22 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                     break
             }
         })
+
+        return () => { stale = true }
     }, [pageState.filters])
 
     // Fetch overview and status plot when filters change
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app) return
 
+        let stale = false
         updatePageState({
             trendsStatus: NetworkTrendsApiStatus.Loading,
             statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         })
 
         fetchNetworkTrendsFromServer(pageState.filters).then(result => {
+            if (stale) return
             switch (result.status) {
                 case NetworkTrendsApiStatus.Success:
                     updatePageState({
@@ -183,6 +189,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         })
 
         fetchNetworkStatusOverviewPlotFromServer(pageState.filters).then(result => {
+            if (stale) return
             switch (result.status) {
                 case NetworkStatusOverviewPlotApiStatus.Success:
                     updatePageState({
@@ -198,6 +205,8 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                     break
             }
         })
+
+        return () => { stale = true }
     }, [pageState.filters])
 
     // Fetch path suggestions with debounce
