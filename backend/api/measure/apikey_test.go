@@ -473,7 +473,7 @@ func TestRotateApiKeyHandler(t *testing.T) {
 			wantStatus int
 		}{
 			{name: "viewer forbidden", role: "viewer", wantStatus: http.StatusForbidden},
-			{name: "developer can rotate", role: "developer", wantStatus: http.StatusOK},
+			{name: "developer forbidden", role: "developer", wantStatus: http.StatusForbidden},
 			{name: "admin can rotate", role: "admin", wantStatus: http.StatusOK},
 			{name: "owner can rotate", role: "owner", wantStatus: http.StatusOK},
 		}

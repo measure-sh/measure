@@ -746,8 +746,15 @@ export const emptyAnrExceptionsDetailsResponse = {
 }
 
 export const defaultAuthzAndMembers = {
-  can_invite: ["viewer"],
+  can_invite_roles: ["viewer"],
   can_change_billing: false,
+  can_create_app: false,
+  can_rename_app: false,
+  can_change_retention: false,
+  can_rotate_api_key: false,
+  can_write_sdk_config: false,
+  can_rename_team: false,
+  can_manage_slack: false,
   members: [
     {
       id: "",
@@ -757,8 +764,8 @@ export const defaultAuthzAndMembers = {
       last_sign_in_at: "",
       created_at: "",
       authz: {
-        can_change_roles: [""],
-        can_remove: true,
+        current_user_assignable_roles_for_member: [""],
+        current_user_can_remove_member: true,
       },
     },
   ],

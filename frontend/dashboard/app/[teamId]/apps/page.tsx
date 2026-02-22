@@ -1,7 +1,6 @@
 "use client"
 
 import { AppApiKeyChangeApiStatus, AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppApiKeyFromServer, changeAppNameFromServer, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer } from "@/app/api/api_calls"
-import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
@@ -28,7 +27,11 @@ enum PageLoadStatus {
 export default function Apps({ params }: { params: { teamId: string } }) {
   const [filters, setFilters] = useState(defaultFilters)
 
-  const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
+  const [canCreateApp, setCanCreateApp] = useState(false)
+  const [canRenameApp, setCanRenameApp] = useState(false)
+  const [canChangeRetention, setCanChangeRetention] = useState(false)
+  const [canRotateApiKey, setCanRotateApiKey] = useState(false)
+  const [canWriteSdkConfig, setCanWriteSdkConfig] = useState(false)
 
   const [appRetentionPeriodConfirmationDialogOpen, setAppRetentionPeriodConfirmationDialogOpen] = useState(false)
   const [pageLoadStatus, setPageLoadStatus] = useState(PageLoadStatus.Init)
@@ -58,26 +61,18 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
     switch (result.status) {
       case AuthzAndMembersApiStatus.Error:
+        setCanCreateApp(false)
+        setCanRenameApp(false)
+        setCanChangeRetention(false)
+        setCanRotateApiKey(false)
+        setCanWriteSdkConfig(false)
         break
       case AuthzAndMembersApiStatus.Success:
-        const { session, error } = await measureAuth.getSession()
-        if (error) {
-          console.error("Error getting session: ", error)
-          return
-        }
-
-        const currentUser = result.data.members.find((member: any) => member.id === session.user.id)
-        if (!currentUser) {
-          setCurrentUserCanChangeAppSettings(false)
-          return
-        }
-
-        const currentUserRole = currentUser.role
-        if (currentUserRole === 'owner' || currentUserRole === 'admin') {
-          setCurrentUserCanChangeAppSettings(true)
-        } else {
-          setCurrentUserCanChangeAppSettings(false)
-        }
+        setCanCreateApp(result.data.can_create_app === true)
+        setCanRenameApp(result.data.can_rename_app === true)
+        setCanChangeRetention(result.data.can_change_retention === true)
+        setCanRotateApiKey(result.data.can_rotate_api_key === true)
+        setCanWriteSdkConfig(result.data.can_write_sdk_config === true)
         break
     }
   }
@@ -245,7 +240,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
         <CreateApp
           teamId={params.teamId}
-          disabled={!currentUserCanChangeAppSettings}
+          disabled={!canCreateApp}
           onSuccess={(app) => {
             filtersRef.current?.refresh(app.id)
           }} />
@@ -366,14 +361,14 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               appName={filters.app!.name}
               osName={filters.app!.os_name}
               initialConfig={sdkConfig}
-              currentUserCanChangeAppSettings={currentUserCanChangeAppSettings}
+              currentUserCanChangeAppSettings={canWriteSdkConfig}
             />
 
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Configure Data Retention</p>
             <div className="flex flex-row items-center mt-2">
               <DropdownSelect
-                disabled={!retentionChangeAllowed}
+                disabled={!retentionChangeAllowed || !canChangeRetention}
                 type={DropdownSelectType.SingleString}
                 title="Data Retention Period"
                 items={Array.from(retentionPeriodToDisplayTextMap.values())}
@@ -382,7 +377,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <Button
                 variant="outline"
                 className="m-4"
-                disabled={!retentionChangeAllowed || !currentUserCanChangeAppSettings || updateAppRetentionApiStatus === UpdateAppRetentionApiStatus.Loading || appRetention.retention === updatedAppRetention.retention}
+                disabled={!retentionChangeAllowed || !canChangeRetention || updateAppRetentionApiStatus === UpdateAppRetentionApiStatus.Loading || appRetention.retention === updatedAppRetention.retention}
                 loading={updateAppRetentionApiStatus === UpdateAppRetentionApiStatus.Loading}
                 onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
                 Save
@@ -398,10 +393,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   setAppName(event.target.value)
                   setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
                 }}
+                disabled={!canRenameApp}
                 className="w-96" />
               <Button
                 variant="outline"
-                disabled={!currentUserCanChangeAppSettings || saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
+                disabled={!canRenameApp || saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                 className="m-4"
                 loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                 onClick={() => setAppNameConfirmationDialogOpen(true)}>
@@ -414,15 +410,14 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <p className="text-sm">API key</p>
               <div className="px-3" />
               <Input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96" />
-              {currentUserCanChangeAppSettings &&
-                <Button
-                  variant="destructive"
-                  disabled={appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
-                  className="mx-4 my-3"
-                  loading={appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
-                  onClick={() => setAppApiKeyConfirmationDialogOpen(true)}>
-                  Rotate
-                </Button>}
+              <Button
+                variant="destructive"
+                disabled={!canRotateApiKey || appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
+                className="mx-4 my-3"
+                loading={appApiKeyChangeApiStatus === AppApiKeyChangeApiStatus.Loading}
+                onClick={() => setAppApiKeyConfirmationDialogOpen(true)}>
+                Rotate
+              </Button>
             </div>
           </div>
         </div>

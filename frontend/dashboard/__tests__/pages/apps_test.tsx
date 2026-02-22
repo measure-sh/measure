@@ -40,12 +40,7 @@ jest.mock('@/app/utils/use_toast', () => ({
 
 jest.mock('@/app/auth/measure_auth', () => ({
   measureAuth: {
-    getSession: jest.fn(() =>
-      Promise.resolve({
-        session: { user: { id: 'user-1' } },
-        error: null,
-      })
-    ),
+    getSession: jest.fn(() => Promise.resolve({ session: { user: { id: 'user-1' } }, error: null })),
   },
 }))
 
@@ -110,10 +105,12 @@ jest.mock('@/app/api/api_calls', () => ({
     Promise.resolve({
       status: 'success',
       data: {
-        members: [
-          { id: 'user-1', role: 'admin' },
-          { id: 'user-2', role: 'developer' },
-        ],
+        can_create_app: true,
+        can_rename_app: true,
+        can_change_retention: true,
+        can_rotate_api_key: true,
+        can_write_sdk_config: true,
+        members: [],
       },
     })
   ),
@@ -213,14 +210,16 @@ jest.mock('@/app/components/dropdown_select', () => ({
 
 jest.mock('@/app/components/create_app', () => ({
   __esModule: true,
-  default: () => <div data-testid="create-app-mock" />,
+  default: ({ disabled }: any) => <div data-testid="create-app-mock" data-disabled={disabled ? 'true' : 'false'} />,
 }))
 
 jest.mock('@/app/components/loading_spinner', () => () => <div data-testid="loading-spinner-mock" />)
 
 jest.mock('@/app/components/sdk_configurator', () => ({
   __esModule: true,
-  default: () => <div data-testid="sdk-configurator-mock" />,
+  default: ({ currentUserCanChangeAppSettings }: any) => (
+    <div data-testid="sdk-configurator-mock" data-can-change={currentUserCanChangeAppSettings ? 'true' : 'false'} />
+  ),
 }))
 
 jest.mock('@/app/components/danger_confirmation_dialog', () => ({
@@ -243,8 +242,15 @@ jest.mock('next/link', () => ({
   default: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
 }))
 
+const renderPage = async () => {
+  await act(async () => {
+    render(<Apps params={{ teamId: 'team-1' }} />)
+    await Promise.resolve()
+  })
+}
+
 const renderLoadedPage = async () => {
-  render(<Apps params={{ teamId: 'team-1' }} />)
+  await renderPage()
 
   await act(async () => {
     fireEvent.click(screen.getByTestId('update-filters'))
@@ -299,10 +305,12 @@ describe('Apps Page', () => {
     expect(screen.getByText('Change App Name')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rotate' })).toBeInTheDocument()
     expect(screen.getByTestId('sdk-configurator-mock')).toBeInTheDocument()
+    expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'false')
+    expect(screen.getByTestId('sdk-configurator-mock')).toHaveAttribute('data-can-change', 'true')
   })
 
   it('does not render settings sections before filters are ready', async () => {
-    render(<Apps params={{ teamId: 'team-1' }} />)
+    await renderPage()
 
     expect(screen.queryByText('Configure Data Retention')).not.toBeInTheDocument()
     expect(screen.queryByText('Change App Name')).not.toBeInTheDocument()
@@ -319,7 +327,7 @@ describe('Apps Page', () => {
 
     fetchAppRetentionFromServer.mockImplementationOnce(() => loadingPromise)
 
-    render(<Apps params={{ teamId: 'team-1' }} />)
+    await renderPage()
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('update-filters'))
@@ -355,9 +363,12 @@ describe('Apps Page', () => {
       Promise.resolve({
         status: 'success',
         data: {
-          members: [
-            { id: 'user-1', role: 'owner' },
-          ],
+          can_rotate_api_key: true,
+          can_rename_app: true,
+          can_change_retention: true,
+          can_write_sdk_config: true,
+          can_create_app: true,
+          members: [],
         },
       })
     )
@@ -367,22 +378,27 @@ describe('Apps Page', () => {
     expect(await screen.findByRole('button', { name: 'Rotate' })).toBeInTheDocument()
   })
 
-  it('hides rotate button for non-admin users', async () => {
+  it('disables rotate button for non-admin users', async () => {
     const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
     fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
       Promise.resolve({
         status: 'success',
         data: {
-          members: [
-            { id: 'user-1', role: 'developer' },
-          ],
+          can_rotate_api_key: false,
+          can_rename_app: false,
+          can_change_retention: false,
+          can_write_sdk_config: false,
+          can_create_app: false,
+          members: [],
         },
       })
     )
 
     await renderLoadedPage()
 
-    expect(screen.queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
+    expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
+    expect(screen.getByTestId('sdk-configurator-mock')).toHaveAttribute('data-can-change', 'false')
   })
 
   it('keeps retention and rename save disabled for non-admin users', async () => {
@@ -391,9 +407,12 @@ describe('Apps Page', () => {
       Promise.resolve({
         status: 'success',
         data: {
-          members: [
-            { id: 'user-1', role: 'developer' },
-          ],
+          can_rotate_api_key: false,
+          can_rename_app: false,
+          can_change_retention: false,
+          can_write_sdk_config: false,
+          can_create_app: false,
+          members: [],
         },
       })
     )
@@ -412,44 +431,48 @@ describe('Apps Page', () => {
     const saveButtons = screen.getAllByRole('button', { name: 'Save' })
     expect(saveButtons[0]).toBeDisabled()
     expect(saveButtons[1]).toBeDisabled()
+    expect(screen.getByDisplayValue('Renamed App')).toBeDisabled()
+    expect(screen.getByTestId('retention-select-90')).toBeDisabled()
   })
 
-  it('handles authz API error by not showing rotate button', async () => {
+  it('handles authz API error by disabling rotate button', async () => {
     const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
     fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
 
     await renderLoadedPage()
 
-    expect(screen.queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
+    expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
+    expect(screen.getByTestId('sdk-configurator-mock')).toHaveAttribute('data-can-change', 'false')
   })
 
-  it('handles session fetch error by not showing rotate button', async () => {
-    const { measureAuth } = require('@/app/auth/measure_auth')
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
-
-    measureAuth.getSession.mockImplementationOnce(() => Promise.resolve({ session: null, error: 'bad session' }))
+  it('handles authz API cancelled by disabling app write controls', async () => {
+    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
+    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
 
     await renderLoadedPage()
 
-    expect(screen.queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument()
-
-    consoleSpy.mockRestore()
+    expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
+    expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
+    expect(screen.getByTestId('sdk-configurator-mock')).toHaveAttribute('data-can-change', 'false')
   })
 
-  it('handles missing current user in members list', async () => {
+  it('handles missing permission flags by disabling rotate button', async () => {
     const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
     fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
       Promise.resolve({
         status: 'success',
         data: {
-          members: [{ id: 'user-2', role: 'admin' }],
+          members: [],
         },
       })
     )
 
     await renderLoadedPage()
 
-    expect(screen.queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
+    expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
+    expect(screen.getByTestId('sdk-configurator-mock')).toHaveAttribute('data-can-change', 'false')
   })
 
   it('opens rotate confirmation dialog with warning text', async () => {
