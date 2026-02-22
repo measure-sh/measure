@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update authz roles & UI checks by @anupcowkur in #3189
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
