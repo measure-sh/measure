@@ -2000,35 +2000,36 @@ func PutEvents(c *gin.Context) {
 	}()
 
 	if eventReq.onboardable() && !app.Onboarded {
-		concur.GlobalWg.Add(1)
-		go func() {
-			defer concur.GlobalWg.Done()
-			_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
-			defer onboardAppSpan.End()
+		_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
+		defer onboardAppSpan.End()
 
-			tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
-				IsoLevel: pgx.ReadCommitted,
-			})
-			defer tx.Rollback(ingestCtx)
+		tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
+			IsoLevel: pgx.ReadCommitted,
+		})
+		defer tx.Rollback(ingestCtx)
 
-			if err != nil {
-				fmt.Println(`failed to acquire transaction while onboarding app`, err)
-				return
-			}
+		if err != nil {
+			msg := "failed to acquire transaction while onboarding app"
+			fmt.Println(msg, err)
+			onboardAppSpan.End()
+			return
+		}
 
-			uniqueID := eventReq.getAppUniqueID()
-			osName := eventReq.getOSName()
-			version := eventReq.getOSVersion()
+		uniqueID := eventReq.getAppUniqueID()
+		osName := eventReq.getOSName()
+		version := eventReq.getOSVersion()
 
-			if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
-				fmt.Println(`failed to onboard app`, err)
-				return
-			}
+		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
+			fmt.Println(`failed to onboard app`, err)
+			onboardAppSpan.End()
+			return
+		}
 
-			if err := tx.Commit(ingestCtx); err != nil {
-				fmt.Println(`failed to commit app onboard transaction`, err)
-				return
-			}
-		}()
+		if err := tx.Commit(ingestCtx); err != nil {
+			fmt.Println(`failed to commit app onboard transaction`, err)
+			onboardAppSpan.End()
+			return
+		}
+
 	}
 }
