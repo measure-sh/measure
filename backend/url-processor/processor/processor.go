@@ -27,16 +27,19 @@ const (
 	metricsDefaultLookback = 3 * time.Hour
 )
 
-// appKey identifies a unique (team, app) combination.
-type appKey struct {
-	TeamID uuid.UUID
-	AppID  uuid.UUID
+// team represents a team row from PG.
+type team struct {
+	ID uuid.UUID
 }
 
-// patternKey deduplicates inserts by (team, app, domain, path).
-type patternKey struct {
+// app represents an app row from PG.
+type app struct {
+	ID     uuid.UUID
 	TeamID uuid.UUID
-	AppID  uuid.UUID
+}
+
+// patternKey deduplicates inserts by (domain, path).
+type patternKey struct {
 	Domain string
 	Path   string
 }
@@ -67,129 +70,130 @@ func GeneratePatterns(ctx context.Context) {
 
 	fmt.Printf("GeneratePatterns: start\n")
 
-	apps, err := fetchApps(ctx)
+	teams, err := getTeams(ctx)
 	if err != nil {
-		fmt.Printf("GeneratePatterns: failed to fetch apps: %v\n", err)
-		return
-	}
-
-	if len(apps) == 0 {
-		fmt.Printf("GeneratePatterns: end took=%v (no apps)\n", time.Since(start))
+		fmt.Printf("GeneratePatterns: failed to fetch teams: %v\n", err)
 		return
 	}
 
 	var processed, skipped, failed int
 
-	for _, app := range apps {
-		from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.AppID)
+	for _, t := range teams {
+		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
-			fmt.Printf("GeneratePatterns: failed to get last pattern_generated_at for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
+			fmt.Printf("GeneratePatterns: failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
-		if from == nil {
-			defaultFrom := now.Add(-patternsDefaultLookback)
-			from = &defaultFrom
-		}
-
-		if !from.Before(now) {
-			skipped++
-			continue
-		}
-
-		rows, err := fetchRawPaths(ctx, app.TeamID, app.AppID, *from, now)
-		if err != nil {
-			fmt.Printf("GeneratePatterns: failed to fetch raw paths for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
-			continue
-		}
-
-		if len(rows) == 0 {
-			skipped++
-			continue
-		}
-
-		// Normalize paths and aggregate by domain.
-		groups := make(map[string]map[string]uint64)
-		for _, row := range rows {
-			normalized := NormalizePath(row.Path)
-			if groups[row.Domain] == nil {
-				groups[row.Domain] = make(map[string]uint64)
-			}
-			groups[row.Domain][normalized] += row.Count
-		}
-
-		// Build trie per domain, extract patterns, deduplicate.
-		seen := make(map[patternKey]struct{})
-		insertStmt := sqlf.InsertInto("url_patterns")
-
-		var totalPatterns int
-
-		for domain, paths := range groups {
-			trie := NewTrie()
-			for path, count := range paths {
-				trie.Insert(path, count)
+		for _, app := range apps {
+			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
+			if err != nil {
+				fmt.Printf("GeneratePatterns: failed to get last pattern_generated_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
 			}
 
-			patterns := trie.ExtractPatterns()
+			if from == nil {
+				defaultFrom := now.Add(-patternsDefaultLookback)
+				from = &defaultFrom
+			}
 
-			filtered := patterns[:0]
-			for _, p := range patterns {
-				if p.Count >= minPatternCount {
-					filtered = append(filtered, p)
+			if !from.Before(now) {
+				skipped++
+				continue
+			}
+
+			rows, err := fetchRawPaths(ctx, app.TeamID, app.ID, *from, now)
+			if err != nil {
+				fmt.Printf("GeneratePatterns: failed to fetch raw paths for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
+			}
+
+			if len(rows) == 0 {
+				skipped++
+				continue
+			}
+
+			// Normalize paths and aggregate by domain.
+			groups := make(map[string]map[string]uint64)
+			for _, row := range rows {
+				normalized := NormalizePath(row.Path)
+				if groups[row.Domain] == nil {
+					groups[row.Domain] = make(map[string]uint64)
+				}
+				groups[row.Domain][normalized] += row.Count
+			}
+
+			// Build trie per domain, extract patterns, deduplicate.
+			seen := make(map[patternKey]struct{})
+			insertStmt := sqlf.InsertInto("url_patterns")
+
+			var totalPatterns int
+
+			for domain, paths := range groups {
+				trie := NewTrie()
+				for path, count := range paths {
+					trie.Insert(path, count)
+				}
+
+				patterns := trie.ExtractPatterns()
+
+				filtered := patterns[:0]
+				for _, p := range patterns {
+					if p.Count >= minPatternCount {
+						filtered = append(filtered, p)
+					}
+				}
+				patterns = filtered
+
+				for _, p := range patterns {
+					pk := patternKey{
+						Domain: domain,
+						Path:   p.Path,
+					}
+					if _, exists := seen[pk]; exists {
+						continue
+					}
+					seen[pk] = struct{}{}
+
+					insertStmt.NewRow().
+						Set("team_id", app.TeamID).
+						Set("app_id", app.ID).
+						Set("domain", domain).
+						Set("path", p.Path).
+						Set("last_accessed_at", now)
+					totalPatterns++
 				}
 			}
-			patterns = filtered
 
-			for _, p := range patterns {
-				pk := patternKey{
-					TeamID: app.TeamID,
-					AppID:  app.AppID,
-					Domain: domain,
-					Path:   p.Path,
-				}
-				if _, exists := seen[pk]; exists {
-					continue
-				}
-				seen[pk] = struct{}{}
-
-				insertStmt.NewRow().
-					Set("team_id", app.TeamID).
-					Set("app_id", app.AppID).
-					Set("domain", domain).
-					Set("path", p.Path).
-					Set("last_accessed_at", now)
-				totalPatterns++
+			if totalPatterns == 0 {
+				insertStmt.Close()
+				skipped++
+				continue
 			}
-		}
 
-		if totalPatterns == 0 {
+			if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+				fmt.Printf("GeneratePatterns: failed to insert for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				insertStmt.Close()
+				failed++
+				continue
+			}
+
 			insertStmt.Close()
-			skipped++
-			continue
+
+			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
+				fmt.Printf("GeneratePatterns: failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
+			}
+
+			processed++
 		}
-
-		if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
-			fmt.Printf("GeneratePatterns: failed to insert for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			insertStmt.Close()
-			failed++
-			continue
-		}
-
-		insertStmt.Close()
-
-		if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.AppID, now); err != nil {
-			fmt.Printf("GeneratePatterns: failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
-			continue
-		}
-
-		processed++
 	}
 
 	fmt.Printf("GeneratePatterns: end took=%v processed=%d skipped=%d failed=%d\n",
@@ -204,81 +208,107 @@ func GenerateMetrics(ctx context.Context) {
 
 	fmt.Printf("GenerateMetrics: start\n")
 
-	apps, err := fetchApps(ctx)
+	teams, err := getTeams(ctx)
 	if err != nil {
-		fmt.Printf("GenerateMetrics: failed to fetch apps: %v\n", err)
-		return
-	}
-
-	if len(apps) == 0 {
-		fmt.Printf("GenerateMetrics: end took=%v (no apps)\n", time.Since(start))
+		fmt.Printf("GenerateMetrics: failed to fetch teams: %v\n", err)
 		return
 	}
 
 	var processed, skipped, failed int
 
-	for _, app := range apps {
-		from, err := getLastReportedAt(ctx, app.TeamID, app.AppID)
+	for _, t := range teams {
+		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
-			fmt.Printf("GenerateMetrics: failed to get last reported_at for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
+			fmt.Printf("GenerateMetrics: failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
-		if from == nil {
-			defaultFrom := now.Add(-metricsDefaultLookback)
-			from = &defaultFrom
-		}
+		for _, app := range apps {
+			from, err := getLastReportedAt(ctx, app.TeamID, app.ID)
+			if err != nil {
+				fmt.Printf("GenerateMetrics: failed to get last reported_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
+			}
 
-		if !from.Before(now) {
-			skipped++
-			continue
-		}
+			if from == nil {
+				defaultFrom := now.Add(-metricsDefaultLookback)
+				from = &defaultFrom
+			}
 
-		if err := insertAggregatedMetrics(ctx, app.TeamID, app.AppID, *from, now); err != nil {
-			fmt.Printf("GenerateMetrics: failed to insert for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
-			continue
-		}
+			if !from.Before(now) {
+				skipped++
+				continue
+			}
 
-		if err := upsertReportedAt(ctx, app.TeamID, app.AppID, now); err != nil {
-			fmt.Printf("GenerateMetrics: failed to upsert reported_at for team=%s app=%s: %v\n",
-				app.TeamID, app.AppID, err)
-			failed++
-			continue
-		}
+			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
+				fmt.Printf("GenerateMetrics: failed to insert for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
+			}
 
-		processed++
+			if err := upsertReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
+				fmt.Printf("GenerateMetrics: failed to upsert reported_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				failed++
+				continue
+			}
+
+			processed++
+		}
 	}
 
 	fmt.Printf("GenerateMetrics: end took=%v processed=%d skipped=%d failed=%d\n",
 		time.Since(start), processed, skipped, failed)
 }
 
-// fetchApps queries the PG apps table for all (team_id, id) pairs.
-func fetchApps(ctx context.Context) ([]appKey, error) {
-	stmt := sqlf.Select("team_id, id").From("apps")
+func getTeams(ctx context.Context) ([]team, error) {
+	stmt := sqlf.PostgreSQL.
+		Select("id").
+		From("teams")
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var teams []team
+	for rows.Next() {
+		var t team
+		if err := rows.Scan(&t.ID); err != nil {
+			return nil, err
+		}
+		teams = append(teams, t)
+	}
+
+	return teams, nil
+}
+
+func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]app, error) {
+	stmt := sqlf.PostgreSQL.
+		Select("id").
+		Select("team_id").
+		From("apps").
+		Where("team_id = ?", teamID)
 	defer stmt.Close()
 
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		return nil, fmt.Errorf("query apps: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
-	var apps []appKey
+	var apps []app
 	for rows.Next() {
-		var app appKey
-		if err := rows.Scan(&app.TeamID, &app.AppID); err != nil {
-			return nil, fmt.Errorf("scan app: %w", err)
+		var a app
+		if err := rows.Scan(&a.ID, &a.TeamID); err != nil {
+			return nil, err
 		}
-		apps = append(apps, app)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration: %w", err)
+		apps = append(apps, a)
 	}
 
 	return apps, nil
