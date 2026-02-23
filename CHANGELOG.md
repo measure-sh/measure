@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Populate session attributes for trace only sessions (#3196) by @detj in #3196
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
 - (**backend**): Migrate ingestion metrics synchronously (#3180) by @detj in #3180
 - (**frontend**): Set posthog blocked status to true by default by @anupcowkur in #3179
