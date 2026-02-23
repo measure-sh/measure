@@ -5,8 +5,10 @@ import (
 )
 
 // TrieNode represents a node in the URL pattern trie.
-// The trie eagerly collapses nodes at depth > 0 when a
-// 3rd child would be added, keeping memory bounded.
+// The trie eagerly collapses nodes at depth > 1 when an
+// 11th child would be added, keeping memory bounded.
+// Depth 0 holds domain segments and depth 1 holds first
+// path segments — neither level collapses.
 type TrieNode struct {
 	children    map[string]*TrieNode
 	count       uint64
@@ -23,15 +25,25 @@ func NewTrie() *TrieNode {
 
 // Insert adds a path with its count to the trie. The path
 // is split by "/" (empty segments from leading slash are
-// skipped). Nodes at depth > 0 are collapsed when a 3rd
+// skipped). Nodes at depth > 1 are collapsed when an 11th
 // child would be added.
 func (t *TrieNode) Insert(path string, count uint64) {
 	segments := splitPath(path)
 	t.insert(segments, count, 0)
 }
 
+// InsertWithDomain adds a path with its count to the trie,
+// prepending the domain as the first segment. This keeps
+// all domains in a single trie while naturally isolating
+// them since root children (depth 0) never collapse.
+func (t *TrieNode) InsertWithDomain(domain, path string, count uint64) {
+	segments := append([]string{domain}, splitPath(path)...)
+	t.insert(segments, count, 0)
+}
+
 // ExtractPatterns walks the trie and returns all patterns
-// with their accumulated counts.
+// with their accumulated counts. The first segment in each
+// branch is split out as the Domain field.
 func (t *TrieNode) ExtractPatterns() []PatternResult {
 	var results []PatternResult
 	t.extract(nil, &results)
@@ -53,8 +65,8 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 	segment := segments[0]
 	rest := segments[1:]
 
-	if _, exists := t.children[segment]; !exists && len(t.children) >= 10 && depth > 0 {
-		// Adding a 11th child at depth > 0 triggers collapse.
+	if _, exists := t.children[segment]; !exists && len(t.children) >= 10 && depth > 1 {
+		// Adding an 11th child at depth > 1 triggers collapse.
 		t.count += subtreeCount(t) + count
 		t.children = make(map[string]*TrieNode)
 		t.isLeaf = true
@@ -70,19 +82,23 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 
 func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
 	if t.isCollapsed {
-		path := buildCollapsedPath(prefix)
+		domain, pathSegs := splitDomainPrefix(prefix)
+		path := "/" + strings.Join(pathSegs, "/") + "/*"
 		*results = append(*results, PatternResult{
-			Path:  path,
-			Count: t.count,
+			Domain: domain,
+			Path:   path,
+			Count:  t.count,
 		})
 		return
 	}
 
 	if t.isLeaf {
-		path := "/" + strings.Join(prefix, "/")
+		domain, pathSegs := splitDomainPrefix(prefix)
+		path := "/" + strings.Join(pathSegs, "/")
 		*results = append(*results, PatternResult{
-			Path:  path,
-			Count: t.count,
+			Domain: domain,
+			Path:   path,
+			Count:  t.count,
 		})
 	}
 
@@ -94,11 +110,13 @@ func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
 	}
 }
 
-// buildCollapsedPath builds the pattern path for a collapsed
-// node. It always appends "/*" to preserve the path depth
-// structure.
-func buildCollapsedPath(prefix []string) string {
-	return "/" + strings.Join(prefix, "/") + "/*"
+// splitDomainPrefix splits the first segment as domain from
+// the remaining path segments.
+func splitDomainPrefix(prefix []string) (string, []string) {
+	if len(prefix) == 0 {
+		return "", nil
+	}
+	return prefix[0], prefix[1:]
 }
 
 // subtreeCount sums all leaf and collapsed counts in the
