@@ -139,4 +139,20 @@ describe('SessionTimelinesOverviewPlot', () => {
     expect(container.textContent).toContain('Date:')
     expect(container.textContent).toContain('session timelines')
   })
+
+  it('hides stale chart while new range data is loading', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 'success', data: [{ id: '1.0.0', data: [{ datetime: '2026-03-01', instances: 2 }] }] })
+      .mockImplementationOnce(() => new Promise(() => { }))
+
+    const { rerender } = render(<SessionTimelinesOverviewPlot filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
+    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+
+    rerender(<SessionTimelinesOverviewPlot filters={{ ...filters, startDate: '2026-02-23T00:00:00Z', endDate: '2026-02-23T06:00:00Z' }} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+    })
+  })
 })

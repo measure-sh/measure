@@ -26,9 +26,12 @@ type SessionTimelinesOverviewPlot = {
 const SessionTimelinesOverviewPlot: React.FC<SessionTimelinesOverviewPlotProps> = ({ filters }) => {
   const [sessionTimelinesOverviewPlotApiStatus, setSessionTimelinesOverviewPlotApiStatus] = useState(SessionTimelinesOverviewPlotApiStatus.Loading)
   const [plot, setPlot] = useState<SessionTimelinesOverviewPlot>()
+  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
+  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
+  const shouldRenderPlot = sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
 
   const getSessionTimelinesOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -43,9 +46,11 @@ const SessionTimelinesOverviewPlot: React.FC<SessionTimelinesOverviewPlotProps> 
     switch (result.status) {
       case SessionTimelinesOverviewPlotApiStatus.Error:
         setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.Error)
+        setPlotDataKey(null)
         break
       case SessionTimelinesOverviewPlotApiStatus.NoData:
         setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.NoData)
+        setPlotDataKey(null)
         break
       case SessionTimelinesOverviewPlotApiStatus.Success:
         setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.Success)
@@ -61,6 +66,7 @@ const SessionTimelinesOverviewPlot: React.FC<SessionTimelinesOverviewPlotProps> 
         }))
 
         setPlot(newPlot)
+        setPlotDataKey(currentPlotKey)
         break
     }
   }
@@ -71,10 +77,10 @@ const SessionTimelinesOverviewPlot: React.FC<SessionTimelinesOverviewPlotProps> 
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Loading && <LoadingSpinner />}
+      {(sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Loading || (sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
       {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Success &&
+      {shouldRenderPlot &&
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"

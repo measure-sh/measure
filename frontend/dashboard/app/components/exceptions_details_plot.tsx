@@ -58,14 +58,18 @@ type ExceptionsDetailsPlot = {
 const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters, demo = false }) => {
   const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
+  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
+  const currentPlotKey = `${exceptionsType}|${exceptionsGroupId}|${filters.startDate}|${filters.endDate}|${plotTimeGroup}|${demo ? "demo" : "live"}`
+  const shouldRenderPlot = exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
 
   const getExceptionsDetailsPlot = async () => {
     if (demo) {
       setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
       setPlot(demoData.map((item: any) => ({ id: item.id, data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })) })))
+      setPlotDataKey(currentPlotKey)
       return
     }
 
@@ -81,9 +85,11 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
     switch (result.status) {
       case ExceptionsDetailsPlotApiStatus.Error:
         setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Error)
+        setPlotDataKey(null)
         break
       case ExceptionsDetailsPlotApiStatus.NoData:
         setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.NoData)
+        setPlotDataKey(null)
         break
       case ExceptionsDetailsPlotApiStatus.Success:
         setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
@@ -96,6 +102,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
             y: data.instances,
           })),
         })))
+        setPlotDataKey(currentPlotKey)
         break
     }
   }
@@ -106,10 +113,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   return (
     <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
-      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
+      {(exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading || (exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success &&
+      {shouldRenderPlot &&
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"

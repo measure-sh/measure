@@ -69,9 +69,12 @@ type SessionsVsExceptionsPlot = {
 const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ filters, demo = false }) => {
   const [sessionsVsExceptionsPlotApiStatus, setSessionsVsExceptionsPlotApiStatus] = useState(SessionsVsExceptionsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<SessionsVsExceptionsPlot>()
+  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
+  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}|${demo ? "demo" : "live"}`
+  const shouldRenderPlot = sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
 
   const colorMap = theme === 'dark' ? {
     Sessions: 'oklch(0.6042 0.1238 244.6)',
@@ -93,6 +96,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
     if (demo) {
       setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Success)
       setPlot(demoPlot)
+      setPlotDataKey(currentPlotKey)
       return
     }
 
@@ -108,14 +112,17 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
     switch (result.status) {
       case SessionsVsExceptionsPlotApiStatus.Error:
         setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Error)
+        setPlotDataKey(null)
         break
       case SessionsVsExceptionsPlotApiStatus.NoData:
         setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.NoData)
         setPlot(undefined)
+        setPlotDataKey(null)
         break
       case SessionsVsExceptionsPlotApiStatus.Success:
         setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Success)
         setPlot(result.data ?? undefined)
+        setPlotDataKey(currentPlotKey)
         break
     }
   }
@@ -126,10 +133,10 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[24rem]">
-      {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Loading && <LoadingSpinner />}
+      {(sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Loading || (sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
       {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Success &&
+      {shouldRenderPlot &&
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
