@@ -426,16 +426,16 @@ func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	}
 
 	if af.HasNetworkProviders() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+		stmt.Having("hasAll(groupUniqArrayArray(network_providers), ?)", af.NetworkProviders)
 	}
 	if af.HasNetworkTypes() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+		stmt.Having("hasAll(groupUniqArrayArray(network_types), ?)", af.NetworkTypes)
 	}
 	if af.HasNetworkGenerations() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+		stmt.Having("hasAll(groupUniqArrayArray(network_generations), ?)", af.NetworkGenerations)
 	}
 	if af.HasDeviceLocales() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+		stmt.Having("hasAll(groupUniqArrayArray(device_locales), ?)", af.Locales)
 	}
 }
 
