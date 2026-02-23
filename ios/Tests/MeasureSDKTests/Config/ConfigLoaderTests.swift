@@ -41,7 +41,7 @@ final class ConfigLoaderTests: XCTestCase {
         mockUserDefaults = nil
         mockFileManager = nil
         mockTimeProvider = nil
-        measureDispatchQueue
+        measureDispatchQueue = nil
         super.tearDown()
     }
 
