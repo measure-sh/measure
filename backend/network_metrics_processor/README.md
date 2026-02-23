@@ -28,4 +28,14 @@ Pre-aggregates metrics from `http_events` into 15-minute buckets in the `http_me
 - A node collapses when an 11th child would be added (depth > 1 only)
 - Collapsing removes all descendants, sums their counts, and absorbs future inserts
 - Depth 0 (domain) and depth 1 (first path segment) nodes never collapse
-- Collapsed nodes produce patterns ending in `**`; leaf nodes produce exact patterns
+- Collapsed nodes produce patterns ending in `/*`; leaf nodes produce exact patterns
+- Consecutive trailing `*` segments are collapsed into `**` (e.g. `/*/*` → `/**`)
+
+### Examples
+
+| Input paths | Result |
+|---|---|
+| `/users/123` | `/users/*` |
+| `/users/123/orders/456` | `/users/*/orders/*` |
+| `/health` | `/health` |
+| `/track/abc123/def456` | `/track/**` |

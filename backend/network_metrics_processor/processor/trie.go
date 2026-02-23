@@ -47,6 +47,7 @@ func (t *TrieNode) InsertWithDomain(domain, path string, count uint64) {
 func (t *TrieNode) ExtractPatterns() []PatternResult {
 	var results []PatternResult
 	t.extract(nil, &results)
+	collapseTrailingWildcards(results)
 	return results
 }
 
@@ -138,6 +139,27 @@ func childCount(node *TrieNode) uint64 {
 		total += childCount(child)
 	}
 	return total
+}
+
+// collapseTrailingWildcards replaces consecutive trailing
+// "/*" segments with a single "/**" in each pattern path.
+// e.g. /users/*/* becomes /users/**.
+func collapseTrailingWildcards(results []PatternResult) {
+	for i, r := range results {
+		segs := strings.Split(r.Path, "/")
+		// Count consecutive "*" from the end.
+		trailing := 0
+		for j := len(segs) - 1; j >= 0; j-- {
+			if segs[j] == "*" {
+				trailing++
+			} else {
+				break
+			}
+		}
+		if trailing >= 2 {
+			results[i].Path = strings.Join(segs[:len(segs)-trailing], "/") + "/**"
+		}
+	}
 }
 
 // splitPath splits a URL path by "/" and removes empty
