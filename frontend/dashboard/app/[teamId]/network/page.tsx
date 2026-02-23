@@ -12,6 +12,7 @@ import NetworkStatusDistributionPlot from '@/app/components/network_status_distr
 import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
+import { numberToKMB } from '@/app/utils/number_utils'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { History } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -443,7 +444,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                                         </TableCell>
                                         <TableCell className="font-body">{endpoint.p95_latency !== null ? formatMillisToHumanReadable(endpoint.p95_latency) : '-'}</TableCell>
                                         <TableCell className="font-body">{endpoint.error_rate !== null ? `${endpoint.error_rate}%` : '-'}</TableCell>
-                                        <TableCell className="font-body">{endpoint.frequency}</TableCell>
+                                        <TableCell className="font-body">{numberToKMB(endpoint.frequency)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
