@@ -389,10 +389,8 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 				SELECT DISTINCT domain, path FROM url_patterns FINAL
 				WHERE team_id = ? AND app_id = ?
 			) p ON e.domain = p.domain AND multiIf(
-				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
-					startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
-				position(p.path, '*') > 0,
-					e.path LIKE replaceAll(p.path, '*', '%'),
+				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0, startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
+				position(p.path, '*') > 0, e.path LIKE replaceAll(p.path, '*', '%'),
 				e.path = p.path
 			)`, teamID, appID).
 		Where("e.team_id = ?", teamID).
@@ -403,11 +401,19 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Where("e.status_code != 0").
 		Where("e.domain != ''").
 		Where("e.path != ''").
-		GroupBy(`
-			e.team_id, e.app_id, ts, e.protocol, e.port, e.domain, p.path,
-			e.method, e.status_code, e.app_version, e.os_version,
-			e.device_manufacturer, e.device_name
-		`)
+		GroupBy("e.team_id").
+		GroupBy("e.app_id").
+		GroupBy("ts").
+		GroupBy("e.protocol").
+		GroupBy("e.port").
+		GroupBy("e.domain").
+		GroupBy("p.path").
+		GroupBy("e.method").
+		GroupBy("e.status_code").
+		GroupBy("e.app_version").
+		GroupBy("e.os_version").
+		GroupBy("e.device_manufacturer").
+		GroupBy("e.device_name")
 	defer stmt.Close()
 
 	query := "INSERT INTO http_metrics\n" + stmt.String()
