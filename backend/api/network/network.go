@@ -134,7 +134,6 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 		return
 	}
 
-	fmt.Printf("FetchPaths: no url_patterns for domain %q, falling back to http_events\n", domain)
 	eventsStmt := sqlf.
 		Select("path").
 		From("http_events").
@@ -185,8 +184,11 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 		Where("team_id = ?", teamId).
 		Where("app_id = ?", appId).
 		Where("timestamp >= ?", af.From).
-		Where("timestamp <= ?", af.To).
-		GroupBy("domain, path").
+		Where("timestamp <= ?", af.To)
+
+	applyAggregatedFilters(stmt, af)
+
+	stmt.GroupBy("domain, path").
 		OrderBy(orderBy).
 		Limit(trendsLimit)
 
@@ -251,27 +253,12 @@ func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFil
 // It reads historical data from pre-aggregated http_metrics
 // and only queries raw http_events for the current day,
 // falling back to http_events entirely when the pattern
-// is not in url_patterns or array-dimension filters are active.
+// is not in url_patterns.
 func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter) (*MetricsResponse, error) {
-	start := time.Now()
-	fmt.Printf("FetchMetrics: start domain=%s path=%s range=[%s, %s]\n", domain, pathPattern, af.From.Format(time.RFC3339), af.To.Format(time.RFC3339))
-
 	// Check if pattern exists in url_patterns
 	exists, err := patternExists(ctx, appId, teamId, domain, pathPattern)
 	if err != nil || !exists {
-		fmt.Printf("FetchMetrics: source=http_events (pattern not in url_patterns)\n")
-		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
-		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
-		return result, err
-	}
-
-	// Fall back if array-dimension filters are active
-	// TODO: this is BS and needs a way to store it in a way where can be used for filtering
-	if hasArrayFilters(af) {
-		fmt.Printf("FetchMetrics: source=http_events (array filters active)\n")
-		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
-		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
-		return result, err
+		return fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
 	}
 
 	// Compute day-aligned cutoff
@@ -279,35 +266,25 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPatt
 
 	// If entire range is within current day, just use events
 	if !af.From.Before(cutoff) {
-		fmt.Printf("FetchMetrics: source=http_events (range within current day)\n")
-		result, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
-		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
-		return result, err
+		return fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
 	}
 
 	// If entire range is historical, just use metrics
 	if !af.To.After(cutoff) {
-		fmt.Printf("FetchMetrics: source=http_metrics (fully historical)\n")
-		result, err := fetchMetricsFromAggregated(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
-		fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
-		return result, err
+		return fetchMetricsFromAggregated(ctx, appId, teamId, domain, pathPattern, af, af.From, af.To)
 	}
 
 	// Split: metrics for historical days, events for current day
-	fmt.Printf("FetchMetrics: source=split cutoff=%s\n", cutoff.Format(time.RFC3339))
 	aggregated, err := fetchMetricsFromAggregated(ctx, appId, teamId, domain, pathPattern, af, af.From, cutoff)
 	if err != nil {
-		fmt.Printf("FetchMetrics: end took=%v err=%v\n", time.Since(start), err)
 		return nil, err
 	}
 
 	events, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, pathPattern, af, cutoff, af.To)
 	if err != nil {
-		fmt.Printf("FetchMetrics: end took=%v err=%v\n", time.Since(start), err)
 		return nil, err
 	}
 
-	fmt.Printf("FetchMetrics: end took=%v\n", time.Since(start))
 	return mergeMetricsResponses(aggregated, events), nil
 }
 
@@ -426,11 +403,9 @@ func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	}
 }
 
-// applyAggregatedFilters applies scalar-column filters
-// to http_metrics queries. Array-dimension filters
-// (network_type, network_generation, network_provider,
-// device_locale) are not applied here because they
-// trigger a full fallback to http_events.
+// applyAggregatedFilters applies filters to http_metrics
+// queries. Scalar columns use WHERE clauses; array columns
+// use HAVING with hasAll(groupUniqArrayMerge(...), ?).
 func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		selectedVersions, err := af.VersionPairs()
@@ -448,6 +423,19 @@ func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 
 	if af.HasDeviceManufacturers() {
 		stmt.Where("device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+	}
+	if af.HasNetworkTypes() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+	}
+	if af.HasNetworkGenerations() {
+		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+	}
+	if af.HasDeviceLocales() {
+		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
 	}
 }
 
@@ -486,14 +474,6 @@ func patternExists(ctx context.Context, appId, teamId uuid.UUID, domain, pathPat
 	return rows.Next(), rows.Err()
 }
 
-// hasArrayFilters returns true if any array-dimension
-// filters are active. These dimensions are stored as
-// arrays in http_metrics and can't be filtered exactly,
-// so we must fall back to http_events.
-func hasArrayFilters(af *filter.AppFilter) bool {
-	return af.HasNetworkTypes() || af.HasNetworkGenerations() || af.HasNetworkProviders() || af.HasDeviceLocales()
-}
-
 // metricsCutoff returns the start of today in the given
 // timezone, converted to UTC. This provides a day-aligned
 // boundary for splitting queries between http_metrics and
@@ -528,8 +508,6 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 
 	latencyStmt.GroupBy("datetime")
 	latencyStmt.OrderBy("datetime")
-	// print the final query with arguments for debugging
-	fmt.Printf("fetchMetricsFromEvents latency query: %s\nargs: %v\n", latencyStmt.String(), latencyStmt.Args())
 
 	defer latencyStmt.Close()
 
