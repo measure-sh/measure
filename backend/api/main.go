@@ -144,8 +144,6 @@ func main() {
 		apps.GET(":id/networkRequests/metrics", measure.GetNetworkRequestsMetrics)
 
 		// misc
-		apps.GET(":id/settings", measure.GetAppSettings)
-		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 		apps.PATCH(":id/rename", measure.RenameApp)
 		apps.PATCH(":id/apiKey", measure.RotateApiKey)
 
