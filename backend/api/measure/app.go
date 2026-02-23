@@ -2200,7 +2200,13 @@ func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (
 	stmt := sqlf.
 		Select("span_name").
 		Select("trace_id").
+		Select("attribute.app_version.1 as version").
+		Select("attribute.app_version.2 as code").
+		Select("attribute.user_id").
 		Select("attribute.thread_name").
+		Select("attribute.device_manufacturer").
+		Select("attribute.device_model").
+		Select("attribute.network_type").
 		Select("start_time").
 		Select("end_time").
 		From("spans final").
@@ -2220,7 +2226,19 @@ func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (
 	for rows.Next() {
 		sessionTrace := span.TraceSessionTimelineDisplay{}
 
-		if err = rows.Scan(&sessionTrace.TraceName, &sessionTrace.TraceID, &sessionTrace.ThreadName, &sessionTrace.StartTime, &sessionTrace.EndTime); err != nil {
+		if err = rows.Scan(
+			&sessionTrace.TraceName,
+			&sessionTrace.TraceID,
+			&sessionTrace.AppVersion,
+			&sessionTrace.AppBuild,
+			&sessionTrace.UserID,
+			&sessionTrace.ThreadName,
+			&sessionTrace.DeviceManufacturer,
+			&sessionTrace.DeviceModel,
+			&sessionTrace.NetworkType,
+			&sessionTrace.StartTime,
+			&sessionTrace.EndTime,
+		); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -7236,10 +7254,20 @@ func GetSession(c *gin.Context) {
 		return
 	}
 
-	// temporary workaround to let the session detail page
-	// work when there are no events in the session
-	if !session.hasEvents() {
+	// For trace only sessions, populate session's attribute
+	// and duration from traces.
+	if !session.hasEvents() && len(sessionTraces) > 0 {
 		session.Attribute = &event.Attribute{}
+		session.Attribute.AppVersion = sessionTraces[0].AppVersion
+		session.Attribute.AppBuild = sessionTraces[0].AppBuild
+		session.Attribute.DeviceManufacturer = sessionTraces[0].DeviceManufacturer
+		session.Attribute.DeviceModel = sessionTraces[0].DeviceModel
+		session.Attribute.NetworkType = sessionTraces[0].NetworkType
+
+		// use the trace duration as the session's duration
+		lastTraceEndTime := sessionTraces[len(sessionTraces)-1].EndTime
+		firstTraceStartTime := sessionTraces[0].StartTime
+		duration = lastTraceEndTime.Sub(firstTraceStartTime).Milliseconds()
 	}
 
 	response := gin.H{
