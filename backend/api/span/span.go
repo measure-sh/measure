@@ -150,12 +150,18 @@ type TraceDisplay struct {
 }
 
 type TraceSessionTimelineDisplay struct {
-	TraceID    string        `json:"trace_id" binding:"required"`
-	TraceName  string        `json:"trace_name" binding:"required"`
-	ThreadName string        `json:"thread_name"`
-	StartTime  time.Time     `json:"start_time" binding:"required"`
-	EndTime    time.Time     `json:"end_time" binding:"required"`
-	Duration   time.Duration `json:"duration" binding:"required"`
+	TraceID            string        `json:"trace_id" binding:"required"`
+	TraceName          string        `json:"trace_name" binding:"required"`
+	AppVersion         string        `json:"-"`
+	AppBuild           string        `json:"-"`
+	UserID             string        `json:"-"`
+	ThreadName         string        `json:"thread_name"`
+	DeviceManufacturer string        `json:"-"`
+	DeviceModel        string        `json:"-"`
+	NetworkType        string        `json:"-"`
+	StartTime          time.Time     `json:"start_time" binding:"required"`
+	EndTime            time.Time     `json:"end_time" binding:"required"`
+	Duration           time.Duration `json:"duration" binding:"required"`
 }
 
 type SpanMetricsPlotInstance struct {
