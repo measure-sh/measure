@@ -1,4 +1,4 @@
-module backend/url-processor
+module backend/network_metrics_processor
 
 go 1.24.1
 
