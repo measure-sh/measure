@@ -4,11 +4,8 @@ import (
 	"strings"
 )
 
-// TrieNode represents a node in the URL pattern trie.
-// The trie eagerly collapses nodes at depth > 1 when an
-// 11th child would be added, keeping memory bounded.
-// Depth 0 holds domain segments and depth 1 holds first
-// path segments — neither level collapses.
+// TrieNode represents a node in a URL pattern trie that
+// groups similar paths into wildcard patterns.
 type TrieNode struct {
 	children    map[string]*TrieNode
 	count       uint64
@@ -23,27 +20,21 @@ func NewTrie() *TrieNode {
 	}
 }
 
-// Insert adds a path with its count to the trie. The path
-// is split by "/" (empty segments from leading slash are
-// skipped). Nodes at depth > 1 are collapsed when an 11th
-// child would be added.
+// Insert adds a path with its count to the trie.
 func (t *TrieNode) Insert(path string, count uint64) {
 	segments := splitPath(path)
 	t.insert(segments, count, 0)
 }
 
-// InsertWithDomain adds a path with its count to the trie,
-// prepending the domain as the first segment. This keeps
-// all domains in a single trie while naturally isolating
-// them since root children (depth 0) never collapse.
+// InsertWithDomain adds a path with its count to the trie
+// under the given domain.
 func (t *TrieNode) InsertWithDomain(domain, path string, count uint64) {
 	segments := append([]string{domain}, splitPath(path)...)
 	t.insert(segments, count, 0)
 }
 
 // ExtractPatterns walks the trie and returns all patterns
-// with their accumulated counts. The first segment in each
-// branch is split out as the Domain field.
+// with their accumulated counts.
 func (t *TrieNode) ExtractPatterns() []PatternResult {
 	var results []PatternResult
 	t.extract(nil, &results)
