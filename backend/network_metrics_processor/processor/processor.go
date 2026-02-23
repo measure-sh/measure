@@ -16,7 +16,7 @@ import (
 const (
 	// patternsDefaultLookback is how far back to query
 	// http_events when no prior pattern generation timestamp exists.
-	patternsDefaultLookback = 7 * 24 * time.Hour
+	patternsDefaultLookback = 1 * 24 * time.Hour
 
 	// minPatternCount is the minimum request count a pattern
 	// must have to be kept.
@@ -24,7 +24,7 @@ const (
 
 	// metricsDefaultLookback is how far back to query
 	// http_events when no prior reporting timestamp exists.
-	metricsDefaultLookback = 3 * time.Hour
+	metricsDefaultLookback = 1 * 24 * time.Hour
 )
 
 // team represents a team row from PG.
@@ -92,14 +92,9 @@ func GeneratePatterns(ctx context.Context) {
 				from = &defaultFrom
 			}
 
-			if !from.Before(now) {
-				skipped++
-				continue
-			}
-
-			events, err := fetchRawPaths(ctx, app.TeamID, app.ID, *from, now)
+			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
 			if err != nil {
-				fmt.Printf("failed to fetch raw paths for team=%s app=%s: %v\n",
+				fmt.Printf("failed to fetch http events for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
@@ -110,7 +105,6 @@ func GeneratePatterns(ctx context.Context) {
 				continue
 			}
 
-			// Build single trie with domain as root segment.
 			trie := NewTrie()
 			for _, event := range events {
 				normalized := NormalizePath(event.Path)
@@ -140,7 +134,7 @@ func GeneratePatterns(ctx context.Context) {
 					Set("app_id", app.ID).
 					Set("domain", p.Domain).
 					Set("path", p.Path).
-					Set("last_accessed_at", now)
+					Set("last_updated_at", now)
 				totalPatterns++
 			}
 
@@ -171,7 +165,7 @@ func GeneratePatterns(ctx context.Context) {
 		}
 	}
 
-	fmt.Printf("end took=%v processed=%d skipped=%d failed=%d\n",
+	fmt.Printf("GeneratePatterns took=%v processed=%d skipped=%d failed=%d\n",
 		time.Since(start), processed, skipped, failed)
 }
 
@@ -181,11 +175,9 @@ func GenerateMetrics(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 
-	fmt.Printf("GenerateMetrics: start\n")
-
 	teams, err := getTeams(ctx)
 	if err != nil {
-		fmt.Printf("GenerateMetrics: failed to fetch teams: %v\n", err)
+		fmt.Printf("failed to fetch teams: %v\n", err)
 		return
 	}
 
@@ -194,14 +186,14 @@ func GenerateMetrics(ctx context.Context) {
 	for _, t := range teams {
 		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
-			fmt.Printf("GenerateMetrics: failed to fetch apps for team=%s: %v\n", t.ID, err)
+			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
 			from, err := getLastReportedAt(ctx, app.TeamID, app.ID)
 			if err != nil {
-				fmt.Printf("GenerateMetrics: failed to get last reported_at for team=%s app=%s: %v\n",
+				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
@@ -218,14 +210,14 @@ func GenerateMetrics(ctx context.Context) {
 			}
 
 			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
-				fmt.Printf("GenerateMetrics: failed to insert for team=%s app=%s: %v\n",
+				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
 
-			if err := upsertReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
-				fmt.Printf("GenerateMetrics: failed to upsert reported_at for team=%s app=%s: %v\n",
+			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
+				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
@@ -235,7 +227,7 @@ func GenerateMetrics(ctx context.Context) {
 		}
 	}
 
-	fmt.Printf("GenerateMetrics: end took=%v processed=%d skipped=%d failed=%d\n",
+	fmt.Printf("GenerateMetrics took=%v processed=%d skipped=%d failed=%d\n",
 		time.Since(start), processed, skipped, failed)
 }
 
@@ -331,39 +323,48 @@ func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*t
 	return generatedAt, nil
 }
 
-// insertAggregatedMetrics executes an INSERT...SELECT on ClickHouse
-// that aggregates http_events into http_metrics for the given
-// team, app and time range.
 func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) error {
+	// Delete existing metrics for this
+	// exact window to avoid duplicates
+	// on re-runs.
+	deleteStmt := sqlf.
+		DeleteFrom("http_metrics").
+		Where("team_id = ?", teamID).
+		Where("app_id = ?", appID).
+		Where("timestamp >= ?", from).
+		Where("timestamp < ?", to)
+	defer deleteStmt.Close()
+
+	if err := server.Server.ChPool.Exec(ctx, deleteStmt.String(), deleteStmt.Args()...); err != nil {
+		return fmt.Errorf("failed to delete existing metrics: %w", err)
+	}
+
+	// Build the Aggregate + Insert Statement
 	stmt := sqlf.
-		Select(`e.team_id, e.app_id,
-    toStartOfFifteenMinutes(e.timestamp) AS ts,
-    e.protocol, e.port, e.domain,
-    p.path AS path,
-    e.method, e.status_code,
-    e.app_version, e.os_version,
-    e.device_manufacturer, e.device_name,
-    groupUniqArray(e.network_provider),
-    groupUniqArray(e.network_type),
-    groupUniqArray(e.network_generation),
-    groupUniqArray(e.device_locale),
-    toUInt64(count()),
-    toUInt64(countIf(status_code >= 200 AND status_code < 300)),
-    toUInt64(countIf(status_code >= 300 AND status_code < 400)),
-    toUInt64(countIf(status_code >= 400 AND status_code < 500)),
-    toUInt64(countIf(status_code >= 500 AND status_code < 600)),
-    quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)`).
+		Select(`
+			e.team_id, e.app_id, toStartOfFifteenMinutes(e.timestamp) AS ts,
+			e.protocol, e.port, e.domain, p.path AS path, e.method, e.status_code,
+			e.app_version, e.os_version, e.device_manufacturer, e.device_name,
+			groupUniqArray(e.network_provider), groupUniqArray(e.network_type),
+			groupUniqArray(e.network_generation), groupUniqArray(e.device_locale),
+			toUInt64(count()),
+			toUInt64(countIf(status_code >= 200 AND status_code < 300)),
+			toUInt64(countIf(status_code >= 300 AND status_code < 400)),
+			toUInt64(countIf(status_code >= 400 AND status_code < 500)),
+			toUInt64(countIf(status_code >= 500 AND status_code < 600)),
+			quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)
+		`).
 		From(`http_events e
-JOIN (
-    SELECT DISTINCT domain, path FROM url_patterns FINAL
-    WHERE team_id = ? AND app_id = ?
-) p ON e.domain = p.domain AND multiIf(
-    endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
-        startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
-    position(p.path, '*') > 0,
-        e.path LIKE replaceAll(p.path, '*', '%'),
-    e.path = p.path
-)`, teamID, appID).
+			JOIN (
+				SELECT DISTINCT domain, path FROM url_patterns FINAL
+				WHERE team_id = ? AND app_id = ?
+			) p ON e.domain = p.domain AND multiIf(
+				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0,
+					startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
+				position(p.path, '*') > 0,
+					e.path LIKE replaceAll(p.path, '*', '%'),
+				e.path = p.path
+			)`, teamID, appID).
 		Where("e.team_id = ?", teamID).
 		Where("e.app_id = ?", appID).
 		Where("e.timestamp >= ?", from).
@@ -372,12 +373,15 @@ JOIN (
 		Where("e.status_code != 0").
 		Where("e.domain != ''").
 		Where("e.path != ''").
-		GroupBy(`e.team_id, e.app_id, ts, e.protocol, e.port, e.domain, p.path,
-         e.method, e.status_code, e.app_version, e.os_version,
-         e.device_manufacturer, e.device_name`)
+		GroupBy(`
+			e.team_id, e.app_id, ts, e.protocol, e.port, e.domain, p.path,
+			e.method, e.status_code, e.app_version, e.os_version,
+			e.device_manufacturer, e.device_name
+		`)
 	defer stmt.Close()
 
 	query := "INSERT INTO http_metrics\n" + stmt.String()
+
 	if err := server.Server.ChPool.Exec(ctx, query, stmt.Args()...); err != nil {
 		return fmt.Errorf("insert aggregated metrics: %w", err)
 	}
@@ -385,9 +389,9 @@ JOIN (
 	return nil
 }
 
-// upsertReportedAt upserts the metrics reporting timestamp into
+// upsertMetricsReportedAt upserts the metrics reporting timestamp into
 // the PG network_metrics_reporting table.
-func upsertReportedAt(ctx context.Context, teamID, appID uuid.UUID, reportedAt time.Time) error {
+func upsertMetricsReportedAt(ctx context.Context, teamID, appID uuid.UUID, reportedAt time.Time) error {
 	stmt := sqlf.InsertInto("network_metrics_reporting").
 		Set("team_id", teamID).
 		Set("app_id", appID).
@@ -419,9 +423,9 @@ func upsertPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID, gene
 	return nil
 }
 
-// fetchRawPaths queries http_events for the given team, app and time
+// fetchHttpEvents queries http_events for the given team, app and time
 // range, pre-aggregated by (domain, path).
-func fetchRawPaths(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) ([]HttpEvent, error) {
+func fetchHttpEvents(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) ([]HttpEvent, error) {
 	stmt := sqlf.
 		Select("team_id, app_id, domain, path, count() as cnt").
 		From("http_events").
@@ -437,20 +441,20 @@ func fetchRawPaths(ctx context.Context, teamID, appID uuid.UUID, from, to time.T
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		return nil, fmt.Errorf("query http_events: %w", err)
+		return nil, fmt.Errorf("failed to query http_events: %w", err)
 	}
 
 	var result []HttpEvent
 	for rows.Next() {
 		var row HttpEvent
 		if err := rows.Scan(&row.TeamID, &row.AppID, &row.Domain, &row.Path, &row.Count); err != nil {
-			return nil, fmt.Errorf("scan row: %w", err)
+			return nil, fmt.Errorf("failed to scan http_events row: %w", err)
 		}
 		result = append(result, row)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration: %w", err)
+		return nil, fmt.Errorf("error iterating http_events rows: %w", err)
 	}
 
 	return result, nil
