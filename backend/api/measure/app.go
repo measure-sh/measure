@@ -7008,6 +7008,9 @@ func GetSession(c *gin.Context) {
 		})
 	}
 
+	var attachmentGroup errgroup.Group
+	attachmentGroup.SetLimit(16)
+
 	// generate pre-sign URLs for
 	// attachments
 	for i := range session.Events {
@@ -7015,15 +7018,23 @@ func GetSession(c *gin.Context) {
 			continue
 		}
 		for j := range session.Events[i].Attachments {
-			if err := session.Events[i].Attachments[j].PreSignURL(ctx); err != nil {
-				msg := `failed to generate URLs for attachment`
-				fmt.Println(msg, err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
+			attachmentGroup.Go(func() (err error) {
+				if err = session.Events[i].Attachments[j].PreSignURL(ctx); err != nil {
+					return
+				}
 				return
-			}
+			})
 		}
+	}
+
+	if err := attachmentGroup.Wait(); err != nil {
+		msg := `failed to generate URLs for attachment`
+		err = fmt.Errorf("%s: %v", msg, err)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	duration := session.DurationFromEvents().Milliseconds()
