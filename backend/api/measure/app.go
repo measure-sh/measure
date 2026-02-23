@@ -7265,9 +7265,9 @@ func GetSession(c *gin.Context) {
 		session.Attribute.NetworkType = sessionTraces[0].NetworkType
 
 		// use the trace duration as the session's duration
-		lastTraceEndTime := sessionTraces[len(sessionTraces)-1].EndTime
-		firstTraceStartTime := sessionTraces[0].StartTime
-		duration = lastTraceEndTime.Sub(firstTraceStartTime).Milliseconds()
+		lastTraceTime := sessionTraces[len(sessionTraces)-1].StartTime
+		firstTraceTime := sessionTraces[0].StartTime
+		duration = lastTraceTime.Sub(firstTraceTime).Milliseconds()
 	}
 
 	response := gin.H{
