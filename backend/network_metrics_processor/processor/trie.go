@@ -40,9 +40,8 @@ func NewTrie(collapseThreshold int) *TrieNode {
 	}
 }
 
-// Insert a domain+path with its hit count into the trie, updating
-func (t *TrieNode) Insert(domain, path string, hitCount uint64) {
-	segments := append([]string{domain}, splitPath(path)...)
+// Insert adds segments into the trie with the given hit count.
+func (t *TrieNode) Insert(segments []string, hitCount uint64) {
 	t.insert(segments, hitCount, 0)
 }
 
