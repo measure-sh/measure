@@ -66,45 +66,37 @@ type PatternResult struct {
 	Count  uint64
 }
 
-// GeneratePatterns discovers URL patterns from raw HTTP
-// traffic, normalizes dynamic path segments, consolidates
-// similar paths via a trie, and stores the results.
+// GeneratePatterns converts raw URLs data
+// from http_events into generalized URL
+// patterns with wildcards and stores them
+// in the url_patterns table.
 func GeneratePatterns(ctx context.Context) {
-	ctx, span := tracer.Start(ctx, "generate-patterns")
-	defer span.End()
+	ctx, rootSpan := tracer.Start(ctx, "generate-patterns")
+	defer rootSpan.End()
 
 	start := time.Now()
 	now := start.UTC()
 
-	teamsCtx, teamsSpan := tracer.Start(ctx, "pg.get-teams")
-	teams, err := getTeams(teamsCtx)
-	teamsSpan.End()
+	teams, err := getTeams(ctx)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch teams")
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, "failed to fetch teams")
 		fmt.Printf("failed to fetch teams: %v\n", err)
 		return
 	}
 
-	var processed, skipped, failed int
-
 	for _, t := range teams {
-		appsCtx, appsSpan := tracer.Start(ctx, "pg.get-apps")
-		apps, err := getAppsForTeam(appsCtx, t.ID)
-		appsSpan.End()
+		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
-			lastGenCtx, lastGenSpan := tracer.Start(ctx, "pg.get-last-pattern-generated-at")
-			from, err := getLastPatternGeneratedAt(lastGenCtx, app.TeamID, app.ID)
-			lastGenSpan.End()
+			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
 			if err != nil {
 				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
-				failed++
 				continue
 			}
 
@@ -113,19 +105,14 @@ func GeneratePatterns(ctx context.Context) {
 				from = &defaultFrom
 			}
 
-			fetchCtx, fetchSpan := tracer.Start(ctx, "ch.fetch-http-events")
-			fetchSpan.SetAttributes(attribute.String("app_id", app.ID.String()))
-			events, err := fetchHttpEvents(fetchCtx, app.TeamID, app.ID, *from, now)
-			fetchSpan.End()
+			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
 			if err != nil {
 				fmt.Printf("failed to fetch http events for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
-				failed++
 				continue
 			}
 
 			if len(events) == 0 {
-				skipped++
 				continue
 			}
 
@@ -164,40 +151,25 @@ func GeneratePatterns(ctx context.Context) {
 
 			if totalPatterns == 0 {
 				insertStmt.Close()
-				skipped++
 				continue
 			}
 
-			insertCtx, insertSpan := tracer.Start(ctx, "ch.insert-url-patterns")
-			insertSpan.SetAttributes(attribute.Int("pattern_count", totalPatterns))
-			if err := server.Server.ChPool.AsyncInsert(insertCtx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
-				insertSpan.End()
+			if err := insertURLPatterns(ctx, insertStmt, totalPatterns); err != nil {
 				fmt.Printf("failed to insert for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				insertStmt.Close()
-				failed++
 				continue
 			}
-			insertSpan.End()
 
 			insertStmt.Close()
 
-			upsertCtx, upsertSpan := tracer.Start(ctx, "pg.upsert-pattern-generated-at")
-			if err := upsertPatternGeneratedAt(upsertCtx, app.TeamID, app.ID, now); err != nil {
-				upsertSpan.End()
+			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
 				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
-				failed++
 				continue
 			}
-			upsertSpan.End()
-
-			processed++
 		}
 	}
-
-	fmt.Printf("GeneratePatterns took=%v processed=%d skipped=%d failed=%d\n",
-		time.Since(start), processed, skipped, failed)
 }
 
 // GenerateMetrics pre-aggregates HTTP event data into
@@ -209,9 +181,7 @@ func GenerateMetrics(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 
-	teamsCtx, teamsSpan := tracer.Start(ctx, "pg.get-teams")
-	teams, err := getTeams(teamsCtx)
-	teamsSpan.End()
+	teams, err := getTeams(ctx)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to fetch teams")
@@ -222,18 +192,14 @@ func GenerateMetrics(ctx context.Context) {
 	var processed, skipped, failed int
 
 	for _, t := range teams {
-		appsCtx, appsSpan := tracer.Start(ctx, "pg.get-apps")
-		apps, err := getAppsForTeam(appsCtx, t.ID)
-		appsSpan.End()
+		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
-			lastRepCtx, lastRepSpan := tracer.Start(ctx, "pg.get-last-reported-at")
-			from, err := getLastReportedAt(lastRepCtx, app.TeamID, app.ID)
-			lastRepSpan.End()
+			from, err := getLastReportedAt(ctx, app.TeamID, app.ID)
 			if err != nil {
 				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
@@ -251,26 +217,19 @@ func GenerateMetrics(ctx context.Context) {
 				continue
 			}
 
-			insertCtx, insertSpan := tracer.Start(ctx, "ch.insert-aggregated-metrics")
-			insertSpan.SetAttributes(attribute.String("app_id", app.ID.String()))
-			if err := insertAggregatedMetrics(insertCtx, app.TeamID, app.ID, *from, now); err != nil {
-				insertSpan.End()
+			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
 				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
-			insertSpan.End()
 
-			upsertCtx, upsertSpan := tracer.Start(ctx, "pg.upsert-metrics-reported-at")
-			if err := upsertMetricsReportedAt(upsertCtx, app.TeamID, app.ID, now); err != nil {
-				upsertSpan.End()
+			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
 				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
-			upsertSpan.End()
 
 			processed++
 		}
@@ -281,6 +240,9 @@ func GenerateMetrics(ctx context.Context) {
 }
 
 func getTeams(ctx context.Context) ([]team, error) {
+	ctx, span := tracer.Start(ctx, "pg.get-teams")
+	defer span.End()
+
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		From("teams")
@@ -305,6 +267,9 @@ func getTeams(ctx context.Context) ([]team, error) {
 }
 
 func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]app, error) {
+	ctx, span := tracer.Start(ctx, "pg.get-apps")
+	defer span.End()
+
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("team_id").
@@ -333,6 +298,9 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]app, error) {
 // getLastReportedAt queries PG for the most recent metrics_reported_at
 // timestamp for the given team and app. Returns nil if no row exists.
 func getLastReportedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
+	ctx, span := tracer.Start(ctx, "pg.get-last-reported-at")
+	defer span.End()
+
 	stmt := sqlf.Select("metrics_reported_at").
 		From("network_metrics_reporting").
 		Where("team_id = ?", teamID).
@@ -354,6 +322,9 @@ func getLastReportedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time
 // getLastPatternGeneratedAt queries PG for the most recent pattern_generated_at
 // timestamp for the given team and app. Returns nil if no row exists.
 func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
+	ctx, span := tracer.Start(ctx, "pg.get-last-pattern-generated-at")
+	defer span.End()
+
 	stmt := sqlf.Select("pattern_generated_at").
 		From("network_metrics_reporting").
 		Where("team_id = ?", teamID).
@@ -366,13 +337,28 @@ func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*t
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("query network_metrics_reporting: %w", err)
+		return nil, fmt.Errorf("failed to query network_metrics_reporting: %w", err)
 	}
 
 	return generatedAt, nil
 }
 
+func insertURLPatterns(ctx context.Context, insertStmt *sqlf.Stmt, totalPatterns int) error {
+	ctx, span := tracer.Start(ctx, "ch.insert-url-patterns")
+	defer span.End()
+	span.SetAttributes(attribute.Int("pattern_count", totalPatterns))
+
+	if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+		return fmt.Errorf("failed to insert url patterns: %w", err)
+	}
+	return nil
+}
+
 func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) error {
+	ctx, span := tracer.Start(ctx, "ch.insert-aggregated-metrics")
+	defer span.End()
+	span.SetAttributes(attribute.String("app_id", appID.String()))
+
 	// Build the Aggregate + Insert Statement
 	stmt := sqlf.
 		Select(`
@@ -426,6 +412,9 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 // upsertMetricsReportedAt upserts the metrics reporting timestamp into
 // the PG network_metrics_reporting table.
 func upsertMetricsReportedAt(ctx context.Context, teamID, appID uuid.UUID, reportedAt time.Time) error {
+	ctx, span := tracer.Start(ctx, "pg.upsert-metrics-reported-at")
+	defer span.End()
+
 	stmt := sqlf.InsertInto("network_metrics_reporting").
 		Set("team_id", teamID).
 		Set("app_id", appID).
@@ -443,6 +432,9 @@ func upsertMetricsReportedAt(ctx context.Context, teamID, appID uuid.UUID, repor
 // upsertPatternGeneratedAt upserts the pattern generation timestamp into
 // the PG network_metrics_reporting table.
 func upsertPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID, generatedAt time.Time) error {
+	ctx, span := tracer.Start(ctx, "pg.upsert-pattern-generated-at")
+	defer span.End()
+
 	stmt := sqlf.InsertInto("network_metrics_reporting").
 		Set("team_id", teamID).
 		Set("app_id", appID).
@@ -460,6 +452,10 @@ func upsertPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID, gene
 // fetchHttpEvents queries http_events for the given team, app and time
 // range, pre-aggregated by (domain, path).
 func fetchHttpEvents(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) ([]HttpEvent, error) {
+	ctx, span := tracer.Start(ctx, "ch.fetch-http-events")
+	defer span.End()
+	span.SetAttributes(attribute.String("app_id", appID.String()))
+
 	stmt := sqlf.
 		Select("team_id, app_id, domain, path, count() as cnt").
 		From("http_events").
