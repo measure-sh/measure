@@ -134,3 +134,91 @@ export function isValidTimestamp(timestamp: string): boolean {
   const utcDateTime = DateTime.fromISO(timestamp)
   return utcDateTime.isValid
 }
+
+export type PlotTimeGroup = "minutes" | "hours" | "days" | "months"
+
+type PlotTimeGroupNivoConfig = {
+  xFormat: string
+  xScaleFormat: string
+  xScalePrecision: "minute" | "hour" | "day"
+  axisBottomFormat: string
+}
+
+export function getPlotTimeGroupForRange(startIso: string, endIso: string): PlotTimeGroup {
+  const start = DateTime.fromISO(startIso)
+  const end = DateTime.fromISO(endIso)
+
+  if (!start.isValid || !end.isValid || end <= start) {
+    return "days"
+  }
+
+  const diffHours = end.diff(start, "hours").hours
+  const diffDays = end.diff(start, "days").days
+
+  if (diffHours <= 24) {
+    return "minutes"
+  }
+
+  if (diffDays <= 7) {
+    return "hours"
+  }
+
+  if (diffDays <= 90) {
+    return "days"
+  }
+
+  return "months"
+}
+
+export function getPlotTimeGroupNivoConfig(plotTimeGroup: PlotTimeGroup): PlotTimeGroupNivoConfig {
+  switch (plotTimeGroup) {
+    case "minutes":
+      return {
+        xFormat: "time:%Y-%m-%dT%H:%M:%S",
+        xScaleFormat: "%Y-%m-%dT%H:%M:%S",
+        xScalePrecision: "minute",
+        axisBottomFormat: "%b %d, %H:%M",
+      }
+    case "hours":
+      return {
+        xFormat: "time:%Y-%m-%dT%H:%M:%S",
+        xScaleFormat: "%Y-%m-%dT%H:%M:%S",
+        xScalePrecision: "hour",
+        axisBottomFormat: "%b %d, %H:%M",
+      }
+    case "months":
+      return {
+        xFormat: "time:%Y-%m-%d",
+        xScaleFormat: "%Y-%m-%d",
+        xScalePrecision: "day",
+        axisBottomFormat: "%b %Y",
+      }
+    case "days":
+    default:
+      return {
+        xFormat: "time:%Y-%m-%d",
+        xScaleFormat: "%Y-%m-%d",
+        xScalePrecision: "day",
+        axisBottomFormat: "%b %d, %Y",
+      }
+  }
+}
+
+export function formatPlotTooltipDate(value: string, plotTimeGroup: PlotTimeGroup): string {
+  const dt = DateTime.fromISO(value)
+
+  if (!dt.isValid) {
+    return value
+  }
+
+  switch (plotTimeGroup) {
+    case "minutes":
+    case "hours":
+      return dt.toFormat("d MMM, yyyy, h:mm a")
+    case "months":
+      return dt.toFormat("MMM, yyyy")
+    case "days":
+    default:
+      return dt.toFormat("d MMM, yyyy")
+  }
+}

@@ -4,8 +4,9 @@ import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
+import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { getPlotTimeGroupForRange } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
@@ -27,6 +28,8 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading)
   const [plot, setPlot] = useState<ExceptionsOverviewPlot>()
   const { theme } = useTheme()
+  const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
+  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
   const getExceptionsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -81,10 +84,10 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           areaOpacity={0.1}
           colors={{ scheme: theme === 'dark' ? 'dark2' : 'nivo' }}
           margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
-          xFormat="time:%Y-%m-%d"
+          xFormat={timeConfig.xFormat}
           xScale={{
-            format: '%Y-%m-%d',
-            precision: 'day',
+            format: timeConfig.xScaleFormat,
+            precision: timeConfig.xScalePrecision,
             type: 'time',
             useUTC: false
           }}
@@ -100,7 +103,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
             legend: 'Date',
             tickPadding: 10,
             legendOffset: 100,
-            format: '%b %d, %Y',
+            format: timeConfig.axisBottomFormat,
             tickRotation: 45,
             legendPosition: 'middle'
           }}
@@ -132,7 +135,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           sliceTooltip={({ slice }) => {
             return (
               <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-                <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2'>Date: {formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />

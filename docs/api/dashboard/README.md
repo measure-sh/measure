@@ -119,202 +119,207 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/sessions/plots/instances`](#get-appsidsessionsplotsinstances)
     - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-24)
-    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-25)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [PATCH `/apps/:id/apiKey`](#patch-appsidapikey)
+  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-26)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [GET `/apps/:id/retention`](#get-appsidretention)
+  - [PATCH `/apps/:id/apiKey`](#patch-appsidapikey)
     - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
+  - [GET `/apps/:id/retention`](#get-appsidretention)
     - [Usage Notes](#usage-notes-28)
-    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
     - [Usage Notes](#usage-notes-29)
-    - [Request body](#request-body-6)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-30)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [GET `/apps/:id/spans`](#get-appsidspans)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-31)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-32)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-33)
     - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
     - [Usage Notes](#usage-notes-34)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
     - [Usage Notes](#usage-notes-35)
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
     - [Usage Notes](#usage-notes-36)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-37)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-  - [GET `/apps/:id/alerts`](#get-appsidalerts)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-38)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-36)
-    - [Request Body](#request-body-8)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
     - [Usage Notes](#usage-notes-39)
+    - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-37)
+    - [Request Body](#request-body-8)
+    - [Usage Notes](#usage-notes-40)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-40)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-42)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-43)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-44)
-    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-45)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-45)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-46)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-47)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-48)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-48)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-46)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-49)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-50)
-    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-48)
     - [Response Body](#response-body-51)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-51)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
-  - [GET `/teams/:id/usage`](#get-teamsidusage)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-52)
     - [Authorization \& Content Type](#authorization--content-type-50)
     - [Response Body](#response-body-53)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
-  - [GET `/teams/:id/slack`](#get-teamsidslack)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
     - [Usage Notes](#usage-notes-53)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
     - [Usage Notes](#usage-notes-54)
-    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
-  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
     - [Usage Notes](#usage-notes-55)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-53)
     - [Response Body](#response-body-56)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
-  - [GET `/apps/:id/config`](#get-appsidconfig)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-56)
     - [Authorization \& Content Type](#authorization--content-type-54)
     - [Response Body](#response-body-57)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
-  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+  - [GET `/apps/:id/config`](#get-appsidconfig)
     - [Usage Notes](#usage-notes-57)
     - [Authorization \& Content Type](#authorization--content-type-55)
     - [Response Body](#response-body-58)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-58)
+  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+    - [Usage Notes](#usage-notes-58)
+    - [Authorization \& Content Type](#authorization--content-type-56)
+    - [Response Body](#response-body-59)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-59)
 
 ## Auth
 
@@ -772,6 +777,7 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
 - [**GET `/apps/:id/sessions`**](#get-appsidsessions) - Fetch an app's session timlines by applying various optional filters.
+- [**GET `/apps/:id/sessions/plots/instances`**](#get-appsidsessionsplotsinstances) - Fetch an app's sessions instances plot with optional filters.
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session timeline.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
@@ -1243,6 +1249,7 @@ Fetch an app's crash overview.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
@@ -1478,6 +1485,7 @@ Fetch an app's crash detail.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
   - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
@@ -2199,6 +2207,7 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
@@ -2680,6 +2689,7 @@ Fetch an app's ANR detail instances aggregated by date range & version.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
   - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
@@ -3169,6 +3179,104 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessions/plots/instances`
+
+Fetch an app's sessions instances plot by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `timezone` (_required_) - IANA timezone used to bucket and format datetime values in the response.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
+  - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
+  - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
+  - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
+  - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
+  - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.
+  - `user_interaction` (_optional_) - Boolean true/false to control if only sessions that contain user interactions should be fetched.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - JSON string expression to filter using user defined attributes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "1.0 (1)",
+      "data": [
+        {
+          "datetime": "2024-10-02",
+          "instances": 12
+        }
+      ]
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
 
 List of HTTP status codes for success and failures.
 
@@ -4656,6 +4764,7 @@ Fetch a span's metrics plot with optional filters.
   - `span_name` (_required_) - Name of the span for which metrics plot is being fetched.
   - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
@@ -4844,6 +4953,7 @@ Fetch an app's bug reports by applying various optional filters.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.

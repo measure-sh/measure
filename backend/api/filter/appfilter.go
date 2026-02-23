@@ -73,6 +73,10 @@ type AppFilter struct {
 	// client
 	Timezone string `form:"timezone"`
 
+	// PlotTimeGroup represents time bucketing granularity
+	// for plot APIs.
+	PlotTimeGroup string `form:"plot_time_group"`
+
 	// FilterShortCode represents a short code for list
 	// filters.
 	FilterShortCode string `form:"filter_short_code"`
@@ -194,6 +198,20 @@ type AppFilter struct {
 	// BiGraph represents if journey plot
 	// constructions should be bidirectional.
 	BiGraph bool `form:"bigraph"`
+}
+
+const (
+	PlotTimeGroupMinutes = "minutes"
+	PlotTimeGroupHours   = "hours"
+	PlotTimeGroupDays    = "days"
+	PlotTimeGroupMonths  = "months"
+)
+
+var validPlotTimeGroups = map[string]struct{}{
+	PlotTimeGroupMinutes: {},
+	PlotTimeGroupHours:   {},
+	PlotTimeGroupDays:    {},
+	PlotTimeGroupMonths:  {},
 }
 
 // FilterList holds various filter parameter values that are
@@ -415,6 +433,12 @@ func (af *AppFilter) Validate() error {
 		}
 	}
 
+	if af.HasPlotTimeGroup() {
+		if _, ok := validPlotTimeGroups[af.PlotTimeGroup]; !ok {
+			return fmt.Errorf("`plot_time_group` must be one of: %s, %s, %s, %s", PlotTimeGroupMinutes, PlotTimeGroupHours, PlotTimeGroupDays, PlotTimeGroupMonths)
+		}
+	}
+
 	return nil
 }
 
@@ -540,6 +564,18 @@ func (af AppFilter) HasDeviceNames() bool {
 // is requested.
 func (af AppFilter) HasTimezone() bool {
 	return af.Timezone != ""
+}
+
+// HasPlotTimeGroup returns true if a plot time group
+// is provided.
+func (af AppFilter) HasPlotTimeGroup() bool {
+	return af.PlotTimeGroup != ""
+}
+
+// SetDefaultPlotTimeGroup sets the default plot time
+// grouping granularity.
+func (af *AppFilter) SetDefaultPlotTimeGroup() {
+	af.PlotTimeGroup = PlotTimeGroupDays
 }
 
 // HasFreeText returns true if a free text
