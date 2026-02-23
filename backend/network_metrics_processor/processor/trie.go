@@ -1,12 +1,17 @@
 package processor
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 )
 
+// Enable debug logging
+var enableDebugLogs = true
+
 // TrieNode represents a URL in the trie
 // and accumulates hit counts for patterns
-// as paths are inserted.
+// as URLs are inserted.
 type TrieNode struct {
 	// hitCount is the accumulated number of
 	// requests for paths terminating at this
@@ -22,17 +27,12 @@ type TrieNode struct {
 	// wildcard.
 	segmentCardinalityThreshold int
 
-	// isLeaf indicates that at least one inserted path terminates at this node.
-	isLeaf bool
-	
-	// isCollapsed indicates that this node's children were replaced by a wildcard.
+	// isCollapsed indicates that this node's
+	// children were replaced by a wildcard.
 	isCollapsed bool
 }
 
-// NewTrie creates a new root TrieNode with the given
-// collapse threshold. When a node at depth > 1 gains
-// more children than the threshold, it collapses into
-// a wildcard.
+// NewTrie creates a new root TrieNode.
 func NewTrie(collapseThreshold int) *TrieNode {
 	return &TrieNode{
 		children:                    make(map[string]*TrieNode),
@@ -40,8 +40,7 @@ func NewTrie(collapseThreshold int) *TrieNode {
 	}
 }
 
-// Insert adds a path with its hit count to the trie under
-// the given domain.
+// Insert a domain+path with its hit count into the trie, updating
 func (t *TrieNode) Insert(domain, path string, hitCount uint64) {
 	segments := append([]string{domain}, splitPath(path)...)
 	t.insert(segments, hitCount, 0)
@@ -50,6 +49,9 @@ func (t *TrieNode) Insert(domain, path string, hitCount uint64) {
 // ExtractPatterns walks the trie and returns all patterns
 // with their accumulated hit counts.
 func (t *TrieNode) ExtractPatterns() []PatternResult {
+	if enableDebugLogs {
+		fmt.Println(t.String())
+	}
 	var results []PatternResult
 	t.extract(nil, &results)
 	collapseTrailingWildcards(results)
@@ -59,7 +61,6 @@ func (t *TrieNode) ExtractPatterns() []PatternResult {
 func (t *TrieNode) insert(segments []string, hitCount uint64, depth int) {
 	if len(segments) == 0 {
 		t.hitCount += hitCount
-		t.isLeaf = true
 		return
 	}
 
@@ -75,7 +76,6 @@ func (t *TrieNode) insert(segments []string, hitCount uint64, depth int) {
 		// Exceeding threshold at depth > 1 triggers collapse.
 		t.hitCount += subtreeCount(t) + hitCount
 		t.children = make(map[string]*TrieNode)
-		t.isLeaf = true
 		t.isCollapsed = true
 		return
 	}
@@ -98,7 +98,7 @@ func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
 		return
 	}
 
-	if t.isLeaf {
+	if t.hitCount > 0 {
 		domain, pathSegs := splitDomainPrefix(prefix)
 		path := "/" + strings.Join(pathSegs, "/")
 		*results = append(*results, PatternResult{
@@ -137,7 +137,7 @@ func subtreeCount(node *TrieNode) uint64 {
 
 func childCount(node *TrieNode) uint64 {
 	var total uint64
-	if node.isLeaf || node.isCollapsed {
+	if node.hitCount > 0 {
 		total += node.hitCount
 	}
 	for _, child := range node.children {
@@ -165,6 +165,7 @@ func collapseTrailingWildcards(results []PatternResult) {
 			results[i].Path = strings.Join(segs[:len(segs)-trailing], "/") + "/**"
 		}
 	}
+
 }
 
 // splitPath splits a URL path by "/" and removes empty
@@ -179,4 +180,52 @@ func splitPath(path string) []string {
 		}
 	}
 	return segments
+}
+
+// String returns a pretty-printed representation of the trie.
+func (t *TrieNode) String() string {
+	var b strings.Builder
+	b.WriteString("(root)")
+	if t.hitCount > 0 {
+		fmt.Fprintf(&b, " [hits: %d]", t.hitCount)
+	}
+	if t.isCollapsed {
+		b.WriteString(" [collapsed]")
+	}
+	b.WriteByte('\n')
+	t.printTree(&b, "")
+	return b.String()
+}
+
+func (t *TrieNode) printTree(b *strings.Builder, indent string) {
+	keys := make([]string, 0, len(t.children))
+	for k := range t.children {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i, k := range keys {
+		child := t.children[k]
+		isLast := i == len(keys)-1
+
+		connector := "├── "
+		if isLast {
+			connector = "└── "
+		}
+
+		fmt.Fprintf(b, "%s%s%s", indent, connector, k)
+		if child.hitCount > 0 {
+			fmt.Fprintf(b, " [hits: %d]", child.hitCount)
+		}
+		if child.isCollapsed {
+			b.WriteString(" [collapsed]")
+		}
+		b.WriteByte('\n')
+
+		childIndent := indent + "│   "
+		if isLast {
+			childIndent = indent + "    "
+		}
+		child.printTree(b, childIndent)
+	}
 }
