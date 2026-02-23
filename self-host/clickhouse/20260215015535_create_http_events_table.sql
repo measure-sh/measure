@@ -16,6 +16,7 @@ create table http_events
     `failure_reason` LowCardinality(String) comment 'reason for request failure',
     `failure_description` String comment 'detailed description of the request failure',
     `timestamp` DateTime64(3) comment 'event timestamp in UTC',
+    `inserted_at` DateTime64(3, 'UTC') DEFAULT timestamp comment 'server insertion timestamp',
     `end_time` UInt64 comment 'end time of the http request',
     `start_time` UInt64 comment 'start time of the http request',
     `latency_ms` Int64 comment 'latency of the http request in milliseconds, calculated as end_time - start_time',

@@ -33,7 +33,8 @@ SELECT
     `attribute.network_generation` AS `network_generation`,
     `attribute.device_locale` AS `device_locale`,
     `attribute.device_manufacturer` AS `device_manufacturer`,
-    `attribute.device_name` AS `device_name`
+    `attribute.device_name` AS `device_name`,
+    `inserted_at` AS `inserted_at`
 FROM
     events
 WHERE
