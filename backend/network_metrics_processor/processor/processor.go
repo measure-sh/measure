@@ -11,6 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
@@ -26,6 +29,8 @@ const (
 	// http_events when no prior reporting timestamp exists.
 	metricsDefaultLookback = 1 * 24 * time.Hour
 )
+
+var tracer = otel.Tracer("network-metrics-processor")
 
 // team represents a team row from PG.
 type team struct {
@@ -60,11 +65,18 @@ type PatternResult struct {
 // traffic, normalizes dynamic path segments, consolidates
 // similar paths via a trie, and stores the results.
 func GeneratePatterns(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "generate-patterns")
+	defer span.End()
+
 	start := time.Now()
 	now := start.UTC()
 
-	teams, err := getTeams(ctx)
+	teamsCtx, teamsSpan := tracer.Start(ctx, "pg.get-teams")
+	teams, err := getTeams(teamsCtx)
+	teamsSpan.End()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch teams")
 		fmt.Printf("failed to fetch teams: %v\n", err)
 		return
 	}
@@ -72,14 +84,18 @@ func GeneratePatterns(ctx context.Context) {
 	var processed, skipped, failed int
 
 	for _, t := range teams {
-		apps, err := getAppsForTeam(ctx, t.ID)
+		appsCtx, appsSpan := tracer.Start(ctx, "pg.get-apps")
+		apps, err := getAppsForTeam(appsCtx, t.ID)
+		appsSpan.End()
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
-			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
+			lastGenCtx, lastGenSpan := tracer.Start(ctx, "pg.get-last-pattern-generated-at")
+			from, err := getLastPatternGeneratedAt(lastGenCtx, app.TeamID, app.ID)
+			lastGenSpan.End()
 			if err != nil {
 				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
@@ -92,7 +108,10 @@ func GeneratePatterns(ctx context.Context) {
 				from = &defaultFrom
 			}
 
-			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
+			fetchCtx, fetchSpan := tracer.Start(ctx, "ch.fetch-http-events")
+			fetchSpan.SetAttributes(attribute.String("app_id", app.ID.String()))
+			events, err := fetchHttpEvents(fetchCtx, app.TeamID, app.ID, *from, now)
+			fetchSpan.End()
 			if err != nil {
 				fmt.Printf("failed to fetch http events for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
@@ -144,22 +163,29 @@ func GeneratePatterns(ctx context.Context) {
 				continue
 			}
 
-			if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+			insertCtx, insertSpan := tracer.Start(ctx, "ch.insert-url-patterns")
+			insertSpan.SetAttributes(attribute.Int("pattern_count", totalPatterns))
+			if err := server.Server.ChPool.AsyncInsert(insertCtx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+				insertSpan.End()
 				fmt.Printf("failed to insert for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				insertStmt.Close()
 				failed++
 				continue
 			}
+			insertSpan.End()
 
 			insertStmt.Close()
 
-			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
+			upsertCtx, upsertSpan := tracer.Start(ctx, "pg.upsert-pattern-generated-at")
+			if err := upsertPatternGeneratedAt(upsertCtx, app.TeamID, app.ID, now); err != nil {
+				upsertSpan.End()
 				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
+			upsertSpan.End()
 
 			processed++
 		}
@@ -172,11 +198,18 @@ func GeneratePatterns(ctx context.Context) {
 // GenerateMetrics pre-aggregates HTTP event data into
 // the http_metrics table for each known app.
 func GenerateMetrics(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "generate-metrics")
+	defer span.End()
+
 	start := time.Now()
 	now := start.UTC()
 
-	teams, err := getTeams(ctx)
+	teamsCtx, teamsSpan := tracer.Start(ctx, "pg.get-teams")
+	teams, err := getTeams(teamsCtx)
+	teamsSpan.End()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch teams")
 		fmt.Printf("failed to fetch teams: %v\n", err)
 		return
 	}
@@ -184,14 +217,18 @@ func GenerateMetrics(ctx context.Context) {
 	var processed, skipped, failed int
 
 	for _, t := range teams {
-		apps, err := getAppsForTeam(ctx, t.ID)
+		appsCtx, appsSpan := tracer.Start(ctx, "pg.get-apps")
+		apps, err := getAppsForTeam(appsCtx, t.ID)
+		appsSpan.End()
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
-			from, err := getLastReportedAt(ctx, app.TeamID, app.ID)
+			lastRepCtx, lastRepSpan := tracer.Start(ctx, "pg.get-last-reported-at")
+			from, err := getLastReportedAt(lastRepCtx, app.TeamID, app.ID)
+			lastRepSpan.End()
 			if err != nil {
 				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
@@ -209,19 +246,26 @@ func GenerateMetrics(ctx context.Context) {
 				continue
 			}
 
-			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
+			insertCtx, insertSpan := tracer.Start(ctx, "ch.insert-aggregated-metrics")
+			insertSpan.SetAttributes(attribute.String("app_id", app.ID.String()))
+			if err := insertAggregatedMetrics(insertCtx, app.TeamID, app.ID, *from, now); err != nil {
+				insertSpan.End()
 				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
+			insertSpan.End()
 
-			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
+			upsertCtx, upsertSpan := tracer.Start(ctx, "pg.upsert-metrics-reported-at")
+			if err := upsertMetricsReportedAt(upsertCtx, app.TeamID, app.ID, now); err != nil {
+				upsertSpan.End()
 				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
+			upsertSpan.End()
 
 			processed++
 		}
