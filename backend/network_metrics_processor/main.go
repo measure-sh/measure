@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"backend/url-processor/processor"
-	"backend/url-processor/server"
+	"backend/network_metrics_processor/processor"
+	"backend/network_metrics_processor/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"

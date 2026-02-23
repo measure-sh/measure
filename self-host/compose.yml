@@ -327,10 +327,10 @@ services:
         condition: service_completed_successfully
         required: false
 
-  url-processor:
+  network_metrics_processor:
     build:
       dockerfile: dockerfile
-      context: ../backend/url-processor
+      context: ../backend/network_metrics_processor
     ports:
       - "8085:8085"
     environment:
@@ -342,7 +342,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../backend/url-processor
+        - path: ../backend/network_metrics_processor
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]

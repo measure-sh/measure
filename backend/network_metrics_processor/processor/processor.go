@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"backend/url-processor/server"
+	"backend/network_metrics_processor/server"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
