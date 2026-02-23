@@ -232,3 +232,32 @@ func TestTrie_InsertWithDomain_TopLevelPathsNeverCollapse(t *testing.T) {
 		t.Fatalf("expected 20 patterns, got %d: %v", len(patterns), patterns)
 	}
 }
+
+func TestTrie_ConsecutiveTrailingWildcardsCollapse(t *testing.T) {
+	trie := NewTrie()
+	trie.InsertWithDomain("example.com", "/users/*/*", 10)
+	trie.InsertWithDomain("example.com", "/track/*/*/*", 20)
+
+	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
+		{Domain: "example.com", Path: "/users/**", Count: 10},
+		{Domain: "example.com", Path: "/track/**", Count: 20},
+	})
+}
+
+func TestTrie_SingleTrailingWildcardUnchanged(t *testing.T) {
+	trie := NewTrie()
+	trie.InsertWithDomain("example.com", "/users/*", 10)
+
+	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
+		{Domain: "example.com", Path: "/users/*", Count: 10},
+	})
+}
+
+func TestTrie_NonTrailingWildcardsUnchanged(t *testing.T) {
+	trie := NewTrie()
+	trie.InsertWithDomain("example.com", "/users/*/orders/*", 10)
+
+	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
+		{Domain: "example.com", Path: "/users/*/orders/*", Count: 10},
+	})
+}
