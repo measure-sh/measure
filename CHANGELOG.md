@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use dynamic time groupings for plots by @anupcowkur in #3206
 - (**backend**): Update daily summary time range and email by @anupcowkur in #3198
 - (**backend**): Update authz roles & UI checks by @anupcowkur in #3189
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
