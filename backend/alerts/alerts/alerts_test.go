@@ -1805,7 +1805,7 @@ func TestCreateDailySummary(t *testing.T) {
 		}
 	})
 
-	t.Run("events today populate metrics and produce a summary email", func(t *testing.T) {
+	t.Run("events yesterday populate metrics and produce a summary email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -1819,9 +1819,9 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
 
-		// Seed events today — the app_metrics_mv fires on insert and populates app_metrics
-		now := time.Now().UTC()
-		th.SeedGenericEvents(ctx, t, teamID, appID, 5, now)
+		// Seed events for the previous UTC day; CreateDailySummary reports yesterday.
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
 
 		CreateDailySummary(ctx)
 
@@ -1845,8 +1845,8 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "Slack Summary App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUMMARY"})
 
-		now := time.Now().UTC()
-		th.SeedGenericEvents(ctx, t, teamID, appID, 5, now)
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
 
 		CreateDailySummary(ctx)
 
@@ -1889,9 +1889,9 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedApp(ctx, t, app1, teamID, "App One", 30)
 		th.SeedApp(ctx, t, app2, teamID, "App Two", 30)
 
-		now := time.Now().UTC()
-		th.SeedGenericEvents(ctx, t, teamID, app1, 5, now)
-		th.SeedGenericEvents(ctx, t, teamID, app2, 5, now)
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, app1, 5, summaryDate)
+		th.SeedGenericEvents(ctx, t, teamID, app2, 5, summaryDate)
 
 		CreateDailySummary(ctx)
 
@@ -1915,8 +1915,8 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUM1", "C0SUM2"})
 
-		now := time.Now().UTC()
-		th.SeedGenericEvents(ctx, t, teamID, appID, 5, now)
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
 
 		CreateDailySummary(ctx)
 
@@ -1940,8 +1940,8 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{})
 
-		now := time.Now().UTC()
-		th.SeedGenericEvents(ctx, t, teamID, appID, 5, now)
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
 
 		CreateDailySummary(ctx)
 

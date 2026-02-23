@@ -247,7 +247,8 @@ func CreateBugReportAlerts(ctx context.Context) {
 func CreateDailySummary(ctx context.Context) {
 	fmt.Println("Creating daily summary...")
 
-	date := time.Now().UTC()
+	// Daily summary runs at 06:00 UTC and reports the previous UTC calendar day.
+	date := time.Now().UTC().AddDate(0, 0, -1)
 
 	teams, err := getTeams(ctx)
 	if err != nil {
