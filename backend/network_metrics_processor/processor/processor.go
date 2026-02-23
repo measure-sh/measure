@@ -119,7 +119,8 @@ func GeneratePatterns(ctx context.Context) {
 			trie := NewTrie(collapseThreshold)
 			for _, event := range events {
 				normalizedPath := NormalizePath(event.Path)
-				trie.Insert(event.Domain, normalizedPath, event.Count)
+				segments := append([]string{event.Domain}, splitPath(normalizedPath)...)
+				trie.Insert(segments, event.Count)
 			}
 
 			patterns := trie.ExtractPatterns()
