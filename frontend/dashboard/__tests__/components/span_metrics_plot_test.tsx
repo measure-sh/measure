@@ -145,4 +145,20 @@ describe('SpanMetricsPlot', () => {
     expect(thrown).toBe('Invalid quantile selected')
   })
 
+  it('hides stale chart while new range data is loading', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2026-02-10T01:00:00', p50: 10, p90: 20, p95: 30, p99: 40 }] }] })
+      .mockImplementationOnce(() => new Promise(() => { }))
+
+    const { rerender } = render(<SpanMetricsPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-06T00:00:00Z' }} />)
+    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+
+    rerender(<SpanMetricsPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T08:00:00Z' }} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('loading')).toBeInTheDocument()
+      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+    })
+  })
+
 })

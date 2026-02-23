@@ -158,4 +158,20 @@ describe('SessionsVsExceptionsPlot', () => {
     expect(lastLineProps.colors({ id: 'Unknown' })).toBe('#888')
     expect(lastLineProps.pointBorderColor({ serieId: 'Unknown' })).toBe('#888')
   })
+
+  it('hides stale chart while new range data is loading', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-03-01', y: 10 }] }] })
+      .mockImplementationOnce(() => new Promise(() => { }))
+
+    const { rerender } = render(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
+    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+
+    rerender(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('loading')).toBeInTheDocument()
+      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+    })
+  })
 })

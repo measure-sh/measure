@@ -134,4 +134,20 @@ describe('ExceptionsOverviewPlot', () => {
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.axisBottom.format).toBe('%b %Y')
   })
+
+  it('hides stale chart while new range data is loading', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02', instances: 2 }] }] })
+      .mockImplementationOnce(() => new Promise(() => { }))
+
+    const { rerender } = render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
+    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+
+    rerender(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-01T06:00:00Z' }} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('loading')).toBeInTheDocument()
+      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+    })
+  })
 })

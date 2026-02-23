@@ -107,4 +107,20 @@ describe('BugReportsOverviewPlot', () => {
     expect(r1.container.textContent).toContain('Bug Report')
     expect(r2.container.textContent).toContain('Bug Reports')
   })
+
+  it('hides stale chart while new range data is loading', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2025-02-01', instances: 2 }] }] })
+      .mockImplementationOnce(() => new Promise(() => { }))
+
+    const { rerender } = render(<BugReportsOverviewPlot filters={filters} />)
+    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+
+    rerender(<BugReportsOverviewPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('loading')).toBeInTheDocument()
+      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+    })
+  })
 })

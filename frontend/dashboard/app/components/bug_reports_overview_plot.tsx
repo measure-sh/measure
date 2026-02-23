@@ -26,9 +26,12 @@ type BugReportsOverviewPlot = {
 const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters }) => {
   const [bugReportsOverviewPlotApiStatus, setBugReportsOverviewPlotApiStatus] = useState(BugReportsOverviewPlotApiStatus.Loading)
   const [plot, setPlot] = useState<BugReportsOverviewPlot>()
+  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
+  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
+  const shouldRenderPlot = bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
 
   const getBugReportsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -43,9 +46,11 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
     switch (result.status) {
       case BugReportsOverviewPlotApiStatus.Error:
         setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Error)
+        setPlotDataKey(null)
         break
       case BugReportsOverviewPlotApiStatus.NoData:
         setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.NoData)
+        setPlotDataKey(null)
         break
       case BugReportsOverviewPlotApiStatus.Success:
         setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Success)
@@ -61,6 +66,7 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
         }))
 
         setPlot(newPlot)
+        setPlotDataKey(currentPlotKey)
         break
     }
   }
@@ -71,10 +77,10 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
+      {(bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Loading || (bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
       {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Success &&
+      {shouldRenderPlot &&
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
