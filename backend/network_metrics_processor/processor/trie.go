@@ -4,14 +4,29 @@ import (
 	"strings"
 )
 
-// TrieNode represents a node in a URL pattern trie that
-// groups similar paths into wildcard patterns.
+// TrieNode represents a URL in the trie
+// and accumulates hit counts for patterns
+// as paths are inserted.
 type TrieNode struct {
-	children          map[string]*TrieNode
-	count             uint64
-	collapseThreshold int
-	isLeaf            bool
-	isCollapsed       bool
+	// hitCount is the accumulated number of
+	// requests for paths terminating at this
+	// node.
+	hitCount uint64
+
+	// children maps the next path segment to
+	// its child node.
+	children map[string]*TrieNode
+
+	// segmentCardinalityThreshold is the max cardinality
+	// of a segment before collapsing it into a
+	// wildcard.
+	segmentCardinalityThreshold int
+
+	// isLeaf indicates that at least one inserted path terminates at this node.
+	isLeaf bool
+	
+	// isCollapsed indicates that this node's children were replaced by a wildcard.
+	isCollapsed bool
 }
 
 // NewTrie creates a new root TrieNode with the given
@@ -20,20 +35,20 @@ type TrieNode struct {
 // a wildcard.
 func NewTrie(collapseThreshold int) *TrieNode {
 	return &TrieNode{
-		children:          make(map[string]*TrieNode),
-		collapseThreshold: collapseThreshold,
+		children:                    make(map[string]*TrieNode),
+		segmentCardinalityThreshold: collapseThreshold,
 	}
 }
 
-// Insert adds a path with its count to the trie under the
-// given domain.
-func (t *TrieNode) Insert(domain, path string, count uint64) {
+// Insert adds a path with its hit count to the trie under
+// the given domain.
+func (t *TrieNode) Insert(domain, path string, hitCount uint64) {
 	segments := append([]string{domain}, splitPath(path)...)
-	t.insert(segments, count, 0)
+	t.insert(segments, hitCount, 0)
 }
 
 // ExtractPatterns walks the trie and returns all patterns
-// with their accumulated counts.
+// with their accumulated hit counts.
 func (t *TrieNode) ExtractPatterns() []PatternResult {
 	var results []PatternResult
 	t.extract(nil, &results)
@@ -41,24 +56,24 @@ func (t *TrieNode) ExtractPatterns() []PatternResult {
 	return results
 }
 
-func (t *TrieNode) insert(segments []string, count uint64, depth int) {
+func (t *TrieNode) insert(segments []string, hitCount uint64, depth int) {
 	if len(segments) == 0 {
-		t.count += count
+		t.hitCount += hitCount
 		t.isLeaf = true
 		return
 	}
 
 	if t.isCollapsed {
-		t.count += count
+		t.hitCount += hitCount
 		return
 	}
 
 	segment := segments[0]
 	rest := segments[1:]
 
-	if _, exists := t.children[segment]; !exists && len(t.children) >= t.collapseThreshold && depth > 1 {
-		// Adding an 11th child at depth > 1 triggers collapse.
-		t.count += subtreeCount(t) + count
+	if _, exists := t.children[segment]; !exists && len(t.children) >= t.segmentCardinalityThreshold && depth > 1 {
+		// Exceeding threshold at depth > 1 triggers collapse.
+		t.hitCount += subtreeCount(t) + hitCount
 		t.children = make(map[string]*TrieNode)
 		t.isLeaf = true
 		t.isCollapsed = true
@@ -66,9 +81,9 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 	}
 
 	if _, exists := t.children[segment]; !exists {
-		t.children[segment] = NewTrie(t.collapseThreshold)
+		t.children[segment] = NewTrie(t.segmentCardinalityThreshold)
 	}
-	t.children[segment].insert(rest, count, depth+1)
+	t.children[segment].insert(rest, hitCount, depth+1)
 }
 
 func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
@@ -78,7 +93,7 @@ func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
 		*results = append(*results, PatternResult{
 			Domain: domain,
 			Path:   path,
-			Count:  t.count,
+			Count:  t.hitCount,
 		})
 		return
 	}
@@ -89,7 +104,7 @@ func (t *TrieNode) extract(prefix []string, results *[]PatternResult) {
 		*results = append(*results, PatternResult{
 			Domain: domain,
 			Path:   path,
-			Count:  t.count,
+			Count:  t.hitCount,
 		})
 	}
 
@@ -110,8 +125,8 @@ func splitDomainPrefix(prefix []string) (string, []string) {
 	return prefix[0], prefix[1:]
 }
 
-// subtreeCount sums all leaf and collapsed counts in the
-// subtree rooted at node (excluding node's own count).
+// subtreeCount sums all leaf and collapsed hit counts in
+// the subtree rooted at node (excluding node's own count).
 func subtreeCount(node *TrieNode) uint64 {
 	var total uint64
 	for _, child := range node.children {
@@ -123,7 +138,7 @@ func subtreeCount(node *TrieNode) uint64 {
 func childCount(node *TrieNode) uint64 {
 	var total uint64
 	if node.isLeaf || node.isCollapsed {
-		total += node.count
+		total += node.hitCount
 	}
 	for _, child := range node.children {
 		total += childCount(child)
