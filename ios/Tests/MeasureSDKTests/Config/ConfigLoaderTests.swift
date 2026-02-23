@@ -14,6 +14,7 @@ final class ConfigLoaderTests: XCTestCase {
     private var mockFileManager: MockSystemFileManager!
     private var mockTimeProvider: MockTimeProvider!
     private var configLoader: ConfigLoader!
+    private var measureDispatchQueue: MockMeasureDispatchQueue!
 
     override func setUp() {
         super.setUp()
@@ -22,13 +23,15 @@ final class ConfigLoaderTests: XCTestCase {
         mockUserDefaults = MockUserDefaultStorage()
         mockFileManager = MockSystemFileManager()
         mockTimeProvider = MockTimeProvider()
+        measureDispatchQueue = MockMeasureDispatchQueue()
 
         configLoader = BaseConfigLoader(
             userDefaultStorage: mockUserDefaults,
             fileManager: mockFileManager,
             networkClient: mockNetworkClient,
             timeProvider: mockTimeProvider,
-            logger: MockLogger()
+            logger: MockLogger(),
+            measureDispatchQueue: measureDispatchQueue
         )
     }
 
@@ -38,6 +41,7 @@ final class ConfigLoaderTests: XCTestCase {
         mockUserDefaults = nil
         mockFileManager = nil
         mockTimeProvider = nil
+        measureDispatchQueue = nil
         super.tearDown()
     }
 
