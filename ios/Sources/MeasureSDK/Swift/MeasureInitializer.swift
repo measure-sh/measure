@@ -227,11 +227,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: systemFileManager)
         self.timeProvider = BaseTimeProvider()
+        self.measureDispatchQueue = BaseMeasureDispatchQueue()
         self.configLoader = BaseConfigLoader(userDefaultStorage: userDefaultStorage,
                                              fileManager: systemFileManager,
                                              networkClient: networkClient,
                                              timeProvider: timeProvider,
-                                             logger: logger)
+                                             logger: logger,
+                                             measureDispatchQueue: measureDispatchQueue)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
@@ -266,7 +268,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                                  idProvider: idProvider)
-        self.measureDispatchQueue = BaseMeasureDispatchQueue()
         self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
         self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                              measureDispatchQueue: measureDispatchQueue)
