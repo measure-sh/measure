@@ -1,19 +1,31 @@
-# URL Processor
+# Network Metrics Processor
 
-Discovers URL patterns from raw HTTP traffic and stores them in the `url_patterns` ClickHouse table. Runs as a cron job every minute.
+Two scheduled jobs that discover URL patterns from raw HTTP traffic and pre-aggregate metrics for fast querying.
 
-## What it does
+## Jobs
 
-1. Fetches raw paths from `http_events` for the last month, grouped by team, app, and domain
-2. Normalizes dynamic path segments (UUIDs, hashes, dates, hex values, integers) to `*`
-3. Consolidates similar paths using a trie with eager collapsing
-4. Stores patterns with at least 100 requests per (team, app, domain) in `url_patterns`
+### GeneratePatterns — daily at 00:00 UTC
 
-## How collapsing works
+Discovers URL patterns from `http_events` and writes them to `url_patterns`.
 
-- Each unique path is inserted into a trie, split by `/` segments
-- A trie node is allowed at most 2 children
-- When a 3rd child would be added, the node collapses: all its descendants are removed and their counts are summed into the collapsed node
-- Once collapsed, a node absorbs all future inserts that pass through it
-- The root node never collapses, so top-level path segments (e.g., `/api`, `/web`, `/static`) are always preserved
-- The result is a compact set of patterns where high-variance path branches are replaced with wildcards
+1. For each (team, app), fetches raw paths from `http_events` since the last run (first run lookback: 7 days)
+2. Normalizes dynamic segments (UUIDs, SHA-1/MD5 hashes, dates, hex values, 2+ digit integers) to `*`
+3. Builds a single trie per app with domain as root segment and consolidates via eager collapsing
+4. Stores patterns with >= 100 occurrences in the `url_patterns` ClickHouse table
+
+### GenerateMetrics — hourly
+
+Pre-aggregates metrics from `http_events` into 15-minute buckets in the `http_metrics` table.
+
+1. For each (team, app), reads events since the last run (first run lookback: 3 hours)
+2. Joins `http_events` with `url_patterns` using path matching (exact, wildcard via LIKE, or prefix via `startsWith`)
+3. Groups by timestamp bucket, domain, path, method, status code, app/os version, and device info
+4. Computes request counts, status code distribution (2xx–5xx), and latency percentiles (p50–p99)
+
+## Trie collapsing
+
+- Paths are split by `/` and inserted into a trie with domain as the root segment
+- A node collapses when an 11th child would be added (depth > 1 only)
+- Collapsing removes all descendants, sums their counts, and absorbs future inserts
+- Depth 0 (domain) and depth 1 (first path segment) nodes never collapse
+- Collapsed nodes produce patterns ending in `**`; leaf nodes produce exact patterns
