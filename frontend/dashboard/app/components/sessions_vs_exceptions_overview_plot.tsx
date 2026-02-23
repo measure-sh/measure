@@ -6,8 +6,9 @@ import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { SessionsVsExceptionsPlotApiStatus, fetchSessionsVsExceptionsPlotFromServer } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
+import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { getPlotTimeGroupForRange } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
@@ -69,6 +70,8 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
   const [sessionsVsExceptionsPlotApiStatus, setSessionsVsExceptionsPlotApiStatus] = useState(SessionsVsExceptionsPlotApiStatus.Loading)
   const [plot, setPlot] = useState<SessionsVsExceptionsPlot>()
   const { theme } = useTheme()
+  const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
+  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
   const colorMap = theme === 'dark' ? {
     Sessions: 'oklch(0.6042 0.1238 244.6)',
@@ -135,10 +138,10 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
           areaOpacity={0.1}
           colors={({ id }) => colorMap[id as keyof typeof colorMap] || '#888'}
           margin={{ top: 40, right: 40, bottom: 80, left: 40 }}
-          xFormat="time:%Y-%m-%d"
+          xFormat={timeConfig.xFormat}
           xScale={{
-            format: '%Y-%m-%d',
-            precision: 'day',
+            format: timeConfig.xScaleFormat,
+            precision: timeConfig.xScalePrecision,
             type: 'time',
             useUTC: false
           }}
@@ -152,7 +155,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
           axisRight={null}
           axisBottom={{
             tickPadding: 16,
-            format: '%b %d, %Y',
+            format: timeConfig.axisBottomFormat,
             legendPosition: 'middle',
             tickRotation: 55
           }}
@@ -175,7 +178,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
             const pointsById: Record<string, typeof slice.points[number]> = Object.fromEntries(slice.points.map(p => [p.serieId, p]));
             return (
               <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-                <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2'>Date: {formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
                 {order.map((key) => {
                   const point = pointsById[key];
                   if (!point) return null;

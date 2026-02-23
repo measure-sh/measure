@@ -30,7 +30,7 @@ func seedCrashSpike(ctx context.Context, t *testing.T, teamID, appID string, ses
 	now := time.Now().UTC()
 	th.SeedGenericEvents(ctx, t, teamID, appID, sessionCount, now.Add(-30*time.Minute))
 	for i := 0; i < crashCount; i++ {
-		th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, now.Add(-5*time.Minute))
+		th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, false, now.Add(-5*time.Minute))
 	}
 	th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 }
@@ -41,7 +41,7 @@ func seedAnrSpike(ctx context.Context, t *testing.T, teamID, appID string, sessi
 	now := time.Now().UTC()
 	th.SeedGenericEvents(ctx, t, teamID, appID, sessionCount, now.Add(-30*time.Minute))
 	for i := 0; i < anrCount; i++ {
-		th.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, now.Add(-5*time.Minute))
+		th.SeedIssueEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, false, now.Add(-5*time.Minute))
 	}
 	th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 }
@@ -86,7 +86,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
 		// Seed 50 crashes — below minCrashOrAnrCountThreshold (100)
 		for i := 0; i < 50; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, false, now.Add(-5*time.Minute))
 		}
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 
@@ -168,10 +168,10 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		now := time.Now().UTC()
 		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
 		for i := 0; i < 110; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, false, now.Add(-5*time.Minute))
 		}
 		for i := 0; i < 110; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, false, now.Add(-5*time.Minute))
 		}
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
@@ -327,7 +327,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		now := time.Now().UTC()
 		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
 		for i := 0; i < 50; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, false, now.Add(-5*time.Minute))
 		}
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 
@@ -355,7 +355,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		// 100 crashes / 20 101 total sessions ≈ 0.497% < 0.5% threshold
 		now := time.Now().UTC()
 		for i := 0; i < 100; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, false, now.Add(-5*time.Minute))
 		}
 		th.SeedGenericEvents(ctx, t, teamID, appID, 20001, now.Add(-30*time.Minute))
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
@@ -384,7 +384,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		// 100 ANRs / 20 101 total sessions ≈ 0.497% < 0.5% threshold
 		now := time.Now().UTC()
 		for i := 0; i < 100; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "anr", testAnrFingerprint, false, now.Add(-5*time.Minute))
 		}
 		th.SeedGenericEvents(ctx, t, teamID, appID, 20001, now.Add(-30*time.Minute))
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
@@ -415,8 +415,8 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		now := time.Now().UTC()
 		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
 		for i := 0; i < 110; i++ {
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, now.Add(-5*time.Minute))
-			th.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint2, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint, false, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", testCrashFingerprint2, false, now.Add(-5*time.Minute))
 		}
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint2)
@@ -446,7 +446,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
 		// 150 handled exceptions — these must NOT count toward the crash threshold
 		for i := 0; i < 150; i++ {
-			th.SeedHandledException(ctx, t, teamID, appID, now.Add(-5*time.Minute))
+			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", "", true, now.Add(-5*time.Minute))
 		}
 
 		CreateCrashAndAnrAlerts(ctx)

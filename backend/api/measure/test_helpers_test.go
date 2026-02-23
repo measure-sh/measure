@@ -95,6 +95,35 @@ func seedAPIKey(
 	th.SeedAPIKey(ctx, t, appID.String(), keyPrefix, keyValue, checksum, revoked, lastSeen, createdAt)
 }
 
+func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {
+	th.SeedGenericEvents(ctx, t, teamID, appID, count, ts)
+}
+
+func seedIssueEvent(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, eventType, fingerprint string,
+	handled bool,
+	ts time.Time,
+) {
+	th.SeedIssueEvent(ctx, t, teamID, appID, eventType, fingerprint, handled, ts)
+}
+
+func seedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
+	th.SeedBugReport(ctx, t, teamID, appID, eventID, description, ts)
+}
+
+func seedSpan(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, spanName string,
+	status uint8,
+	startTime, endTime time.Time,
+	appVersion, appBuild string,
+) {
+	th.SeedSpan(ctx, t, teamID, appID, spanName, status, startTime, endTime, appVersion, appBuild)
+}
+
 // --------------------------------------------------------------------------
 // Gin test context
 // --------------------------------------------------------------------------

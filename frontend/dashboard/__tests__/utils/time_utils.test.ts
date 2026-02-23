@@ -1,4 +1,4 @@
-import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils'
+import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatPlotTooltipDate, formatTimestampToChartFormat, formatUserInputDateToServerFormat, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig, isValidTimestamp } from '@/app/utils/time_utils'
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
 import { DateTime, Settings } from "luxon"
 
@@ -51,7 +51,7 @@ describe('formatDateToHumanReadableDateTime', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a UTC timestamp to a human readable date', () => {
@@ -79,7 +79,7 @@ describe('formatDateToHumanReadableDate', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a UTC timestamp to a human readable date', () => {
@@ -107,7 +107,7 @@ describe('formatDateToHumanReadableTime', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a UTC timestamp to a human readable date', () => {
@@ -135,7 +135,7 @@ describe('formatTimestampToChartFormat', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a UTC timestamp to chart format', () => {
@@ -163,7 +163,7 @@ describe('formatChartFormatTimestampToHumanReadable', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a chart format timestamp to human readable', () => {
@@ -191,7 +191,7 @@ describe('formatUserSelectedDateToServerFormat', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a user input date to server format', () => {
@@ -219,7 +219,7 @@ describe('formatIsoDateForDateTimeInputField', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should format a ISO date to date time input filed format', () => {
@@ -247,7 +247,7 @@ describe('isValidTimestamp', () => {
     })
 
     afterEach(() => {
-        Settings.now = () => DateTime.now().valueOf()
+        Settings.now = () => new Date().valueOf()
     })
 
     it('should return true on valid timestamp', () => {
@@ -258,5 +258,42 @@ describe('isValidTimestamp', () => {
     it('should return false on invalid timestamp', () => {
         const timestamp = 'invalid-timestamp'
         expect(isValidTimestamp(timestamp)).toBe(false)
+    })
+})
+
+describe('plot time group utils', () => {
+    it('maps date range to plot time groups', () => {
+        expect(getPlotTimeGroupForRange('2026-02-01T00:00:00Z', '2026-02-01T06:00:00Z')).toBe('minutes')
+        expect(getPlotTimeGroupForRange('2026-02-01T00:00:00Z', '2026-02-06T00:00:00Z')).toBe('hours')
+        expect(getPlotTimeGroupForRange('2026-01-01T00:00:00Z', '2026-03-15T00:00:00Z')).toBe('days')
+        expect(getPlotTimeGroupForRange('2025-01-01T00:00:00Z', '2026-01-01T00:00:00Z')).toBe('months')
+    })
+
+    it('uses days fallback for invalid or non-increasing ranges', () => {
+        expect(getPlotTimeGroupForRange('invalid', '2026-02-01T06:00:00Z')).toBe('days')
+        expect(getPlotTimeGroupForRange('2026-02-01T06:00:00Z', 'invalid')).toBe('days')
+        expect(getPlotTimeGroupForRange('2026-02-01T06:00:00Z', '2026-02-01T06:00:00Z')).toBe('days')
+        expect(getPlotTimeGroupForRange('2026-02-01T07:00:00Z', '2026-02-01T06:00:00Z')).toBe('days')
+    })
+
+    it('handles exact threshold boundaries', () => {
+        expect(getPlotTimeGroupForRange('2026-02-01T00:00:00Z', '2026-02-02T00:00:00Z')).toBe('minutes')
+        expect(getPlotTimeGroupForRange('2026-02-01T00:00:00Z', '2026-02-01T12:00:00Z')).toBe('minutes')
+        expect(getPlotTimeGroupForRange('2026-02-01T00:00:00Z', '2026-02-08T00:00:00Z')).toBe('hours')
+        expect(getPlotTimeGroupForRange('2026-01-01T00:00:00Z', '2026-04-01T00:00:00Z')).toBe('days')
+        expect(getPlotTimeGroupForRange('2026-01-01T00:00:00Z', '2026-04-02T00:00:00Z')).toBe('months')
+    })
+
+    it('returns expected nivo config and tooltip formatting', () => {
+        expect(getPlotTimeGroupNivoConfig('minutes').xScalePrecision).toBe('minute')
+        expect(getPlotTimeGroupNivoConfig('hours').xScalePrecision).toBe('hour')
+        expect(getPlotTimeGroupNivoConfig('days').axisBottomFormat).toBe('%b %d, %Y')
+        expect(getPlotTimeGroupNivoConfig('months').axisBottomFormat).toBe('%b %Y')
+
+        expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'minutes')).toBe('1 Feb, 2026, 10:00 AM')
+        expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'hours')).toBe('1 Feb, 2026, 10:00 AM')
+        expect(formatPlotTooltipDate('2026-02-01', 'days')).toBe('1 Feb, 2026')
+        expect(formatPlotTooltipDate('2026-02-01', 'months')).toBe('Feb, 2026')
+        expect(formatPlotTooltipDate('not-iso', 'days')).toBe('not-iso')
     })
 })

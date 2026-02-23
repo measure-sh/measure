@@ -3,6 +3,7 @@ import { Filters } from "../components/filters"
 import { JourneyType } from "../components/journey"
 import {
   formatUserInputDateToServerFormat,
+  getPlotTimeGroupForRange,
   getTimeZoneForServer,
 } from "../utils/time_utils"
 
@@ -1308,6 +1309,12 @@ async function applyGenericFiltersToUrl(
   return u.toString()
 }
 
+function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin)
+  u.searchParams.set("plot_time_group", getPlotTimeGroupForRange(filters.startDate, filters.endDate))
+  return u.toString()
+}
+
 export const validateInvitesFromServer = async (inviteId: string) => {
   try {
     const res = await measureAuth.fetchMeasure(`/api/auth/validateInvite`, {
@@ -1413,6 +1420,7 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1682,6 +1690,7 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filte
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1808,6 +1817,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (
   }
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1841,6 +1851,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (
   }
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2479,6 +2490,7 @@ export const fetchBugReportsOverviewPlotFromServer = async (
   var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)

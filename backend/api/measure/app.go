@@ -53,6 +53,38 @@ type App struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
+type plotTimeGroupExpr struct {
+	BucketExpr     string
+	DatetimeFormat string
+}
+
+func getPlotTimeGroupExpr(tsExpr, plotTimeGroup string) (*plotTimeGroupExpr, error) {
+	switch plotTimeGroup {
+	case filter.PlotTimeGroupMinutes:
+		return &plotTimeGroupExpr{
+			BucketExpr:     fmt.Sprintf("toStartOfMinute(toTimeZone(%s, ?))", tsExpr),
+			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
+		}, nil
+	case filter.PlotTimeGroupHours:
+		return &plotTimeGroupExpr{
+			BucketExpr:     fmt.Sprintf("toStartOfHour(toTimeZone(%s, ?))", tsExpr),
+			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
+		}, nil
+	case filter.PlotTimeGroupDays:
+		return &plotTimeGroupExpr{
+			BucketExpr:     fmt.Sprintf("toDate(toTimeZone(%s, ?))", tsExpr),
+			DatetimeFormat: "%Y-%m-%d",
+		}, nil
+	case filter.PlotTimeGroupMonths:
+		return &plotTimeGroupExpr{
+			BucketExpr:     fmt.Sprintf("toStartOfMonth(toTimeZone(%s, ?))", tsExpr),
+			DatetimeFormat: "%Y-%m-01",
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported plot time group %q", plotTimeGroup)
+	}
+}
+
 func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
@@ -161,9 +193,19 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 		return nil, errors.New("missing timezone filter")
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.
 		From(`events`).
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
 		Select("count(id) as instances").
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -211,8 +253,8 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 		stmt.Where("attribute.device_name").In(af.DeviceNames)
 	}
 
-	stmt.GroupBy("version, datetime").
-		OrderBy("version, datetime")
+	stmt.GroupBy("version, datetime_bucket").
+		OrderBy("version, datetime_bucket")
 
 	defer stmt.Close()
 
@@ -225,7 +267,8 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 
 	for rows.Next() {
 		var instance event.IssueInstance
-		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+		var datetimeBucket time.Time
+		if err := rows.Scan(&datetimeBucket, &instance.DateTime, &instance.Version, &instance.Instances); err != nil {
 			return nil, err
 		}
 		instances = append(instances, instance)
@@ -371,9 +414,19 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 		return nil, errors.New("missing timezone filter")
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.
 		From("events final").
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
 		Select("count() as total_exceptions").
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -422,8 +475,8 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 		stmt.Where("attribute.device_name").In(af.DeviceNames)
 	}
 
-	stmt.GroupBy("app_version, datetime").
-		OrderBy("app_version, datetime")
+	stmt.GroupBy("app_version, datetime_bucket").
+		OrderBy("app_version, datetime_bucket")
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -432,7 +485,8 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 
 	for rows.Next() {
 		var instance event.IssueInstance
-		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+		var datetimeBucket time.Time
+		if err := rows.Scan(&datetimeBucket, &instance.DateTime, &instance.Version, &instance.Instances); err != nil {
 			return nil, err
 		}
 
@@ -694,9 +748,19 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, a
 		return nil, errors.New("missing timezone filter")
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.
 		From(`events`).
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(attribute.app_version, ' ', '(', attribute.app_build,')') as version").
 		Select("count(id) as instances").
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -743,8 +807,8 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, a
 		stmt.Where("attribute.device_name").In(af.DeviceNames)
 	}
 
-	stmt.GroupBy("version, datetime").
-		OrderBy("version, datetime")
+	stmt.GroupBy("version, datetime_bucket").
+		OrderBy("version, datetime_bucket")
 
 	defer stmt.Close()
 
@@ -757,7 +821,8 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, a
 
 	for rows.Next() {
 		var instance event.IssueInstance
-		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+		var datetimeBucket time.Time
+		if err := rows.Scan(&datetimeBucket, &instance.DateTime, &instance.Version, &instance.Instances); err != nil {
 			return nil, err
 		}
 		instances = append(instances, instance)
@@ -775,9 +840,19 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 		return nil, errors.New("missing timezone filter")
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.
 		From("events final").
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
 		Select("count() as total_anrs").
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -825,8 +900,8 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 		stmt.Where("attribute.device_name").In(af.DeviceNames)
 	}
 
-	stmt.GroupBy("app_version, datetime").
-		OrderBy("app_version, datetime")
+	stmt.GroupBy("app_version, datetime_bucket").
+		OrderBy("app_version, datetime_bucket")
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -835,7 +910,8 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 
 	for rows.Next() {
 		var instance event.IssueInstance
-		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+		var datetimeBucket time.Time
+		if err := rows.Scan(&datetimeBucket, &instance.DateTime, &instance.Version, &instance.Instances); err != nil {
 			return nil, err
 		}
 
@@ -1545,11 +1621,23 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching various filters.
 func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("start_time", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	base := sqlf.From("sessions").
 		Select("session_id").
 		Select("min(first_event_timestamp) as start_time").
 		Select("app_version").
-		Select("toDate(min(first_event_timestamp)) as date").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
@@ -1704,10 +1792,11 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		With("base", base).
 		From("base").
 		Select("count() as instances").
-		Select("formatDateTime(date, '%Y-%m-%d', ?) as datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(app_version.1, ' ', '(', app_version.2, ')') as app_version_fmt").
-		GroupBy("app_version, date").
-		OrderBy("date, app_version.2 desc")
+		GroupBy("app_version, datetime_bucket").
+		OrderBy("datetime_bucket, app_version.2 desc")
 
 	defer stmt.Close()
 
@@ -1761,7 +1850,8 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 
 	for rows.Next() {
 		var sessionInstance session.SessionInstance
-		if err = rows.Scan(&sessionInstance.Instances, &sessionInstance.DateTime, &sessionInstance.Version); err != nil {
+		var datetimeBucket time.Time
+		if err = rows.Scan(&sessionInstance.Instances, &datetimeBucket, &sessionInstance.DateTime, &sessionInstance.Version); err != nil {
 			return
 		}
 
@@ -2412,10 +2502,20 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 		return
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.
 		From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("round(quantileMerge(0.50)(p50), 2) as p50").
 		Select("round(quantileMerge(0.90)(p90), 2) as p90").
 		Select("round(quantileMerge(0.95)(p95), 2) as p95").
@@ -2501,8 +2601,8 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 		stmt.SubQuery("span_id in (", ")", subQuery)
 	}
 
-	stmt.GroupBy("app_version, datetime")
-	stmt.OrderBy("datetime, tupleElement(app_version, 2) desc")
+	stmt.GroupBy("app_version, datetime_bucket")
+	stmt.OrderBy("datetime_bucket, tupleElement(app_version, 2) desc")
 
 	defer stmt.Close()
 
@@ -2515,7 +2615,8 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 
 	for rows.Next() {
 		var spanMetricsPlotInstance span.SpanMetricsPlotInstance
-		if err = rows.Scan(&spanMetricsPlotInstance.Version, &spanMetricsPlotInstance.DateTime, &spanMetricsPlotInstance.P50, &spanMetricsPlotInstance.P90, &spanMetricsPlotInstance.P95, &spanMetricsPlotInstance.P99); err != nil {
+		var datetimeBucket time.Time
+		if err = rows.Scan(&spanMetricsPlotInstance.Version, &datetimeBucket, &spanMetricsPlotInstance.DateTime, &spanMetricsPlotInstance.P50, &spanMetricsPlotInstance.P90, &spanMetricsPlotInstance.P95, &spanMetricsPlotInstance.P99); err != nil {
 			return
 		}
 
@@ -2848,6 +2949,19 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 // GetBugReportInstancesPlot provides aggregated bug report instances
 // matching various filters.
 func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	base := sqlf.From("bug_reports final").
 		Select("event_id").
 		Select("app_version").
@@ -2961,10 +3075,11 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 		With("base", base).
 		From("base").
 		Select("uniq(event_id) instances").
-		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
-		GroupBy("app_version, datetime").
-		OrderBy("datetime, tupleElement(app_version, 2) desc")
+		GroupBy("app_version, datetime_bucket").
+		OrderBy("datetime_bucket, tupleElement(app_version, 2) desc")
 
 	defer stmt.Close()
 
@@ -2975,7 +3090,8 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 
 	for rows.Next() {
 		var bugReportInstance BugReportInstance
-		if err = rows.Scan(&bugReportInstance.Instances, &bugReportInstance.DateTime, &bugReportInstance.Version); err != nil {
+		var datetimeBucket time.Time
+		if err = rows.Scan(&bugReportInstance.Instances, &datetimeBucket, &bugReportInstance.DateTime, &bugReportInstance.Version); err != nil {
 			return
 		}
 

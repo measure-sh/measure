@@ -3,6 +3,7 @@ package testinfra
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -258,42 +259,32 @@ func (h *TestHelper) SeedGenericEvents(ctx context.Context, t *testing.T, teamID
 	}
 }
 
-// SeedUnhandledEvent inserts a single unhandled exception or ANR event.
-// eventType is "exception" or "anr". Pass fingerprint="" for no fingerprint
-// (zero-byte default); pass a 32-character string to set a specific fingerprint.
-// Both exception.fingerprint and anr.fingerprint are always written so the row
-// is valid regardless of which columns the query filters on.
-func (h *TestHelper) SeedUnhandledEvent(ctx context.Context, t *testing.T, teamID, appID, eventType, fingerprint string, ts time.Time) {
+// SeedIssueEvent inserts a single exception or ANR event with explicit handled
+// state and fingerprint.
+//
+// eventType must be "exception" or "anr".
+// fingerprint may be empty for default FixedString(32) zero-byte value.
+// Both exception/anr fingerprint columns are always written so the row can be
+// reused across issue-oriented queries.
+func (h *TestHelper) SeedIssueEvent(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, eventType, fingerprint string,
+	handled bool,
+	ts time.Time,
+) {
 	t.Helper()
 	query := fmt.Sprintf(
 		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
 			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
 			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
 			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `anr.handled`, `anr.foreground`, `anr.fingerprint`) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', false, true, '%s', false, true, '%s')`,
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', %t, true, '%s')`,
 		uuid.New().String(), eventType, uuid.New().String(), appID, teamID,
 		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
-		fingerprint, fingerprint)
+		handled, fingerprint, handled, fingerprint)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed unhandled event (%s): %v", eventType, err)
-	}
-}
-
-// SeedHandledException inserts a handled exception (exception.handled=true).
-// Handled exceptions must not trigger crash-spike alerts or count toward
-// crash_sessions in app metrics.
-func (h *TestHelper) SeedHandledException(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time) {
-	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
-			"`exception.handled`, `exception.foreground`) "+
-			`VALUES ('%s', 'exception', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', true, true)`,
-		uuid.New().String(), uuid.New().String(), appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String())
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed handled exception: %v", err)
+		t.Fatalf("seed issue event (%s): %v", eventType, err)
 	}
 }
 
@@ -339,10 +330,10 @@ func (h *TestHelper) SeedAppMetrics(ctx context.Context, t *testing.T, teamID, a
 		h.SeedGenericEvents(ctx, t, teamID, appID, genericCount, ts)
 	}
 	for i := 0; i < crashCount; i++ {
-		h.SeedUnhandledEvent(ctx, t, teamID, appID, "exception", "", ts)
+		h.SeedIssueEvent(ctx, t, teamID, appID, "exception", "", false, ts)
 	}
 	for i := 0; i < anrCount; i++ {
-		h.SeedUnhandledEvent(ctx, t, teamID, appID, "anr", "", ts)
+		h.SeedIssueEvent(ctx, t, teamID, appID, "anr", "", false, ts)
 	}
 }
 
@@ -395,18 +386,38 @@ func (h *TestHelper) SeedTeamSlack(ctx context.Context, t *testing.T, teamID str
 func (h *TestHelper) SeedSpans(ctx context.Context, t *testing.T, teamID, appID string, count int) {
 	t.Helper()
 	for i := 0; i < count; i++ {
-		query := fmt.Sprintf(
-			`INSERT INTO measure.spans (team_id, app_id, span_name, span_id, trace_id, session_id, status, `+
-				"start_time, end_time, "+
-				"`attribute.app_unique_id`, `attribute.installation_id`, "+
-				"`attribute.measure_sdk_version`, `attribute.app_version`, `attribute.os_version`, "+
-				"`attribute.platform`, `attribute.device_low_power_mode`, `attribute.device_thermal_throttling_enabled`) "+
-				`VALUES ('%s', '%s', 'test', '%s', '%s', '%s', 1, now(), now(), 'com.test', '%s', '0.1', ('v1','1'), ('14','0'), 'android', false, false)`,
-			teamID, appID,
-			fmt.Sprintf("%016x", i), fmt.Sprintf("%032x", i),
-			uuid.New().String(), uuid.New().String())
-		if err := h.ChConn.Exec(ctx, query); err != nil {
-			t.Fatalf("seed spans: %v", err)
-		}
+		ts := time.Now().UTC().Add(time.Duration(i) * time.Second)
+		h.SeedSpan(ctx, t, teamID, appID, "test", 1, ts, ts, "v1", "1")
+	}
+}
+
+// SeedSpan inserts one span at the provided time window so span_metrics_mv
+// can materialize rows for plot aggregation tests.
+func (h *TestHelper) SeedSpan(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, spanName string,
+	status uint8,
+	startTime, endTime time.Time,
+	appVersion, appBuild string,
+) {
+	t.Helper()
+
+	traceID := strings.ReplaceAll(uuid.New().String(), "-", "")
+	spanID := traceID[:16]
+
+	query := fmt.Sprintf(
+		`INSERT INTO measure.spans (team_id, app_id, span_name, span_id, trace_id, session_id, status, `+
+			"start_time, end_time, "+
+			"`attribute.app_unique_id`, `attribute.installation_id`, "+
+			"`attribute.measure_sdk_version`, `attribute.app_version`, `attribute.os_version`, "+
+			"`attribute.platform`, `attribute.device_low_power_mode`, `attribute.device_thermal_throttling_enabled`) "+
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', 'com.test', '%s', '0.1', ('%s','%s'), ('Android','14'), 'android', false, false)`,
+		teamID, appID, spanName, spanID, traceID, uuid.New().String(), status,
+		startTime.UTC().Format("2006-01-02 15:04:05"), endTime.UTC().Format("2006-01-02 15:04:05"),
+		uuid.New().String(), appVersion, appBuild,
+	)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed span: %v", err)
 	}
 }
