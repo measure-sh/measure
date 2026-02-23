@@ -137,8 +137,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 		Expr("timestamp").
 		Clause(")").
 		Clause("select").
-		Expr("?", teamId).
-		Expr("?", e.AppID).
+		Expr("toUUID(?)", teamId).
+		Expr("toUUID(?)", e.AppID).
 		Expr("?", e.ID).
 		Expr("(?, ?)", e.Attribute.AppVersion, e.Attribute.AppBuild).
 		Expr("?", e.Type).
@@ -156,7 +156,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 		Expr("groupUniqArrayState(?)", e.Attribute.DeviceName).
 		Expr("groupUniqArrayState(?)", e.Attribute.DeviceModel).
 		Expr("sumState(toUInt64(1))").
-		Expr("?", e.UpdatedAt.Format(chrono.MSTimeFormat))
+		Expr("?", e.UpdatedAt)
 
 	defer stmt.Close()
 
