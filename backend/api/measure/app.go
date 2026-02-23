@@ -298,7 +298,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		Where("app_id = toUUID(?)", a.ID).
 		// Capture all the exception groups that received new exceptions
 		// after the "from" date & were created before the "to" date.
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Having("min(timestamp) >= ? and max(timestamp) <= ?", af.From, af.To).
 		GroupBy("team_id").
 		GroupBy("app_id").
 		GroupBy("id").
