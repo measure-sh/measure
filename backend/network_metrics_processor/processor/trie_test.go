@@ -1,231 +1,119 @@
 package processor
 
 import (
-	"fmt"
+	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
-// sortPatterns sorts by domain then path for deterministic comparison.
-func sortPatterns(ps []PatternResult) {
-	sort.Slice(ps, func(i, j int) bool {
-		if ps[i].Domain != ps[j].Domain {
-			return ps[i].Domain < ps[j].Domain
-		}
-		return ps[i].Path < ps[j].Path
-	})
-}
-
-func assertPatterns(t *testing.T, got []PatternResult, want []PatternResult) {
+func assertResultsEqual(t *testing.T, expected, actual []UrlPattern) {
 	t.Helper()
-	sortPatterns(got)
-	sortPatterns(want)
 
-	if len(got) != len(want) {
-		t.Fatalf("got %d patterns, want %d\ngot:  %v\nwant: %v", len(got), len(want), got, want)
-	}
-	for i := range got {
-		if got[i].Domain != want[i].Domain || got[i].Path != want[i].Path || got[i].Count != want[i].Count {
-			t.Errorf("pattern[%d]: got %v, want %v", i, got[i], want[i])
-		}
-	}
-}
-
-// insertURL is a test helper that builds segments from domain + path.
-func insertURL(trie *TrieNode, domain, path string, count uint64) {
-	segments := append([]string{domain}, splitPath(path)...)
-	trie.Insert(segments, count)
-}
-
-func TestTrie_FirstSegmentNeverCollapse(t *testing.T) {
-	// Threshold 2: even with 3 domains (exceeding threshold), depth 0 never collapses.
-	trie := NewTrie(2)
-	insertURL(trie, "api.example.com", "/health", 1)
-	insertURL(trie, "web.example.com", "/home", 2)
-	insertURL(trie, "cdn.example.com", "/logo", 3)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/health", Count: 1},
-		{Domain: "cdn.example.com", Path: "/logo", Count: 3},
-		{Domain: "web.example.com", Path: "/home", Count: 2},
-	})
-}
-
-func TestTrie_HighCardinalitySegmentsCollapse(t *testing.T) {
-	trie := NewTrie(3)
-	// Insert 4 children at depth 2 to trigger collapse (4th exceeds threshold of 3).
-	for i := range 4 {
-		insertURL(trie, "api.example.com", fmt.Sprintf("/sub/v%d", i), 1)
+	sortResults := func(r []UrlPattern) {
+		sort.Slice(r, func(i, j int) bool {
+			return strings.Join(r[i].Segments, "/") < strings.Join(r[j].Segments, "/")
+		})
 	}
 
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/sub/*", Count: 4},
-	})
-}
+	sortResults(expected)
+	sortResults(actual)
 
-func TestTrie_NonHighCardinalitySegmentsDoNotCollapse(t *testing.T) {
-	trie := NewTrie(3)
-	// Insert 3 children at depth 2 — at threshold but not exceeding, so no collapse.
-	for i := range 3 {
-		insertURL(trie, "api.example.com", fmt.Sprintf("/sub/v%d", i), 1)
-	}
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/sub/v0", Count: 1},
-		{Domain: "api.example.com", Path: "/sub/v1", Count: 1},
-		{Domain: "api.example.com", Path: "/sub/v2", Count: 1},
-	})
-}
-
-func TestTrie_InsertSegmentToCollapsed(t *testing.T) {
-	trie := NewTrie(3)
-	// Insert 4 children to trigger collapse into /sub/*.
-	for i := range 4 {
-		insertURL(trie, "api.example.com", fmt.Sprintf("/sub/v%d", i), 1)
-	}
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/sub/*", Count: 4},
-	})
-
-	// Insert one more child, should simply increment the count.
-	insertURL(trie, "api.example.com", "/sub/extra", 2)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/sub/*", Count: 6},
-	})
-}
-
-func TestTrie_WildcardSegmentChildrenStaySeparate(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "api.example.com", "/users/*/profile", 5)
-	insertURL(trie, "api.example.com", "/users/*/settings", 3)
-	insertURL(trie, "api.example.com", "/users/*/orders", 2)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/users/*/profile", Count: 5},
-		{Domain: "api.example.com", Path: "/users/*/settings", Count: 3},
-		{Domain: "api.example.com", Path: "/users/*/orders", Count: 2},
-	})
-}
-
-func TestTrie_LeafAndSubpathsCoexist(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "api.example.com", "/", 1)
-	insertURL(trie, "api.example.com", "/users", 2)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/", Count: 1},
-		{Domain: "api.example.com", Path: "/users", Count: 2},
-	})
-}
-
-func TestTrie_SinglePath(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "api.example.com", "/health", 1)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/health", Count: 1},
-	})
-}
-
-func TestTrie_EmptyTrieReturnsNothing(t *testing.T) {
-	trie := NewTrie(3)
-	patterns := trie.ExtractPatterns()
-	if len(patterns) != 0 {
-		t.Fatalf("expected 0 patterns from empty trie, got %d: %v", len(patterns), patterns)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %v, but got %v", expected, actual)
 	}
 }
 
-func TestTrie_DomainsIsolated(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "api.example.com", "/users", 1)
-	insertURL(trie, "api.example.com", "/posts", 2)
-	insertURL(trie, "cdn.example.com", "/assets/logo", 3)
+func TestAllSequences_EmptyTree(t *testing.T) {
+	tree := NewUrlTrie(100)
+	results := tree.GetPatterns()
 
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/users", Count: 1},
-		{Domain: "api.example.com", Path: "/posts", Count: 2},
-		{Domain: "cdn.example.com", Path: "/assets/logo", Count: 3},
-	})
-}
-
-func TestTrie_CollapsesDeepSiblings(t *testing.T) {
-	trie := NewTrie(3)
-	// 4 children under /api/ triggers collapse (exceeds threshold of 3).
-	for i := range 4 {
-		insertURL(trie, "example.com", fmt.Sprintf("/api/v%d", i), 1)
-	}
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "example.com", Path: "/api/*", Count: 4},
-	})
-}
-
-func TestTrie_ManyDomainsNeverCollapse(t *testing.T) {
-	// Threshold 2: even with 5 domains (exceeding threshold), depth 0 never collapses.
-	trie := NewTrie(2)
-	for i := range 5 {
-		insertURL(trie, fmt.Sprintf("d%d.example.com", i), "/health", 1)
-	}
-
-	patterns := trie.ExtractPatterns()
-	if len(patterns) != 5 {
-		t.Fatalf("expected 5 patterns, got %d: %v", len(patterns), patterns)
+	if len(results) != 0 {
+		t.Errorf("Expected empty results, but got %v", results)
 	}
 }
 
-func TestTrie_TopLevelPathsNeverCollapse(t *testing.T) {
-	// Threshold 2: even with 5 first-level segments (exceeding threshold), depth 1 never collapses.
-	trie := NewTrie(2)
-	for i := range 5 {
-		insertURL(trie, "example.com", fmt.Sprintf("/seg%d/child", i), 1)
+func TestInsert_DistinctPathsRemainSeparate(t *testing.T) {
+	tree := NewUrlTrie(100)
+	tree.Insert([]string{"api.example.com", "api", "v1", "users"})
+	tree.Insert([]string{"api.example.com", "api", "v1", "orders"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "v1", "users"}, Frequency: 1},
+		{Segments: []string{"api.example.com", "api", "v1", "orders"}, Frequency: 1},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_DuplicatePathsIncrementFrequency(t *testing.T) {
+	tree := NewUrlTrie(100)
+	tree.Insert([]string{"api.example.com", "api", "v1", "users"})
+	tree.Insert([]string{"api.example.com", "api", "v1", "users"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "v1", "users"}, Frequency: 2},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_WildcardAbsorbsMatchingSiblings(t *testing.T) {
+	tree := NewUrlTrie(100)
+	tree.Insert([]string{"api.example.com", "api", "v1", "users"})
+	tree.Insert([]string{"api.example.com", "api", "*", "users"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "*", "users"}, Frequency: 3},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_HighCardinalityTriggersWildcardCollapse(t *testing.T) {
+	tree := NewUrlTrie(2)
+	tree.Insert([]string{"api.example.com", "api", "users", "1"})
+	tree.Insert([]string{"api.example.com", "api", "users", "2"})
+	tree.Insert([]string{"api.example.com", "api", "users", "3"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "users", "*"}, Frequency: 3},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_HighCardinalityCollapseAppliesToMultipleSegments(t *testing.T) {
+	tree := NewUrlTrie(2)
+	tree.Insert([]string{"api.example.com", "api", "users", "1", "orders", "A"})
+	tree.Insert([]string{"api.example.com", "api", "users", "2", "orders", "B"})
+	tree.Insert([]string{"api.example.com", "api", "users", "3", "orders", "C"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "users", "*", "orders", "*"}, Frequency: 3},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_HighCardinalityCollapseMaintainsFrequencyFor(t *testing.T) {
+	tree := NewUrlTrie(2)
+	tree.Insert([]string{"api.example.com", "api", "users", "1", "orders", "A"})
+	tree.Insert([]string{"api.example.com", "api", "users", "2", "orders", "B"})
+	tree.Insert([]string{"api.example.com", "api", "users", "3", "orders", "C"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "users", "*", "orders", "*"}, Frequency: 3},
+	}
+	assertResultsEqual(t, expected, tree.GetPatterns())
+}
+
+func TestInsert_HighCardinalityCollapseMaintainsFrequencyForDifferentPaths(t *testing.T) {
+	tree := NewUrlTrie(2)
+	tree.Insert([]string{"api.example.com", "api", "users", "1", "orders", "A"})
+	tree.Insert([]string{"api.example.com", "api", "users", "2", "orders", "B"})
+	tree.Insert([]string{"api.example.com", "api", "users", "3", "orders", "C"})
+	tree.Insert([]string{"api.example.com", "api", "users", "history"})
+
+	expected := []UrlPattern{
+		{Segments: []string{"api.example.com", "api", "users", "*", "orders", "*"}, Frequency: 3},
+		{Segments: []string{"api.example.com", "api", "users", "*"}, Frequency: 1},
 	}
 
-	patterns := trie.ExtractPatterns()
-	if len(patterns) != 5 {
-		t.Fatalf("expected 5 patterns, got %d: %v", len(patterns), patterns)
-	}
-}
-
-func TestTrie_ConsecutiveTrailingWildcardsCollapse(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "example.com", "/users/*/*", 1)
-	insertURL(trie, "example.com", "/track/*/*/*", 2)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "example.com", Path: "/users/**", Count: 1},
-		{Domain: "example.com", Path: "/track/**", Count: 2},
-	})
-}
-
-func TestTrie_SingleTrailingWildcardUnchanged(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "example.com", "/users/*", 1)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "example.com", Path: "/users/*", Count: 1},
-	})
-}
-
-func TestTrie_NonTrailingWildcardsUnchanged(t *testing.T) {
-	trie := NewTrie(3)
-	insertURL(trie, "example.com", "/users/*/orders/*", 1)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "example.com", Path: "/users/*/orders/*", Count: 1},
-	})
-}
-
-func TestTrie_PreNormalizedWildcardPaths(t *testing.T) {
-	trie := NewTrie(3)
-	// Simulate post-NormalizePath input where * segments already exist.
-	insertURL(trie, "api.example.com", "/users/*/profile", 5)
-	insertURL(trie, "api.example.com", "/users/*/profile", 3)
-	insertURL(trie, "api.example.com", "/users/*/settings", 2)
-
-	assertPatterns(t, trie.ExtractPatterns(), []PatternResult{
-		{Domain: "api.example.com", Path: "/users/*/profile", Count: 8},
-		{Domain: "api.example.com", Path: "/users/*/settings", Count: 2},
-	})
+	assertResultsEqual(t, expected, tree.GetPatterns())
 }

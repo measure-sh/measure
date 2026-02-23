@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"backend/network_metrics_processor/server"
@@ -21,14 +23,14 @@ const (
 	// http_events when no prior pattern generation timestamp exists.
 	patternsDefaultLookback = 1 * 24 * time.Hour
 
-	// minPatternCount is the minimum request count a pattern
+	// patternCreationRequestCountThreshold is the minimum request count a pattern
 	// must have to be kept.
-	minPatternCount = 100
+	patternCreationRequestCountThreshold = 100
 
-	// collapseThreshold is the maximum number of distinct
+	// highCardinalityCollapseThreshold is the maximum number of distinct
 	// children a trie node may have before it collapses
 	// into a wildcard pattern.
-	collapseThreshold = 10
+	highCardinalityCollapseThreshold = 10
 
 	// metricsDefaultLookback is how far back to query
 	// http_events when no prior reporting timestamp exists.
@@ -37,19 +39,30 @@ const (
 
 var tracer = otel.Tracer("network-metrics-processor")
 
-// team represents a team row from PG.
+// Regular expressions for normalizing
+// incoming paths from raw events
+var (
+	uuidRe = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	sha1Re = regexp.MustCompile(`(?i)^[0-9a-f]{40}$`)
+	md5Re  = regexp.MustCompile(`(?i)^[0-9a-f]{32}$`)
+	dateRe = regexp.MustCompile(`\d{4}-[01]\d-[0-3]\dT`)
+	hexRe  = regexp.MustCompile(`(?i)^0x[0-9a-f]+$`)
+	intRe  = regexp.MustCompile(`\d{2,}`)
+)
+
+// A team row in Postgres
 type team struct {
 	ID uuid.UUID
 }
 
-// app represents an app row from PG.
+// An app row in Postgres
 type app struct {
 	ID     uuid.UUID
 	TeamID uuid.UUID
 }
 
-// HttpEvent represents a single row from the http_events
-// query, pre-aggregated by ClickHouse.
+// HttpEvent represents a single row
+// from the http_events table
 type HttpEvent struct {
 	TeamID uuid.UUID
 	AppID  uuid.UUID
@@ -58,186 +71,12 @@ type HttpEvent struct {
 	Count  uint64
 }
 
-// PatternResult represents a discovered URL pattern with
-// its accumulated request count.
-type PatternResult struct {
+// Pattern represents a generated
+// URL pattern
+type Pattern struct {
 	Domain string
 	Path   string
 	Count  uint64
-}
-
-// GeneratePatterns converts raw URLs data
-// from http_events into generalized URL
-// patterns with wildcards and stores them
-// in the url_patterns table.
-func GeneratePatterns(ctx context.Context) {
-	ctx, rootSpan := tracer.Start(ctx, "generate-patterns")
-	defer rootSpan.End()
-
-	start := time.Now()
-	now := start.UTC()
-
-	teams, err := getTeams(ctx)
-	if err != nil {
-		rootSpan.RecordError(err)
-		rootSpan.SetStatus(codes.Error, "failed to fetch teams")
-		fmt.Printf("failed to fetch teams: %v\n", err)
-		return
-	}
-
-	for _, t := range teams {
-		apps, err := getAppsForTeam(ctx, t.ID)
-		if err != nil {
-			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
-			continue
-		}
-
-		for _, app := range apps {
-			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
-			if err != nil {
-				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				continue
-			}
-
-			if from == nil {
-				defaultFrom := now.Add(-patternsDefaultLookback)
-				from = &defaultFrom
-			}
-
-			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
-			if err != nil {
-				fmt.Printf("failed to fetch http events for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				continue
-			}
-
-			if len(events) == 0 {
-				continue
-			}
-
-			trie := NewTrie(collapseThreshold)
-			for _, event := range events {
-				normalizedPath := NormalizePath(event.Path)
-				segments := append([]string{event.Domain}, splitPath(normalizedPath)...)
-				trie.Insert(segments, event.Count)
-			}
-
-			patterns := trie.ExtractPatterns()
-
-			seen := make(map[string]struct{})
-			insertStmt := sqlf.InsertInto("url_patterns")
-
-			var totalPatterns int
-
-			for _, p := range patterns {
-				if p.Count < minPatternCount {
-					continue
-				}
-
-				key := p.Domain + "\x00" + p.Path
-				if _, exists := seen[key]; exists {
-					continue
-				}
-				seen[key] = struct{}{}
-
-				insertStmt.NewRow().
-					Set("team_id", app.TeamID).
-					Set("app_id", app.ID).
-					Set("domain", p.Domain).
-					Set("path", p.Path).
-					Set("last_updated_at", now)
-				totalPatterns++
-			}
-
-			if totalPatterns == 0 {
-				insertStmt.Close()
-				continue
-			}
-
-			if err := insertURLPatterns(ctx, insertStmt, totalPatterns); err != nil {
-				fmt.Printf("failed to insert for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				insertStmt.Close()
-				continue
-			}
-
-			insertStmt.Close()
-
-			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
-				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				continue
-			}
-		}
-	}
-}
-
-// GenerateMetrics pre-aggregates HTTP event data into
-// the http_metrics table for each known app.
-func GenerateMetrics(ctx context.Context) {
-	ctx, span := tracer.Start(ctx, "generate-metrics")
-	defer span.End()
-
-	start := time.Now()
-	now := start.UTC()
-
-	teams, err := getTeams(ctx)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to fetch teams")
-		fmt.Printf("failed to fetch teams: %v\n", err)
-		return
-	}
-
-	var processed, skipped, failed int
-
-	for _, t := range teams {
-		apps, err := getAppsForTeam(ctx, t.ID)
-		if err != nil {
-			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
-			continue
-		}
-
-		for _, app := range apps {
-			from, err := getLastReportedAt(ctx, app.TeamID, app.ID)
-			if err != nil {
-				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				failed++
-				continue
-			}
-
-			if from == nil {
-				defaultFrom := now.Add(-metricsDefaultLookback)
-				from = &defaultFrom
-			}
-
-			if !from.Before(now) {
-				skipped++
-				continue
-			}
-
-			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
-				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				failed++
-				continue
-			}
-
-			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
-				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
-					app.TeamID, app.ID, err)
-				failed++
-				continue
-			}
-
-			processed++
-		}
-	}
-
-	fmt.Printf("GenerateMetrics took=%v processed=%d skipped=%d failed=%d\n",
-		time.Since(start), processed, skipped, failed)
 }
 
 func getTeams(ctx context.Context) ([]team, error) {
@@ -296,9 +135,34 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]app, error) {
 	return apps, nil
 }
 
-// getLastReportedAt queries PG for the most recent metrics_reported_at
-// timestamp for the given team and app. Returns nil if no row exists.
-func getLastReportedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
+// toPatterns converts the raw output
+// from tree.AllSequences() into
+// a slice of Pattern structs with separate
+// domain and path
+func toPatterns(results []UrlPattern) []Pattern {
+	var patterns []Pattern
+	for _, r := range results {
+		if len(r.Segments) == 0 {
+			continue
+		}
+		domain := r.Segments[0]
+		path := "/"
+		if len(r.Segments) > 1 {
+			path = "/" + strings.Join(r.Segments[1:], "/")
+		}
+		patterns = append(patterns, Pattern{
+			Domain: domain,
+			Path:   path,
+			Count:  uint64(r.Frequency),
+		})
+	}
+	return patterns
+}
+
+// getLastReportedMetricsAt gives last timestamp
+// when metrics were reported for the given
+// team and app.
+func getLastReportedMetricsAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
 	ctx, span := tracer.Start(ctx, "pg.get-last-reported-at")
 	defer span.End()
 
@@ -320,8 +184,9 @@ func getLastReportedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time
 	return reportedAt, nil
 }
 
-// getLastPatternGeneratedAt queries PG for the most recent pattern_generated_at
-// timestamp for the given team and app. Returns nil if no row exists.
+// getLastPatternGeneratedAt gives last timestamp
+// when patterns were generated for the given
+// team and app.
 func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*time.Time, error) {
 	ctx, span := tracer.Start(ctx, "pg.get-last-pattern-generated-at")
 	defer span.End()
@@ -509,4 +374,200 @@ func fetchHttpEvents(ctx context.Context, teamID, appID uuid.UUID, from, to time
 	}
 
 	return result, nil
+}
+
+// normalizePath splits a URL path by "/" and normalizes each
+// segment, replacing dynamic values (UUIDs, hashes, dates,
+// hex numbers, integers) with "*".
+func normalizePath(path string) string {
+	segments := strings.Split(path, "/")
+	for i, seg := range segments {
+		if seg != "" {
+			segments[i] = normalizeSegment(seg)
+		}
+	}
+	return strings.Join(segments, "/")
+}
+
+// normalizeSegment checks a single path segment against
+// known dynamic patterns and returns "*" if any match.
+func normalizeSegment(seg string) string {
+	if uuidRe.MatchString(seg) {
+		return "*"
+	}
+	if sha1Re.MatchString(seg) {
+		return "*"
+	}
+	if md5Re.MatchString(seg) {
+		return "*"
+	}
+	if dateRe.MatchString(seg) {
+		return "*"
+	}
+	if hexRe.MatchString(seg) {
+		return "*"
+	}
+	if intRe.MatchString(seg) {
+		return "*"
+	}
+	return seg
+}
+
+// GeneratePatterns converts raw URLs data
+// from http_events into generalized URL
+// patterns with wildcards and stores them
+// in the url_patterns table.
+func GeneratePatterns(ctx context.Context) {
+	ctx, rootSpan := tracer.Start(ctx, "generate-patterns")
+	defer rootSpan.End()
+
+	start := time.Now()
+	now := start.UTC()
+
+	teams, err := getTeams(ctx)
+	if err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, "failed to fetch teams")
+		fmt.Printf("failed to fetch teams: %v\n", err)
+		return
+	}
+
+	for _, t := range teams {
+		apps, err := getAppsForTeam(ctx, t.ID)
+		if err != nil {
+			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
+			continue
+		}
+
+		for _, app := range apps {
+			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
+			if err != nil {
+				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+
+			if from == nil {
+				defaultFrom := now.Add(-patternsDefaultLookback)
+				from = &defaultFrom
+			}
+
+			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
+			if err != nil {
+				fmt.Printf("failed to fetch http events for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+
+			if len(events) == 0 {
+				continue
+			}
+
+			trie := NewUrlTrie(highCardinalityCollapseThreshold)
+			for _, event := range events {
+				normalizedPath := normalizePath(event.Path)
+				segments := append([]string{event.Domain}, strings.Split(normalizedPath, "/")...)
+				trie.Insert(segments)
+			}
+
+			patterns := toPatterns(trie.GetPatterns())
+
+			seen := make(map[string]struct{})
+			insertStmt := sqlf.InsertInto("url_patterns")
+
+			var totalPatterns int
+
+			for _, p := range patterns {
+				if p.Count < patternCreationRequestCountThreshold {
+					continue
+				}
+
+				key := p.Domain + "\x00" + p.Path
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+
+				insertStmt.NewRow().
+					Set("team_id", app.TeamID).
+					Set("app_id", app.ID).
+					Set("domain", p.Domain).
+					Set("path", p.Path).
+					Set("last_updated_at", now)
+				totalPatterns++
+			}
+
+			if totalPatterns == 0 {
+				insertStmt.Close()
+				continue
+			}
+
+			if err := insertURLPatterns(ctx, insertStmt, totalPatterns); err != nil {
+				fmt.Printf("failed to insert for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				insertStmt.Close()
+				continue
+			}
+
+			insertStmt.Close()
+
+			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
+				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+		}
+	}
+}
+
+// GenerateMetrics pre-aggregates HTTP event data into
+// the http_metrics table for each known app.
+func GenerateMetrics(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "generate-metrics")
+	defer span.End()
+
+	start := time.Now()
+	now := start.UTC()
+
+	teams, err := getTeams(ctx)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to fetch teams")
+		fmt.Printf("failed to fetch teams: %v\n", err)
+		return
+	}
+
+	for _, t := range teams {
+		apps, err := getAppsForTeam(ctx, t.ID)
+		if err != nil {
+			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
+			continue
+		}
+
+		for _, app := range apps {
+			from, err := getLastReportedMetricsAt(ctx, app.TeamID, app.ID)
+			if err != nil {
+				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+
+			if from == nil {
+				defaultFrom := now.Add(-metricsDefaultLookback)
+				from = &defaultFrom
+			}
+
+			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
+				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+
+			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
+				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
+					app.TeamID, app.ID, err)
+				continue
+			}
+		}
+	}
 }
