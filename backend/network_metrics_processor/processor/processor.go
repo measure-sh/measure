@@ -25,6 +25,11 @@ const (
 	// must have to be kept.
 	minPatternCount = 100
 
+	// collapseThreshold is the maximum number of distinct
+	// children a trie node may have before it collapses
+	// into a wildcard pattern.
+	collapseThreshold = 10
+
 	// metricsDefaultLookback is how far back to query
 	// http_events when no prior reporting timestamp exists.
 	metricsDefaultLookback = 1 * 24 * time.Hour
@@ -124,10 +129,10 @@ func GeneratePatterns(ctx context.Context) {
 				continue
 			}
 
-			trie := NewTrie()
+			trie := NewTrie(collapseThreshold)
 			for _, event := range events {
-				normalized := NormalizePath(event.Path)
-				trie.InsertWithDomain(event.Domain, normalized, event.Count)
+				normalizedPath := NormalizePath(event.Path)
+				trie.Insert(event.Domain, normalizedPath, event.Count)
 			}
 
 			patterns := trie.ExtractPatterns()
@@ -368,21 +373,6 @@ func getLastPatternGeneratedAt(ctx context.Context, teamID, appID uuid.UUID) (*t
 }
 
 func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) error {
-	// Delete existing metrics for this
-	// exact window to avoid duplicates
-	// on re-runs.
-	deleteStmt := sqlf.
-		DeleteFrom("http_metrics").
-		Where("team_id = ?", teamID).
-		Where("app_id = ?", appID).
-		Where("timestamp >= ?", from).
-		Where("timestamp < ?", to)
-	defer deleteStmt.Close()
-
-	if err := server.Server.ChPool.Exec(ctx, deleteStmt.String(), deleteStmt.Args()...); err != nil {
-		return fmt.Errorf("failed to delete existing metrics: %w", err)
-	}
-
 	// Build the Aggregate + Insert Statement
 	stmt := sqlf.
 		Select(`
@@ -411,8 +401,8 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 			)`, teamID, appID).
 		Where("e.team_id = ?", teamID).
 		Where("e.app_id = ?", appID).
-		Where("e.timestamp >= ?", from).
-		Where("e.timestamp < ?", to).
+		Where("e.inserted_at >= ?", from).
+		Where("e.inserted_at < ?", to).
 		Where("e.latency_ms <= 60000").
 		Where("e.status_code != 0").
 		Where("e.domain != ''").
@@ -475,8 +465,8 @@ func fetchHttpEvents(ctx context.Context, teamID, appID uuid.UUID, from, to time
 		From("http_events").
 		Where("team_id = ?", teamID).
 		Where("app_id = ?", appID).
-		Where("timestamp >= ?", from).
-		Where("timestamp < ?", to).
+		Where("inserted_at >= ?", from).
+		Where("inserted_at < ?", to).
 		Where("domain != ''").
 		Where("path != ''").
 		GroupBy("team_id, app_id, domain, path")

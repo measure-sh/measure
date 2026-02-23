@@ -7,28 +7,27 @@ import (
 // TrieNode represents a node in a URL pattern trie that
 // groups similar paths into wildcard patterns.
 type TrieNode struct {
-	children    map[string]*TrieNode
-	count       uint64
-	isLeaf      bool
-	isCollapsed bool
+	children          map[string]*TrieNode
+	count             uint64
+	collapseThreshold int
+	isLeaf            bool
+	isCollapsed       bool
 }
 
-// NewTrie creates a new root TrieNode.
-func NewTrie() *TrieNode {
+// NewTrie creates a new root TrieNode with the given
+// collapse threshold. When a node at depth > 1 gains
+// more children than the threshold, it collapses into
+// a wildcard.
+func NewTrie(collapseThreshold int) *TrieNode {
 	return &TrieNode{
-		children: make(map[string]*TrieNode),
+		children:          make(map[string]*TrieNode),
+		collapseThreshold: collapseThreshold,
 	}
 }
 
-// Insert adds a path with its count to the trie.
-func (t *TrieNode) Insert(path string, count uint64) {
-	segments := splitPath(path)
-	t.insert(segments, count, 0)
-}
-
-// InsertWithDomain adds a path with its count to the trie
-// under the given domain.
-func (t *TrieNode) InsertWithDomain(domain, path string, count uint64) {
+// Insert adds a path with its count to the trie under the
+// given domain.
+func (t *TrieNode) Insert(domain, path string, count uint64) {
 	segments := append([]string{domain}, splitPath(path)...)
 	t.insert(segments, count, 0)
 }
@@ -57,7 +56,7 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 	segment := segments[0]
 	rest := segments[1:]
 
-	if _, exists := t.children[segment]; !exists && len(t.children) >= 10 && depth > 1 {
+	if _, exists := t.children[segment]; !exists && len(t.children) >= t.collapseThreshold && depth > 1 {
 		// Adding an 11th child at depth > 1 triggers collapse.
 		t.count += subtreeCount(t) + count
 		t.children = make(map[string]*TrieNode)
@@ -67,7 +66,7 @@ func (t *TrieNode) insert(segments []string, count uint64, depth int) {
 	}
 
 	if _, exists := t.children[segment]; !exists {
-		t.children[segment] = NewTrie()
+		t.children[segment] = NewTrie(t.collapseThreshold)
 	}
 	t.children[segment].insert(rest, count, depth+1)
 }
