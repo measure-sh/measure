@@ -38,12 +38,6 @@ type app struct {
 	TeamID uuid.UUID
 }
 
-// patternKey deduplicates inserts by (domain, path).
-type patternKey struct {
-	Domain string
-	Path   string
-}
-
 // HttpEvent represents a single row from the http_events
 // query, pre-aggregated by ClickHouse.
 type HttpEvent struct {
@@ -57,8 +51,9 @@ type HttpEvent struct {
 // PatternResult represents a discovered URL pattern with
 // its accumulated request count.
 type PatternResult struct {
-	Path  string
-	Count uint64
+	Domain string
+	Path   string
+	Count  uint64
 }
 
 // GeneratePatterns discovers URL patterns from raw HTTP
@@ -68,11 +63,9 @@ func GeneratePatterns(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 
-	fmt.Printf("GeneratePatterns: start\n")
-
 	teams, err := getTeams(ctx)
 	if err != nil {
-		fmt.Printf("GeneratePatterns: failed to fetch teams: %v\n", err)
+		fmt.Printf("failed to fetch teams: %v\n", err)
 		return
 	}
 
@@ -81,14 +74,14 @@ func GeneratePatterns(ctx context.Context) {
 	for _, t := range teams {
 		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
-			fmt.Printf("GeneratePatterns: failed to fetch apps for team=%s: %v\n", t.ID, err)
+			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
 
 		for _, app := range apps {
 			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
 			if err != nil {
-				fmt.Printf("GeneratePatterns: failed to get last pattern_generated_at for team=%s app=%s: %v\n",
+				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
@@ -104,69 +97,51 @@ func GeneratePatterns(ctx context.Context) {
 				continue
 			}
 
-			rows, err := fetchRawPaths(ctx, app.TeamID, app.ID, *from, now)
+			events, err := fetchRawPaths(ctx, app.TeamID, app.ID, *from, now)
 			if err != nil {
-				fmt.Printf("GeneratePatterns: failed to fetch raw paths for team=%s app=%s: %v\n",
+				fmt.Printf("failed to fetch raw paths for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
 			}
 
-			if len(rows) == 0 {
+			if len(events) == 0 {
 				skipped++
 				continue
 			}
 
-			// Normalize paths and aggregate by domain.
-			groups := make(map[string]map[string]uint64)
-			for _, row := range rows {
-				normalized := NormalizePath(row.Path)
-				if groups[row.Domain] == nil {
-					groups[row.Domain] = make(map[string]uint64)
-				}
-				groups[row.Domain][normalized] += row.Count
+			// Build single trie with domain as root segment.
+			trie := NewTrie()
+			for _, event := range events {
+				normalized := NormalizePath(event.Path)
+				trie.InsertWithDomain(event.Domain, normalized, event.Count)
 			}
 
-			// Build trie per domain, extract patterns, deduplicate.
-			seen := make(map[patternKey]struct{})
+			patterns := trie.ExtractPatterns()
+
+			seen := make(map[string]struct{})
 			insertStmt := sqlf.InsertInto("url_patterns")
 
 			var totalPatterns int
 
-			for domain, paths := range groups {
-				trie := NewTrie()
-				for path, count := range paths {
-					trie.Insert(path, count)
+			for _, p := range patterns {
+				if p.Count < minPatternCount {
+					continue
 				}
 
-				patterns := trie.ExtractPatterns()
-
-				filtered := patterns[:0]
-				for _, p := range patterns {
-					if p.Count >= minPatternCount {
-						filtered = append(filtered, p)
-					}
+				key := p.Domain + "\x00" + p.Path
+				if _, exists := seen[key]; exists {
+					continue
 				}
-				patterns = filtered
+				seen[key] = struct{}{}
 
-				for _, p := range patterns {
-					pk := patternKey{
-						Domain: domain,
-						Path:   p.Path,
-					}
-					if _, exists := seen[pk]; exists {
-						continue
-					}
-					seen[pk] = struct{}{}
-
-					insertStmt.NewRow().
-						Set("team_id", app.TeamID).
-						Set("app_id", app.ID).
-						Set("domain", domain).
-						Set("path", p.Path).
-						Set("last_accessed_at", now)
-					totalPatterns++
-				}
+				insertStmt.NewRow().
+					Set("team_id", app.TeamID).
+					Set("app_id", app.ID).
+					Set("domain", p.Domain).
+					Set("path", p.Path).
+					Set("last_accessed_at", now)
+				totalPatterns++
 			}
 
 			if totalPatterns == 0 {
@@ -176,7 +151,7 @@ func GeneratePatterns(ctx context.Context) {
 			}
 
 			if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
-				fmt.Printf("GeneratePatterns: failed to insert for team=%s app=%s: %v\n",
+				fmt.Printf("failed to insert for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				insertStmt.Close()
 				failed++
@@ -186,7 +161,7 @@ func GeneratePatterns(ctx context.Context) {
 			insertStmt.Close()
 
 			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
-				fmt.Printf("GeneratePatterns: failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
+				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				failed++
 				continue
@@ -196,7 +171,7 @@ func GeneratePatterns(ctx context.Context) {
 		}
 	}
 
-	fmt.Printf("GeneratePatterns: end took=%v processed=%d skipped=%d failed=%d\n",
+	fmt.Printf("end took=%v processed=%d skipped=%d failed=%d\n",
 		time.Since(start), processed, skipped, failed)
 }
 
