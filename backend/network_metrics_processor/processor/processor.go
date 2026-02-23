@@ -359,7 +359,6 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 	defer span.End()
 	span.SetAttributes(attribute.String("app_id", appID.String()))
 
-	// Build the Aggregate + Insert Statement
 	stmt := sqlf.
 		Select("e.team_id").
 		Select("e.app_id").
@@ -384,6 +383,11 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Select("toUInt64(countIf(status_code >= 400 AND status_code < 500))").
 		Select("toUInt64(countIf(status_code >= 500 AND status_code < 600))").
 		Select("quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)").
+		// The multiIf uses different matching strategies
+		// based on the pattern type:
+		// - patterns ending with "**" and no other "*" are matched with startsWith
+		// - patterns with "*" in the middle are matched with LIKE
+		// - exact matches are matched with equality
 		From(`http_events e
 			JOIN (
 				SELECT DISTINCT domain, path FROM url_patterns FINAL
