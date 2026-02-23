@@ -361,19 +361,29 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 
 	// Build the Aggregate + Insert Statement
 	stmt := sqlf.
-		Select(`
-			e.team_id, e.app_id, toStartOfFifteenMinutes(e.timestamp) AS ts,
-			e.protocol, e.port, e.domain, p.path AS path, e.method, e.status_code,
-			e.app_version, e.os_version, e.device_manufacturer, e.device_name,
-			groupUniqArray(e.network_provider), groupUniqArray(e.network_type),
-			groupUniqArray(e.network_generation), groupUniqArray(e.device_locale),
-			toUInt64(count()),
-			toUInt64(countIf(status_code >= 200 AND status_code < 300)),
-			toUInt64(countIf(status_code >= 300 AND status_code < 400)),
-			toUInt64(countIf(status_code >= 400 AND status_code < 500)),
-			toUInt64(countIf(status_code >= 500 AND status_code < 600)),
-			quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)
-		`).
+		Select("e.team_id").
+		Select("e.app_id").
+		Select("toStartOfFifteenMinutes(e.timestamp) AS ts").
+		Select("e.protocol").
+		Select("e.port").
+		Select("e.domain").
+		Select("p.path AS path").
+		Select("e.method").
+		Select("e.status_code").
+		Select("e.app_version").
+		Select("e.os_version").
+		Select("e.device_manufacturer").
+		Select("e.device_name").
+		Select("groupUniqArray(e.network_provider)").
+		Select("groupUniqArray(e.network_type)").
+		Select("groupUniqArray(e.network_generation)").
+		Select("groupUniqArray(e.device_locale)").
+		Select("toUInt64(count())").
+		Select("toUInt64(countIf(status_code >= 200 AND status_code < 300))").
+		Select("toUInt64(countIf(status_code >= 300 AND status_code < 400))").
+		Select("toUInt64(countIf(status_code >= 400 AND status_code < 500))").
+		Select("toUInt64(countIf(status_code >= 500 AND status_code < 600))").
+		Select("quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)").
 		From(`http_events e
 			JOIN (
 				SELECT DISTINCT domain, path FROM url_patterns FINAL
