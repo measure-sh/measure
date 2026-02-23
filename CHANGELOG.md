@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :zap: Performance
 
+- (**backend**): Pre-sign attachment urls async in batches (#3200) by @detj in #3200
 - (**backend**): Fetch user defined attribute keys concurrently (#3186) by @detj in #3186
 
 ### :books: Documentation
