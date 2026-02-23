@@ -149,11 +149,13 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                eventSerializer: EventSerializer(),
                                                systemFileManager: self.systemFileManager)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
+        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
         self.configLoader = configLoader ?? BaseConfigLoader(userDefaultStorage: self.userDefaultStorage,
-                                             fileManager: self.systemFileManager,
-                                             networkClient: self.networkClient,
-                                            timeProvider: self.timeProvider,
-                                             logger: self.logger)
+                                                             fileManager: self.systemFileManager,
+                                                             networkClient: self.networkClient,
+                                                             timeProvider: self.timeProvider,
+                                                             logger: self.logger,
+                                                             measureDispatchQueue: self.measureDispatchQueue)
         self.idProvider = idProvider ?? UUIDProvider()
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
         self.sessionStore = sessionStore ?? MockSessionStore()
@@ -179,7 +181,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                    versionCode: FrameworkInfo.version,
                                                                    signalSampler: self.signalSampler)
         self.exporter = exporter ?? MockExporter()
-        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,

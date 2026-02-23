@@ -21,17 +21,20 @@ struct BaseConfigLoader: ConfigLoader {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let logger: Logger
+    private let measureDispatchQueue: MeasureDispatchQueue
 
     init(userDefaultStorage: UserDefaultStorage,
          fileManager: SystemFileManager,
          networkClient: NetworkClient,
          timeProvider: TimeProvider,
-         logger: Logger) {
+         logger: Logger,
+         measureDispatchQueue: MeasureDispatchQueue) {
         self.userDefaultStorage = userDefaultStorage
         self.fileManager = fileManager
         self.networkClient = networkClient
         self.timeProvider = timeProvider
         self.logger = logger
+        self.measureDispatchQueue = measureDispatchQueue
 
         let decoder = JSONDecoder()
         self.decoder = decoder
@@ -99,47 +102,49 @@ struct BaseConfigLoader: ConfigLoader {
             return
         }
 
-        let response = networkClient.getConfig(eTag: userDefaultStorage.getConfigEtag())
+        measureDispatchQueue.submit {
+            let response = networkClient.getConfig(eTag: userDefaultStorage.getConfigEtag())
 
-        switch response {
+            switch response {
 
-        case .success(let config, let eTag, let cacheControl):
+            case .success(let config, let eTag, let cacheControl):
 
-            saveConfigToDisk(config)
+                saveConfigToDisk(config)
 
-            userDefaultStorage.setConfigFetchTimestamp(now)
-            userDefaultStorage.setConfigCacheControl(Number(cacheControl))
+                userDefaultStorage.setConfigFetchTimestamp(now)
+                userDefaultStorage.setConfigCacheControl(Number(cacheControl))
 
-            if let eTag {
-                userDefaultStorage.setConfigEtag(eTag)
+                if let eTag {
+                    userDefaultStorage.setConfigEtag(eTag)
+                }
+
+                logger.internalLog(
+                    level: .debug,
+                    message: "ConfigLoader: New config loaded from server successfully",
+                    error: nil,
+                    data: nil
+                )
+
+            case .notModified:
+
+                userDefaultStorage.setConfigFetchTimestamp(now)
+
+                logger.internalLog(
+                    level: .debug,
+                    message: "ConfigLoader: 304 Not Modified",
+                    error: nil,
+                    data: nil
+                )
+
+            case .error:
+
+                logger.internalLog(
+                    level: .error,
+                    message: "ConfigLoader: Failed to load config from server",
+                    error: nil,
+                    data: nil
+                )
             }
-
-            logger.internalLog(
-                level: .debug,
-                message: "ConfigLoader: New config loaded from server successfully",
-                error: nil,
-                data: nil
-            )
-
-        case .notModified:
-
-            userDefaultStorage.setConfigFetchTimestamp(now)
-
-            logger.internalLog(
-                level: .debug,
-                message: "ConfigLoader: 304 Not Modified",
-                error: nil,
-                data: nil
-            )
-
-        case .error:
-
-            logger.internalLog(
-                level: .error,
-                message: "ConfigLoader: Failed to load config from server",
-                error: nil,
-                data: nil
-            )
         }
     }
 }

@@ -122,9 +122,7 @@ extension URLSessionTask {
             objc_setAssociatedObject(self, &isHandlingStateKey, false, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
 
-        DispatchQueue.global(qos: .utility).async {
-            URLSessionTaskInterceptor.shared.urlSessionTask(self, setState: state)
-        }
+        URLSessionTaskInterceptor.shared.urlSessionTask(self, setState: state)
 
         self.setStateSwizzled(state: state)
     }
