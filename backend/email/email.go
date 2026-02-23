@@ -210,6 +210,8 @@ func UsageLimitContent(message string, threshold int, usageFormatted, maxUnitsFo
 // for daily summary emails.
 func DailySummaryContent(appName string, date time.Time, metrics []MetricData) string {
 	formattedDate := date.Format("January 2, 2006")
+	formattedDateShort := date.Format("Jan 2, 2006")
+	comparisonDateShort := date.AddDate(0, 0, -1).Format("Jan 2, 2006")
 
 	metricsHTML := ""
 	for _, metric := range metrics {
@@ -251,14 +253,17 @@ func DailySummaryContent(appName string, date time.Time, metrics []MetricData) s
             <!-- Date Header -->
             <div style="text-align: center; margin-bottom: 32px;">
                 <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
-                    %s (Last 24 hours)
+                    Summary for %s
                 </h2>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #718096;">
+                    Comparisons are between %s (12:00 AM UTC to 11:59 PM UTC) and %s (12:00 AM UTC to 11:59 PM UTC).
+                </p>
             </div>
 
             <!-- Metrics Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
                 %s
-            </div>`, formattedDate, metricsHTML)
+            </div>`, formattedDate, formattedDateShort, comparisonDateShort, metricsHTML)
 }
 
 func getProgressBarColor(threshold int) string {

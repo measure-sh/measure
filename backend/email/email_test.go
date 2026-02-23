@@ -107,7 +107,8 @@ func TestDailySummaryContent(t *testing.T) {
 		contain string
 	}{
 		{"date", "February 15, 2026"},
-		{"last 24h", "Last 24 hours"},
+		{"summary label", "Summary for February 15, 2026"},
+		{"comparison label", "Comparisons are between Feb 15, 2026 (12:00 AM UTC to 11:59 PM UTC) and Feb 14, 2026 (12:00 AM UTC to 11:59 PM UTC)."},
 		{"sessions value", "1,234"},
 		{"sessions label", "Sessions"},
 		{"crash free value", "99.5%"},
