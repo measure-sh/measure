@@ -28,6 +28,7 @@ import (
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	"cloud.google.com/go/storage"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
@@ -727,7 +728,8 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // hasUnhandledExceptions returns true if event payload
@@ -1514,7 +1516,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		}
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // ingestSpans writes the spans to database.
@@ -1574,7 +1577,8 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 func PutEvents(c *gin.Context) {
@@ -1976,7 +1980,9 @@ func PutEvents(c *gin.Context) {
 			defer insertMetricsIngestionSelectStmt.Close()
 			insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
 
-			if err := server.Server.ChPool.AsyncInsert(ingestCtx, insertMetricsIngestionFullStmt, true, args...); err != nil {
+			asyncCtx := clickhouse.Context(ingestCtx, clickhouse.WithAsync(true))
+
+			if err := server.Server.ChPool.Exec(asyncCtx, insertMetricsIngestionFullStmt, args...); err != nil {
 				fmt.Println(`failed to insert ingestion metrics`, err)
 				return err
 			}
