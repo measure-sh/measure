@@ -146,10 +146,9 @@ func toPatterns(results []UrlPattern) []Pattern {
 			continue
 		}
 		domain := r.Segments[0]
-		path := "/"
-		if len(r.Segments) > 1 {
-			path = "/" + strings.Join(r.Segments[1:], "/")
-		}
+		subPath := strings.Join(r.Segments[1:], "/")
+		path := "/" + strings.TrimPrefix(subPath, "/")
+
 		patterns = append(patterns, Pattern{
 			Domain: domain,
 			Path:   path,
@@ -228,7 +227,7 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 	stmt := sqlf.
 		Select("e.team_id").
 		Select("e.app_id").
-		Select("toStartOfFifteenMinutes(e.timestamp) AS ts").
+		Select("toDateTime64(toStartOfFifteenMinutes(e.timestamp), 3) AS ts").
 		Select("e.protocol").
 		Select("e.port").
 		Select("e.domain").
@@ -248,7 +247,7 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Select("toUInt64(countIf(status_code >= 300 AND status_code < 400))").
 		Select("toUInt64(countIf(status_code >= 400 AND status_code < 500))").
 		Select("toUInt64(countIf(status_code >= 500 AND status_code < 600))").
-		Select("quantilesState(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(e.latency_ms)").
+		Select("quantilesState(0.5, 0.75, 0.9, 0.95, 0.99, 1.)(toInt64(e.latency_ms))").
 		// The multiIf uses different matching strategies
 		// based on the pattern type:
 		// - patterns ending with "**" and no other "*" are matched with startsWith
@@ -418,7 +417,6 @@ func normalizeSegment(seg string) string {
 // patterns with wildcards and stores them
 // in the url_patterns table.
 func GeneratePatterns(ctx context.Context) {
-	fmt.Println("starting pattern generation")
 	ctx, rootSpan := tracer.Start(ctx, "generate-patterns")
 	defer rootSpan.End()
 
@@ -441,6 +439,8 @@ func GeneratePatterns(ctx context.Context) {
 		}
 
 		for _, app := range apps {
+			appStart := time.Now()
+
 			from, err := getLastPatternGeneratedAt(ctx, app.TeamID, app.ID)
 			if err != nil {
 				fmt.Printf("failed to get last pattern_generated_at for team=%s app=%s: %v\n",
@@ -519,6 +519,9 @@ func GeneratePatterns(ctx context.Context) {
 					app.TeamID, app.ID, err)
 				continue
 			}
+
+			fmt.Printf("URL patterns generated for team=%s app=%s in %v\n",
+				app.TeamID, app.ID, time.Since(appStart))
 		}
 	}
 }
@@ -526,7 +529,6 @@ func GeneratePatterns(ctx context.Context) {
 // GenerateMetrics pre-aggregates HTTP event data into
 // the http_metrics table for each known app.
 func GenerateMetrics(ctx context.Context) {
-	fmt.Println("starting network metrics generation")
 	ctx, span := tracer.Start(ctx, "generate-metrics")
 	defer span.End()
 
@@ -549,6 +551,8 @@ func GenerateMetrics(ctx context.Context) {
 		}
 
 		for _, app := range apps {
+			appStart := time.Now()
+
 			from, err := getLastReportedMetricsAt(ctx, app.TeamID, app.ID)
 			if err != nil {
 				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
@@ -567,13 +571,14 @@ func GenerateMetrics(ctx context.Context) {
 				continue
 			}
 
-			fmt.Printf("inserted aggregated metrics for team=%s app=%s from=%s to=%s\n", app.TeamID, app.ID, from.Format(time.RFC3339), now.Format(time.RFC3339))
-
 			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
 				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
 				continue
 			}
+
+			fmt.Printf("Network metrics generated for team=%s app=%s in %v\n",
+				app.TeamID, app.ID, time.Since(appStart))
 		}
 	}
 }

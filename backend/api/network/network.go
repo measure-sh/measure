@@ -130,44 +130,6 @@ func FetchPaths(ctx context.Context, appId, teamId uuid.UUID, domain, search str
 	}
 
 	err = rows.Err()
-	if err != nil || len(paths) > 0 {
-		return
-	}
-
-	eventsStmt := sqlf.
-		Select("path").
-		From("http_events").
-		Where("team_id = ?", teamId).
-		Where("app_id = ?", appId).
-		Where("domain = ?", domain)
-
-	if search != "" {
-		eventsStmt.Where("positionCaseInsensitive(path, ?) > 0", search)
-	}
-
-	eventsStmt.GroupBy("path").
-		OrderBy("count() DESC").
-		Limit(10)
-
-	defer eventsStmt.Close()
-
-	eventsRows, err := server.Server.ChPool.Query(ctx, eventsStmt.String(), eventsStmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for eventsRows.Next() {
-		var path string
-		if err = eventsRows.Scan(&path); err != nil {
-			return
-		}
-		if err = eventsRows.Err(); err != nil {
-			return
-		}
-		paths = append(paths, path)
-	}
-
-	err = eventsRows.Err()
 	return
 }
 
