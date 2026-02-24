@@ -2842,7 +2842,8 @@ export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: stri
 export const fetchNetworkMetricsFromServer = async (filters: Filters, url: string) => {
   var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/metrics?`
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
 
   const u = new URL(apiUrl, window.location.origin)
   u.searchParams.append("url", url)
@@ -2870,7 +2871,7 @@ export const fetchNetworkMetricsFromServer = async (filters: Filters, url: strin
 export const fetchNetworkTrendsFromServer = async (filters: Filters) => {
   var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/trends?`
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
 
   try {
     const res = await measureAuth.fetchMeasure(apiUrl)
@@ -2894,7 +2895,8 @@ export const fetchNetworkTrendsFromServer = async (filters: Filters) => {
 export const fetchNetworkStatusOverviewPlotFromServer = async (filters: Filters) => {
   var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/statusOverview?`
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null, null, null)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(apiUrl)

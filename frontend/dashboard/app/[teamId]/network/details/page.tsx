@@ -5,6 +5,7 @@ import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/
 import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkLatencyPlot from '@/app/components/network_latency_plot'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
+import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -35,6 +36,7 @@ interface PageState {
     filters: typeof defaultFilters
     networkMetricsApiStatus: NetworkMetricsApiStatus
     networkMetrics: NetworkMetrics | null
+    plotDataKey: string | null
 }
 
 export default function ExploreUrl({ params }: { params: { teamId: string } }) {
@@ -46,6 +48,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
         filters: defaultFilters,
         networkMetricsApiStatus: NetworkMetricsApiStatus.Loading,
         networkMetrics: null,
+        plotDataKey: null,
     })
 
     const updatePageState = (newState: Partial<PageState>) => {
@@ -59,6 +62,10 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             })
         }
     }
+
+    const plotTimeGroup = getPlotTimeGroupForRange(pageState.filters.startDate, pageState.filters.endDate)
+    const currentPlotKey = `${url}|${pageState.filters.serialisedFilters}|${plotTimeGroup}`
+    const shouldRenderPlot = pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics !== null && pageState.plotDataKey === currentPlotKey
 
     useEffect(() => {
         if (!pageState.filters.ready) {
@@ -83,18 +90,21 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                     updatePageState({
                         networkMetricsApiStatus: NetworkMetricsApiStatus.Success,
                         networkMetrics: result.data as NetworkMetrics,
+                        plotDataKey: currentPlotKey,
                     })
                     break
                 case NetworkMetricsApiStatus.NoData:
                     updatePageState({
                         networkMetricsApiStatus: NetworkMetricsApiStatus.NoData,
                         networkMetrics: null,
+                        plotDataKey: null,
                     })
                     break
                 default:
                     updatePageState({
                         networkMetricsApiStatus: NetworkMetricsApiStatus.Error,
                         networkMetrics: null,
+                        plotDataKey: null,
                     })
                     break
             }
@@ -131,7 +141,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
             <div className="py-4" />
 
-            {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Loading &&
+            {pageState.filters.ready && (pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Loading || (pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && !shouldRenderPlot)) &&
                 <LoadingSpinner />
             }
             {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Error &&
@@ -140,18 +150,18 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.NoData &&
                 <p className="font-body text-sm">No data available for the selected filters</p>
             }
-            {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics &&
+            {shouldRenderPlot &&
                 <div className="flex flex-col w-full">
 
                     <div className="py-6" />
                     <p className="font-display text-xl">Latency</p>
                     <div className="py-2" />
-                    <NetworkLatencyPlot data={pageState.networkMetrics.latency} />
+                    <NetworkLatencyPlot data={pageState.networkMetrics!.latency} plotTimeGroup={plotTimeGroup} />
 
                     <div className="py-6" />
                     <p className="font-display text-xl">Status Distribution</p>
                     <div className="py-2" />
-                    <NetworkStatusDistributionPlot data={pageState.networkMetrics.status_codes} />
+                    <NetworkStatusDistributionPlot data={pageState.networkMetrics!.status_codes} plotTimeGroup={plotTimeGroup} />
 
                 </div>
             }

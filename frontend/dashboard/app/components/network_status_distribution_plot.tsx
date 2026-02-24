@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import React, { useMemo } from 'react'
 import { numberToKMB } from '../utils/number_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig, PlotTimeGroup } from '../utils/time_utils'
 
 interface StatusOverviewDataPoint {
   datetime: string
@@ -18,6 +18,7 @@ interface StatusOverviewDataPoint {
 
 interface NetworkStatusDistributionPlotProps {
   data: StatusOverviewDataPoint[]
+  plotTimeGroup: PlotTimeGroup
 }
 
 type PlotData = {
@@ -40,8 +41,9 @@ const seriesConfig = [
   { key: 'count_5xx', id: '5xx' },
 ] as const
 
-const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps> = ({ data }) => {
+const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps> = ({ data, plotTimeGroup }) => {
   const { theme } = useTheme()
+  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined
@@ -79,10 +81,10 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
           areaOpacity={0.1}
           colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
           margin={{ top: 20, right: 40, bottom: 140, left: 80 }}
-          xFormat="time:%Y-%m-%d"
+          xFormat={timeConfig.xFormat}
           xScale={{
-            format: '%Y-%m-%d',
-            precision: 'day',
+            format: timeConfig.xScaleFormat,
+            precision: timeConfig.xScalePrecision,
             type: 'time',
             useUTC: false
           }}
@@ -98,7 +100,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
             legend: 'Date',
             tickPadding: 10,
             legendOffset: 100,
-            format: '%b %d, %Y',
+            format: timeConfig.axisBottomFormat,
             tickRotation: 45,
             legendPosition: 'middle'
           }}
@@ -135,7 +137,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
             const pct = (count: number) => total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
             return (
               <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-                <p className='p-2 font-semibold'>{formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2 font-semibold'>{formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
                 <p className='px-2 pb-1'>Total: {total.toLocaleString()}</p>
                 {slice.points.map((point) => {
                   const count = Number(point.data.y)
