@@ -4586,52 +4586,6 @@ func GetAppJourney(c *gin.Context) {
 
 	switch j := journeyGraph.(type) {
 	case *journey.JourneyAndroid:
-		// if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-		// 	// do not hit database if no event ids
-		// 	// to query
-		// 	if len(eventIds) == 0 {
-		// 		return
-		// 	}
-
-		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
-
-		// 	exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-		// 	if err != nil {
-		// 		return
-		// 	}
-
-		// 	return
-		// }); err != nil {
-		// 	fmt.Println(msg, err)
-		// 	c.JSON(http.StatusInternalServerError, gin.H{
-		// 		"error": msg,
-		// 	})
-		// 	return
-		// }
-
-		// if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
-		// 	// do not hit database if no event ids
-		// 	// to query
-		// 	if len(eventIds) == 0 {
-		// 		return
-		// 	}
-
-		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups_from_ids")
-
-		// 	anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
-		// 	if err != nil {
-		// 		return
-		// 	}
-
-		// 	return
-		// }); err != nil {
-		// 	fmt.Println(msg, err)
-		// 	c.JSON(http.StatusInternalServerError, gin.H{
-		// 		"error": msg,
-		// 	})
-		// 	return
-		// }
-
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "unhandled_exception_groups")
 
 		if err := j.SetExceptionGroups(ctx, &af); err != nil {
@@ -4693,7 +4647,6 @@ func GetAppJourney(c *gin.Context) {
 				issue := Issue{
 					ID:    anrGroups[i].ID,
 					Title: anrGroups[i].GetDisplayTitle(),
-					// Count: j.GetNodeANRCount(v, anrGroups[i].ID),
 					Count: anrGroups[i].Count,
 				}
 				anrs = append(anrs, issue)
@@ -4712,28 +4665,7 @@ func GetAppJourney(c *gin.Context) {
 			nodes = append(nodes, node)
 		}
 	case *journey.JourneyiOS:
-		// if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-		// 	// do not hit database if no event ids
-		// 	// to query
-		// 	if len(eventIds) == 0 {
-		// 		return
-		// 	}
-
-		// 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "exception_groups_from_ids")
-
-		// 	exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-		// 	if err != nil {
-		// 		return
-		// 	}
-
-		// 	return
-		// }); err != nil {
-		// 	fmt.Println(msg, err)
-		// 	c.JSON(http.StatusInternalServerError, gin.H{
-		// 		"error": msg,
-		// 	})
-		// 	return
-		// }
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "unhandled_exception_groups")
 
 		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
@@ -4765,7 +4697,6 @@ func GetAppJourney(c *gin.Context) {
 				issue := Issue{
 					ID:    exceptionGroups[i].ID,
 					Title: exceptionGroups[i].GetDisplayTitle(),
-					// Count: uint64(j.GetNodeExceptionCount(v, exceptionGroups[i].ID)),
 					Count: exceptionGroups[i].Count,
 				}
 				crashes = append(crashes, issue)
