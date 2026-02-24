@@ -4632,6 +4632,8 @@ func GetAppJourney(c *gin.Context) {
 		// 	return
 		// }
 
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "unhandled_exception_groups")
+
 		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -4640,6 +4642,8 @@ func GetAppJourney(c *gin.Context) {
 			})
 			return
 		}
+
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups")
 
 		if err := j.SetANRGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
