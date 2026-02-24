@@ -291,17 +291,18 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		Select("argMax(method_name, timestamp)").
 		Select("argMax(file_name, timestamp)").
 		Select("argMax(line_number, timestamp)").
-		Select("max(timestamp)").
+		Select("timestamp").
 		Select("sumMerge(count) as event_count").
 		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		// Capture all the exception groups that received new exceptions
 		// after the "from" date & were created before the "to" date.
-		Having("min(timestamp) >= ? and max(timestamp) <= ?", af.From, af.To).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
 		GroupBy("team_id").
 		GroupBy("app_id").
 		GroupBy("id").
+		GroupBy("timestamp").
 		// Don't consider exception groups that do not
 		// have any exception events yet.
 		// Also avoids division by zero errors.
@@ -1046,7 +1047,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("argMax(method_name, timestamp)").
 		Select("argMax(file_name, timestamp)").
 		Select("argMax(line_number, timestamp)").
-		Select("max(timestamp)").
+		Select("timestamp").
 		Select("sumMerge(count) as event_count").
 		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
 		Where("team_id = toUUID(?)", a.TeamId).
@@ -1057,6 +1058,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		GroupBy("team_id").
 		GroupBy("app_id").
 		GroupBy("id").
+		GroupBy("timestamp").
 		// Don't consider exception groups that do not
 		// have any exception events yet.
 		// Also avoids division by zero errors.

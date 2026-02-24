@@ -156,7 +156,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 		Expr("groupUniqArrayState(?)", e.Attribute.DeviceName).
 		Expr("groupUniqArrayState(?)", e.Attribute.DeviceModel).
 		Expr("sumState(toUInt64(1))").
-		Expr("?", e.UpdatedAt)
+		Expr("toDateTime64(?, 3, 'UTC')", e.UpdatedAt.Format(chrono.MSTimeFormat))
 
 	defer stmt.Close()
 
@@ -234,7 +234,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 		Expr("groupUniqArrayState(?)", a.Attribute.DeviceName).
 		Expr("groupUniqArrayState(?)", a.Attribute.DeviceModel).
 		Expr("sumState(toUInt64(1))").
-		Expr("?", a.UpdatedAt.Format(chrono.MSTimeFormat))
+		Expr("toDateTime64(?, 3, 'UTC')", a.UpdatedAt.Format(chrono.MSTimeFormat))
 
 	defer stmt.Close()
 
