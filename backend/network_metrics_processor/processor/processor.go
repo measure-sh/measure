@@ -418,6 +418,7 @@ func normalizeSegment(seg string) string {
 // patterns with wildcards and stores them
 // in the url_patterns table.
 func GeneratePatterns(ctx context.Context) {
+	fmt.Println("starting pattern generation")
 	ctx, rootSpan := tracer.Start(ctx, "generate-patterns")
 	defer rootSpan.End()
 
@@ -466,7 +467,7 @@ func GeneratePatterns(ctx context.Context) {
 			trie := NewUrlTrie(highCardinalityCollapseThreshold)
 			for _, event := range events {
 				normalizedPath := normalizePath(event.Path)
-				segments := append([]string{event.Domain}, strings.Split(normalizedPath, "/")...)
+				segments := append([]string{event.Domain}, strings.Split(strings.TrimPrefix(normalizedPath, "/"), "/")...)
 				trie.Insert(segments)
 			}
 
@@ -511,6 +512,8 @@ func GeneratePatterns(ctx context.Context) {
 
 			insertStmt.Close()
 
+			fmt.Printf("inserted %d patterns for team=%s app=%s\n", totalPatterns, app.TeamID, app.ID)
+
 			if err := upsertPatternGeneratedAt(ctx, app.TeamID, app.ID, now); err != nil {
 				fmt.Printf("failed to upsert pattern_generated_at for team=%s app=%s: %v\n",
 					app.TeamID, app.ID, err)
@@ -523,6 +526,7 @@ func GeneratePatterns(ctx context.Context) {
 // GenerateMetrics pre-aggregates HTTP event data into
 // the http_metrics table for each known app.
 func GenerateMetrics(ctx context.Context) {
+	fmt.Println("starting network metrics generation")
 	ctx, span := tracer.Start(ctx, "generate-metrics")
 	defer span.End()
 
@@ -562,6 +566,8 @@ func GenerateMetrics(ctx context.Context) {
 					app.TeamID, app.ID, err)
 				continue
 			}
+
+			fmt.Printf("inserted aggregated metrics for team=%s app=%s from=%s to=%s\n", app.TeamID, app.ID, from.Format(time.RFC3339), now.Format(time.RFC3339))
 
 			if err := upsertMetricsReportedAt(ctx, app.TeamID, app.ID, now); err != nil {
 				fmt.Printf("failed to upsert metrics_reported_at for team=%s app=%s: %v\n",
