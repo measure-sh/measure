@@ -98,6 +98,12 @@ func (j *JourneyiOS) computeIssues() {
 			}
 			if issueEvent.IsUnhandledException() {
 				bag.exceptionIds.Add(issueEvent.ID)
+				bag.exceptionFingerprints = append(bag.exceptionFingerprints, issueEvent.Exception.Fingerprint)
+
+				if j.exceptionGroups == nil {
+					j.exceptionGroups = make(map[string]*group.ExceptionGroup)
+				}
+				j.exceptionGroups[issueEvent.Exception.Fingerprint] = nil
 			}
 		}
 	}

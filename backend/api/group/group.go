@@ -301,28 +301,53 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilte
 		return
 	}
 
-	stmt := sqlf.
+	groupsStmt := sqlf.
 		From("unhandled_exception_groups final").
 		Select("id").
-		Select("any(type) as type").
-		Select("any(message) as message").
-		Select("any(method_name) as method_name").
-		Select("any(file_name) as file_name").
-		Select("any(line_number) as line_number").
-		Select("sumMerge(count) as count").
+		Select("argMax(type, timestamp) as type").
+		Select("argMax(message, timestamp) as message").
+		Select("argMax(method_name, timestamp) as method_name").
+		Select("argMax(file_name, timestamp) as file_name").
+		Select("argMax(line_number, timestamp) as line_number").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("id").In(fingerprints).
+		GroupBy("id")
 
-	defer stmt.Close()
+	countsStmt := sqlf.
+		From("events").
+		Select("`exception.fingerprint` as id").
+		Select("count() as event_count").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= toDateTime(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime(?, 3, 'UTC')", af.To).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = false").
+		Where("exception.fingerprint").In(fingerprints).
+		GroupBy("`exception.fingerprint`")
 
 	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
+		countsStmt.Where("attribute.app_version").In(af.Versions)
+		countsStmt.Where("attribute.app_build").In(af.VersionCodes)
 	}
 
-	stmt.Where("id").In(fingerprints)
-	stmt.GroupBy("id")
+	stmt := sqlf.
+		With("groups", groupsStmt).
+		With("counts", countsStmt).
+		Select("g.id").
+		Select("g.type").
+		Select("g.message").
+		Select("g.method_name").
+		Select("g.file_name").
+		Select("g.line_number").
+		Select("c.event_count as count").
+		From("groups as g").
+		LeftJoin("counts as c", "c.id = g.id")
+
+	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -366,28 +391,52 @@ func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, inp
 		return
 	}
 
-	stmt := sqlf.
+	groupsStmt := sqlf.
 		From("anr_groups final").
 		Select("id").
-		Select("any(type) as type").
-		Select("any(message) as message").
-		Select("any(method_name) as method_name").
-		Select("any(file_name) as file_name").
-		Select("any(line_number) as line_number").
-		Select("sumMerge(count) as count").
+		Select("argMax(type, timestamp) as type").
+		Select("argMax(message, timestamp) as message").
+		Select("argMax(method_name, timestamp) as method_name").
+		Select("argMax(file_name, timestamp) as file_name").
+		Select("argMax(line_number, timestamp) as line_number").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("id").In(fingerprints).
+		GroupBy("id")
 
-	defer stmt.Close()
+	countsStmt := sqlf.
+		From("events").
+		Select("`anr.fingerprint` as id").
+		Select("count() as event_count").
+		Where("team_id = toUUID(?)", teamId).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= toDateTime(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime(?, 3, 'UTC')", af.To).
+		Where("type = ?", event.TypeANR).
+		Where("anr.fingerprint").In(fingerprints).
+		GroupBy("`anr.fingerprint`")
 
 	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
+		countsStmt.Where("attribute.app_version").In(af.Versions)
+		countsStmt.Where("attribute.app_build").In(af.VersionCodes)
 	}
 
-	stmt.Where("id").In(fingerprints)
-	stmt.GroupBy("id")
+	stmt := sqlf.
+		With("groups", groupsStmt).
+		With("counts", countsStmt).
+		Select("g.id").
+		Select("g.type").
+		Select("g.message").
+		Select("g.method_name").
+		Select("g.file_name").
+		Select("g.line_number").
+		Select("c.event_count as count").
+		From("groups as g").
+		LeftJoin("counts as c", "c.id = g.id")
+
+	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
