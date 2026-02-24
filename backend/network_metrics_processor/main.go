@@ -67,13 +67,13 @@ func main() {
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
 
-	// run every 1 minute
-	if _, err := cron.AddFunc("* * * * *", func() { processor.GeneratePatterns(ctx) }); err != nil {
+	// run every 15 minutes
+	if _, err := cron.AddFunc("*/15 * * * *", func() { processor.GeneratePatterns(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule url processor job: %v\n", err)
 	}
 
-	// run 1 minute
-	if _, err := cron.AddFunc("* * * * *", func() { processor.GenerateMetrics(ctx) }); err != nil {
+	// run every 15 minutes
+	if _, err := cron.AddFunc("*/15 * * * *", func() { processor.GenerateMetrics(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule metrics generator job: %v\n", err)
 	}
 
