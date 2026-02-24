@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -423,6 +424,8 @@ func GeneratePatterns(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 
+	log.Printf("GeneratePatterns: starting at %s", now)
+
 	teams, err := getTeams(ctx)
 	if err != nil {
 		rootSpan.RecordError(err)
@@ -431,12 +434,16 @@ func GeneratePatterns(ctx context.Context) {
 		return
 	}
 
+	log.Printf("GeneratePatterns: found %d teams", len(teams))
+
 	for _, t := range teams {
 		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
+
+		log.Printf("GeneratePatterns: team=%s has %d apps", t.ID, len(apps))
 
 		for _, app := range apps {
 			appStart := time.Now()
@@ -451,6 +458,9 @@ func GeneratePatterns(ctx context.Context) {
 			if from == nil {
 				defaultFrom := now.Add(-patternsDefaultLookback)
 				from = &defaultFrom
+				log.Printf("GeneratePatterns: team=%s app=%s no prior timestamp, using default lookback from=%s", app.TeamID, app.ID, *from)
+			} else {
+				log.Printf("GeneratePatterns: team=%s app=%s last pattern_generated_at=%s", app.TeamID, app.ID, *from)
 			}
 
 			events, err := fetchHttpEvents(ctx, app.TeamID, app.ID, *from, now)
@@ -461,17 +471,22 @@ func GeneratePatterns(ctx context.Context) {
 			}
 
 			if len(events) == 0 {
+				log.Printf("GeneratePatterns: team=%s app=%s no events found, skipping", app.TeamID, app.ID)
 				continue
 			}
+
+			log.Printf("GeneratePatterns: team=%s app=%s fetched %d events", app.TeamID, app.ID, len(events))
 
 			trie := NewUrlTrie(highCardinalityCollapseThreshold)
 			for _, event := range events {
 				normalizedPath := normalizePath(event.Path)
 				segments := append([]string{event.Domain}, strings.Split(strings.TrimPrefix(normalizedPath, "/"), "/")...)
-				trie.Insert(segments)
+				trie.Insert(segments, int(event.Count))
 			}
 
 			patterns := toPatterns(trie.GetPatterns())
+
+			log.Printf("GeneratePatterns: team=%s app=%s trie produced %d patterns", app.TeamID, app.ID, len(patterns))
 
 			seen := make(map[string]struct{})
 			insertStmt := sqlf.InsertInto("url_patterns")
@@ -499,6 +514,7 @@ func GeneratePatterns(ctx context.Context) {
 			}
 
 			if totalPatterns == 0 {
+				log.Printf("GeneratePatterns: team=%s app=%s no patterns above threshold (%d), skipping insert", app.TeamID, app.ID, patternCreationRequestCountThreshold)
 				insertStmt.Close()
 				continue
 			}
@@ -524,6 +540,8 @@ func GeneratePatterns(ctx context.Context) {
 				app.TeamID, app.ID, time.Since(appStart))
 		}
 	}
+
+	log.Printf("GeneratePatterns: completed in %v", time.Since(start))
 }
 
 // GenerateMetrics pre-aggregates HTTP event data into
@@ -535,6 +553,8 @@ func GenerateMetrics(ctx context.Context) {
 	start := time.Now()
 	now := start.UTC()
 
+	log.Printf("GenerateMetrics: starting at %s", now)
+
 	teams, err := getTeams(ctx)
 	if err != nil {
 		span.RecordError(err)
@@ -543,12 +563,16 @@ func GenerateMetrics(ctx context.Context) {
 		return
 	}
 
+	log.Printf("GenerateMetrics: found %d teams", len(teams))
+
 	for _, t := range teams {
 		apps, err := getAppsForTeam(ctx, t.ID)
 		if err != nil {
 			fmt.Printf("failed to fetch apps for team=%s: %v\n", t.ID, err)
 			continue
 		}
+
+		log.Printf("GenerateMetrics: team=%s has %d apps", t.ID, len(apps))
 
 		for _, app := range apps {
 			appStart := time.Now()
@@ -563,7 +587,12 @@ func GenerateMetrics(ctx context.Context) {
 			if from == nil {
 				defaultFrom := now.Add(-metricsDefaultLookback)
 				from = &defaultFrom
+				log.Printf("GenerateMetrics: team=%s app=%s no prior timestamp, using default lookback from=%s", app.TeamID, app.ID, *from)
+			} else {
+				log.Printf("GenerateMetrics: team=%s app=%s last metrics_reported_at=%s", app.TeamID, app.ID, *from)
 			}
+
+			log.Printf("GenerateMetrics: team=%s app=%s aggregating events from=%s to=%s", app.TeamID, app.ID, *from, now)
 
 			if err := insertAggregatedMetrics(ctx, app.TeamID, app.ID, *from, now); err != nil {
 				fmt.Printf("failed to insert metrics for team=%s app=%s: %v\n",
@@ -581,4 +610,6 @@ func GenerateMetrics(ctx context.Context) {
 				app.TeamID, app.ID, time.Since(appStart))
 		}
 	}
+
+	log.Printf("GenerateMetrics: completed in %v", time.Since(start))
 }

@@ -117,9 +117,10 @@ func (n *UrlNode) collect() []UrlPattern {
 	return results
 }
 
-// Insert adds a sequence of segments, collapsing
-// any high cardinality segments during insertion.
-func (t *UrlTrie) Insert(segments []string) {
+// Insert adds a sequence of segments with the given
+// request count, collapsing any high cardinality
+// segments during insertion.
+func (t *UrlTrie) Insert(segments []string, count int) {
 	current := t.Root
 
 	for _, segment := range segments {
@@ -143,7 +144,7 @@ func (t *UrlTrie) Insert(segments []string) {
 		current = current.addChild(segment)
 	}
 
-	current.count++
+	current.count += count
 }
 
 // GetPatterns returns all accumulated patterns
