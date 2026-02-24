@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Crash/anr groups list api would return inaccurate results sometimes (#3212) by @detj in #3212
 - (**backend**): Onboard app synchronously during ingest (#3205) by @detj in #3205
 - (**backend**): Populate session attributes for trace only sessions (#3196) by @detj in #3196
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
