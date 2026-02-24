@@ -100,7 +100,8 @@ jobs:
               "ref_type": "${{ github.ref_type }}",
               "ref": "${{ github.ref }}",
               "ref_name": "${{ github.ref_name }}",
-              "sha": "${{ github.sha }}"
+              "sha": "${{ github.sha }}",
+              "actor": "${{ github.actor }}"
             }
   # env:
   #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
