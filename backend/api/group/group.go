@@ -215,8 +215,8 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 		Expr("timestamp").
 		Clause(")").
 		Clause("select").
-		Expr("?", teamId).
-		Expr("?", a.AppID).
+		Expr("toUUID(?)", teamId).
+		Expr("toUUID(?)", a.AppID).
 		Expr("?", a.ID).
 		Expr("(?, ?)", a.Attribute.AppVersion, a.Attribute.AppBuild).
 		Expr("?", a.Type).

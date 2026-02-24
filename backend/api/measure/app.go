@@ -282,36 +282,32 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 // GetExceptionGroupsWithFilter fetches exception groups
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
-	stmt := sqlf.
+	groupsStmt := sqlf.
 		From("unhandled_exception_groups final").
+		Select("team_id").
 		Select("app_id").
 		Select("id").
-		Select("argMax(type, timestamp)").
-		Select("argMax(message, timestamp)").
-		Select("argMax(method_name, timestamp)").
-		Select("argMax(file_name, timestamp)").
-		Select("argMax(line_number, timestamp)").
-		Select("timestamp").
-		Select("sumMerge(count) as event_count").
-		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		Select("app_version.1 as app_version_scalar").
+		Select("app_version.2 as app_build_scalar").
+		Select("argMax(type, timestamp) as type").
+		Select("argMax(message, timestamp) as message").
+		Select("argMax(method_name, timestamp) as method_name").
+		Select("argMax(file_name, timestamp) as file_name").
+		Select("argMax(line_number, timestamp) as line_number").
+		Select("any(timestamp) as last_occurrence").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		// Capture all the exception groups that received new exceptions
-		// after the "from" date & were created before the "to" date.
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
 		GroupBy("team_id").
 		GroupBy("app_id").
 		GroupBy("id").
-		GroupBy("timestamp").
-		// Don't consider exception groups that do not
-		// have any exception events yet.
-		// Also avoids division by zero errors.
-		Having("event_count > 0").
-		OrderBy("event_count desc")
+		GroupBy("app_version_scalar").
+		GroupBy("app_build_scalar")
 
 	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
+		groupsStmt.Where("app_version.1 in ?", af.Versions)
+		groupsStmt.Where("app_version.2 in ?", af.VersionCodes)
 	}
 
 	if af.HasOSVersions() {
@@ -321,36 +317,80 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			return
 		}
 
-		stmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
 	}
 
 	if af.HasCountries() {
-		stmt.Having("hasAll(groupUniqArrayMerge(countries), ?)", af.Countries)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
 	}
 
 	if af.HasNetworkProviders() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
 	}
 
 	if af.HasNetworkTypes() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
 	}
 
 	if af.HasNetworkGenerations() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
 	}
 
 	if af.HasDeviceLocales() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
 	}
 
 	if af.HasDeviceManufacturers() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
 	}
 
 	if af.HasDeviceNames() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
 	}
+
+	countsStmt := sqlf.
+		From("events").
+		Select("team_id").
+		Select("app_id").
+		Select("exception.fingerprint as id").
+		Select("attribute.app_version").
+		Select("attribute.app_build").
+		Select("count() as event_count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = false").
+		Where("`exception.fingerprint` != ''").
+		GroupBy("team_id").
+		GroupBy("app_id").
+		GroupBy("id").
+		GroupBy("attribute.app_version").
+		GroupBy("attribute.app_build")
+
+	if af.HasVersions() {
+		countsStmt.Where("attribute.app_version in ?", af.Versions)
+		countsStmt.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	stmt := sqlf.
+		With("groups", groupsStmt).
+		With("counts", countsStmt).
+		Select("g.app_id").
+		Select("g.id").
+		Select("g.type").
+		Select("g.message").
+		Select("g.method_name").
+		Select("g.file_name").
+		Select("g.line_number").
+		Select("g.last_occurrence").
+		Select("c.event_count as event_count").
+		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		From("groups as g").
+		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.attribute.app_version = g.app_version_scalar and c.attribute.app_build = g.app_build_scalar").
+		Where("c.event_count > 0").
+		OrderBy("event_count desc")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
@@ -1038,36 +1078,32 @@ func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint strin
 
 // GetANRGroupsWithFilter fetches ANR groups of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
-	stmt := sqlf.
+	groupsStmt := sqlf.
 		From("anr_groups final").
+		Select("team_id").
 		Select("app_id").
 		Select("id").
-		Select("argMax(type, timestamp)").
-		Select("argMax(message, timestamp)").
-		Select("argMax(method_name, timestamp)").
-		Select("argMax(file_name, timestamp)").
-		Select("argMax(line_number, timestamp)").
-		Select("timestamp").
-		Select("sumMerge(count) as event_count").
-		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		Select("app_version.1 as app_version_scalar").
+		Select("app_version.2 as app_build_scalar").
+		Select("argMax(type, timestamp) as type").
+		Select("argMax(message, timestamp) as message").
+		Select("argMax(method_name, timestamp) as method_name").
+		Select("argMax(file_name, timestamp) as file_name").
+		Select("argMax(line_number, timestamp) as line_number").
+		Select("any(timestamp) as last_occurrence").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		// Capture all the exception groups that received new exceptions
-		// after the "from" date & were created before the "to" date.
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
 		GroupBy("team_id").
 		GroupBy("app_id").
 		GroupBy("id").
-		GroupBy("timestamp").
-		// Don't consider exception groups that do not
-		// have any exception events yet.
-		// Also avoids division by zero errors.
-		Having("event_count > 0").
-		OrderBy("event_count desc")
+		GroupBy("app_version_scalar").
+		GroupBy("app_build_scalar")
 
 	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
+		groupsStmt.Where("app_version.1 in ?", af.Versions)
+		groupsStmt.Where("app_version.2 in ?", af.VersionCodes)
 	}
 
 	if af.HasOSVersions() {
@@ -1077,36 +1113,79 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			return
 		}
 
-		stmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
 	}
 
 	if af.HasCountries() {
-		stmt.Having("hasAll(groupUniqArrayMerge(countries), ?)", af.Countries)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
 	}
 
 	if af.HasNetworkProviders() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
 	}
 
 	if af.HasNetworkTypes() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
 	}
 
 	if af.HasNetworkGenerations() {
-		stmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
 	}
 
 	if af.HasDeviceLocales() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
 	}
 
 	if af.HasDeviceManufacturers() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
 	}
 
 	if af.HasDeviceNames() {
-		stmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
+		groupsStmt.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
 	}
+
+	countsStmt := sqlf.
+		From("events").
+		Select("team_id").
+		Select("app_id").
+		Select("anr.fingerprint as id").
+		Select("attribute.app_version").
+		Select("attribute.app_build").
+		Select("count() as event_count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("type = ?", event.TypeANR).
+		Where("`anr.fingerprint` != ''").
+		GroupBy("team_id").
+		GroupBy("app_id").
+		GroupBy("id").
+		GroupBy("attribute.app_version").
+		GroupBy("attribute.app_build")
+
+	if af.HasVersions() {
+		countsStmt.Where("attribute.app_version in ?", af.Versions)
+		countsStmt.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	stmt := sqlf.
+		With("groups", groupsStmt).
+		With("counts", countsStmt).
+		Select("g.app_id").
+		Select("g.id").
+		Select("g.type").
+		Select("g.message").
+		Select("g.method_name").
+		Select("g.file_name").
+		Select("g.line_number").
+		Select("g.last_occurrence").
+		Select("c.event_count as event_count").
+		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		From("groups as g").
+		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.attribute.app_version = g.app_version_scalar and c.attribute.app_build = g.app_build_scalar").
+		Where("c.event_count > 0").
+		OrderBy("event_count desc")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
