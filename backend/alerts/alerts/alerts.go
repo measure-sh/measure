@@ -80,6 +80,13 @@ const minCrashOrAnrCountThreshold = 100
 const crashOrAnrSpikeThreshold = 0.5               // percent
 const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
 const bugReportTimePeriod = 15 * time.Minute
+const defaultErrorGoodThreshold = 95.0
+const defaultErrorCautionThreshold = 85.0
+
+type TeamThresholdPrefs struct {
+	ErrorGoodThreshold    float64
+	ErrorCautionThreshold float64
+}
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
 	fmt.Println("Checking for Crash and ANR alerts...")
@@ -349,6 +356,15 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 }
 
 func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]email.MetricData, error) {
+	teamThresholdPrefs, err := getTeamThresholdPrefs(ctx, app.TeamID)
+	if err != nil {
+		fmt.Printf("Error fetching team threshold prefs for team %v, using defaults: %v\n", app.TeamID, err)
+		teamThresholdPrefs = TeamThresholdPrefs{
+			ErrorGoodThreshold:    defaultErrorGoodThreshold,
+			ErrorCautionThreshold: defaultErrorCautionThreshold,
+		}
+	}
+
 	query := `
 		WITH
             toDate(?) AS target_date,
@@ -416,8 +432,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
                     nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS crash_free_subtitle,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions < 95) AS crash_free_has_warning,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions < 90) AS crash_free_has_error,
+            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions <= ?) AS crash_free_has_warning,
+            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions <= ?) AS crash_free_has_error,
 
             -- ANR-free sessions
             CASE
@@ -439,8 +455,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
                     nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS anr_free_subtitle,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions < 98) AS anr_free_has_warning,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions < 95) AS anr_free_has_error,
+            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions <= ?) AS anr_free_has_warning,
+            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions <= ?) AS anr_free_has_error,
 
             -- Cold Launch
             CASE
@@ -492,10 +508,20 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
         LEFT JOIN previous_day pd ON cd.app_id = pd.app_id
         ORDER BY cd.app_id
 	`
-	row := server.Server.ChPool.QueryRow(ctx, query, date, app.TeamID, app.ID)
+	row := server.Server.ChPool.QueryRow(
+		ctx,
+		query,
+		date,
+		app.TeamID,
+		app.ID,
+		teamThresholdPrefs.ErrorGoodThreshold,
+		teamThresholdPrefs.ErrorCautionThreshold,
+		teamThresholdPrefs.ErrorGoodThreshold,
+		teamThresholdPrefs.ErrorCautionThreshold,
+	)
 
 	var summary DailySummaryRow
-	err := row.Scan(
+	err = row.Scan(
 		&summary.AppID,
 		&summary.Date,
 		&summary.SessionsValue,
@@ -614,6 +640,29 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 	}
 
 	return metrics, nil
+}
+
+func getTeamThresholdPrefs(ctx context.Context, teamID uuid.UUID) (TeamThresholdPrefs, error) {
+	stmt := sqlf.PostgreSQL.
+		From("measure.team_threshold_prefs").
+		Select("error_good_threshold").
+		Select("error_caution_threshold").
+		Where("team_id = ?", teamID)
+	defer stmt.Close()
+
+	var prefs TeamThresholdPrefs
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&prefs.ErrorGoodThreshold, &prefs.ErrorCautionThreshold)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return TeamThresholdPrefs{
+				ErrorGoodThreshold:    defaultErrorGoodThreshold,
+				ErrorCautionThreshold: defaultErrorCautionThreshold,
+			}, nil
+		}
+		return TeamThresholdPrefs{}, err
+	}
+
+	return prefs, nil
 }
 
 func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertType string, cooldown time.Duration) (bool, error) {

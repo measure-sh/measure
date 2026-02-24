@@ -233,11 +233,13 @@ func TestScopeMap_AppScopes(t *testing.T) {
 		wantAppRead    bool
 		wantBillingAll bool
 		wantTeamAll    bool
+		wantPrefsAll   bool
+		wantPrefsRead  bool
 	}{
-		{name: "owner", role: owner, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: true},
-		{name: "admin", role: admin, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: false},
-		{name: "developer", role: developer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false},
-		{name: "viewer", role: viewer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false},
+		{name: "owner", role: owner, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: true, wantPrefsAll: true, wantPrefsRead: false},
+		{name: "admin", role: admin, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: false, wantPrefsAll: true, wantPrefsRead: false},
+		{name: "developer", role: developer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false, wantPrefsAll: false, wantPrefsRead: true},
+		{name: "viewer", role: viewer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false, wantPrefsAll: false, wantPrefsRead: true},
 	}
 
 	for _, tt := range tests {
@@ -254,6 +256,12 @@ func TestScopeMap_AppScopes(t *testing.T) {
 			}
 			if got := slices.Contains(roleScopes, *ScopeTeamAll); got != tt.wantTeamAll {
 				t.Fatalf("ScopeTeamAll = %v, want %v", got, tt.wantTeamAll)
+			}
+			if got := slices.Contains(roleScopes, *ScopeTeamThresholdPrefsAll); got != tt.wantPrefsAll {
+				t.Fatalf("ScopeTeamThresholdPrefsAll = %v, want %v", got, tt.wantPrefsAll)
+			}
+			if got := slices.Contains(roleScopes, *ScopeTeamThresholdPrefsRead); got != tt.wantPrefsRead {
+				t.Fatalf("ScopeTeamThresholdPrefsRead = %v, want %v", got, tt.wantPrefsRead)
 			}
 		})
 	}
@@ -336,6 +344,14 @@ func TestPerformAuthzMatrix(t *testing.T) {
 		{name: "owner team all allowed", role: "owner", scope: *ScopeTeamAll, wantAllow: true},
 		{name: "admin team all denied", role: "admin", scope: *ScopeTeamAll, wantAllow: false},
 		{name: "viewer team read allowed", role: "viewer", scope: *ScopeTeamRead, wantAllow: true},
+		{name: "owner threshold prefs all allowed", role: "owner", scope: *ScopeTeamThresholdPrefsAll, wantAllow: true},
+		{name: "admin threshold prefs all allowed", role: "admin", scope: *ScopeTeamThresholdPrefsAll, wantAllow: true},
+		{name: "owner threshold prefs read allowed", role: "owner", scope: *ScopeTeamThresholdPrefsRead, wantAllow: true},
+		{name: "admin threshold prefs read allowed", role: "admin", scope: *ScopeTeamThresholdPrefsRead, wantAllow: true},
+		{name: "developer threshold prefs all denied", role: "developer", scope: *ScopeTeamThresholdPrefsAll, wantAllow: false},
+		{name: "viewer threshold prefs all denied", role: "viewer", scope: *ScopeTeamThresholdPrefsAll, wantAllow: false},
+		{name: "developer threshold prefs read allowed", role: "developer", scope: *ScopeTeamThresholdPrefsRead, wantAllow: true},
+		{name: "viewer threshold prefs read allowed", role: "viewer", scope: *ScopeTeamThresholdPrefsRead, wantAllow: true},
 	}
 
 	for _, tc := range tests {
@@ -422,6 +438,9 @@ func TestGetAuthzRoles_BillingDisabled(t *testing.T) {
 				wantJSON(t, w, "can_create_app", true)
 				wantJSON(t, w, "can_rename_team", true)
 				wantJSON(t, w, "can_manage_slack", true)
+				wantJSON(t, w, "can_change_team_threshold_prefs", true)
+			} else {
+				wantJSON(t, w, "can_change_team_threshold_prefs", role == "admin")
 			}
 		})
 	}
@@ -435,11 +454,12 @@ func TestGetAuthzRoles_BillingEnabled(t *testing.T) {
 		wantBilling     bool
 		wantRenameTeam  bool
 		wantManageSlack bool
+		wantPrefs       bool
 	}{
-		{role: "owner", wantBilling: true, wantRenameTeam: true, wantManageSlack: true},
-		{role: "admin", wantBilling: true, wantRenameTeam: false, wantManageSlack: false},
-		{role: "developer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false},
-		{role: "viewer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false},
+		{role: "owner", wantBilling: true, wantRenameTeam: true, wantManageSlack: true, wantPrefs: true},
+		{role: "admin", wantBilling: true, wantRenameTeam: false, wantManageSlack: false, wantPrefs: true},
+		{role: "developer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false},
+		{role: "viewer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false},
 	} {
 		tc := tc
 		t.Run(tc.role, func(t *testing.T) {
@@ -456,6 +476,7 @@ func TestGetAuthzRoles_BillingEnabled(t *testing.T) {
 			wantJSON(t, w, "can_change_billing", tc.wantBilling)
 			wantJSON(t, w, "can_rename_team", tc.wantRenameTeam)
 			wantJSON(t, w, "can_manage_slack", tc.wantManageSlack)
+			wantJSON(t, w, "can_change_team_threshold_prefs", tc.wantPrefs)
 
 			switch tc.role {
 			case "owner", "admin":

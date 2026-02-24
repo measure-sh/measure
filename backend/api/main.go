@@ -159,6 +159,8 @@ func main() {
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
 		teams.GET(":id/usage", measure.GetUsage)
+		teams.GET(":id/thresholdPrefs", measure.GetTeamThresholdPrefs)
+		teams.PATCH(":id/thresholdPrefs", measure.UpdateTeamThresholdPrefs)
 		teams.GET(":id/slack", measure.GetTeamSlack)
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", measure.SendTestSlackAlert)

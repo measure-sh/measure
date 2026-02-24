@@ -1,6 +1,6 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, TestSlackAlertApiStatus, UpdateTeamSlackStatusApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, sendTestSlackAlertFromServer, updateTeamSlackStatusFromServer } from "@/app/api/api_calls"
+import { AuthzAndMembersApiStatus, FetchTeamSlackConnectUrlApiStatus, FetchTeamSlackStatusApiStatus, FetchTeamThresholdPrefsApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, TestSlackAlertApiStatus, UpdateTeamSlackStatusApiStatus, UpdateTeamThresholdPrefsApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, defaultTeamThresholdPrefs, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamSlackConnectUrlFromServer, fetchTeamSlackStatusFromServer, fetchTeamThresholdPrefsFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer, sendTestSlackAlertFromServer, updateTeamSlackStatusFromServer, updateTeamThresholdPrefsFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { Button } from "@/app/components/button"
 import ConfirmationDialog from "@/app/components/confirmation_dialog"
@@ -9,6 +9,7 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import { Input } from "@/app/components/input"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input"
 import { Switch } from "@/app/components/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/table"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
@@ -73,6 +74,10 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [teamSlack, setTeamSlack] = useState<{ slack_team_name: string, is_active: boolean } | null>(null)
   const [disableSlackConfirmationDialogOpen, setDisableSlackConfirmationDialogOpen] = useState(false)
   const [testSlackAlertConfirmationDialogOpen, setTestSlackAlertConfirmationDialogOpen] = useState(false)
+  const [fetchTeamThresholdPrefsApiStatus, setFetchTeamThresholdPrefsApiStatus] = useState(FetchTeamThresholdPrefsApiStatus.Init)
+  const [updateTeamThresholdPrefsApiStatus, setUpdateTeamThresholdPrefsApiStatus] = useState(UpdateTeamThresholdPrefsApiStatus.Init)
+  const [teamThresholdPrefs, setTeamThresholdPrefs] = useState(defaultTeamThresholdPrefs)
+  const [savedTeamThresholdPrefs, setSavedTeamThresholdPrefs] = useState(defaultTeamThresholdPrefs)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -307,6 +312,67 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       getTeamSlackStatus(true)
     }
   }, [teamSlackConnectUrl])
+
+  const getTeamThresholdPrefs = async (showLoading: boolean) => {
+    if (showLoading) {
+      setFetchTeamThresholdPrefsApiStatus(FetchTeamThresholdPrefsApiStatus.Loading)
+    }
+
+    const result = await fetchTeamThresholdPrefsFromServer(params.teamId)
+    switch (result.status) {
+      case FetchTeamThresholdPrefsApiStatus.Error:
+        setFetchTeamThresholdPrefsApiStatus(FetchTeamThresholdPrefsApiStatus.Error)
+        break
+      case FetchTeamThresholdPrefsApiStatus.Success:
+        setFetchTeamThresholdPrefsApiStatus(FetchTeamThresholdPrefsApiStatus.Success)
+        const prefs = {
+          error_good_threshold: result.data.error_good_threshold,
+          error_caution_threshold: result.data.error_caution_threshold,
+        }
+        setTeamThresholdPrefs(prefs)
+        setSavedTeamThresholdPrefs(prefs)
+        break
+    }
+  }
+
+  useEffect(() => {
+    getTeamThresholdPrefs(true)
+  }, [])
+
+  const updateTeamThresholdPrefs = async () => {
+    if (teamThresholdPrefs.error_good_threshold <= teamThresholdPrefs.error_caution_threshold) {
+      toastNegative("Error updating thresholds", "Good threshold must be greater than caution threshold")
+      return
+    }
+    if (teamThresholdPrefs.error_good_threshold <= 0 || teamThresholdPrefs.error_good_threshold > 100) {
+      toastNegative("Error updating thresholds", "Good threshold must be between 0 and 100")
+      return
+    }
+    if (teamThresholdPrefs.error_caution_threshold < 0 || teamThresholdPrefs.error_caution_threshold >= 100) {
+      toastNegative("Error updating thresholds", "Caution threshold must be between 0 and 100")
+      return
+    }
+
+    setUpdateTeamThresholdPrefsApiStatus(UpdateTeamThresholdPrefsApiStatus.Loading)
+    const result = await updateTeamThresholdPrefsFromServer(params.teamId, teamThresholdPrefs)
+
+    switch (result.status) {
+      case UpdateTeamThresholdPrefsApiStatus.Error:
+        setUpdateTeamThresholdPrefsApiStatus(UpdateTeamThresholdPrefsApiStatus.Error)
+        toastNegative("Error updating thresholds", result.error)
+        break
+      case UpdateTeamThresholdPrefsApiStatus.Success:
+        setUpdateTeamThresholdPrefsApiStatus(UpdateTeamThresholdPrefsApiStatus.Success)
+        toastPositive("Thresholds updated successfully")
+        setSavedTeamThresholdPrefs(teamThresholdPrefs)
+        getTeamThresholdPrefs(false)
+        break
+    }
+  }
+
+  const thresholdValuesChanged =
+    teamThresholdPrefs.error_good_threshold !== savedTeamThresholdPrefs.error_good_threshold ||
+    teamThresholdPrefs.error_caution_threshold !== savedTeamThresholdPrefs.error_caution_threshold
 
   const updateSlackStatus = async (status: boolean) => {
     setUpdateTeamSlackStatusApiStatus(UpdateTeamSlackStatusApiStatus.Loading)
@@ -643,6 +709,68 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 ))}
               </TableBody>
             </Table>}
+
+          <div className="py-8" />
+          <p className="font-display text-xl max-w-6xl text-center">Change Thresholds</p>
+          <div className="py-2" />
+          <p className="font-body text-sm">Error thresholds affect dashboard overview error-rate status and daily summary email/Slack status icons. Anything below <span className="text-yellow-600 dark:text-yellow-500 font-bold">Caution</span> level is considered <span className="text-red-600 dark:text-red-500 font-bold">Poor</span>.</p>
+          <div className="py-2" />
+          {fetchTeamThresholdPrefsApiStatus === FetchTeamThresholdPrefsApiStatus.Loading && <LoadingSpinner />}
+          {fetchTeamThresholdPrefsApiStatus === FetchTeamThresholdPrefsApiStatus.Error && <p className="font-body text-sm">Error fetching team threshold preferences, please refresh page to try again</p>}
+          {fetchTeamThresholdPrefsApiStatus === FetchTeamThresholdPrefsApiStatus.Success &&
+            <div className="flex flex-col items-start gap-3 w-full">
+              <div className="flex flex-row items-center gap-2">
+                <p className="font-body text-sm w-72">Error rates <span className="text-green-600 dark:text-green-500 font-bold">Good</span> threshold (%)</p>
+                <SdkConfigNumericInput
+                  value={teamThresholdPrefs.error_good_threshold}
+                  minValue={0}
+                  maxValue={100}
+                  step={0.1}
+                  type="float"
+                  precision={1}
+                  disabled={!authzAndMembers.can_change_team_threshold_prefs || updateTeamThresholdPrefsApiStatus === UpdateTeamThresholdPrefsApiStatus.Loading}
+                  onChange={(value) => {
+                    setTeamThresholdPrefs({
+                      ...teamThresholdPrefs,
+                      error_good_threshold: value,
+                    })
+                    setUpdateTeamThresholdPrefsApiStatus(UpdateTeamThresholdPrefsApiStatus.Init)
+                  }}
+                  testId="error-good-threshold-input"
+                />
+              </div>
+              <div className="flex flex-row items-center gap-2">
+                <p className="font-body text-sm w-72">Error rates <span className="text-yellow-600 dark:text-yellow-500 font-bold">Caution</span> threshold (%)</p>
+                <SdkConfigNumericInput
+                  value={teamThresholdPrefs.error_caution_threshold}
+                  minValue={0}
+                  maxValue={100}
+                  step={0.1}
+                  type="float"
+                  precision={1}
+                  disabled={!authzAndMembers.can_change_team_threshold_prefs || updateTeamThresholdPrefsApiStatus === UpdateTeamThresholdPrefsApiStatus.Loading}
+                  onChange={(value) => {
+                    setTeamThresholdPrefs({
+                      ...teamThresholdPrefs,
+                      error_caution_threshold: value,
+                    })
+                    setUpdateTeamThresholdPrefsApiStatus(UpdateTeamThresholdPrefsApiStatus.Init)
+                  }}
+                  testId="error-caution-threshold-input"
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="w-fit py-2"
+                disabled={!authzAndMembers.can_change_team_threshold_prefs || updateTeamThresholdPrefsApiStatus === UpdateTeamThresholdPrefsApiStatus.Loading || !thresholdValuesChanged}
+                loading={updateTeamThresholdPrefsApiStatus === UpdateTeamThresholdPrefsApiStatus.Loading}
+                aria-label="Save thresholds"
+                onClick={updateTeamThresholdPrefs}
+              >
+                Save
+              </Button>
+            </div>
+          }
 
           <div className="py-8" />
           <p className="font-display text-xl max-w-6xl text-center">Slack Integration</p>
