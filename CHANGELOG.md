@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add actor to cloud-deploy dispatch trigger job (#3214) by @detj in #3214
 - (**backend**): Implements custom error thresholds by @anupcowkur in #3210
 - (**backend**): Use dynamic time groupings for plots by @anupcowkur in #3206
 - (**backend**): Update daily summary time range and email by @anupcowkur in #3198
