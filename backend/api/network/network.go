@@ -285,18 +285,21 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPatt
 		return nil, err
 	}
 
-	return mergeMetricsResponses(aggregated, events), nil
+	return &MetricsResponse{
+		Latency:     append(aggregated.Latency, events.Latency...),
+		StatusCodes: append(aggregated.StatusCodes, events.StatusCodes...),
+	}, nil
 }
 
 func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) (result []MetricsDataPoint, err error) {
 	format := datetimeFormat(af.From, af.To)
 	stmt := sqlf.From("http_events").
 		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
-		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
-		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
-		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").
-		Select("countIf(status_code >= 400 and status_code < 500) as count_4xx").
-		Select("countIf(status_code >= 500 and status_code < 600) as count_5xx").
+		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
+		Select("countIf(status_code_bucket = '2xx') as count_2xx").
+		Select("countIf(status_code_bucket = '3xx') as count_3xx").
+		Select("countIf(status_code_bucket = '4xx') as count_4xx").
+		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = ? and app_id = ? and timestamp >= ? and timestamp <= ?", teamId, appId, af.From, af.To)
 
 	stmt.GroupBy("datetime")
@@ -542,13 +545,12 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	// Fetch status code metrics
 	statusStmt := sqlf.From("http_events").
 		Select(fmt.Sprintf("formatDateTime(timestamp, '%s', ?) as datetime", format), af.Timezone).
-		Select("countIf(status_code >= 200 and status_code < 600) as total_count").
-		Select("countIf(status_code >= 200 and status_code < 300) as count_2xx").
-		Select("countIf(status_code >= 300 and status_code < 400) as count_3xx").
-		Select("countIf(status_code >= 400 and status_code < 500) as count_4xx").
-		Select("countIf(status_code >= 500 and status_code < 600) as count_5xx").
+		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
+		Select("countIf(status_code_bucket = '2xx') as count_2xx").
+		Select("countIf(status_code_bucket = '3xx') as count_3xx").
+		Select("countIf(status_code_bucket = '4xx') as count_4xx").
+		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to).
-		Where("status_code != 0").
 		Where("latency_ms <= 60000")
 
 	applyPathFilter(statusStmt, pathPattern)
@@ -686,15 +688,4 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 	}
 
 	return
-}
-
-// mergeMetricsResponses concatenates the Latency and
-// StatusCodes slices from two MetricsResponses. Since
-// the time ranges are day-aligned and non-overlapping,
-// the result is already sorted by datetime.
-func mergeMetricsResponses(a, b *MetricsResponse) *MetricsResponse {
-	return &MetricsResponse{
-		Latency:     append(a.Latency, b.Latency...),
-		StatusCodes: append(a.StatusCodes, b.StatusCodes...),
-	}
 }
