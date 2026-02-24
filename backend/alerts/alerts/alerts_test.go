@@ -4,7 +4,9 @@ package alerts
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1244,7 +1246,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("anr-free: warning but no error when rate is 95-98%", func(t *testing.T) {
+	t.Run("anr-free: warning but no error when rate is 85-95%", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -1255,40 +1257,9 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
-		// 48 generic + 2 ANR = 50 total, 2 ANR → 96% ANR-free
-		// 96 < 98 → warning; 96 >= 95 → no error
-		th.SeedAppMetrics(ctx, t, teamID, appID, now, 48, 0, 2)
-
-		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if metrics[2].Value != "96%" {
-			t.Errorf("anr-free value: want %q, got %q", "96%", metrics[2].Value)
-		}
-		if !metrics[2].HasWarning {
-			t.Error("anr-free should have warning at 96%")
-		}
-		if metrics[2].HasError {
-			t.Error("anr-free should not have error at 96%")
-		}
-	})
-
-	t.Run("anr-free: warning and error when rate is below 95%", func(t *testing.T) {
-		ctx := context.Background()
-		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New().String()
-		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
-		th.SeedApp(ctx, t, appID, teamID, "A", 30)
-
-		now := time.Now().UTC()
-		// 9 generic + 1 ANR = 10 total, 1 ANR → 90% ANR-free
-		// 90 < 98 → warning; 90 < 95 → error
-		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 0, 1)
+		// 90 generic + 10 ANR = 100 total, 10 ANR → 90% ANR-free
+		// 90 <= 95 → warning; 90 > 85 → no error
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 90, 0, 10)
 
 		app := makeApp(teamID, appID)
 		metrics, err := getDailySummaryMetrics(ctx, now, &app)
@@ -1301,8 +1272,39 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if !metrics[2].HasWarning {
 			t.Error("anr-free should have warning at 90%")
 		}
+		if metrics[2].HasError {
+			t.Error("anr-free should not have error at 90%")
+		}
+	})
+
+	t.Run("anr-free: warning and error when rate is 85% or below", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		// 8 generic + 2 ANR = 10 total, 2 ANR → 80% ANR-free
+		// 80 <= 95 → warning; 80 <= 85 → error
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 8, 0, 2)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if metrics[2].Value != "80%" {
+			t.Errorf("anr-free value: want %q, got %q", "80%", metrics[2].Value)
+		}
+		if !metrics[2].HasWarning {
+			t.Error("anr-free should have warning at 80%")
+		}
 		if !metrics[2].HasError {
-			t.Error("anr-free should have error at 90%")
+			t.Error("anr-free should have error at 80%")
 		}
 	})
 
@@ -1409,6 +1411,158 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 		if metrics[2].Subtitle != "No change from yesterday" {
 			t.Errorf("anr-free subtitle: want %q, got %q", "No change from yesterday", metrics[2].Subtitle)
+		}
+	})
+
+	t.Run("team threshold prefs override default warning/error thresholds", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+
+		now := time.Now().UTC()
+		// total=50 => generic=48, crash=1, anr=1
+		// crash-free=(48+1)/50=98%, anr-free=(48+1)/50=98%
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 48, 1, 1)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// With custom thresholds good=99, caution=97, 98% should be warning and not error.
+		if !metrics[1].HasWarning || metrics[1].HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		}
+		if !metrics[2].HasWarning || metrics[2].HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		}
+	})
+
+	t.Run("custom thresholds: value below good threshold is warning", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.5, 95.0)
+
+		now := time.Now().UTC()
+		// total=100 => generic=96, crash=2, anr=2
+		// crash-free=(100-2)/100=98%, anr-free=(100-2)/100=98%
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 96, 2, 2)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !metrics[1].HasWarning || metrics[1].HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		}
+		if !metrics[2].HasWarning || metrics[2].HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		}
+	})
+
+	t.Run("custom thresholds: clearly poor values are warning and error", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+
+		now := time.Now().UTC()
+		// total=30 => generic=10, crash=10, anr=10
+		// crash-free=(30-10)/30=66.6%, anr-free=(30-10)/30=66.6%
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 10, 10)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !metrics[1].HasWarning || !metrics[1].HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", metrics[1].HasWarning, metrics[1].HasError)
+		}
+		if !metrics[2].HasWarning || !metrics[2].HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", metrics[2].HasWarning, metrics[2].HasError)
+		}
+	})
+
+	t.Run("custom thresholds: value equal to good threshold is warning and not error", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.0, 95.0)
+
+		now := time.Now().UTC()
+		// total=100 => generic=96, crash=2, anr=2
+		// crash-free/anr-free=(100-2)/100=98% (exactly good threshold)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 96, 2, 2)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !metrics[1].HasWarning || metrics[1].HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		}
+		if !metrics[2].HasWarning || metrics[2].HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		}
+	})
+
+	t.Run("custom thresholds: value equal to caution threshold is warning and error", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.0, 95.0)
+
+		now := time.Now().UTC()
+		// total=100 => generic=90, crash=5, anr=5
+		// crash-free/anr-free=(100-5)/100=95% (exactly caution threshold)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 90, 5, 5)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !metrics[1].HasWarning || !metrics[1].HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", metrics[1].HasWarning, metrics[1].HasError)
+		}
+		if !metrics[2].HasWarning || !metrics[2].HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", metrics[2].HasWarning, metrics[2].HasError)
 		}
 	})
 
@@ -1947,6 +2101,140 @@ func TestCreateDailySummary(t *testing.T) {
 
 		if got := countPendingByChannel(ctx, t, "slack"); got != 0 {
 			t.Errorf("want 0 slack messages when channel list is empty, got %d", got)
+		}
+	})
+
+	t.Run("custom threshold prefs are reflected in queued daily summary email and slack status icons", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUMMARY"})
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		// total=100 => generic=96, crash=2, anr=2 => 98% for both error-rate metrics
+		// Under custom thresholds (good=99, caution=97), this should be warning.
+		th.SeedAppMetrics(ctx, t, teamID, appID, summaryDate, 96, 2, 2)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Fatalf("want 1 daily summary email, got %d", got)
+		}
+		if got := countPendingByChannel(ctx, t, "slack"); got != 1 {
+			t.Fatalf("want 1 daily summary slack message, got %d", got)
+		}
+
+		var emailBody string
+		err := th.PgPool.QueryRow(ctx, `
+			SELECT data->>'body'
+			FROM pending_alert_messages
+			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'email'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, teamID, appID).Scan(&emailBody)
+		if err != nil {
+			t.Fatalf("query daily summary email body: %v", err)
+		}
+		if !strings.Contains(emailBody, "#d08700") {
+			t.Fatalf("expected daily summary email body to include warning icon color for custom thresholds")
+		}
+
+		var slackRaw string
+		err = th.PgPool.QueryRow(ctx, `
+			SELECT data::text
+			FROM pending_alert_messages
+			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'slack'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, teamID, appID).Scan(&slackRaw)
+		if err != nil {
+			t.Fatalf("query daily summary slack payload: %v", err)
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(slackRaw), &payload); err != nil {
+			t.Fatalf("unmarshal slack payload: %v", err)
+		}
+		payloadJSON, _ := json.Marshal(payload)
+		if !strings.Contains(string(payloadJSON), "🟡") {
+			t.Fatalf("expected slack payload to include warning status icon for custom thresholds")
+		}
+	})
+
+	t.Run("custom threshold prefs are reflected as error in queued daily summary email and slack status icons", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUMMARY"})
+		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		// total=100 => generic=90, crash=5, anr=5 => 95% for both error-rate metrics
+		// Under custom thresholds (good=99, caution=97), this should be error.
+		th.SeedAppMetrics(ctx, t, teamID, appID, summaryDate, 90, 5, 5)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Fatalf("want 1 daily summary email, got %d", got)
+		}
+		if got := countPendingByChannel(ctx, t, "slack"); got != 1 {
+			t.Fatalf("want 1 daily summary slack message, got %d", got)
+		}
+
+		var emailBody string
+		err := th.PgPool.QueryRow(ctx, `
+			SELECT data->>'body'
+			FROM pending_alert_messages
+			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'email'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, teamID, appID).Scan(&emailBody)
+		if err != nil {
+			t.Fatalf("query daily summary email body: %v", err)
+		}
+		if !strings.Contains(emailBody, "#e7000b") {
+			t.Fatalf("expected daily summary email body to include error icon color for custom thresholds")
+		}
+
+		var slackRaw string
+		err = th.PgPool.QueryRow(ctx, `
+			SELECT data::text
+			FROM pending_alert_messages
+			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'slack'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, teamID, appID).Scan(&slackRaw)
+		if err != nil {
+			t.Fatalf("query daily summary slack payload: %v", err)
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(slackRaw), &payload); err != nil {
+			t.Fatalf("unmarshal slack payload: %v", err)
+		}
+		payloadJSON, _ := json.Marshal(payload)
+		if !strings.Contains(string(payloadJSON), "🔴") {
+			t.Fatalf("expected slack payload to include error status icon for custom thresholds")
 		}
 	})
 }

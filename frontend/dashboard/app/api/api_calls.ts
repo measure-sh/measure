@@ -287,6 +287,22 @@ export enum UpdateTeamSlackStatusApiStatus {
   Cancelled,
 }
 
+export enum FetchTeamThresholdPrefsApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateTeamThresholdPrefsApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum TestSlackAlertApiStatus {
   Init,
   Loading,
@@ -756,6 +772,7 @@ export const defaultAuthzAndMembers = {
   can_write_sdk_config: false,
   can_rename_team: false,
   can_manage_slack: false,
+  can_change_team_threshold_prefs: false,
   members: [
     {
       id: "",
@@ -770,6 +787,11 @@ export const defaultAuthzAndMembers = {
       },
     },
   ],
+}
+
+export const defaultTeamThresholdPrefs = {
+  error_good_threshold: 95,
+  error_caution_threshold: 85,
 }
 
 export const emptySessionTimeline = {
@@ -2199,6 +2221,47 @@ export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
     return { status: FetchTeamSlackStatusApiStatus.Success, data: data }
   } catch {
     return { status: FetchTeamSlackStatusApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTeamThresholdPrefsFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/thresholdPrefs`)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: FetchTeamThresholdPrefsApiStatus.Error, error: data.error, data: null }
+    }
+
+    return { status: FetchTeamThresholdPrefsApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchTeamThresholdPrefsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const updateTeamThresholdPrefsFromServer = async (
+  teamId: string,
+  prefs: typeof defaultTeamThresholdPrefs,
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(prefs),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/thresholdPrefs`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: UpdateTeamThresholdPrefsApiStatus.Error, error: data.error }
+    }
+
+    return { status: UpdateTeamThresholdPrefsApiStatus.Success }
+  } catch {
+    return { status: UpdateTeamThresholdPrefsApiStatus.Cancelled }
   }
 }
 

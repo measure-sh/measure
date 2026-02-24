@@ -13,10 +13,36 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	"backend/email"
 )
+
+func applyDailySummaryThresholds(metrics []email.MetricData, goodThreshold, cautionThreshold float64) []email.MetricData {
+	out := make([]email.MetricData, 0, len(metrics))
+	for _, metric := range metrics {
+		item := metric
+		item.HasWarning = false
+		item.HasError = false
+
+		if metric.Label == "Crash free sessions" || metric.Label == "ANR free sessions" {
+			value := strings.TrimSuffix(strings.TrimSpace(metric.Value), "%")
+			percent, err := strconv.ParseFloat(value, 64)
+			if err == nil {
+				if percent < cautionThreshold {
+					item.HasError = true
+				} else if percent < goodThreshold {
+					item.HasWarning = true
+				}
+			}
+		}
+
+		out = append(out, item)
+	}
+	return out
+}
 
 func main() {
 	// resolve the directory where this source file lives
@@ -139,6 +165,34 @@ func main() {
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), errorMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("16-daily-summary-errors.html", body)
+
+	customThresholdMetrics := []email.MetricData{
+		{Value: "7,890", Label: "Sessions", Subtitle: "540 less than yesterday", HasWarning: false, HasError: false},
+		{Value: "91.2%", Label: "Crash free sessions", Subtitle: "0.96x worse than yesterday", HasWarning: false, HasError: false},
+		{Value: "88.6%", Label: "ANR free sessions", Subtitle: "0.92x worse than yesterday", HasWarning: false, HasError: false},
+		{Value: "1,120ms", Label: "Cold launch p95", Subtitle: "180ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "498ms", Label: "Warm launch p95", Subtitle: "77ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "132ms", Label: "Hot launch p95", Subtitle: "21ms greater than yesterday", HasWarning: false, HasError: false},
+	}
+	_, body = email.DailySummaryEmail(
+		"MyApp",
+		time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
+		applyDailySummaryThresholds(customThresholdMetrics, 98, 90),
+		"https://measure.sh",
+		"team-abc",
+		"app-123",
+	)
+	add("17-daily-summary-custom-thresholds-strict.html", body)
+
+	_, body = email.DailySummaryEmail(
+		"MyApp",
+		time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
+		applyDailySummaryThresholds(customThresholdMetrics, 92, 85),
+		"https://measure.sh",
+		"team-abc",
+		"app-123",
+	)
+	add("18-daily-summary-custom-thresholds-lenient.html", body)
 
 	for _, e := range emails {
 		path := filepath.Join(dir, e.name)

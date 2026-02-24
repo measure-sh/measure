@@ -55,24 +55,32 @@ export interface CrashFreeSessionsProps extends BaseMetricsCardProps {
     type: 'crash_free_sessions'
     value: number
     delta: number
+    errorGoodThreshold: number
+    errorCautionThreshold: number
 }
 
 export interface PerceivedCrashFreeSessionsProps extends BaseMetricsCardProps {
     type: 'perceived_crash_free_sessions'
     value: number
     delta: number
+    errorGoodThreshold: number
+    errorCautionThreshold: number
 }
 
 export interface AnrFreeSessionsProps extends BaseMetricsCardProps {
     type: 'anr_free_sessions'
     value: number
     delta: number
+    errorGoodThreshold: number
+    errorCautionThreshold: number
 }
 
 export interface PerceivedAnrFreeSessionsProps extends BaseMetricsCardProps {
     type: 'perceived_anr_free_sessions'
     value: number
     delta: number
+    errorGoodThreshold: number
+    errorCautionThreshold: number
 }
 
 export interface AppStartTimeProps extends BaseMetricsCardProps {
@@ -132,29 +140,29 @@ const StatusIconRow: React.FC<{
 )
 
 // Reusable status icon rows for metrics with thresholds
-const renderThresholdStatusIcons = () => (
+const renderThresholdStatusIcons = (goodThreshold: number, cautionThreshold: number) => (
     <>
         <StatusIconRow
             first
             icon={<CheckCircle className={`${STYLES.icon.tooltipIcon} ${STYLES.icon.green}`} />}
-            text="Good (> 95%)"
+            text={`Good (> ${goodThreshold}%)`}
         />
         <StatusIconRow
             icon={<AlertTriangle className={`${STYLES.icon.tooltipIcon} ${STYLES.icon.yellow}`} />}
-            text="Caution (> 85%)"
+            text={`Caution (> ${cautionThreshold}%)`}
         />
         <StatusIconRow
             icon={<AlertTriangle className={`${STYLES.icon.tooltipIcon} ${STYLES.icon.red}`} />}
-            text="Poor (≤ 85%)"
+            text={`Poor (≤ ${cautionThreshold}%)`}
         />
     </>
 )
 
-function getStatusIcon(value: number) {
+function getStatusIcon(value: number, goodThreshold: number, cautionThreshold: number) {
     const iconClasses = `${STYLES.icon.status}`
-    if (value > 95) {
+    if (value > goodThreshold) {
         return <CheckCircle className={`${iconClasses} ${STYLES.icon.green}`} />
-    } else if (value > 85) {
+    } else if (value > cautionThreshold) {
         return <AlertTriangle className={`${iconClasses} ${STYLES.icon.yellow}`} />
     } else {
         return <AlertTriangle className={`${iconClasses} ${STYLES.icon.red}`} />
@@ -335,6 +343,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     }
 
     const renderTooltipContent = () => {
+        const exceptionProps = props as CrashFreeSessionsProps | PerceivedCrashFreeSessionsProps | AnrFreeSessionsProps | PerceivedAnrFreeSessionsProps
         switch (type) {
             case 'crash_free_sessions':
                 return (
@@ -345,7 +354,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                             Delta value = Crash free sessions percentage of selected app versions / Crash free sessions percentage of unselected app versions
                         </p>
                         <br />
-                        {renderThresholdStatusIcons()}
+                        {renderThresholdStatusIcons(exceptionProps.errorGoodThreshold, exceptionProps.errorCautionThreshold)}
                     </div>
                 )
 
@@ -358,7 +367,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                             Delta value = Perceived crash free sessions percentage of selected app versions / Perceived crash free sessions percentage of unselected app versions
                         </p>
                         <br />
-                        {renderThresholdStatusIcons()}
+                        {renderThresholdStatusIcons(exceptionProps.errorGoodThreshold, exceptionProps.errorCautionThreshold)}
                     </div>
                 )
 
@@ -371,7 +380,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                             Delta value = ANR free sessions percentage of selected app versions / ANR free sessions percentage of unselected app versions
                         </p>
                         <br />
-                        {renderThresholdStatusIcons()}
+                        {renderThresholdStatusIcons(exceptionProps.errorGoodThreshold, exceptionProps.errorCautionThreshold)}
                     </div>
                 )
 
@@ -384,7 +393,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
                             Delta value = Perceived ANR free sessions percentage of selected app versions / Perceived ANR free sessions percentage of unselected app versions
                         </p>
                         <br />
-                        {renderThresholdStatusIcons()}
+                        {renderThresholdStatusIcons(exceptionProps.errorGoodThreshold, exceptionProps.errorCautionThreshold)}
                     </div>
                 )
 
@@ -454,7 +463,12 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
             case 'perceived_crash_free_sessions':
             case 'anr_free_sessions':
             case 'perceived_anr_free_sessions':
-                return getStatusIcon((props as CrashFreeSessionsProps | PerceivedCrashFreeSessionsProps | AnrFreeSessionsProps | PerceivedAnrFreeSessionsProps).value)
+                const exceptionProps = props as CrashFreeSessionsProps | PerceivedCrashFreeSessionsProps | AnrFreeSessionsProps | PerceivedAnrFreeSessionsProps
+                return getStatusIcon(
+                    exceptionProps.value,
+                    exceptionProps.errorGoodThreshold,
+                    exceptionProps.errorCautionThreshold,
+                )
             case 'app_start_time':
                 return getAppStartTimeStatusIcon((props as AppStartTimeProps).delta)
             case 'app_size':

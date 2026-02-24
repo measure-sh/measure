@@ -92,6 +92,8 @@ describe('MetricsCard', () => {
         noData: false,
         value: 96.5,
         delta: 1.2,
+        errorGoodThreshold: 95,
+        errorCautionThreshold: 85,
         ...overrides,
     })
 
@@ -101,6 +103,8 @@ describe('MetricsCard', () => {
         noData: false,
         value: 97.8,
         delta: 0.8,
+        errorGoodThreshold: 95,
+        errorCautionThreshold: 85,
         ...overrides,
     })
 
@@ -110,6 +114,8 @@ describe('MetricsCard', () => {
         noData: false,
         value: 94.2,
         delta: 1.1,
+        errorGoodThreshold: 95,
+        errorCautionThreshold: 85,
         ...overrides,
     })
 
@@ -119,6 +125,8 @@ describe('MetricsCard', () => {
         noData: false,
         value: 95.5,
         delta: 0.9,
+        errorGoodThreshold: 95,
+        errorCautionThreshold: 85,
         ...overrides,
     })
 
@@ -246,6 +254,68 @@ describe('MetricsCard', () => {
             rerender(<MetricsCard {...noChangeProps} />)
             expect(screen.queryByText(/x better|x worse/)).not.toBeInTheDocument()
         })
+
+        it('should use configurable thresholds for status icon', () => {
+            const props = createCrashFreeSessionsProps({
+                value: 96,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })
+            render(<MetricsCard {...props} />)
+
+            const cardContent = screen.getByTestId('card-content')
+            const warningIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(warningIcon).toHaveClass('text-yellow-600')
+        })
+
+        it('should apply configurable thresholds for green, yellow, and red states', () => {
+            const { rerender } = render(<MetricsCard {...createCrashFreeSessionsProps({
+                value: 99.1,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })} />)
+            let cardContent = screen.getByTestId('card-content')
+            let checkIcon = within(cardContent).getByTestId('check-circle-icon')
+            expect(checkIcon).toHaveClass('text-green-600')
+
+            rerender(<MetricsCard {...createCrashFreeSessionsProps({
+                value: 96,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })} />)
+            cardContent = screen.getByTestId('card-content')
+            let warningIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(warningIcon).toHaveClass('text-yellow-600')
+
+            rerender(<MetricsCard {...createCrashFreeSessionsProps({
+                value: 94,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })} />)
+            cardContent = screen.getByTestId('card-content')
+            let errorIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(errorIcon).toHaveClass('text-red-500')
+        })
+
+        it('should treat boundary values as caution or poor based on thresholds', () => {
+            const { rerender } = render(<MetricsCard {...createCrashFreeSessionsProps({
+                value: 95,
+                errorGoodThreshold: 95,
+                errorCautionThreshold: 85,
+            })} />)
+            let cardContent = screen.getByTestId('card-content')
+            let warningIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(warningIcon).toHaveClass('text-yellow-600')
+
+            rerender(<MetricsCard {...createCrashFreeSessionsProps({
+                value: 85,
+                errorGoodThreshold: 95,
+                errorCautionThreshold: 85,
+            })} />)
+            cardContent = screen.getByTestId('card-content')
+            let errorIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(errorIcon).toHaveClass('text-red-500')
+        })
     })
 
     describe('Perceived Crash Free Sessions', () => {
@@ -257,6 +327,19 @@ describe('MetricsCard', () => {
             expect(screen.getByText('0.8x worse')).toBeInTheDocument()
             expect(screen.getByText('Perceived crash free sessions')).toBeInTheDocument()
         })
+
+        it('should apply configurable thresholds for perceived crash free sessions', () => {
+            const props = createPerceivedCrashFreeSessionsProps({
+                value: 94,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })
+            render(<MetricsCard {...props} />)
+
+            const cardContent = screen.getByTestId('card-content')
+            const errorIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(errorIcon).toHaveClass('text-red-500')
+        })
     })
 
     describe('ANR Free Sessions', () => {
@@ -267,6 +350,19 @@ describe('MetricsCard', () => {
             expect(screen.getByText('94.2%')).toBeInTheDocument()
             expect(screen.getByText('1.1x better')).toBeInTheDocument()
             expect(screen.getByText('ANR free sessions')).toBeInTheDocument()
+        })
+
+        it('should apply configurable thresholds for ANR free sessions', () => {
+            const props = createAnrFreeSessionsProps({
+                value: 90,
+                errorGoodThreshold: 99,
+                errorCautionThreshold: 95,
+            })
+            render(<MetricsCard {...props} />)
+
+            const cardContent = screen.getByTestId('card-content')
+            const errorIcon = within(cardContent).getByTestId('alert-triangle-icon')
+            expect(errorIcon).toHaveClass('text-red-500')
         })
     })
 
@@ -471,6 +567,19 @@ describe('MetricsCard', () => {
             expect(tooltipContent).toHaveTextContent('Good (> 95%)')
             expect(tooltipContent).toHaveTextContent('Caution (> 85%)')
             expect(tooltipContent).toHaveTextContent('Poor (≤ 85%)')
+        })
+
+        it('should render tooltip content with custom thresholds', () => {
+            const props = createCrashFreeSessionsProps({
+                errorGoodThreshold: 98.5,
+                errorCautionThreshold: 92.3,
+            })
+            render(<MetricsCard {...props} />)
+
+            const tooltipContent = screen.getByTestId('tooltip-content')
+            expect(tooltipContent).toHaveTextContent('Good (> 98.5%)')
+            expect(tooltipContent).toHaveTextContent('Caution (> 92.3%)')
+            expect(tooltipContent).toHaveTextContent('Poor (≤ 92.3%)')
         })
 
         it('should render tooltip content for app start time with launch type', () => {
