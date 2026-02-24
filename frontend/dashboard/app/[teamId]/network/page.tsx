@@ -1,7 +1,7 @@
 "use client"
 
 import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkStatusOverviewPlotApiStatus, NetworkTrendsApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkStatusOverviewPlotFromServer, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
-import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import { formatMillisToHumanReadable, getPlotTimeGroupForRange } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
@@ -46,6 +46,7 @@ interface PageState {
     paths: string[]
     statusPlotStatus: NetworkStatusOverviewPlotApiStatus
     statusPlotData: any[]
+    statusPlotDataKey: string | null
     trendsStatus: NetworkTrendsApiStatus
     trends: NetworkTrends
     selectedTab: TrendsTab
@@ -84,6 +85,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         paths: [],
         statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         statusPlotData: [],
+        statusPlotDataKey: null,
         trendsStatus: NetworkTrendsApiStatus.Loading,
         trends: emptyTrends,
         selectedTab: TrendsTab.Latency,
@@ -104,6 +106,10 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     const updateSearchState = (newState: Partial<SearchState>) => {
         setSearchState(prev => ({ ...prev, ...newState }))
     }
+
+    const plotTimeGroup = getPlotTimeGroupForRange(pageState.filters.startDate, pageState.filters.endDate)
+    const currentStatusPlotKey = `${pageState.filters.serialisedFilters}|${plotTimeGroup}`
+    const shouldRenderStatusPlot = pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && pageState.statusPlotData.length > 0 && pageState.statusPlotDataKey === currentStatusPlotKey
 
     const handleSearch = () => {
         if (searchState.pathPattern.trim() === "") return
@@ -169,6 +175,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         updatePageState({
             trendsStatus: NetworkTrendsApiStatus.Loading,
             statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
+            statusPlotData: [],
         })
 
         fetchNetworkTrendsFromServer(pageState.filters).then(result => {
@@ -196,13 +203,14 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                     updatePageState({
                         statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Success,
                         statusPlotData: result.data,
+                        statusPlotDataKey: currentStatusPlotKey,
                     })
                     break
                 case NetworkStatusOverviewPlotApiStatus.NoData:
-                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.NoData, statusPlotData: [] })
+                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.NoData, statusPlotData: [], statusPlotDataKey: null })
                     break
                 default:
-                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Error, statusPlotData: [] })
+                    updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Error, statusPlotData: [], statusPlotDataKey: null })
                     break
             }
         })
@@ -285,9 +293,9 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                 <>
                     {/* Status code plot */}
                     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading && <LoadingSpinner />}
-                        {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success &&
-                            <NetworkStatusDistributionPlot data={pageState.statusPlotData} />
+                        {(pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading || (pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && !shouldRenderStatusPlot)) && <LoadingSpinner />}
+                        {shouldRenderStatusPlot &&
+                            <NetworkStatusDistributionPlot data={pageState.statusPlotData} plotTimeGroup={plotTimeGroup} />
                         }
                         {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
                             <p className="font-body text-sm">No status overview data available for the selected filters</p>

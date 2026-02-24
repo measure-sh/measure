@@ -9230,6 +9230,18 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		af.SetDefaultTimeRange()
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -9269,7 +9281,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, pathPattern, &af)
+	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, pathPattern, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network metrics"
 		fmt.Println(msg, err)
@@ -9458,6 +9470,18 @@ func GetNetworkStatusOverviewPlot(c *gin.Context) {
 		af.SetDefaultTimeRange()
 	}
 
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -9497,7 +9521,7 @@ func GetNetworkStatusOverviewPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetRequestStatusOverview(ctx, *app.ID, *team.ID, &af)
+	result, err := network.GetRequestStatusOverview(ctx, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status overview plot"
 		fmt.Println(msg, err)

@@ -4,7 +4,7 @@ import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
 import React, { useMemo, useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
-import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils'
+import { formatMillisToHumanReadable, formatPlotTooltipDate, getPlotTimeGroupNivoConfig, PlotTimeGroup } from '../utils/time_utils'
 import TabSelect from './tab_select'
 
 interface LatencyDataPoint {
@@ -18,6 +18,7 @@ interface LatencyDataPoint {
 
 interface NetworkLatencyPlotProps {
   data: LatencyDataPoint[]
+  plotTimeGroup: PlotTimeGroup
 }
 
 type PlotData = {
@@ -37,9 +38,10 @@ enum Quantile {
   p99 = "p99",
 }
 
-const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
+const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data, plotTimeGroup }) => {
   const [quantile, setQuantile] = useState(Quantile.p95)
   const { theme } = useTheme()
+  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined
@@ -77,10 +79,10 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
           areaOpacity={0.1}
           colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
           margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
-          xFormat="time:%Y-%m-%d"
+          xFormat={timeConfig.xFormat}
           xScale={{
-            format: '%Y-%m-%d',
-            precision: 'day',
+            format: timeConfig.xScaleFormat,
+            precision: timeConfig.xScalePrecision,
             type: 'time',
             useUTC: false
           }}
@@ -96,7 +98,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
             legend: 'Date',
             tickPadding: 10,
             legendOffset: 100,
-            format: '%b %d, %Y',
+            format: timeConfig.axisBottomFormat,
             tickRotation: 45,
             legendPosition: 'middle'
           }}
@@ -124,7 +126,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data }) => {
             const count = pointData?.count ?? 0
             return (
               <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-                <p className='p-2 font-semibold'>{formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2 font-semibold'>{formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
                 <p className='px-2 pb-1'>Requests: {count.toLocaleString()}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center px-2 py-0.5" key={point.id}>

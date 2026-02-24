@@ -205,7 +205,7 @@ func main() {
 		}
 	}()
 
-	// List for shutdown signals
+	// Listen for shutdown signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

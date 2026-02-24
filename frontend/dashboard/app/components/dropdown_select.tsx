@@ -31,7 +31,6 @@ interface DropdownSelectProps {
   disabled?: boolean
   initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
   onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
-  disabled?: boolean
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected, disabled = false }) => {
