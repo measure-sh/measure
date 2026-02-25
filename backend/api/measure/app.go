@@ -4609,7 +4609,6 @@ func GetAppJourney(c *gin.Context) {
 
 	settings := clickhouse.Settings{
 		"log_comment": lc.String(),
-		"max_threads": 32,
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "journey_events")
