@@ -115,7 +115,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         if (searchState.pathPattern.trim() === "") return
         const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
         const domain = searchState.domain.endsWith('/') ? searchState.domain.slice(0, -1) : searchState.domain
-        addRecentSearch(domain, path)
+        addRecentSearch(params.teamId, domain, path)
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(domain + path)}`)
     }
 
@@ -249,7 +249,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     // Update recent paths when domain or pattern changes
     useEffect(() => {
         if (searchState.domain) {
-            setRecentPaths(getRecentSearchesForDomain(searchState.domain, searchState.pathPattern))
+            setRecentPaths(getRecentSearchesForDomain(params.teamId, searchState.domain, searchState.pathPattern))
         } else {
             setRecentPaths([])
         }
@@ -350,10 +350,10 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                                                     key={`recent-${path}`}
                                                     className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent hover:text-accent-foreground group"
                                                 >
-                                                    <History className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-accent-foreground" />
+                                                    <History className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent-foreground" />
                                                     <button
                                                         type="button"
-                                                        className="flex-1 text-left text-sm font-mono group-hover:text-accent-foreground cursor-pointer"
+                                                        className="flex-1 text-left text-sm font-display translate-y-0.5 group-hover:text-accent-foreground cursor-pointer"
                                                         onMouseDown={(e) => {
                                                             e.preventDefault()
                                                             updateSearchState({ pathPattern: path })
@@ -367,7 +367,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                                                         className="px-2 py-0.5 text-xs text-muted-foreground group-hover:text-accent-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
                                                         onMouseDown={(e) => {
                                                             e.preventDefault()
-                                                            removeRecentSearch(searchState.domain, path)
+                                                            removeRecentSearch(params.teamId, searchState.domain, path)
                                                             setRecentPaths(prev => prev.filter(p => p !== path))
                                                         }}
                                                     >
@@ -383,7 +383,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                                                 <button
                                                     key={`suggestion-${path}`}
                                                     type="button"
-                                                    className="w-full px-2 py-1.5 text-left text-sm font-mono rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                                                    className="w-full px-2 py-1.5 text-left text-sm font-display rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault()
                                                         updateSearchState({ pathPattern: path })
