@@ -83,6 +83,18 @@ func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, 
 	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
 }
 
+func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32) {
+	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics)
+}
+
+func seedCurrentMonthIngestionUsage(ctx context.Context, t *testing.T, teamID string, totalUnits uint64) {
+	t.Helper()
+	appID := uuid.New().String()
+	events := uint32(totalUnits / 2)
+	spans := uint32(totalUnits - uint64(events))
+	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), events, spans, 0)
+}
+
 func seedAPIKey(
 	ctx context.Context,
 	t *testing.T,

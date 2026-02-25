@@ -24,6 +24,7 @@ import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
 import { ThemeToggle } from "../components/theme_toggle"
 import UserAvatar from "../components/user_avatar"
 import { isCloud } from "../utils/env_utils"
+import UsageThresholdBanner from "../components/usage_threshold_banner"
 
 const initNavData = {
   navMain: [
@@ -288,6 +289,8 @@ export default function DashboardLayout({
           />
           <ThemeToggle />
         </header>
+
+        {selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />}
 
         <main className="md:overflow-auto flex justify-center">
           <div className="w-full max-w-[1100px] px-4 pb-24">{children}</div>

@@ -220,6 +220,49 @@ func CancelAndDowngradeToFreePlan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "downgraded to free"})
 }
 
+func GetBillingUsageThreshold(c *gin.Context) {
+	if !server.Server.Config.IsBillingEnabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeBillingRead); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	threshold, err := billing.GetUsageThreshold(ctx, server.Server.PgPool, server.Server.RchPool, teamId)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			msg := fmt.Sprintf("team billing not found for team: %s", teamId)
+			c.JSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+		msg := fmt.Sprintf("error occurred while querying usage threshold: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"threshold": threshold})
+}
+
 func HandleStripeWebhook(c *gin.Context) {
 	if !server.Server.Config.IsBillingEnabled() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
