@@ -1,4 +1,4 @@
-const STORAGE_KEY = "network_recent_searches"
+const STORAGE_KEY_PREFIX = "network_recent_searches"
 const MAX_RESULTS = 5
 
 interface RecentSearchEntry {
@@ -6,9 +6,13 @@ interface RecentSearchEntry {
     path: string
 }
 
-function readEntries(): RecentSearchEntry[] {
+function storageKey(teamId: string): string {
+    return `${STORAGE_KEY_PREFIX}_${teamId}`
+}
+
+function readEntries(teamId: string): RecentSearchEntry[] {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY)
+        const raw = localStorage.getItem(storageKey(teamId))
         if (!raw) return []
         return JSON.parse(raw) as RecentSearchEntry[]
     } catch {
@@ -16,16 +20,16 @@ function readEntries(): RecentSearchEntry[] {
     }
 }
 
-function writeEntries(entries: RecentSearchEntry[]): void {
+function writeEntries(teamId: string, entries: RecentSearchEntry[]): void {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+        localStorage.setItem(storageKey(teamId), JSON.stringify(entries))
     } catch {
         // silently fail if localStorage unavailable
     }
 }
 
-export function addRecentSearch(domain: string, path: string): void {
-    let entries = readEntries()
+export function addRecentSearch(teamId: string, domain: string, path: string): void {
+    let entries = readEntries(teamId)
     entries = entries.filter(e => !(e.domain === domain && e.path === path))
     entries.unshift({ domain, path })
     // Keep only MAX_RESULTS per domain
@@ -34,16 +38,16 @@ export function addRecentSearch(domain: string, path: string): void {
         domainCount[e.domain] = (domainCount[e.domain] || 0) + 1
         return domainCount[e.domain] <= MAX_RESULTS
     })
-    writeEntries(entries)
+    writeEntries(teamId, entries)
 }
 
-export function removeRecentSearch(domain: string, path: string): void {
-    const entries = readEntries().filter(e => !(e.domain === domain && e.path === path))
-    writeEntries(entries)
+export function removeRecentSearch(teamId: string, domain: string, path: string): void {
+    const entries = readEntries(teamId).filter(e => !(e.domain === domain && e.path === path))
+    writeEntries(teamId, entries)
 }
 
-export function getRecentSearchesForDomain(domain: string, query?: string): string[] {
-    const entries = readEntries().filter(e => e.domain === domain)
+export function getRecentSearchesForDomain(teamId: string, domain: string, query?: string): string[] {
+    const entries = readEntries(teamId).filter(e => e.domain === domain)
 
     const filtered = query
         ? entries.filter(e => e.path.toLowerCase().includes(query.toLowerCase()))
