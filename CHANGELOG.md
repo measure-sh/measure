@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Replace deprecated async insert to modern alternative (#3217) by @detj in #3217
 - (**backend**): Add actor to cloud-deploy dispatch trigger job (#3214) by @detj in #3214
 - (**backend**): Implements custom error thresholds by @anupcowkur in #3210
 - (**backend**): Use dynamic time groupings for plots by @anupcowkur in #3206
