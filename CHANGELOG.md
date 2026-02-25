@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove max_threads setting (#3218) by @detj in #3218
 - (**backend**): Replace deprecated async insert to modern alternative (#3217) by @detj in #3217
 - (**backend**): Add actor to cloud-deploy dispatch trigger job (#3214) by @detj in #3214
 - (**backend**): Implements custom error thresholds by @anupcowkur in #3210
