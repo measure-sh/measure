@@ -165,6 +165,7 @@ func main() {
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", measure.SendTestSlackAlert)
 		teams.GET(":id/billing/info", measure.GetTeamBilling)
+		teams.GET(":id/billing/usageThreshold", measure.GetBillingUsageThreshold)
 		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
 		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
 	}

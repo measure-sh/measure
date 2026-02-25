@@ -1179,3 +1179,299 @@ func TestHandleStripeWebhook(t *testing.T) {
 		}
 	})
 }
+
+// --------------------------------------------------------------------------
+// Handler: GetBillingUsageThreshold
+// --------------------------------------------------------------------------
+
+func TestGetBillingUsageThreshold(t *testing.T) {
+	t.Run("billing disabled", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		defer func() { server.Server.Config.BillingEnabled = orig }()
+
+		c, w := newTestGinContext("GET", "/teams/test/billing/usageThreshold", nil)
+		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		}
+		wantJSON(t, w, "error", "billing is not enabled")
+	})
+
+	t.Run("invalid team uuid", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		c, w := newTestGinContext("GET", "/teams/bad-id/billing/usageThreshold", nil)
+		c.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSONContains(t, w, "error", "team id invalid or missing")
+	})
+
+	t.Run("no team membership", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testNoAuthEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
+	})
+
+	t.Run("viewer can read", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testViewerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "viewer")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("developer can read", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testDeveloperEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "developer")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("admin can read", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testAdminEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "admin")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("owner can read", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("no billing config", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		// no seedTeamBilling — team_billing row is absent
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		}
+		wantJSONContains(t, w, "error", "team billing not found")
+	})
+
+	t.Run("pro plan returns threshold 0", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_pro"))
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("free plan usage below 75% returns threshold 0", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 740_000)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(0))
+	})
+
+	t.Run("free plan 75% usage returns threshold 75", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 750_000)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(75))
+	})
+
+	t.Run("free plan 90% usage returns threshold 90", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 900_000)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(90))
+	})
+
+	t.Run("free plan 100% usage returns threshold 100", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_000_000)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetBillingUsageThreshold(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "threshold", float64(100))
+	})
+}

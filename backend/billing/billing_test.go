@@ -810,3 +810,171 @@ func TestIsRetentionChangeAllowed(t *testing.T) {
 		}
 	})
 }
+
+// --------------------------------------------------------------------------
+// GetUsageThreshold
+// --------------------------------------------------------------------------
+
+func TestGetUsageThreshold(t *testing.T) {
+	t.Run("team not found", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		_, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, uuid.New())
+		if err == nil {
+			t.Fatal("expected error for missing team, got nil")
+		}
+	})
+
+	t.Run("pro plan returns 0", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "pro-team", "pro", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 0 {
+			t.Errorf("threshold = %d, want 0 for pro plan", threshold)
+		}
+	})
+
+	t.Run("free plan no usage returns 0", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 0 {
+			t.Errorf("threshold = %d, want 0", threshold)
+		}
+	})
+
+	t.Run("free plan 74% usage returns 0", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 740_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 0 {
+			t.Errorf("threshold = %d, want 0", threshold)
+		}
+	})
+
+	t.Run("free plan exactly 75% returns 75", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 750_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 75 {
+			t.Errorf("threshold = %d, want 75", threshold)
+		}
+	})
+
+	t.Run("free plan 85% usage returns 75", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 850_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 75 {
+			t.Errorf("threshold = %d, want 75", threshold)
+		}
+	})
+
+	t.Run("free plan exactly 90% returns 90", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 900_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 90 {
+			t.Errorf("threshold = %d, want 90", threshold)
+		}
+	})
+
+	t.Run("free plan 95% usage returns 90", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 950_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 90 {
+			t.Errorf("threshold = %d, want 90", threshold)
+		}
+	})
+
+	t.Run("free plan exactly 100% returns 100", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_000_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 100 {
+			t.Errorf("threshold = %d, want 100", threshold)
+		}
+	})
+
+	t.Run("free plan 120% usage returns 100", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+
+		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
+		if err != nil {
+			t.Fatalf("GetUsageThreshold: %v", err)
+		}
+		if threshold != 100 {
+			t.Errorf("threshold = %d, want 100", threshold)
+		}
+	})
+}

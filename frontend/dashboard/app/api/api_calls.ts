@@ -377,6 +377,13 @@ export enum FetchBillingInfoApiStatus {
   Cancelled,
 }
 
+export enum FetchBillingUsageThresholdApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum BugReportsOverviewApiStatus {
   Loading,
   Success,
@@ -2453,6 +2460,22 @@ export const fetchBillingInfoFromServer = async (teamId: string) => {
     return { status: FetchBillingInfoApiStatus.Success, data: data }
   } catch {
     return { status: FetchBillingInfoApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchBillingUsageThresholdFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/usageThreshold`)
+
+    if (!res.ok) {
+      return { status: FetchBillingUsageThresholdApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchBillingUsageThresholdApiStatus.Success, data: data as { threshold: number } }
+  } catch {
+    return { status: FetchBillingUsageThresholdApiStatus.Cancelled, data: null }
   }
 }
 

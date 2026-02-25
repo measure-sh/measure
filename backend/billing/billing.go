@@ -430,6 +430,39 @@ func IsIngestAllowed(ctx context.Context, pool *pgxpool.Pool, vk valkey.Client, 
 	return result
 }
 
+// GetUsageThreshold returns the highest free-plan usage threshold crossed
+// for the current calendar month: 75, 90, or 100. Returns 0 if the team is
+// not on the free plan or if usage is below 75%.
+func GetUsageThreshold(ctx context.Context, pool *pgxpool.Pool, chPool driver.Conn, teamID uuid.UUID) (int, error) {
+	billing, err := GetTeamBilling(ctx, pool, teamID)
+	if err != nil {
+		return 0, err
+	}
+
+	if billing.Plan != "free" {
+		return 0, nil
+	}
+
+	start, end, _ := getCalendarMonthCycle()
+	usage, err := getIngestionUsage(ctx, chPool, teamID.String(), start, end)
+	if err != nil {
+		return 0, err
+	}
+
+	pct := float64(usage) / float64(FreePlanMaxUnits) * 100
+
+	switch {
+	case pct >= 100:
+		return 100, nil
+	case pct >= 90:
+		return 90, nil
+	case pct >= 75:
+		return 75, nil
+	default:
+		return 0, nil
+	}
+}
+
 // IsRetentionChangeAllowed returns true if the team is on a plan that
 // permits retention changes (i.e. "pro").
 func IsRetentionChangeAllowed(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID) (bool, error) {
