@@ -92,28 +92,25 @@ func (m *MetricsResponse) merge(other *MetricsResponse) {
 	m.StatusCodes = append(m.StatusCodes, other.StatusCodes...)
 }
 
-// applyAggregatedFilters applies filters to
+// applyFiltersToHttpMetrics applies filters to
 // http_metrics queries. Scalar columns use WHERE;
 // array columns use HAVING.
-func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
+func applyFiltersToHttpMetrics(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		selectedVersions, err := af.VersionPairs()
 		if err == nil {
 			stmt.Where("app_version in (?)", selectedVersions.Parameterize())
 		}
 	}
-
 	if af.HasOSVersions() {
 		selectedOSVersions, err := af.OSVersionPairs()
 		if err == nil {
 			stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
 		}
 	}
-
 	if af.HasDeviceManufacturers() {
 		stmt.Where("device_manufacturer").In(af.DeviceManufacturers)
 	}
-
 	if af.HasNetworkProviders() {
 		stmt.Having("hasAll(groupUniqArrayArray(network_providers), ?)", af.NetworkProviders)
 	}
@@ -153,7 +150,7 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 		Where("timestamp >= ?", af.From).
 		Where("timestamp <= ?", af.To)
 
-	applyAggregatedFilters(stmt, af)
+	applyFiltersToHttpMetrics(stmt, af)
 
 	stmt.GroupBy("domain, path").
 		OrderBy(orderBy).
@@ -231,9 +228,9 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 	stmt.Where("path = ?", pathPattern)
 }
 
-// applyFilters applies common filters from
+// applyFiltersToHttpEvents applies common filters from
 // AppFilter to the query statement.
-func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
+func applyFiltersToHttpEvents(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		stmt.Where("app_version.1 in ?", af.Versions)
 		stmt.Where("app_version.2 in ?", af.VersionCodes)
@@ -285,7 +282,7 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		Where("latency_ms <= 60000")
 
 	applyPathFilter(latencyStmt, pathPattern)
-	applyFilters(latencyStmt, af)
+	applyFiltersToHttpEvents(latencyStmt, af)
 
 	latencyStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer latencyStmt.Close()
@@ -325,7 +322,7 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		Where("latency_ms <= 60000")
 
 	applyPathFilter(statusStmt, pathPattern)
-	applyFilters(statusStmt, af)
+	applyFiltersToHttpEvents(statusStmt, af)
 
 	statusStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer statusStmt.Close()
@@ -368,7 +365,7 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyAggregatedFilters(latencyStmt, af)
+	applyFiltersToHttpMetrics(latencyStmt, af)
 
 	latencyStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer latencyStmt.Close()
@@ -407,7 +404,7 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyAggregatedFilters(statusStmt, af)
+	applyFiltersToHttpMetrics(statusStmt, af)
 
 	statusStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer statusStmt.Close()
@@ -592,7 +589,7 @@ func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *
 		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = ? and app_id = ? and timestamp >= ? and timestamp <= ?", teamId, appId, af.From, af.To)
 
-	applyFilters(stmt, af)
+	applyFiltersToHttpEvents(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
