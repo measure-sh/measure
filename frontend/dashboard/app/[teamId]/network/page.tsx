@@ -266,8 +266,8 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showNoData={false}
-                showNotOnboarded={false}
+                showNoData={true}
+                showNotOnboarded={true}
                 showAppSelector={true}
                 showAppVersions={false}
                 showDates={true}
@@ -298,7 +298,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                             <NetworkStatusDistributionPlot data={pageState.statusPlotData} plotTimeGroup={plotTimeGroup} />
                         }
                         {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
-                            <p className="font-body text-sm">No status overview data available for the selected filters</p>
+                            <p className="font-body text-sm">No data available for the selected filters</p>
                         }
                         {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
                             <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
