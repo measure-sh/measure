@@ -1197,6 +1197,7 @@ export type SdkConfig = {
   bug_report_timeline_duration: number
   launch_sampling_rate: number
   journey_sampling_rate: number
+  http_sampling_rate: number
   http_disable_event_for_urls: string[]
   http_track_request_for_urls: string[]
   http_track_response_for_urls: string[]

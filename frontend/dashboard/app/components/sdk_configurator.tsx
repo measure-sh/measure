@@ -104,15 +104,17 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
   useEffect(() => {
     setHttpChanged(
+      sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate ||
       JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
       JSON.stringify(sdkConfig.http_track_request_for_urls) !== JSON.stringify(originalSdkConfig.http_track_request_for_urls) ||
       JSON.stringify(sdkConfig.http_track_response_for_urls) !== JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
       JSON.stringify(sdkConfig.http_blocked_headers) !== JSON.stringify(originalSdkConfig.http_blocked_headers)
     )
-  }, [sdkConfig.http_disable_event_for_urls, sdkConfig.http_track_request_for_urls,
+  }, [sdkConfig.http_sampling_rate, sdkConfig.http_disable_event_for_urls, sdkConfig.http_track_request_for_urls,
   sdkConfig.http_track_response_for_urls, sdkConfig.http_blocked_headers,
-  originalSdkConfig.http_disable_event_for_urls, originalSdkConfig.http_track_request_for_urls,
-  originalSdkConfig.http_track_response_for_urls, originalSdkConfig.http_blocked_headers])
+  originalSdkConfig.http_sampling_rate, originalSdkConfig.http_disable_event_for_urls,
+  originalSdkConfig.http_track_request_for_urls, originalSdkConfig.http_track_response_for_urls,
+  originalSdkConfig.http_blocked_headers])
 
   useEffect(() => {
     setScreenshotMaskingChanged(sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level)
@@ -162,6 +164,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         break
       case 'http':
         configToSave = {
+          http_sampling_rate: sdkConfig.http_sampling_rate,
           http_disable_event_for_urls: sdkConfig.http_disable_event_for_urls.filter(url => url.trim() !== ""),
           http_track_request_for_urls: sdkConfig.http_track_request_for_urls.filter(url => url.trim() !== ""),
           http_track_response_for_urls: sdkConfig.http_track_response_for_urls.filter(url => url.trim() !== ""),
@@ -346,6 +349,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         <p>Are you sure you want to update <span className="font-display font-bold">HTTP collection settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
         <p className="mt-4">The following configurations will be updated:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
+          {sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate && (
+            <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.http_sampling_rate} seconds</span> → <span className="font-display font-bold">{sdkConfig.http_sampling_rate} seconds</span></li>
+          )}
           {JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) && (
             <li>Disabled HTTP events for URLs</li>
           )}
@@ -618,8 +624,23 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
             <AccordionTrigger className="font-body text-base">HTTP</AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
+                {/* HTTP events sampling rate */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-body text-sm">Collect HTTP events at</span>
+                  <SdkConfigNumericInput
+                    testId="http-sampling-rate-input"
+                    value={sdkConfig.http_sampling_rate}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.01}
+                    type="float"
+                    onChange={(value) => setSdkConfig({ ...sdkConfig, http_sampling_rate: value })}
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                  <span className="font-body text-sm">% sampling rate</span>
+                </div>
                 {/* Disable HTTP event for URLs */}
-                <div>
+                <div className="py-6">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Disable HTTP event for URLs</p>
                     <Tooltip>
