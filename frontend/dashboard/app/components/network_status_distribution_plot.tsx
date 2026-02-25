@@ -139,7 +139,8 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
               <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2 font-semibold'>{formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
                 <p className='px-2 pb-1'>Total: {total.toLocaleString()}</p>
-                {slice.points.map((point) => {
+                {/* nivo orders points by y-value, sort to maintain 2xx, 3xx, 4xx, 5xx order */}
+                {[...slice.points].sort((a, b) => a.serieId.toString().localeCompare(b.serieId.toString())).map((point) => {
                   const count = Number(point.data.y)
                   return (
                     <div className="flex flex-row items-center px-2 py-0.5" key={point.id}>
