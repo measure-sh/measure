@@ -68,10 +68,10 @@ func splitAtMidnight(from, to time.Time) (beforeMidnight, afterMidnight TimeRang
 	return beforeMidnight, afterMidnight
 }
 
-// applyFiltersToHttpMetrics applies filters to
+// applyMetricsFilters applies filters to
 // http_metrics queries. Scalar columns use WHERE;
 // array columns use HAVING.
-func applyFiltersToHttpMetrics(stmt *sqlf.Stmt, af *filter.AppFilter) {
+func applyMetricsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		selectedVersions, err := af.VersionPairs()
 		if err == nil {
@@ -126,7 +126,7 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 		Where("timestamp >= ?", af.From).
 		Where("timestamp <= ?", af.To)
 
-	applyFiltersToHttpMetrics(stmt, af)
+	applyMetricsFilters(stmt, af)
 
 	stmt.GroupBy("domain, path").
 		OrderBy(orderBy).
@@ -204,9 +204,9 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 	stmt.Where("path = ?", pathPattern)
 }
 
-// applyFiltersToHttpEvents applies common filters from
+// applyEventsFilters applies common filters from
 // AppFilter to the query statement.
-func applyFiltersToHttpEvents(stmt *sqlf.Stmt, af *filter.AppFilter) {
+func applyEventsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		stmt.Where("app_version.1 in ?", af.Versions)
 		stmt.Where("app_version.2 in ?", af.VersionCodes)
@@ -256,7 +256,7 @@ func fetchLatencyFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		Where("latency_ms <= 60000")
 
 	applyPathFilter(stmt, pathPattern)
-	applyFiltersToHttpEvents(stmt, af)
+	applyEventsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
@@ -302,7 +302,7 @@ func fetchStatusDistributionFromEvents(ctx context.Context, appId, teamId uuid.U
 		Where("latency_ms <= 60000")
 
 	applyPathFilter(stmt, pathPattern)
-	applyFiltersToHttpEvents(stmt, af)
+	applyEventsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
@@ -343,7 +343,7 @@ func fetchLatencyFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyFiltersToHttpMetrics(stmt, af)
+	applyMetricsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
@@ -388,7 +388,7 @@ func fetchStatusDistributionFromAggregated(ctx context.Context, appId, teamId uu
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyFiltersToHttpMetrics(stmt, af)
+	applyMetricsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
@@ -591,9 +591,9 @@ func FetchDetailStatusDistribution(ctx context.Context, appId, teamId uuid.UUID,
 	return result, nil
 }
 
-// GetRequestStatusOverview returns a distribution
+// GetNetworkOverviewStatusDistributionPlot returns a distribution
 // of status codes over time.
-func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+func GetNetworkOverviewStatusDistributionPlot(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
 	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
@@ -604,7 +604,7 @@ func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *
 		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = ? and app_id = ? and timestamp >= ? and timestamp <= ?", teamId, appId, af.From, af.To)
 
-	applyFiltersToHttpEvents(stmt, af)
+	applyEventsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()

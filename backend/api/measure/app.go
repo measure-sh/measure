@@ -9605,7 +9605,7 @@ func GetNetworkOverviewStatusDistributionPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetRequestStatusOverview(ctx, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetNetworkOverviewStatusDistributionPlot(ctx, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status overview plot"
 		fmt.Println(msg, err)
