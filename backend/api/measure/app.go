@@ -9189,26 +9189,42 @@ func GetNetworkRequestsPaths(c *gin.Context) {
 	})
 }
 
-func GetNetworkRequestsMetrics(c *gin.Context) {
+// networkDetailParams holds the validated and
+// authorized parameters for network detail
+// plot endpoints.
+type networkDetailParams struct {
+	app       App
+	team      *Team
+	af        filter.AppFilter
+	domain    string
+	path      string
+	groupExpr *plotTimeGroupExpr
+}
+
+// parseNetworkDetailParams validates and authorizes
+// a network detail plot request, returning the
+// common parameters needed by both latency and
+// status distribution handlers.
+func parseNetworkDetailParams(c *gin.Context) (*networkDetailParams, bool) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 
 	rawURL := c.Query("url")
 	if rawURL == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing url query param"})
-		return
+		return nil, false
 	}
 
 	domain, path, err := network.ParseURL(rawURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url query param"})
-		return
+		return nil, false
 	}
 
 	af := filter.AppFilter{
@@ -9223,7 +9239,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 			"error":   msg,
 			"details": err.Error(),
 		})
-		return
+		return nil, false
 	}
 
 	if err := af.Expand(ctx); err != nil {
@@ -9237,7 +9253,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 			"error":   msg,
 			"details": err.Error(),
 		})
-		return
+		return nil, false
 	}
 
 	msg := "network metrics request validation failed"
@@ -9247,7 +9263,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 			"error":   msg,
 			"details": err.Error(),
 		})
-		return
+		return nil, false
 	}
 
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
@@ -9257,7 +9273,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 				"error":   msg,
 				"details": err.Error(),
 			})
-			return
+			return nil, false
 		}
 	}
 
@@ -9274,7 +9290,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		msg := "failed to compute time group expression"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 
 	app := App{
@@ -9285,12 +9301,12 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 
 	userId := c.GetString("userId")
@@ -9299,7 +9315,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 
 	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
@@ -9307,18 +9323,51 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		return nil, false
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return nil, false
+	}
+
+	return &networkDetailParams{
+		app:       app,
+		team:      team,
+		af:        af,
+		domain:    domain,
+		path:      path,
+		groupExpr: groupExpr,
+	}, true
+}
+
+func GetNetworkDetailLatencyPlot(c *gin.Context) {
+	p, ok := parseNetworkDetailParams(c)
+	if !ok {
 		return
 	}
 
-	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.FetchDetailLatency(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
 	if err != nil {
-		msg := "failed to get network metrics"
+		msg := "failed to get network latency metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkDetailStatusDistributionPlot(c *gin.Context) {
+	p, ok := parseNetworkDetailParams(c)
+	if !ok {
+		return
+	}
+
+	result, err := network.FetchDetailStatusDistribution(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
+	if err != nil {
+		msg := "failed to get network status distribution metrics"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -9441,7 +9490,7 @@ func GetNetworkRequestsTrends(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func GetNetworkStatusOverviewPlot(c *gin.Context) {
+func GetNetworkOverviewStatusDistributionPlot(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

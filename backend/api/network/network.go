@@ -19,13 +19,6 @@ const trendsLimit = 10
 // in a time series.
 type MetricsDataPoint map[string]any
 
-// MetricsResponse contains all network metrics
-// grouped by category.
-type MetricsResponse struct {
-	Latency     []MetricsDataPoint `json:"latency"`
-	StatusCodes []MetricsDataPoint `json:"status_codes"`
-}
-
 // TrendsEndpoint represents metrics for
 // a single endpoint.
 type TrendsEndpoint struct {
@@ -82,14 +75,6 @@ func partitionHistoricalAndToday(from, to time.Time) (history, today TimeRange) 
 	today = TimeRange{From: midnight, To: to}
 
 	return history, today
-}
-
-func (m *MetricsResponse) merge(other *MetricsResponse) {
-	if other == nil {
-		return
-	}
-	m.Latency = append(m.Latency, other.Latency...)
-	m.StatusCodes = append(m.StatusCodes, other.StatusCodes...)
 }
 
 // applyFiltersToHttpMetrics applies filters to
@@ -268,12 +253,10 @@ func applyFiltersToHttpEvents(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	}
 }
 
-// fetchMetricsFromEvents queries raw http_events
-// for endpoints that don't have pre-aggregated data.
-func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result *MetricsResponse, err error) {
-	result = &MetricsResponse{}
-
-	latencyStmt := sqlf.From("http_events").
+// fetchLatencyFromEvents queries raw http_events
+// for latency percentiles.
+func fetchLatencyFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
@@ -281,23 +264,23 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("latency_ms <= 60000")
 
-	applyPathFilter(latencyStmt, pathPattern)
-	applyFiltersToHttpEvents(latencyStmt, af)
+	applyPathFilter(stmt, pathPattern)
+	applyFiltersToHttpEvents(stmt, af)
 
-	latencyStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer latencyStmt.Close()
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
 
-	latencyRows, err := server.Server.ChPool.Query(ctx, latencyStmt.String(), latencyStmt.Args()...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
-	for latencyRows.Next() {
+	for rows.Next() {
 		var db time.Time
 		var dt string
 		var lats []float64
 		var count uint64
-		if err = latencyRows.Scan(&db, &dt, &lats, &count); err != nil {
+		if err = rows.Scan(&db, &dt, &lats, &count); err != nil {
 			return
 		}
 		data := MetricsDataPoint{"datetime": dt, "count": count}
@@ -307,10 +290,16 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 			data["p95"] = roundPtr(lats[2])
 			data["p99"] = roundPtr(lats[3])
 		}
-		result.Latency = append(result.Latency, data)
+		result = append(result, data)
 	}
 
-	statusStmt := sqlf.From("http_events").
+	return
+}
+
+// fetchStatusDistributionFromEvents queries raw http_events
+// for status code distribution.
+func fetchStatusDistributionFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
@@ -321,25 +310,25 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("latency_ms <= 60000")
 
-	applyPathFilter(statusStmt, pathPattern)
-	applyFiltersToHttpEvents(statusStmt, af)
+	applyPathFilter(stmt, pathPattern)
+	applyFiltersToHttpEvents(stmt, af)
 
-	statusStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer statusStmt.Close()
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
 
-	statusRows, err := server.Server.ChPool.Query(ctx, statusStmt.String(), statusStmt.Args()...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
-	for statusRows.Next() {
+	for rows.Next() {
 		var db time.Time
 		var dt string
 		var total, c2, c3, c4, c5 uint64
-		if err = statusRows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
+		if err = rows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
 			return
 		}
-		result.StatusCodes = append(result.StatusCodes, MetricsDataPoint{
+		result = append(result, MetricsDataPoint{
 			"datetime":    dt,
 			"total_count": total,
 			"count_2xx":   c2,
@@ -352,12 +341,10 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 	return
 }
 
-// fetchMetricsFromAggregated queries pre-aggregated
-// http_metrics for performance data.
-func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result *MetricsResponse, err error) {
-	result = &MetricsResponse{}
-
-	latencyStmt := sqlf.From("http_metrics").
+// fetchLatencyFromAggregated queries pre-aggregated
+// http_metrics for latency percentiles.
+func fetchLatencyFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+	stmt := sqlf.From("http_metrics").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles) as latencies").
@@ -365,22 +352,22 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyFiltersToHttpMetrics(latencyStmt, af)
+	applyFiltersToHttpMetrics(stmt, af)
 
-	latencyStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer latencyStmt.Close()
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
 
-	latencyRows, err := server.Server.ChPool.Query(ctx, latencyStmt.String(), latencyStmt.Args()...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
-	for latencyRows.Next() {
+	for rows.Next() {
 		var db time.Time
 		var dt string
 		var lats []float64
 		var count uint64
-		if err = latencyRows.Scan(&db, &dt, &lats, &count); err != nil {
+		if err = rows.Scan(&db, &dt, &lats, &count); err != nil {
 			return
 		}
 		data := MetricsDataPoint{"datetime": dt, "count": count}
@@ -390,10 +377,16 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 			data["p95"] = roundPtr(lats[3])
 			data["p99"] = roundPtr(lats[4])
 		}
-		result.Latency = append(result.Latency, data)
+		result = append(result, data)
 	}
 
-	statusStmt := sqlf.From("http_metrics").
+	return
+}
+
+// fetchStatusDistributionFromAggregated queries pre-aggregated
+// http_metrics for status code distribution.
+func fetchStatusDistributionFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+	stmt := sqlf.From("http_metrics").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("sum(request_count) as total_count").
@@ -404,24 +397,24 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
 		Where("path = ?", pathPattern)
 
-	applyFiltersToHttpMetrics(statusStmt, af)
+	applyFiltersToHttpMetrics(stmt, af)
 
-	statusStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer statusStmt.Close()
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
 
-	statusRows, err := server.Server.ChPool.Query(ctx, statusStmt.String(), statusStmt.Args()...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
-	for statusRows.Next() {
+	for rows.Next() {
 		var db time.Time
 		var dt string
 		var total, c2, c3, c4, c5 uint64
-		if err = statusRows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
+		if err = rows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
 			return
 		}
-		result.StatusCodes = append(result.StatusCodes, MetricsDataPoint{
+		result = append(result, MetricsDataPoint{
 			"datetime":    dt,
 			"total_count": total,
 			"count_2xx":   c2,
@@ -535,45 +528,76 @@ func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFil
 	}, nil
 }
 
-// FetchMetrics returns latency percentiles and
-// status code distribution for a given domain
-// and path.
-func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) (*MetricsResponse, error) {
+// FetchDetailLatency returns latency percentiles
+// for a given domain and path.
+func FetchDetailLatency(ctx context.Context, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) ([]MetricsDataPoint, error) {
 	exists, err := patternExists(ctx, appId, teamId, domain, path)
 
-	// Fallback, compute metrics from http_events
+	// Fallback, compute from raw http_events
 	if !exists || err != nil {
-		return fetchMetricsFromEvents(ctx, appId, teamId, domain, path, af, af.From, af.To, bucketExpr, datetimeFormat)
+		return fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, af.From, af.To, bucketExpr, datetimeFormat)
 	}
 
-	// Initialize the res
-	res := &MetricsResponse{
-		Latency:     []MetricsDataPoint{},
-		StatusCodes: []MetricsDataPoint{},
-	}
+	var result []MetricsDataPoint
 
 	// Split range into historical and today
 	historicalRange, todayRange := partitionHistoricalAndToday(af.From, af.To)
 
 	// Query older data from aggregated http_metrics
 	if historicalRange.isValid() {
-		r, err := fetchMetricsFromAggregated(ctx, appId, teamId, domain, path, af, historicalRange.From, historicalRange.To, bucketExpr, datetimeFormat)
+		r, err := fetchLatencyFromAggregated(ctx, appId, teamId, domain, path, af, historicalRange.From, historicalRange.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
-		res.merge(r)
+		result = append(result, r...)
 	}
 
 	// Query latest data from raw http_events
 	if todayRange.isValid() {
-		r, err := fetchMetricsFromEvents(ctx, appId, teamId, domain, path, af, todayRange.From, todayRange.To, bucketExpr, datetimeFormat)
+		r, err := fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, todayRange.From, todayRange.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
-		res.merge(r)
+		result = append(result, r...)
 	}
 
-	return res, nil
+	return result, nil
+}
+
+// FetchDetailStatusDistribution returns status code
+// distribution for a given domain and path.
+func FetchDetailStatusDistribution(ctx context.Context, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) ([]MetricsDataPoint, error) {
+	exists, err := patternExists(ctx, appId, teamId, domain, path)
+
+	// Fallback, compute from raw http_events
+	if !exists || err != nil {
+		return fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, af.From, af.To, bucketExpr, datetimeFormat)
+	}
+
+	var result []MetricsDataPoint
+
+	// Split range into historical and today
+	historicalRange, todayRange := partitionHistoricalAndToday(af.From, af.To)
+
+	// Query older data from aggregated http_metrics
+	if historicalRange.isValid() {
+		r, err := fetchStatusDistributionFromAggregated(ctx, appId, teamId, domain, path, af, historicalRange.From, historicalRange.To, bucketExpr, datetimeFormat)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, r...)
+	}
+
+	// Query latest data from raw http_events
+	if todayRange.isValid() {
+		r, err := fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, todayRange.From, todayRange.To, bucketExpr, datetimeFormat)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, r...)
+	}
+
+	return result, nil
 }
 
 // GetRequestStatusOverview returns a distribution

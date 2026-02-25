@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterSource, NetworkMetricsApiStatus, fetchNetworkMetricsFromServer } from '@/app/api/api_calls'
+import { FilterSource, NetworkDetailLatencyPlotApiStatus, NetworkDetailStatusDistributionPlotApiStatus, fetchNetworkDetailLatencyPlotFromServer, fetchNetworkDetailStatusDistributionPlotFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkLatencyPlot from '@/app/components/network_latency_plot'
@@ -27,16 +27,14 @@ interface StatusDistributionDataPoint {
     count_5xx: number
 }
 
-interface NetworkMetrics {
-    latency: LatencyDataPoint[]
-    status_codes: StatusDistributionDataPoint[]
-}
-
 interface PageState {
     filters: typeof defaultFilters
-    networkMetricsApiStatus: NetworkMetricsApiStatus
-    networkMetrics: NetworkMetrics | null
-    plotDataKey: string | null
+    latencyApiStatus: NetworkDetailLatencyPlotApiStatus
+    latencyData: LatencyDataPoint[] | null
+    latencyPlotDataKey: string | null
+    statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus
+    statusDistributionData: StatusDistributionDataPoint[] | null
+    statusDistributionPlotDataKey: string | null
 }
 
 export default function ExploreUrl({ params }: { params: { teamId: string } }) {
@@ -46,9 +44,12 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
     const [pageState, setPageState] = useState<PageState>({
         filters: defaultFilters,
-        networkMetricsApiStatus: NetworkMetricsApiStatus.Loading,
-        networkMetrics: null,
-        plotDataKey: null,
+        latencyApiStatus: NetworkDetailLatencyPlotApiStatus.Loading,
+        latencyData: null,
+        latencyPlotDataKey: null,
+        statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus.Loading,
+        statusDistributionData: null,
+        statusDistributionPlotDataKey: null,
     })
 
     const updatePageState = (newState: Partial<PageState>) => {
@@ -65,7 +66,8 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
     const plotTimeGroup = getPlotTimeGroupForRange(pageState.filters.startDate, pageState.filters.endDate)
     const currentPlotKey = `${url}|${pageState.filters.serialisedFilters}|${plotTimeGroup}`
-    const shouldRenderPlot = pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && pageState.networkMetrics !== null && pageState.plotDataKey === currentPlotKey
+    const shouldRenderLatencyPlot = pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.Success && pageState.latencyData !== null && pageState.latencyPlotDataKey === currentPlotKey
+    const shouldRenderStatusDistributionPlot = pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.Success && pageState.statusDistributionData !== null && pageState.statusDistributionPlotDataKey === currentPlotKey
 
     useEffect(() => {
         if (!pageState.filters.ready) {
@@ -82,29 +84,63 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
             return
         }
 
-        updatePageState({ networkMetricsApiStatus: NetworkMetricsApiStatus.Loading })
+        updatePageState({ latencyApiStatus: NetworkDetailLatencyPlotApiStatus.Loading })
 
-        fetchNetworkMetricsFromServer(pageState.filters, url).then(result => {
+        fetchNetworkDetailLatencyPlotFromServer(pageState.filters, url).then(result => {
             switch (result.status) {
-                case NetworkMetricsApiStatus.Success:
+                case NetworkDetailLatencyPlotApiStatus.Success:
                     updatePageState({
-                        networkMetricsApiStatus: NetworkMetricsApiStatus.Success,
-                        networkMetrics: result.data as NetworkMetrics,
-                        plotDataKey: currentPlotKey,
+                        latencyApiStatus: NetworkDetailLatencyPlotApiStatus.Success,
+                        latencyData: result.data as LatencyDataPoint[],
+                        latencyPlotDataKey: currentPlotKey,
                     })
                     break
-                case NetworkMetricsApiStatus.NoData:
+                case NetworkDetailLatencyPlotApiStatus.NoData:
                     updatePageState({
-                        networkMetricsApiStatus: NetworkMetricsApiStatus.NoData,
-                        networkMetrics: null,
-                        plotDataKey: null,
+                        latencyApiStatus: NetworkDetailLatencyPlotApiStatus.NoData,
+                        latencyData: null,
+                        latencyPlotDataKey: null,
                     })
                     break
                 default:
                     updatePageState({
-                        networkMetricsApiStatus: NetworkMetricsApiStatus.Error,
-                        networkMetrics: null,
-                        plotDataKey: null,
+                        latencyApiStatus: NetworkDetailLatencyPlotApiStatus.Error,
+                        latencyData: null,
+                        latencyPlotDataKey: null,
+                    })
+                    break
+            }
+        })
+    }, [pageState.filters])
+
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app || !url) {
+            return
+        }
+
+        updatePageState({ statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus.Loading })
+
+        fetchNetworkDetailStatusDistributionPlotFromServer(pageState.filters, url).then(result => {
+            switch (result.status) {
+                case NetworkDetailStatusDistributionPlotApiStatus.Success:
+                    updatePageState({
+                        statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus.Success,
+                        statusDistributionData: result.data as StatusDistributionDataPoint[],
+                        statusDistributionPlotDataKey: currentPlotKey,
+                    })
+                    break
+                case NetworkDetailStatusDistributionPlotApiStatus.NoData:
+                    updatePageState({
+                        statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus.NoData,
+                        statusDistributionData: null,
+                        statusDistributionPlotDataKey: null,
+                    })
+                    break
+                default:
+                    updatePageState({
+                        statusDistributionApiStatus: NetworkDetailStatusDistributionPlotApiStatus.Error,
+                        statusDistributionData: null,
+                        statusDistributionPlotDataKey: null,
                     })
                     break
             }
@@ -142,30 +178,43 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
 
             <div className="py-4" />
 
-            {pageState.filters.ready && (pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Loading || (pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Success && !shouldRenderPlot)) &&
-                <LoadingSpinner />
-            }
-            {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.Error &&
-                <p className="font-body text-sm">Error fetching metrics, please change filters & try again</p>
-            }
-            {pageState.filters.ready && pageState.networkMetricsApiStatus === NetworkMetricsApiStatus.NoData &&
-                <p className="font-body text-sm">No data available for the selected filters</p>
-            }
-            {shouldRenderPlot &&
-                <div className="flex flex-col w-full">
+            {/* Latency Section */}
+            <div className="flex flex-col w-full">
+                <div className="py-6" />
+                <p className="font-display text-xl">Latency</p>
+                <div className="py-2" />
+                {pageState.filters.ready && (pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.Loading || (pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.Success && !shouldRenderLatencyPlot)) &&
+                    <LoadingSpinner />
+                }
+                {pageState.filters.ready && pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.Error &&
+                    <p className="font-body text-sm">Error fetching latency data, please change filters & try again</p>
+                }
+                {pageState.filters.ready && pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.NoData &&
+                    <p className="font-body text-sm">No latency data available for the selected filters</p>
+                }
+                {shouldRenderLatencyPlot &&
+                    <NetworkLatencyPlot data={pageState.latencyData!} plotTimeGroup={plotTimeGroup} />
+                }
+            </div>
 
-                    <div className="py-6" />
-                    <p className="font-display text-xl">Latency</p>
-                    <div className="py-2" />
-                    <NetworkLatencyPlot data={pageState.networkMetrics!.latency} plotTimeGroup={plotTimeGroup} />
-
-                    <div className="py-6" />
-                    <p className="font-display text-xl">Status Distribution</p>
-                    <div className="py-2" />
-                    <NetworkStatusDistributionPlot data={pageState.networkMetrics!.status_codes} plotTimeGroup={plotTimeGroup} />
-
-                </div>
-            }
+            {/* Status Distribution Section */}
+            <div className="flex flex-col w-full">
+                <div className="py-6" />
+                <p className="font-display text-xl">Status Distribution</p>
+                <div className="py-2" />
+                {pageState.filters.ready && (pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.Loading || (pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.Success && !shouldRenderStatusDistributionPlot)) &&
+                    <LoadingSpinner />
+                }
+                {pageState.filters.ready && pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.Error &&
+                    <p className="font-body text-sm">Error fetching status distribution data, please change filters & try again</p>
+                }
+                {pageState.filters.ready && pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.NoData &&
+                    <p className="font-body text-sm">No status distribution data available for the selected filters</p>
+                }
+                {shouldRenderStatusDistributionPlot &&
+                    <NetworkStatusDistributionPlot data={pageState.statusDistributionData!} plotTimeGroup={plotTimeGroup} />
+                }
+            </div>
         </div>
     )
 }

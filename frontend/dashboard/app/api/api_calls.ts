@@ -459,7 +459,15 @@ export enum NetworkPathsApiStatus {
   Cancelled,
 }
 
-export enum NetworkMetricsApiStatus {
+export enum NetworkDetailLatencyPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkDetailStatusDistributionPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -2909,8 +2917,8 @@ export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: stri
   }
 }
 
-export const fetchNetworkMetricsFromServer = async (filters: Filters, url: string) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/metrics?`
+export const fetchNetworkDetailLatencyPlotFromServer = async (filters: Filters, url: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/detailLatency?`
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
@@ -2923,18 +2931,47 @@ export const fetchNetworkMetricsFromServer = async (filters: Filters, url: strin
     const res = await measureAuth.fetchMeasure(apiUrl)
 
     if (!res.ok) {
-      return { status: NetworkMetricsApiStatus.Error, data: null }
+      return { status: NetworkDetailLatencyPlotApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null) {
-      return { status: NetworkMetricsApiStatus.NoData, data: null }
+      return { status: NetworkDetailLatencyPlotApiStatus.NoData, data: null }
     }
 
-    return { status: NetworkMetricsApiStatus.Success, data: data }
+    return { status: NetworkDetailLatencyPlotApiStatus.Success, data: data }
   } catch {
-    return { status: NetworkMetricsApiStatus.Cancelled, data: null }
+    return { status: NetworkDetailLatencyPlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkDetailStatusDistributionPlotFromServer = async (filters: Filters, url: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/detailStatus?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("url", url)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkDetailStatusDistributionPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkDetailStatusDistributionPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkDetailStatusDistributionPlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkDetailStatusDistributionPlotApiStatus.Cancelled, data: null }
   }
 }
 
@@ -2963,7 +3000,7 @@ export const fetchNetworkTrendsFromServer = async (filters: Filters) => {
 }
 
 export const fetchNetworkStatusOverviewPlotFromServer = async (filters: Filters) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/statusOverview?`
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewStatus?`
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
