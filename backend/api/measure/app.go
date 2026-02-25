@@ -9205,7 +9205,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		return
 	}
 
-	domain, pathPattern, err := network.ParseURL(rawURL)
+	domain, path, err := network.ParseURL(rawURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url query param"})
 		return
@@ -9316,7 +9316,7 @@ func GetNetworkRequestsMetrics(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, pathPattern, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.FetchMetrics(ctx, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network metrics"
 		fmt.Println(msg, err)
