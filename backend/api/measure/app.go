@@ -9205,6 +9205,8 @@ type networkDetailParams struct {
 // a network detail plot request, returning the
 // common parameters needed by both latency and
 // status distribution handlers.
+
+// TODO: remove this
 func parseNetworkDetailParams(c *gin.Context) (*networkDetailParams, bool) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
