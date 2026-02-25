@@ -62,7 +62,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
     }))
   }, [data])
 
-  if (!plot || plot.length === 0) {
+  if (!plot || plot.length === 0 || plot[0].data.length === 0) {
     return (
       <div className="flex font-body items-center justify-center w-full h-[36rem]">
         <p className="text-lg font-display text-center p-4">No Data</p>
