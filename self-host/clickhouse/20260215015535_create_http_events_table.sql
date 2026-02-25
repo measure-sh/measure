@@ -28,7 +28,9 @@ create table http_events
     `device_locale` LowCardinality(String) comment 'device locale (en-US, fr-FR, etc.)',
     `device_manufacturer` LowCardinality(String) comment 'device manufacturer (Apple, Samsung, etc.)',
     `device_name` LowCardinality(String) comment 'device name (iPhone 12, Galaxy S21, etc.)',
-    INDEX idx_path_tokens path TYPE tokenbf_v1(30720, 3, 0) GRANULARITY 1
+    INDEX idx_path_tokens path TYPE tokenbf_v1(30720, 3, 0) GRANULARITY 1,
+    index idx_status_code `status_code` type set(0) granularity 1,
+    index session_bloom_idx session_id type bloom_filter granularity 2
 )
 engine = MergeTree
 partition by toYYYYMM(`timestamp`)
