@@ -21,7 +21,7 @@ import (
 const (
 	FreePlanMaxRetentionDays = 30
 	MaxRetentionDays         = 365
-	FreePlanMaxUnits         = 1000000
+	FreePlanMaxUnits         = 1000
 
 	ingestCacheKeyPrefix = "ingest_allowed:"
 	ingestCacheAllowed   = "1"
