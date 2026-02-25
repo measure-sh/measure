@@ -10,6 +10,7 @@ import (
 
 	"backend/network_metrics_processor/server"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -213,7 +214,8 @@ func insertURLPatterns(ctx context.Context, insertStmt *sqlf.Stmt, totalPatterns
 	defer span.End()
 	span.SetAttributes(attribute.Int("pattern_count", totalPatterns))
 
-	if err := server.Server.ChPool.AsyncInsert(ctx, insertStmt.String(), true, insertStmt.Args()...); err != nil {
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	if err := server.Server.ChPool.Exec(asyncCtx, insertStmt.String(), insertStmt.Args()...); err != nil {
 		return fmt.Errorf("failed to insert url patterns: %w", err)
 	}
 	return nil
