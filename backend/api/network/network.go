@@ -19,9 +19,9 @@ const trendsLimit = 10
 // in a time series.
 type MetricsDataPoint map[string]any
 
-// TrendsEndpoint represents metrics for
+// TrendMetric represents metrics for
 // a single endpoint.
-type TrendsEndpoint struct {
+type TrendMetric struct {
 	Domain      string   `json:"domain"`
 	PathPattern string   `json:"path_pattern"`
 	P95Latency  *float64 `json:"p95_latency"`
@@ -32,18 +32,9 @@ type TrendsEndpoint struct {
 // TrendsResponse contains high-level network
 // performance summary metrics.
 type TrendsResponse struct {
-	TrendsLatency   []TrendsEndpoint `json:"trends_latency"`
-	TrendsErrorRate []TrendsEndpoint `json:"trends_error_rate"`
-	TrendsFrequency []TrendsEndpoint `json:"trends_frequency"`
-}
-
-// SessionTimelinePoint represents a single URL
-// pattern's average timing within sessions.
-type SessionTimelinePoint struct {
-	Domain      string  `json:"domain"`
-	Pattern     string  `json:"pattern"`
-	AvgOffsetMs float64 `json:"avg_offset_ms"`
-	CallCount   uint64  `json:"call_count"`
+	TrendsLatency   []TrendMetric `json:"trends_latency"`
+	TrendsErrorRate []TrendMetric `json:"trends_error_rate"`
+	TrendsFrequency []TrendMetric `json:"trends_frequency"`
 }
 
 // TimeRange is a period between
@@ -59,22 +50,22 @@ func (r TimeRange) isValid() bool {
 	return !r.From.IsZero() && !r.To.IsZero() && r.To.After(r.From)
 }
 
-// partitionHistoricalAndToday splits a range into
-// archive (pre-midnight) and recent (post-midnight).
-func partitionHistoricalAndToday(from, to time.Time) (history, today TimeRange) {
+// splitAtMidnight splits a range into
+// pre-midnight and post-midnight.
+func splitAtMidnight(from, to time.Time) (beforeMidnight, afterMidnight TimeRange) {
 	y, m, d := to.Date()
 	midnight := time.Date(y, m, d, 0, 0, 0, 0, to.Location())
 
 	// If 'from' starts on or after midnight
-	// the whole range is 'today'
+	// the whole range falls after midnight
 	if !from.Before(midnight) {
 		return TimeRange{}, TimeRange{From: from, To: to}
 	}
 
-	history = TimeRange{From: from, To: midnight}
-	today = TimeRange{From: midnight, To: to}
+	beforeMidnight = TimeRange{From: from, To: midnight}
+	afterMidnight = TimeRange{From: midnight, To: to}
 
-	return history, today
+	return beforeMidnight, afterMidnight
 }
 
 // applyFiltersToHttpMetrics applies filters to
@@ -122,7 +113,7 @@ func roundPtr(v float64) *float64 {
 
 // fetchTrendsCategory queries a single trends
 // category from http_metrics.
-func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter, orderBy string) ([]TrendsEndpoint, error) {
+func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter, orderBy string) ([]TrendMetric, error) {
 	stmt := sqlf.
 		Select("domain").
 		Select("path AS path_pattern").
@@ -148,9 +139,9 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 		return nil, err
 	}
 
-	var endpoints []TrendsEndpoint
+	var endpoints []TrendMetric
 	for rows.Next() {
-		var ep TrendsEndpoint
+		var ep TrendMetric
 		var p95Latency, errorRate float64
 		if err := rows.Scan(&ep.Domain, &ep.PathPattern, &p95Latency, &errorRate, &ep.Frequency); err != nil {
 			return nil, err
@@ -164,7 +155,7 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 	}
 
 	if endpoints == nil {
-		endpoints = []TrendsEndpoint{}
+		endpoints = []TrendMetric{}
 	}
 	return endpoints, nil
 }
@@ -540,12 +531,12 @@ func FetchDetailLatency(ctx context.Context, appId, teamId uuid.UUID, domain, pa
 
 	var result []MetricsDataPoint
 
-	// Split range into historical and today
-	historicalRange, todayRange := partitionHistoricalAndToday(af.From, af.To)
+	// Split range at midnight
+	beforeMidnight, afterMidnight := splitAtMidnight(af.From, af.To)
 
 	// Query older data from aggregated http_metrics
-	if historicalRange.isValid() {
-		r, err := fetchLatencyFromAggregated(ctx, appId, teamId, domain, path, af, historicalRange.From, historicalRange.To, bucketExpr, datetimeFormat)
+	if beforeMidnight.isValid() {
+		r, err := fetchLatencyFromAggregated(ctx, appId, teamId, domain, path, af, beforeMidnight.From, beforeMidnight.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
@@ -553,8 +544,8 @@ func FetchDetailLatency(ctx context.Context, appId, teamId uuid.UUID, domain, pa
 	}
 
 	// Query latest data from raw http_events
-	if todayRange.isValid() {
-		r, err := fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, todayRange.From, todayRange.To, bucketExpr, datetimeFormat)
+	if afterMidnight.isValid() {
+		r, err := fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, afterMidnight.From, afterMidnight.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
@@ -576,12 +567,12 @@ func FetchDetailStatusDistribution(ctx context.Context, appId, teamId uuid.UUID,
 
 	var result []MetricsDataPoint
 
-	// Split range into historical and today
-	historicalRange, todayRange := partitionHistoricalAndToday(af.From, af.To)
+	// Split range at midnight
+	beforeMidnight, afterMidnight := splitAtMidnight(af.From, af.To)
 
 	// Query older data from aggregated http_metrics
-	if historicalRange.isValid() {
-		r, err := fetchStatusDistributionFromAggregated(ctx, appId, teamId, domain, path, af, historicalRange.From, historicalRange.To, bucketExpr, datetimeFormat)
+	if beforeMidnight.isValid() {
+		r, err := fetchStatusDistributionFromAggregated(ctx, appId, teamId, domain, path, af, beforeMidnight.From, beforeMidnight.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
@@ -589,8 +580,8 @@ func FetchDetailStatusDistribution(ctx context.Context, appId, teamId uuid.UUID,
 	}
 
 	// Query latest data from raw http_events
-	if todayRange.isValid() {
-		r, err := fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, todayRange.From, todayRange.To, bucketExpr, datetimeFormat)
+	if afterMidnight.isValid() {
+		r, err := fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, afterMidnight.From, afterMidnight.To, bucketExpr, datetimeFormat)
 		if err != nil {
 			return nil, err
 		}
