@@ -190,7 +190,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                     <p className="font-body text-sm">Error fetching latency data, please change filters & try again</p>
                 }
                 {pageState.filters.ready && pageState.latencyApiStatus === NetworkDetailLatencyPlotApiStatus.NoData &&
-                    <p className="font-body text-sm">No latency data available for the selected filters</p>
+                    <p className="font-body text-sm">No data available for the selected filters</p>
                 }
                 {shouldRenderLatencyPlot &&
                     <NetworkLatencyPlot data={pageState.latencyData!} plotTimeGroup={plotTimeGroup} />
@@ -209,7 +209,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                     <p className="font-body text-sm">Error fetching status distribution data, please change filters & try again</p>
                 }
                 {pageState.filters.ready && pageState.statusDistributionApiStatus === NetworkDetailStatusDistributionPlotApiStatus.NoData &&
-                    <p className="font-body text-sm">No status distribution data available for the selected filters</p>
+                    <p className="font-body text-sm">No data available for the selected filters</p>
                 }
                 {shouldRenderStatusDistributionPlot &&
                     <NetworkStatusDistributionPlot data={pageState.statusDistributionData!} plotTimeGroup={plotTimeGroup} />
