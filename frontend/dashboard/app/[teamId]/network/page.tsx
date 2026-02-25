@@ -281,6 +281,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                 showDeviceManufacturers={false}
                 showDeviceNames={false}
                 showBugReportStatus={false}
+                showHttpMethods={false}
                 showUdAttrs={false}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
@@ -407,7 +408,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                         </Button>
                     </div>
 
-                    <div className="py-12" />
+                    <div className="py-10" />
 
                     {/* Trends */}
                     <p className="font-display text-xl">Trends</p>

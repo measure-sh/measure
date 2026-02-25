@@ -78,6 +78,9 @@ func applyAggregatedFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasDeviceLocales() {
 		stmt.Having("hasAll(groupUniqArrayArray(device_locales), ?)", af.Locales)
 	}
+	if af.HasHttpMethods() {
+		stmt.Where("method").In(af.HttpMethods)
+	}
 }
 
 // roundPtr rounds a float64 to 1 decimal place
@@ -225,6 +228,10 @@ func applyFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 
 	if af.HasDeviceLocales() {
 		stmt.Where("device_locale").In(af.Locales)
+	}
+
+	if af.HasHttpMethods() {
+		stmt.Where("method").In(af.HttpMethods)
 	}
 }
 
@@ -541,6 +548,8 @@ func GetRequestStatusOverview(ctx context.Context, appId, teamId uuid.UUID, af *
 		Select("countIf(status_code_bucket = '4xx') as count_4xx").
 		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = ? and app_id = ? and timestamp >= ? and timestamp <= ?", teamId, appId, af.From, af.To)
+
+	applyFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()

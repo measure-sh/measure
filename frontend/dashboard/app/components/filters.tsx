@@ -14,6 +14,7 @@ import {
   AppsApiStatus,
   AppVersion,
   BugReportStatus,
+  HttpMethod,
   fetchAppsFromServer,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
@@ -64,6 +65,7 @@ interface FiltersProps {
   showDeviceManufacturers: boolean
   showDeviceNames: boolean
   showBugReportStatus: boolean
+  showHttpMethods: boolean
   showUdAttrs: boolean
   showFreeText: boolean
   freeTextPlaceholder?: string
@@ -99,6 +101,7 @@ export type Filters = {
   sessionTypes: { selected: SessionType[], all: boolean }
   spanStatuses: { selected: SpanStatus[], all: boolean }
   bugReportStatuses: { selected: BugReportStatus[], all: boolean }
+  httpMethods: { selected: HttpMethod[], all: boolean }
   osVersions: { selected: OsVersion[], all: boolean }
   countries: { selected: string[], all: boolean }
   networkProviders: { selected: string[], all: boolean }
@@ -129,6 +132,7 @@ type URLFilters = {
   sessionTypes?: SessionType[]
   spanStatuses?: SpanStatus[]
   bugReportStatuses?: BugReportStatus[]
+  httpMethods?: HttpMethod[]
   osVersions?: number[]
   countries?: number[]
   networkProviders?: number[]
@@ -151,6 +155,7 @@ export const defaultFilters: Filters = {
   sessionTypes: { selected: [], all: false },
   spanStatuses: { selected: [], all: false },
   bugReportStatuses: { selected: [], all: false },
+  httpMethods: { selected: [], all: false },
   osVersions: { selected: [], all: false },
   countries: { selected: [], all: false },
   networkProviders: { selected: [], all: false },
@@ -186,6 +191,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       showDeviceManufacturers,
       showDeviceNames,
       showBugReportStatus,
+      showHttpMethods,
       showUdAttrs,
       showFreeText,
       freeTextPlaceholder,
@@ -203,6 +209,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       sessionTypes: "st",
       spanStatuses: "ss",
       bugReportStatuses: "bs",
+      httpMethods: "hm",
       osVersions: "os",
       countries: "c",
       networkProviders: "np",
@@ -298,6 +305,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
           case "bugReportStatuses":
             if (!showBugReportStatus) return
             break
+          case "httpMethods":
+            if (!showHttpMethods) return
+            break
           case "udAttrMatchers":
             if (!showUdAttrs) return
             break
@@ -349,6 +359,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
 
           case "spanStatuses":
           case "bugReportStatuses":
+          case "httpMethods":
             if ((value as string[]).length === 0) return
             serializedValue = (value as string[]).join(",")
             break
@@ -423,6 +434,14 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 .split(",")
                 .filter((s): s is BugReportStatus =>
                   Object.values(BugReportStatus).includes(s as BugReportStatus),
+                )
+              break
+
+            case "httpMethods":
+              result[originalKey] = value
+                .split(",")
+                .filter((s): s is HttpMethod =>
+                  Object.values(HttpMethod).includes(s as HttpMethod),
                 )
               break
 
@@ -540,6 +559,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
     const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([
       BugReportStatus.Open,
     ])
+
+    const httpMethods = [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
+    const [selectedHttpMethods, setSelectedHttpMethods] = useState(httpMethods)
 
     const [versions, setVersions] = useState([] as AppVersion[])
     const [selectedVersions, setSelectedVersions] = useState(
@@ -771,6 +793,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       setSelectedSpanStatuses(defaultFilters.spanStatuses.selected)
       setSelectedRootSpanName(defaultFilters.rootSpanName)
       setSelectedBugReportStatuses(defaultFilters.bugReportStatuses.selected)
+      setSelectedHttpMethods(httpMethods)
       setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
     }
 
@@ -1034,6 +1057,20 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             setSelectedBugReportStatuses([BugReportStatus.Open])
           }
 
+          if (
+            urlFilters.appId === selectedApp!.id &&
+            urlFilters.httpMethods
+          ) {
+            const selectedHttpMethods = urlFilters.httpMethods
+              .filter((s: string) =>
+                Object.values(HttpMethod).includes(s as HttpMethod),
+              )
+              .map((s: string) => s as HttpMethod)
+            setSelectedHttpMethods(selectedHttpMethods)
+          } else {
+            setSelectedHttpMethods(httpMethods)
+          }
+
           if (urlFilters.appId === selectedApp!.id && urlFilters.sessionTypes) {
             const selectedSessionTypes = urlFilters.sessionTypes
               .filter((s: string) =>
@@ -1125,6 +1162,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         sessionTypes: selectedSessionTypes,
         spanStatuses: selectedSpanStatuses,
         bugReportStatuses: selectedBugReportStatuses,
+        httpMethods: selectedHttpMethods,
         osVersions: selectedOsVersions.map((os) =>
           osVersions.findIndex(
             (o) => o.name === os.name && o.version === os.version,
@@ -1159,6 +1197,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         sessionTypes: { selected: selectedSessionTypes, all: selectedSessionTypes.length === sessionTypes.length },
         spanStatuses: { selected: selectedSpanStatuses, all: selectedSpanStatuses.length === spanStatuses.length },
         bugReportStatuses: { selected: selectedBugReportStatuses, all: selectedBugReportStatuses.length === bugReportStatuses.length },
+        httpMethods: { selected: selectedHttpMethods, all: selectedHttpMethods.length === httpMethods.length },
         osVersions: { selected: selectedOsVersions, all: selectedOsVersions.length === osVersions.length },
         countries: { selected: selectedCountries, all: selectedCountries.length === countries.length },
         networkProviders: { selected: selectedNetworkProviders, all: selectedNetworkProviders.length === networkProviders.length },
@@ -1206,6 +1245,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       selectedRootSpanName,
       selectedSpanStatuses,
       selectedBugReportStatuses,
+      selectedHttpMethods,
     ])
 
     return (
@@ -1486,6 +1526,17 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     }
                   />
                 )}
+                {showHttpMethods && (
+                  <DropdownSelect
+                    type={DropdownSelectType.MultiString}
+                    title="HTTP Method"
+                    items={Object.values(HttpMethod)}
+                    initialSelected={selectedHttpMethods}
+                    onChangeSelected={(items) =>
+                      setSelectedHttpMethods(items as HttpMethod[])
+                    }
+                  />
+                )}
                 {showOsVersions && osVersions.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiOsVersion}
@@ -1629,6 +1680,12 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   selectedBugReportStatuses.length > 0 && (
                     <FilterPill
                       title={Array.from(selectedBugReportStatuses).join(", ")}
+                    />
+                  )}
+                {showHttpMethods &&
+                  selectedHttpMethods.length > 0 && (
+                    <FilterPill
+                      title={Array.from(selectedHttpMethods).join(", ")}
                     />
                   )}
                 {showOsVersions && selectedOsVersions.length > 0 && (

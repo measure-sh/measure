@@ -115,6 +115,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
                 showBugReportStatus={false}
+                showHttpMethods={false}
                 showUdAttrs={true}
                 showFreeText={true}
                 freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...'

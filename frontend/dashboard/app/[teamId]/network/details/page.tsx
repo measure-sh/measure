@@ -135,6 +135,7 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
                 showBugReportStatus={false}
+                showHttpMethods={true}
                 showUdAttrs={false}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />

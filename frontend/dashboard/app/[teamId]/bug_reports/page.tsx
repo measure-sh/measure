@@ -113,6 +113,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
                 showBugReportStatus={true}
+                showHttpMethods={false}
                 showUdAttrs={true}
                 showFreeText={true}
                 freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'

@@ -97,6 +97,7 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
                     showDeviceManufacturers={false}
                     showDeviceNames={false}
                     showBugReportStatus={false}
+                    showHttpMethods={false}
                     showFreeText={false}
                     showUdAttrs={false}
                     onFiltersChanged={handleFiltersChanged} />}

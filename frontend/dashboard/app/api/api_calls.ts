@@ -503,6 +503,14 @@ export enum BugReportStatus {
   Closed = "Closed",
 }
 
+export enum HttpMethod {
+  GET = "GET",
+  POST = "POST",
+  PUT = "PUT",
+  PATCH = "PATCH",
+  DELETE = "DELETE",
+}
+
 export type Team = {
   id: string
   name: string
@@ -1310,6 +1318,68 @@ async function applyGenericFiltersToUrl(
 
   if (filterShortCode !== null) {
     searchParams.append("filter_short_code", filterShortCode)
+  }
+
+  // Append session types if needed
+  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
+    filters.sessionTypes.selected.forEach((v) => {
+      switch (v) {
+        case SessionType.Crashes:
+          searchParams.append("crash", "1")
+          break;
+        case SessionType.ANRs:
+          searchParams.append("anr", "1")
+          break;
+        case SessionType.BugReports:
+          searchParams.append("bug_report", "1")
+          break;
+        case SessionType.UserInteraction:
+          searchParams.append("user_interaction", "1")
+          break;
+        case SessionType.Foreground:
+          searchParams.append("foreground", "1")
+          break;
+        case SessionType.Background:
+          searchParams.append("background", "1")
+          break;
+      }
+    })
+  }
+
+  // Append span name if needed
+  if (filters.rootSpanName !== "") {
+    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
+  }
+
+  // Append span statuses if needed
+  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
+    filters.spanStatuses.selected.forEach((v) => {
+      if (v === SpanStatus.Unset) {
+        searchParams.append("span_statuses", "0")
+      } else if (v === SpanStatus.Ok) {
+        searchParams.append("span_statuses", "1")
+      } else if (v === SpanStatus.Error) {
+        searchParams.append("span_statuses", "2")
+      }
+    })
+  }
+
+  // Append bug report statuses if needed
+  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+    filters.bugReportStatuses.selected.forEach((v) => {
+      if (v === BugReportStatus.Open) {
+        searchParams.append("bug_report_statuses", "0")
+      } else if (v === BugReportStatus.Closed) {
+        searchParams.append("bug_report_statuses", "1")
+      }
+    })
+  }
+
+  // Append http methods if needed
+  if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
+    filters.httpMethods.selected.forEach((v) => {
+      searchParams.append("http_methods", v)
+    })
   }
 
   // Append free text if present

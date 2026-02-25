@@ -162,6 +162,10 @@ type AppFilter struct {
 	// a bug report to be filtered on.
 	BugReportStatuses []int8 `form:"bug_report_statuses"`
 
+	// HttpMethods is the list of HTTP methods
+	// to be matched & filtered on.
+	HttpMethods []string `form:"http_methods"`
+
 	// FreeText is a free form text string that can be used
 	// to filter over logs, exceptions, events etc
 	FreeText string `form:"free_text"`
@@ -594,6 +598,12 @@ func (af AppFilter) HasSpanStatuses() bool {
 // one bug report statuses are requested.
 func (af AppFilter) HasBugReportStatuses() bool {
 	return len(af.BugReportStatuses) > 0
+}
+
+// HasHttpMethods returns true if at least
+// one HTTP method is requested.
+func (af AppFilter) HasHttpMethods() bool {
+	return len(af.HttpMethods) > 0
 }
 
 // LimitAbs returns the absolute value of limit
