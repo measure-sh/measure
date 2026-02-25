@@ -496,7 +496,8 @@ func GeneratePatterns(ctx context.Context) {
 					Set("app_id", app.ID).
 					Set("domain", p.Domain).
 					Set("path", p.Path).
-					Set("last_updated_at", now)
+					Set("updated_at", now).
+					Set("updated_by", uuid.Nil)
 				totalPatterns++
 			}
 
