@@ -117,7 +117,7 @@ func fetchTrendsCategory(ctx context.Context, appId, teamId uuid.UUID, af *filte
 	stmt := sqlf.
 		Select("domain").
 		Select("path AS path_pattern").
-		Select("quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles)[4] AS p95_latency").
+		Select("quantilesMerge(0.95)(latency_percentiles)[1] AS p95_latency").
 		Select("if(sum(request_count) > 0, (sum(count_4xx) + sum(count_5xx)) * 100.0 / sum(request_count), 0) AS error_rate").
 		Select("sum(request_count) AS frequency").
 		From("http_metrics").
