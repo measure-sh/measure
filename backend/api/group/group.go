@@ -13,6 +13,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
@@ -160,7 +161,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // GetId provides the ANR's
@@ -238,7 +240,8 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from
