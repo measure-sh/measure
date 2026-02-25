@@ -1263,61 +1263,6 @@ async function applyGenericFiltersToUrl(
     searchParams.append("filter_short_code", filterShortCode)
   }
 
-  // Append session types if needed
-  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
-    filters.sessionTypes.selected.forEach((v) => {
-      switch (v) {
-        case SessionType.Crashes:
-          searchParams.append("crash", "1")
-          break;
-        case SessionType.ANRs:
-          searchParams.append("anr", "1")
-          break;
-        case SessionType.BugReports:
-          searchParams.append("bug_report", "1")
-          break;
-        case SessionType.UserInteraction:
-          searchParams.append("user_interaction", "1")
-          break;
-        case SessionType.Foreground:
-          searchParams.append("foreground", "1")
-          break;
-        case SessionType.Background:
-          searchParams.append("background", "1")
-          break;
-      }
-    })
-  }
-
-  // Append span name if needed
-  if (filters.rootSpanName !== "") {
-    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
-  }
-
-  // Append span statuses if needed
-  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
-    filters.spanStatuses.selected.forEach((v) => {
-      if (v === SpanStatus.Unset) {
-        searchParams.append("span_statuses", "0")
-      } else if (v === SpanStatus.Ok) {
-        searchParams.append("span_statuses", "1")
-      } else if (v === SpanStatus.Error) {
-        searchParams.append("span_statuses", "2")
-      }
-    })
-  }
-
-  // Append bug report statuses if needed
-  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
-    filters.bugReportStatuses.selected.forEach((v) => {
-      if (v === BugReportStatus.Open) {
-        searchParams.append("bug_report_statuses", "0")
-      } else if (v === BugReportStatus.Closed) {
-        searchParams.append("bug_report_statuses", "1")
-      }
-    })
-  }
-
   // Append free text if present
   if (filters.freeText !== "") {
     searchParams.append("free_text", filters.freeText)
@@ -1341,6 +1286,68 @@ async function applyGenericFiltersToUrl(
 function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
   const u = new URL(url, window.location.origin)
   u.searchParams.set("plot_time_group", getPlotTimeGroupForRange(filters.startDate, filters.endDate))
+  return u.toString()
+}
+
+function appendSessionTypesToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin)
+  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
+    filters.sessionTypes.selected.forEach((v) => {
+      switch (v) {
+        case SessionType.Crashes:
+          u.searchParams.append("crash", "1")
+          break
+        case SessionType.ANRs:
+          u.searchParams.append("anr", "1")
+          break
+        case SessionType.BugReports:
+          u.searchParams.append("bug_report", "1")
+          break
+        case SessionType.UserInteraction:
+          u.searchParams.append("user_interaction", "1")
+          break
+        case SessionType.Foreground:
+          u.searchParams.append("foreground", "1")
+          break
+        case SessionType.Background:
+          u.searchParams.append("background", "1")
+          break
+      }
+    })
+  }
+  return u.toString()
+}
+
+function appendSpanFiltersToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin)
+  if (filters.rootSpanName !== "") {
+    u.searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
+  }
+  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
+    filters.spanStatuses.selected.forEach((v) => {
+      if (v === SpanStatus.Unset) {
+        u.searchParams.append("span_statuses", "0")
+      } else if (v === SpanStatus.Ok) {
+        u.searchParams.append("span_statuses", "1")
+      } else if (v === SpanStatus.Error) {
+        u.searchParams.append("span_statuses", "2")
+      }
+    })
+  }
+  return u.toString()
+}
+
+function appendBugReportStatusesToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin)
+  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+    filters.bugReportStatuses.selected.forEach((v) => {
+      if (v === BugReportStatus.Open) {
+        u.searchParams.append("bug_report_statuses", "0")
+      } else if (v === BugReportStatus.Closed) {
+        u.searchParams.append("bug_report_statuses", "1")
+      }
+    })
+  }
   return u.toString()
 }
 
@@ -1429,6 +1436,7 @@ export const fetchSpansFromServer = async (
   var url = `/api/apps/${filters.app!.id}/spans?`
 
   url = await applyGenericFiltersToUrl(url, filters, limit, offset)
+  url = appendSpanFiltersToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1449,6 +1457,7 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendSpanFiltersToUrl(url, filters)
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
@@ -1699,6 +1708,7 @@ export const fetchSessionTimelinesOverviewFromServer = async (
     limit,
     offset,
   )
+  url = appendSessionTypesToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -1719,6 +1729,7 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filte
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendSessionTypesToUrl(url, filters)
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
@@ -2554,6 +2565,7 @@ export const fetchBugReportsOverviewFromServer = async (
   var url = `/api/apps/${filters.app!.id}/bugReports?`
 
   url = await applyGenericFiltersToUrl(url, filters, limit, offset)
+  url = appendBugReportStatusesToUrl(url, filters)
 
   try {
     const res = await measureAuth.fetchMeasure(url)
@@ -2576,6 +2588,7 @@ export const fetchBugReportsOverviewPlotFromServer = async (
   var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = appendBugReportStatusesToUrl(url, filters)
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
