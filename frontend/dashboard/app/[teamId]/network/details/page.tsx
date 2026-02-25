@@ -3,7 +3,6 @@
 import { FilterSource, NetworkMetricsApiStatus, fetchNetworkMetricsFromServer } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingSpinner from '@/app/components/loading_spinner'
-import NetworkFrequencyPlot from '@/app/components/network_frequency_plot'
 import NetworkLatencyPlot from '@/app/components/network_latency_plot'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
@@ -28,15 +27,9 @@ interface StatusDistributionDataPoint {
     count_5xx: number
 }
 
-interface FrequencyDataPoint {
-    datetime: string
-    count: number
-}
-
 interface NetworkMetrics {
     latency: LatencyDataPoint[]
     status_codes: StatusDistributionDataPoint[]
-    frequency: FrequencyDataPoint[]
 }
 
 interface PageState {
@@ -169,11 +162,6 @@ export default function ExploreUrl({ params }: { params: { teamId: string } }) {
                     <p className="font-display text-xl">Status Distribution</p>
                     <div className="py-2" />
                     <NetworkStatusDistributionPlot data={pageState.networkMetrics!.status_codes} plotTimeGroup={plotTimeGroup} />
-
-                    <div className="py-6" />
-                    <p className="font-display text-xl">Frequency</p>
-                    <div className="py-2" />
-                    <NetworkFrequencyPlot data={pageState.networkMetrics!.frequency} plotTimeGroup={plotTimeGroup} />
 
                 </div>
             }

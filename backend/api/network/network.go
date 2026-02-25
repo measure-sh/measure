@@ -22,7 +22,6 @@ type MetricsDataPoint map[string]any
 type MetricsResponse struct {
 	Latency     []MetricsDataPoint `json:"latency"`
 	StatusCodes []MetricsDataPoint `json:"status_codes"`
-	Frequency   []MetricsDataPoint `json:"frequency"`
 }
 
 // TrendsEndpoint represents metrics for
@@ -310,35 +309,6 @@ func fetchMetricsFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain
 		})
 	}
 
-	freqStmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("count() as count").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp <= ?", teamId, appId, domain, from, to)
-
-	applyPathFilter(freqStmt, pathPattern)
-	applyFilters(freqStmt, af)
-
-	freqStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer freqStmt.Close()
-
-	freqRows, err := server.Server.ChPool.Query(ctx, freqStmt.String(), freqStmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for freqRows.Next() {
-		var db time.Time
-		var dt string
-		var count uint64
-		if err = freqRows.Scan(&db, &dt, &count); err != nil {
-			return
-		}
-		result.Frequency = append(result.Frequency, MetricsDataPoint{
-			"datetime": dt,
-			"count":    count,
-		})
-	}
 	return
 }
 
@@ -421,35 +391,6 @@ func fetchMetricsFromAggregated(ctx context.Context, appId, teamId uuid.UUID, do
 		})
 	}
 
-	freqStmt := sqlf.From("http_metrics").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("sum(request_count) as count").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
-		Where("path = ?", pathPattern)
-
-	applyAggregatedFilters(freqStmt, af)
-
-	freqStmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer freqStmt.Close()
-
-	freqRows, err := server.Server.ChPool.Query(ctx, freqStmt.String(), freqStmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for freqRows.Next() {
-		var db time.Time
-		var dt string
-		var count uint64
-		if err = freqRows.Scan(&db, &dt, &count); err != nil {
-			return
-		}
-		result.Frequency = append(result.Frequency, MetricsDataPoint{
-			"datetime": dt,
-			"count":    count,
-		})
-	}
 	return
 }
 
@@ -585,7 +526,6 @@ func FetchMetrics(ctx context.Context, appId, teamId uuid.UUID, domain, pathPatt
 	return &MetricsResponse{
 		Latency:     append(aggregated.Latency, events.Latency...),
 		StatusCodes: append(aggregated.StatusCodes, events.StatusCodes...),
-		Frequency:   append(aggregated.Frequency, events.Frequency...),
 	}, nil
 }
 
