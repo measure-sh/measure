@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Reset free plan limit to 1M units by @anupcowkur in #3222
 - (**backend**): Reduce free plan limit to 1000 for testing by @anupcowkur in #3220
 - (**backend**): Remove max_threads setting (#3218) by @detj in #3218
 - (**backend**): Replace deprecated async insert to modern alternative (#3217) by @detj in #3217
