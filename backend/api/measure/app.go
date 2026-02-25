@@ -9348,7 +9348,7 @@ func GetNetworkDetailLatencyPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchDetailLatency(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
+	result, err := network.GetDetailLatencyPlot(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network latency metrics"
 		fmt.Println(msg, err)
@@ -9365,7 +9365,7 @@ func GetNetworkDetailStatusDistributionPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchDetailStatusDistribution(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
+	result, err := network.GetDetailStatusDistributionPlot(c.Request.Context(), *p.app.ID, *p.team.ID, p.domain, p.path, &p.af, p.groupExpr.BucketExpr, p.groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status distribution metrics"
 		fmt.Println(msg, err)

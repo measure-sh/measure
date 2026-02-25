@@ -52,20 +52,40 @@ func (r TimeRange) isValid() bool {
 
 // splitAtMidnight splits a range into
 // pre-midnight and post-midnight.
-func splitAtMidnight(from, to time.Time) (beforeMidnight, afterMidnight TimeRange) {
-	y, m, d := to.Date()
-	midnight := time.Date(y, m, d, 0, 0, 0, 0, to.Location())
+func splitAtMidnight(from, to time.Time, now time.Time) (metrics, events TimeRange) {
+	boundary := now.Add(-24 * time.Hour)
 
-	// If 'from' starts on or after midnight
-	// the whole range falls after midnight
-	if !from.Before(midnight) {
-		return TimeRange{}, TimeRange{From: from, To: to}
+	// metrics range
+	if from.Before(boundary) {
+		metrics = TimeRange{
+			From: from,
+			To:   minTime(to, boundary),
+		}
 	}
 
-	beforeMidnight = TimeRange{From: from, To: midnight}
-	afterMidnight = TimeRange{From: midnight, To: to}
+	// events range
+	if to.After(boundary) {
+		events = TimeRange{
+			From: maxTime(from, boundary),
+			To:   to,
+		}
+	}
 
-	return beforeMidnight, afterMidnight
+	return
+}
+
+func minTime(a, b time.Time) time.Time {
+	if a.Before(b) {
+		return a
+	}
+	return b
+}
+
+func maxTime(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
 }
 
 // applyMetricsFilters applies filters to
@@ -99,6 +119,48 @@ func applyMetricsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasDeviceLocales() {
 		stmt.Having("hasAll(groupUniqArrayArray(device_locales), ?)", af.Locales)
 	}
+	if af.HasHttpMethods() {
+		stmt.Where("method").In(af.HttpMethods)
+	}
+}
+
+// applyEventsFilters applies common filters from
+// AppFilter to the query statement.
+func applyEventsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
+	if af.HasVersions() {
+		selectedVersions, err := af.VersionPairs()
+		if err == nil {
+			stmt.Where("app_version in (?)", selectedVersions.Parameterize())
+		}
+	}
+
+	if af.HasNetworkTypes() {
+		stmt.Where("network_type").In(af.NetworkTypes)
+	}
+
+	if af.HasNetworkGenerations() {
+		stmt.Where("network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasNetworkProviders() {
+		stmt.Where("network_provider").In(af.NetworkProviders)
+	}
+
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err == nil {
+			stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
+		}
+	}
+
+	if af.HasDeviceManufacturers() {
+		stmt.Where("device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if af.HasDeviceLocales() {
+		stmt.Where("device_locale").In(af.Locales)
+	}
+
 	if af.HasHttpMethods() {
 		stmt.Where("method").In(af.HttpMethods)
 	}
@@ -204,220 +266,6 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 	stmt.Where("path = ?", pathPattern)
 }
 
-// applyEventsFilters applies common filters from
-// AppFilter to the query statement.
-func applyEventsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
-	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("network_type").In(af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("network_provider").In(af.NetworkProviders)
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err == nil {
-			stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("device_locale").In(af.Locales)
-	}
-
-	if af.HasHttpMethods() {
-		stmt.Where("method").In(af.HttpMethods)
-	}
-}
-
-// fetchLatencyFromEvents queries raw http_events
-// for latency percentiles.
-func fetchLatencyFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
-	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
-		Select("countIf(status_code >= 200 and status_code < 600) as count").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
-		Where("latency_ms <= 60000")
-
-	applyPathFilter(stmt, pathPattern)
-	applyEventsFilters(stmt, af)
-
-	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var db time.Time
-		var dt string
-		var lats []float64
-		var count uint64
-		if err = rows.Scan(&db, &dt, &lats, &count); err != nil {
-			return
-		}
-		data := MetricsDataPoint{"datetime": dt, "count": count}
-		if len(lats) >= 4 {
-			data["p50"] = roundPtr(lats[0])
-			data["p90"] = roundPtr(lats[1])
-			data["p95"] = roundPtr(lats[2])
-			data["p99"] = roundPtr(lats[3])
-		}
-		result = append(result, data)
-	}
-
-	return
-}
-
-// fetchStatusDistributionFromEvents queries raw http_events
-// for status code distribution.
-func fetchStatusDistributionFromEvents(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
-	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
-		Select("countIf(status_code_bucket = '2xx') as count_2xx").
-		Select("countIf(status_code_bucket = '3xx') as count_3xx").
-		Select("countIf(status_code_bucket = '4xx') as count_4xx").
-		Select("countIf(status_code_bucket = '5xx') as count_5xx").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
-		Where("latency_ms <= 60000")
-
-	applyPathFilter(stmt, pathPattern)
-	applyEventsFilters(stmt, af)
-
-	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var db time.Time
-		var dt string
-		var total, c2, c3, c4, c5 uint64
-		if err = rows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
-			return
-		}
-		result = append(result, MetricsDataPoint{
-			"datetime":    dt,
-			"total_count": total,
-			"count_2xx":   c2,
-			"count_3xx":   c3,
-			"count_4xx":   c4,
-			"count_5xx":   c5,
-		})
-	}
-
-	return
-}
-
-// fetchLatencyFromAggregated queries pre-aggregated
-// http_metrics for latency percentiles.
-func fetchLatencyFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
-	stmt := sqlf.From("http_metrics").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("quantilesMerge(0.5, 0.75, 0.90, 0.95, 0.99, 1.0)(latency_percentiles) as latencies").
-		Select("sum(request_count) as count").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
-		Where("path = ?", pathPattern)
-
-	applyMetricsFilters(stmt, af)
-
-	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var db time.Time
-		var dt string
-		var lats []float64
-		var count uint64
-		if err = rows.Scan(&db, &dt, &lats, &count); err != nil {
-			return
-		}
-		data := MetricsDataPoint{"datetime": dt, "count": count}
-		if len(lats) >= 6 {
-			data["p50"] = roundPtr(lats[0])
-			data["p90"] = roundPtr(lats[2])
-			data["p95"] = roundPtr(lats[3])
-			data["p99"] = roundPtr(lats[4])
-		}
-		result = append(result, data)
-	}
-
-	return
-}
-
-// fetchStatusDistributionFromAggregated queries pre-aggregated
-// http_metrics for status code distribution.
-func fetchStatusDistributionFromAggregated(ctx context.Context, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter, from, to time.Time, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
-	stmt := sqlf.From("http_metrics").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("sum(request_count) as total_count").
-		Select("sum(count_2xx) as count_2xx").
-		Select("sum(count_3xx) as count_3xx").
-		Select("sum(count_4xx) as count_4xx").
-		Select("sum(count_5xx) as count_5xx").
-		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, from, to).
-		Where("path = ?", pathPattern)
-
-	applyMetricsFilters(stmt, af)
-
-	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var db time.Time
-		var dt string
-		var total, c2, c3, c4, c5 uint64
-		if err = rows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
-			return
-		}
-		result = append(result, MetricsDataPoint{
-			"datetime":    dt,
-			"total_count": total,
-			"count_2xx":   c2,
-			"count_3xx":   c3,
-			"count_4xx":   c4,
-			"count_5xx":   c5,
-		})
-	}
-
-	return
-}
-
 // ParseURL splits a full URL into domain (hostname)
 // and path components.
 func ParseURL(rawURL string) (domain, path string, err error) {
@@ -519,73 +367,105 @@ func FetchTrends(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFil
 	}, nil
 }
 
-// FetchDetailLatency returns latency percentiles
+// GetDetailLatencyPlot returns latency percentiles
 // for a given domain and path.
-func FetchDetailLatency(ctx context.Context, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) ([]MetricsDataPoint, error) {
-	exists, err := patternExists(ctx, appId, teamId, domain, path)
+func GetDetailLatencyPlot(
+	ctx context.Context,
+	appId, teamId uuid.UUID,
+	domain, path string,
+	af *filter.AppFilter,
+	bucketExpr, datetimeFormat string,
+) ([]MetricsDataPoint, error) {
 
-	// Fallback, compute from raw http_events
-	if !exists || err != nil {
-		return fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, af.From, af.To, bucketExpr, datetimeFormat)
+	result := make([]MetricsDataPoint, 0)
+
+	stmt := sqlf.From("http_events").
+		Select(bucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
+		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
+		Select("countIf(status_code >= 200 and status_code < 600) as count").
+		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, af.From, af.To)
+
+	applyPathFilter(stmt, path)
+	applyEventsFilters(stmt, af)
+
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
 
-	var result []MetricsDataPoint
-
-	// Split range at midnight
-	beforeMidnight, afterMidnight := splitAtMidnight(af.From, af.To)
-
-	// Query older data from aggregated http_metrics
-	if beforeMidnight.isValid() {
-		r, err := fetchLatencyFromAggregated(ctx, appId, teamId, domain, path, af, beforeMidnight.From, beforeMidnight.To, bucketExpr, datetimeFormat)
-		if err != nil {
+	for rows.Next() {
+		var db time.Time
+		var dt string
+		var lats []float64
+		var count uint64
+		if err = rows.Scan(&db, &dt, &lats, &count); err != nil {
 			return nil, err
 		}
-		result = append(result, r...)
-	}
-
-	// Query latest data from raw http_events
-	if afterMidnight.isValid() {
-		r, err := fetchLatencyFromEvents(ctx, appId, teamId, domain, path, af, afterMidnight.From, afterMidnight.To, bucketExpr, datetimeFormat)
-		if err != nil {
-			return nil, err
+		data := MetricsDataPoint{"datetime": dt, "count": count}
+		if len(lats) >= 4 {
+			data["p50"] = roundPtr(lats[0])
+			data["p90"] = roundPtr(lats[1])
+			data["p95"] = roundPtr(lats[2])
+			data["p99"] = roundPtr(lats[3])
 		}
-		result = append(result, r...)
+		result = append(result, data)
 	}
 
 	return result, nil
 }
 
-// FetchDetailStatusDistribution returns status code
+// GetDetailStatusDistributionPlot returns status code
 // distribution for a given domain and path.
-func FetchDetailStatusDistribution(ctx context.Context, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) ([]MetricsDataPoint, error) {
-	exists, err := patternExists(ctx, appId, teamId, domain, path)
+func GetDetailStatusDistributionPlot(
+	ctx context.Context,
+	appId, teamId uuid.UUID,
+	domain, path string,
+	af *filter.AppFilter,
+	bucketExpr, datetimeFormat string,
+) ([]MetricsDataPoint, error) {
 
-	// Fallback, compute from raw http_events
-	if !exists || err != nil {
-		return fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, af.From, af.To, bucketExpr, datetimeFormat)
+	result := make([]MetricsDataPoint, 0)
+
+	stmt := sqlf.From("http_events").
+		Select(bucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
+		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
+		Select("countIf(status_code_bucket = '2xx') as count_2xx").
+		Select("countIf(status_code_bucket = '3xx') as count_3xx").
+		Select("countIf(status_code_bucket = '4xx') as count_4xx").
+		Select("countIf(status_code_bucket = '5xx') as count_5xx").
+		Where("team_id = ? and app_id = ? and domain = ? and timestamp >= ? and timestamp < ?", teamId, appId, domain, af.From, af.To)
+
+	applyPathFilter(stmt, path)
+	applyEventsFilters(stmt, af)
+
+	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
 
-	var result []MetricsDataPoint
-
-	// Split range at midnight
-	beforeMidnight, afterMidnight := splitAtMidnight(af.From, af.To)
-
-	// Query older data from aggregated http_metrics
-	if beforeMidnight.isValid() {
-		r, err := fetchStatusDistributionFromAggregated(ctx, appId, teamId, domain, path, af, beforeMidnight.From, beforeMidnight.To, bucketExpr, datetimeFormat)
-		if err != nil {
+	for rows.Next() {
+		var db time.Time
+		var dt string
+		var total, c2, c3, c4, c5 uint64
+		if err = rows.Scan(&db, &dt, &total, &c2, &c3, &c4, &c5); err != nil {
 			return nil, err
 		}
-		result = append(result, r...)
-	}
-
-	// Query latest data from raw http_events
-	if afterMidnight.isValid() {
-		r, err := fetchStatusDistributionFromEvents(ctx, appId, teamId, domain, path, af, afterMidnight.From, afterMidnight.To, bucketExpr, datetimeFormat)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, r...)
+		result = append(result, MetricsDataPoint{
+			"datetime":    dt,
+			"total_count": total,
+			"count_2xx":   c2,
+			"count_3xx":   c3,
+			"count_4xx":   c4,
+			"count_5xx":   c5,
+		})
 	}
 
 	return result, nil
