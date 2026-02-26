@@ -640,7 +640,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                   <span className="font-body text-sm">% sampling rate</span>
                 </div>
                 {/* Disable HTTP event for URLs */}
-                <div className="py-6">
+                <div className="py-8">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Disable HTTP event for URLs</p>
                     <Tooltip>
