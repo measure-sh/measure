@@ -75,17 +75,19 @@ type DailySummaryRow struct {
 	HotLaunchHasError    bool
 }
 
-const crashOrAnrSpikeTimePeriod = time.Hour
-const minCrashOrAnrCountThreshold = 100
-const crashOrAnrSpikeThreshold = 0.5               // percent
-const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
+const errorSpikeTimePeriod = time.Hour
+const errorAlertCooldownPeriod = 7 * 24 * time.Hour // 1 week
 const bugReportTimePeriod = 15 * time.Minute
 const defaultErrorGoodThreshold = 95.0
 const defaultErrorCautionThreshold = 85.0
+const defaultErrorSpikeMinCountThreshold = 100
+const defaultErrorSpikeMinRateThreshold  = 0.5 // percent
 
-type TeamThresholdPrefs struct {
-	ErrorGoodThreshold    float64
-	ErrorCautionThreshold float64
+type AppThresholdPrefs struct {
+	ErrorGoodThreshold          float64
+	ErrorCautionThreshold       float64
+	ErrorSpikeMinCountThreshold int
+	ErrorSpikeMinRateThreshold  float64
 }
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
@@ -104,8 +106,19 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 		}
 
 		for _, app := range apps {
-			from := time.Now().UTC().Add(-crashOrAnrSpikeTimePeriod)
+			from := time.Now().UTC().Add(-errorSpikeTimePeriod)
 			to := time.Now().UTC()
+
+			prefs, err := getAppThresholdPrefs(ctx, app.ID)
+			if err != nil {
+				fmt.Printf("Error fetching app threshold prefs for app %v, using defaults: %v\n", app.ID, err)
+				prefs = AppThresholdPrefs{
+					ErrorGoodThreshold:          defaultErrorGoodThreshold,
+					ErrorCautionThreshold:       defaultErrorCautionThreshold,
+					ErrorSpikeMinCountThreshold: defaultErrorSpikeMinCountThreshold,
+					ErrorSpikeMinRateThreshold:  defaultErrorSpikeMinRateThreshold,
+				}
+			}
 
 			var sessionCount uint64
 			sessionCountStmt := sqlf.From("events final").
@@ -132,8 +145,8 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 				}
 			}
 
-			createCrashAlertsForApp(ctx, team, app, from, to, sessionCount)
-			createAnrAlertsForApp(ctx, team, app, from, to, sessionCount)
+			createCrashAlertsForApp(ctx, team, app, from, to, sessionCount, prefs)
+			createAnrAlertsForApp(ctx, team, app, from, to, sessionCount, prefs)
 		}
 	}
 }
@@ -356,10 +369,10 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 }
 
 func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]email.MetricData, error) {
-	teamThresholdPrefs, err := getTeamThresholdPrefs(ctx, app.TeamID)
+	appThresholdPrefs, err := getAppThresholdPrefs(ctx, app.ID)
 	if err != nil {
-		fmt.Printf("Error fetching team threshold prefs for team %v, using defaults: %v\n", app.TeamID, err)
-		teamThresholdPrefs = TeamThresholdPrefs{
+		fmt.Printf("Error fetching app threshold prefs for app %v, using defaults: %v\n", app.ID, err)
+		appThresholdPrefs = AppThresholdPrefs{
 			ErrorGoodThreshold:    defaultErrorGoodThreshold,
 			ErrorCautionThreshold: defaultErrorCautionThreshold,
 		}
@@ -514,10 +527,10 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 		date,
 		app.TeamID,
 		app.ID,
-		teamThresholdPrefs.ErrorGoodThreshold,
-		teamThresholdPrefs.ErrorCautionThreshold,
-		teamThresholdPrefs.ErrorGoodThreshold,
-		teamThresholdPrefs.ErrorCautionThreshold,
+		appThresholdPrefs.ErrorGoodThreshold,
+		appThresholdPrefs.ErrorCautionThreshold,
+		appThresholdPrefs.ErrorGoodThreshold,
+		appThresholdPrefs.ErrorCautionThreshold,
 	)
 
 	var summary DailySummaryRow
@@ -642,24 +655,28 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 	return metrics, nil
 }
 
-func getTeamThresholdPrefs(ctx context.Context, teamID uuid.UUID) (TeamThresholdPrefs, error) {
+func getAppThresholdPrefs(ctx context.Context, appID uuid.UUID) (AppThresholdPrefs, error) {
 	stmt := sqlf.PostgreSQL.
-		From("measure.team_threshold_prefs").
+		From("measure.app_threshold_prefs").
 		Select("error_good_threshold").
 		Select("error_caution_threshold").
-		Where("team_id = ?", teamID)
+		Select("error_spike_min_count_threshold").
+		Select("error_spike_min_rate_threshold").
+		Where("app_id = ?", appID)
 	defer stmt.Close()
 
-	var prefs TeamThresholdPrefs
-	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&prefs.ErrorGoodThreshold, &prefs.ErrorCautionThreshold)
+	var prefs AppThresholdPrefs
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&prefs.ErrorGoodThreshold, &prefs.ErrorCautionThreshold, &prefs.ErrorSpikeMinCountThreshold, &prefs.ErrorSpikeMinRateThreshold)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return TeamThresholdPrefs{
-				ErrorGoodThreshold:    defaultErrorGoodThreshold,
-				ErrorCautionThreshold: defaultErrorCautionThreshold,
+			return AppThresholdPrefs{
+				ErrorGoodThreshold:          defaultErrorGoodThreshold,
+				ErrorCautionThreshold:       defaultErrorCautionThreshold,
+				ErrorSpikeMinCountThreshold: defaultErrorSpikeMinCountThreshold,
+				ErrorSpikeMinRateThreshold:  defaultErrorSpikeMinRateThreshold,
 			}, nil
 		}
-		return TeamThresholdPrefs{}, err
+		return AppThresholdPrefs{}, err
 	}
 
 	return prefs, nil
@@ -987,7 +1004,7 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 	}
 }
 
-func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
+func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64, prefs AppThresholdPrefs) {
 	crashGroupStmt := sqlf.
 		From("events final").
 		Select("exception.fingerprint, count() as crash_count").
@@ -1013,7 +1030,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			continue
 		}
 
-		inCooldown, err := isInCooldown(ctx, team.ID, app.ID, fingerprint, string(AlertTypeCrashSpike), cooldownPeriodForEntity)
+		inCooldown, err := isInCooldown(ctx, team.ID, app.ID, fingerprint, string(AlertTypeCrashSpike), errorAlertCooldownPeriod)
 		if err != nil {
 			fmt.Printf("Error checking cooldown for crash group %s: %v\n", fingerprint, err)
 			continue
@@ -1023,7 +1040,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			continue
 		}
 
-		if crashGroupCount < uint64(minCrashOrAnrCountThreshold) {
+		if crashGroupCount < uint64(prefs.ErrorSpikeMinCountThreshold) {
 			continue
 		}
 
@@ -1032,7 +1049,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			crashGroupRate = float64(crashGroupCount) / float64(sessionCount) * 100
 		}
 
-		if crashGroupRate >= crashOrAnrSpikeThreshold {
+		if crashGroupRate >= prefs.ErrorSpikeMinRateThreshold {
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.
 				From("unhandled_exception_groups final").
@@ -1110,7 +1127,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 	}
 }
 
-func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
+func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64, prefs AppThresholdPrefs) {
 	anrGroupStmt := sqlf.From("events final").
 		Select("anr.fingerprint, count() as anr_count").
 		Where("team_id = toUUID(?)", team.ID).
@@ -1134,7 +1151,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			continue
 		}
 
-		inCooldown, err := isInCooldown(ctx, team.ID, app.ID, fingerprint, string(AlertTypeAnrSpike), cooldownPeriodForEntity)
+		inCooldown, err := isInCooldown(ctx, team.ID, app.ID, fingerprint, string(AlertTypeAnrSpike), errorAlertCooldownPeriod)
 		if err != nil {
 			fmt.Printf("Error checking cooldown for anr group %s: %v\n", fingerprint, err)
 			continue
@@ -1144,7 +1161,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			continue
 		}
 
-		if anrGroupCount < uint64(minCrashOrAnrCountThreshold) {
+		if anrGroupCount < uint64(prefs.ErrorSpikeMinCountThreshold) {
 			continue
 		}
 
@@ -1153,7 +1170,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			anrGroupRate = float64(anrGroupCount) / float64(sessionCount) * 100
 		}
 
-		if anrGroupRate >= crashOrAnrSpikeThreshold {
+		if anrGroupRate >= prefs.ErrorSpikeMinRateThreshold {
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.From("anr_groups final").
 				Select("argMax(type, timestamp)").

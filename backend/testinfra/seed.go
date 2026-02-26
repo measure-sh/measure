@@ -383,15 +383,15 @@ func (h *TestHelper) SeedTeamSlack(ctx context.Context, t *testing.T, teamID str
 	}
 }
 
-func (h *TestHelper) SeedTeamThresholdPrefs(ctx context.Context, t *testing.T, teamID string, errorGoodThreshold, errorCautionThreshold float64) {
+func (h *TestHelper) SeedAppThresholdPrefs(ctx context.Context, t *testing.T, appID string, errorGoodThreshold, errorCautionThreshold float64, errorSpikeMinCountThreshold int, errorSpikeMinRateThreshold float64) {
 	t.Helper()
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO measure.team_threshold_prefs
-		(team_id, error_good_threshold, error_caution_threshold, created_at, updated_at)
-		VALUES ($1, $2, $3, now(), now())`,
-		teamID, errorGoodThreshold, errorCautionThreshold)
+		`INSERT INTO measure.app_threshold_prefs
+		(app_id, error_good_threshold, error_caution_threshold, error_spike_min_count_threshold, error_spike_min_rate_threshold, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, now(), now())`,
+		appID, errorGoodThreshold, errorCautionThreshold, errorSpikeMinCountThreshold, errorSpikeMinRateThreshold)
 	if err != nil {
-		t.Fatalf("seed team_threshold_prefs: %v", err)
+		t.Fatalf("seed app_threshold_prefs: %v", err)
 	}
 }
 

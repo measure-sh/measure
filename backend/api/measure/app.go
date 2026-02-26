@@ -6712,6 +6712,26 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
+	// Create default threshold prefs for the app
+	now := time.Now().UTC()
+	stmtThresholdPrefs := sqlf.PostgreSQL.
+		InsertInto("measure.app_threshold_prefs").
+		Set("app_id", app.ID).
+		Set("error_good_threshold", defaultErrorGoodThreshold).
+		Set("error_caution_threshold", defaultErrorCautionThreshold).
+		Set("error_spike_min_count_threshold", defaultErrorSpikeMinCountThreshold).
+		Set("error_spike_min_rate_threshold", defaultErrorSpikeMinRateThreshold).
+		Set("created_at", now).
+		Set("updated_at", now)
+	defer stmtThresholdPrefs.Close()
+	_, err = tx.Exec(c.Request.Context(), stmtThresholdPrefs.String(), stmtThresholdPrefs.Args()...)
+	if err != nil {
+		msg := "failed to create default threshold prefs for app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		msg := "failed to commit transaction"

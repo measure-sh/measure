@@ -287,7 +287,7 @@ export enum UpdateTeamSlackStatusApiStatus {
   Cancelled,
 }
 
-export enum FetchTeamThresholdPrefsApiStatus {
+export enum FetchAppThresholdPrefsApiStatus {
   Init,
   Loading,
   Success,
@@ -295,7 +295,7 @@ export enum FetchTeamThresholdPrefsApiStatus {
   Cancelled,
 }
 
-export enum UpdateTeamThresholdPrefsApiStatus {
+export enum UpdateAppThresholdPrefsApiStatus {
   Init,
   Loading,
   Success,
@@ -779,7 +779,7 @@ export const defaultAuthzAndMembers = {
   can_write_sdk_config: false,
   can_rename_team: false,
   can_manage_slack: false,
-  can_change_team_threshold_prefs: false,
+  can_change_app_threshold_prefs: false,
   members: [
     {
       id: "",
@@ -796,9 +796,11 @@ export const defaultAuthzAndMembers = {
   ],
 }
 
-export const defaultTeamThresholdPrefs = {
+export const defaultAppThresholdPrefs = {
   error_good_threshold: 95,
   error_caution_threshold: 85,
+  error_spike_min_count_threshold: 100,
+  error_spike_min_rate_threshold: 0.5,
 }
 
 export const emptySessionTimeline = {
@@ -2242,24 +2244,24 @@ export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
   }
 }
 
-export const fetchTeamThresholdPrefsFromServer = async (teamId: string) => {
+export const fetchAppThresholdPrefsFromServer = async (appId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/thresholdPrefs`)
+    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/thresholdPrefs`)
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: FetchTeamThresholdPrefsApiStatus.Error, error: data.error, data: null }
+      return { status: FetchAppThresholdPrefsApiStatus.Error, error: data.error, data: null }
     }
 
-    return { status: FetchTeamThresholdPrefsApiStatus.Success, data: data }
+    return { status: FetchAppThresholdPrefsApiStatus.Success, data: data }
   } catch {
-    return { status: FetchTeamThresholdPrefsApiStatus.Cancelled, data: null }
+    return { status: FetchAppThresholdPrefsApiStatus.Cancelled, data: null }
   }
 }
 
-export const updateTeamThresholdPrefsFromServer = async (
-  teamId: string,
-  prefs: typeof defaultTeamThresholdPrefs,
+export const updateAppThresholdPrefsFromServer = async (
+  appId: string,
+  prefs: typeof defaultAppThresholdPrefs,
 ) => {
   const opts = {
     method: "PATCH",
@@ -2268,18 +2270,18 @@ export const updateTeamThresholdPrefsFromServer = async (
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/teams/${teamId}/thresholdPrefs`,
+      `/api/apps/${appId}/thresholdPrefs`,
       opts,
     )
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: UpdateTeamThresholdPrefsApiStatus.Error, error: data.error }
+      return { status: UpdateAppThresholdPrefsApiStatus.Error, error: data.error }
     }
 
-    return { status: UpdateTeamThresholdPrefsApiStatus.Success }
+    return { status: UpdateAppThresholdPrefsApiStatus.Success }
   } catch {
-    return { status: UpdateTeamThresholdPrefsApiStatus.Cancelled }
+    return { status: UpdateAppThresholdPrefsApiStatus.Cancelled }
   }
 }
 

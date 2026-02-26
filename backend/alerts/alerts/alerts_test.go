@@ -209,7 +209,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 			t.Fatalf("first run: want 1 crash alert, got %d", got)
 		}
 
-		// Second run — suppressed by cooldown (cooldownPeriodForEntity = 1 week)
+		// Second run — suppressed by cooldown (errorAlertCooldownPeriod = 1 week)
 		CreateCrashAndAnrAlerts(ctx)
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("cooldown failed: want 1 crash alert after second run, got %d", got)
@@ -293,6 +293,38 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash alert (for app1 only), got %d", got)
+		}
+	})
+
+	t.Run("each app uses its own threshold prefs for spike alerts", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		app1 := uuid.New().String()
+		app2 := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Multi Prefs Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, app1, teamID, "High Threshold App", 30)
+		th.SeedApp(ctx, t, app2, teamID, "Default Threshold App", 30)
+
+		// app1 has a very high minimum count threshold — 110 crashes won't meet it
+		th.SeedAppThresholdPrefs(ctx, t, app1, 95.0, 85.0, 500, 0.5)
+		// app2 has no prefs row — uses defaults (minCount=100, rate=0.5%)
+
+		// Both apps have 110 crashes / 200 sessions (55% rate)
+		seedCrashSpike(ctx, t, teamID, app1, 200, 110)
+		seedCrashSpike(ctx, t, teamID, app2, 200, 110)
+
+		CreateCrashAndAnrAlerts(ctx)
+
+		// Only app2 fires — app1 requires 500 crashes but only 110 occurred
+		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
+			t.Errorf("want 1 crash alert (app2 only, app1 suppressed by high count threshold), got %d", got)
 		}
 	})
 
@@ -1414,6 +1446,31 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 	})
 
+	t.Run("spike uses default thresholds when no prefs row exists for app", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Default Prefs Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "No Prefs App", 30)
+		// Deliberately no SeedAppThresholdPrefs — getAppThresholdPrefs returns ErrNoRows and falls back to defaults
+
+		// 110 crashes / 200 sessions = 55% — meets default minCount=100 and rate=0.5%
+		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
+
+		CreateCrashAndAnrAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
+			t.Errorf("want 1 crash alert using default thresholds (no prefs row seeded), got %d", got)
+		}
+	})
+
 	t.Run("team threshold prefs override default warning/error thresholds", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
@@ -1424,7 +1481,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedTeam(ctx, t, teamID, "T", true)
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
 
 		now := time.Now().UTC()
 		// total=50 => generic=48, crash=1, anr=1
@@ -1455,7 +1512,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		appID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "T", true)
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.5, 95.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 98.5, 95.0, 100, 0.5)
 
 		now := time.Now().UTC()
 		// total=100 => generic=96, crash=2, anr=2
@@ -1485,7 +1542,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		appID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "T", true)
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
 
 		now := time.Now().UTC()
 		// total=30 => generic=10, crash=10, anr=10
@@ -1515,7 +1572,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		appID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "T", true)
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.0, 95.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 98.0, 95.0, 100, 0.5)
 
 		now := time.Now().UTC()
 		// total=100 => generic=96, crash=2, anr=2
@@ -1545,7 +1602,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		appID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "T", true)
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 98.0, 95.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 98.0, 95.0, 100, 0.5)
 
 		now := time.Now().UTC()
 		// total=100 => generic=90, crash=5, anr=5
@@ -2118,7 +2175,7 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUMMARY"})
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
 
 		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
 		// total=100 => generic=96, crash=2, anr=2 => 98% for both error-rate metrics
@@ -2185,7 +2242,7 @@ func TestCreateDailySummary(t *testing.T) {
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0SUMMARY"})
-		th.SeedTeamThresholdPrefs(ctx, t, teamID, 99.0, 97.0)
+		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
 
 		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
 		// total=100 => generic=90, crash=5, anr=5 => 95% for both error-rate metrics

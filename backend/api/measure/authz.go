@@ -83,8 +83,6 @@ var (
 	ScopeTeamRead                  = newScope("team", "read")
 	ScopeTeamInviteSameOrLower     = newScope("team", "inviteSameOrLower")
 	ScopeTeamChangeRoleSameOrLower = newScope("team", "changeRoleSameOrLower")
-	ScopeTeamThresholdPrefsAll     = newScope("teamThresholdPrefs", "*")
-	ScopeTeamThresholdPrefsRead    = newScope("teamThresholdPrefs", "read")
 	ScopeAlertAll                  = newScope("alert", "*")
 	ScopeAlertRead                 = newScope("alert", "read")
 	ScopeAppAll                    = newScope("app", "*")
@@ -116,10 +114,10 @@ func (s scope) getRolesSameOrLower(r rank) []rank {
 }
 
 var scopeMap = map[rank][]scope{
-	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeTeamThresholdPrefsAll, *ScopeAlertAll, *ScopeAppAll},
-	admin:     {*ScopeBillingAll, *ScopeTeamThresholdPrefsAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	developer: {*ScopeBillingRead, *ScopeTeamThresholdPrefsRead, *ScopeAlertAll, *ScopeAppRead, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	viewer:    {*ScopeBillingRead, *ScopeTeamThresholdPrefsRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
+	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll},
+	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
 }
 
 var roleMap = map[string]rank{
@@ -201,21 +199,6 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 		return false, nil
 	case *ScopeTeamAll:
 		if slices.Contains(roleScope, *ScopeTeamAll) {
-			return true, nil
-		}
-
-		return false, nil
-	case *ScopeTeamThresholdPrefsAll:
-		if slices.Contains(roleScope, *ScopeTeamThresholdPrefsAll) {
-			return true, nil
-		}
-
-		return false, nil
-	case *ScopeTeamThresholdPrefsRead:
-		if slices.Contains(roleScope, *ScopeTeamThresholdPrefsAll) {
-			return true, nil
-		}
-		if slices.Contains(roleScope, *ScopeTeamThresholdPrefsRead) {
 			return true, nil
 		}
 
@@ -326,19 +309,19 @@ func GetAuthzRoles(c *gin.Context) {
 	canWriteSdkConfig := slices.Contains(scopeMap[userRole], *ScopeAppAll)
 	canRenameTeam := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
 	canManageSlack := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
-	canChangeTeamThresholdPrefs := slices.Contains(scopeMap[userRole], *ScopeTeamThresholdPrefsAll)
+	canChangeAppThresholdPrefs := slices.Contains(scopeMap[userRole], *ScopeAppAll)
 
 	c.JSON(http.StatusOK, gin.H{
-		"can_invite_roles":                inviteeRoles,
-		"can_change_billing":              canChangeBilling,
-		"can_create_app":                  canCreateApp,
-		"can_rename_app":                  canRenameApp,
-		"can_change_retention":            canChangeRetention,
-		"can_rotate_api_key":              canRotateApiKey,
-		"can_write_sdk_config":            canWriteSdkConfig,
-		"can_rename_team":                 canRenameTeam,
-		"can_manage_slack":                canManageSlack,
-		"can_change_team_threshold_prefs": canChangeTeamThresholdPrefs,
-		"members":                         membersWithAuthz,
+		"can_invite_roles":                 inviteeRoles,
+		"can_change_billing":               canChangeBilling,
+		"can_create_app":                   canCreateApp,
+		"can_rename_app":                   canRenameApp,
+		"can_change_retention":             canChangeRetention,
+		"can_rotate_api_key":               canRotateApiKey,
+		"can_write_sdk_config":             canWriteSdkConfig,
+		"can_rename_team":                  canRenameTeam,
+		"can_manage_slack":                 canManageSlack,
+		"can_change_app_threshold_prefs":   canChangeAppThresholdPrefs,
+		"members":                          membersWithAuthz,
 	})
 }

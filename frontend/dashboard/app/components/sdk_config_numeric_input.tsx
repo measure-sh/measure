@@ -11,6 +11,7 @@ interface SdkConfigNumericInputProps {
     onChange: (value: number) => void
     disabled?: boolean
     testId?: string
+    fixedWidth?: number
 }
 
 export default function SdkConfigNumericInput({
@@ -22,7 +23,8 @@ export default function SdkConfigNumericInput({
     precision = 3,
     onChange,
     disabled = false,
-    testId
+    testId,
+    fixedWidth
 }: SdkConfigNumericInputProps) {
     const [localValue, setLocalValue] = useState<string>(value.toString())
 
@@ -69,7 +71,7 @@ export default function SdkConfigNumericInput({
         minValue.toString().length,
         4
     )
-    const inputWidth = Math.max(minChars, localValue.length) + 6
+    const inputWidth = fixedWidth ?? Math.max(minChars, localValue.length) + 6
 
     return (
         <Input

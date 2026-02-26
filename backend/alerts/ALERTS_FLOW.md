@@ -128,9 +128,9 @@ flowchart TD
     N1["Constants in alerts.go:
         crashOrAnrSpikeTimePeriod = 1h
         bugReportTimePeriod = 15m
-        minCrashOrAnrCountThreshold = 100
-        crashOrAnrSpikeThreshold = 0.5%
-        cooldownPeriodForEntity = 7d"]
+        cooldownPeriodForEntity = 7d
+        error_spike_min_count_threshold = per-app (default 100)
+        error_spike_min_rate_threshold = per-app (default 0.5%)"]
     CrashPath -.- N1
     AnrPath -.- N1
     B1 -.- N1
