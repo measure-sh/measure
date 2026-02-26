@@ -59,7 +59,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     private val lock = Any()
 
     @Volatile
-    private var dynamicConfig: DynamicConfig = DynamicConfig.default()
+    private var dynamicConfig: DynamicConfig = DynamicConfig()
 
     @Volatile
     private var httpPatternState: HttpPatternState = HttpPatternState(
@@ -137,6 +137,8 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.gestureClickTakeSnapshot
     override val httpDisableEventForUrls: List<String>
         get() = dynamicConfig.httpDisableEventForUrls.toList()
+    override val httpSamplingRate: Float
+        get() = dynamicConfig.httpSamplingRate
     override val httpTrackRequestForUrls: List<String>
         get() = dynamicConfig.httpTrackRequestForUrls.toList()
     override val httpTrackResponseForUrls: List<String>

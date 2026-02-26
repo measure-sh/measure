@@ -72,6 +72,12 @@ internal interface IDynamicConfig {
     val gestureClickTakeSnapshot: Boolean
 
     /**
+     * Sampling rate for HTTP events. Defaults to 0.01%, which means
+     * one in 10000 HTTP events will be sampled.
+     */
+    val httpSamplingRate: Float
+
+    /**
      * List of URLs to disable sending events for. Defaults to empty list.
      *
      * The URLs can use wildcard patterns.
@@ -109,83 +115,64 @@ internal interface IDynamicConfig {
 @Serializable
 internal data class DynamicConfig(
     @SerialName("max_events_in_batch")
-    override val maxEventsInBatch: Int,
+    override val maxEventsInBatch: Int = 10000,
 
     @SerialName("crash_timeline_duration")
-    override val crashTimelineDurationSeconds: Int,
+    override val crashTimelineDurationSeconds: Int = 300,
 
     @SerialName("anr_timeline_duration")
-    override val anrTimelineDurationSeconds: Int,
+    override val anrTimelineDurationSeconds: Int = 300,
 
     @SerialName("bug_report_timeline_duration")
-    override val bugReportTimelineDurationSeconds: Int,
+    override val bugReportTimelineDurationSeconds: Int = 300,
 
     @SerialName("trace_sampling_rate")
-    override val traceSamplingRate: Float,
+    override val traceSamplingRate: Float = 0.01f,
 
     @SerialName("journey_sampling_rate")
-    override val journeySamplingRate: Float,
+    override val journeySamplingRate: Float = 0.01f,
 
     @SerialName("screenshot_mask_level")
-    override val screenshotMaskLevel: ScreenshotMaskLevel,
+    override val screenshotMaskLevel: ScreenshotMaskLevel =
+        ScreenshotMaskLevel.AllTextAndMedia,
 
     @SerialName("cpu_usage_interval")
-    override val cpuUsageInterval: Long,
+    override val cpuUsageInterval: Long = 5,
 
     @SerialName("memory_usage_interval")
-    override val memoryUsageInterval: Long,
+    override val memoryUsageInterval: Long = 5,
 
     @SerialName("crash_take_screenshot")
-    override val crashTakeScreenshot: Boolean,
+    override val crashTakeScreenshot: Boolean = true,
 
     @SerialName("anr_take_screenshot")
-    override val anrTakeScreenshot: Boolean,
+    override val anrTakeScreenshot: Boolean = true,
 
     @SerialName("launch_sampling_rate")
-    override val launchSamplingRate: Float,
+    override val launchSamplingRate: Float = 0.01f,
 
     @SerialName("gesture_click_take_snapshot")
-    override val gestureClickTakeSnapshot: Boolean,
+    override val gestureClickTakeSnapshot: Boolean = true,
+
+    @SerialName("http_sampling_rate")
+    override val httpSamplingRate: Float = 0.01f,
 
     @SerialName("http_disable_event_for_urls")
-    override val httpDisableEventForUrls: List<String>,
+    override val httpDisableEventForUrls: List<String> = emptyList(),
 
     @SerialName("http_track_request_for_urls")
-    override val httpTrackRequestForUrls: List<String>,
+    override val httpTrackRequestForUrls: List<String> = emptyList(),
 
     @SerialName("http_track_response_for_urls")
-    override val httpTrackResponseForUrls: List<String>,
+    override val httpTrackResponseForUrls: List<String> = emptyList(),
 
     @SerialName("http_blocked_headers")
-    override val httpBlockedHeaders: List<String>,
-) : IDynamicConfig {
-
-    companion object {
-        fun default(): DynamicConfig = DynamicConfig(
-            maxEventsInBatch = 10000,
-            crashTimelineDurationSeconds = 300,
-            anrTimelineDurationSeconds = 300,
-            bugReportTimelineDurationSeconds = 300,
-            traceSamplingRate = 0.01f,
-            journeySamplingRate = 0.01f,
-            screenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia,
-            cpuUsageInterval = 5,
-            memoryUsageInterval = 5,
-            crashTakeScreenshot = true,
-            anrTakeScreenshot = true,
-            launchSamplingRate = 0.01f,
-            gestureClickTakeSnapshot = true,
-            httpBlockedHeaders = mutableListOf(
-                "Authorization",
-                "Cookie",
-                "Set-Cookie",
-                "Proxy-Authorization",
-                "WWW-Authenticate",
-                "X-Api-Key",
-            ),
-            httpDisableEventForUrls = mutableListOf(),
-            httpTrackRequestForUrls = emptyList(),
-            httpTrackResponseForUrls = emptyList(),
-        )
-    }
-}
+    override val httpBlockedHeaders: List<String> = listOf(
+        "Authorization",
+        "Cookie",
+        "Set-Cookie",
+        "Proxy-Authorization",
+        "WWW-Authenticate",
+        "X-Api-Key",
+    ),
+) : IDynamicConfig
