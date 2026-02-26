@@ -4,6 +4,7 @@ package measure
 
 import (
 	"backend/api/server"
+	"backend/billing"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -1473,5 +1474,258 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
 		}
 		wantJSON(t, w, "threshold", float64(100))
+	})
+}
+
+// --------------------------------------------------------------------------
+// Handler: GetSubscriptionInfo
+// --------------------------------------------------------------------------
+
+func TestGetSubscriptionInfo(t *testing.T) {
+	t.Run("billing disabled", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		defer func() { server.Server.Config.BillingEnabled = orig }()
+
+		c, w := newTestGinContext("GET", "/teams/test/billing/subscriptionInfo", nil)
+		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		}
+		wantJSON(t, w, "error", "billing is not enabled")
+	})
+
+	t.Run("no team membership", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testNoAuthEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
+	})
+
+	t.Run("viewer forbidden", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testViewerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "viewer")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_viewer"), strPtr("sub_viewer"))
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		}
+	})
+
+	t.Run("developer forbidden", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testDeveloperEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "developer")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_dev"), strPtr("sub_dev"))
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		}
+	})
+
+	t.Run("no billing config", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		}
+		wantJSONContains(t, w, "error", "team billing not found")
+	})
+
+	t.Run("free plan", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testAdminEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "admin")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSONContains(t, w, "error", "not on pro plan")
+	})
+
+	t.Run("admin authorized success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testAdminEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "admin")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_admin"), strPtr("sub_admin"))
+
+		origSub := billing.GetStripeSubscriptionFn
+		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_admin",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
+
+		origInv := billing.CreateInvoicePreviewFn
+		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{
+				AmountDue: 5000,
+				Currency:  stripe.CurrencyUSD,
+			}, nil
+		}
+		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+
+		var result billing.SubscriptionInfo
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if result.Status != string(stripe.SubscriptionStatusActive) {
+			t.Errorf("status = %q, want %q", result.Status, stripe.SubscriptionStatusActive)
+		}
+		if result.UpcomingInvoice == nil {
+			t.Fatal("expected UpcomingInvoice to be non-nil")
+		}
+		if result.UpcomingInvoice.AmountDue != 5000 {
+			t.Errorf("amount_due = %d, want 5000", result.UpcomingInvoice.AmountDue)
+		}
+	})
+
+	t.Run("owner authorized success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_owner"), strPtr("sub_owner"))
+
+		origSub := billing.GetStripeSubscriptionFn
+		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_owner",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
+
+		origInv := billing.CreateInvoicePreviewFn
+		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{
+				AmountDue: 7500,
+				Currency:  stripe.CurrencyUSD,
+			}, nil
+		}
+		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+
+		var result billing.SubscriptionInfo
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if result.Status != string(stripe.SubscriptionStatusActive) {
+			t.Errorf("status = %q, want %q", result.Status, stripe.SubscriptionStatusActive)
+		}
+		if result.UpcomingInvoice == nil {
+			t.Fatal("expected UpcomingInvoice to be non-nil")
+		}
+		if result.UpcomingInvoice.AmountDue != 7500 {
+			t.Errorf("amount_due = %d, want 7500", result.UpcomingInvoice.AmountDue)
+		}
 	})
 }

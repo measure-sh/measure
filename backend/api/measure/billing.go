@@ -263,6 +263,50 @@ func GetBillingUsageThreshold(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"threshold": threshold})
 }
 
+func GetSubscriptionInfo(c *gin.Context) {
+	if !server.Server.Config.IsBillingEnabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeBillingAll); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	result, err := billing.GetSubscriptionInfo(ctx, server.Server.PgPool, teamId)
+	if err != nil {
+		switch {
+		case errors.Is(err, billing.ErrTeamBillingNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "team billing not found"})
+		case errors.Is(err, billing.ErrNotOnProPlan):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "team is not on pro plan"})
+		default:
+			fmt.Println("failed to get subscription info:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get subscription info"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func HandleStripeWebhook(c *gin.Context) {
 	if !server.Server.Config.IsBillingEnabled() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})

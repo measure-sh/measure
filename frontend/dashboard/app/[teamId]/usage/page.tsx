@@ -1,6 +1,6 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, DowngradeToFreeApiStatus, downgradeToFreeFromServer, emptyUsage, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, FetchStripeCheckoutSessionApiStatus, fetchStripeCheckoutSessionFromServer, FetchUsageApiStatus, fetchUsageFromServer } from '@/app/api/api_calls'
+import { AuthzAndMembersApiStatus, DowngradeToFreeApiStatus, downgradeToFreeFromServer, emptyUsage, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, FetchStripeCheckoutSessionApiStatus, fetchStripeCheckoutSessionFromServer, FetchSubscriptionInfoApiStatus, fetchSubscriptionInfoFromServer, FetchUsageApiStatus, fetchUsageFromServer } from '@/app/api/api_calls'
 import { Button, buttonVariants } from '@/app/components/button'
 import { Card } from '@/app/components/card'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
@@ -36,6 +36,16 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     spans: number
   }
 
+  type SubscriptionInfo = {
+    status: string
+    current_period_start: number
+    current_period_end: number
+    upcoming_invoice: {
+      amount_due: number
+      currency: string
+    } | null
+  }
+
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
   const [usage, setUsage] = useState(emptyUsage)
   const [months, setMonths] = useState<string[]>()
@@ -48,6 +58,8 @@ export default function Usage({ params }: { params: { teamId: string } }) {
   const [isDowngrading, setIsDowngrading] = useState(false)
   const [downgradeConfirmationDialogOpen, setDowngradeConfirmationDialogOpen] = useState(false)
   const [currentUserCanChangePlan, setCurrentUserCanChangePlan] = useState(false)
+  const [fetchSubscriptionInfoApiStatus, setFetchSubscriptionInfoApiStatus] = useState(FetchSubscriptionInfoApiStatus.Loading)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const { theme } = useTheme()
 
   const getCurrentUserCanChangePlan = async () => {
@@ -189,6 +201,28 @@ export default function Usage({ params }: { params: { teamId: string } }) {
       getBillingInfo()
     }
   }, [])
+
+  const getSubscriptionInfo = async () => {
+    setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Loading)
+
+    const result = await fetchSubscriptionInfoFromServer(params.teamId)
+
+    switch (result.status) {
+      case FetchSubscriptionInfoApiStatus.Error:
+        setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Error)
+        break
+      case FetchSubscriptionInfoApiStatus.Success:
+        setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Success)
+        setSubscriptionInfo(result.data)
+        break
+    }
+  }
+
+  useEffect(() => {
+    if (isBillingEnabled() && billingInfo?.plan === 'pro' && currentUserCanChangePlan) {
+      getSubscriptionInfo()
+    }
+  }, [billingInfo, currentUserCanChangePlan])
 
   const handleUpgrade = async () => {
     setIsUpgrading(true)
@@ -363,6 +397,33 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       <li className='font-body text-center text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
                       <li className='font-body text-center text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
                     </ul>
+                    {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Success && subscriptionInfo && (
+                      <div className='mt-4 text-sm font-body text-center space-y-1'>
+                        <p className='text-green-900 dark:text-foreground'>
+                          Status: <span className='font-semibold capitalize'>{subscriptionInfo.status}</span>
+                        </p>
+                        <p className='text-green-900 dark:text-foreground'>
+                          Current billing cycle: <span className='font-semibold'>
+                            {new Date(subscriptionInfo.current_period_start * 1000).toLocaleDateString()} – {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                          </span>
+                        </p>
+                        <p className='text-green-900 dark:text-foreground'>
+                          Next invoice: <span className='font-semibold'>
+                            {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                          </span>
+                        </p>
+                        {subscriptionInfo.upcoming_invoice && (
+                          <p className='text-green-900 dark:text-foreground'>
+                            Upcoming invoice amount (based on usage so far): <span className='font-semibold'>
+                              {(subscriptionInfo.upcoming_invoice.amount_due / 100).toLocaleString(undefined, {
+                                style: 'currency',
+                                currency: subscriptionInfo.upcoming_invoice.currency.toUpperCase(),
+                              })}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div className='pt-6'>
                       {billingInfo?.plan === 'free' && (
                         <Button
