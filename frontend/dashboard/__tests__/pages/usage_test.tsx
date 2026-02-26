@@ -170,6 +170,13 @@ jest.mock('@/app/components/card', () => ({
     Card: ({ children, className }: any) => <div className={className}>{children}</div>,
 }))
 
+// Mock Progress - render as a div with progressbar role
+jest.mock('@/app/components/progress', () => ({
+    Progress: ({ value, ...props }: any) => (
+        <div role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} {...props} />
+    ),
+}))
+
 // Mock next/link
 jest.mock('next/link', () => ({
     __esModule: true,
@@ -375,13 +382,46 @@ describe('Usage Page', () => {
         expect(screen.getByText('Contact us')).toBeInTheDocument()
     })
 
-    it('shows units used in current month', async () => {
+    it('shows free plan usage progress bar with percentage and units', async () => {
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
         // Usage data for 2025-02 (last month = initial): events 700 + spans 300 = 1000
-        expect(screen.getByText('1,000')).toBeInTheDocument()
+        // freeUsagePercent = Math.round((1000 / 1_000_000) * 100) = 0
+        expect(screen.getByText('0%')).toBeInTheDocument()
+        expect(screen.getByText(/1,000 used of 1,000,000 free units/)).toBeInTheDocument()
+
+        const progressbar = screen.getByRole('progressbar')
+        expect(progressbar).toHaveAttribute('aria-valuenow', '0')
+        expect(progressbar).toHaveAttribute('aria-valuemin', '0')
+        expect(progressbar).toHaveAttribute('aria-valuemax', '100')
+    })
+
+    it('does not show free plan progress bar when on pro plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    max_retention: 365,
+                    max_units: null,
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        expect(screen.queryByText(/free units/)).not.toBeInTheDocument()
     })
 
     // ---- Upgrade flow ----

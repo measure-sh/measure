@@ -16,6 +16,7 @@ import { toastNegative, toastPositive } from '@/app/utils/use_toast'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { Progress } from '@/app/components/progress'
 
 export default function Usage({ params }: { params: { teamId: string } }) {
   type BillingInfo = {
@@ -60,6 +61,10 @@ export default function Usage({ params }: { params: { teamId: string } }) {
         break
     }
   }
+
+  const freeUsagePercent = billingInfo?.plan === 'free' && FREE_UNITS > 0
+    ? Math.min(100, Math.round((currentBillingCycleUsage / FREE_UNITS) * 100))
+    : 0
 
   useEffect(() => {
     if (isBillingEnabled()) {
@@ -316,11 +321,18 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           {fetchBillingInfoApiStatus === FetchBillingInfoApiStatus.Loading && <LoadingSpinner />}
           {fetchBillingInfoApiStatus === FetchBillingInfoApiStatus.Success &&
             <div className="flex flex-col items-start w-full">
-              {/* Current Usage Summary */}
-              <div className='font-body text-xl'>
-                <p>Units used in current month: <span className='font-semibold'>{currentBillingCycleUsage.toLocaleString()}</span></p>
-                <p className="mt-2 font-body text-xs text-muted-foreground">{UNIT_EXPLANATION}</p>
-              </div>
+              {/* Progress indicator for Free plan */}
+              {billingInfo?.plan === 'free' && (
+                <div className='w-full max-w-6xl'>
+                  <div className='flex items-center justify-between mb-2'>
+                    <p className='font-body'>Free plan usage: <span className='font-semibold'>{freeUsagePercent}%</span></p>
+                    <p className='font-body text-muted-foreground'>{currentBillingCycleUsage.toLocaleString()} used of {FREE_UNITS.toLocaleString()} free units</p>
+                  </div>
+                  <Progress value={freeUsagePercent} />
+                </div>
+              )}
+
+              <p className="mt-4 font-body text-xs text-muted-foreground">{UNIT_EXPLANATION}</p>
 
               {/* Plan Cards */}
               <div className='flex flex-col md:flex-row gap-8 w-full mt-12'>
