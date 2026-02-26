@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../componen
 import LandingFooter from '../components/landing_footer'
 import LandingHeader from '../components/landing_header'
 import { Slider } from '../components/slider'
-import { FREE_UNITS, INCLUDED_PRO_UNITS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, PRICE_PER_UNIT_DAY } from '../utils/pricing_constants'
+import { FREE_UNITS, INCLUDED_PRO_UNITS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, PRICE_PER_UNIT_DAY, UNIT_EXPLANATION } from '../utils/pricing_constants'
 import { cn } from '../utils/shadcn_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 
@@ -134,7 +134,7 @@ export default function Pricing() {
           </Card>
         </div>
 
-        <p className="font-body text-sm py-16">Every Crash, ANR, Bug Report, Performance Span, Launch metric, Session Timeline event, User interaction event, Custom event etc counts as 1 unit.</p>
+        <p className="font-body text-sm py-16">{UNIT_EXPLANATION}</p>
 
         <div className='flex flex-wrap justify-between px-4 md:px-0 md:w-4xl gap-4 font-display'>
           <div className='flex flex-row gap-4 items-center'><p>Control costs with <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link></p>

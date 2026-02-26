@@ -7,7 +7,7 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import LoadingSpinner from '@/app/components/loading_spinner'
 
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
-import { FREE_RETENTION_DAYS, FREE_UNITS, INCLUDED_PRO_UNITS, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH } from '@/app/utils/pricing_constants'
+import { FREE_RETENTION_DAYS, FREE_UNITS, INCLUDED_PRO_UNITS, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, UNIT_EXPLANATION } from '@/app/utils/pricing_constants'
 import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
 
@@ -319,10 +319,11 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               {/* Current Usage Summary */}
               <div className='font-body text-xl'>
                 <p>Units used in current month: <span className='font-semibold'>{currentBillingCycleUsage.toLocaleString()}</span></p>
+                <p className="mt-2 font-body text-xs text-muted-foreground">{UNIT_EXPLANATION}</p>
               </div>
 
               {/* Plan Cards */}
-              <div className='flex flex-col md:flex-row gap-8 w-full mt-8'>
+              <div className='flex flex-col md:flex-row gap-8 w-full mt-12'>
                 {/* Free Plan Card - only show when on free plan */}
                 {billingInfo?.plan === 'free' && (
                   <Card className='w-full md:w-1/2 relative'>
