@@ -162,175 +162,175 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+  - [GET `/apps/:id/thresholdPrefs`](#get-appsidthresholdprefs)
     - [Usage Notes](#usage-notes-30)
-    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+  - [PATCH `/apps/:id/thresholdPrefs`](#patch-appsidthresholdprefs)
     - [Usage Notes](#usage-notes-31)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/apps/:id/spans`](#get-appsidspans)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-32)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-33)
     - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-34)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-35)
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
     - [Usage Notes](#usage-notes-36)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
     - [Usage Notes](#usage-notes-37)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
     - [Usage Notes](#usage-notes-38)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [GET `/apps/:id/alerts`](#get-appsidalerts)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-39)
     - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [GET `/apps/:id/config`](#get-appsidconfig)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-40)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-39)
-    - [Request Body](#request-body-8)
+  - [GET `/apps/:id/config`](#get-appsidconfig)
     - [Usage Notes](#usage-notes-42)
+    - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [GET `/teams`](#get-teams)
+  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+    - [Usage Notes](#usage-notes-43)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-43)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-41)
+    - [Request Body](#request-body-9)
+    - [Usage Notes](#usage-notes-44)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-44)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-45)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-45)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-46)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-47)
     - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-48)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-48)
     - [Authorization \& Content Type](#authorization--content-type-46)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-49)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-50)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-48)
     - [Response Body](#response-body-51)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-51)
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-52)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-50)
     - [Response Body](#response-body-53)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-53)
-    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-54)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
-  - [GET `/teams/:id/usage`](#get-teamsidusage)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-55)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-53)
     - [Response Body](#response-body-56)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
-  - [GET `/teams/:id/thresholdPrefs`](#get-teamsidthresholdprefs)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-56)
     - [Authorization \& Content Type](#authorization--content-type-54)
     - [Response Body](#response-body-57)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
-  - [PATCH `/teams/:id/thresholdPrefs`](#patch-teamsidthresholdprefs)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
     - [Usage Notes](#usage-notes-57)
-    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-55)
     - [Response Body](#response-body-58)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-58)
   - [GET `/teams/:id/slack`](#get-teamsidslack)
-    - [Usage Notes](#usage-notes-58)
-    - [Authorization \& Content Type](#authorization--content-type-56)
-    - [Response Body](#response-body-59)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-59)
-  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
-    - [Usage Notes](#usage-notes-59)
-    - [Request body](#request-body-14)
-    - [Authorization \& Content Type](#authorization--content-type-57)
-    - [Response Body](#response-body-60)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-60)
-  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-60)
     - [Authorization \& Content Type](#authorization--content-type-58)
     - [Response Body](#response-body-61)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-61)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+    - [Usage Notes](#usage-notes-61)
+    - [Request body](#request-body-15)
+    - [Authorization \& Content Type](#authorization--content-type-59)
+    - [Response Body](#response-body-62)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-62)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
+    - [Usage Notes](#usage-notes-62)
+    - [Authorization \& Content Type](#authorization--content-type-60)
+    - [Response Body](#response-body-63)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-63)
 
 ## Auth
 
@@ -4473,6 +4473,170 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/thresholdPrefs`
+
+Fetch threshold preferences for an app. Returns saved preferences if present, otherwise returns default values.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Read access is allowed for all team members (owner/admin/developer/viewer)
+
+#### Authorization &amp; Content Type
+
+1. (Optional) Set the session's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+```json
+{
+  "app_id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+  "error_good_threshold": 95,
+  "error_caution_threshold": 85,
+  "error_spike_min_count_threshold": 100,
+  "error_spike_min_rate_threshold": 0.5,
+  "created_at": "2026-02-24T15:04:05Z",
+  "updated_at": "2026-02-24T15:04:05Z"
+}
+```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/thresholdPrefs`
+
+Update threshold preferences for an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Only owner/admin roles can update app threshold prefs
+- Validation rules:
+- `error_good_threshold` must be greater than `error_caution_threshold`
+- `error_good_threshold` must be in `(0, 100]`
+- `error_caution_threshold` must be in `[0, 100)`
+- `error_spike_min_count_threshold` must be an integer ≥ 1
+- `error_spike_min_rate_threshold` must be in `(0, 100]`
+
+#### Request Body
+
+- Request
+
+  <details>
+    <summary>Click to expand</summary>
+
+```json
+{
+  "error_good_threshold": 95,
+  "error_caution_threshold": 85,
+  "error_spike_min_count_threshold": 100,
+  "error_spike_min_rate_threshold": 0.5
+}
+```
+
+  </details>
+
+#### Authorization &amp; Content Type
+
+1. (Optional) Set the session's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+```json
+{
+  "ok": "done"
+}
+```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
 ### POST `/apps/:id/shortFilters`
 
 Create a shortcode to represent a combination of various app filters.
@@ -5884,8 +6048,6 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersid) -  Change role of a member of a team.
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
 - [**GET `/teams/:id/usage`**](#get-teamsidusage) -  Fetch data usage details for a team.
-- [**GET `/teams/:id/thresholdPrefs`**](#get-teamsidthresholdprefs) - Fetch team threshold preferences.
-- [**PATCH `/teams/:id/thresholdPrefs`**](#patch-teamsidthresholdprefs) - Update team threshold preferences.
 - [**GET `/teams/:id/slack`**](#get-teamsidslack) -  Fetch Slack details for a team.
 - [**PATCH `/teams/:id/slack/status`**](#patch-teamsidslackstatus) -  Update a team's Slack integration status to active or inactive.
 - [**POST `/teams/:id/slack/test`**](#patch-teamsidslacktest) -  Send test alerts to all registered Slack channels.
@@ -6935,7 +7097,7 @@ Fetch authorization details of members for a team. Oldest members appear first i
 - The `can_write_sdk_config` field indicates whether the current user can update SDK config for apps in the team
 - The `can_rename_team` field indicates whether the current user can rename the team
 - The `can_manage_slack` field indicates whether the current user can manage team Slack integration
-- The `can_change_team_threshold_prefs` field indicates whether the current user can update team threshold preferences
+- The `can_change_app_threshold_prefs` field indicates whether the current user can update app threshold preferences
 - The `current_user_assignable_roles_for_member` field in each member's `authz` object indicates what roles the current user is allowed to assign for that particular member
 - The `current_user_can_remove_member` flag in each member's `authz` object indicates whether the current user is allowed to remove that particular member from the team
 
@@ -6979,7 +7141,7 @@ The required headers must be present in each request.
     "can_write_sdk_config": true,
     "can_rename_team": true,
     "can_manage_slack": true,
-    "can_change_team_threshold_prefs": true,
+    "can_change_app_threshold_prefs": true,
     "members": [
         {
             "id": "7737299c-82cb-4769-8fed-b313a230aa9d",
@@ -7311,164 +7473,6 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes & Troubleshooting
-
-List of HTTP status codes for success and failures.
-
-<details>
-  <summary>Status Codes - Click to expand</summary>
-
-| **Status**                  | **Meaning**                                                                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `200 Ok`                    | Successful response, no errors.                                                                                        |
-| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
-| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
-| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
-
-</details>
-
-### GET `/teams/:id/thresholdPrefs`
-
-Fetch threshold preferences for a team. Returns saved preferences if present, otherwise returns default values.
-
-#### Usage Notes
-
-- Teams's UUID must be passed in the URI
-- Read access is allowed for team members (owner/admin/developer/viewer)
-
-#### Authorization &amp; Content Type
-
-1. (Optional) Set the session's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
-
-The required headers must be present in each request.
-
-<details>
-  <summary>Request Headers - Click to expand</summary>
-
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Authorization` | Bearer &lt;user-access-token&gt; |
-| `Content-Type`  | application/json; charset=utf-8  |
-</details>
-
-#### Response Body
-
-- Response
-
-  <details>
-    <summary>Click to expand</summary>
-
-```json
-{
-  "team_id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
-  "error_good_threshold": 95,
-  "error_caution_threshold": 85,
-  "created_at": "2026-02-24T15:04:05Z",
-  "updated_at": "2026-02-24T15:04:05Z"
-}
-```
-
-  </details>
-
-- Failed requests have the following response shape
-
-  ```json
-  {
-    "error": "Error message"
-  }
-  ```
-
-#### Status Codes &amp; Troubleshooting
-
-List of HTTP status codes for success and failures.
-
-<details>
-  <summary>Status Codes - Click to expand</summary>
-
-| **Status**                  | **Meaning**                                                                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `200 Ok`                    | Successful response, no errors.                                                                                        |
-| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
-| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
-| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
-
-</details>
-
-### PATCH `/teams/:id/thresholdPrefs`
-
-Update threshold preferences for a team.
-
-#### Usage Notes
-
-- Teams's UUID must be passed in the URI
-- Only owner/admin roles can update team threshold prefs
-- Validation rules:
-- `error_good_threshold` must be greater than `error_caution_threshold`
-- `error_good_threshold` must be in `(0, 100]`
-- `error_caution_threshold` must be in `[0, 100)`
-
-#### Request Body
-
-- Request
-
-  <details>
-    <summary>Click to expand</summary>
-
-```json
-{
-  "error_good_threshold": 95,
-  "error_caution_threshold": 85
-}
-```
-
-  </details>
-
-#### Authorization &amp; Content Type
-
-1. (Optional) Set the session's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
-
-The required headers must be present in each request.
-
-<details>
-  <summary>Request Headers - Click to expand</summary>
-
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Authorization` | Bearer &lt;user-access-token&gt; |
-| `Content-Type`  | application/json; charset=utf-8  |
-</details>
-
-#### Response Body
-
-- Response
-
-  <details>
-    <summary>Click to expand</summary>
-
-```json
-{
-  "ok": "done"
-}
-```
-
-  </details>
-
-- Failed requests have the following response shape
-
-  ```json
-  {
-    "error": "Error message"
-  }
-  ```
-
-#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 

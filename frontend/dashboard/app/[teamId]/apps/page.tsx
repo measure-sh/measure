@@ -1,6 +1,6 @@
 "use client"
 
-import { AppApiKeyChangeApiStatus, AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppApiKeyFromServer, changeAppNameFromServer, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer } from "@/app/api/api_calls"
+import { AppApiKeyChangeApiStatus, AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppApiKeyFromServer, changeAppNameFromServer, defaultAppThresholdPrefs, emptyAppRetention, FetchAppRetentionApiStatus, fetchAppRetentionFromServer, FetchAppThresholdPrefsApiStatus, fetchAppThresholdPrefsFromServer, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, fetchSdkConfigFromServer, FilterSource, SdkConfig, SdkConfigApiStatus, UpdateAppRetentionApiStatus, updateAppRetentionFromServer, UpdateAppThresholdPrefsApiStatus, updateAppThresholdPrefsFromServer } from "@/app/api/api_calls"
 import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
@@ -8,6 +8,7 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import { Input } from "@/app/components/input"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input"
 import SdkConfigurator from "@/app/components/sdk_configurator"
 import { isCloud } from "@/app/utils/env_utils"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
@@ -32,6 +33,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [canChangeRetention, setCanChangeRetention] = useState(false)
   const [canRotateApiKey, setCanRotateApiKey] = useState(false)
   const [canWriteSdkConfig, setCanWriteSdkConfig] = useState(false)
+  const [canChangeAppThresholdPrefs, setCanChangeAppThresholdPrefs] = useState(false)
 
   const [appRetentionPeriodConfirmationDialogOpen, setAppRetentionPeriodConfirmationDialogOpen] = useState(false)
   const [pageLoadStatus, setPageLoadStatus] = useState(PageLoadStatus.Init)
@@ -42,6 +44,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [updateAppRetentionApiStatus, setUpdateAppRetentionApiStatus] = useState(UpdateAppRetentionApiStatus.Init)
   const [appRetention, setAppRetention] = useState(emptyAppRetention)
   const [updatedAppRetention, setUpdatedAppRetention] = useState(emptyAppRetention)
+
+  const [fetchAppThresholdPrefsApiStatus, setFetchAppThresholdPrefsApiStatus] = useState(FetchAppThresholdPrefsApiStatus.Init)
+  const [updateAppThresholdPrefsApiStatus, setUpdateAppThresholdPrefsApiStatus] = useState(UpdateAppThresholdPrefsApiStatus.Init)
+  const [appThresholdPrefs, setAppThresholdPrefs] = useState(defaultAppThresholdPrefs)
+  const [savedAppThresholdPrefs, setSavedAppThresholdPrefs] = useState(defaultAppThresholdPrefs)
 
   const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
@@ -66,6 +73,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         setCanChangeRetention(false)
         setCanRotateApiKey(false)
         setCanWriteSdkConfig(false)
+        setCanChangeAppThresholdPrefs(false)
         break
       case AuthzAndMembersApiStatus.Success:
         setCanCreateApp(result.data.can_create_app === true)
@@ -73,6 +81,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         setCanChangeRetention(result.data.can_change_retention === true)
         setCanRotateApiKey(result.data.can_rotate_api_key === true)
         setCanWriteSdkConfig(result.data.can_write_sdk_config === true)
+        setCanChangeAppThresholdPrefs(result.data.can_change_app_threshold_prefs === true)
         break
     }
   }
@@ -84,7 +93,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const loadPageData = async () => {
     setPageLoadStatus(PageLoadStatus.Loading)
 
-    // Fetch both APIs in parallel
+    // Fetch all APIs in parallel
     const [appRetentionResult, sdkConfigResult] = await Promise.all([
       fetchAppRetentionFromServer(filters.app!.id),
       fetchSdkConfigFromServer(filters.app!.id)
@@ -105,6 +114,70 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       setSdkConfig(sdkConfigResult.data)
     } else {
       setPageLoadStatus(PageLoadStatus.Error)
+    }
+
+    fetchThresholdPrefs(filters.app!.id)
+  }
+
+  const fetchThresholdPrefs = async (appId: string) => {
+    setFetchAppThresholdPrefsApiStatus(FetchAppThresholdPrefsApiStatus.Loading)
+
+    const result = await fetchAppThresholdPrefsFromServer(appId)
+
+    switch (result.status) {
+      case FetchAppThresholdPrefsApiStatus.Error:
+        setFetchAppThresholdPrefsApiStatus(FetchAppThresholdPrefsApiStatus.Error)
+        break
+      case FetchAppThresholdPrefsApiStatus.Success:
+        setFetchAppThresholdPrefsApiStatus(FetchAppThresholdPrefsApiStatus.Success)
+        const prefs = {
+          error_good_threshold: result.data.error_good_threshold,
+          error_caution_threshold: result.data.error_caution_threshold,
+          error_spike_min_count_threshold: result.data.error_spike_min_count_threshold,
+          error_spike_min_rate_threshold: result.data.error_spike_min_rate_threshold,
+        }
+        setAppThresholdPrefs(prefs)
+        setSavedAppThresholdPrefs(prefs)
+        break
+    }
+  }
+
+  const updateAppThresholdPrefs = async () => {
+    if (appThresholdPrefs.error_good_threshold <= appThresholdPrefs.error_caution_threshold) {
+      toastNegative("Error updating thresholds", "Good threshold must be greater than caution threshold")
+      return
+    }
+    if (appThresholdPrefs.error_good_threshold <= 0 || appThresholdPrefs.error_good_threshold > 100) {
+      toastNegative("Error updating thresholds", "Good threshold must be between 0 and 100")
+      return
+    }
+    if (appThresholdPrefs.error_caution_threshold < 0 || appThresholdPrefs.error_caution_threshold >= 100) {
+      toastNegative("Error updating thresholds", "Caution threshold must be between 0 and 100")
+      return
+    }
+    if (appThresholdPrefs.error_spike_min_count_threshold < 1) {
+      toastNegative("Error updating thresholds", "Minimum count must be at least 1")
+      return
+    }
+    if (appThresholdPrefs.error_spike_min_rate_threshold <= 0 || appThresholdPrefs.error_spike_min_rate_threshold > 100) {
+      toastNegative("Error updating thresholds", "Spike threshold must be between 0 (exclusive) and 100")
+      return
+    }
+
+    setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Loading)
+    const result = await updateAppThresholdPrefsFromServer(filters.app!.id, appThresholdPrefs)
+
+    switch (result.status) {
+      case UpdateAppThresholdPrefsApiStatus.Error:
+        setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Error)
+        toastNegative("Error updating thresholds", result.error)
+        break
+      case UpdateAppThresholdPrefsApiStatus.Success:
+        setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Success)
+        toastPositive("Thresholds updated successfully")
+        setSavedAppThresholdPrefs(appThresholdPrefs)
+        fetchThresholdPrefs(filters.app!.id)
+        break
     }
   }
 
@@ -233,6 +306,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         break
     }
   }
+
+  const appThresholdValuesChanged =
+    appThresholdPrefs.error_good_threshold !== savedAppThresholdPrefs.error_good_threshold ||
+    appThresholdPrefs.error_caution_threshold !== savedAppThresholdPrefs.error_caution_threshold ||
+    appThresholdPrefs.error_spike_min_count_threshold !== savedAppThresholdPrefs.error_spike_min_count_threshold ||
+    appThresholdPrefs.error_spike_min_rate_threshold !== savedAppThresholdPrefs.error_spike_min_rate_threshold
 
   return (
     <div className="flex flex-col items-start">
@@ -364,6 +443,109 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               currentUserCanChangeAppSettings={canWriteSdkConfig}
             />
 
+            <div className="py-8" />
+            <p className="font-display text-xl max-w-6xl">Change Error Thresholds</p>
+            <p className="mt-2 font-body text-xs text-muted-foreground">Error rate thresholds affect dashboard overview error-rate status and daily summary email/Slack status icons. Anything below <span className="text-yellow-600 dark:text-yellow-500 font-bold">Caution</span> level is considered <span className="text-red-600 dark:text-red-500 font-bold">Poor</span>.</p>
+            {fetchAppThresholdPrefsApiStatus === FetchAppThresholdPrefsApiStatus.Loading && <LoadingSpinner />}
+            {fetchAppThresholdPrefsApiStatus === FetchAppThresholdPrefsApiStatus.Error && <p className="font-body text-sm">Error fetching app threshold preferences, please refresh page to try again</p>}
+            {fetchAppThresholdPrefsApiStatus === FetchAppThresholdPrefsApiStatus.Success &&
+              <div className="flex flex-col items-start mt-6 gap-3 w-full">
+                <div className="flex flex-row items-center gap-2">
+                  <p className="font-body text-sm w-80">Error rates <span className="text-green-600 dark:text-green-500 font-bold">Good</span> threshold (%)</p>
+                  <SdkConfigNumericInput
+                    value={appThresholdPrefs.error_good_threshold}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.1}
+                    type="float"
+                    precision={1}
+                    fixedWidth={14}
+                    disabled={!canChangeAppThresholdPrefs || updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading}
+                    onChange={(value) => {
+                      setAppThresholdPrefs({
+                        ...appThresholdPrefs,
+                        error_good_threshold: value,
+                      })
+                      setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Init)
+                    }}
+                    testId="error-good-threshold-input"
+                  />
+                </div>
+                <div className="flex flex-row items-center gap-2">
+                  <p className="font-body text-sm w-80">Error rates <span className="text-yellow-600 dark:text-yellow-500 font-bold">Caution</span> threshold (%)</p>
+                  <SdkConfigNumericInput
+                    value={appThresholdPrefs.error_caution_threshold}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.1}
+                    type="float"
+                    precision={1}
+                    fixedWidth={14}
+                    disabled={!canChangeAppThresholdPrefs || updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading}
+                    onChange={(value) => {
+                      setAppThresholdPrefs({
+                        ...appThresholdPrefs,
+                        error_caution_threshold: value,
+                      })
+                      setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Init)
+                    }}
+                    testId="error-caution-threshold-input"
+                  />
+                </div>
+                <p className="mt-6 font-body text-xs text-muted-foreground">An error alert is triggered when an error group reaches the configured minimum error count and the percentage of sessions it impacts meets or exceeds the spike threshold within an hour.</p>
+                <div className="flex flex-row items-center gap-2 mt-2">
+                  <p className="font-body text-sm w-80">Minimum error count to trigger a spike alert</p>
+                  <SdkConfigNumericInput
+                    value={appThresholdPrefs.error_spike_min_count_threshold}
+                    minValue={1}
+                    maxValue={1000000}
+                    step={1}
+                    type="integer"
+                    fixedWidth={14}
+                    disabled={!canChangeAppThresholdPrefs || updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading}
+                    onChange={(value) => {
+                      setAppThresholdPrefs({
+                        ...appThresholdPrefs,
+                        error_spike_min_count_threshold: value,
+                      })
+                      setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Init)
+                    }}
+                    testId="error-spike-min-count-threshold-input"
+                  />
+                </div>
+                <div className="flex flex-row items-center gap-2">
+                  <p className="font-body text-sm w-80">Spike alert threshold (%)</p>
+                  <SdkConfigNumericInput
+                    value={appThresholdPrefs.error_spike_min_rate_threshold}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.1}
+                    type="float"
+                    precision={1}
+                    fixedWidth={14}
+                    disabled={!canChangeAppThresholdPrefs || updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading}
+                    onChange={(value) => {
+                      setAppThresholdPrefs({
+                        ...appThresholdPrefs,
+                        error_spike_min_rate_threshold: value,
+                      })
+                      setUpdateAppThresholdPrefsApiStatus(UpdateAppThresholdPrefsApiStatus.Init)
+                    }}
+                    testId="error-spike-min-rate-threshold-input"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-fit py-2 mt-4"
+                  disabled={!canChangeAppThresholdPrefs || updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading || !appThresholdValuesChanged}
+                  loading={updateAppThresholdPrefsApiStatus === UpdateAppThresholdPrefsApiStatus.Loading}
+                  aria-label="Save thresholds"
+                  onClick={updateAppThresholdPrefs}
+                >
+                  Save
+                </Button>
+              </div>
+            }
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Configure Data Retention</p>
             <div className="flex flex-row items-center mt-2">

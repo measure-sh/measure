@@ -1,7 +1,7 @@
 import TeamOverview from '@/app/[teamId]/team/page'
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { act, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mockToastPositive = jest.fn()
 const mockToastNegative = jest.fn()
@@ -48,7 +48,6 @@ const defaultAuthz = {
   can_write_sdk_config: true,
   can_rename_team: true,
   can_manage_slack: true,
-  can_change_team_threshold_prefs: true,
   members: [
     {
       id: 'user-1',
@@ -101,13 +100,7 @@ jest.mock('@/app/api/api_calls', () => ({
   FetchTeamSlackConnectUrlApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
   FetchTeamSlackStatusApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
   UpdateTeamSlackStatusApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
-  FetchTeamThresholdPrefsApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
-  UpdateTeamThresholdPrefsApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
   TestSlackAlertApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
-  defaultTeamThresholdPrefs: {
-    error_good_threshold: 95,
-    error_caution_threshold: 85,
-  },
   defaultAuthzAndMembers: {
     can_invite_roles: ['viewer'],
     can_change_billing: false,
@@ -118,7 +111,6 @@ jest.mock('@/app/api/api_calls', () => ({
     can_write_sdk_config: false,
     can_rename_team: false,
     can_manage_slack: false,
-    can_change_team_threshold_prefs: false,
     members: [],
   },
   fetchTeamsFromServer: jest.fn(() => Promise.resolve({
@@ -135,9 +127,7 @@ jest.mock('@/app/api/api_calls', () => ({
   removePendingInviteFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
   fetchTeamSlackConnectUrlFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { url: 'https://slack/connect' } })),
   fetchTeamSlackStatusFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { slack_team_name: 'Measure', is_active: true } })),
-  fetchTeamThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85 } })),
   updateTeamSlackStatusFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  updateTeamThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
   sendTestSlackAlertFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
 }))
 
@@ -222,9 +212,12 @@ jest.mock('@/app/components/confirmation_dialog', () => ({
   },
 }))
 
-const renderPage = async () => {
+const renderPage = async ({ waitForSlack = true }: { waitForSlack?: boolean } = {}) => {
   render(<TeamOverview params={{ teamId: 'team-1' }} />)
   await screen.findByText('Invite Team Members')
+  if (waitForSlack) {
+    await screen.findByTestId('slack-switch')
+  }
 }
 
 describe('Team Page', () => {
@@ -249,9 +242,7 @@ describe('Team Page', () => {
     apiCalls.removePendingInviteFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
     apiCalls.fetchTeamSlackConnectUrlFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: { url: 'https://slack/connect' } }))
     apiCalls.fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: { slack_team_name: 'Measure', is_active: true } }))
-    apiCalls.fetchTeamThresholdPrefsFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85 } }))
     apiCalls.updateTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.updateTeamThresholdPrefsFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
     apiCalls.sendTestSlackAlertFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
     mockSearchParamsGet.mockReset()
     mockSearchParamsGet.mockImplementation(() => null)
@@ -277,7 +268,6 @@ describe('Team Page', () => {
     expect(screen.getByText('Team')).toBeInTheDocument()
     expect(screen.getByText('Members')).toBeInTheDocument()
     expect(screen.getByText('Pending Invites')).toBeInTheDocument()
-    expect(screen.getByText('Change Thresholds')).toBeInTheDocument()
     expect(screen.getByText('Slack Integration')).toBeInTheDocument()
     expect(screen.getByText('Change Team Name')).toBeInTheDocument()
   })
@@ -303,7 +293,7 @@ describe('Team Page', () => {
   it('shows members loading spinner while authz API is pending', async () => {
     const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
     fetchAuthzAndMembersFromServer.mockImplementationOnce(
-      () => new Promise(() => {})
+      () => new Promise(() => { })
     )
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
@@ -324,7 +314,7 @@ describe('Team Page', () => {
   it('shows pending invites loading spinner while pending invites API is pending', async () => {
     const { fetchPendingInvitesFromServer } = require('@/app/api/api_calls')
     fetchPendingInvitesFromServer.mockImplementationOnce(
-      () => new Promise(() => {})
+      () => new Promise(() => { })
     )
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
@@ -605,129 +595,6 @@ describe('Team Page', () => {
     expect(screen.getByRole('button', { name: 'Send Test Alert' })).toBeDisabled()
   })
 
-  describe('Threshold Preferences', () => {
-    it('disables threshold actions when can_change_team_threshold_prefs is false', async () => {
-      const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-      fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-        status: 'success',
-        data: { ...defaultAuthz, can_change_team_threshold_prefs: false },
-      }))
-
-      await renderPage()
-
-      expect(screen.getByRole('button', { name: 'Save thresholds' })).toBeDisabled()
-      const inputs = screen.getAllByRole('spinbutton')
-      expect(inputs[0]).toBeDisabled()
-      expect(inputs[1]).toBeDisabled()
-    })
-
-    it('updates threshold prefs successfully', async () => {
-      const { updateTeamThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      await renderPage()
-
-      const inputs = screen.getAllByRole('spinbutton')
-      fireEvent.change(inputs[0], { target: { value: '97' } })
-      fireEvent.change(inputs[1], { target: { value: '88' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Save thresholds' }))
-
-      await waitFor(() => {
-        expect(updateTeamThresholdPrefsFromServer).toHaveBeenCalledWith('team-1', {
-          error_good_threshold: 97,
-          error_caution_threshold: 88,
-        })
-        expect(mockToastPositive).toHaveBeenCalledWith('Thresholds updated successfully')
-      })
-    })
-
-    it('enables Save for threshold changes and disables when reverted', async () => {
-      await renderPage()
-
-      const saveThresholdsButton = screen.getByRole('button', { name: 'Save thresholds' })
-      const inputs = screen.getAllByRole('spinbutton')
-      expect(saveThresholdsButton).toBeDisabled()
-
-      fireEvent.change(inputs[0], { target: { value: '97' } })
-      expect(saveThresholdsButton).not.toBeDisabled()
-
-      fireEvent.change(inputs[0], { target: { value: '95' } })
-      expect(saveThresholdsButton).toBeDisabled()
-    })
-
-    it('normalizes leading zero threshold input on blur', async () => {
-      await renderPage()
-
-      const inputs = screen.getAllByRole('spinbutton') as HTMLInputElement[]
-      fireEvent.change(inputs[0], { target: { value: '5' } })
-      expect(inputs[0].value).toBe('5')
-
-      fireEvent.change(inputs[0], { target: { value: '0005' } })
-      fireEvent.blur(inputs[0])
-
-      expect(inputs[0].value).toBe('5')
-    })
-
-    it('clamps threshold values to [0, 100] before saving', async () => {
-      const { updateTeamThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      await renderPage()
-
-      const inputs = screen.getAllByRole('spinbutton')
-      fireEvent.change(inputs[0], { target: { value: '101' } })
-      fireEvent.change(inputs[1], { target: { value: '-1' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Save thresholds' }))
-
-      await waitFor(() => {
-        expect(updateTeamThresholdPrefsFromServer).toHaveBeenCalledWith('team-1', {
-          error_good_threshold: 100,
-          error_caution_threshold: 0,
-        })
-      })
-    })
-
-    it('shows validation error when good threshold is not greater than caution threshold', async () => {
-      const { updateTeamThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      await renderPage()
-
-      const inputs = screen.getAllByRole('spinbutton')
-      fireEvent.change(inputs[0], { target: { value: '80' } })
-      fireEvent.change(inputs[1], { target: { value: '90' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Save thresholds' }))
-
-      expect(updateTeamThresholdPrefsFromServer).not.toHaveBeenCalled()
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        'Error updating thresholds',
-        'Good threshold must be greater than caution threshold',
-      )
-    })
-
-    it('shows error toast when threshold update API fails', async () => {
-      const { updateTeamThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      updateTeamThresholdPrefsFromServer.mockImplementationOnce(() => Promise.resolve({
-        status: 'error',
-        error: 'failed',
-      }))
-
-      await renderPage()
-
-      const inputs = screen.getAllByRole('spinbutton')
-      fireEvent.change(inputs[0], { target: { value: '97' } })
-      fireEvent.change(inputs[1], { target: { value: '88' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Save thresholds' }))
-
-      await waitFor(() => {
-        expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'failed')
-      })
-    })
-
-    it('shows threshold prefs fetch error', async () => {
-      const { fetchTeamThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      fetchTeamThresholdPrefsFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
-
-      await renderPage()
-
-      expect(await screen.findByText('Error fetching team threshold preferences, please refresh page to try again')).toBeInTheDocument()
-    })
-  })
-
   it('handles slack enable/disable and test alert actions', async () => {
     const {
       fetchTeamSlackStatusFromServer,
@@ -770,7 +637,7 @@ describe('Team Page', () => {
       data: null,
     }))
 
-    await renderPage()
+    await renderPage({ waitForSlack: false })
 
     const addToSlackImage = await screen.findByAltText('Add to Slack')
     const link = addToSlackImage.closest('a')
@@ -785,7 +652,7 @@ describe('Team Page', () => {
       status: 'error',
     }))
 
-    await renderPage()
+    await renderPage({ waitForSlack: false })
 
     expect(await screen.findByText((content) => content.includes('Error fetching Slack Integration status'))).toBeInTheDocument()
   })
@@ -796,7 +663,7 @@ describe('Team Page', () => {
       status: 'error',
     }))
 
-    await renderPage()
+    await renderPage({ waitForSlack: false })
 
     expect(await screen.findByText((content) => content.includes('Error fetching Slack Integration status'))).toBeInTheDocument()
   })
@@ -868,7 +735,7 @@ describe('Team Page', () => {
       data: null,
     }))
 
-    await renderPage()
+    await renderPage({ waitForSlack: false })
 
     const addToSlackImage = await screen.findByAltText('Add to Slack')
     const link = addToSlackImage.closest('a')!
@@ -932,14 +799,14 @@ describe('Team Page', () => {
   it('logs error and skips slack connect URL fetch when session lookup fails', async () => {
     const { measureAuth } = require('@/app/auth/measure_auth')
     const { fetchTeamSlackConnectUrlFromServer } = require('@/app/api/api_calls')
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
 
     measureAuth.getSession.mockImplementationOnce(() => Promise.resolve({
       session: null,
       error: new Error('session failed'),
     }))
 
-    await renderPage()
+    await renderPage({ waitForSlack: false })
 
     await waitFor(() => {
       expect(consoleErrorSpy).toHaveBeenCalled()

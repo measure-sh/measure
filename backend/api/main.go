@@ -130,6 +130,10 @@ func main() {
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
 
+		// threshold preferences
+		apps.GET(":id/thresholdPrefs", measure.GetAppThresholdPrefs)
+		apps.PATCH(":id/thresholdPrefs", measure.UpdateAppThresholdPrefs)
+
 		// app management
 		apps.GET(":id/config", measure.GetConfig)
 		apps.PATCH(":id/config", measure.PatchConfig)
@@ -159,8 +163,6 @@ func main() {
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
 		teams.GET(":id/usage", measure.GetUsage)
-		teams.GET(":id/thresholdPrefs", measure.GetTeamThresholdPrefs)
-		teams.PATCH(":id/thresholdPrefs", measure.UpdateTeamThresholdPrefs)
 		teams.GET(":id/slack", measure.GetTeamSlack)
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", measure.SendTestSlackAlert)

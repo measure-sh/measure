@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import {
-  FetchTeamThresholdPrefsApiStatus,
+  FetchAppThresholdPrefsApiStatus,
   MetricsApiStatus,
-  defaultTeamThresholdPrefs,
+  defaultAppThresholdPrefs,
   emptyMetrics,
-  fetchMetricsFromServer,
-  fetchTeamThresholdPrefsFromServer
+  fetchAppThresholdPrefsFromServer,
+  fetchMetricsFromServer
 } from '../api/api_calls'
 import { Filters } from './filters'
 import MetricsCard from './metrics_card'
@@ -33,7 +33,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
   const [metrics, setMetrics] = useState(emptyMetrics)
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading)
-  const [teamThresholdPrefs, setTeamThresholdPrefs] = useState(defaultTeamThresholdPrefs)
+  const [appThresholdPrefs, setAppThresholdPrefs] = useState(defaultAppThresholdPrefs)
 
   const getMetrics = async () => {
     if (demo) {
@@ -67,7 +67,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
   }, [filters])
 
   useEffect(() => {
-    const getTeamThresholdPrefs = async () => {
+    const getAppThresholdPrefs = async () => {
       if (demo) {
         return
       }
@@ -75,20 +75,20 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
         return
       }
 
-      const result = await fetchTeamThresholdPrefsFromServer(filters.app.team_id)
+      const result = await fetchAppThresholdPrefsFromServer(filters.app.id)
       switch (result.status) {
-        case FetchTeamThresholdPrefsApiStatus.Success:
-          setTeamThresholdPrefs(result.data)
+        case FetchAppThresholdPrefsApiStatus.Success:
+          setAppThresholdPrefs(result.data)
           break
-        case FetchTeamThresholdPrefsApiStatus.Error:
-        case FetchTeamThresholdPrefsApiStatus.Cancelled:
+        case FetchAppThresholdPrefsApiStatus.Error:
+        case FetchAppThresholdPrefsApiStatus.Cancelled:
           // On API failure, fall back to defaults.
-          setTeamThresholdPrefs(defaultTeamThresholdPrefs)
+          setAppThresholdPrefs(defaultAppThresholdPrefs)
           break
       }
     }
 
-    getTeamThresholdPrefs()
+    getAppThresholdPrefs()
   }, [demo, filters])
 
   return (
@@ -108,8 +108,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
         noData={metrics.crash_free_sessions.nan}
         value={metrics.crash_free_sessions.crash_free_sessions}
         delta={metrics.crash_free_sessions.delta}
-        errorGoodThreshold={teamThresholdPrefs.error_good_threshold}
-        errorCautionThreshold={teamThresholdPrefs.error_caution_threshold}
+        errorGoodThreshold={appThresholdPrefs.error_good_threshold}
+        errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
       />
 
       <MetricsCard
@@ -118,8 +118,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
         noData={metrics.perceived_crash_free_sessions.nan}
         value={metrics.perceived_crash_free_sessions.perceived_crash_free_sessions}
         delta={metrics.perceived_crash_free_sessions.delta}
-        errorGoodThreshold={teamThresholdPrefs.error_good_threshold}
-        errorCautionThreshold={teamThresholdPrefs.error_caution_threshold}
+        errorGoodThreshold={appThresholdPrefs.error_good_threshold}
+        errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
       />
 
       {metrics.anr_free_sessions && (
@@ -129,8 +129,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
           noData={metrics.anr_free_sessions.nan}
           value={metrics.anr_free_sessions.anr_free_sessions}
           delta={metrics.anr_free_sessions.delta}
-          errorGoodThreshold={teamThresholdPrefs.error_good_threshold}
-          errorCautionThreshold={teamThresholdPrefs.error_caution_threshold}
+          errorGoodThreshold={appThresholdPrefs.error_good_threshold}
+          errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
         />
       )}
 
@@ -141,8 +141,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
           noData={metrics.perceived_anr_free_sessions.nan}
           value={metrics.perceived_anr_free_sessions.perceived_anr_free_sessions}
           delta={metrics.perceived_anr_free_sessions.delta}
-          errorGoodThreshold={teamThresholdPrefs.error_good_threshold}
-          errorCautionThreshold={teamThresholdPrefs.error_caution_threshold}
+          errorGoodThreshold={appThresholdPrefs.error_good_threshold}
+          errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
         />
       )}
 

@@ -95,6 +95,26 @@ jest.mock('@/app/api/api_calls', () => ({
     Error: 'error',
     Cancelled: 'cancelled',
   },
+  FetchAppThresholdPrefsApiStatus: {
+    Init: 'init',
+    Loading: 'loading',
+    Success: 'success',
+    Error: 'error',
+    Cancelled: 'cancelled',
+  },
+  UpdateAppThresholdPrefsApiStatus: {
+    Init: 'init',
+    Loading: 'loading',
+    Success: 'success',
+    Error: 'error',
+    Cancelled: 'cancelled',
+  },
+  defaultAppThresholdPrefs: {
+    error_good_threshold: 95,
+    error_caution_threshold: 85,
+    error_spike_min_count_threshold: 100,
+    error_spike_min_rate_threshold: 0.5,
+  },
   FilterSource: {
     Events: 'events',
   },
@@ -110,6 +130,7 @@ jest.mock('@/app/api/api_calls', () => ({
         can_change_retention: true,
         can_rotate_api_key: true,
         can_write_sdk_config: true,
+        can_change_app_threshold_prefs: true,
         members: [],
       },
     })
@@ -134,6 +155,8 @@ jest.mock('@/app/api/api_calls', () => ({
   ),
   changeAppNameFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
   changeAppApiKeyFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
+  fetchAppThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 } })),
+  updateAppThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
 }))
 
 jest.mock('@/app/components/filters', () => {
@@ -897,6 +920,290 @@ describe('Apps Page', () => {
 
     await waitFor(() => {
       expect(retentionSaveButton).not.toBeDisabled()
+    })
+  })
+
+  describe('Threshold Preferences', () => {
+    it('shows threshold sections after app filters load', async () => {
+      await renderLoadedPage()
+
+      expect(await screen.findByText('Change Error Thresholds')).toBeInTheDocument()
+    })
+
+    it('shows loading state while threshold prefs are fetched', async () => {
+      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      let resolvePromise: (value: any) => void
+      const loadingPromise = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
+      fetchAppThresholdPrefsFromServer.mockImplementationOnce(() => loadingPromise)
+
+      await renderPage()
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('update-filters'))
+      })
+
+      const spinners = screen.getAllByTestId('loading-spinner-mock')
+      expect(spinners.length).toBeGreaterThanOrEqual(1)
+
+      await act(async () => {
+        resolvePromise!({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 } })
+      })
+    })
+
+    it('shows error message when threshold prefs fetch fails', async () => {
+      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+      fetchAppThresholdPrefsFromServer.mockImplementationOnce(() =>
+        Promise.resolve({ status: 'error' })
+      )
+
+      await renderLoadedPage()
+
+      const errorMessages = screen.getAllByText(/Error fetching app threshold preferences/)
+      expect(errorMessages.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('shows threshold inputs with fetched values', async () => {
+      await renderLoadedPage()
+
+      expect(screen.getByTestId('error-good-threshold-input')).toHaveValue(95)
+      expect(screen.getByTestId('error-caution-threshold-input')).toHaveValue(85)
+      expect(screen.getByTestId('error-spike-min-count-threshold-input')).toHaveValue(100)
+      expect(screen.getByTestId('error-spike-min-rate-threshold-input')).toHaveValue(0.5)
+    })
+
+    it('threshold save button is disabled when no changes have been made', async () => {
+      await renderLoadedPage()
+
+      expect(screen.getByRole('button', { name: 'Save thresholds' })).toBeDisabled()
+    })
+
+    it('threshold save button enabled when good threshold changes', async () => {
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      expect(saveButtons[0]).not.toBeDisabled()
+    })
+
+    it('threshold save button enabled when caution threshold changes', async () => {
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-caution-threshold-input'), { target: { value: '80' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      expect(saveButtons[0]).not.toBeDisabled()
+    })
+
+    it('threshold save button enabled when spike min count changes', async () => {
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-spike-min-count-threshold-input'), { target: { value: '200' } })
+      })
+
+      expect(screen.getByRole('button', { name: 'Save thresholds' })).not.toBeDisabled()
+    })
+
+    it('threshold save button enabled when spike rate changes', async () => {
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-spike-min-rate-threshold-input'), { target: { value: '1' } })
+      })
+
+      expect(screen.getByRole('button', { name: 'Save thresholds' })).not.toBeDisabled()
+    })
+
+    it('updates threshold prefs successfully and shows toast', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledWith('app-1', {
+        error_good_threshold: 90,
+        error_caution_threshold: 85,
+        error_spike_min_count_threshold: 100,
+        error_spike_min_rate_threshold: 0.5,
+      })
+      expect(mockToastPositive).toHaveBeenCalledWith('Thresholds updated successfully')
+    })
+
+    it('disables threshold save buttons while update is in progress and prevents double submit', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      let resolvePromise: (value: any) => void
+      const pendingPromise = new Promise((resolve) => {
+        resolvePromise = resolve
+      })
+      updateAppThresholdPrefsFromServer.mockImplementationOnce(() => pendingPromise)
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      expect(saveButtons[0]).toBeDisabled()
+      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        resolvePromise!({ status: 'success' })
+      })
+    })
+
+    it('shows error toast when threshold update fails', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+      updateAppThresholdPrefsFromServer.mockImplementationOnce(() =>
+        Promise.resolve({ status: 'error', error: 'update failed' })
+      )
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'update failed')
+    })
+
+    it('handles cancelled threshold update without toasts', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+      updateAppThresholdPrefsFromServer.mockImplementationOnce(() =>
+        Promise.resolve({ status: 'cancelled' })
+      )
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      expect(mockToastPositive).not.toHaveBeenCalled()
+      expect(mockToastNegative).not.toHaveBeenCalled()
+    })
+
+    it('disables threshold inputs for users without can_change_app_threshold_prefs', async () => {
+      const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
+      fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
+        Promise.resolve({
+          status: 'success',
+          data: {
+            can_create_app: true,
+            can_rename_app: true,
+            can_change_retention: true,
+            can_rotate_api_key: true,
+            can_write_sdk_config: true,
+            can_change_app_threshold_prefs: false,
+            members: [],
+          },
+        })
+      )
+
+      await renderLoadedPage()
+
+      expect(screen.getByTestId('error-good-threshold-input')).toBeDisabled()
+      expect(screen.getByTestId('error-caution-threshold-input')).toBeDisabled()
+      expect(screen.getByTestId('error-spike-min-count-threshold-input')).toBeDisabled()
+      expect(screen.getByTestId('error-spike-min-rate-threshold-input')).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Save thresholds' })).toBeDisabled()
+    })
+
+    it('shows validation error when good threshold is not greater than caution', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '80' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'Good threshold must be greater than caution threshold')
+      expect(updateAppThresholdPrefsFromServer).not.toHaveBeenCalled()
+    })
+
+    it('shows validation error when spike rate threshold is zero', async () => {
+      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-spike-min-rate-threshold-input'), { target: { value: '0' } })
+      })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save thresholds' }))
+      })
+
+      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'Spike threshold must be between 0 (exclusive) and 100')
+      expect(updateAppThresholdPrefsFromServer).not.toHaveBeenCalled()
+    })
+
+    it('calls fetchAppThresholdPrefsFromServer with the app id', async () => {
+      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      await renderLoadedPage()
+
+      expect(fetchAppThresholdPrefsFromServer).toHaveBeenCalledWith('app-1')
+    })
+
+    it('re-fetches threshold prefs after successful save', async () => {
+      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
+
+      await renderLoadedPage()
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
+      })
+
+      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
+      await act(async () => {
+        fireEvent.click(saveButtons[0])
+      })
+
+      // called once on load, once after successful save
+      expect(fetchAppThresholdPrefsFromServer).toHaveBeenCalledTimes(2)
     })
   })
 })
