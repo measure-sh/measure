@@ -14,6 +14,174 @@ import (
 	"github.com/stripe/stripe-go/v84"
 )
 
+// --------------------------------------------------------------------------
+// GetSubscriptionInfo
+// --------------------------------------------------------------------------
+
+func TestGetSubscriptionInfo(t *testing.T) {
+	t.Run("team not found", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, uuid.New())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrTeamBillingNotFound) {
+			t.Errorf("want ErrTeamBillingNotFound, got %v", err)
+		}
+	})
+
+	t.Run("free plan", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "free-team", true)
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNotOnProPlan) {
+			t.Errorf("want ErrNotOnProPlan, got %v", err)
+		}
+	})
+
+	t.Run("pro plan but no subscription id", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), nil)
+
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNotOnProPlan) {
+			t.Errorf("want ErrNotOnProPlan, got %v", err)
+		}
+	})
+
+	t.Run("stripe subscription error", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return nil, errors.New("stripe error")
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("invoice preview error returns nil upcoming invoice", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return nil, errors.New("invoice preview error")
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if info.Status != string(stripe.SubscriptionStatusActive) {
+			t.Errorf("status = %q, want %q", info.Status, stripe.SubscriptionStatusActive)
+		}
+		if info.UpcomingInvoice != nil {
+			t.Error("expected UpcomingInvoice to be nil when preview fails")
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{
+				AmountDue: 5000,
+				Currency:  stripe.CurrencyUSD,
+			}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		if err != nil {
+			t.Fatalf("GetSubscriptionInfo: %v", err)
+		}
+		if info.Status != string(stripe.SubscriptionStatusActive) {
+			t.Errorf("status = %q, want %q", info.Status, stripe.SubscriptionStatusActive)
+		}
+		if info.CurrentPeriodStart != 1700000000 {
+			t.Errorf("current_period_start = %d, want 1700000000", info.CurrentPeriodStart)
+		}
+		if info.CurrentPeriodEnd != 1702678400 {
+			t.Errorf("current_period_end = %d, want 1702678400", info.CurrentPeriodEnd)
+		}
+		if info.UpcomingInvoice == nil {
+			t.Fatal("expected UpcomingInvoice to be non-nil")
+		}
+		if info.UpcomingInvoice.AmountDue != 5000 {
+			t.Errorf("amount_due = %d, want 5000", info.UpcomingInvoice.AmountDue)
+		}
+		if info.UpcomingInvoice.Currency != string(stripe.CurrencyUSD) {
+			t.Errorf("currency = %q, want %q", info.UpcomingInvoice.Currency, stripe.CurrencyUSD)
+		}
+	})
+}
+
 const testCheckoutUserEmail = "user@test.com"
 
 // --------------------------------------------------------------------------

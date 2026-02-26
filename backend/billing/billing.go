@@ -14,6 +14,7 @@ import (
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/customer"
+	"github.com/stripe/stripe-go/v84/invoice"
 	"github.com/stripe/stripe-go/v84/subscription"
 	"github.com/valkey-io/valkey-go"
 )
@@ -32,12 +33,15 @@ var (
 	ErrTeamBillingNotFound = fmt.Errorf("team billing not found")
 	ErrAlreadyOnFreePlan   = fmt.Errorf("team is already on free plan")
 	ErrAlreadyOnProPlan    = fmt.Errorf("team is already on pro plan")
+	ErrNotOnProPlan        = fmt.Errorf("team is not on pro plan")
 
 	// Stripe SDK calls — swappable in tests.
 	CancelSubscriptionFn          = subscription.Cancel
 	CreateStripeCustomerFn        = customer.New
 	CreateStripeCheckoutSessionFn = session.New
 	FindActiveSubscriptionFn      = FindActiveSubscription
+	GetStripeSubscriptionFn       = subscription.Get
+	CreateInvoicePreviewFn        = invoice.CreatePreview
 )
 
 // Deps bundles all external dependencies for orchestrator functions
@@ -62,6 +66,75 @@ type TeamBilling struct {
 	StripeSubscriptionID *string   `json:"stripe_subscription_id" db:"stripe_subscription_id"`
 	CreatedAt            time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// UpcomingInvoiceInfo holds the upcoming invoice data returned to the frontend.
+type UpcomingInvoiceInfo struct {
+	AmountDue int64  `json:"amount_due"`
+	Currency  string `json:"currency"`
+}
+
+// SubscriptionInfo holds the subscription data returned to the frontend.
+type SubscriptionInfo struct {
+	Status             string               `json:"status"`
+	CurrentPeriodStart int64                `json:"current_period_start"`
+	CurrentPeriodEnd   int64                `json:"current_period_end"`
+	UpcomingInvoice    *UpcomingInvoiceInfo `json:"upcoming_invoice"`
+}
+
+// GetSubscriptionInfo fetches live subscription status and upcoming invoice
+// from Stripe for the given team. The team must be on the pro plan.
+func GetSubscriptionInfo(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID) (*SubscriptionInfo, error) {
+	cfg, err := GetTeamBilling(ctx, pool, teamID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrTeamBillingNotFound
+		}
+		return nil, fmt.Errorf("error querying team billing: %w", err)
+	}
+
+	if cfg.Plan != "pro" {
+		return nil, ErrNotOnProPlan
+	}
+
+	if cfg.StripeSubscriptionID == nil || *cfg.StripeSubscriptionID == "" {
+		return nil, ErrNotOnProPlan
+	}
+
+	sub, err := GetStripeSubscriptionFn(*cfg.StripeSubscriptionID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch stripe subscription: %w", err)
+	}
+
+	info := &SubscriptionInfo{
+		Status: string(sub.Status),
+	}
+
+	// CurrentPeriodStart/End live on the first subscription item in v84.
+	if sub.Items != nil && len(sub.Items.Data) > 0 {
+		item := sub.Items.Data[0]
+		info.CurrentPeriodStart = item.CurrentPeriodStart
+		info.CurrentPeriodEnd = item.CurrentPeriodEnd
+	}
+
+	// Fetch upcoming invoice preview — best-effort, nil on failure.
+	if cfg.StripeCustomerID != nil && *cfg.StripeCustomerID != "" {
+		invParams := &stripe.InvoiceCreatePreviewParams{
+			Customer:     stripe.String(*cfg.StripeCustomerID),
+			Subscription: stripe.String(*cfg.StripeSubscriptionID),
+		}
+		inv, err := CreateInvoicePreviewFn(invParams)
+		if err == nil {
+			info.UpcomingInvoice = &UpcomingInvoiceInfo{
+				AmountDue: inv.AmountDue,
+				Currency:  string(inv.Currency),
+			}
+		} else {
+			log.Printf("failed to fetch upcoming invoice for team %s: %v", teamID, err)
+		}
+	}
+
+	return info, nil
 }
 
 // GetTeamBilling reads the team_billing row for the given team.

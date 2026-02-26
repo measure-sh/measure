@@ -46,6 +46,12 @@ jest.mock('@/app/api/api_calls', () => ({
         Error: 2,
         Cancelled: 3,
     },
+    FetchSubscriptionInfoApiStatus: {
+        Loading: 0,
+        Success: 1,
+        Error: 2,
+        Cancelled: 3,
+    },
     emptyUsage: [
         {
             app_id: '',
@@ -105,6 +111,17 @@ jest.mock('@/app/api/api_calls', () => ({
                 members: [
                     { id: 'user1', name: 'Test User', email: 'test@test.com', role: 'owner' },
                 ],
+            },
+        })
+    ),
+    fetchSubscriptionInfoFromServer: jest.fn(() =>
+        Promise.resolve({
+            status: 1, // Success
+            data: {
+                status: 'active',
+                current_period_start: 1700000000,
+                current_period_end: 1702678400,
+                upcoming_invoice: { amount_due: 5000, currency: 'usd' },
             },
         })
     ),
@@ -790,5 +807,160 @@ describe('Usage Page', () => {
 
         // Verify toast
         expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('downgraded to Free'))
+    })
+
+    it('shows subscription info on pro plan when user can change billing', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(fetchSubscriptionInfoFromServer).toHaveBeenCalledWith('team1')
+        expect(screen.getByText(/Status:/)).toBeInTheDocument()
+        expect(screen.getByText(/active/i)).toBeInTheDocument()
+        expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
+        expect(screen.getByText(/Next invoice:/)).toBeInTheDocument()
+        expect(screen.getByText(/Upcoming invoice amount/)).toBeInTheDocument()
+    })
+
+    it('does not fetch subscription info when on free plan', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'free',
+                    stripe_customer_id: null,
+                    stripe_subscription_id: null,
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        // Free plan — subscription info should not be fetched
+        expect(fetchSubscriptionInfoFromServer).not.toHaveBeenCalled()
+    })
+
+    it('does not fetch subscription info when can_change_billing is false', async () => {
+        const { fetchBillingInfoFromServer, fetchAuthzAndMembersFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    can_change_billing: false,
+                    members: [
+                        { id: 'user1', name: 'Test User', email: 'test@test.com', role: 'viewer' },
+                    ],
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(fetchSubscriptionInfoFromServer).not.toHaveBeenCalled()
+    })
+
+    it('handles subscription info fetch error gracefully', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({ status: 2, data: null }) // Error
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        // Subscription info section should be absent, no crash
+        expect(screen.queryByText(/Status:/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Next invoice:/)).not.toBeInTheDocument()
+        expect(screen.getByText('PRO')).toBeInTheDocument()
+    })
+
+    it('shows subscription info without estimated amount when upcoming_invoice is null', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    status: 'active',
+                    current_period_start: 1700000000,
+                    current_period_end: 1702678400,
+                    upcoming_invoice: null,
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText(/Status:/)).toBeInTheDocument()
+        expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
+        expect(screen.getByText(/Next invoice:/)).toBeInTheDocument()
+        expect(screen.queryByText(/Upcoming invoice amount/)).not.toBeInTheDocument()
     })
 })
