@@ -27,7 +27,7 @@ create table http_metrics
     `count_3xx` SimpleAggregateFunction(sum, UInt64) comment 'count of 3xx responses',
     `count_4xx` SimpleAggregateFunction(sum, UInt64) comment 'count of 4xx responses',
     `count_5xx` SimpleAggregateFunction(sum, UInt64) comment 'count of 5xx responses',
-    `latency_percentiles` AggregateFunction(quantiles(0.5, 0.75, 0.90, 0.95, 0.99, 1.0), Int64) comment 'latency percentile states in milliseconds',
+    `latency_percentiles` AggregateFunction(quantiles(0.5, 0.75, 0.90, 0.95, 0.99), Int64) comment 'latency percentile states in milliseconds',
     index idx_status_code `status_code` type set(0) granularity 1,
     index idx_method `method` type set(0) granularity 1
 )
