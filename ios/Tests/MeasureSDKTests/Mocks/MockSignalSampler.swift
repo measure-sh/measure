@@ -13,6 +13,7 @@ final class MockSignalSampler: SignalSampler {
     var shouldTrackTraceReturnValue: Bool = false
     var shouldTrackJourneyEventsReturnValue: Bool = false
     var shouldSampleTraceReturnValue: Bool = false
+    var shouldSampleTHttpEventValue: Bool = false
 
     func shouldTrackTrace() -> Bool {
         return shouldTrackTraceReturnValue
@@ -28,5 +29,9 @@ final class MockSignalSampler: SignalSampler {
     
     func shouldSampleTrace(_ traceId: String) -> Bool {
         return shouldSampleTraceReturnValue
+    }
+    
+    func shouldSampleHttpEvent() -> Bool {
+        return shouldSampleTHttpEventValue
     }
 }

@@ -72,7 +72,7 @@ final class ConfigLoaderTests: XCTestCase {
     }
 
     func testLoadDynamicConfig_returnsConfig_whenValidFileExists() throws {
-        let expected = BaseDynamicConfig.default()
+        let expected = BaseDynamicConfig()
         let data = try JSONEncoder().encode(expected)
 
         mockFileManager.savedFiles["config/config.json"] = data
@@ -108,7 +108,7 @@ final class ConfigLoaderTests: XCTestCase {
     func testLoadConfig_success_updatesFileAndPrefs() throws {
         setupCacheExpired()
 
-        let config = BaseDynamicConfig.default()
+        let config = BaseDynamicConfig()
         let eTag = "new-etag"
         let cache: Number = 3600
 
@@ -130,7 +130,7 @@ final class ConfigLoaderTests: XCTestCase {
     func testLoadConfig_doesNotUpdateEtag_whenNil() {
         setupCacheExpired()
 
-        let config = BaseDynamicConfig.default()
+        let config = BaseDynamicConfig()
         mockNetworkClient.stubConfig(.success(config: config, eTag: nil, cacheControl: 3600))
 
         configLoader.loadDynamicConfig { _ in }

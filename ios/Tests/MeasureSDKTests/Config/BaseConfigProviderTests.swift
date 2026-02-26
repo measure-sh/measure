@@ -29,7 +29,7 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testShouldTrackHttpUrl_exactMatchBlocked() {
-        var config = BaseDynamicConfig.default()
+        var config = BaseDynamicConfig()
         config = BaseDynamicConfig(
             maxEventsInBatch: config.maxEventsInBatch,
             crashTimelineDurationSeconds: config.crashTimelineDurationSeconds,
@@ -56,7 +56,7 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testShouldTrackHttpUrl_wildcardMatch() {
-        var config = BaseDynamicConfig.default()
+        var config = BaseDynamicConfig()
         config = copy(config, disable: ["https://api.example.com/*"])
 
         provider.setDynamicConfig(config)
@@ -67,14 +67,14 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testWildcardInMiddle() {
-        provider.setDynamicConfig(copy(.default(), disable: ["https://api.example.com/*/users"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), disable: ["https://api.example.com/*/users"]))
 
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://api.example.com/data/users"))
         XCTAssertTrue(provider.shouldTrackHttpUrl(url: "https://api.example.com/data/nomatch"))
     }
 
     func testMultipleWildcardPatterns() {
-        provider.setDynamicConfig(copy(.default(), disable: [
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), disable: [
             "https://analytics.example.com/*",
             "https://tracking.example.com/*"
         ]))
@@ -89,21 +89,21 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testRequestBodyMatch() {
-        provider.setDynamicConfig(copy(.default(), request: ["https://api.example.com/*"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), request: ["https://api.example.com/*"]))
 
         XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: nil))
         XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: nil))
     }
 
     func testResponseBodyMatch() {
-        provider.setDynamicConfig(copy(.default(), response: ["https://api.example.com/*"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), response: ["https://api.example.com/*"]))
 
         XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: nil))
         XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: nil))
     }
 
     func testRequestAndResponseIndependent() {
-        provider.setDynamicConfig(copy(.default(),
+        provider.setDynamicConfig(copy(BaseDynamicConfig(),
                                        request: ["https://request.example.com/*"],
                                        response: ["https://response.example.com/*"]))
 
@@ -122,7 +122,7 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testDynamicBlockedHeader() {
-        provider.setDynamicConfig(copy(.default(), blockedHeaders: ["X-Custom-Header"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), blockedHeaders: ["X-Custom-Header"]))
 
         XCTAssertFalse(provider.shouldTrackHttpHeader(key: "X-Custom-Header"))
     }
@@ -139,14 +139,14 @@ final class ConfigProviderTests: XCTestCase {
         let measureUrl = "https://measure.sh/api/v1"
         provider.setMeasureUrl(url: measureUrl)
 
-        provider.setDynamicConfig(copy(.default(), disable: ["https://analytics.example.com/*"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), disable: ["https://analytics.example.com/*"]))
 
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: measureUrl))
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://analytics.example.com/event"))
     }
 
     func testSetDynamicConfigUpdatesValues() {
-        provider.setDynamicConfig(copy(.default(),
+        provider.setDynamicConfig(copy(BaseDynamicConfig(),
                                        traceSamplingRate: 0.5,
                                        crashTakeScreenshot: false,
                                        cpuUsageInterval: 5000))
@@ -157,20 +157,20 @@ final class ConfigProviderTests: XCTestCase {
     }
 
     func testWildcardAtBeginning() {
-        provider.setDynamicConfig(copy(.default(), disable: ["*/api/v1/health"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), disable: ["*/api/v1/health"]))
 
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://example.com/api/v1/health"))
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://other.com/api/v1/health"))
     }
 
     func testWildcardInMiddleHost() {
-        provider.setDynamicConfig(copy(.default(), disable: ["https://*/api/health"]))
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), disable: ["https://*/api/health"]))
 
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://example.com/api/health"))
     }
 
     func testRegexCharactersEscaped() {
-        provider.setDynamicConfig(copy(.default(),
+        provider.setDynamicConfig(copy(BaseDynamicConfig(),
                                        disable: ["https://api.example.com/path?query=value"]))
 
         XCTAssertFalse(provider.shouldTrackHttpUrl(url: "https://api.example.com/path?query=value"))

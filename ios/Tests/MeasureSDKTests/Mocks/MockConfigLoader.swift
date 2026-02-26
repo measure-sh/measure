@@ -13,7 +13,7 @@ final class MockConfigLoader: ConfigLoader {
 
     private(set) var didLoadConfig: Bool = false
 
-    init(config: DynamicConfig = BaseDynamicConfig.default()) {
+    init(config: DynamicConfig = BaseDynamicConfig()) {
         self.config = config
     }
 
