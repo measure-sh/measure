@@ -60,6 +60,9 @@
             android:name=".OkHttpActivity"
             android:exported="false" />
         <activity
+            android:name=".ConfigureCredentialsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ComposeActivity"
             android:exported="false" />
         <activity
