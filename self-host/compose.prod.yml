@@ -34,6 +34,20 @@ services:
         max-size: 10m
         max-file: 5
 
+  ingest:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
   cleanup:
     build:
       args:

@@ -13,6 +13,20 @@ target "api" {
   platforms = ["linux/amd64"]
 }
 
+target "ingest" {
+  inherits = ["docker-metadata-action"]
+  context = "backend/ingest"
+  contexts = {
+    api = "backend/api"
+    email = "backend/email"
+    billing = "backend/billing"
+  }
+  dockerfile = "dockerfile"
+  cache-from = ["type=gha"]
+  cache-to = ["type=gha,mode=max"]
+  platforms = ["linux/amd64"]
+}
+
 target "alerts" {
   inherits = ["docker-metadata-action"]
   context = "backend/alerts"
