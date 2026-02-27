@@ -35,6 +35,15 @@ internal interface SessionManager {
     fun getSessionId(): String
 
     /**
+     * Returns the start time of the current session.
+     *
+     * @throws IllegalArgumentException if the SDK has not been initialized and the session
+     * has not been created.
+     */
+    @Throws(IllegalArgumentException::class)
+    fun getSessionStartTime(): Long
+
+    /**
      * Called when app comes to foreground
      */
     fun onAppForeground()
@@ -68,6 +77,7 @@ internal class SessionManagerImpl(
     private val sampler: Sampler,
 ) : SessionManager {
     private var sessionId: String? = null
+    private var sessionStartTime: Long? = null
 
     @VisibleForTesting
     internal var appBackgroundTime: Long = 0
@@ -108,6 +118,14 @@ internal class SessionManagerImpl(
         return sessionId
     }
 
+    override fun getSessionStartTime(): Long {
+        val startTime = this.sessionStartTime
+        requireNotNull(startTime) {
+            "SDK must be initialized before accessing session start time"
+        }
+        return startTime
+    }
+
     override fun onConfigLoaded() {
         val currentSessionId = sessionId
         if (currentSessionId == null) {
@@ -136,6 +154,7 @@ internal class SessionManagerImpl(
     private fun createNewSession(): String {
         val id = idProvider.uuid()
         this.sessionId = id
+        this.sessionStartTime = timeProvider.now()
         storeSession(id)
         return id
     }

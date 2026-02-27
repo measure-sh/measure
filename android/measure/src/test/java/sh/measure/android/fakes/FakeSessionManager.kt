@@ -4,10 +4,13 @@ import sh.measure.android.SessionManager
 
 internal class FakeSessionManager : SessionManager {
     var id = "fake-session-id"
+    var startTime: Long = 0L
 
     override fun init(): String = id
 
     override fun getSessionId(): String = id
+
+    override fun getSessionStartTime(): Long = startTime
 
     override fun onAppForeground() {
         // no-op

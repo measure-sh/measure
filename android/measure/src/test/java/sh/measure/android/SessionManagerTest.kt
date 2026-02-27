@@ -58,6 +58,35 @@ class SessionManagerTest {
     }
 
     @Test
+    fun `getSessionStartTime throws when not initialized`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            sessionManager.getSessionStartTime()
+        }
+    }
+
+    @Test
+    fun `getSessionStartTime returns correct time after init`() {
+        val expectedTime = timeProvider.now()
+        sessionManager.init()
+        assertEquals(expectedTime, sessionManager.getSessionStartTime())
+    }
+
+    @Test
+    fun `getSessionStartTime updates when new session is created on foreground`() {
+        sessionManager.init()
+        val initialStartTime = sessionManager.getSessionStartTime()
+
+        sessionManager.onAppBackground()
+        testClock.advance(Duration.ofMillis(configProvider.sessionBackgroundTimeoutThresholdMs + 1))
+        idProvider.id = "next-uuid"
+
+        sessionManager.onAppForeground()
+
+        val newStartTime = sessionManager.getSessionStartTime()
+        assert(newStartTime > initialStartTime)
+    }
+
+    @Test
     fun `init creates and returns session id`() {
         val s1 = sessionManager.init()
         assertEquals(sessionManager.getSessionId(), s1)
