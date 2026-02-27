@@ -4,6 +4,7 @@ import (
 	"backend/api/opsys"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -118,6 +119,10 @@ type Attribute struct {
 	// - 5g
 	// - unknown
 	NetworkGeneration string `json:"network_generation"`
+
+	// SessionStartTime is the time when the session
+	// containing this event started at.
+	SessionStartTime *time.Time `json:"session_start_time"`
 }
 
 // Validate validates an event's attributes.
