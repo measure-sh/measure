@@ -19,3 +19,21 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Measure SDK internals accessed via reflection by MeasureConfigurator
+-keepclassmembers class sh.measure.android.Measure {
+    private <fields>;
+}
+-keepclassmembers class sh.measure.android.MeasureInternal {
+    private <fields>;
+}
+-keepclassmembers class sh.measure.android.MeasureInitializerImpl {
+    <fields>;
+}
+-keepclassmembers class sh.measure.android.exporter.NetworkClientImpl {
+    <fields>;
+    public void init(java.lang.String, java.lang.String);
+}
+-keepclassmembers class sh.measure.android.config.ConfigProviderImpl {
+    public void setMeasureUrl(java.lang.String);
+}
