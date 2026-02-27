@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add `team_id` to app retention query in cleanup (#3236) by @detj in #3236
 - (**backend**): Journey api would return inaccurate results sometimes (#3213) by @detj in #3213
 - (**backend**): Crash/anr groups list api would return inaccurate results sometimes (#3212) by @detj in #3212
 - (**backend**): Onboard app synchronously during ingest (#3205) by @detj in #3205
