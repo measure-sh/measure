@@ -62,3 +62,9 @@ jobs:
           name: sample-release-apk
           path: android/sample/build/outputs/apk/release/*.apk
           retention-days: 7
+      - name: Upload mapping file
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-release-mapping
+          path: android/sample/build/outputs/mapping/release/mapping.txt
+          retention-days: 7
