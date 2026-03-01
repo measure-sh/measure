@@ -21,6 +21,6 @@ In this guide, we'll help you setup a Google OAuth app so that your users can lo
 15. Under **Authorized JavaScript origins**, enter your Measure dashboard URL (Example: https://measure.yourcompany.com). Replace `yourcompany.com` with your domain.
 16. Under **Authorized redirect URIs**, enter the redirect URI in the following way: https://measure.yourcompany.com/auth/callback/google. Replace `yourcompany.com` with your domain.
 17. Click **CREATE**
-18. Copy the **Client ID**
+18. Copy the **Client ID** and the **Client Secret**
 
 [Go back to self host guide](./README.md)

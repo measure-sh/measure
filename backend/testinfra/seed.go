@@ -2,6 +2,8 @@ package testinfra
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"testing"
@@ -129,8 +131,8 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 	now := time.Now()
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO apps (id, team_id, app_name, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		appID, teamID, appName, retention, now, now)
+		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_name, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		appID, teamID, appName, appName, "android", "1.0.0", true, now, retention, now, now)
 	if err != nil {
 		t.Fatalf("seed app: %v", err)
 	}
@@ -260,12 +262,10 @@ func (h *TestHelper) SeedGenericEvents(ctx context.Context, t *testing.T, teamID
 }
 
 // SeedIssueEvent inserts a single exception or ANR event with explicit handled
-// state and fingerprint.
+// state and fingerprint, using a random session_id.
 //
 // eventType must be "exception" or "anr".
 // fingerprint may be empty for default FixedString(32) zero-byte value.
-// Both exception/anr fingerprint columns are always written so the row can be
-// reused across issue-oriented queries.
 func (h *TestHelper) SeedIssueEvent(
 	ctx context.Context,
 	t *testing.T,
@@ -274,17 +274,86 @@ func (h *TestHelper) SeedIssueEvent(
 	ts time.Time,
 ) {
 	t.Helper()
+	h.SeedIssueEventInSession(ctx, t, teamID, appID, uuid.New().String(), eventType, fingerprint, handled, ts)
+}
+
+// SeedIssueEventInSession inserts a single exception or ANR event with an
+// explicit session_id, handled state, and fingerprint. Use this when events
+// must share a session_id (e.g. common-path tests). Exception/ANR data
+// columns are left empty (default ClickHouse values).
+//
+// eventType must be "exception" or "anr".
+func (h *TestHelper) SeedIssueEventInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, eventType, fingerprint string,
+	handled bool,
+	ts time.Time,
+) {
+	t.Helper()
+	h.SeedIssueEventWithDataInSession(ctx, t, teamID, appID, sessionID, eventType, fingerprint, handled, "", ts)
+}
+
+// SeedIssueEventWithDataInSession inserts an exception or ANR event with
+// explicit exception/ANR JSON data. When exceptionsJSON is non-empty it is
+// written to both exception.exceptions and anr.exceptions columns so the
+// row is reusable across issue-oriented queries.
+//
+// eventType must be "exception" or "anr".
+func (h *TestHelper) SeedIssueEventWithDataInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, eventType, fingerprint string,
+	handled bool,
+	exceptionsJSON string,
+	ts time.Time,
+) {
+	t.Helper()
 	query := fmt.Sprintf(
 		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
 			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
 			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
-			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `anr.handled`, `anr.foreground`, `anr.fingerprint`) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', %t, true, '%s')`,
-		uuid.New().String(), eventType, uuid.New().String(), appID, teamID,
+			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `exception.exceptions`, "+
+			"`anr.handled`, `anr.foreground`, `anr.fingerprint`, `anr.exceptions`) "+
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', '%s', %t, true, '%s', '%s')`,
+		uuid.New().String(), eventType, sessionID, appID, teamID,
 		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
-		handled, fingerprint, handled, fingerprint)
+		handled, fingerprint, exceptionsJSON, handled, fingerprint, exceptionsJSON)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed issue event (%s): %v", eventType, err)
+		t.Fatalf("seed issue event with data (%s): %v", eventType, err)
+	}
+}
+
+// SeedNavigationEventInSession inserts a navigation event with a known
+// session_id and destination screen name.
+func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`navigation.to`) "+
+			`VALUES ('%s', 'navigation', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), destination)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed navigation event: %v", err)
+	}
+}
+
+// SeedEventWithSession inserts one event with a known session_id so that
+// sessions_index gets populated via the materialized view.
+func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`) "+
+			`VALUES ('%s', 'test', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String())
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed event with session: %v", err)
 	}
 }
 
@@ -362,7 +431,7 @@ func (h *TestHelper) SeedBugReport(ctx context.Context, t *testing.T, teamID, ap
 	query := fmt.Sprintf(`
 		INSERT INTO measure.bug_reports
 		(team_id, event_id, app_id, session_id, timestamp, updated_at, status, description, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_model, user_id, device_low_power_mode, device_thermal_throttling_enabled, user_defined_attribute, attachments)
-		VALUES (toUUID('%s'), '%s', '%s', '%s', '%s', '%s', 1, '%s', ('v1', 'b1'), ('Android', '14'), 'US', 'Verizon', 'wifi', '4g', 'en-US', 'Google', 'Pixel', 'Pixel 6', 'u1', false, false, map('test', (1, 'val')), '')`,
+		VALUES (toUUID('%s'), '%s', '%s', '%s', '%s', '%s', 1, '%s', ('v1', 'b1'), ('Android', '14'), 'US', 'Verizon', 'wifi', '4g', 'en-US', 'Google', 'Pixel', 'Pixel 6', 'u1', false, false, map('test', (1, 'val')), '[]')`,
 		teamID, eventID, appID, uuid.New().String(), ts.UTC().Format("2006-01-02 15:04:05"), ts.UTC().Format("2006-01-02 15:04:05"), description)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed bug report: %v", err)
@@ -404,7 +473,8 @@ func (h *TestHelper) SeedSpans(ctx context.Context, t *testing.T, teamID, appID 
 }
 
 // SeedSpan inserts one span at the provided time window so span_metrics_mv
-// can materialize rows for plot aggregation tests.
+// can materialize rows for plot aggregation tests. Returns the generated
+// traceID so callers can use it for trace detail lookups.
 func (h *TestHelper) SeedSpan(
 	ctx context.Context,
 	t *testing.T,
@@ -412,7 +482,7 @@ func (h *TestHelper) SeedSpan(
 	status uint8,
 	startTime, endTime time.Time,
 	appVersion, appBuild string,
-) {
+) string {
 	t.Helper()
 
 	traceID := strings.ReplaceAll(uuid.New().String(), "-", "")
@@ -432,4 +502,77 @@ func (h *TestHelper) SeedSpan(
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed span: %v", err)
 	}
+	return traceID
+}
+
+// --------------------------------------------------------------------------
+// MCP seed helpers
+// --------------------------------------------------------------------------
+
+// SeedMCPClient inserts a row into measure.mcp_clients.
+// The clientSecret is stored as a sha256 hex hash of rawSecret.
+func (h *TestHelper) SeedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string, rawSecret string) {
+	t.Helper()
+	hash := sha256HexTestinfra(rawSecret)
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO measure.mcp_clients (client_id, client_secret, client_name, redirect_uris)
+		 VALUES ($1, $2, $3, $4)`,
+		clientID, hash, clientName, redirectURIs)
+	if err != nil {
+		t.Fatalf("seed mcp_client: %v", err)
+	}
+}
+
+// SeedMCPAuthCode inserts a row into measure.mcp_auth_codes.
+func (h *TestHelper) SeedMCPAuthCode(ctx context.Context, t *testing.T, code, userID, clientID, redirectURI, codeChallenge string, expiresAt time.Time, providerToken, provider string) {
+	t.Helper()
+	var pt *string
+	if providerToken != "" {
+		pt = &providerToken
+	}
+	var prov *string
+	if provider != "" {
+		prov = &provider
+	}
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO measure.mcp_auth_codes (code, user_id, client_id, redirect_uri, code_challenge, provider, provider_token, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		code, userID, clientID, redirectURI, codeChallenge, prov, pt, expiresAt)
+	if err != nil {
+		t.Fatalf("seed mcp_auth_code: %v", err)
+	}
+}
+
+// SeedMCPAccessToken hashes rawToken and inserts a row into measure.mcp_access_tokens.
+// When providerToken is non-empty, provider and provider_token_checked_at are also set.
+// If provider is empty and providerToken is non-empty, defaults to "github".
+func (h *TestHelper) SeedMCPAccessToken(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time, providerToken, provider string) {
+	t.Helper()
+	hash := sha256HexTestinfra(rawToken)
+	if providerToken != "" {
+		if provider == "" {
+			provider = "github"
+		}
+		_, err := h.PgPool.Exec(ctx,
+			`INSERT INTO measure.mcp_access_tokens (token_hash, user_id, client_id, expires_at, provider, provider_token, provider_token_checked_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, now())`,
+			hash, userID, clientID, expiresAt, provider, providerToken)
+		if err != nil {
+			t.Fatalf("seed mcp_access_token: %v", err)
+		}
+	} else {
+		_, err := h.PgPool.Exec(ctx,
+			`INSERT INTO measure.mcp_access_tokens (token_hash, user_id, client_id, expires_at)
+			 VALUES ($1, $2, $3, $4)`,
+			hash, userID, clientID, expiresAt)
+		if err != nil {
+			t.Fatalf("seed mcp_access_token: %v", err)
+		}
+	}
+}
+
+// sha256HexTestinfra returns the hex-encoded SHA-256 hash of s.
+func sha256HexTestinfra(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
 }

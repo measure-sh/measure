@@ -13,7 +13,6 @@ import (
 	"backend/api/allowlist"
 	"backend/api/authsession"
 	"backend/api/server"
-	"backend/libs/cipher"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -21,7 +20,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
-	"google.golang.org/api/idtoken"
 )
 
 // MSRAllowlistAuthErr represents the error condition
@@ -457,68 +455,104 @@ func SigninGitHub(c *gin.Context) {
 	}
 }
 
-// SigninGoogle handles OAuth flow via Google.
 func SigninGoogle(c *gin.Context) {
 	ctx := c.Request.Context()
-	type authstate struct {
-		Credential string `json:"credential"`
-		State      string `json:"state"`
-		Nonce      string `json:"nonce"`
+
+	type AuthCode struct {
+		Type  string `json:"type" binding:"required"`
+		State string `json:"state" binding:"required"`
+		Code  string `json:"code"`
 	}
 
-	var authState authstate
-	msg := "failed to sign in via google"
-	if err := c.ShouldBindJSON(&authState); err != nil {
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+	authCode := AuthCode{}
+
+	msg := "failed to parse google auth payload"
+	if err := c.ShouldBindJSON(&authCode); err != nil {
+		fmt.Println(msg, err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": msg,
 		})
 		return
 	}
 
-	if authState.Credential == "" {
+	if authCode.State == "" {
+		fmt.Println(msg)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "missing credentials",
+			"error": msg,
 		})
 		return
 	}
 
-	if authState.Nonce == "" && authState.State != "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "missing nonce parameter",
+	switch authCode.Type {
+	case "init":
+		// process init
+		authState := authsession.AuthState{
+			OAuthProvider: "google",
+			State:         authCode.State,
+		}
+
+		if err := authState.Save(ctx); err != nil {
+			msg := "failed to authenticate via google oauth"
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": "google oauth init ack",
 		})
 		return
-	}
+	case "code":
+		// process code
+		if authCode.Code == "" {
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": msg,
+			})
+			return
+		}
 
-	if authState.State == "" && authState.Nonce != "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "missing state parameter",
-		})
-		return
-	}
+		msg := `failed to authenticate via google`
 
-	payload, err := idtoken.Validate(ctx, authState.Credential, server.Server.Config.OAuthGoogleKey)
-	if err != nil {
-		msg := "failed to validate google credentials"
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
+		authState, err := authsession.GetOAuthState(ctx, authCode.State, "google")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 
-	// Validate nonce if present
-	//
-	// Google API JavaScript client has an open issue where
-	// it does not send nonce or state in its authorization
-	// callback
-	// See: https://github.com/google/google-api-javascript-client/issues/843
-	//
-	// If nonce and state, both are  empty, we consider it
-	// valid and proceed for now.
-	if authState.Nonce != "" {
-		checksum, err := cipher.ComputeSHA2Hash([]byte(authState.Nonce))
+		if authState.State != authCode.State {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		redirectURI := fmt.Sprintf("%s/auth/callback/google", server.Server.Config.SiteOrigin)
+		_, idToken, err := authsession.ExchangeGoogleCode(
+			authCode.Code,
+			redirectURI,
+			server.Server.Config.OAuthGoogleKey,
+			server.Server.Config.OAuthGoogleSecret,
+		)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if err := authsession.RemoveOAuthState(ctx, authState.State, "google"); err != nil {
+			fmt.Printf("failed to remove google oauth state: %q\n", authState.State)
+		}
+
+		claims, err := authsession.DecodeGoogleIDToken(idToken)
 		if err != nil {
 			fmt.Println(msg, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -528,87 +562,105 @@ func SigninGoogle(c *gin.Context) {
 			return
 		}
 
-		if payload.Claims["nonce"] != *checksum {
-			msg := "failed to validate nonce"
-			fmt.Println(msg)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
+		googUser := authsession.GoogleUser{
+			Name:    claims.Name,
+			Email:   claims.Email,
+			Picture: claims.Picture,
 		}
-	}
 
-	googUser := authsession.GoogleUser{
-		ID:    payload.Subject,
-		Name:  payload.Claims["name"].(string),
-		Email: payload.Claims["email"].(string),
-	}
-
-	// Google may not return the picture claim for some
-	// users.
-	if picture, ok := payload.Claims["picture"]; ok && picture != nil {
-		if pictureStr, ok := picture.(string); ok {
-			googUser.Picture = pictureStr
-		}
-	}
-
-	// TODO: Remove allowlist filter when appropriate
-	config := server.Server.Config
-	if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error":   MSRAllowlistAuthErr.Error(),
-			"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
-		})
-		return
-	}
-
-	userMeta, err := json.Marshal(googUser)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	msrUser, err := FindUserByEmail(ctx, googUser.Email)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if msrUser == nil {
-		msrUser = NewUser(googUser.Name, googUser.Email)
-		if err := msrUser.save(ctx, nil); err != nil {
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+		// TODO: Remove allowlist filter when appropriate
+		config := server.Server.Config
+		if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":   MSRAllowlistAuthErr.Error(),
+				"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
 			})
 			return
 		}
 
-		userName := msrUser.firstName()
-		teamName := fmt.Sprintf("%s's team", userName)
-
-		team := &Team{
-			Name: &teamName,
+		userMeta, err := json.Marshal(googUser)
+		if err != nil {
+			return
 		}
 
-		tx, err := server.Server.PgPool.Begin(ctx)
+		msrUser, err := FindUserByEmail(ctx, googUser.Email)
 		if err != nil {
 			fmt.Println(msg, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
+				"error":   msg,
+				"details": err.Error(),
 			})
 			return
 		}
 
-		defer tx.Rollback(ctx)
+		if msrUser == nil {
+			msrUser = NewUser(googUser.Name, googUser.Email)
+			if err := msrUser.save(ctx, nil); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 
-		if err := team.create(ctx, msrUser, &tx); err != nil {
+			userName := msrUser.firstName()
+			teamName := fmt.Sprintf("%s's team", userName)
+
+			team := &Team{
+				Name: &teamName,
+			}
+
+			tx, err := server.Server.PgPool.Begin(ctx)
+			if err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			defer tx.Rollback(ctx)
+
+			if err := team.create(ctx, msrUser, &tx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			if err := tx.Commit(ctx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, googUser.Email); err != nil {
+				// If there is an error while adding user to invited team,
+				// log and continue. We don't want to fail sign in process
+				// because of this.
+				fmt.Println(msg, err)
+			}
+		} else {
+			// update user's last sign in at value
+			if err := msrUser.touchLastSignInAt(ctx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+		}
+
+		// FIXME: Change User struct's ID field to UUID
+		// so that these kinds of convertion is not needed.
+		userId := uuid.MustParse(*msrUser.ID)
+
+		team, err := msrUser.getOwnTeam(ctx)
+		if err != nil {
+			msg := "failed to lookup user's team"
 			fmt.Println(msg, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
@@ -616,62 +668,31 @@ func SigninGoogle(c *gin.Context) {
 			return
 		}
 
-		if err := tx.Commit(ctx); err != nil {
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+		authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
+		if err != nil {
 			return
 		}
 
-		if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, googUser.Email); err != nil {
-			// If there is an error while adding user to invited team,
-			// log and continue. We don't want to fail sign in process
-			// because of this.
-			fmt.Println(msg, err)
-		}
-
-	} else {
-		// update user's last sign in at value
-		if err := msrUser.touchLastSignInAt(ctx); err != nil {
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
+		if err = authSess.Save(ctx, nil); err != nil {
 			return
 		}
-	}
 
-	// FIXME: Change User struct's ID field to UUID
-	// so that these kinds of convertion is not needed.
-	userId := uuid.MustParse(*msrUser.ID)
+		c.JSON(http.StatusOK, gin.H{
+			"access_token":  authSess.AccessToken,
+			"refresh_token": authSess.RefreshToken,
+			"session_id":    authSess.ID,
+			"user_id":       userId,
+			"own_team_id":   team.ID,
+		})
 
-	team, err := msrUser.getOwnTeam(ctx)
-	if err != nil {
-		msg := "failed to lookup user's team"
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+		return
+	default:
+		fmt.Println(msg)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": msg,
 		})
 		return
 	}
-
-	authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
-	if err != nil {
-		return
-	}
-
-	if err = authSess.Save(ctx, nil); err != nil {
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  authSess.AccessToken,
-		"refresh_token": authSess.RefreshToken,
-		"session_id":    authSess.ID,
-		"user_id":       userId,
-		"own_team_id":   team.ID,
-	})
 }
 
 // ValidateInvite checks if the invite is valid.

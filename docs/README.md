@@ -50,6 +50,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
   happens
 * [**App Size Monitoring**](features/feature-app-size-monitoring.md) — Monitor app size changes
 * [**Alert Notifications**](features/feature-alerts.md) — Receive Crash & ANR spike alerts and Daily Summaries for core app metrics.
+* [**MCP Server**](features/feature-mcp.md) — Let AI tools like Claude Code query your app's crash and error data
 
 # Configuration Options
 

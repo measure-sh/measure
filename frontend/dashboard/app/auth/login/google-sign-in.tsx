@@ -1,96 +1,56 @@
 "use client"
 
 import { measureAuth } from "@/app/auth/measure_auth"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { Button } from "@/app/components/button"
+import Image from "next/image"
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 const googleClientID = process?.env?.NEXT_PUBLIC_OAUTH_GOOGLE_KEY
 
-async function genNonce() {
-  const buff = new Uint8Array(16)
-  crypto.getRandomValues(buff)
-  const nonce = Array.from(buff)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-  const encoder = new TextEncoder()
-  const encodedNonce = encoder.encode(nonce)
-  const hash = await crypto.subtle.digest("SHA-256", encodedNonce)
-  const bytes = new Uint8Array(hash)
-  const hashedNonce = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-  return { nonce, hashedNonce }
+async function doGoogleLogin() {
+  const { origin } = new URL(window.location.href)
+  const state = measureAuth.encodeOAuthState("")
+
+  await fetch("/api/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "init", state }),
+  })
+
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth")
+  url.searchParams.set("client_id", googleClientID || "")
+  url.searchParams.set("redirect_uri", `${origin}/auth/callback/google`)
+  url.searchParams.set("state", state)
+  url.searchParams.set("response_type", "code")
+  url.searchParams.set("scope", "openid email profile")
+  url.searchParams.set("access_type", "offline")
+  url.searchParams.set("prompt", "consent")
+  window.location.assign(url.toString())
 }
 
-export default function GoogleSignIn() {
-  const [nonce, setNonce] = useState("")
-  const [hashedNonce, setHashedNonce] = useState("")
-  const [state, setState] = useState("")
-  const { theme, resolvedTheme } = useTheme()
-
-  useEffect(() => {
-    genNonce().then(({ nonce, hashedNonce }) => {
-      setNonce(nonce)
-      setHashedNonce(hashedNonce)
-    })
-
-    const state = measureAuth.encodeOAuthState("")
-    setState(state)
-  }, [])
-
-  // Use resolvedTheme to handle 'system' theme
-  const currentTheme = resolvedTheme || theme
-  const buttonTheme = currentTheme === "dark" ? "filled_black" : "outline"
-
-  const ready = nonce && hashedNonce
-
-  useEffect(() => {
-    if (!ready) {
+export default function GoogleSignIn({ mcpAuthorizeUrl }: { mcpAuthorizeUrl?: string }) {
+  const handleClick = () => {
+    if (mcpAuthorizeUrl) {
+      window.location.assign(mcpAuthorizeUrl)
       return
     }
-
-    const script = document.createElement("script")
-    script.src = "https://accounts.google.com/gsi/client"
-    script.async = true
-    script.defer = true
-    document.body.appendChild(script)
-
-    return () => {
-      document.body.removeChild(script)
-    }
-  }, [ready, buttonTheme])
-
-  if (!ready) {
-    return null
+    doGoogleLogin()
   }
 
   return (
-    <>
-      <div
-        id="g_id_onload"
-        data-client_id={googleClientID}
-        data-context="signin"
-        data-ux_mode="popup"
-        data-nonce={hashedNonce}
-        data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
-        data-scope="openid email profile"
-        data-auto_prompt="false"
-        data-itp_support="true"
-        data-use_fedcm_for_prompt="true"
+    <Button
+      variant="outline"
+      size={"lg"}
+      className="justify-center w-full font-display border-2 border-border"
+      onClick={handleClick}
+    >
+      <Image
+        src="/images/google_logo.svg"
+        width={24}
+        height={24}
+        className="w-4 h-4"
+        alt={"Google logo"}
       />
-      <div
-        style={{ colorScheme: "light" }}
-        className="g_id_signin"
-        data-type="standard"
-        data-shape="rectangular"
-        data-theme={buttonTheme}
-        data-text="signin_with"
-        data-size="large"
-        data-logo_alignment="center"
-        data-state={state}
-        data-width="400"
-      />
-    </>
+      <span> Sign in with Google</span>
+    </Button>
   )
 }

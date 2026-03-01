@@ -15,6 +15,7 @@ import { Badge } from './components/badge'
 import LandingFooter from './components/landing_footer'
 
 import AdaptiveCaptureDemo from './components/adaptive_capture_demo'
+import MCPDemo from './components/mcp_demo'
 import TabSelect, { TabSize } from './components/tab_select'
 import Typewriter from './components/typewriter'
 import { underlineLinkStyle } from './utils/shared_styles'
@@ -396,7 +397,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Smart Capture */}
+        {/* Adaptive Capture */}
         <div className='w-full flex items-center flex-col py-16 md:py-24'>
           <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">Collect what you need, Only when you need it</h2>
           <div className="py-4" />
@@ -404,6 +405,17 @@ export default function Home() {
           <div className="py-8" />
           <div className='max-w-6xl'>
             <AdaptiveCaptureDemo showTitle={false} />
+          </div>
+        </div>
+
+        {/* MCP */}
+        <div className='w-full flex items-center flex-col py-16 md:py-24'>
+          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">Intelligent debugging, Seamless integration</h2>
+          <div className="py-4" />
+          <p className="text-lg leading-relaxed font-body text-justify max-w-4xl px-4">Connect Measure with your favorite coding agents through our <Link href="/product/mcp" className={underlineLinkStyle}>MCP</Link> server. Let your coding agent query errors, traces, and session timelines directly in your development workflow.</p>
+          <div className="py-8" />
+          <div className='w-full md:w-6xl'>
+            <MCPDemo />
           </div>
         </div>
 

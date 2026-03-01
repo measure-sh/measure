@@ -239,6 +239,7 @@ API_BASE_URL=http://api:8080
 ########
 
 OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
+OAUTH_GOOGLE_SECRET=$OAUTH_GOOGLE_SECRET
 OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
 OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
 SESSION_ACCESS_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
@@ -353,6 +354,7 @@ API_BASE_URL=http://api:8080
 ########
 
 OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
+OAUTH_GOOGLE_SECRET=$OAUTH_GOOGLE_SECRET
 OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
 OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
 SESSION_ACCESS_SECRET=$SESSION_ACCESS_SECRET
@@ -410,6 +412,7 @@ END
   if [[ "$SETUP_ENV" == "development" ]]; then
     NAMESPACE=$(create_ns "measure-dev")
     OAUTH_GOOGLE_KEY="715065389756-0nejegfra6erco3u172vjgibot2a6p4v.apps.googleusercontent.com"
+    OAUTH_GOOGLE_SECRET=$(prompt_password_manual "Enter Google OAuth app secret: ")
     OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
     OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
     write_dev_env
@@ -517,11 +520,12 @@ END
     NEXT_PUBLIC_INGEST_BASE_URL=$(prompt_value_manual "Enter URL to Measure Ingest service: ")
 
     echo -e "\nSet Google OAuth"
-    echo -e "To create a Google OAuth app, visit: https://support.google.com/cloud/answer/6158849?hl=en"
+    echo -e "Set up Google OAuth. See https://github.com/measure-sh/measure/blob/main/docs/hosting/google-oauth.md for more details."
     OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google OAuth app key: ")
+    OAUTH_GOOGLE_SECRET=$(prompt_password_manual "Enter Google OAuth app secret: ")
 
     echo -e "\nSet GitHub OAuth"
-    echo -e "To create a GitHub OAuth app, visit: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
+    echo -e "Set up GitHub OAuth. See https://github.com/measure-sh/measure/blob/main/docs/hosting/github-oauth.md for more details."
     OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
     OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
     SESSION_ACCESS_SECRET=$(generate_password 44)

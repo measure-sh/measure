@@ -133,8 +133,37 @@ func seedSpan(
 	status uint8,
 	startTime, endTime time.Time,
 	appVersion, appBuild string,
+) string {
+	return th.SeedSpan(ctx, t, teamID, appID, spanName, status, startTime, endTime, appVersion, appBuild)
+}
+
+func seedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
+	th.SeedEventWithSession(ctx, t, teamID, appID, sessionID, ts)
+}
+
+func seedIssueEventInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, eventType, fingerprint string,
+	handled bool,
+	ts time.Time,
 ) {
-	th.SeedSpan(ctx, t, teamID, appID, spanName, status, startTime, endTime, appVersion, appBuild)
+	th.SeedIssueEventInSession(ctx, t, teamID, appID, sessionID, eventType, fingerprint, handled, ts)
+}
+
+func seedIssueEventWithDataInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, eventType, fingerprint string,
+	handled bool,
+	exceptionsJSON string,
+	ts time.Time,
+) {
+	th.SeedIssueEventWithDataInSession(ctx, t, teamID, appID, sessionID, eventType, fingerprint, handled, exceptionsJSON, ts)
+}
+
+func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
+	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
 }
 
 // --------------------------------------------------------------------------
@@ -307,6 +336,82 @@ func getTeamIngestBlockedReason(ctx context.Context, t *testing.T, teamID uuid.U
 		t.Fatalf("get ingest_blocked_reason: %v", err)
 	}
 	return reason
+}
+
+// --------------------------------------------------------------------------
+// MCP seed / read helpers
+// --------------------------------------------------------------------------
+
+func seedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string, rawSecret string) {
+	th.SeedMCPClient(ctx, t, clientID, clientName, redirectURIs, rawSecret)
+}
+
+func seedMCPAuthCode(ctx context.Context, t *testing.T, code, userID, clientID, redirectURI, codeChallenge string, expiresAt time.Time) {
+	th.SeedMCPAuthCode(ctx, t, code, userID, clientID, redirectURI, codeChallenge, expiresAt, "", "")
+}
+
+func seedMCPAuthCodeWithProvider(ctx context.Context, t *testing.T, code, userID, clientID, redirectURI, codeChallenge string, expiresAt time.Time, providerToken, provider string) {
+	th.SeedMCPAuthCode(ctx, t, code, userID, clientID, redirectURI, codeChallenge, expiresAt, providerToken, provider)
+}
+
+func seedMCPAccessToken(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time) {
+	th.SeedMCPAccessToken(ctx, t, rawToken, userID, clientID, expiresAt, "", "")
+}
+
+func seedMCPAccessTokenWithProvider(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time, providerToken, provider string) {
+	th.SeedMCPAccessToken(ctx, t, rawToken, userID, clientID, expiresAt, providerToken, provider)
+}
+
+type mcpAccessTokenRow struct {
+	ID                     uuid.UUID
+	TokenHash              string
+	UserID                 uuid.UUID
+	ClientID               string
+	ExpiresAt              time.Time
+	Provider               *string
+	ProviderToken          *string
+	ProviderTokenCheckedAt *time.Time
+	LastUsedAt             *time.Time
+	Revoked                bool
+}
+
+func getMCPAccessToken(ctx context.Context, t *testing.T, tokenHash string) *mcpAccessTokenRow {
+	t.Helper()
+	var r mcpAccessTokenRow
+	err := th.PgPool.QueryRow(ctx,
+		`SELECT id, token_hash, user_id, client_id, expires_at, provider, provider_token, provider_token_checked_at, last_used_at, revoked
+		 FROM measure.mcp_access_tokens WHERE token_hash = $1`, tokenHash).
+		Scan(&r.ID, &r.TokenHash, &r.UserID, &r.ClientID, &r.ExpiresAt, &r.Provider, &r.ProviderToken, &r.ProviderTokenCheckedAt, &r.LastUsedAt, &r.Revoked)
+	if err != nil {
+		return nil
+	}
+	return &r
+}
+
+type mcpAuthCodeRow struct {
+	ID            uuid.UUID
+	Code          string
+	UserID        uuid.UUID
+	ClientID      string
+	RedirectURI   string
+	CodeChallenge string
+	Provider      *string
+	ProviderToken *string
+	ExpiresAt     time.Time
+	Used          bool
+}
+
+func getMCPAuthCode(ctx context.Context, t *testing.T, code string) *mcpAuthCodeRow {
+	t.Helper()
+	var r mcpAuthCodeRow
+	err := th.PgPool.QueryRow(ctx,
+		`SELECT id, code, user_id, client_id, redirect_uri, code_challenge, provider, provider_token, expires_at, used
+		 FROM measure.mcp_auth_codes WHERE code = $1`, code).
+		Scan(&r.ID, &r.Code, &r.UserID, &r.ClientID, &r.RedirectURI, &r.CodeChallenge, &r.Provider, &r.ProviderToken, &r.ExpiresAt, &r.Used)
+	if err != nil {
+		return nil
+	}
+	return &r
 }
 
 // --------------------------------------------------------------------------
