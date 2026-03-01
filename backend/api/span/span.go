@@ -99,6 +99,7 @@ type SpanAttributes struct {
 	DeviceLocale             string    `json:"device_locale"`
 	LowPowerModeEnabled      bool      `json:"device_low_power_mode"`
 	ThermalThrottlingEnabled bool      `json:"device_thermal_throttling_enabled"`
+	SessionStartTime         *time.Time `json:"session_start_time"`
 }
 
 type RootSpanDisplay struct {
