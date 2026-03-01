@@ -20,6 +20,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
     private let httpInterceptorCallbacks: HttpInterceptorCallbacks
     private let client: Client
     private let configProvider: ConfigProvider
+    private let signalSampler: SignalSampler
     private let httpEventValidator: HttpEventValidator
     private var isEnabled = AtomicBool(false)
 
@@ -30,6 +31,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
          httpInterceptorCallbacks: HttpInterceptorCallbacks,
          client: Client,
          configProvider: ConfigProvider,
+         signalSampler: SignalSampler,
          httpEventValidator: HttpEventValidator) {
         self.logger = logger
         self.signalProcessor = signalProcessor
@@ -38,6 +40,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
         self.httpInterceptorCallbacks = httpInterceptorCallbacks
         self.client = client
         self.configProvider = configProvider
+        self.signalSampler = signalSampler
         self.httpEventValidator = httpEventValidator
         self.httpInterceptorCallbacks.httpDataCallback = onHttpCompletion(data:)
     }
@@ -51,6 +54,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
             URLSessionTaskInterceptor.shared.setHttpInterceptorCallbacks(httpInterceptorCallbacks)
             URLSessionTaskInterceptor.shared.setTimeProvider(timeProvider)
             URLSessionTaskInterceptor.shared.setConfigProvider(configProvider)
+            URLSessionTaskInterceptor.shared.setSignalSampler(signalSampler)
             logger.log(level: .info, message: "HttpEventCollector enabled.", error: nil, data: nil)
         }
     }

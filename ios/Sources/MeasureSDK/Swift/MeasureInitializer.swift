@@ -418,6 +418,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                          client: client,
                                                          configProvider: configProvider,
+                                                         signalSampler: signalSampler,
                                                          httpEventValidator: httpEventValidator)
         self.internalSignalCollector = BaseInternalSignalCollector(logger: logger,
                                                                    timeProvider: timeProvider,

@@ -327,6 +327,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                          client: self.client,
                                                          configProvider: self.configProvider,
+                                                         signalSampler: self.signalSampler,
                                                          httpEventValidator: self.httpEventValidator)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
                                                                    timeProvider: self.timeProvider,
