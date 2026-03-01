@@ -18,7 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leporo/sqlf"
 	"github.com/stripe/stripe-go/v84"
 	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
@@ -82,6 +81,7 @@ type ServerConfig struct {
 	OAuthGitHubKey             string
 	OAuthGitHubSecret          string
 	OAuthGoogleKey             string
+	OAuthGoogleSecret          string
 	AccessTokenSecret          []byte
 	RefreshTokenSecret         []byte
 	SmtpHost                   string
@@ -216,6 +216,11 @@ func NewConfig() *ServerConfig {
 	oauthGoogleKey := os.Getenv("OAUTH_GOOGLE_KEY")
 	if oauthGoogleKey == "" {
 		log.Println("OAUTH_GOOGLE_KEY env var is not set, dashboard authn won't work")
+	}
+
+	oauthGoogleSecret := os.Getenv("OAUTH_GOOGLE_SECRET")
+	if oauthGoogleSecret == "" {
+		log.Println("OAUTH_GOOGLE_SECRET env var is not set, Google sign-in won't work")
 	}
 
 	atSecret := os.Getenv("SESSION_ACCESS_SECRET")
@@ -358,6 +363,7 @@ func NewConfig() *ServerConfig {
 		OAuthGitHubKey:             oauthGitHubKey,
 		OAuthGitHubSecret:          oauthGitHubSecret,
 		OAuthGoogleKey:             oauthGoogleKey,
+		OAuthGoogleSecret:          oauthGoogleSecret,
 		AccessTokenSecret:          []byte(atSecret),
 		RefreshTokenSecret:         []byte(rtSecret),
 		SmtpHost:                   smtpHost,
@@ -510,9 +516,9 @@ func Init(config *ServerConfig) {
 }
 
 func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chReader driver.Conn, vk redis.Client) {
-	sqlf.SetDialect(sqlf.PostgreSQL)
 	Server = &server{
 		PgPool:  pgPool,
+		ChPool:  chReader,
 		RchPool: chReader,
 		Config:  config,
 		VK:      vk,

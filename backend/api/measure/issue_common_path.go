@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -133,32 +134,38 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 
 	app.TeamId = *team.ID
 
-	// Validate the group exists
-	var exists bool
-	exists, err = app.IssueGroupExists(ctx, groupType, groupId)
-
-	{
-		msg := fmt.Sprintf("no %s group found with id %q", groupType, groupId)
-		if !exists || errors.Is(err, sql.ErrNoRows) {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": msg,
-			})
-			return
-		}
-	}
-
+	data, err := GetIssueGroupCommonPath(ctx, *team.ID, id, groupType, groupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get %s group with id %q", groupType, groupId)
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Build the WHERE clause condition based
-	// on type
+	c.Data(http.StatusOK, "application/json", data)
+}
+
+// GetIssueGroupCommonPath computes the most common user navigation path leading
+// to a specific crash or ANR group. It validates the group exists, queries
+// ClickHouse for session data, and returns JSON with sessions_analyzed and steps.
+func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, groupType group.GroupType, fingerprint string) (json.RawMessage, error) {
+	app := App{
+		ID:     &appID,
+		TeamId: teamID,
+	}
+
+	// Validate the group exists
+	exists, err := app.IssueGroupExists(ctx, groupType, fingerprint)
+	{
+		msg := fmt.Sprintf("no %s group found with id %q", groupType, fingerprint)
+		if !exists || errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s", msg)
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %s group with id %q: %v", groupType, fingerprint, err)
+	}
+
+	// Build the WHERE clause condition based on type
 	var fingerprintCondition string
 	var lcRootValue string
 	{
@@ -184,7 +191,6 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "session_count")
 
-	// Build the fingerprint condition based on type
 	countStmt := sqlf.New(`
     WITH
       ? as fp,
@@ -216,7 +222,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
     SELECT count(*) as session_count
     FROM affected_sessions
 `,
-		groupId,
+		fingerprint,
 		app.TeamId,
 		*app.ID,
 		minEventsInSession,
@@ -229,10 +235,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 
 	var sessionsAnalyzed uint64
 	if err = server.Server.ChPool.QueryRow(ctx, countStmt.String(), countStmt.Args()...).Scan(&sessionsAnalyzed); err != nil {
-		msg := "failed to get session count"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		return nil, fmt.Errorf("failed to get session count: %v", err)
 	}
 
 	stmt := sqlf.New(`
@@ -399,7 +402,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
       FROM best_event_per_position
       ORDER BY position_from_end DESC
       `,
-		groupId,
+		fingerprint,
 		app.TeamId,
 		*app.ID,
 		app.TeamId,
@@ -418,12 +421,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := "failed to execute reproduction steps query"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+		return nil, fmt.Errorf("failed to execute reproduction steps query: %v", err)
 	}
 
 	defer rows.Close()
@@ -456,12 +454,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 			&anrData,
 			&anrHandled,
 		); err != nil {
-			msg := "failed to scan reproduction step"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
+			return nil, fmt.Errorf("failed to scan reproduction step: %v", err)
 		}
 
 		switch eventType {
@@ -522,16 +515,16 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 	}
 
 	if err := rows.Err(); err != nil {
-		msg := "error iterating over rows"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+		return nil, fmt.Errorf("error iterating over rows: %v", err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"sessions_analyzed": sessionsAnalyzed,
-		"steps":             steps,
+	type result struct {
+		SessionsAnalyzed uint64      `json:"sessions_analyzed"`
+		Steps            []ReproStep `json:"steps"`
+	}
+
+	return json.Marshal(result{
+		SessionsAnalyzed: sessionsAnalyzed,
+		Steps:            steps,
 	})
 }

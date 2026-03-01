@@ -118,6 +118,15 @@ export default function LandingFooter() {
           >
             Adaptive Capture
           </Link>
+          <Link
+            href="/product/mcp"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            MCP
+          </Link>
         </div>
 
         {/* <div className='flex flex-col items-center md:items-start gap-4'>

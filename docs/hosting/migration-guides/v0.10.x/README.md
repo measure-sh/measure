@@ -40,7 +40,21 @@ git fetch --tags
 git checkout <git-tag>
 ```
 
-## 4. Migrate configurations
+## 4. Add Google OAuth client secret (only if using Google sign-in)
+
+Skip this step if you only use GitHub for sign-in.
+
+Starting with `v0.10.x`, Google sign-in uses a server-side code flow that requires the `OAUTH_GOOGLE_SECRET` environment variable. Previously, only the client ID (`OAUTH_GOOGLE_KEY`) was needed.
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) > APIs & Services > Credentials
+2. Click on your existing OAuth 2.0 Client ID, create a new **Client Secret** and copy it. (If you want to disable the existing client secret for security reasons and are sure it is not being used anywhere else outside of Measure, you can do so.)
+3. Open `self-host/.env` and add:
+
+    ```sh
+    OAUTH_GOOGLE_SECRET=your-google-client-secret  # change this
+    ```
+
+## 5. Migrate configurations
 
 ```sh
 cd self-host
@@ -50,13 +64,13 @@ cd self-host
 sudo ./config.sh --production --ensure
 ```
 
-## 5. Start Measure services
+## 6. Start Measure services
 
 ```sh
 sudo ./install.sh
 ```
 
-## 6. Run database back filling script
+## 7. Run database back filling script
 
 Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
 

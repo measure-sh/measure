@@ -8,28 +8,15 @@ const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
 const apiOrigin = process?.env?.API_BASE_URL;
 const posthog = getPosthogServer()
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`;
-  const nonce = searchParams.get("nonce");
+  const code = searchParams.get("code");
   const state = searchParams.get("state");
-
-  const formdata = await request.formData();
-  const credential = formdata.get("credential");
+  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`;
 
   let err = ""
-  if (!credential) {
-    err = "google login failure: no credential"
-    posthog.captureException(err, {
-      source: 'google_oauth_callback'
-    })
-    console.log(err);
-
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
-  }
-
-  if (state && !nonce) {
-    err = "google login failure: no nonce"
+  if (!code) {
+    err = "Google login failure: no code"
     posthog.captureException(err, {
       source: 'google_oauth_callback'
     })
@@ -37,8 +24,8 @@ export async function POST(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
-  if (nonce && !state) {
-    err = "google login failure: no state"
+  if (!state) {
+    err = "Google login failure: no state"
     posthog.captureException(err, {
       source: 'google_oauth_callback'
     })
@@ -46,30 +33,35 @@ export async function POST(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
-  // Google API JavaScript client has an open issue where
-  // it does not send nonce or state in its authorization
-  // callback
-  // See: https://github.com/google/google-api-javascript-client/issues/843
-  //
-  // If nonce and state, both are  empty, we consider it
-  // valid and proceed for now, while keeping an eye out
-  // on the user agent.
-  if (!nonce && !state) {
-    const headers = Object.fromEntries(request.headers);
-    console.log(
-      `google login warning: nonce and state both are missing, request possibly originated from Safari, check UA: ${headers["user-agent"]}`,
-    );
+  // MCP flow: state starts with "mcp_" — forward to the MCP callback endpoint
+  if (state.startsWith("mcp_")) {
+    const mcpRes = await fetch(`${apiOrigin}/mcp/auth/callback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, state: state.slice(4) }),
+    });
+
+    if (!mcpRes.ok) {
+      err = `MCP Google callback failure: ${mcpRes.status}`
+      posthog.captureException(err, { source: 'google_oauth_callback' })
+      console.log(err);
+      return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    }
+
+    const mcpData = await mcpRes.json();
+    return NextResponse.redirect(mcpData.redirect_url, { status: 302 });
   }
 
+  // Dashboard flow: exchange code via the backend
   const res = await fetch(`${apiOrigin}/auth/google`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      credential: String(credential),
+      type: "code",
       state,
-      nonce,
+      code,
     }),
   });
 

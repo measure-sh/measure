@@ -1,13 +1,13 @@
 go 1.25.6
 
 use (
-	./backend/libs
 	./backend/alerts
 	./backend/api
 	./backend/billing
 	./backend/cleanup
 	./backend/email
 	./backend/ingest
+	./backend/libs
 	./backend/metering
 	./backend/migrator
 	./backend/symboloader

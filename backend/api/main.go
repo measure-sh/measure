@@ -185,6 +185,18 @@ func main() {
 		stripe.POST("/webhook", measure.HandleStripeWebhook)
 	}
 
+	// MCP OAuth 2.0 Authorization Server endpoints
+	r.GET("/.well-known/oauth-authorization-server", measure.MCPOAuthMetadata)
+	r.POST("/oauth/register", measure.MCPRegisterClient)
+	r.GET("/oauth/authorize", measure.MCPAuthorize)
+	r.POST("/mcp/auth/callback", measure.MCPCallbackExchange)
+	r.POST("/oauth/token", measure.MCPToken)
+
+	// MCP Streamable HTTP transport
+	mcpHandler := measure.NewMCPHandler()
+	r.POST("/mcp", measure.ValidateMCPToken(), gin.WrapH(mcpHandler))
+	r.GET("/mcp", measure.ValidateMCPToken(), gin.WrapH(mcpHandler))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

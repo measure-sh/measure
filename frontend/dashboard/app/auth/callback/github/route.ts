@@ -33,6 +33,25 @@ export async function GET(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
+  // MCP flow: state starts with "mcp_" — forward to the MCP callback endpoint
+  if (state.startsWith("mcp_")) {
+    const mcpRes = await fetch(`${apiOrigin}/mcp/auth/callback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, state: state.slice(4) }),
+    });
+
+    if (!mcpRes.ok) {
+      err = `MCP GitHub callback failure: ${mcpRes.status}`
+      posthog.captureException(err, { source: 'github_oauth_callback' })
+      console.log(err);
+      return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    }
+
+    const mcpData = await mcpRes.json();
+    return NextResponse.redirect(mcpData.redirect_url, { status: 302 });
+  }
+
   const res = await fetch(`${apiOrigin}/auth/github`, {
     method: "POST",
     headers: {

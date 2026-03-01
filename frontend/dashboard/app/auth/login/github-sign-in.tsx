@@ -24,13 +24,21 @@ async function doGitHubLogin() {
   }
 }
 
-export default function GitHubSignIn() {
+export default function GitHubSignIn({ mcpAuthorizeUrl }: { mcpAuthorizeUrl?: string }) {
+  const handleClick = () => {
+    if (mcpAuthorizeUrl) {
+      window.location.assign(mcpAuthorizeUrl)
+      return
+    }
+    doGitHubLogin()
+  }
+
   return (
     <Button
       variant="outline"
       size={"lg"}
       className="group justify-center w-full font-display border-2 border-border"
-      onClick={() => doGitHubLogin()}
+      onClick={handleClick}
     >
       <Image
         src="/images/github_logo_black.svg"
