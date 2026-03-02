@@ -1,6 +1,7 @@
 package sh.measure.android.attributes
 
 import sh.measure.android.SessionManager
+import sh.measure.android.utils.iso8601Timestamp
 
 /**
  * Generates the session start time attribute. This attribute changes when a new session is created,
@@ -10,6 +11,9 @@ internal class SessionAttributeProcessor(
     private val sessionManager: SessionManager,
 ) : AttributeProcessor {
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
-        attributes.put(Attribute.SESSION_START_TIME_KEY, sessionManager.getSessionStartTime())
+        attributes.put(
+            Attribute.SESSION_START_TIME_KEY,
+            sessionManager.getSessionStartTime().iso8601Timestamp(),
+        )
     }
 }
