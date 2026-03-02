@@ -12,8 +12,8 @@ import (
 
 	"backend/api/concur"
 	"backend/api/inet"
-	"backend/api/measure"
-	"backend/api/server"
+	"backend/ingest/measure"
+	"backend/ingest/server"
 
 	"github.com/gin-gonic/gin"
 

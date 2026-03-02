@@ -1,0 +1,161 @@
+package event
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"mime"
+	"net/http"
+	"path/filepath"
+	"slices"
+
+	"backend/api/objstore"
+	"backend/ingest/server"
+
+	"cloud.google.com/go/storage"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/google/uuid"
+	"google.golang.org/api/googleapi"
+)
+
+// attachmentTypes is a list of all valid attachment types.
+var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot", "layout_snapshot_json"}
+
+// isNotFound checks if error is a googleapi
+// not found error.
+func isNotFound(err error) bool {
+	var gerr *googleapi.Error
+	return errors.As(err, &gerr) && gerr.Code == http.StatusNotFound
+}
+
+// BuildAttachmentLocation builds the location of the attachment
+// object based on runtime environment.
+func BuildAttachmentLocation(key string) (location string) {
+	config := server.Server.Config
+
+	if config.IsCloud() {
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, key)
+		return
+	}
+
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, key)
+	}
+
+	return
+}
+
+type Attachment struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name" binding:"required"`
+	Type     string    `json:"type" binding:"required"`
+	Reader   io.Reader `json:"-"`
+	Key      string    `json:"key"`
+	Location string    `json:"location"`
+}
+
+// Validate validates the attachment
+func (a Attachment) Validate() error {
+	if a.Name == "" {
+		return errors.New(`one of the attachment's "name" is empty`)
+	}
+
+	if a.Type == "" {
+		return errors.New(`one of the attachment's "type" is empty`)
+	}
+
+	if !slices.Contains(attachmentTypes, a.Type) {
+		return errors.New(`one of the attachment's "type" is invalid`)
+	}
+
+	return nil
+}
+
+// Upload uploads raw file bytes to an S3 compatible storage system.
+func (a *Attachment) Upload(ctx context.Context) (err error) {
+	config := server.Server.Config
+
+	// set mime type from extension
+	ext := filepath.Ext(a.Key)
+	contentType := "application/octet-stream"
+	if ext != "" {
+		contentType = mime.TypeByExtension(ext)
+	}
+
+	metadata := map[string]string{
+		"original_file_name": a.Name,
+	}
+
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		defer func() {
+			if err := client.Close(); err != nil {
+				fmt.Printf("failed to close storage client: %v\n", err)
+			}
+		}()
+
+		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
+		attrs, errAttrs := obj.Attrs(ctx)
+		if errAttrs != nil && !isNotFound(errAttrs) {
+			err = errAttrs
+			return
+		}
+
+		// for typical workloads, attachment objects will not exist
+		// while load testing, the same object maybe repeated multiple
+		// times. for such workloads, there's not much point in
+		// uploading the attachment again and hitting and dealing
+		// with conflicts (429s) and retries.
+		//
+		// so, exit early.
+		if attrs != nil {
+			// Object exists
+			// exit early
+			return
+		}
+
+		writer := obj.NewWriter(ctx)
+		writer.ContentType = contentType
+		writer.Metadata = metadata
+
+		if _, err = io.Copy(writer, a.Reader); err != nil {
+			fmt.Printf("failed to upload attachment key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		if err = writer.Close(); err != nil {
+			fmt.Printf("failed to close storage writer, key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		return
+	}
+
+	s3Client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+
+	putObjectInput := &s3.PutObjectInput{
+		Bucket:      aws.String(config.AttachmentsBucket),
+		Key:         aws.String(a.Key),
+		Body:        a.Reader,
+		Metadata:    metadata,
+		ContentType: aws.String(contentType),
+	}
+
+	// ignore the putObjectOutput, don't need
+	// it for now
+	_, err = s3Client.PutObject(ctx, putObjectInput)
+	if err != nil {
+		return
+	}
+
+	return
+}

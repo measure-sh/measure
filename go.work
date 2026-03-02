@@ -6,6 +6,7 @@ use (
 	./backend/billing
 	./backend/cleanup
 	./backend/email
+	./backend/ingest
 	./backend/metering
 	./backend/migrator
 	./backend/symboloader

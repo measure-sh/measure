@@ -7,7 +7,7 @@ on:
       - backend/ingest/**/*.go
       - backend/ingest/**/*.mod
       - backend/ingest/**/*.sum
-      - backend/api/**/*.go
+      - backend/ingest/**/*.go
   push:
     branches:
       - "main"
@@ -17,7 +17,7 @@ on:
       - backend/ingest/**/*.go
       - backend/ingest/**/*.mod
       - backend/ingest/**/*.sum
-      - backend/api/**/*.go
+      - backend/ingest/**/*.go
     tags:
       - "v*"
 
