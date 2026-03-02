@@ -8,10 +8,12 @@ internal class FakeSampler : Sampler {
     var isAnrTimelineSampled: Boolean = true
     var isCrashTimelineSampled: Boolean = true
     var trackJourneyForSession: Boolean = true
+    var isHttpEventSampled: Boolean = true
 
     override fun shouldSampleTrace(traceId: String): Boolean = isTraceSampled
     override fun shouldSampleLaunchEvent(): Boolean = isLaunchEventSampled
     override fun shouldTrackJourneyForSession(sessionId: String): Boolean = trackJourneyForSession
+    override fun shouldSampleHttpEvent(): Boolean = isHttpEventSampled
 
     fun setSampled(isSampled: Boolean) {
         this.isTraceSampled = isSampled

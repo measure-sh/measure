@@ -24,7 +24,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpEvent returns false for exact match in block list`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/data"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -34,7 +34,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpEvent returns false for wildcard match`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -45,7 +45,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpEvent returns true when URL does not match wildcard pattern`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -55,7 +55,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpEvent handles wildcard in between path`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/*/users"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -66,7 +66,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpEvent handles multiple wildcard patterns`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf(
                 "https://analytics.example.com/*",
                 "https://tracking.example.com/*",
@@ -86,7 +86,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpRequestBody returns true for request URL match`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpTrackRequestForUrls = listOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -96,7 +96,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpRequestBody returns false when URL not in request list`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpTrackRequestForUrls = listOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -111,7 +111,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpResponseBody returns true for response URL match`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpTrackResponseForUrls = listOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -121,7 +121,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpResponseBody returns false when URL not in response list`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpTrackResponseForUrls = listOf("https://api.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -131,7 +131,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `request and response body tracking are independent`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpTrackRequestForUrls = listOf("https://request.example.com/*"),
             httpTrackResponseForUrls = listOf("https://response.example.com/*"),
         )
@@ -168,7 +168,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `shouldTrackHttpHeader returns false for dynamically loaded blocked header`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpBlockedHeaders = mutableListOf("X-Custom-Header"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -190,7 +190,7 @@ class ConfigProviderImplTest {
         configProvider.setMeasureUrl(measureUrl)
 
         // Simulate loading dynamic config from server
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://analytics.example.com/*"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -202,7 +202,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `setDynamicConfig updates config values`() {
-        val newConfig = DynamicConfig.default().copy(
+        val newConfig = DynamicConfig().copy(
             traceSamplingRate = 0.5f,
             crashTakeScreenshot = false,
             cpuUsageInterval = 5000L,
@@ -215,8 +215,18 @@ class ConfigProviderImplTest {
     }
 
     @Test
+    fun `httpSamplingRate is updated correctly`() {
+        val newConfig = DynamicConfig().copy(
+            httpSamplingRate = 0.75f,
+        )
+        configProvider.setDynamicConfig(newConfig)
+
+        assertEquals(0.75f, configProvider.httpSamplingRate)
+    }
+
+    @Test
     fun `wildcard at beginning of pattern matches`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("*/api/v1/health"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -227,7 +237,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `wildcard in middle of pattern matches`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://*/api/health"),
         )
         configProvider.setDynamicConfig(dynamicConfig)
@@ -237,7 +247,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `pattern with special regex characters is escaped properly`() {
-        val dynamicConfig = DynamicConfig.default().copy(
+        val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/path?query=value"),
         )
         configProvider.setDynamicConfig(dynamicConfig)

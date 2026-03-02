@@ -5,7 +5,6 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
-import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
     override fun shouldTrackHttpEvent(url: String): Boolean = false
@@ -30,7 +29,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxUserDefinedAttributeValueLength: Int = 256
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 100
-    override var eventTypeExportAllowList: List<EventType> = emptyList()
     override val autoStart: Boolean = true
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
@@ -58,6 +56,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val anrTakeScreenshot: Boolean = true
     override val launchSamplingRate: Float = 1f
     override val gestureClickTakeSnapshot: Boolean = true
+    override val httpSamplingRate: Float = 1f
     override val httpDisableEventForUrls: List<String> = emptyList()
     override val httpTrackRequestForUrls: List<String> = emptyList()
     override val httpTrackResponseForUrls: List<String> = emptyList()

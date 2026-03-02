@@ -87,7 +87,7 @@ class MeasureInternalTest {
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
         whenever(initializer.manifestReader.load()).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
-        val dynamicConfig = DynamicConfig.default()
+        val dynamicConfig = DynamicConfig()
         val callbackCaptor = argumentCaptor<(DynamicConfig?) -> Unit>()
 
         measureInternal.init()
@@ -109,7 +109,7 @@ class MeasureInternalTest {
         measureInternal.init()
 
         verify(initializer.configLoader).loadDynamicConfig(callbackCaptor.capture())
-        callbackCaptor.firstValue.invoke(DynamicConfig.default())
+        callbackCaptor.firstValue.invoke(DynamicConfig())
 
         verify(initializer.sessionManager).onConfigLoaded()
         verify(initializer.spanProcessor).onConfigLoaded()
