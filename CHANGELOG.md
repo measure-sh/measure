@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add session start time attribute to events and spans (#3240) by @abhaysood in #3240
 - (**backend**): Add usage threshold banners by @anupcowkur in #3223
 - (**backend**): Reset free plan limit to 1M units by @anupcowkur in #3222
 - (**backend**): Reduce free plan limit to 1000 for testing by @anupcowkur in #3220
