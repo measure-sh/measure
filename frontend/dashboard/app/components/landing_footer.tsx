@@ -110,6 +110,15 @@ export default function LandingFooter() {
             User Journeys
           </Link>
           <Link
+            href="/product/network-performance"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Network Performance
+          </Link>
+          <Link
             href="/product/adaptive-capture"
             className={cn(
               buttonVariants({ variant: "ghost" }),

@@ -1,42 +1,18 @@
 "use client"
 
-import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkStatusOverviewPlotApiStatus, NetworkTrendsApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkStatusOverviewPlotFromServer, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
-import { formatMillisToHumanReadable, getPlotTimeGroupForRange } from '@/app/utils/time_utils'
+import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkStatusOverviewPlotApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkStatusOverviewPlotFromServer } from '@/app/api/api_calls'
+import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Input } from '@/app/components/input'
-import LoadingBar from '@/app/components/loading_bar'
 import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
-import TabSelect from '@/app/components/tab_select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import NetworkTrends from '@/app/components/network_trends'
 import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
-import { numberToKMB } from '@/app/utils/number_utils'
-import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { History } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-
-interface TrendsEndpoint {
-    domain: string
-    path_pattern: string
-    p95_latency: number | null
-    error_rate: number | null
-    frequency: number
-}
-
-interface NetworkTrends {
-    trends_latency: TrendsEndpoint[]
-    trends_error_rate: TrendsEndpoint[]
-    trends_frequency: TrendsEndpoint[]
-}
-
-enum TrendsTab {
-    Latency = "Slowest",
-    ErrorRate = "Highest Error Rate",
-    Frequency = "Most Frequent",
-}
 
 interface PageState {
     filters: typeof defaultFilters
@@ -47,31 +23,11 @@ interface PageState {
     statusPlotStatus: NetworkStatusOverviewPlotApiStatus
     statusPlotData: any[]
     statusPlotDataKey: string | null
-    trendsStatus: NetworkTrendsApiStatus
-    trends: NetworkTrends
-    selectedTab: TrendsTab
 }
 
 interface SearchState {
     domain: string
     pathPattern: string
-}
-
-const emptyTrends: NetworkTrends = {
-    trends_latency: [],
-    trends_error_rate: [],
-    trends_frequency: [],
-}
-
-function getActiveTabData(trends: NetworkTrends, tab: TrendsTab): TrendsEndpoint[] {
-    switch (tab) {
-        case TrendsTab.Latency:
-            return trends.trends_latency
-        case TrendsTab.ErrorRate:
-            return trends.trends_error_rate
-        case TrendsTab.Frequency:
-            return trends.trends_frequency
-    }
 }
 
 export default function NetworkPage({ params }: { params: { teamId: string } }) {
@@ -86,9 +42,6 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         statusPlotData: [],
         statusPlotDataKey: null,
-        trendsStatus: NetworkTrendsApiStatus.Loading,
-        trends: emptyTrends,
-        selectedTab: TrendsTab.Latency,
     })
 
     const [searchState, setSearchState] = useState<SearchState>({
@@ -117,10 +70,6 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         const domain = searchState.domain.endsWith('/') ? searchState.domain.slice(0, -1) : searchState.domain
         addRecentSearch(params.teamId, domain, path)
         router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(domain + path)}`)
-    }
-
-    const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
-        router.push(`/${params.teamId}/network/details?url=${encodeURIComponent(endpoint.domain + endpoint.path_pattern)}`)
     }
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
@@ -167,33 +116,14 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         return () => { stale = true }
     }, [pageState.filters])
 
-    // Fetch overview and status plot when filters change
+    // Fetch status plot when filters change
     useEffect(() => {
         if (!pageState.filters.ready || !pageState.filters.app) return
 
         let stale = false
         updatePageState({
-            trendsStatus: NetworkTrendsApiStatus.Loading,
             statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
             statusPlotData: [],
-        })
-
-        fetchNetworkTrendsFromServer(pageState.filters).then(result => {
-            if (stale) return
-            switch (result.status) {
-                case NetworkTrendsApiStatus.Success:
-                    updatePageState({
-                        trendsStatus: NetworkTrendsApiStatus.Success,
-                        trends: result.data as NetworkTrends,
-                    })
-                    break
-                case NetworkTrendsApiStatus.NoData:
-                    updatePageState({ trendsStatus: NetworkTrendsApiStatus.NoData, trends: emptyTrends })
-                    break
-                default:
-                    updatePageState({ trendsStatus: NetworkTrendsApiStatus.Error, trends: emptyTrends })
-                    break
-            }
         })
 
         fetchNetworkStatusOverviewPlotFromServer(pageState.filters).then(result => {
@@ -254,8 +184,6 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
             setRecentPaths([])
         }
     }, [searchState.domain, searchState.pathPattern])
-
-    const activeTabData = getActiveTabData(pageState.trends, pageState.selectedTab)
 
     return (
         <div className="flex flex-col items-start">
@@ -411,64 +339,7 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                     <div className="py-10" />
 
                     {/* Trends */}
-                    <p className="font-display text-xl">Trends</p>
-                    <div className="py-2" />
-                    {pageState.trendsStatus === NetworkTrendsApiStatus.Loading &&
-                        <div className="w-full">
-                            <LoadingBar />
-                        </div>
-                    }
-
-                    {pageState.trendsStatus === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
-                        <>
-                        <div className="py-2" />
-                        <div className="flex justify-start w-full">
-                            <TabSelect
-                                items={Object.values(TrendsTab)}
-                                selected={pageState.selectedTab}
-                                onChangeSelected={(item) => updatePageState({ selectedTab: item as TrendsTab })}
-                            />
-                        </div>
-                        <div className="py-2" />
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
-                                    <TableHead style={{ width: '15%' }} className={pageState.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}>Frequency</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {activeTabData.map((endpoint, index) => (
-                                    <TableRow
-                                        key={index}
-                                        className="cursor-pointer"
-                                        onClick={() => navigateToEndpoint(endpoint)}
-                                    >
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-mono truncate">{endpoint.domain}{endpoint.path_pattern}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-body">{endpoint.p95_latency !== null ? formatMillisToHumanReadable(endpoint.p95_latency) : '-'}</TableCell>
-                                        <TableCell className="font-body">{endpoint.error_rate !== null ? `${endpoint.error_rate}%` : '-'}</TableCell>
-                                        <TableCell className="font-body">{numberToKMB(endpoint.frequency)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </>
-                    }
-
-                    {(pageState.trendsStatus === NetworkTrendsApiStatus.NoData ||
-                        (pageState.trendsStatus === NetworkTrendsApiStatus.Success && activeTabData.length === 0)) &&
-                        <p className="font-body text-sm">No data available for the selected filters</p>
-                    }
-
-                    {pageState.trendsStatus === NetworkTrendsApiStatus.Error &&
-                        <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
-                    }
+                    <NetworkTrends filters={pageState.filters} teamId={params.teamId} />
                 </>
             }
             {pageState.domainsStatus === NetworkDomainsApiStatus.Error &&

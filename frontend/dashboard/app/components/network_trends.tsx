@@ -1,0 +1,208 @@
+"use client"
+
+import { NetworkTrendsApiStatus, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
+import { defaultFilters } from '@/app/components/filters'
+import LoadingBar from '@/app/components/loading_bar'
+import TabSelect from '@/app/components/tab_select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import { numberToKMB } from '@/app/utils/number_utils'
+import { underlineLinkStyle } from '@/app/utils/shared_styles'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+interface TrendsEndpoint {
+    domain: string
+    path_pattern: string
+    p95_latency: number | null
+    error_rate: number | null
+    frequency: number
+}
+
+interface NetworkTrendsData {
+    trends_latency: TrendsEndpoint[]
+    trends_error_rate: TrendsEndpoint[]
+    trends_frequency: TrendsEndpoint[]
+}
+
+enum TrendsTab {
+    Latency = "Slowest",
+    ErrorRate = "Highest Error Rate",
+    Frequency = "Most Frequent",
+}
+
+const emptyTrends: NetworkTrendsData = {
+    trends_latency: [],
+    trends_error_rate: [],
+    trends_frequency: [],
+}
+
+function getActiveTabData(trends: NetworkTrendsData, tab: TrendsTab): TrendsEndpoint[] {
+    switch (tab) {
+        case TrendsTab.Latency:
+            return trends.trends_latency
+        case TrendsTab.ErrorRate:
+            return trends.trends_error_rate
+        case TrendsTab.Frequency:
+            return trends.trends_frequency
+    }
+}
+
+const demoEndpoints: TrendsEndpoint[] = [
+    { domain: "payments.demo-provider.com", path_pattern: "/*/payment-methods", p95_latency: 2340, error_rate: 0.8, frequency: 32100 },
+    { domain: "payments.demo-provider.com", path_pattern: "/*/checkout", p95_latency: 3100, error_rate: 5.7, frequency: 8400 },
+    { domain: "payments.demo-provider.com", path_pattern: "/*/refunds", p95_latency: 1780, error_rate: 3.2, frequency: 41300 },
+    { domain: "payments.demo-provider.com", path_pattern: "/*/invoices", p95_latency: 890, error_rate: 1.5, frequency: 67500 },
+    { domain: "api.demo-provider.com", path_pattern: "/v1/users/*", p95_latency: 1250, error_rate: 2.1, frequency: 84200 },
+    { domain: "api.demo-provider.com", path_pattern: "/v1/users/*/profile", p95_latency: 560, error_rate: 4.3, frequency: 18900 },
+    { domain: "api.demo-provider.com", path_pattern: "/v2/orders/*/status", p95_latency: 1560, error_rate: 1.8, frequency: 28700 },
+    { domain: "api.demo-provider.com", path_pattern: "/v1/notifications", p95_latency: 440, error_rate: 0.9, frequency: 56200 },
+    { domain: "api.demo-provider.com", path_pattern: "/v1/products/search", p95_latency: 320, error_rate: 0.3, frequency: 189000 },
+    { domain: "api.demo-provider.com", path_pattern: "/v1/events", p95_latency: 180, error_rate: 0.1, frequency: 245000 },
+]
+
+function generateDemoTrends(): NetworkTrendsData {
+    const byLatency = [...demoEndpoints].sort((a, b) => (b.p95_latency ?? 0) - (a.p95_latency ?? 0))
+    const byErrorRate = [...demoEndpoints].sort((a, b) => (b.error_rate ?? 0) - (a.error_rate ?? 0))
+    const byFrequency = [...demoEndpoints].sort((a, b) => b.frequency - a.frequency)
+    return {
+        trends_latency: byLatency,
+        trends_error_rate: byErrorRate,
+        trends_frequency: byFrequency,
+    }
+}
+
+const demoTrends = generateDemoTrends()
+
+interface NetworkTrendsProps {
+    filters?: typeof defaultFilters
+    teamId?: string
+    demo?: boolean
+}
+
+interface ComponentState {
+    status: NetworkTrendsApiStatus
+    trends: NetworkTrendsData
+    selectedTab: TrendsTab
+}
+
+export default function NetworkTrends({ filters, teamId, demo = false }: NetworkTrendsProps) {
+    const router = useRouter()
+
+    const [state, setState] = useState<ComponentState>(() => {
+        if (demo) {
+            return {
+                status: NetworkTrendsApiStatus.Success,
+                trends: demoTrends,
+                selectedTab: TrendsTab.Latency,
+            }
+        }
+        return {
+            status: NetworkTrendsApiStatus.Loading,
+            trends: emptyTrends,
+            selectedTab: TrendsTab.Latency,
+        }
+    })
+
+    const updateState = (newState: Partial<ComponentState>) => {
+        setState(prev => ({ ...prev, ...newState }))
+    }
+
+    useEffect(() => {
+        if (demo) return
+        if (!filters?.ready || !filters?.app) return
+
+        let stale = false
+        updateState({ status: NetworkTrendsApiStatus.Loading })
+
+        fetchNetworkTrendsFromServer(filters).then(result => {
+            if (stale) return
+            switch (result.status) {
+                case NetworkTrendsApiStatus.Success:
+                    updateState({
+                        status: NetworkTrendsApiStatus.Success,
+                        trends: result.data as NetworkTrendsData,
+                    })
+                    break
+                case NetworkTrendsApiStatus.NoData:
+                    updateState({ status: NetworkTrendsApiStatus.NoData, trends: emptyTrends })
+                    break
+                default:
+                    updateState({ status: NetworkTrendsApiStatus.Error, trends: emptyTrends })
+                    break
+            }
+        })
+
+        return () => { stale = true }
+    }, [filters])
+
+    const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
+        if (demo || !teamId) return
+        router.push(`/${teamId}/network/details?url=${encodeURIComponent(endpoint.domain + endpoint.path_pattern)}`)
+    }
+
+    const activeTabData = getActiveTabData(state.trends, state.selectedTab)
+
+    return (
+        <div className="flex flex-col w-full">
+            <p className="font-display text-xl">Trends</p>
+            <div className="py-2" />
+            {state.status === NetworkTrendsApiStatus.Loading &&
+                <div className="w-full">
+                    <LoadingBar />
+                </div>
+            }
+
+            {state.status === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
+                <>
+                    <div className="py-2" />
+                    <div className="flex justify-start w-full">
+                        <TabSelect
+                            items={Object.values(TrendsTab)}
+                            selected={state.selectedTab}
+                            onChangeSelected={(item) => updateState({ selectedTab: item as TrendsTab })}
+                        />
+                    </div>
+                    <div className="py-2" />
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
+                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
+                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
+                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}>Frequency</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {activeTabData.map((endpoint, index) => (
+                                <TableRow
+                                    key={index}
+                                    className={demo ? '' : 'cursor-pointer'}
+                                    onClick={() => navigateToEndpoint(endpoint)}
+                                >
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-mono truncate">{endpoint.domain}{endpoint.path_pattern}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="font-body">{endpoint.p95_latency !== null ? formatMillisToHumanReadable(endpoint.p95_latency) : '-'}</TableCell>
+                                    <TableCell className="font-body">{endpoint.error_rate !== null ? `${endpoint.error_rate}%` : '-'}</TableCell>
+                                    <TableCell className="font-body">{numberToKMB(endpoint.frequency)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </>
+            }
+
+            {(state.status === NetworkTrendsApiStatus.NoData ||
+                (state.status === NetworkTrendsApiStatus.Success && activeTabData.length === 0)) &&
+                <p className="font-body text-sm">No data available for the selected filters</p>
+            }
+
+            {state.status === NetworkTrendsApiStatus.Error &&
+                <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
+            }
+        </div>
+    )
+}
