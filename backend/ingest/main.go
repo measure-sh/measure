@@ -21,7 +21,6 @@ import (
 )
 
 func main() {
-	// temporary change
 	config := server.NewConfig()
 	server.Init(config)
 
