@@ -173,7 +173,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: false
+                    needsReporting: signalSampler.shouldSampleHttpEvent()
                 )
 
             case EventType.bugReport.rawValue:

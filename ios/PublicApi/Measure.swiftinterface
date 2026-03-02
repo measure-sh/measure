@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.2 effective-5.10 (swiftlang-6.2.0.19.9 clang-1700.3.19.1)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
 import AVKit
 import CoreData
 import CoreMotion
@@ -37,45 +37,37 @@ extension Measure.AttributeValue : Swift.Codable {
   public init(from decoder: any Swift.Decoder) throws
 }
 public typealias SessionObCoreDataClassSet = Foundation.NSSet
-@_inheritsConvenienceInitializers @objc(SessionOb) nonisolated public class SessionOb : CoreData.NSManagedObject {
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
-  #endif
+@_inheritsConvenienceInitializers @objc(SessionOb) public class SessionOb : CoreData.NSManagedObject {
+  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
   @objc deinit
 }
 public typealias SessionObCoreDataPropertiesSet = Foundation.NSSet
 extension Measure.SessionOb {
   @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SessionOb>
-  @objc @NSManaged nonisolated dynamic public var crashed: Swift.Bool {
+  @objc @NSManaged dynamic public var crashed: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var createdAt: Swift.Int64 {
+  @objc @NSManaged dynamic public var createdAt: Swift.Int64 {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var needsReporting: Swift.Bool {
+  @objc @NSManaged dynamic public var needsReporting: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var pid: Swift.Int32 {
+  @objc @NSManaged dynamic public var pid: Swift.Int32 {
     @objc get
     @objc set
   }
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
+  @objc @NSManaged dynamic public var sessionId: Swift.String? {
     @objc get
     @objc set
   }
-  #endif
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
-  #if compiler(>=5.3) && $NonescapableTypes
   public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc convenience public init(enableLogging: Swift.Bool, autoStart: Swift.Bool, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?, maxDiskUsageInMb: Foundation.NSNumber?, enableFullCollectionMode: Swift.Bool)
-  #endif
   required public init(from decoder: any Swift.Decoder) throws
   final public func encode(to encoder: any Swift.Encoder) throws
   @objc deinit
@@ -83,9 +75,7 @@ extension Measure.SessionOb {
 public protocol Span {
   var traceId: Swift.String { get }
   var spanId: Swift.String { get }
-  #if compiler(>=5.3) && $NonescapableTypes
   var parentId: Swift.String? { get }
-  #endif
   var isSampled: Swift.Bool { get }
   @discardableResult
   func setStatus(_ status: Measure.SpanStatus) -> any Measure.Span
@@ -118,9 +108,7 @@ public enum SpanStatus : Swift.Int64, Swift.Codable {
   case unset
   case ok
   case error
-  #if compiler(>=5.3) && $NonescapableTypes
   public init?(rawValue: Swift.Int64)
-  #endif
   public typealias RawValue = Swift.Int64
   public var rawValue: Swift.Int64 {
     get
@@ -139,9 +127,7 @@ public protocol SpanBuilder {
   final public let galleryButton: Swift.String
   final public let exitScreenshotMode: Swift.String
   public init(reportBugTitle: Swift.String, descriptionPlaceholder: Swift.String, sendButton: Swift.String, screenshotButton: Swift.String, galleryButton: Swift.String, exitScreenshotMode: Swift.String)
-  #if compiler(>=5.3) && $NonescapableTypes
   public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, galleryButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.MsrText
-  #endif
   @objc deinit
 }
 @objc final public class ClientInfo : ObjectiveC.NSObject, Swift.Codable {
@@ -155,9 +141,7 @@ public protocol SpanBuilder {
   final public let button: UIKit.UIFont
   final public let placeholder: UIKit.UIFont
   public init(title: UIKit.UIFont, button: UIKit.UIFont, placeholder: UIKit.UIFont)
-  #if compiler(>=5.3) && $NonescapableTypes
   public func update(title: UIKit.UIFont? = nil, button: UIKit.UIFont? = nil, placeholder: UIKit.UIFont? = nil) -> Measure.MsrFonts
-  #endif
   @objc deinit
 }
 @_inheritsConvenienceInitializers @objc(LifecycleManagerInternal) public class LifecycleManagerInternal : ObjectiveC.NSObject {
@@ -171,9 +155,7 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   case allText
   case allTextExceptClickable
   case sensitiveFieldsOnly
-  #if compiler(>=5.3) && $NonescapableTypes
   public init?(rawValue: Swift.String)
-  #endif
   public typealias AllCases = [Measure.ScreenshotMaskLevel]
   public typealias RawValue = Swift.String
   nonisolated public static var allCases: [Measure.ScreenshotMaskLevel] {
@@ -188,9 +170,7 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   case allText
   case allTextExceptClickable
   case sensitiveFieldsOnly
-  #if compiler(>=5.3) && $NonescapableTypes
   public init?(rawValue: Swift.Int)
-  #endif
   public typealias RawValue = Swift.Int
   public var rawValue: Swift.Int {
     get
@@ -245,9 +225,7 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
     get
   }
   public init(darkBackground: UIKit.UIColor, lightBackground: UIKit.UIColor, darkButtonBackground: UIKit.UIColor, lightButtonBackground: UIKit.UIColor, darkText: UIKit.UIColor, lightText: UIKit.UIColor, darkPlaceholder: UIKit.UIColor, lightPlaceholder: UIKit.UIColor, darkFloatingButtonBackground: UIKit.UIColor, lightFloatingButtonBackground: UIKit.UIColor, darkFloatingButtonIcon: UIKit.UIColor, lightFloatingButtonIcon: UIKit.UIColor, darkfloatingExitButtonText: UIKit.UIColor, lightfloatingExitButtonText: UIKit.UIColor, badgeColor: UIKit.UIColor, badgeTextColor: UIKit.UIColor, isDarkMode: Swift.Bool)
-  #if compiler(>=5.3) && $NonescapableTypes
   public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.MsrColors
-  #endif
   @objc deinit
 }
 @objc public protocol MsrRequestHeadersProvider : ObjectiveC.NSObjectProtocol {
@@ -264,9 +242,7 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   case initWithCoder = 7
   case loadView = 8
   case vcDeinit = 9
-  #if compiler(>=5.3) && $NonescapableTypes
   public init?(rawValue: Swift.Int)
-  #endif
   public typealias RawValue = Swift.Int
   public var rawValue: Swift.Int {
     get
@@ -279,9 +255,7 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   public var path: Swift.String?
   public var size: Swift.Int64
   public var id: Swift.String
-  #if compiler(>=5.3) && $NonescapableTypes
   public init(name: Swift.String, type: Measure.AttachmentType, size: Swift.Int64, id: Swift.String, bytes: Foundation.Data? = nil, path: Swift.String? = nil)
-  #endif
   @objc deinit
   public func encode(to encoder: any Swift.Encoder) throws
   required public init(from decoder: any Swift.Decoder) throws
@@ -289,16 +263,12 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
 @objc public class MsrDimensions : ObjectiveC.NSObject {
   final public let topPadding: CoreFoundation.CGFloat
   public init(topPadding: CoreFoundation.CGFloat)
-  #if compiler(>=5.3) && $NonescapableTypes
   public func update(topPadding: CoreFoundation.CGFloat? = nil) -> Measure.MsrDimensions
-  #endif
   @objc deinit
 }
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 @_Concurrency.MainActor @preconcurrency public struct MsrMoniterView<Content> : SwiftUICore.View where Content : SwiftUICore.View {
-  #if compiler(>=5.3) && $NonescapableTypes
   @_Concurrency.MainActor @preconcurrency public init(_ viewName: Swift.String? = nil, content: @escaping () -> Content)
-  #endif
   @_Concurrency.MainActor @preconcurrency public var body: some SwiftUICore.View {
     get
   }
@@ -307,87 +277,43 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
 }
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension SwiftUICore.View {
-  #if compiler(>=5.3) && $NonescapableTypes
   @_Concurrency.MainActor @preconcurrency public func moniterWithMsr(_ viewName: Swift.String? = nil) -> some SwiftUICore.View
   
-  #endif
 }
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class Measure : ObjectiveC.NSObject {
   @objc deinit
 }
 extension Measure.Measure {
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
-  #endif
   @objc public static func start()
   @objc public static func stop()
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func getSessionId() -> Swift.String?
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?, attachments: [Measure.MsrAttachment])
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Measure.AttributeValue]?)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Any]?)
-  #endif
   @objc public static func setUserId(_ userId: Swift.String)
   @objc public static func clearUserId()
   @objc public static func getCurrentTime() -> Swift.Int64
   public static func startSpan(name: Swift.String) -> any Measure.Span
   public static func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
-  #endif
   public static func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
   public static func getTraceParentHeaderKey() -> Swift.String
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func onShake(_ handler: (() -> Swift.Void)?)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetAttachmentDirectory() -> Swift.String?
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetDynamicConfigPath() -> Swift.String?
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   public static func trackHttpEvent(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String = "unknown", statusCode: Swift.Int? = nil, error: (any Swift.Error)? = nil, requestHeaders: [Swift.String : Swift.String]? = nil, responseHeaders: [Swift.String : Swift.String]? = nil, requestBody: Swift.String? = nil, responseBody: Swift.String? = nil)
-  #endif
 }
 @_inheritsConvenienceInitializers @objc public class MSRNetworkInterceptor : ObjectiveC.NSObject {
   @objc(enableOn:) public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
@@ -398,9 +324,7 @@ public enum AttachmentType : Swift.String, Swift.Codable {
   case screenshot
   case layoutSnapshot
   case layoutSnapshotJson
-  #if compiler(>=5.3) && $NonescapableTypes
   public init?(rawValue: Swift.String)
-  #endif
   public typealias RawValue = Swift.String
   public var rawValue: Swift.String {
     get
@@ -409,12 +333,8 @@ public enum AttachmentType : Swift.String, Swift.Codable {
 @objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MsrViewController : UIKit.UIViewController {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic open func loadView()
   @objc deinit
-  #if compiler(>=5.3) && $NonescapableTypes
   @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @_Concurrency.MainActor @preconcurrency @objc required dynamic public init?(coder: Foundation.NSCoder)
-  #endif
 }
 extension Measure.SpanStatus : Swift.Equatable {}
 extension Measure.SpanStatus : Swift.Hashable {}

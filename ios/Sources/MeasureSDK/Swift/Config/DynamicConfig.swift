@@ -59,6 +59,10 @@ protocol DynamicConfig {
     /// Defaults to true.
     var gestureClickTakeSnapshot: Bool { get }
 
+    /// Sampling rate for htto events.
+    /// Defaults to 0.01%.
+    var httpSamplingRate: Float { get }
+    
     /// URLs for which HTTP events should be disabled.
     var httpDisableEventForUrls: [String] { get }
 
@@ -86,36 +90,72 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let anrTakeScreenshot: Bool
     let launchSamplingRate: Float
     let gestureClickTakeSnapshot: Bool
+    let httpSamplingRate: Float
     let httpDisableEventForUrls: [String]
     let httpTrackRequestForUrls: [String]
     let httpTrackResponseForUrls: [String]
     let httpBlockedHeaders: [String]
-
-    static func `default`() -> BaseDynamicConfig {
-        BaseDynamicConfig(maxEventsInBatch: 10_000,
-                          crashTimelineDurationSeconds: 300,
-                          anrTimelineDurationSeconds: 300,
-                          bugReportTimelineDurationSeconds: 300,
-                          traceSamplingRate: 0.01,
-                          journeySamplingRate: 0.01,
-                          screenshotMaskLevel: .allTextAndMedia,
-                          cpuUsageInterval: 5,
-                          memoryUsageInterval: 5,
-                          crashTakeScreenshot: true,
-                          anrTakeScreenshot: true,
-                          launchSamplingRate: 0.01,
-                          gestureClickTakeSnapshot: true,
-                          httpDisableEventForUrls: [],
-                          httpTrackRequestForUrls: [],
-                          httpTrackResponseForUrls: [],
-                          httpBlockedHeaders: [
-                            "Authorization",
-                            "Cookie",
-                            "Set-Cookie",
-                            "Proxy-Authorization",
-                            "WWW-Authenticate",
-                            "X-Api-Key",
-                          ])
+    
+    init(maxEventsInBatch: Number = DefaultConfig.maxEventsInBatch,
+         crashTimelineDurationSeconds: Number = DefaultConfig.crashTimelineDurationSeconds,
+         anrTimelineDurationSeconds: Number = DefaultConfig.anrTimelineDurationSeconds,
+         bugReportTimelineDurationSeconds: Number = DefaultConfig.bugReportTimelineDurationSeconds,
+         traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
+         journeySamplingRate: Float = DefaultConfig.journeySamplingRate,
+         screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+         cpuUsageInterval: Number = DefaultConfig.cpuUsageInterval,
+         memoryUsageInterval: Number = DefaultConfig.memoryUsageInterval,
+         crashTakeScreenshot: Bool = DefaultConfig.crashTakeScreenshot,
+         anrTakeScreenshot: Bool = DefaultConfig.anrTakeScreenshot,
+         launchSamplingRate: Float = DefaultConfig.launchSamplingRate,
+         gestureClickTakeSnapshot: Bool = DefaultConfig.gestureClickTakeSnapshot,
+         httpSamplingRate: Float = DefaultConfig.httpSamplingRate,
+         httpDisableEventForUrls: [String] = DefaultConfig.httpDisableEventForUrls,
+         httpTrackRequestForUrls: [String] = DefaultConfig.httpTrackRequestForUrls,
+         httpTrackResponseForUrls: [String] = DefaultConfig.httpTrackResponseForUrls,
+         httpBlockedHeaders: [String] = DefaultConfig.httpBlockedHeaders
+    ) {
+        self.maxEventsInBatch = maxEventsInBatch
+        self.crashTimelineDurationSeconds = crashTimelineDurationSeconds
+        self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
+        self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
+        self.traceSamplingRate = traceSamplingRate
+        self.journeySamplingRate = journeySamplingRate
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.cpuUsageInterval = cpuUsageInterval
+        self.memoryUsageInterval = memoryUsageInterval
+        self.crashTakeScreenshot = crashTakeScreenshot
+        self.anrTakeScreenshot = anrTakeScreenshot
+        self.launchSamplingRate = launchSamplingRate
+        self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
+        self.httpSamplingRate = httpSamplingRate
+        self.httpDisableEventForUrls = httpDisableEventForUrls
+        self.httpTrackRequestForUrls = httpTrackRequestForUrls
+        self.httpTrackResponseForUrls = httpTrackResponseForUrls
+        self.httpBlockedHeaders = httpBlockedHeaders
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+    
+        maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
+        crashTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .crashTimelineDurationSeconds) ?? DefaultConfig.crashTimelineDurationSeconds
+        anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
+        bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
+        traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
+        journeySamplingRate = try c.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
+        screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+        cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
+        memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
+        crashTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
+        anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
+        launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
+        gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
+        httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? DefaultConfig.httpSamplingRate
+        httpDisableEventForUrls = try c.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? DefaultConfig.httpDisableEventForUrls
+        httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? DefaultConfig.httpTrackRequestForUrls
+        httpTrackResponseForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? DefaultConfig.httpTrackResponseForUrls
+        httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -132,6 +172,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case anrTakeScreenshot = "anr_take_screenshot"
         case launchSamplingRate = "launch_sampling_rate"
         case gestureClickTakeSnapshot = "gesture_click_take_snapshot"
+        case httpSamplingRate = "http_sampling_rate"
         case httpDisableEventForUrls = "http_disable_event_for_urls"
         case httpTrackRequestForUrls = "http_track_request_for_urls"
         case httpTrackResponseForUrls = "http_track_response_for_urls"

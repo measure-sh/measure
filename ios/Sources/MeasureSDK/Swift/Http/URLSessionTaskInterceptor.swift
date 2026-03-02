@@ -15,6 +15,7 @@ final class URLSessionTaskInterceptor {
     private var configProvider: ConfigProvider?
     private var recentRequests: [String: UInt64] = [:]
     private let dedupeWindowMs: UInt64 = 300
+    private var signalSampler: SignalSampler?
 
     private init() {}
 
@@ -29,6 +30,10 @@ final class URLSessionTaskInterceptor {
     func setConfigProvider(_ configProvider: ConfigProvider) {
         self.configProvider = configProvider
     }
+    
+    func setSignalSampler(_ signalSampler: SignalSampler) {
+        self.signalSampler = signalSampler
+    }
 
     func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this function_body_length
         guard !MSRNetworkInterceptor.isEnabled else { return }
@@ -36,9 +41,14 @@ final class URLSessionTaskInterceptor {
         guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
               let timeProvider = self.timeProvider,
               let configProvider = self.configProvider,
+              let signalSampler = self.signalSampler,
               let url = task.currentRequest?.url?.absoluteString else { return }
 
         guard configProvider.shouldTrackHttpUrl(url: url) else {
+            return
+        }
+        
+        guard signalSampler.shouldTrackLaunchEvents() else {
             return
         }
 

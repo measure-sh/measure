@@ -46,7 +46,7 @@ struct BaseConfigLoader: ConfigLoader {
 
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void) {
         let cachedConfig = loadConfigFromDisk()
-        onLoaded(cachedConfig ?? BaseDynamicConfig.default())
+        onLoaded(cachedConfig ?? BaseDynamicConfig())
         refreshConfigFromServer()
     }
 
