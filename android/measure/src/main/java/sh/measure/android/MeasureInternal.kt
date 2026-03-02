@@ -42,7 +42,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         // is triggered.
         measure.signalProcessor.track(
             SessionStartData,
-            timestamp = measure.timeProvider.now(),
+            timestamp = measure.sessionManager.getSessionStartTime(),
             type = EventType.SESSION_START,
             sessionId = sessionId,
             // always sample session start event
