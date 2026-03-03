@@ -45,6 +45,18 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
   const { theme } = useTheme()
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
+  const colorMap = theme === 'dark' ? {
+    '2xx': 'oklch(0.6500 0.1700 145.0000)',
+    '3xx': 'oklch(0.6042 0.1238 244.6000)',
+    '4xx': 'oklch(0.6664 0.1851 51.8800)',
+    '5xx': 'oklch(0.6014 0.1990 26.6000)',
+  } : {
+    '2xx': 'oklch(85.5% 0.08 145.000)',
+    '3xx': 'oklch(90.1% 0.058 230.902)',
+    '4xx': 'oklch(89.2% 0.058 55.000)',
+    '5xx': 'oklch(80.8% 0.114 19.571)',
+  }
+
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined
 
@@ -79,7 +91,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
           theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
+          colors={({ id }) => colorMap[id as keyof typeof colorMap] || '#888'}
           margin={{ top: 20, right: 80, bottom: 140, left: 80 }}
           xFormat={timeConfig.xFormat}
           xScale={{
@@ -115,10 +127,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
           pointSize={6}
           pointBorderWidth={1.5}
           pointColor={theme === 'dark' ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"}
-          pointBorderColor={{
-            from: 'serieColor',
-            modifiers: [['darker', 0.3]]
-          }}
+          pointBorderColor={({ serieId }: { serieId: string }) => colorMap[serieId as keyof typeof colorMap] || '#888'}
           pointLabelYOffset={-12}
           useMesh={true}
           enableGridX={false}
