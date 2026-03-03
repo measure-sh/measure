@@ -127,15 +127,15 @@ During installation, you'll be presented with the Measure configuration wizard.
 For the first prompt, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any name.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/70e5aa2c-8916-4b84-930a-e57a5c020e2a" alt="Measure Configuration Wizard" />
+  <img src="https://github.com/user-attachments/assets/41a360dd-8548-4836-af51-53b8f2626bc3" alt="Measure Configuration Wizard" />
 </p>
 
 For the next prompt, you'll be asked to enter the URL to access measure.sh's web dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
 
-Next, you'll be asked to enter the URL to access Measure's REST API endpoint. Typically, this might look like, `https://measure-api.yourcompany.com`.
+Next, you'll be asked to enter the URL to access Measure's REST API & Ingest endpoint. Typically, this might look like, `https://measure-api.yourcompany.com` & `https://measure-ingest.yourcompany.com` respectively.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/22610a50-202d-4e05-baf0-f2ab464d3ed7" alt="Measure Dashboard URL prompt" />
+  <img src="https://github.com/user-attachments/assets/b3ee938e-47eb-4b8a-b822-c3ca5cea4f8f" alt="Measure Dashboard URL prompt" />
 </p>
 
 Later in this guide, you'll be setting DNS A records for the above subdomains you entered. For now, let's move on to the next prompt.
@@ -205,6 +205,10 @@ measure.yourcompany.com {
 measure-api.yourcompany.com {
 	reverse_proxy http://localhost:8080
 }
+
+measure-ingest.yourcompany.com {
+	reverse_proxy http://localhost:8085
+}
 EOF
 ```
 
@@ -225,8 +229,9 @@ For this last step, we'll setup 2 DNS A records and put those subdomains to work
 Go to your domain hosting provider and add A records for the following subdomains.
 
 ```
-measure.yourcompany.com         IN A        101.102.103.104
-measure-api.yourcompany.com     IN A        101.102.103.104
+measure.yourcompany.com           IN A        101.102.103.104
+measure-api.yourcompany.com       IN A        101.102.103.104
+measure-ingest.yourcompany.com    IN A        101.102.103.104
 ```
 
 Depending on your domain provider, it might take a few minutes to couple of hours for the above DNS records to take effect.
@@ -422,6 +427,15 @@ curl -s https://measure-api.yourcompany.com/ping | grep pong
 curl -s http://localhost:8080/ping | grep pong
 ```
 
+To perform health check for the Ingest service, use:
+
+```sh
+curl -s https://measure-ingest.yourcompany.com/ping | grep pong
+
+# local environment
+curl -s http://localhost:8085/ping | grep pong
+```
+
 Replace the domain names accordingly. These health check endpoints are useful when defining Measure services as backends for a load balancer or proxy.
 
 ### Q. Can I host Measure behind a VPN?
@@ -441,6 +455,10 @@ Absolutely! Hosting Measure behind a VPN is a great way to shield it from public
 
     measure-api.yourcompany.com {
       reverse_proxy http://localhost:8080
+    }
+
+    measure-ingest.yourcompany.com {
+      reverse_proxy http://localhost:8085
     }
     ```
 
