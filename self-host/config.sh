@@ -85,20 +85,20 @@ to manually enter: " choice
 
   while true; do
     case "$choice" in
-    a)
-      password=$(generate_password "$length" "$passprompt")
-      break
-      ;;
-    m)
-      read -p "$passprompt" password
-      if [[ -z "$password" ]]; then
-        continue
-      fi
-      break
-      ;;
-    *)
-      echo "Invalid choice. Please try again."
-      ;;
+      a)
+        password=$(generate_password "$length" "$passprompt")
+        break
+        ;;
+      m)
+        read -p "$passprompt" password
+        if [[ -z "$password" ]]; then
+          continue
+        fi
+        break
+        ;;
+      *)
+        echo "Invalid choice. Please try again."
+        ;;
     esac
   done
 
@@ -231,6 +231,7 @@ SYMBOLOADER_ORIGIN=http://symboloader:8083
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_INGEST_BASE_URL=http://localhost:8085
 API_BASE_URL=http://api:8080
 
 ########
@@ -344,6 +345,7 @@ SYMBOLOADER_ORIGIN=http://symboloader:8083
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL
 API_BASE_URL=http://api:8080
 
 ########
@@ -506,9 +508,13 @@ END
     echo -e "Example: https://measure.yourcompany.com"
     NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
 
-    echo -e "\nSet Measure service URL"
+    echo -e "\nSet Measure API service URL"
     echo -e "Example: https://measure-api.yourcompany.com"
     NEXT_PUBLIC_API_BASE_URL=$(prompt_value_manual "Enter URL to Measure API service: ")
+
+    echo -e "\nSet Measure Ingest service URL"
+    echo -e "Example: https://measure-ingest.yourcompany.com"
+    NEXT_PUBLIC_INGEST_BASE_URL=$(prompt_value_manual "Enter URL to Measure Ingest service: ")
 
     echo -e "\nSet Google OAuth"
     echo -e "To create a Google OAuth app, visit: https://support.google.com/cloud/answer/6158849?hl=en"
@@ -572,6 +578,7 @@ ensure() {
   clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
+  ingest_origin="http://localhost:8085"
   redis_host="valkey"
   redis_port="6379"
 
@@ -631,6 +638,10 @@ ensure() {
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
+
+    if ! check_env_variable "NEXT_PUBLIC_INGEST_BASE_URL"; then
+      add_env_variable "NEXT_PUBLIC_INGEST_BASE_URL" "$ingest_origin"
+    fi
   elif [[ "$SETUP_ENV" == "production" ]]; then
     clickhouse_admin_password=$(generate_password 24)
     clickhouse_operator_password=$(generate_password 24)
@@ -686,6 +697,15 @@ ensure() {
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
+    fi
+
+    # Prompt & save ingest service base url if doesn't exist
+    if ! check_env_variable "NEXT_PUBLIC_INGEST_BASE_URL"; then
+      echo -e "\nSet Measure Ingest service URL"
+      echo -e "Example: https://measure-ingest.yourcompany.com"
+      NEXT_PUBLIC_INGEST_BASE_URL=$(prompt_value_manual "Enter URL to Measure Ingest service: ")
+
+      add_env_variable "NEXT_PUBLIC_INGEST_BASE_URL" "$NEXT_PUBLIC_INGEST_BASE_URL" "API_BASE_URL"
     fi
   fi
 
