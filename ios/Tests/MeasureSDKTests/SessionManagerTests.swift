@@ -17,6 +17,7 @@ final class SessionManagerTests: XCTestCase {
     var timeProvider: MockTimeProvider!
     var sessionStore: SessionStore!
     var userDefaultStorage: MockUserDefaultStorage!
+    var signalProcessor: MockSignalProcessor!
 
     override func setUp() {
         super.setUp()
@@ -32,6 +33,7 @@ final class SessionManagerTests: XCTestCase {
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
         randomizer = MockRandomizer()
+        signalProcessor = MockSignalProcessor()
         randomizer.randomFloat = 0.5
         sessionStore = BaseSessionStore(coreDataManager: MockCoreDataManager(),
                                         logger: logger)
@@ -45,6 +47,17 @@ final class SessionManagerTests: XCTestCase {
                                             versionCode: "1.0.0",
                                             signalSampler: BaseSignalSampler(configProvider: configProvider,
                                                                              randomizer: randomizer))
+        sessionManager.setOnSessionStarted { sessionId in
+            self.signalProcessor.track(data: SessionStartData(),
+                                       timestamp: self.sessionManager.getSessionStartTime()!,
+                                       type: .sessionStart,
+                                       attributes: nil,
+                                       sessionId: sessionId,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil,
+                                       needsReporting: true)
+        }
         userDefaultStorage.setRecentAppVersion("1.0.0")
         userDefaultStorage.setRecentBuildNumber("1")
     }
@@ -58,6 +71,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider = nil
         userDefaultStorage = nil
         sessionStore = nil
+        signalProcessor = nil
         super.tearDown()
     }
 
@@ -67,7 +81,7 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionStart() {
-        sessionManager.start() { _ in }
+        sessionManager.start()
         XCTAssertEqual(sessionManager.sessionId, "test-session-id-1", "Expected session ID to be 'test-session-id-1' after initialisation.")
     }
 
@@ -80,13 +94,13 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 1000
         configProvider.sessionBackgroundTimeoutThresholdMs = 10000
 
-        sessionManager.start() { _ in }
+        sessionManager.start()
         XCTAssertEqual(sessionManager.sessionId, "new-session-id", "Expected a new session to be created when the framework version is updated.")
     }
 
     func testSessionContinues_WhenEnteringForegroundBeforeThreshold() {
         timeProvider.millisTime = 1000
-        sessionManager.start() { _ in }
+        sessionManager.start()
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
@@ -100,7 +114,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testNewSessionCreated_WhenEnteringForegroundAfterThreshold() {
         timeProvider.millisTime = 1000
-        sessionManager.start() { _ in }
+        sessionManager.start()
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
@@ -113,7 +127,7 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionStore() {
-        sessionManager.start { _ in }
+        sessionManager.start()
 
         let sessions = sessionStore.getAllSessions()
         XCTAssertEqual(sessions.count, 1, "Expected 1 session in session store.")
@@ -124,7 +138,7 @@ final class SessionManagerTests: XCTestCase {
         idProvider.uuId = expectedSessionId
         userDefaultStorage.recentSession = nil
 
-        sessionManager.start() { _ in }
+        sessionManager.start()
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created.")
@@ -139,7 +153,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 5000
         configProvider.sessionBackgroundTimeoutThresholdMs = 1000
 
-        sessionManager.start() { _ in }
+        sessionManager.start()
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the threshold time.")
@@ -149,7 +163,7 @@ final class SessionManagerTests: XCTestCase {
         userDefaultStorage.setRecentAppVersion("1.0.1")
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
-        sessionManager.start() { _ in }
+        sessionManager.start()
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }
@@ -158,7 +172,7 @@ final class SessionManagerTests: XCTestCase {
         userDefaultStorage.setRecentBuildNumber("2")
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
-        sessionManager.start() { _ in }
+        sessionManager.start()
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }
@@ -167,15 +181,52 @@ final class SessionManagerTests: XCTestCase {
         configProvider.sessionBackgroundTimeoutThresholdMs = 100000
         let sessionCreatedAt: Int64 = 1000
         timeProvider.current = sessionCreatedAt
-        sessionManager.start() { _ in }
+        sessionManager.start()
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
         let lastEventTime: Int64 = sessionCreatedAt + 1000
         timeProvider.current = lastEventTime + 1000
 
         sessionManager.setPreviousSessionCrashed(true)
-        sessionManager.start() { _ in }
+        sessionManager.start()
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
+    }
+
+    func testSessionStart_TracksSessionStartEvent() {
+        sessionManager.start()
+
+        XCTAssertEqual(signalProcessor.type, .sessionStart, "Expected a sessionStart event to be tracked on start.")
+        XCTAssertEqual(signalProcessor.sessionId, "test-session-id-1", "Expected tracked event to have the correct session ID.")
+    }
+
+    func testSessionForeground_TracksSessionStartEvent_AfterThreshold() {
+        timeProvider.millisTime = 1000
+        sessionManager.start()
+        sessionManager.applicationDidEnterBackground()
+
+        timeProvider.millisTime += configProvider.sessionBackgroundTimeoutThresholdMs + 1
+        idProvider.uuId = "new-session-id-after-bg"
+        sessionManager.applicationWillEnterForeground()
+
+        XCTAssertEqual(sessionManager.sessionId, "new-session-id-after-bg")
+        XCTAssertEqual(signalProcessor.type, .sessionStart, "Expected sessionStart event for the new session after backgrounding.")
+        XCTAssertEqual(signalProcessor.sessionId, "new-session-id-after-bg")
+    }
+
+    func testSessionStart_DoesNotTrackEvent_IfProcessorNotSet() {
+        let managerWithoutProcessor = BaseSessionManager(idProvider: idProvider,
+                                                         logger: logger,
+                                                         timeProvider: timeProvider,
+                                                         configProvider: configProvider,
+                                                         sessionStore: sessionStore,
+                                                         eventStore: MockEventStore(),
+                                                         userDefaultStorage: userDefaultStorage,
+                                                         versionCode: "1.0.0",
+                                                         signalSampler: BaseSignalSampler(configProvider: configProvider,
+                                                                                          randomizer: randomizer))
+
+        managerWithoutProcessor.start()
+        XCTAssertNil(signalProcessor.type, "No event should be tracked if processor is nil.")
     }
 }

@@ -8,8 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer {
-    // swiftlint:disable:this type_body_length
+final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
     let configLoader: ConfigLoader
     let signalSampler: SignalSampler
     let configProvider: ConfigProvider
@@ -24,6 +23,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let installationIdAttributeProcessor: InstallationIdAttributeProcessor
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
+    let sessionAttributeProcessor: SessionAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
@@ -122,6 +122,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          deviceAttributeProcessor: DeviceAttributeProcessor? = nil,
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
+         sessionAttributeProcessor: SessionAttributeProcessor? = nil,
          userAttributeProcessor: UserAttributeProcessor? = nil,
          randomizer: Randomizer? = nil,
          spanProcessor: SpanProcessor? = nil,
@@ -188,12 +189,14 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
         self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                              measureDispatchQueue: self.measureDispatchQueue)
+        self.sessionAttributeProcessor = sessionAttributeProcessor ?? SessionAttributeProcessor(sessionManager: self.sessionManager)
         self.attributeProcessors = [
             self.appAttributeProcessor,
             self.deviceAttributeProcessor,
             self.installationIdAttributeProcessor,
             self.networkStateAttributeProcessor,
-            self.userAttributeProcessor
+            self.userAttributeProcessor,
+            self.sessionAttributeProcessor
         ]
         self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: logger ?? MockLogger(),
                                                              systemFileManager: self.systemFileManager)
@@ -208,7 +211,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: self.timeProvider,
                                                                    attachmentProcessor: self.attachmentProcessor,
                                                                    svgGenerator: self.svgGenerator)
-
         self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider,
                                                                    logger: self.logger)
         self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
