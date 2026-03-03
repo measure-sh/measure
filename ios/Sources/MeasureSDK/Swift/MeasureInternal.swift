@@ -169,9 +169,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
         self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
-        self.sessionManager.start { sessionId in
-            self.trackSessionStart(sessionId: sessionId)
-        }
+        self.sessionManager.start()
         self.crashDataPersistence.prepareCrashFile()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         self.crashReportManager.trackException()
@@ -451,17 +449,5 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
 
         return transformedAttributes
-    }
-
-    private func trackSessionStart(sessionId: String?) {
-        signalProcessor.track(data: SessionStartData(),
-                              timestamp: timeProvider.now(),
-                              type: .sessionStart,
-                              attributes: nil,
-                              sessionId: sessionId,
-                              attachments: nil,
-                              userDefinedAttributes: nil,
-                              threadName: nil,
-                              needsReporting: true)
     }
 }

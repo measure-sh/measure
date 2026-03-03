@@ -226,6 +226,7 @@
 		CF3095292E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */; };
 		CF30952A2E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */; };
 		CF3095422E9D4D0B002CAC1C /* MockAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095412E9D4D0B002CAC1C /* MockAttachmentStore.swift */; };
+		CF35CE092F559E4D006D7A0D /* SessionAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF35CE082F559E4D006D7A0D /* SessionAttributeProcessor.swift */; };
 		CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */; };
 		CF4877412DEEB2C000311F57 /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */; };
 		CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */; };
@@ -571,6 +572,7 @@
 		CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF3095412E9D4D0B002CAC1C /* MockAttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAttachmentStore.swift; sourceTree = "<group>"; };
+		CF35CE082F559E4D006D7A0D /* SessionAttributeProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttributeProcessor.swift; sourceTree = "<group>"; };
 		CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extension.swift"; sourceTree = "<group>"; };
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
@@ -728,15 +730,16 @@
 		526D17A42D5A1913009A2E90 /* Attribute */ = {
 			isa = PBXGroup;
 			children = (
-				CF12A68D2E97A761001C8112 /* AttributeValueValidator.swift */,
 				526D179B2D5A1913009A2E90 /* AppAttributeProcessor.swift */,
 				526D179C2D5A1913009A2E90 /* Attribute.swift */,
 				526D179D2D5A1913009A2E90 /* AttributeProcessor.swift */,
 				526D179E2D5A1913009A2E90 /* AttributeValue.swift */,
+				CF12A68D2E97A761001C8112 /* AttributeValueValidator.swift */,
 				526D179F2D5A1913009A2E90 /* ComputeOnceAttributeProcessor.swift */,
 				526D17A02D5A1913009A2E90 /* DeviceAttributeProcessor.swift */,
 				526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */,
 				526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */,
+				CF35CE082F559E4D006D7A0D /* SessionAttributeProcessor.swift */,
 				526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */,
 			);
 			path = Attribute;
@@ -1697,6 +1700,7 @@
 				526D18502D5A1913009A2E90 /* ExceptionDetail.swift in Sources */,
 				526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */,
 				526D18272D5A1913009A2E90 /* AppAttributeProcessor.swift in Sources */,
+				CF35CE092F559E4D006D7A0D /* SessionAttributeProcessor.swift in Sources */,
 				526D186F2D5A1913009A2E90 /* NetworkChangeData.swift in Sources */,
 				CFD88D482DACD3710095115E /* SpanStore.swift in Sources */,
 				526D187D2D5A1913009A2E90 /* UIColor+Extension.swift in Sources */,

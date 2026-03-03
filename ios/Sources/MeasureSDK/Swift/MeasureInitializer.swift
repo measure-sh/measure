@@ -23,6 +23,7 @@ protocol MeasureInitializer {
     var installationIdAttributeProcessor: InstallationIdAttributeProcessor { get }
     var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
     var userAttributeProcessor: UserAttributeProcessor { get }
+    var sessionAttributeProcessor: SessionAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
     var signalProcessor: SignalProcessor { get }
     var crashReportManager: CrashReportManager { get }
@@ -92,6 +93,7 @@ protocol MeasureInitializer {
 /// - `installationIdAttributeProcessor`: `InstallationIdAttributeProcessor` object used to process installation_id.
 /// - `networkStateAttributeProcessor`: `NetworkStateAttributeProcessor` object used to process network info.
 /// - `userAttributeProcessor`: `UserAttributeProcessor` object used to process user_id.
+/// - `sessionAttributeProcessor`: `SessionAttributeProcessor` object responsible for adding session start time.
 /// - `attributeProcessors`: An array containing all the `AttributeProcessor`.
 /// - `signalProcessor`: `SignalProcessor` object used to track events, traces and spans.
 /// - `crashReportManager`: `CrashReportManager` object used to manage crash reports.
@@ -157,6 +159,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let installationIdAttributeProcessor: InstallationIdAttributeProcessor
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
+    let sessionAttributeProcessor: SessionAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
@@ -271,11 +274,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
         self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                              measureDispatchQueue: measureDispatchQueue)
+        self.sessionAttributeProcessor = SessionAttributeProcessor(sessionManager: sessionManager)
         self.attributeProcessors = [appAttributeProcessor,
                                     deviceAttributeProcessor,
                                     installationIdAttributeProcessor,
                                     networkStateAttributeProcessor,
-                                    userAttributeProcessor]
+                                    userAttributeProcessor,
+                                    sessionAttributeProcessor]
         self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
                                                              systemFileManager: systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)
@@ -313,6 +318,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
+        sessionManager.setSignalProcessor(signalProcessor)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,

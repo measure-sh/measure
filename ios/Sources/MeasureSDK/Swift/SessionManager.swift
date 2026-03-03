@@ -11,7 +11,7 @@ import Foundation
 protocol SessionManager {
     var sessionId: String { get }
     var shouldReportJourneyEvents: Bool { get }
-    func start(onNewSession: (String?) -> Void)
+    func start()
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
@@ -19,6 +19,8 @@ protocol SessionManager {
     func setPreviousSessionCrashed(_ crashed: Bool)
     func markCurrentSessionAsCrashed()
     func onConfigLoaded()
+    func getSessionStartTime() -> Number?
+    func setSignalProcessor(_ signalProcessor: SignalProcessor)
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -38,8 +40,10 @@ final class BaseSessionManager: SessionManager {
     private var previousSessionCrashed = false
     private let versionCode: String
     private let signalSampler: SignalSampler
+    private var signalProcessor: SignalProcessor?
     var shouldReportJourneyEvents: Bool
-
+    private var sessionStartTime: Number?
+    
     /// The current session ID.
     var sessionId: String {
         if let id = currentSessionId {
@@ -49,7 +53,7 @@ final class BaseSessionManager: SessionManager {
             return ""
         }
     }
-
+    
     init(idProvider: IdProvider,
          logger: Logger,
          timeProvider: TimeProvider,
@@ -71,6 +75,10 @@ final class BaseSessionManager: SessionManager {
         self.shouldReportJourneyEvents = false
         self.signalSampler = signalSampler
     }
+    
+    func setSignalProcessor(_ signalProcessor: SignalProcessor) {
+        self.signalProcessor = signalProcessor
+    }
 
     private func createNewSession() {
         currentSessionId = idProvider.uuid()
@@ -85,11 +93,11 @@ final class BaseSessionManager: SessionManager {
                                           createdAt: session.createdAt,
                                           versionCode: versionCode)
         userDefaultStorage.setRecentSession(recentSession)
+        trackSessionStart(sessionId: currentSessionId)
     }
 
-    func start(onNewSession: (String?) -> Void) {
+    func start() {
         createNewSession()
-        onNewSession(currentSessionId)
     }
 
     func applicationDidEnterBackground() {
@@ -158,6 +166,10 @@ final class BaseSessionManager: SessionManager {
         self.shouldReportJourneyEvents = true
     }
 
+    func getSessionStartTime() -> Number? {
+        return sessionStartTime
+    }
+
     private func shouldEndSession() -> Bool {
         let durationInBackground = timeProvider.millisTime - appBackgroundTimeMs
 
@@ -167,5 +179,20 @@ final class BaseSessionManager: SessionManager {
         }
 
         return false
+    }
+
+    private func trackSessionStart(sessionId: String?) {
+        sessionStartTime = timeProvider.now()
+        if let signalProcessor = self.signalProcessor {
+            signalProcessor.track(data: SessionStartData(),
+                                  timestamp: timeProvider.now(),
+                                  type: .sessionStart,
+                                  attributes: nil,
+                                  sessionId: sessionId,
+                                  attachments: nil,
+                                  userDefinedAttributes: nil,
+                                  threadName: nil,
+                                  needsReporting: true)
+        }
     }
 }
