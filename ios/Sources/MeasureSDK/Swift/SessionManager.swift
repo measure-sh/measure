@@ -20,7 +20,7 @@ protocol SessionManager {
     func markCurrentSessionAsCrashed()
     func onConfigLoaded()
     func getSessionStartTime() -> Number?
-    func setSignalProcessor(_ signalProcessor: SignalProcessor)
+    func setOnSessionStarted(_ callback: ((String) -> Void)?)
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -40,9 +40,9 @@ final class BaseSessionManager: SessionManager {
     private var previousSessionCrashed = false
     private let versionCode: String
     private let signalSampler: SignalSampler
-    private var signalProcessor: SignalProcessor?
-    var shouldReportJourneyEvents: Bool
     private var sessionStartTime: Number?
+    private var onSessionStarted: ((String) -> Void)?
+    var shouldReportJourneyEvents: Bool
     
     /// The current session ID.
     var sessionId: String {
@@ -75,9 +75,9 @@ final class BaseSessionManager: SessionManager {
         self.shouldReportJourneyEvents = false
         self.signalSampler = signalSampler
     }
-    
-    func setSignalProcessor(_ signalProcessor: SignalProcessor) {
-        self.signalProcessor = signalProcessor
+
+    func setOnSessionStarted(_ callback: ((String) -> Void)?) {
+        self.onSessionStarted = callback
     }
 
     private func createNewSession() {
@@ -183,16 +183,8 @@ final class BaseSessionManager: SessionManager {
 
     private func trackSessionStart(sessionId: String?) {
         sessionStartTime = timeProvider.now()
-        if let signalProcessor = self.signalProcessor {
-            signalProcessor.track(data: SessionStartData(),
-                                  timestamp: timeProvider.now(),
-                                  type: .sessionStart,
-                                  attributes: nil,
-                                  sessionId: sessionId,
-                                  attachments: nil,
-                                  userDefinedAttributes: nil,
-                                  threadName: nil,
-                                  needsReporting: true)
+        if let onSessionStartedCallback = onSessionStarted, let sessionId = sessionId {
+            onSessionStartedCallback(sessionId)
         }
     }
 }

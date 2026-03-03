@@ -224,7 +224,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                    measureDispatchQueue: self.measureDispatchQueue,
                                                    signalSampler: self.signalSampler,
                                                    exporter: self.exporter)
-        self.sessionManager.setSignalProcessor(self.signalProcessor)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
 
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,

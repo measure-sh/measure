@@ -47,7 +47,17 @@ final class SessionManagerTests: XCTestCase {
                                             versionCode: "1.0.0",
                                             signalSampler: BaseSignalSampler(configProvider: configProvider,
                                                                              randomizer: randomizer))
-        sessionManager.setSignalProcessor(signalProcessor)
+        sessionManager.setOnSessionStarted { sessionId in
+            self.signalProcessor.track(data: SessionStartData(),
+                                       timestamp: self.sessionManager.getSessionStartTime()!,
+                                       type: .sessionStart,
+                                       attributes: nil,
+                                       sessionId: sessionId,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil,
+                                       needsReporting: true)
+        }
         userDefaultStorage.setRecentAppVersion("1.0.0")
         userDefaultStorage.setRecentBuildNumber("1")
     }

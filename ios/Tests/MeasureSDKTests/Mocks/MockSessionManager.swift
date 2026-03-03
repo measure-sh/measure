@@ -23,6 +23,7 @@ final class MockSessionManager: SessionManager {
     private(set) var onConfigLoadedCalled = false
     private(set) var trackedEvent: Any?
     var sessionStartTime: Number?
+    var onSessionStartedCallback: ((String) -> Void)?
 
     init(sessionId: String = "mock-session-id", shouldReportJourneyEvents: Bool = true) {
         self.sessionId = sessionId
@@ -36,10 +37,7 @@ final class MockSessionManager: SessionManager {
     func getSessionStartTime() -> Number? {
         return sessionStartTime
     }
-    
-    func setSignalProcessor(_ signalProcessor: SignalProcessor) {
-        self.signalProcessor = signalProcessor
-    }
+
     func applicationDidEnterBackground() {
         applicationDidEnterBackgroundCalled = true
     }
@@ -68,5 +66,9 @@ final class MockSessionManager: SessionManager {
 
     func onConfigLoaded() {
         onConfigLoadedCalled = true
+    }
+
+    func setOnSessionStarted(_ callback: ((String) -> Void)?) {
+        onSessionStartedCallback = callback
     }
 }
