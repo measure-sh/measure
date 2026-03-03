@@ -78,7 +78,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data, plotTimeG
           enableArea={true}
           areaOpacity={0.1}
           colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
-          margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
+          margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
           xFormat={timeConfig.xFormat}
           xScale={{
             format: timeConfig.xScaleFormat,

@@ -80,7 +80,7 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
           enableArea={true}
           areaOpacity={0.1}
           colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
-          margin={{ top: 20, right: 40, bottom: 140, left: 80 }}
+          margin={{ top: 20, right: 80, bottom: 140, left: 80 }}
           xFormat={timeConfig.xFormat}
           xScale={{
             format: timeConfig.xScaleFormat,
