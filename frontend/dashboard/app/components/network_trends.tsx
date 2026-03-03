@@ -3,11 +3,11 @@
 import { NetworkTrendsApiStatus, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
 import { defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
-import TabSelect from '@/app/components/tab_select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import { numberToKMB } from '@/app/utils/number_utils'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
+import { ArrowDownNarrowWide } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -78,15 +78,18 @@ interface NetworkTrendsProps {
     filters?: typeof defaultFilters
     teamId?: string
     demo?: boolean
+    hideTitle?: boolean
+    active?: boolean
 }
 
 interface ComponentState {
     status: NetworkTrendsApiStatus
     trends: NetworkTrendsData
+    dataKey: string | null
     selectedTab: TrendsTab
 }
 
-export default function NetworkTrends({ filters, teamId, demo = false }: NetworkTrendsProps) {
+export default function NetworkTrends({ filters, teamId, demo = false, hideTitle = false, active = true }: NetworkTrendsProps) {
     const router = useRouter()
 
     const [state, setState] = useState<ComponentState>(() => {
@@ -94,12 +97,14 @@ export default function NetworkTrends({ filters, teamId, demo = false }: Network
             return {
                 status: NetworkTrendsApiStatus.Success,
                 trends: demoTrends,
+                dataKey: null,
                 selectedTab: TrendsTab.Latency,
             }
         }
         return {
             status: NetworkTrendsApiStatus.Loading,
             trends: emptyTrends,
+            dataKey: null,
             selectedTab: TrendsTab.Latency,
         }
     })
@@ -108,9 +113,12 @@ export default function NetworkTrends({ filters, teamId, demo = false }: Network
         setState(prev => ({ ...prev, ...newState }))
     }
 
+    const currentDataKey = filters?.serialisedFilters ?? null
+
     useEffect(() => {
-        if (demo) return
+        if (demo || !active) return
         if (!filters?.ready || !filters?.app) return
+        if (state.dataKey === currentDataKey) return
 
         let stale = false
         updateState({ status: NetworkTrendsApiStatus.Loading })
@@ -122,19 +130,20 @@ export default function NetworkTrends({ filters, teamId, demo = false }: Network
                     updateState({
                         status: NetworkTrendsApiStatus.Success,
                         trends: result.data as NetworkTrendsData,
+                        dataKey: currentDataKey,
                     })
                     break
                 case NetworkTrendsApiStatus.NoData:
-                    updateState({ status: NetworkTrendsApiStatus.NoData, trends: emptyTrends })
+                    updateState({ status: NetworkTrendsApiStatus.NoData, trends: emptyTrends, dataKey: null })
                     break
                 default:
-                    updateState({ status: NetworkTrendsApiStatus.Error, trends: emptyTrends })
+                    updateState({ status: NetworkTrendsApiStatus.Error, trends: emptyTrends, dataKey: null })
                     break
             }
         })
 
         return () => { stale = true }
-    }, [filters])
+    }, [active, filters])
 
     const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
         if (demo || !teamId) return
@@ -145,8 +154,10 @@ export default function NetworkTrends({ filters, teamId, demo = false }: Network
 
     return (
         <div className="flex flex-col w-full">
-            <p className="font-display text-xl">Trends</p>
-            <div className="py-2" />
+            {!hideTitle && <>
+                <p className="font-display text-xl">Trends</p>
+                <div className="py-2" />
+            </>}
             {state.status === NetworkTrendsApiStatus.Loading &&
                 <div className="w-full">
                     <LoadingBar />
@@ -155,22 +166,25 @@ export default function NetworkTrends({ filters, teamId, demo = false }: Network
 
             {state.status === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
                 <>
-                    <div className="py-2" />
-                    <div className="flex justify-start w-full">
-                        <TabSelect
-                            items={Object.values(TrendsTab)}
-                            selected={state.selectedTab}
-                            onChangeSelected={(item) => updateState({ selectedTab: item as TrendsTab })}
-                        />
-                    </div>
-                    <div className="py-2" />
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}>Latency(p95)</TableHead>
-                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}>Error Rate %</TableHead>
-                                <TableHead style={{ width: '15%' }} className={state.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}>Frequency</TableHead>
+                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.Latency })}>
+                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}`}>
+                                        Latency(p95){state.selectedTab === TrendsTab.Latency && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
+                                    </span>
+                                </TableHead>
+                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.ErrorRate })}>
+                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}`}>
+                                        Error Rate %{state.selectedTab === TrendsTab.ErrorRate && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
+                                    </span>
+                                </TableHead>
+                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.Frequency })}>
+                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}`}>
+                                        Frequency{state.selectedTab === TrendsTab.Frequency && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
+                                    </span>
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
