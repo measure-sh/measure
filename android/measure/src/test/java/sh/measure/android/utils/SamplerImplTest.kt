@@ -97,4 +97,30 @@ internal class SamplerImplTest {
 
         assertTrue(firstResult == secondResult)
     }
+
+    @Test
+    fun `http event - 0 percent rate never samples`() {
+        configProvider.httpSamplingRate = 0f
+        assertFalse(sampler.shouldSampleHttpEvent())
+    }
+
+    @Test
+    fun `http event - 100 percent rate always samples`() {
+        configProvider.httpSamplingRate = 100f
+        assertTrue(sampler.shouldSampleHttpEvent())
+    }
+
+    @Test
+    fun `http event - samples when random is below threshold`() {
+        configProvider.httpSamplingRate = 50f
+        randomizer.randomDouble = 0.49
+        assertTrue(sampler.shouldSampleHttpEvent())
+    }
+
+    @Test
+    fun `http event - does not sample when random is at or above threshold`() {
+        configProvider.httpSamplingRate = 50f
+        randomizer.randomDouble = 0.50
+        assertFalse(sampler.shouldSampleHttpEvent())
+    }
 }

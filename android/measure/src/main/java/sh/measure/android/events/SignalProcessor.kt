@@ -416,6 +416,9 @@ internal class SignalProcessorImpl(
         isSampled: Boolean,
     ): Boolean = when {
         configProvider.enableFullCollectionMode -> true
+        eventType == EventType.HTTP -> {
+            sampler.shouldSampleHttpEvent()
+        }
         eventType in DefaultConfig.JOURNEY_EVENTS -> {
             sampler.shouldTrackJourneyForSession(sessionId)
         }

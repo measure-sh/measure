@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add `team_id` to app retention query in cleanup (#3236) by @detj in #3236
 - (**backend**): Journey api would return inaccurate results sometimes (#3213) by @detj in #3213
 - (**backend**): Crash/anr groups list api would return inaccurate results sometimes (#3212) by @detj in #3212
 - (**backend**): Onboard app synchronously during ingest (#3205) by @detj in #3205
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add session start time attribute to events and spans (#3240) by @abhaysood in #3240
 - (**backend**): Add usage threshold banners by @anupcowkur in #3223
 - (**backend**): Reset free plan limit to 1M units by @anupcowkur in #3222
 - (**backend**): Reduce free plan limit to 1000 for testing by @anupcowkur in #3220

@@ -622,6 +622,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 	stmt := sqlf.PostgreSQL.
 		From("apps").
 		Select("id").
+		Select("team_id").
 		Select("retention")
 
 	defer stmt.Close()

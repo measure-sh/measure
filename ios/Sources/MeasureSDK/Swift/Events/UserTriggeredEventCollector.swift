@@ -178,7 +178,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             responseBody: shouldTrackResponseHttpBody ? responseBody : nil,
                             client: client)
 
-        track(data, type: .http, needsReporting: false)
+        track(data, type: .http, needsReporting: signalSampler.shouldSampleHttpEvent())
     }
 
     private func track(_ data: Codable, type: EventType, userDefinedAttributes: String? = nil, needsReporting: Bool?) {
@@ -190,7 +190,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            attachments: nil,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
-                                           needsReporting: needsReporting)
+                                           needsReporting: signalSampler.shouldSampleHttpEvent())
     }
 
     private func getContentType(headers: [String: String]?) -> String? {

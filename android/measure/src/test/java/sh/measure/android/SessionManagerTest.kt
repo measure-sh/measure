@@ -58,6 +58,35 @@ class SessionManagerTest {
     }
 
     @Test
+    fun `getSessionStartTime throws when not initialized`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            sessionManager.getSessionStartTime()
+        }
+    }
+
+    @Test
+    fun `getSessionStartTime returns correct time after init`() {
+        val expectedTime = timeProvider.now()
+        sessionManager.init()
+        assertEquals(expectedTime, sessionManager.getSessionStartTime())
+    }
+
+    @Test
+    fun `getSessionStartTime updates when new session is created on foreground`() {
+        sessionManager.init()
+        val initialStartTime = sessionManager.getSessionStartTime()
+
+        sessionManager.onAppBackground()
+        testClock.advance(Duration.ofMillis(configProvider.sessionBackgroundTimeoutThresholdMs + 1))
+        idProvider.id = "next-uuid"
+
+        sessionManager.onAppForeground()
+
+        val newStartTime = sessionManager.getSessionStartTime()
+        assert(newStartTime > initialStartTime)
+    }
+
+    @Test
     fun `init creates and returns session id`() {
         val s1 = sessionManager.init()
         assertEquals(sessionManager.getSessionId(), s1)
@@ -174,5 +203,46 @@ class SessionManagerTest {
         sessionManager.onConfigLoaded()
 
         verify(database, never()).sampleJourneyEvents(any(), any())
+    }
+
+    @Test
+    fun `onSessionStart listener is invoked on init`() {
+        var callbackSessionId: String? = null
+        var callbackSessionTime: Long? = null
+        sessionManager.setSessionStartListener(object : SessionStartListener {
+            override fun onSessionStart(sessionId: String, startTime: Long) {
+                callbackSessionId = sessionId
+                callbackSessionTime = startTime
+            }
+        })
+
+        sessionManager.init()
+
+        assertEquals(sessionManager.getSessionId(), callbackSessionId)
+        assertEquals(sessionManager.getSessionStartTime(), callbackSessionTime)
+    }
+
+    @Test
+    fun `onSessionStart listener is invoked on new session when app comes back to foreground`() {
+        var callbackSessionId: String? = null
+        var callbackSessionTime: Long? = null
+        sessionManager.setSessionStartListener(object : SessionStartListener {
+            override fun onSessionStart(sessionId: String, startTime: Long) {
+                callbackSessionId = sessionId
+                callbackSessionTime = startTime
+            }
+        })
+
+        sessionManager.init()
+        sessionManager.onAppBackground()
+
+        testClock.advance(Duration.ofMillis(configProvider.sessionBackgroundTimeoutThresholdMs + 1))
+        val updatedSessionId = "next-uuid"
+        idProvider.id = updatedSessionId
+
+        sessionManager.onAppForeground()
+
+        assertEquals(updatedSessionId, callbackSessionId)
+        assertEquals(sessionManager.getSessionStartTime(), callbackSessionTime)
     }
 }

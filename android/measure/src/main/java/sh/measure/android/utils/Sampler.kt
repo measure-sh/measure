@@ -6,6 +6,7 @@ internal interface Sampler {
     fun shouldSampleTrace(traceId: String): Boolean
     fun shouldSampleLaunchEvent(): Boolean
     fun shouldTrackJourneyForSession(sessionId: String): Boolean
+    fun shouldSampleHttpEvent(): Boolean
 }
 
 internal class SamplerImpl(
@@ -51,6 +52,17 @@ internal class SamplerImpl(
         }
 
         return stableSamplingValue(sessionId) < samplingRate
+    }
+
+    override fun shouldSampleHttpEvent(): Boolean {
+        if (configProvider.httpSamplingRate == 0.0f) {
+            return false
+        }
+        if (configProvider.httpSamplingRate == 100f) {
+            return true
+        }
+
+        return randomizer.random() < (configProvider.httpSamplingRate / 100)
     }
 
     /**

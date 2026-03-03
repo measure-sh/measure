@@ -34,6 +34,9 @@ class ExceptionDemoActivity : AppCompatActivity(), MsrShakeListener {
         val span = Measure.startSpan("activity.onCreate")
         setContentView(R.layout.activity_exception_demo)
         handleEdgeToEdgeDisplay()
+        findViewById<MaterialTextView>(R.id.btn_configure_credentials).setOnClickListener {
+            startActivity(Intent(this, ConfigureCredentialsActivity::class.java))
+        }
         findViewById<MaterialTextView>(R.id.btn_single_exception).setOnClickListener {
             throw IllegalAccessException("This is a new exception")
         }

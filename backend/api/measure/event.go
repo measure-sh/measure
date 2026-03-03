@@ -1017,6 +1017,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			attachments = string(marshalledAttachments)
 		}
 
+		sessionStartTime := e.events[i].Attribute.SessionStartTime.Format(chrono.MSTimeFormat)
+
 		row := stmt.NewRow().
 			Set(`id`, e.events[i].ID).
 			Set(`team_id`, e.teamId).
@@ -1058,6 +1060,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.network_type`, e.events[i].Attribute.NetworkType).
 			Set(`attribute.network_generation`, e.events[i].Attribute.NetworkGeneration).
 			Set(`attribute.network_provider`, e.events[i].Attribute.NetworkProvider).
+			Set(`attribute.session_start_time`, sessionStartTime).
 
 			// user defined attribute
 			Set(`user_defined_attribute`, e.events[i].UserDefinedAttribute.Parameterize()).
@@ -1544,6 +1547,8 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 		b.WriteString("]")
 		formattedCheckpoints := b.String()
 
+		spanSessionStartTime := e.spans[i].Attributes.SessionStartTime.Format(chrono.MSTimeFormat)
+
 		stmt.NewRow().
 			Set(`team_id`, e.teamId).
 			Set(`app_id`, e.spans[i].AppID).
@@ -1574,6 +1579,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`attribute.device_locale`, e.spans[i].Attributes.DeviceLocale).
 			Set(`attribute.device_low_power_mode`, e.spans[i].Attributes.LowPowerModeEnabled).
 			Set(`attribute.device_thermal_throttling_enabled`, e.spans[i].Attributes.ThermalThrottlingEnabled).
+			Set(`attribute.session_start_time`, spanSessionStartTime).
 			// user defined attribute
 			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}

@@ -32,5 +32,12 @@ class SampleApp : Application() {
             .put("float", Float.MAX_VALUE).put("boolean", false)
             .build()
         Measure.trackEvent(name = "custom-app-start", attributes = attributes)
+
+        // Re-apply saved credential overrides (if any) after SDK init
+        val savedUrl = ConfigureCredentialsActivity.getSavedApiUrl(this)
+        val savedKey = ConfigureCredentialsActivity.getSavedApiKey(this)
+        if (savedUrl != null && savedKey != null) {
+            MeasureConfigurator.swapCredentials(savedUrl, savedKey)
+        }
     }
 }

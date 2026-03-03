@@ -42,7 +42,7 @@ final class BaseConfigProvider: ConfigProvider {
     }
     private let defaultConfig: Config
     private let lockQueue = DispatchQueue(label: "sh.measure.config-provider")
-    private var dynamicConfig: DynamicConfig = BaseDynamicConfig.default()
+    private var dynamicConfig: DynamicConfig = BaseDynamicConfig()
     private var httpPatternState = HttpPatternState(
         disableEventPatterns: [],
         blocklistPatterns: [],
@@ -132,6 +132,7 @@ final class BaseConfigProvider: ConfigProvider {
     var anrTakeScreenshot: Bool { dynamicConfig.anrTakeScreenshot }
     var launchSamplingRate: Float { dynamicConfig.launchSamplingRate }
     var gestureClickTakeSnapshot: Bool { dynamicConfig.gestureClickTakeSnapshot }
+    var httpSamplingRate: Float { dynamicConfig.httpSamplingRate }
     var httpDisableEventForUrls: [String] { dynamicConfig.httpDisableEventForUrls }
     var httpTrackRequestForUrls: [String] { dynamicConfig.httpTrackRequestForUrls }
     var httpTrackResponseForUrls: [String] { dynamicConfig.httpTrackResponseForUrls }

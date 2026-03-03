@@ -44,6 +44,30 @@
             android:fontFamily="sans-serif-condensed-medium"
             android:paddingHorizontal="8dp"
             android:paddingTop="8dp"
+            android:text="@string/configuration"
+            android:textAppearance="?attr/textAppearanceCaption" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/btn_configure_credentials"
+                style="@style/Widget.Material3.TextView.SettingsItem"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/configure_credentials"
+                app:drawableEndCompat="@drawable/ic_chevron_right" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
             android:text="@string/exception_tests"
             android:textAppearance="?attr/textAppearanceCaption" />
 

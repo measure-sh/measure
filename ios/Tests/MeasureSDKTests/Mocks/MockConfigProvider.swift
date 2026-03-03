@@ -62,6 +62,7 @@ final class MockConfigProvider: ConfigProvider {
     var anrTakeScreenshot: Bool
     var launchSamplingRate: Float
     var gestureClickTakeSnapshot: Bool
+    var httpSamplingRate: Float
     var httpDisableEventForUrls: [String]
     var httpTrackRequestForUrls: [String]
     var httpTrackResponseForUrls: [String]
@@ -133,7 +134,7 @@ final class MockConfigProvider: ConfigProvider {
          maxAttachmentSizeInEventsBatchInBytes: Number = 123_123,
          timeoutIntervalForRequest: TimeInterval = 123_123,
          httpContentTypeAllowlist: [String] = ["application/json"],
-         dynamicConfig: DynamicConfig = BaseDynamicConfig.default(),
+         dynamicConfig: DynamicConfig = BaseDynamicConfig(),
          combinedHttpUrlBlocklist: [String] = [],
          maxEventsInBatch: Number = 10_000,
          crashTimelineDurationSeconds: Number = 300,
@@ -148,6 +149,7 @@ final class MockConfigProvider: ConfigProvider {
          anrTakeScreenshot: Bool = true,
          launchSamplingRate: Float = 0.01,
          gestureClickTakeSnapshot: Bool = true,
+         httpSamplingRate: Float = 0.01,
          httpDisableEventForUrls: [String] = [],
          httpTrackRequestForUrls: [String] = [],
          httpTrackResponseForUrls: [String] = [],
@@ -216,6 +218,7 @@ final class MockConfigProvider: ConfigProvider {
         self.anrTakeScreenshot = anrTakeScreenshot
         self.launchSamplingRate = launchSamplingRate
         self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
+        self.httpSamplingRate = httpSamplingRate
         self.httpDisableEventForUrls = httpDisableEventForUrls
         self.httpTrackRequestForUrls = httpTrackRequestForUrls
         self.httpTrackResponseForUrls = httpTrackResponseForUrls

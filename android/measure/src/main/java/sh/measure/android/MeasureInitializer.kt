@@ -13,6 +13,7 @@ import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
+import sh.measure.android.attributes.SessionAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
@@ -216,6 +217,9 @@ internal class MeasureInitializerImpl(
     private val powerStateAttributeProcessor: PowerStateAttributeProcessor = PowerStateAttributeProcessor(
         powerStateProvider = powerStateProvider,
     ),
+    private val sessionAttributeProcessor: SessionAttributeProcessor = SessionAttributeProcessor(
+        sessionManager = sessionManager,
+    ),
     private val attributeProcessors: List<AttributeProcessor> = listOf(
         userAttributeProcessor,
         deviceAttributeProcessor,
@@ -223,6 +227,7 @@ internal class MeasureInitializerImpl(
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
+        sessionAttributeProcessor,
     ),
     private val signalStore: SignalStore = SignalStoreImpl(
         logger = logger,
@@ -348,6 +353,7 @@ internal class MeasureInitializerImpl(
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
+        sessionAttributeProcessor,
     ),
     override val spanProcessor: SpanProcessor = MsrSpanProcessor(
         logger,

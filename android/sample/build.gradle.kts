@@ -114,12 +114,22 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 /**
- * Computes the version code based on the current system time in minutes since epoch.
+ * Computes the version code based on the number of git commits on the current branch.
  *
- * This is typically a not a good idea, but it's done so that we always get a unique
- * version code for every build so that every time we record data from sample app,
- * it shows up as a separate version on the dashboard.
+ * This ensures a unique, monotonically increasing version code for each commit so that
+ * every time we record data from the sample app, it shows up as a separate version on
+ * the dashboard.
  */
 fun computeVersionCode(): Int {
-    return (System.currentTimeMillis() / (1000 * 60)).toInt()
+    val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .directory(project.rootDir)
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().readText().trim()
+    val exitCode = process.waitFor()
+    if (exitCode != 0) {
+        logger.warn("Failed to compute version code from git, falling back to 1")
+        return 1
+    }
+    return output.toIntOrNull() ?: 1
 }

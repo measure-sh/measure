@@ -565,6 +565,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `network_provider`                  | string  | No       | Example: airtel, T-mobile or "unknown" if unavailable.                      |
 | `network_generation`                | string  | No       | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g<br/>- unknown                   |
 | `device_cpu_arch`                   | string  | No       | The CPU architecture, eg. arm64                                             |
+| `session_start_time`                | string  | Yes      | The ISO-8601 timestamp when the session containing this event started       |
 
 ### User Defined Attributes
 

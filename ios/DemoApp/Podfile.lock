@@ -1,5 +1,5 @@
 PODS:
-  - measure-sh (0.8.1):
+  - measure-sh (0.9.1):
     - PLCrashReporter (= 1.12.0)
   - PLCrashReporter (1.12.0)
 
@@ -15,7 +15,7 @@ EXTERNAL SOURCES:
     :path: "../../"
 
 SPEC CHECKSUMS:
-  measure-sh: 22611ef94b48051ec62bd0f572976b0718558f06
+  measure-sh: 34a0c21e3b908da77bc4cfc02f633413de11e32b
   PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
 
 PODFILE CHECKSUM: 828d9701ce9dd588cdabe7bc1a8cb829d2a17f97

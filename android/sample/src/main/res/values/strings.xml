@@ -41,4 +41,9 @@
     <string name="enable_shake">Enable shake to report</string>
     <string name="custom_shake_handler">Custom shake handler</string>
     <string name="set_user">Set User</string>
+    <string name="configuration">Configuration</string>
+    <string name="configure_credentials">Configure Credentials</string>
+    <string name="api_url">API URL</string>
+    <string name="api_key">API Key</string>
+    <string name="save">Save</string>
 </resources>
