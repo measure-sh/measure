@@ -204,4 +204,45 @@ class SessionManagerTest {
 
         verify(database, never()).sampleJourneyEvents(any(), any())
     }
+
+    @Test
+    fun `onSessionStart listener is invoked on init`() {
+        var callbackSessionId: String? = null
+        var callbackSessionTime: Long? = null
+        sessionManager.setSessionStartListener(object : SessionStartListener {
+            override fun onSessionStart(sessionId: String, startTime: Long) {
+                callbackSessionId = sessionId
+                callbackSessionTime = startTime
+            }
+        })
+
+        sessionManager.init()
+
+        assertEquals(sessionManager.getSessionId(), callbackSessionId)
+        assertEquals(sessionManager.getSessionStartTime(), callbackSessionTime)
+    }
+
+    @Test
+    fun `onSessionStart listener is invoked on new session when app comes back to foreground`() {
+        var callbackSessionId: String? = null
+        var callbackSessionTime: Long? = null
+        sessionManager.setSessionStartListener(object : SessionStartListener {
+            override fun onSessionStart(sessionId: String, startTime: Long) {
+                callbackSessionId = sessionId
+                callbackSessionTime = startTime
+            }
+        })
+
+        sessionManager.init()
+        sessionManager.onAppBackground()
+
+        testClock.advance(Duration.ofMillis(configProvider.sessionBackgroundTimeoutThresholdMs + 1))
+        val updatedSessionId = "next-uuid"
+        idProvider.id = updatedSessionId
+
+        sessionManager.onAppForeground()
+
+        assertEquals(updatedSessionId, callbackSessionId)
+        assertEquals(sessionManager.getSessionStartTime(), callbackSessionTime)
+    }
 }

@@ -17,6 +17,13 @@ import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.RejectedExecutionException
 
+/**
+ * Callback to be called when a new session is created.
+ */
+internal interface SessionStartListener {
+    fun onSessionStart(sessionId: String, startTime: Long)
+}
+
 internal interface SessionManager {
     /**
      * Creates a new session, to be used only when the SDK is initialized.
@@ -57,6 +64,13 @@ internal interface SessionManager {
      * Called when config is loaded.
      */
     fun onConfigLoaded()
+
+    /**
+     * Sets a listener to be called when a new session is created.
+     *
+     * @param listener the listener to be called
+     */
+    fun setSessionStartListener(listener: SessionStartListener)
 }
 
 /**
@@ -76,6 +90,7 @@ internal class SessionManagerImpl(
     private val packageInfoProvider: PackageInfoProvider,
     private val sampler: Sampler,
 ) : SessionManager {
+    private var sessionStartListener: SessionStartListener? = null
     private var sessionId: String? = null
     private var sessionStartTime: Long? = null
 
@@ -151,10 +166,16 @@ internal class SessionManagerImpl(
         }
     }
 
+    override fun setSessionStartListener(listener: SessionStartListener) {
+        this.sessionStartListener = listener
+    }
+
     private fun createNewSession(): String {
         val id = idProvider.uuid()
+        val startTime = timeProvider.now()
         this.sessionId = id
-        this.sessionStartTime = timeProvider.now()
+        this.sessionStartTime = startTime
+        sessionStartListener?.onSessionStart(id, startTime)
         storeSession(id)
         return id
     }

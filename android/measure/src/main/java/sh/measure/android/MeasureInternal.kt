@@ -16,7 +16,9 @@ import sh.measure.android.utils.AttachmentHelper
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
  */
-internal class MeasureInternal(private val measure: MeasureInitializer) : AppLifecycleListener {
+internal class MeasureInternal(private val measure: MeasureInitializer) :
+    AppLifecycleListener,
+    SessionStartListener {
     val timeProvider = measure.timeProvider
     val processInfoProvider = measure.processInfoProvider
     val logger = measure.logger
@@ -33,21 +35,9 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             return
         }
 
+        measure.sessionManager.setSessionStartListener(this)
         // start a session
-        val sessionId = measure.sessionManager.init()
-
-        // All events are processed on a single thread in a queue.
-        // So, the first event will always be a session start event
-        // as we initialize all other collectors after this event
-        // is triggered.
-        measure.signalProcessor.track(
-            SessionStartData,
-            timestamp = measure.sessionManager.getSessionStartTime(),
-            type = EventType.SESSION_START,
-            sessionId = sessionId,
-            // always sample session start event
-            isSampled = true,
-        )
+        measure.sessionManager.init()
 
         // setup lifecycle state
         measure.resumedActivityProvider.register()
@@ -125,6 +115,17 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
             measure.exporter.export()
             measure.dataCleanupService.cleanup()
         }
+    }
+
+    override fun onSessionStart(sessionId: String, startTime: Long) {
+        measure.signalProcessor.track(
+            SessionStartData,
+            timestamp = startTime,
+            type = EventType.SESSION_START,
+            sessionId = sessionId,
+            // always sample session start event
+            isSampled = true,
+        )
     }
 
     fun setUserId(userId: String) {
@@ -392,6 +393,5 @@ internal class MeasureInternal(private val measure: MeasureInitializer) : AppLif
         measure.unhandledExceptionCollector.unregister()
         measure.anrCollector.unregister()
     }
-
     fun getDynamicConfigPath(): String? = measure.fileStorage.getConfigPath()
 }
