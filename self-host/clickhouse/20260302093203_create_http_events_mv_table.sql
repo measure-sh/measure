@@ -26,6 +26,10 @@ SELECT
     `http.end_time` AS `end_time`,
     `http.start_time` AS `start_time`,
     if(`http.start_time` > 0 AND `http.end_time` >= `http.start_time`, `http.end_time` - `http.start_time`, 0) AS `latency_ms`,
+    -- older SDK versions don't send session_start_time, guard against 
+    -- dates like 1900-01-01) by requiring a recent timestamp to 
+    -- calculate session_elapsed_ms, otherwise return 0
+    if(`attribute.session_start_time` > toDateTime('2025-01-01'), dateDiff('millisecond', `attribute.session_start_time`, `timestamp`), 0) AS `session_elapsed_ms`,
     (toString(`attribute.app_version`), toString(`attribute.app_build`)) AS `app_version`,
     (toString(`attribute.os_name`), toString(`attribute.os_version`)) AS `os_version`,
     `attribute.network_provider` AS `network_provider`,

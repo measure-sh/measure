@@ -491,6 +491,14 @@ export enum NetworkStatusOverviewPlotApiStatus {
   Cancelled,
 }
 
+export enum NetworkRequestTimelinePlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   Crashes = "Crash Sessions",
   ANRs = "ANR Sessions",
@@ -2997,6 +3005,30 @@ export const fetchNetworkTrendsFromServer = async (filters: Filters) => {
     return { status: NetworkTrendsApiStatus.Success, data: data }
   } catch {
     return { status: NetworkTrendsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkRequestTimelinePlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/requestTimeline?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkRequestTimelinePlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || (Array.isArray(data) && data.length === 0)) {
+      return { status: NetworkRequestTimelinePlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkRequestTimelinePlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkRequestTimelinePlotApiStatus.Cancelled, data: null }
   }
 }
 

@@ -28,6 +28,8 @@ create table http_metrics
     `count_4xx` SimpleAggregateFunction(sum, UInt64) comment 'count of 4xx responses',
     `count_5xx` SimpleAggregateFunction(sum, UInt64) comment 'count of 5xx responses',
     `latency_percentiles` AggregateFunction(quantiles(0.5, 0.75, 0.90, 0.95, 0.99), Int64) comment 'latency percentile states in milliseconds',
+    `session_elapsed_sum` SimpleAggregateFunction(sum, Int64) comment 'sum of session elapsed ms for avg computation',
+    `session_count` AggregateFunction(uniq, UUID) comment 'distinct session count (HyperLogLog)',
     index idx_status_code `status_code` type set(0) granularity 1,
     index idx_method `method` type set(0) granularity 1
 )

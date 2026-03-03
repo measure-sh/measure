@@ -514,3 +514,58 @@ func GetNetworkOverviewStatusDistributionPlot(ctx context.Context, appId, teamId
 	err = rows.Err()
 	return
 }
+
+// SessionTimelinePoint represents a single URL
+// pattern's session timeline.
+type SessionTimelinePoint struct {
+	Domain             string  `json:"domain"`
+	PathPattern        string  `json:"path_pattern"`
+	AvgElapsedMs       float64 `json:"avg_elapsed_ms"`
+	AvgCallsPerSession float64 `json:"avg_calls_per_session"`
+}
+
+// FetchRequestTimeline returns session timeline data
+// for all URL patterns of a given app.
+func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) ([]SessionTimelinePoint, error) {
+	stmt := sqlf.
+		Select("domain").
+		Select("path").
+		Select("sum(session_elapsed_sum) / sum(request_count) AS avg_elapsed_ms").
+		Select("sum(request_count) / uniqMerge(session_count) AS avg_calls_per_session").
+		From("http_metrics").
+		Where("team_id = ?", teamId).
+		Where("app_id = ?", appId).
+		Where("timestamp >= ?", af.From).
+		Where("timestamp <= ?", af.To)
+
+	applyMetricsFilters(stmt, af)
+
+	stmt.GroupBy("domain, path").
+		Having("sum(session_elapsed_sum) > 0")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+
+	var points []SessionTimelinePoint
+	for rows.Next() {
+		var p SessionTimelinePoint
+		if err := rows.Scan(&p.Domain, &p.PathPattern, &p.AvgElapsedMs, &p.AvgCallsPerSession); err != nil {
+			return nil, err
+		}
+		p.AvgElapsedMs = math.Round(p.AvgElapsedMs*10) / 10
+		p.AvgCallsPerSession = math.Round(p.AvgCallsPerSession*10) / 10
+		points = append(points, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if points == nil {
+		points = []SessionTimelinePoint{}
+	}
+	return points, nil
+}

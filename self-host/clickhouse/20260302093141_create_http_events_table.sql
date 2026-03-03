@@ -20,6 +20,7 @@ create table http_events
     `end_time` UInt64 comment 'end time of the http request',
     `start_time` UInt64 comment 'start time of the http request',
     `latency_ms` Int64 comment 'latency of the http request in milliseconds, calculated as end_time - start_time',
+    `session_elapsed_ms` Int64 comment 'milliseconds elapsed since session start',
     `app_version` Tuple(LowCardinality(String), LowCardinality(String)) comment 'app version (version, build)',
     `os_version` Tuple(LowCardinality(String), LowCardinality(String)) comment 'os version (name, version)',
     `network_provider` LowCardinality(String) comment 'network provider (AT&T, Verizon, etc.)',

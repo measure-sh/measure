@@ -147,6 +147,7 @@ func main() {
 		apps.GET(":id/networkRequests/plots/overviewStatus", measure.GetNetworkOverviewStatusDistributionPlot)
 		apps.GET(":id/networkRequests/plots/detailLatency", measure.GetNetworkDetailLatencyPlot)
 		apps.GET(":id/networkRequests/plots/detailStatus", measure.GetNetworkDetailStatusDistributionPlot)
+		apps.GET(":id/networkRequests/plots/requestTimeline", measure.GetNetworkRequestTimelinePlot)
 
 		// misc
 		apps.PATCH(":id/rename", measure.RenameApp)

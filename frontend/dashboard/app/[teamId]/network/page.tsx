@@ -1,12 +1,13 @@
 "use client"
 
-import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkStatusOverviewPlotApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkStatusOverviewPlotFromServer } from '@/app/api/api_calls'
+import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkRequestTimelinePlotApiStatus, NetworkStatusOverviewPlotApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkRequestTimelinePlotFromServer, fetchNetworkStatusOverviewPlotFromServer } from '@/app/api/api_calls'
 import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Input } from '@/app/components/input'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import NetworkRequestTimelinePlot, { NetworkRequestTimelineDataPoint } from '@/app/components/network_request_timeline_plot'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import NetworkTrends from '@/app/components/network_trends'
 import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
@@ -23,6 +24,9 @@ interface PageState {
     statusPlotStatus: NetworkStatusOverviewPlotApiStatus
     statusPlotData: any[]
     statusPlotDataKey: string | null
+    requestTimelineStatus: NetworkRequestTimelinePlotApiStatus
+    requestTimelineData: NetworkRequestTimelineDataPoint[] | null
+    requestTimelineDataKey: string | null
 }
 
 interface SearchState {
@@ -42,6 +46,9 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
         statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Loading,
         statusPlotData: [],
         statusPlotDataKey: null,
+        requestTimelineStatus: NetworkRequestTimelinePlotApiStatus.Loading,
+        requestTimelineData: null,
+        requestTimelineDataKey: null,
     })
 
     const [searchState, setSearchState] = useState<SearchState>({
@@ -63,6 +70,9 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
     const plotTimeGroup = getPlotTimeGroupForRange(pageState.filters.startDate, pageState.filters.endDate)
     const currentStatusPlotKey = `${pageState.filters.serialisedFilters}|${plotTimeGroup}`
     const shouldRenderStatusPlot = pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && pageState.statusPlotData.length > 0 && pageState.statusPlotDataKey === currentStatusPlotKey
+
+    const currentRequestTimelineKey = pageState.filters.serialisedFilters
+    const shouldRenderRequestTimeline = pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Success && pageState.requestTimelineData !== null && pageState.requestTimelineData.length > 0 && pageState.requestTimelineDataKey === currentRequestTimelineKey
 
     const handleSearch = () => {
         if (searchState.pathPattern.trim() === "") return
@@ -141,6 +151,38 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                     break
                 default:
                     updatePageState({ statusPlotStatus: NetworkStatusOverviewPlotApiStatus.Error, statusPlotData: [], statusPlotDataKey: null })
+                    break
+            }
+        })
+
+        return () => { stale = true }
+    }, [pageState.filters])
+
+    // Fetch request timeline data when filters change
+    useEffect(() => {
+        if (!pageState.filters.ready || !pageState.filters.app) return
+
+        let stale = false
+        updatePageState({
+            requestTimelineStatus: NetworkRequestTimelinePlotApiStatus.Loading,
+            requestTimelineData: null,
+        })
+
+        fetchNetworkRequestTimelinePlotFromServer(pageState.filters).then(result => {
+            if (stale) return
+            switch (result.status) {
+                case NetworkRequestTimelinePlotApiStatus.Success:
+                    updatePageState({
+                        requestTimelineStatus: NetworkRequestTimelinePlotApiStatus.Success,
+                        requestTimelineData: result.data,
+                        requestTimelineDataKey: currentRequestTimelineKey,
+                    })
+                    break
+                case NetworkRequestTimelinePlotApiStatus.NoData:
+                    updatePageState({ requestTimelineStatus: NetworkRequestTimelinePlotApiStatus.NoData, requestTimelineData: null, requestTimelineDataKey: null })
+                    break
+                default:
+                    updatePageState({ requestTimelineStatus: NetworkRequestTimelinePlotApiStatus.Error, requestTimelineData: null, requestTimelineDataKey: null })
                     break
             }
         })
@@ -234,11 +276,11 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                         }
                     </div>
 
-                    <div className="py-6" />
+                    <div className="py-10" />
 
                     {/* Search endpoint */}
                     <p className="font-display text-xl">Search Endpoint</p>
-                    <div className="py-2" />
+                    <div className="py-4" />
                     <div className="flex flex-row items-center w-full">
                         <DropdownSelect
                             type={DropdownSelectType.SingleString}
@@ -340,6 +382,25 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
 
                     {/* Trends */}
                     <NetworkTrends filters={pageState.filters} teamId={params.teamId} />
+
+                    <div className="py-10" />
+
+                    {/* Requests Timeline */}
+                    <p className="font-display text-xl">Requests Timeline</p>
+                    <p className="font-body text-sm text-muted-foreground pt-1">Shows when network requests typically occur during a session and how often they are made</p>
+                    <div className="py-4" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}
+                        {shouldRenderRequestTimeline &&
+                            <NetworkRequestTimelinePlot data={pageState.requestTimelineData!} />
+                        }
+                        {(pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.NoData || (pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Success && !shouldRenderRequestTimeline)) &&
+                            <p className="font-body text-sm">No data available for the selected filters</p>
+                        }
+                        {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Error &&
+                            <p className="font-body text-sm">Error fetching requests timeline, please change filters & try again</p>
+                        }
+                    </div>
                 </>
             }
             {pageState.domainsStatus === NetworkDomainsApiStatus.Error &&
@@ -349,5 +410,6 @@ export default function NetworkPage({ params }: { params: { teamId: string } }) 
                 <p className="font-body text-sm">No data available for the selected app</p>
             }
         </div>
+
     )
 }

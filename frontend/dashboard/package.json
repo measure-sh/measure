@@ -18,6 +18,7 @@
     "@nivo/line": "^0.88.0",
     "@nivo/pie": "^0.88.0",
     "@nivo/sankey": "^0.88.0",
+    "@nivo/scatterplot": "^0.88.0",
     "@nivo/tooltip": "^0.88.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-dialog": "^1.1.13",

@@ -249,7 +249,9 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Select("toUInt64(countIf(status_code >= 300 AND status_code < 400))").
 		Select("toUInt64(countIf(status_code >= 400 AND status_code < 500))").
 		Select("toUInt64(countIf(status_code >= 500 AND status_code < 600))").
-		Select("quantilesState(0.5, 0.75, 0.9, 0.95, 0.99, 1.)(toInt64(e.latency_ms))").
+		Select("quantilesState(0.5, 0.75, 0.9, 0.95, 0.99)(toInt64(e.latency_ms))").
+		Select("sum(if(e.session_elapsed_ms > 0 AND e.session_elapsed_ms < 86400000, e.session_elapsed_ms, 0))").
+		Select("uniqState(e.session_id)").
 		// The multiIf uses different matching strategies
 		// based on the pattern type:
 		// - patterns ending with "**" and no other "*" are matched with startsWith
@@ -551,6 +553,7 @@ func GenerateMetrics(ctx context.Context) {
 		}
 
 		for _, app := range apps {
+			fmt.Printf("processing metrics for team=%s app=%s\n", app.TeamID, app.ID)
 			from, err := getLastReportedMetricsAt(ctx, app.TeamID, app.ID)
 			if err != nil {
 				fmt.Printf("failed to get last metrics_reported_at for team=%s app=%s: %v\n",
