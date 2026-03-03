@@ -351,9 +351,14 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
 
             {!demo && <div className="py-4" />}
 
+            {!demo && pageState.filters.ready && pageState.domainsStatus === NetworkDomainsApiStatus.Loading &&
+                <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                    <LoadingSpinner />
+                </div>
+            }
+
             {(demo || (pageState.filters.ready &&
-                pageState.domainsStatus !== NetworkDomainsApiStatus.Error &&
-                pageState.domainsStatus !== NetworkDomainsApiStatus.NoData)) &&
+                pageState.domainsStatus === NetworkDomainsApiStatus.Success)) &&
                 <>
                     {/* Search endpoint - hidden in demo mode */}
                     {!demo && (
