@@ -44,6 +44,14 @@ type TimeRange struct {
 	To   time.Time
 }
 
+// RequestTimelinePoint represents a single URL
+// pattern's session timeline.
+type RequestTimelinePoint struct {
+	Domain       string  `json:"domain"`
+	PathPattern  string  `json:"path_pattern"`
+	P95ElapsedMs float64 `json:"p95_elapsed_ms"`
+}
+
 // IsValid returns true if the range has a
 // positive duration and non-zero times.
 func (r TimeRange) isValid() bool {
@@ -515,23 +523,13 @@ func GetNetworkOverviewStatusDistributionPlot(ctx context.Context, appId, teamId
 	return
 }
 
-// SessionTimelinePoint represents a single URL
-// pattern's session timeline.
-type SessionTimelinePoint struct {
-	Domain             string  `json:"domain"`
-	PathPattern        string  `json:"path_pattern"`
-	AvgElapsedMs       float64 `json:"avg_elapsed_ms"`
-	AvgCallsPerSession float64 `json:"avg_calls_per_session"`
-}
-
 // FetchRequestTimeline returns session timeline data
 // for all URL patterns of a given app.
-func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) ([]SessionTimelinePoint, error) {
+func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) ([]RequestTimelinePoint, error) {
 	stmt := sqlf.
 		Select("domain").
 		Select("path").
-		Select("sum(session_elapsed_sum) / sum(request_count) AS avg_elapsed_ms").
-		Select("sum(request_count) / uniqMerge(session_count) AS avg_calls_per_session").
+		Select("quantilesMerge(0.95)(session_elapsed_percentiles)[1] AS p95_elapsed_ms").
 		From("http_metrics").
 		Where("team_id = ?", teamId).
 		Where("app_id = ?", appId).
@@ -541,7 +539,8 @@ func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filt
 	applyMetricsFilters(stmt, af)
 
 	stmt.GroupBy("domain, path").
-		Having("sum(session_elapsed_sum) > 0")
+		Having("quantilesMerge(0.95)(session_elapsed_percentiles)[1] > 0").
+		Having("quantilesMerge(0.95)(session_elapsed_percentiles)[1] <= 30000")
 
 	defer stmt.Close()
 
@@ -550,14 +549,13 @@ func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filt
 		return nil, err
 	}
 
-	var points []SessionTimelinePoint
+	var points []RequestTimelinePoint
 	for rows.Next() {
-		var p SessionTimelinePoint
-		if err := rows.Scan(&p.Domain, &p.PathPattern, &p.AvgElapsedMs, &p.AvgCallsPerSession); err != nil {
+		var p RequestTimelinePoint
+		if err := rows.Scan(&p.Domain, &p.PathPattern, &p.P95ElapsedMs); err != nil {
 			return nil, err
 		}
-		p.AvgElapsedMs = math.Round(p.AvgElapsedMs*10) / 10
-		p.AvgCallsPerSession = math.Round(p.AvgCallsPerSession*10) / 10
+		p.P95ElapsedMs = math.Round(p.P95ElapsedMs*10) / 10
 		points = append(points, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -565,7 +563,7 @@ func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filt
 	}
 
 	if points == nil {
-		points = []SessionTimelinePoint{}
+		points = []RequestTimelinePoint{}
 	}
 	return points, nil
 }

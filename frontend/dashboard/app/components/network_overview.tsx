@@ -46,30 +46,16 @@ function generateDemoStatusData() {
 
 function generateDemoTimelineData(): NetworkRequestTimelineDataPoint[] {
     return [
-        { domain: "payments.demo-provider.com", path_pattern: "/*/payment-methods", avg_elapsed_ms: 850, avg_calls_per_session: 2.3 },
-        { domain: "payments.demo-provider.com", path_pattern: "/*/checkout", avg_elapsed_ms: 1200, avg_calls_per_session: 1.1 },
-        { domain: "payments.demo-provider.com", path_pattern: "/*/refunds", avg_elapsed_ms: 15000, avg_calls_per_session: 1.0 },
-        { domain: "payments.demo-provider.com", path_pattern: "/*/invoices", avg_elapsed_ms: 1800, avg_calls_per_session: 1.4 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/users/*", avg_elapsed_ms: 300, avg_calls_per_session: 5.2 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/users/*/profile", avg_elapsed_ms: 450, avg_calls_per_session: 3.8 },
-        { domain: "api.demo-provider.com", path_pattern: "/v2/orders/*/status", avg_elapsed_ms: 2500, avg_calls_per_session: 2.1 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/notifications", avg_elapsed_ms: 600, avg_calls_per_session: 8.5 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/products/search", avg_elapsed_ms: 3200, avg_calls_per_session: 4.0 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/auth/token", avg_elapsed_ms: 380, avg_calls_per_session: 1.2 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/config", avg_elapsed_ms: 520, avg_calls_per_session: 1.0 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/cart/*", avg_elapsed_ms: 700, avg_calls_per_session: 3.1 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/reviews/*", avg_elapsed_ms: 1400, avg_calls_per_session: 2.0 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/assets/*", avg_elapsed_ms: 95, avg_calls_per_session: 12.4 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/images/*", avg_elapsed_ms: 140, avg_calls_per_session: 9.7 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/fonts/*", avg_elapsed_ms: 60, avg_calls_per_session: 2.0 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/scripts/*", avg_elapsed_ms: 110, avg_calls_per_session: 4.5 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/events", avg_elapsed_ms: 350, avg_calls_per_session: 15.0 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/sessions", avg_elapsed_ms: 280, avg_calls_per_session: 1.0 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/metrics", avg_elapsed_ms: 420, avg_calls_per_session: 6.3 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/crashes", avg_elapsed_ms: 550, avg_calls_per_session: 1.5 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/logs", avg_elapsed_ms: 310, avg_calls_per_session: 8.0 },
-        { domain: "maps.demo-provider.com", path_pattern: "/v1/geocode", avg_elapsed_ms: 900, avg_calls_per_session: 2.8 },
-        { domain: "maps.demo-provider.com", path_pattern: "/v1/directions", avg_elapsed_ms: 1600, avg_calls_per_session: 1.3 },
+        { domain: "payments.demo-provider.com", path_pattern: "/*/payment-methods", p95_elapsed_ms: 850 },
+        { domain: "payments.demo-provider.com", path_pattern: "/*/checkout", p95_elapsed_ms: 1200 },
+        { domain: "payments.demo-provider.com", path_pattern: "/*/refunds", p95_elapsed_ms: 15000 },
+        { domain: "api.demo-provider.com", path_pattern: "/v1/users/*", p95_elapsed_ms: 300 },
+        { domain: "api.demo-provider.com", path_pattern: "/v2/orders/*/status", p95_elapsed_ms: 2500 },
+        { domain: "api.demo-provider.com", path_pattern: "/v1/products/search", p95_elapsed_ms: 3200 },
+        { domain: "cdn.demo-provider.com", path_pattern: "/assets/*", p95_elapsed_ms: 95 },
+        { domain: "cdn.demo-provider.com", path_pattern: "/fonts/*", p95_elapsed_ms: 60 },
+        { domain: "analytics.demo-provider.com", path_pattern: "/v1/events", p95_elapsed_ms: 350 },
+        { domain: "maps.demo-provider.com", path_pattern: "/v1/directions", p95_elapsed_ms: 1600 },
     ]
 }
 
@@ -495,7 +481,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Request Timeline Section */}
                     <div className="w-full">
                         <p className="font-display text-lg">Timeline</p>
-                        <p className="font-body text-sm text-muted-foreground">See when network requests occur during a session and how frequently.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
+                        <p className="font-body text-sm text-muted-foreground">See when each endpoint is called relative to session start.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
                             {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}

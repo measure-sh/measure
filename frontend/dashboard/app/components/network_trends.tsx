@@ -9,7 +9,7 @@ import { numberToKMB } from '@/app/utils/number_utils'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ArrowDownNarrowWide } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface TrendsEndpoint {
     domain: string
@@ -114,17 +114,19 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
     }
 
     const currentDataKey = filters?.serialisedFilters ?? null
+    const pendingKeyRef = useRef<string | null>(null)
 
     useEffect(() => {
         if (demo || !active) return
         if (!filters?.ready || !filters?.app) return
-        if (state.dataKey === currentDataKey) return
+        if (state.dataKey === currentDataKey || pendingKeyRef.current === currentDataKey) return
 
-        let stale = false
+        pendingKeyRef.current = currentDataKey
         updateState({ status: NetworkTrendsApiStatus.Loading })
 
         fetchNetworkTrendsFromServer(filters).then(result => {
-            if (stale) return
+            if (pendingKeyRef.current !== currentDataKey) return
+            pendingKeyRef.current = null
             switch (result.status) {
                 case NetworkTrendsApiStatus.Success:
                     updateState({
@@ -141,8 +143,6 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
                     break
             }
         })
-
-        return () => { stale = true }
     }, [active, filters])
 
     const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
