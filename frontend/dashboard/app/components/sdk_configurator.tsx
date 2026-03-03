@@ -350,7 +350,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         <p className="mt-4">The following configurations will be updated:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
           {sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate && (
-            <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.http_sampling_rate} seconds</span> → <span className="font-display font-bold">{sdkConfig.http_sampling_rate} seconds</span></li>
+            <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.http_sampling_rate} %</span> → <span className="font-display font-bold">{sdkConfig.http_sampling_rate} %</span></li>
           )}
           {JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) && (
             <li>Disabled HTTP events for URLs</li>
