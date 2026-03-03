@@ -504,7 +504,7 @@ END
       ATTACHMENTS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
     fi
 
-    echo -e "\nSet Measure dashboard URL"
+    echo -e "\nSet Measure Dashboard URL"
     echo -e "Example: https://measure.yourcompany.com"
     NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
 
