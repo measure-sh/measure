@@ -28,7 +28,7 @@ const ExceptionsDetails = dynamic(
   () => import('./components/exceptions_details').then((mod) => (mod.ExceptionsDetails as unknown) as React.ComponentType<any>),
   { ssr: false }
 )
-const NetworkDetails = dynamic(() => import('./components/network_details'), { ssr: false })
+const NetworkOverview = dynamic(() => import('./components/network_overview'), { ssr: false })
 
 const KukuFmLogo = ({ className }: { className?: string }) => (
   <svg
@@ -213,7 +213,7 @@ export default function Home() {
     },
     {
       title: "Network Performance",
-        description: "Monitor network request latency and status codes across your app 🌐. Drill down into individual endpoints to see p50, p90, p95 and p99 latency trends along with HTTP status distributions to understand how users percieve your app."
+        description: "Monitor network request latency and status codes across your app 🌐. See HTTP status distributions over time, find the slowest and most error-prone endpoints and visualize when network requests happen during a session."
     },
   ];
 
@@ -380,7 +380,7 @@ export default function Home() {
               <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
               <BugReport demo={true} hideDemoTitle={false} key={`demo-bugreport`} />,
               <UserJourneys demo={true} hideDemoTitle={false} key={`demo-journeys`} />,
-              <NetworkDetails demo={true} hideDemoTitle={false} key={`demo-network`} />,
+              <NetworkOverview demo={true} hideDemoTitle={false} key={`demo-network`} />,
             ].map((DemoComponent, idx) => (
               <div
                 key={idx}
