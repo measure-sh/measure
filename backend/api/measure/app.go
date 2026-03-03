@@ -8809,7 +8809,6 @@ func UpdateBugReportStatus(c *gin.Context) {
 		"log_comment": lc.
 			MustPut(logcomment.Root, logcomment.BugReports).
 			String(),
-		"enable_lightweight_update": 1,
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "update_status")
