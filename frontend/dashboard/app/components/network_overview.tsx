@@ -10,7 +10,6 @@ import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkRequestTimelinePlot, { NetworkRequestTimelineDataPoint } from '@/app/components/network_request_timeline_plot'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import NetworkTrends from '@/app/components/network_trends'
-import TabSelect from '@/app/components/tab_select'
 import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { DateTime } from 'luxon'
@@ -135,7 +134,6 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
         pathPattern: "",
     })
 
-    const [selectedTab, setSelectedTab] = useState("Overview")
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [recentPaths, setRecentPaths] = useState<string[]>([])
 
@@ -209,10 +207,9 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
         return () => { stale = true }
     }, [pageState.filters])
 
-    // Fetch status plot when Overview tab is active and filters change
+    // Fetch status plot when filters change
     useEffect(() => {
         if (demo) return
-        if (selectedTab !== "Overview") return
         if (!pageState.filters.ready || !pageState.filters.app) return
         if (pageState.statusPlotDataKey === currentStatusPlotKey) return
 
@@ -242,12 +239,11 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
         })
 
         return () => { stale = true }
-    }, [selectedTab, pageState.filters])
+    }, [pageState.filters])
 
-    // Fetch request timeline data when Timeline tab is active and filters change
+    // Fetch request timeline data when filters change
     useEffect(() => {
         if (demo) return
-        if (selectedTab !== "Timeline") return
         if (!pageState.filters.ready || !pageState.filters.app) return
         if (pageState.requestTimelineDataKey === currentRequestTimelineKey) return
 
@@ -277,7 +273,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
         })
 
         return () => { stale = true }
-    }, [selectedTab, pageState.filters])
+    }, [pageState.filters])
 
     // Fetch path suggestions with debounce
     useEffect(() => {
@@ -465,56 +461,54 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                         </>
                     )}
 
-                    <div className="w-full flex justify-center pb-2">
-                        <TabSelect
-                            items={["Overview", "Top Endpoints", "Timeline"]}
-                            selected={selectedTab}
-                            onChangeSelected={setSelectedTab}
-                        />
+                    {/* Status Overview Section */}
+                    <div className="w-full">
+                        <p className="font-display text-lg">Status Distribution</p>
+                        <p className="font-body text-sm text-muted-foreground">HTTP status code distribution over time for all requests made by the app</p>
+                        <div className="py-4" />
+                        <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                            {(pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading || (pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && !shouldRenderStatusPlot)) && <LoadingSpinner />}
+                            {shouldRenderStatusPlot &&
+                                <NetworkStatusDistributionPlot data={pageState.statusPlotData} plotTimeGroup={plotTimeGroup} />
+                            }
+                            {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
+                                <p className="font-body text-sm">No data available for the selected filters</p>
+                            }
+                            {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
+                                <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
+                            }
+                        </div>
                     </div>
-                    <div className="py-2" />
-                    <p className="font-body text-sm text-muted-foreground text-center w-full">
-                        {selectedTab === "Overview" && "HTTP status code distribution over time for all requests made by the app"}
-                        {selectedTab === "Top Endpoints" && <>Endpoints ranked by latency, error rate, and request frequency.{!demo && <><br /><span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</>}
-                        {selectedTab === "Timeline" && <>See when network requests occur during a session and how frequently.{!demo && <><br /><span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</>}
-                    </p>
+
+                    <div className="py-8" />
+
+                    {/* Top Endpoints Section */}
+                    <div className="w-full">
+                        <p className="font-display text-lg">Top Endpoints</p>
+                        <p className="font-body text-sm text-muted-foreground">Endpoints ranked by latency, error rate, and request frequency.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
+                        <div className="py-4" />
+                        <NetworkTrends filters={pageState.filters} teamId={params?.teamId} hideTitle active demo={demo} />
+                    </div>
 
                     <div className="py-10" />
 
-                    <div className={`${demo ? '' : 'min-h-[36rem]'} w-full`}>
-                        <div className={selectedTab !== "Top Endpoints" ? "hidden" : ""}>
-                            <NetworkTrends filters={pageState.filters} teamId={params?.teamId} hideTitle active={selectedTab === "Top Endpoints"} demo={demo} />
+                    {/* Request Timeline Section */}
+                    <div className="w-full">
+                        <p className="font-display text-lg">Timeline</p>
+                        <p className="font-body text-sm text-muted-foreground">See when network requests occur during a session and how frequently.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
+                        <div className="py-4" />
+                        <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                            {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}
+                            {shouldRenderRequestTimeline &&
+                                <NetworkRequestTimelinePlot data={pageState.requestTimelineData!} />
+                            }
+                            {(pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.NoData || (pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Success && !shouldRenderRequestTimeline)) &&
+                                <p className="font-body text-sm">No data available for the selected filters</p>
+                            }
+                            {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Error &&
+                                <p className="font-body text-sm">Error fetching requests timeline, please change filters & try again</p>
+                            }
                         </div>
-
-                        {selectedTab === "Overview" && (
-                            <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                                {(pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading || (pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && !shouldRenderStatusPlot)) && <LoadingSpinner />}
-                                {shouldRenderStatusPlot &&
-                                    <NetworkStatusDistributionPlot data={pageState.statusPlotData} plotTimeGroup={plotTimeGroup} />
-                                }
-                                {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.NoData &&
-                                    <p className="font-body text-sm">No data available for the selected filters</p>
-                                }
-                                {pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Error &&
-                                    <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
-                                }
-                            </div>
-                        )}
-
-                        {selectedTab === "Timeline" && (
-                            <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                                {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}
-                                {shouldRenderRequestTimeline &&
-                                    <NetworkRequestTimelinePlot data={pageState.requestTimelineData!} />
-                                }
-                                {(pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.NoData || (pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Success && !shouldRenderRequestTimeline)) &&
-                                    <p className="font-body text-sm">No data available for the selected filters</p>
-                                }
-                                {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Error &&
-                                    <p className="font-body text-sm">Error fetching requests timeline, please change filters & try again</p>
-                                }
-                            </div>
-                        )}
                     </div>
                 </>
             }
