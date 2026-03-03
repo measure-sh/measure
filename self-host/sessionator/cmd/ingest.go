@@ -84,7 +84,7 @@ func init() {
 
 	ingestCmd.
 		Flags().
-		StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of event ingestion server")
+		StringVarP(&origin, "origin", "o", "http://localhost:8085", "origin of ingest service")
 
 	ingestCmd.
 		Flags().

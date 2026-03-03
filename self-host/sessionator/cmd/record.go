@@ -41,7 +41,7 @@ var port string
 
 func init() {
 	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "path to store event requests")
-	recordCmd.Flags().StringVarP(&port, "port", "P", "8080", "port to run the server")
+	recordCmd.Flags().StringVarP(&port, "port", "P", "8085", "port to run the server")
 	recordCmd.Flags().SortFlags = false
 }
 
