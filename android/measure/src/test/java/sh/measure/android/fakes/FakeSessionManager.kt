@@ -1,10 +1,12 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.SessionManager
+import sh.measure.android.SessionStartListener
 
 internal class FakeSessionManager : SessionManager {
     var id = "fake-session-id"
     var startTime: Long = 0L
+    var onSessionStartListener: SessionStartListener? = null
 
     override fun init(): String = id
 
@@ -22,5 +24,9 @@ internal class FakeSessionManager : SessionManager {
 
     override fun onConfigLoaded() {
         // no-op
+    }
+
+    override fun setSessionStartListener(listener: SessionStartListener) {
+        onSessionStartListener = listener
     }
 }

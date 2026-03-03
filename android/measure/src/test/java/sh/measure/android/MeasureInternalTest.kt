@@ -6,26 +6,34 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import sh.measure.android.config.DynamicConfig
+import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.utils.ManifestMetadata
 
 class MeasureInternalTest {
+    private val sessionManager = mock<SessionManager>()
+    private val signalProcessor = mock<SignalProcessor>()
+
     private fun mockMeasureInitializer(): MeasureInitializer {
         val initializer = mock(MeasureInitializer::class.java)
 
         // Stubbing all fields with mocks
         `when`(initializer.logger).thenReturn(mock())
-        `when`(initializer.signalProcessor).thenReturn(mock())
+        `when`(initializer.signalProcessor).thenReturn(signalProcessor)
         `when`(initializer.httpEventCollector).thenReturn(mock())
         `when`(initializer.processInfoProvider).thenReturn(mock())
         `when`(initializer.timeProvider).thenReturn(mock())
         `when`(initializer.bugReportCollector).thenReturn(mock())
         `when`(initializer.spanCollector).thenReturn(mock())
         `when`(initializer.customEventCollector).thenReturn(mock())
-        `when`(initializer.sessionManager).thenReturn(mock())
+        `when`(initializer.sessionManager).thenReturn(sessionManager)
         `when`(initializer.userTriggeredEventCollector).thenReturn(mock())
         `when`(initializer.resumedActivityProvider).thenReturn(mock())
         `when`(initializer.networkClient).thenReturn(mock())
@@ -366,6 +374,26 @@ class MeasureInternalTest {
 
         verify(initializer.gestureCollector, never()).unregister()
         verify(initializer.unhandledExceptionCollector, never()).unregister()
+    }
+
+    @Test
+    fun `session start callback triggers a session start event`() {
+        val initializer = mockMeasureInitializer()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.onSessionStart("session-id", 123456789L)
+
+        verify(signalProcessor).track(
+            data = eq(SessionStartData),
+            timestamp = eq(123456789L),
+            type = eq(EventType.SESSION_START),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = eq("session-id"),
+            userTriggered = any(),
+            isSampled = eq(true),
+        )
     }
 
     private fun initWithValidCredentials(): MeasureInitializer {
