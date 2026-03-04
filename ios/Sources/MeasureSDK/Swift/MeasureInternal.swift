@@ -176,7 +176,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             }
         }
         self.sessionManager.start()
-        self.crashDataPersistence.prepareCrashFile()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         self.crashReportManager.trackException()
         registerAlwaysOnCollectors()
