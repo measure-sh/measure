@@ -1815,6 +1815,12 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.json {
+		auiBytes, err := json.Marshal(eventReq.attachmentUploadInfos)
+		if err != nil {
+			fmt.Printf("err aui json marshal: %v", err)
+		}
+
+		fmt.Println(string(auiBytes))
 		c.JSON(http.StatusOK, IngestResponse{
 			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 		})
