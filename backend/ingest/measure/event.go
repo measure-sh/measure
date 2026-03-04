@@ -1705,6 +1705,12 @@ func PutEvents(c *gin.Context) {
 	// return early if we can recall this batch
 	if eventReq.seen {
 		if eventReq.json {
+			auiBytes, err := json.Marshal(eventReq.attachmentUploadInfos)
+			if err != nil {
+				fmt.Printf("err aui json marshal: %v", err)
+			}
+
+			fmt.Printf(string(auiBytes))
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.
