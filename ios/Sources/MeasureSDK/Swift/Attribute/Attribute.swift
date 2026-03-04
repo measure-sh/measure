@@ -57,7 +57,7 @@ class Attributes: Codable {
     var deviceThermalThrottlingEnabled: Bool?
     var deviceLowPowerMode: Bool?
     var osPageSize: UInt8?
-    var sessionStartTime: Number?
+    var sessionStartTime: String?
 
     enum CodingKeys: String, CodingKey {
         case threadName = "thread_name"
@@ -120,7 +120,7 @@ class Attributes: Codable {
         deviceThermalThrottlingEnabled: Bool? = nil,
         deviceLowPowerMode: Bool? = nil,
         osPageSize: UInt8? = nil,
-        sessionStartTime: Number? = nil) {
+        sessionStartTime: String? = nil) {
            self.threadName = threadName
            self.deviceName = deviceName
            self.deviceModel = deviceModel
@@ -181,6 +181,6 @@ class Attributes: Codable {
         self.deviceThermalThrottlingEnabled = dict["device_thermal_throttling_enabled"] as? Bool
         self.deviceLowPowerMode = dict["device_low_power_mode"] as? Bool
         self.osPageSize = dict["os_page_size"] as? UInt8
-        self.sessionStartTime = dict["session_start_time"] as? Number
+        self.sessionStartTime = dict["session_start_time"] as? String
     }
 }
