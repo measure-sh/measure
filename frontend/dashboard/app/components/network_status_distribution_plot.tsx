@@ -46,15 +46,15 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
 
   const colorMap = theme === 'dark' ? {
-    '2xx': 'oklch(0.6500 0.1700 145.0000)',
-    '3xx': 'oklch(0.6042 0.1238 244.6000)',
-    '4xx': 'oklch(0.6664 0.1851 51.8800)',
-    '5xx': 'oklch(0.6014 0.1990 26.6000)',
+    '2xx': '#4e79a7',
+    '3xx': '#f28e2c',
+    '4xx': '#76b7b2',
+    '5xx': '#e15759',
   } : {
-    '2xx': 'oklch(85.5% 0.08 145.000)',
-    '3xx': 'oklch(90.1% 0.058 230.902)',
-    '4xx': 'oklch(89.2% 0.058 55.000)',
-    '5xx': 'oklch(80.8% 0.114 19.571)',
+    '2xx': '#e8c1a0',
+    '3xx': '#f1e15b',
+    '4xx': '#e8a838',
+    '5xx': '#f47560',
   }
 
   const plot = useMemo<PlotData | undefined>(() => {
