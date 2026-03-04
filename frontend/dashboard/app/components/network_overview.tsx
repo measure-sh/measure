@@ -471,7 +471,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Top Endpoints Section */}
                     <div className="w-full">
                         <p className="font-display text-lg">Top Endpoints</p>
-                        <p className="font-body text-sm text-muted-foreground">Endpoints ranked by latency, error rate, and request frequency.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
+                        <p className="font-body text-sm text-muted-foreground">Endpoints ranked by latency, error rate, and request frequency.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
                         <div className="py-4" />
                         <NetworkTrends filters={pageState.filters} teamId={params?.teamId} hideTitle active demo={demo} />
                     </div>
@@ -481,7 +481,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Request Timeline Section */}
                     <div className="w-full">
                         <p className="font-display text-lg">Timeline</p>
-                        <p className="font-body text-sm text-muted-foreground">See when each endpoint is called relative to session start.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoints are grouped.</>}</p>
+                        <p className="font-body text-sm text-muted-foreground">See when each endpoint is called relative to session start.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
                             {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}

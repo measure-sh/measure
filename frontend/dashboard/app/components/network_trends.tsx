@@ -6,8 +6,6 @@ import LoadingBar from '@/app/components/loading_bar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import { numberToKMB } from '@/app/utils/number_utils'
-import { underlineLinkStyle } from '@/app/utils/shared_styles'
-import { ArrowDownNarrowWide } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -27,7 +25,7 @@ interface NetworkTrendsData {
 
 enum TrendsTab {
     Latency = "Slowest",
-    ErrorRate = "Highest Error Rate",
+    ErrorRate = "Highest Error %",
     Frequency = "Most Frequent",
 }
 
@@ -166,25 +164,32 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
 
             {state.status === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
                 <>
+                    <div className="py-4" />
+                    <div className="flex justify-end">
+                        <div className="flex gap-1">
+                            {Object.values(TrendsTab).map((tab) => (
+                                <button
+                                    key={tab}
+                                    type="button"
+                                    className={`px-3 py-1.5 text-sm font-display rounded-md cursor-pointer transition-colors ${state.selectedTab === tab
+                                        ? 'bg-accent text-accent-foreground'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                                        }`}
+                                    onClick={() => updateState({ selectedTab: tab })}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="py-4" />
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead style={{ width: '55%' }}>Endpoint</TableHead>
-                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.Latency })}>
-                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.Latency ? underlineLinkStyle : ''}`}>
-                                        Latency(p95){state.selectedTab === TrendsTab.Latency && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
-                                    </span>
-                                </TableHead>
-                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.ErrorRate })}>
-                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.ErrorRate ? underlineLinkStyle : ''}`}>
-                                        Error Rate %{state.selectedTab === TrendsTab.ErrorRate && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
-                                    </span>
-                                </TableHead>
-                                <TableHead style={{ width: '15%' }} className="cursor-pointer" onClick={() => updateState({ selectedTab: TrendsTab.Frequency })}>
-                                    <span className={`flex items-center gap-1 ${state.selectedTab === TrendsTab.Frequency ? underlineLinkStyle : ''}`}>
-                                        Frequency{state.selectedTab === TrendsTab.Frequency && <ArrowDownNarrowWide className="h-3.5 w-3.5" />}
-                                    </span>
-                                </TableHead>
+                                <TableHead style={{ width: '15%' }}>Latency (p95)</TableHead>
+                                <TableHead style={{ width: '15%' }}>Error Rate %</TableHead>
+                                <TableHead style={{ width: '15%' }}>Frequency</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
