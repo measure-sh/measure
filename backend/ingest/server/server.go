@@ -277,6 +277,8 @@ func Init(config *ServerConfig) {
 		chOpts.Settings = clickhouse.Settings{
 			"wait_for_async_insert":         1,
 			"wait_for_async_insert_timeout": 1000,
+			"compatibility":                 "25.8",
+			"enable_lightweight_update":     1,
 		}
 
 		chOpts.Compression = &clickhouse.Compression{
