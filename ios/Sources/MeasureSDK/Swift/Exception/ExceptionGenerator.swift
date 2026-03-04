@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CrashReporter
 
 protocol ExceptionGenerator {
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception?
@@ -26,19 +25,21 @@ final class BaseExceptionGenerator: ExceptionGenerator {
     }
 
     private func generateCurrentStacktrace(_ nsError: NSError) -> Exception? {
-        do {
-            let crashData = crashReporter.generateLiveReport()
-            let plCrashReport = try PLCrashReport(data: crashData)
-            let crashReport = BaseCrashReport(plCrashReport)
-            let crashDataFormatter = CrashDataFormatter(crashReport)
-            let error = MsrError(numcode: Int64(nsError.code),
-                                 code: nsError.domain,
-                                 meta: convertToCodableValue(nsError.userInfo))
-            return crashDataFormatter.getException(true, error: error)
-        } catch {
-            logger.internalLog(level: .error, message: "Error parsing crash report.", error: nil, data: nil)
-            return nil
-        }
+        return nil
+        // TODO: implement KSCrash.trackException
+//        do {
+//            let crashData = crashReporter.generateLiveReport()
+//            let plCrashReport = try PLCrashReport(data: crashData)
+//            let crashReport = BaseCrashReport(plCrashReport)
+//            let crashDataFormatter = CrashDataFormatter(crashReport)
+//            let error = MsrError(numcode: Int64(nsError.code),
+//                                 code: nsError.domain,
+//                                 meta: convertToCodableValue(nsError.userInfo))
+//            return crashDataFormatter.getException(true, error: error)
+//        } catch {
+//            logger.internalLog(level: .error, message: "Error parsing crash report.", error: nil, data: nil)
+//            return nil
+//        }
     }
 
     private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] {  // swiftlint:disable:this cyclomatic_complexity

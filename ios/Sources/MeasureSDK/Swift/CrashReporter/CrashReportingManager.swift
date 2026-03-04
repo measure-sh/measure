@@ -6,14 +6,7 @@
 //
 
 import Foundation
-import CrashReporter
 
-/// Global signal handler for crashes
-func measureCrashCallback(info: UnsafeMutablePointer<siginfo_t>?, uap: UnsafeMutablePointer<ucontext_t>?, context: UnsafeMutableRawPointer?) {
-    CrashDataWriter.shared.writeCrashData()
-}
-
-/// A protocol that defines the interface for managing crash reporting and exception tracking.
 protocol CrashReportManager {
     func enable()
     func disable()
@@ -21,10 +14,6 @@ protocol CrashReportManager {
     var hasPendingCrashReport: Bool { get }
 }
 
-/// The `CrashReportingManager` class is a concrete implementation of the `CrashReportManager` protocol.
-///
-/// It provides functionality for enabling crash reporting and tracking manually caught exceptions
-/// using the underlying crash reporting system, PLCrashReporter.
 final class CrashReportingManager: CrashReportManager {
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
@@ -47,7 +36,6 @@ final class CrashReportingManager: CrashReportManager {
         self.signalProcessor = signalProcessor
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
-        self.crashReporter.setCrashCallback(measureCrashCallback)
         self.hasPendingCrashReport = crashReporter.hasPendingCrashReport
         self.systemFileManager = systemFileManager
         self.idProvider = idProvider
@@ -72,26 +60,23 @@ final class CrashReportingManager: CrashReportManager {
     }
 
     func trackException() {
-        guard hasPendingCrashReport else {
-            return
-        }
+        guard hasPendingCrashReport else { return }
+
         let exceptionData = processCrashReport()
-        guard var exception = exceptionData.exception, let date = exceptionData.date else {
-            return
-        }
+        guard var exception = exceptionData.exception, let date = exceptionData.date else { return }
 
         let crashDataAttributes = crashDataPersistence.readCrashData()
         if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
-            exception.foreground = crashDataPersistence.isForeground
-            self.signalProcessor.track(data: exception,
-                                       timestamp: Number(date.timeIntervalSince1970 * 1000),
-                                       type: .exception,
-                                       attributes: attributes,
-                                       sessionId: sessionId,
-                                       attachments: nil,
-                                       userDefinedAttributes: nil,
-                                       threadName: nil,
-                                       needsReporting: true)
+            exception.foreground = crashDataAttributes.isForeground
+            signalProcessor.track(data: exception,
+                                  timestamp: Number(date.timeIntervalSince1970 * 1000),
+                                  type: .exception,
+                                  attributes: attributes,
+                                  sessionId: sessionId,
+                                  attachments: nil,
+                                  userDefinedAttributes: nil,
+                                  threadName: nil,
+                                  needsReporting: true)
         }
 
         crashReporter.clearCrashData()
@@ -100,13 +85,16 @@ final class CrashReportingManager: CrashReportManager {
 
     private func processCrashReport() -> (exception: Exception?, date: Date?) {
         do {
-            let crashData = try crashReporter.loadCrashReport()
-            let plCrashReport = try PLCrashReport(data: crashData)
-            let crashDate = plCrashReport.systemInfo.timestamp
-            let crashReport = BaseCrashReport(plCrashReport)
-            let crashDataFormatter = CrashDataFormatter(crashReport)
-            let exception = crashDataFormatter.getException()
-            return (exception, crashDate)
+            let reportDict = try crashReporter.loadCrashReport()
+            let crashReport = BaseCrashReport(reportDict)
+            let formatter = CrashDataFormatter(crashReport)
+            let exception = formatter.getException()
+
+            // KSCrash stores the crash timestamp under "report" > "timestamp"
+            let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
+            let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
+
+            return (exception, date)
         } catch {
             logger.internalLog(level: .error, message: "Error parsing crash report.", error: error, data: nil)
             return (nil, nil)
