@@ -1710,7 +1710,7 @@ func PutEvents(c *gin.Context) {
 				fmt.Printf("err aui json marshal: %v", err)
 			}
 
-			fmt.Printf(string(auiBytes))
+			fmt.Println(string(auiBytes))
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.
