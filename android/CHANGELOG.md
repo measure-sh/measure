@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [android-v0.16.0] - 2026-02-18
+## [android-v0.16.1] - 2026-03-04
+
+### :bug: Bug fixes
+
+- (**android**): Trigger session start event reliably (#3252) by @abhaysood in #3252
+
+### :hammer: Misc
+
+- (**android**): Use ISO 8601 for session start time attribute (#3247) by @abhaysood in #3247
+- (**android**): Add session start time attr to events and spans (#3246) by @abhaysood in #3246
+- (**android**): Handle http_sampling_rate dynamic config (#3229) by @abhaysood in #3229
+- (**android**): Upload mapping file artifact in sample app build (#3244) by @abhaysood in #3244
+- (**android**): Allow configuring sample app credentials (#3243) by @abhaysood in #3243
+- (**android**): Set next development version (#3150) by @abhaysood in #3150
+
+## [android-v0.16.0] - 2026-02-19
 
 ### :sparkles: New features
 
@@ -21,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.16.0 (#3140) by @abhaysood in #3140
 - (**android**): Add demo page for testing http configs (#3113) by @abhaysood in #3113
 - (**android**): Fix database schema version (#3105) by @abhaysood in #3105
 - (**android**): Add baseline profile CI infrastructure (#3095) by @abhaysood in #3095
@@ -850,6 +866,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.16.1]: https://github.com/measure-sh/measure/compare/android-v0.16.0..android-v0.16.1
 [android-v0.16.0]: https://github.com/measure-sh/measure/compare/android-v0.15.1..android-v0.16.0
 [android-v0.15.1]: https://github.com/measure-sh/measure/compare/android-v0.15.0..android-v0.15.1
 [android-v0.15.0]: https://github.com/measure-sh/measure/compare/android-v0.14.0..android-v0.15.0
