@@ -274,7 +274,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
         self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                              measureDispatchQueue: measureDispatchQueue)
-        self.sessionAttributeProcessor = SessionAttributeProcessor(sessionManager: sessionManager)
+        self.sessionAttributeProcessor = SessionAttributeProcessor(sessionManager: sessionManager, timeProvider: timeProvider)
         self.attributeProcessors = [appAttributeProcessor,
                                     deviceAttributeProcessor,
                                     installationIdAttributeProcessor,

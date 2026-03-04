@@ -9,12 +9,16 @@ import Foundation
 
 final class SessionAttributeProcessor: AttributeProcessor {
     private let sessionManager: SessionManager
+    private let timeProvider: TimeProvider
     
-    init(sessionManager: SessionManager) {
+    init(sessionManager: SessionManager, timeProvider: TimeProvider) {
         self.sessionManager = sessionManager
+        self.timeProvider = timeProvider
     }
 
     func appendAttributes(_ attribute: Attributes) {
-        attribute.sessionStartTime = sessionManager.getSessionStartTime()
+        if let sessionStartTime = sessionManager.getSessionStartTime() {
+            attribute.sessionStartTime = timeProvider.iso8601Timestamp(timeInMillis: sessionStartTime)
+        }
     }
 }

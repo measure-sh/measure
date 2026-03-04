@@ -189,7 +189,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
         self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                              measureDispatchQueue: self.measureDispatchQueue)
-        self.sessionAttributeProcessor = sessionAttributeProcessor ?? SessionAttributeProcessor(sessionManager: self.sessionManager)
+        self.sessionAttributeProcessor = sessionAttributeProcessor ?? SessionAttributeProcessor(sessionManager: self.sessionManager, timeProvider: self.timeProvider)
         self.attributeProcessors = [
             self.appAttributeProcessor,
             self.deviceAttributeProcessor,
