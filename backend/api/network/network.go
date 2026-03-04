@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -45,11 +46,12 @@ type TimeRange struct {
 }
 
 // RequestTimelinePoint represents a single URL
-// pattern's session timeline.
+// pattern's per-second average request count bucket.
 type RequestTimelinePoint struct {
-	Domain       string  `json:"domain"`
-	PathPattern  string  `json:"path_pattern"`
-	P95ElapsedMs float64 `json:"p95_elapsed_ms"`
+	BucketSec   uint32  `json:"bucket_sec"`
+	Domain      string  `json:"domain"`
+	PathPattern string  `json:"path_pattern"`
+	Count       float64 `json:"count"`
 }
 
 // IsValid returns true if the range has a
@@ -523,13 +525,17 @@ func GetNetworkOverviewStatusDistributionPlot(ctx context.Context, appId, teamId
 	return
 }
 
-// FetchRequestTimeline returns session timeline data
-// for all URL patterns of a given app.
+const timelineBucketSize = 5
+
+// FetchRequestTimeline returns 5-second average request
+// count buckets (per session) for all URL patterns of a given app.
 func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filter.AppFilter) ([]RequestTimelinePoint, error) {
 	stmt := sqlf.
 		Select("domain").
 		Select("path").
-		Select("quantilesMerge(0.95)(session_elapsed_percentiles)[1] AS p95_elapsed_ms").
+		Select("(sumMap(session_elapsed_counts) AS elapsed_count_pairs).1 AS bucket_secs").
+		Select("elapsed_count_pairs.2 AS bucket_counts").
+		Select("uniqMerge(session_count) AS sessions").
 		From("http_metrics").
 		Where("team_id = ?", teamId).
 		Where("app_id = ?", appId).
@@ -539,8 +545,8 @@ func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filt
 	applyMetricsFilters(stmt, af)
 
 	stmt.GroupBy("domain, path").
-		Having("quantilesMerge(0.95)(session_elapsed_percentiles)[1] > 0").
-		Having("quantilesMerge(0.95)(session_elapsed_percentiles)[1] <= 30000")
+		OrderBy("sum(request_count) DESC").
+		Limit(20)
 
 	defer stmt.Close()
 
@@ -551,16 +557,51 @@ func FetchRequestTimeline(ctx context.Context, appId, teamId uuid.UUID, af *filt
 
 	var points []RequestTimelinePoint
 	for rows.Next() {
-		var p RequestTimelinePoint
-		if err := rows.Scan(&p.Domain, &p.PathPattern, &p.P95ElapsedMs); err != nil {
+		var domain, path string
+		var bucketSecs []uint32
+		var bucketCounts []uint64
+		var sessions uint64
+		if err := rows.Scan(&domain, &path, &bucketSecs, &bucketCounts, &sessions); err != nil {
 			return nil, err
 		}
-		p.P95ElapsedMs = math.Round(p.P95ElapsedMs*10) / 10
-		points = append(points, p)
+		if sessions == 0 || len(bucketSecs) == 0 {
+			continue
+		}
+		var hasData bool
+		for _, c := range bucketCounts {
+			if c > 0 {
+				hasData = true
+				break
+			}
+		}
+		if !hasData {
+			continue
+		}
+		// Aggregate 1-second buckets into 5-second buckets
+		aligned := make(map[uint32]uint64)
+		for i, sec := range bucketSecs {
+			bucket := (sec / timelineBucketSize) * timelineBucketSize
+			aligned[bucket] += bucketCounts[i]
+		}
+		for bucket, count := range aligned {
+			avg := math.Round(float64(count)/float64(sessions)*100) / 100
+			if avg > 0 {
+				points = append(points, RequestTimelinePoint{
+					BucketSec:   bucket,
+					Domain:      domain,
+					PathPattern: path,
+					Count:       avg,
+				})
+			}
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].BucketSec < points[j].BucketSec
+	})
 
 	if points == nil {
 		points = []RequestTimelinePoint{}

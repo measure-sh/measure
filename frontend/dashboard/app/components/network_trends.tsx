@@ -157,7 +157,7 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
                 <div className="py-2" />
             </>}
             {state.status === NetworkTrendsApiStatus.Loading &&
-                <div className="w-full">
+                <div className="w-full" style={{ minHeight: 480 }}>
                     <LoadingBar />
                 </div>
             }
@@ -173,7 +173,7 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
                                     type="button"
                                     className={`px-3 py-1.5 text-sm font-display rounded-md cursor-pointer transition-colors ${state.selectedTab === tab
                                         ? 'bg-accent text-accent-foreground'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                                        : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => updateState({ selectedTab: tab })}
                                 >
@@ -216,7 +216,7 @@ export default function NetworkTrends({ filters, teamId, demo = false, hideTitle
 
             {(state.status === NetworkTrendsApiStatus.NoData ||
                 (state.status === NetworkTrendsApiStatus.Success && activeTabData.length === 0)) &&
-                <p className="font-body text-sm">No data available for the selected filters</p>
+                <p className="font-body text-sm mt-4">No data available for the selected filters</p>
             }
 
             {state.status === NetworkTrendsApiStatus.Error &&

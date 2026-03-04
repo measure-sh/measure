@@ -26,7 +26,7 @@ const (
 
 	// patternCreationRequestCountThreshold is the minimum request count a pattern
 	// must have to be kept.
-	patternCreationRequestCountThreshold = 100
+	patternCreationRequestCountThreshold = 5 // TODO: change to 100 for prod
 
 	// highCardinalityCollapseThreshold is the maximum number of distinct
 	// children a trie node may have before it collapses
@@ -250,10 +250,11 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Select("toUInt64(countIf(status_code >= 400 AND status_code < 500))").
 		Select("toUInt64(countIf(status_code >= 500 AND status_code < 600))").
 		Select("quantilesState(0.5, 0.75, 0.9, 0.95, 0.99)(toInt64(e.latency_ms))").
-		// session_elapsed_ms is capped at 5 minutes (300,000ms) to filter out
+		// session_elapsed_ms is capped at 1 hour (3,600,000ms) to filter out
 		// events where session start time is too old (e.g. 1900-01-01) due to
 		// missing session_start_time in older SDK versions or clock skew issues
-		Select("quantilesState(0.5, 0.90, 0.95)(if(e.session_elapsed_ms > 0 AND e.session_elapsed_ms < 300000, toInt64(e.session_elapsed_ms), toInt64(0)))").
+		Select("quantilesState(0.5, 0.90, 0.95)(if(e.session_elapsed_ms > 0 AND e.session_elapsed_ms < 3600000, toInt64(e.session_elapsed_ms), toInt64(0)))").
+		Select("sumMap(if(e.session_elapsed_ms > 0, [toUInt32(intDiv(e.session_elapsed_ms, 5000) * 5)], emptyArrayUInt32()), if(e.session_elapsed_ms > 0, [toUInt64(1)], emptyArrayUInt64()))").
 		Select("uniqState(e.session_id)").
 		// The multiIf uses different matching strategies
 		// based on the pattern type:

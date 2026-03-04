@@ -45,18 +45,37 @@ function generateDemoStatusData() {
 }
 
 function generateDemoTimelineData(): NetworkRequestTimelineDataPoint[] {
-    return [
-        { domain: "payments.demo-provider.com", path_pattern: "/*/payment-methods", p95_elapsed_ms: 850 },
-        { domain: "payments.demo-provider.com", path_pattern: "/*/checkout", p95_elapsed_ms: 1200 },
-        { domain: "payments.demo-provider.com", path_pattern: "/*/refunds", p95_elapsed_ms: 15000 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/users/*", p95_elapsed_ms: 300 },
-        { domain: "api.demo-provider.com", path_pattern: "/v2/orders/*/status", p95_elapsed_ms: 2500 },
-        { domain: "api.demo-provider.com", path_pattern: "/v1/products/search", p95_elapsed_ms: 3200 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/assets/*", p95_elapsed_ms: 95 },
-        { domain: "cdn.demo-provider.com", path_pattern: "/fonts/*", p95_elapsed_ms: 60 },
-        { domain: "analytics.demo-provider.com", path_pattern: "/v1/events", p95_elapsed_ms: 350 },
-        { domain: "maps.demo-provider.com", path_pattern: "/v1/directions", p95_elapsed_ms: 1600 },
+    // Each endpoint has a time range where it's active and a base intensity
+    const endpoints: { domain: string; path_pattern: string; startSec: number; endSec: number; baseCount: number }[] = [
+        // Auth/config: concentrated in first 5 seconds
+        { domain: "api.demo-provider.com", path_pattern: "/v1/auth/token", startSec: 0, endSec: 5, baseCount: 2.5 },
+        { domain: "api.demo-provider.com", path_pattern: "/v1/config", startSec: 0, endSec: 3, baseCount: 1.8 },
+        // Feed/content: early-mid session
+        { domain: "api.demo-provider.com", path_pattern: "/v2/feed/*", startSec: 3, endSec: 30, baseCount: 1.5 },
+        { domain: "cdn.demo-provider.com", path_pattern: "/images/*", startSec: 4, endSec: 35, baseCount: 3.0 },
+        { domain: "api.demo-provider.com", path_pattern: "/v1/users/*/profile", startSec: 5, endSec: 20, baseCount: 0.8 },
+        // Commerce: late session
+        { domain: "api.demo-provider.com", path_pattern: "/v2/products/*", startSec: 25, endSec: 80, baseCount: 1.2 },
+        { domain: "payments.demo-provider.com", path_pattern: "/v1/cart/*", startSec: 50, endSec: 90, baseCount: 0.9 },
+        { domain: "payments.demo-provider.com", path_pattern: "/v1/checkout", startSec: 70, endSec: 100, baseCount: 0.6 },
+        // Analytics: spread throughout
+        { domain: "analytics.demo-provider.com", path_pattern: "/v1/events", startSec: 0, endSec: 100, baseCount: 1.0 },
+        { domain: "analytics.demo-provider.com", path_pattern: "/v1/screen_view", startSec: 2, endSec: 95, baseCount: 0.7 },
     ]
+    const points: NetworkRequestTimelineDataPoint[] = []
+    for (const ep of endpoints) {
+        for (let sec = ep.startSec; sec <= ep.endSec; sec++) {
+            // Higher intensity near the center of the active window
+            const mid = (ep.startSec + ep.endSec) / 2
+            const range = (ep.endSec - ep.startSec) / 2
+            const falloff = 1 - 0.5 * Math.pow((sec - mid) / range, 2)
+            const count = Math.round(ep.baseCount * falloff * (0.6 + Math.random() * 0.8) * 100) / 100
+            if (count > 0.05) {
+                points.push({ bucket_sec: sec, domain: ep.domain, path_pattern: ep.path_pattern, count })
+            }
+        }
+    }
+    return points
 }
 
 const demoStatusData = generateDemoStatusData()
@@ -345,7 +364,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Search endpoint - hidden in demo mode */}
                     {!demo && (
                         <>
-                            <p className="font-display text-lg">Explore endpoint</p>
+                            <p className="font-display text-xl">Explore endpoint</p>
                             <div className="py-1" />
                             <div className="flex flex-row items-center w-full">
                                 <DropdownSelect
@@ -449,8 +468,8 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
 
                     {/* Status Overview Section */}
                     <div className="w-full">
-                        <p className="font-display text-lg">Status Distribution</p>
-                        <p className="font-body text-sm text-muted-foreground">HTTP status code distribution over time for all requests made by the app</p>
+                        <p className="font-display text-xl">Status Distribution</p>
+                        <p className="mt-2 font-body text-xs text-muted-foreground">HTTP status code distribution over time for all requests made by the app</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
                             {(pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Loading || (pageState.statusPlotStatus === NetworkStatusOverviewPlotApiStatus.Success && !shouldRenderStatusPlot)) && <LoadingSpinner />}
@@ -470,9 +489,8 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
 
                     {/* Top Endpoints Section */}
                     <div className="w-full">
-                        <p className="font-display text-lg">Top Endpoints</p>
-                        <p className="font-body text-sm text-muted-foreground">Endpoints ranked by latency, error rate, and request frequency.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
-                        <div className="py-4" />
+                        <p className="font-display text-xl">Top Endpoints</p>
+                        <p className="mt-2 font-body text-xs text-muted-foreground">Endpoints ranked by latency, error rate, and request frequency.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
                         <NetworkTrends filters={pageState.filters} teamId={params?.teamId} hideTitle active demo={demo} />
                     </div>
 
@@ -480,8 +498,8 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
 
                     {/* Request Timeline Section */}
                     <div className="w-full">
-                        <p className="font-display text-lg">Timeline</p>
-                        <p className="font-body text-sm text-muted-foreground">See when each endpoint is called relative to session start.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
+                        <p className="font-display text-xl">Timeline</p>
+                        <p className="mt-2 font-body text-xs text-muted-foreground">Find when, and how often popular endpoints are called after a session starts.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
                             {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}
