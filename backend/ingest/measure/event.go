@@ -1693,7 +1693,7 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if err := eventReq.checkSeen(ingestReqCtx); err != nil {
-		msg := "failed to check for duplicate event requst batch"
+		msg := "failed to check for duplicate event request batch"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   msg,
