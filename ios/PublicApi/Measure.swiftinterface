@@ -6,8 +6,8 @@ import AVKit
 import CoreData
 import CoreMotion
 import CoreTelephony
-import CrashReporter
 import Foundation
+import KSCrashRecording
 import MachO
 import Network
 import ObjectiveC

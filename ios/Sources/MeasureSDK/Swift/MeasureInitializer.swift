@@ -318,7 +318,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
-        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
+        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger,
+                                                           crashDataPersistence: crashDataPersistence)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
                                                         crashDataPersistence: crashDataPersistence,
