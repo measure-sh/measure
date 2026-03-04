@@ -433,13 +433,21 @@ func Init(config *ServerConfig) {
 	}
 
 	if gin.Mode() == gin.ReleaseMode {
+		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
+		compatibility := "25.10"
 		chOpts.Settings = clickhouse.Settings{
 			"wait_for_async_insert":         1,
 			"wait_for_async_insert_timeout": 1000,
+			"compatibility":                 compatibility,
+			"enable_lightweight_update":     1,
 		}
 
 		chOpts.Compression = &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
+		}
+
+		rChOpts.Settings = clickhouse.Settings{
+			"compatibility": compatibility,
 		}
 	}
 
