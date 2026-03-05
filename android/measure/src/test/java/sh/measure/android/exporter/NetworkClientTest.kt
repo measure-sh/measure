@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -7,8 +8,11 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.LogLevel
@@ -164,5 +168,102 @@ class NetworkClientTest {
             any(),
             any(),
         )
+    }
+
+    @Test
+    fun `execute skips events with missing data file and logs error`() {
+        val mockLogger = mock<Logger>()
+        val client = NetworkClientImpl(
+            logger = mockLogger,
+            fileStorage = fileStorage,
+            httpClient = httpClient,
+            configProvider = configProvider,
+        ).apply {
+            init(apiKey = "secret", baseUrl = "http://localhost:8080")
+        }
+
+        val event = EventPacket(
+            eventId = "event-1",
+            sessionId = "session-1",
+            timestamp = "2024-01-01T00:00:00.000Z",
+            type = EventType.EXCEPTION,
+            userTriggered = false,
+            serializedData = null,
+            serializedDataFilePath = "missing-file.json",
+            serializedAttachments = null,
+            serializedAttributes = "{}",
+            serializedUserDefinedAttributes = null,
+        )
+
+        `when`(fileStorage.getFile("missing-file.json")).thenReturn(null)
+
+        val jsonWriterCaptor = argumentCaptor<(okio.BufferedSink) -> Unit>()
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
+            HttpResponse.Success(),
+        )
+
+        client.execute("batch123", listOf(event), emptyList())
+
+        verify(httpClient).sendJsonRequest(anyString(), anyString(), any(), jsonWriterCaptor.capture())
+        val buffer = Buffer()
+        jsonWriterCaptor.firstValue.invoke(buffer)
+        val json = buffer.readUtf8()
+
+        assertEquals("{\"events\":[],\"spans\":[]}", json)
+        verify(mockLogger).log(
+            eq(LogLevel.Error),
+            eq("Exporter: event data file missing, skipping event event-1"),
+            isNull(),
+        )
+    }
+
+    @Test
+    fun `execute includes events with valid inline data alongside skipped events`() {
+        val event1 = EventPacket(
+            eventId = "event-1",
+            sessionId = "session-1",
+            timestamp = "2024-01-01T00:00:00.000Z",
+            type = EventType.STRING,
+            userTriggered = false,
+            serializedData = "{\"key\":\"value\"}",
+            serializedDataFilePath = null,
+            serializedAttachments = null,
+            serializedAttributes = "{}",
+            serializedUserDefinedAttributes = null,
+        )
+
+        val event2 = EventPacket(
+            eventId = "event-2",
+            sessionId = "session-1",
+            timestamp = "2024-01-01T00:00:01.000Z",
+            type = EventType.EXCEPTION,
+            userTriggered = false,
+            serializedData = null,
+            serializedDataFilePath = "missing-file.json",
+            serializedAttachments = null,
+            serializedAttributes = "{}",
+            serializedUserDefinedAttributes = null,
+        )
+
+        `when`(fileStorage.getFile("missing-file.json")).thenReturn(null)
+
+        val jsonWriterCaptor = argumentCaptor<(okio.BufferedSink) -> Unit>()
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
+            HttpResponse.Success(),
+        )
+
+        networkClient.execute("batch123", listOf(event1, event2), emptyList())
+
+        verify(httpClient).sendJsonRequest(anyString(), anyString(), any(), jsonWriterCaptor.capture())
+        val buffer = Buffer()
+        jsonWriterCaptor.firstValue.invoke(buffer)
+        val json = buffer.readUtf8()
+
+        // event-1 should be present, event-2 should be skipped
+        assertTrue(json.contains("\"id\":\"event-1\""))
+        assertTrue(!json.contains("\"id\":\"event-2\""))
+        // Verify valid JSON structure - no trailing/leading commas
+        assertTrue(json.startsWith("{\"events\":[{"))
+        assertTrue(json.contains("}],\"spans\":[]}"))
     }
 }

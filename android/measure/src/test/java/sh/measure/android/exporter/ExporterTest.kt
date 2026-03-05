@@ -403,29 +403,6 @@ internal class ExporterTest {
     }
 
     @Test
-    fun `filters out events with invalid serialized data file path`() {
-        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
-
-        insertSessionInDb("session1")
-        insertEventInDb("session1", "event1", sampled = true)
-        insertEventInDb(
-            sessionId = "session1",
-            eventId = "event2",
-            sampled = true,
-            serializedDataFilePath = "/nonexistent/path/data.json",
-        )
-        insertBatchInDb("batch1", eventIds = setOf("event1", "event2"))
-
-        exporter.export()
-
-        verify(networkClient).execute(
-            eq("batch1"),
-            argThat { size == 1 && first().eventId == "event1" },
-            any(),
-        )
-    }
-
-    @Test
     fun `uploads attachments after events export`() {
         val responseJson = attachmentResponseJson("attachment-1")
         whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(responseJson))
