@@ -153,9 +153,11 @@ internal class DataCleanupServiceImpl(
         }
         database.getOldestSession()?.let {
             if (it != currentSessionId) {
-                val eventIds = database.getEventsForSession(it)
-                fileStorage.deleteEventsIfExist(eventIds)
-                val attachmentIds = database.getAttachmentsForEvents(eventIds)
+                // Only delete files for events not in a batch. Batched events
+                // are being exported and their files will be cleaned up after export.
+                val unbatchedEventIds = database.getUnbatchedEventsForSession(it)
+                fileStorage.deleteEventsIfExist(unbatchedEventIds)
+                val attachmentIds = database.getAttachmentsForEvents(unbatchedEventIds)
                 fileStorage.deleteAttachmentsIfExist(attachmentIds)
 
                 // deleting sessions from db will also delete events, spans and attachments for the session

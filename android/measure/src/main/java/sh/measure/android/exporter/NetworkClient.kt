@@ -118,8 +118,19 @@ internal class NetworkClientImpl(
     ) {
         sink.writeUtf8("{\"events\":[")
 
-        eventPackets.forEachIndexed { index, event ->
-            if (index > 0) sink.writeUtf8(",")
+        var first = true
+        eventPackets.forEach { event ->
+            if (event.serializedDataFilePath != null &&
+                fileStorage.getFile(event.serializedDataFilePath) == null
+            ) {
+                logger.log(
+                    LogLevel.Error,
+                    "Exporter: event data file missing, skipping event ${event.eventId}",
+                )
+                return@forEach
+            }
+            if (!first) sink.writeUtf8(",")
+            first = false
             writeEventPacket(sink, event)
         }
 
@@ -194,10 +205,8 @@ internal class NetworkClientImpl(
         }
 
         val source = file.inputStream().source()
-        try {
+        source.use { source ->
             sink.writeAll(source)
-        } finally {
-            source.close()
         }
     }
 

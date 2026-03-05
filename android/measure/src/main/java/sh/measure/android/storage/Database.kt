@@ -95,6 +95,13 @@ internal interface Database : Closeable {
     fun getEventsForSession(session: String): List<String>
 
     /**
+     * Returns event IDs belonging to a session that are not part of any batch.
+     *
+     * @param session The session ID.
+     */
+    fun getUnbatchedEventsForSession(session: String): List<String>
+
+    /**
      * Returns the total count of events across all sessions.
      */
     fun getEventsCount(): Int
@@ -559,6 +566,18 @@ internal class DatabaseImpl(
     override fun getEventsForSession(session: String): List<String> {
         val eventIds = mutableListOf<String>()
         readableDatabase.rawQuery(Sql.getEventsForSession(session), null).use {
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+                val eventId = it.getString(eventIdIndex)
+                eventIds.add(eventId)
+            }
+        }
+        return eventIds
+    }
+
+    override fun getUnbatchedEventsForSession(session: String): List<String> {
+        val eventIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getUnbatchedEventsForSession(session), null).use {
             while (it.moveToNext()) {
                 val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
                 val eventId = it.getString(eventIdIndex)
