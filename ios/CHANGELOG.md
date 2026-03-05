@@ -5,12 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.10.0] - 2026-03-05
+
+### :bug: Bug fixes
+
+
+- (**ios**): Use correct data type for session start time attribute (#3256)
+
+### :hammer: Misc
+
+
+- (**ios**): Delete expired attachments on cleanup (#3262)
+- (**ios**): Add session start timestamp to attributes (#3250)
+- (**ios**): Add http_sampling_rate dynamic config (#3231)
+
 ## [ios-v0.9.1] - 2026-02-23
 
 ### :bug: Bug fixes
 
 
 - (**ios**): Make config api call asynchronously (#3202)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.9.1 (#3203)
 
 ## [ios-v0.9.0] - 2026-02-19
 
@@ -341,6 +360,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.10.0]: https://github.com///compare/ios-v0.9.1..ios-v0.10.0
 [ios-v0.9.1]: https://github.com///compare/ios-v0.9.0..ios-v0.9.1
 [ios-v0.9.0]: https://github.com///compare/ios-v0.8.1..ios-v0.9.0
 [ios-v0.8.1]: https://github.com///compare/ios-v0.8.0..ios-v0.8.1
