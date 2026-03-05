@@ -98,7 +98,7 @@ final class BaseHttpClient: HttpClient {
             self.logger.internalLog(level: .error, message: "Failed to send request: \(error.localizedDescription)", error: nil, data: nil)
             return .error(.unknownError(error.localizedDescription))
         } else if let httpResponse = urlResponse as? HTTPURLResponse, self.isRedirect(httpResponse.statusCode) {
-            if let location = httpResponse.allHeaderFields["Location"] as? String, let newUrl = self.resolveRedirectUrl(baseUrl: urlResponse!.url!, location: location) {
+            if let location = httpResponse.allHeaderFields["Location"] as? String, let baseUrl = urlResponse?.url, let newUrl = self.resolveRedirectUrl(baseUrl: baseUrl, location: location) {
                 self.logger.internalLog(level: .info, message: "Redirecting to: \(newUrl.absoluteString)", error: nil, data: nil)
                 return redirectHandler(newUrl)
             } else {

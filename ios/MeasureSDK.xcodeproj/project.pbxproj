@@ -256,6 +256,7 @@
 		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CF9EDCFA2F0E2BAA00029281 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */; };
 		CF9EDD062F0E6DE100029281 /* DynamicConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9EDD052F0E6DE100029281 /* DynamicConfig.swift */; };
+		CFB5756E2F599359000DB70B /* AttachmentStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB5756D2F599359000DB70B /* AttachmentStoreTests.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
 		CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
 		CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
@@ -605,6 +606,7 @@
 		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
 		CF9EDD052F0E6DE100029281 /* DynamicConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicConfig.swift; sourceTree = "<group>"; };
+		CFB5756D2F599359000DB70B /* AttachmentStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentStoreTests.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
 		CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -1065,6 +1067,7 @@
 		52B7F0E92D757F81001498BC /* CoreData */ = {
 			isa = PBXGroup;
 			children = (
+				CFB5756D2F599359000DB70B /* AttachmentStoreTests.swift */,
 				52B7F0E52D757F81001498BC /* BatchStoreTests.swift */,
 				52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */,
 				52B7F0E72D757F81001498BC /* EventStoreTests.swift */,
@@ -1867,6 +1870,7 @@
 				52B7F1682D757F81001498BC /* MockSysCtl.swift in Sources */,
 				CFD88D662DAE36D30095115E /* BatchOb+CoreDataClass.swift in Sources */,
 				CF7CABB32F261DA800A9DC30 /* MockSessionStore.swift in Sources */,
+				CFB5756E2F599359000DB70B /* AttachmentStoreTests.swift in Sources */,
 				CFD88D672DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */,
 				52B7F1752D757F81001498BC /* SessionManagerTests.swift in Sources */,
 				52B7F13A2D757F81001498BC /* DataCleanupServiceTests.swift in Sources */,

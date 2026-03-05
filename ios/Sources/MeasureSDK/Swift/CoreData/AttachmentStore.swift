@@ -14,6 +14,7 @@ protocol AttachmentStore {
     func getAttachmentsForUpload(batchSize: Number) -> [MsrUploadAttachment]
     func deleteAttachments(forSessionIds sessionIds: [String])
     func getAllAttachmentPaths() -> Set<String>
+    func deleteExpiredAttachments()
 }
 
 final class BaseAttachmentStore: AttachmentStore {
@@ -225,6 +226,59 @@ final class BaseAttachmentStore: AttachmentStore {
         }
 
         return paths
+    }
+
+    func deleteExpiredAttachments() {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            return
+        }
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+
+        var attachmentsToDeleteFromFS = [String]()
+
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "expires_at != nil")
+
+            do {
+                let attachments = try context.fetch(fetchRequest)
+                let expired = attachments.filter {
+                    guard let expiresAtString = $0.expires_at,
+                          let expiresAt = formatter.date(from: expiresAtString) else { return false }
+                    return expiresAt < now
+                }
+
+                guard !expired.isEmpty else { return }
+
+                logger.internalLog(
+                    level: .debug,
+                    message: "Cleanup Service: Deleting \(expired.count) expired attachments",
+                    error: nil,
+                    data: nil
+                )
+
+                expired.forEach {
+                    if let path = $0.path {
+                        attachmentsToDeleteFromFS.append(path)
+                    }
+                    context.delete($0)
+                }
+                try context.saveIfNeeded()
+            } catch {
+                logger.internalLog(
+                    level: .error,
+                    message: "Failed to delete expired attachments.",
+                    error: error,
+                    data: nil
+                )
+            }
+        }
+
+        attachmentsToDeleteFromFS.forEach { systemFileManager.deleteFile(atPath: $0) }
     }
 }
 
