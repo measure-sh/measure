@@ -2,7 +2,7 @@ package journey
 
 import (
 	"backend/api/group"
-	"backend/api/set"
+	"backend/libs/set"
 )
 
 // Journey is the interface to express

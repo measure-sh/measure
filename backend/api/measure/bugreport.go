@@ -1,10 +1,12 @@
 package measure
 
 import (
-	"backend/api/event"
 	"fmt"
 	"strings"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -19,7 +21,7 @@ type BugReport struct {
 	Timestamp            *time.Time         `json:"timestamp" binding:"required"`
 	UpdatedAt            *time.Time         `json:"updated_at" binding:"required"`
 	Attribute            *event.Attribute   `json:"attribute" binding:"required"`
-	UserDefinedAttribute event.UDAttribute  `json:"user_defined_attribute" binding:"required"`
+	UserDefinedAttribute udattr.UDAttribute `json:"user_defined_attribute" binding:"required"`
 	Attachments          []event.Attachment `json:"attachments" binding:"required"`
 }
 

@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"backend/api/codec"
 	"backend/api/event"
 	"backend/api/span"
+	"backend/libs/codec"
 	"encoding/json"
 	"errors"
 	"fmt"

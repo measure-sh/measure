@@ -1,9 +1,6 @@
 package event
 
 import (
-	"backend/api/config"
-	"backend/api/opsys"
-	"backend/api/server"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -16,6 +13,10 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"backend/libs/ingest"
+	"backend/libs/opsys"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -63,9 +64,6 @@ const (
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
 	maxScreenViewNameChars                    = 128
-	maxUserDefAttrsCount                      = 100
-	maxUserDefAttrsKeyChars                   = 256
-	maxUserDefAttrsValsChars                  = 256
 	maxCustomNameChars                        = 64
 	maxLayoutElementIDChars                   = 512
 	maxLayoutElementLabelChars                = 512
@@ -607,7 +605,7 @@ type EventField struct {
 	Type                    string                   `json:"type" binding:"required"`
 	UserTriggered           bool                     `json:"user_triggered" binding:"required"`
 	Attribute               Attribute                `json:"attribute" binding:"required"`
-	UserDefinedAttribute    UDAttribute              `json:"user_defined_attribute" binding:"required"`
+	UserDefinedAttribute    udattr.UDAttribute       `json:"user_defined_attribute" binding:"required"`
 	Attachments             []Attachment             `json:"attachments" binding:"required"`
 	ANR                     *ANR                     `json:"anr,omitempty"`
 	Exception               *Exception               `json:"exception,omitempty"`
@@ -640,7 +638,9 @@ type EventField struct {
 
 // Validate validates the event for data
 // integrity.
-func (e *EventField) Validate() error {
+func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
+	config := ingest.NewValidationConfig(opts...)
+
 	switch opsys.ToFamily(e.Attribute.OSName) {
 	case opsys.Android:
 		if !slices.Contains(androidValidTypes, e.Type) {
@@ -676,16 +676,14 @@ func (e *EventField) Validate() error {
 	// without any enforcement, we lose control on the number of partitions which leads to fragmented query performance.
 	//
 	// For testing, it might be useful to disable this check which can be controlled using the "INGEST_ENFORCE_TIME_WINDOW" environment variable.
-	if server.Server.Config.IngestEnforceTimeWindow {
+	if config.EnforceTimeWindow {
 		now := time.Now()
-		lower := now.Add(-config.MaxPastOffset)
-		upper := now.Add(config.MaxFutureOffset)
 		drift := e.Timestamp.Sub(now)
 
-		if e.Timestamp.Before(lower) {
-			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, config.MaxPastOffset)
-		} else if e.Timestamp.After(upper) {
-			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, config.MaxFutureOffset)
+		if err := ingest.ValidateTimeWindow(e.Timestamp, now); errors.Is(err, ingest.ErrTooFarInPast) {
+			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, ingest.MaxPastOffset)
+		} else if errors.Is(err, ingest.ErrTooFarInFuture) {
+			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "timestamp", e.Attribute.AppUniqueID, drift, ingest.MaxFutureOffset)
 		}
 	}
 

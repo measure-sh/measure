@@ -3,9 +3,10 @@
 package measure
 
 import (
+	"testing"
+
 	"backend/api/event"
 	"backend/api/span"
-	"testing"
 )
 
 func TestEventReqOnboardable(t *testing.T) {

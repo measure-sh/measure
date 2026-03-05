@@ -3,15 +3,16 @@
 package measure
 
 import (
+	"context"
+	"math"
+	"testing"
+	"time"
+
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/server"
 	"backend/api/session"
 	"backend/api/span"
-	"context"
-	"math"
-	"testing"
-	"time"
 
 	"github.com/google/uuid"
 )

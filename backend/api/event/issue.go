@@ -1,10 +1,11 @@
 package event
 
 import (
-	"backend/api/chrono"
 	"bytes"
 	"strings"
 	"text/tabwriter"
+
+	"backend/libs/chrono"
 
 	"github.com/google/uuid"
 )

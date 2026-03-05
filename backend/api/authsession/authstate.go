@@ -1,7 +1,6 @@
 package authsession
 
 import (
-	"backend/api/server"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"backend/api/server"
 
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"

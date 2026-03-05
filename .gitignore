@@ -19,5 +19,8 @@ Package.resolved
 # flutter
 .index-build/
 
+# zed editor
+.zed
+
 # email preview output
 backend/email/cmd/preview/output/

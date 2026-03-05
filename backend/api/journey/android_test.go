@@ -1,12 +1,13 @@
 package journey
 
 import (
-	"backend/api/event"
-	"backend/api/group"
 	"encoding/json"
 	"os"
 	"reflect"
 	"testing"
+
+	"backend/api/event"
+	"backend/api/group"
 
 	"github.com/google/uuid"
 	"github.com/yourbasic/graph"

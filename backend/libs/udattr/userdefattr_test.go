@@ -1,4 +1,4 @@
-package event
+package udattr
 
 import (
 	"fmt"

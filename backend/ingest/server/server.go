@@ -1,7 +1,7 @@
 package server
 
 import (
-	"backend/api/inet"
+	"backend/libs/inet"
 	"context"
 	"fmt"
 	"log"

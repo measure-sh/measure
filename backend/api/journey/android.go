@@ -4,7 +4,9 @@ import (
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
-	"backend/api/set"
+	"backend/api/server"
+	"backend/libs/set"
+
 	"context"
 	"fmt"
 	"slices"
@@ -329,7 +331,7 @@ func (j *JourneyAndroid) SetExceptionGroups(ctx context.Context, af *filter.AppF
 		fingerprints = append(fingerprints, k)
 	}
 
-	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, af, fingerprints)
+	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, server.Server.RchPool, af, fingerprints)
 	if err != nil {
 		return
 	}
@@ -359,7 +361,7 @@ func (j *JourneyAndroid) SetANRGroups(ctx context.Context, af *filter.AppFilter)
 		fingerprints = append(fingerprints, k)
 	}
 
-	groups, err := group.GetANRGroupsFromFingerprints(ctx, af, fingerprints)
+	groups, err := group.GetANRGroupsFromFingerprints(ctx, server.Server.RchPool, af, fingerprints)
 	if err != nil {
 		return
 	}

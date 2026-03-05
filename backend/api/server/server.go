@@ -1,8 +1,6 @@
 package server
 
 import (
-	"backend/api/allowlist"
-	"backend/api/inet"
 	"context"
 	"fmt"
 	"log"
@@ -11,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"backend/api/allowlist"
+	"backend/libs/inet"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"

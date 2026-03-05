@@ -12,8 +12,8 @@ import (
 	"slices"
 	"time"
 
-	"backend/api/objstore"
 	"backend/api/server"
+	"backend/libs/objstore"
 
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -21,6 +21,22 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/api/googleapi"
 )
+
+type LocationConfig struct {
+	IsCloud                 bool
+	AWSEndpoint             string
+	AttachmentsBucket       string
+	AttachmentsBucketRegion string
+}
+
+type UploadConfig struct {
+	IsCloud                    bool
+	AWSEndpoint                string
+	AttachmentsBucket          string
+	AttachmentsBucketRegion    string
+	AttachmentsAccessKey       string
+	AttachmentsSecretAccessKey string
+}
 
 // attachmentTypes is a list of all valid attachment types.
 var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot", "layout_snapshot_json"}
@@ -34,10 +50,8 @@ func isNotFound(err error) bool {
 
 // BuildAttachmentLocation builds the location of the attachment
 // object based on runtime environment.
-func BuildAttachmentLocation(key string) (location string) {
-	config := server.Server.Config
-
-	if config.IsCloud() {
+func BuildAttachmentLocation(key string, config LocationConfig) (location string) {
+	if config.IsCloud {
 		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, key)
 		return
 	}
@@ -78,9 +92,7 @@ func (a Attachment) Validate() error {
 }
 
 // Upload uploads raw file bytes to an S3 compatible storage system.
-func (a *Attachment) Upload(ctx context.Context) (err error) {
-	config := server.Server.Config
-
+func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error) {
 	// set mime type from extension
 	ext := filepath.Ext(a.Key)
 	contentType := "application/octet-stream"
@@ -92,7 +104,7 @@ func (a *Attachment) Upload(ctx context.Context) (err error) {
 		"original_file_name": a.Name,
 	}
 
-	if config.IsCloud() {
+	if config.IsCloud {
 		client, errStorage := storage.NewClient(ctx)
 		if errStorage != nil {
 			err = errStorage

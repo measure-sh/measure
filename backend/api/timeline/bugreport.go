@@ -1,18 +1,20 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
 
 // BugReport represents bug report events.
 type BugReport struct {
-	BugReportId uuid.UUID          `json:"bug_report_id"`
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	BugReportId uuid.UUID           `json:"bug_report_id"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.BugReport
 	Timestamp   time.Time          `json:"timestamp"`
 	Attachments []event.Attachment `json:"attachments"`

@@ -1,15 +1,16 @@
 package span
 
 import (
-	"backend/api/config"
-	"backend/api/event"
-	"backend/api/opsys"
-	"backend/api/server"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
+
+	"backend/libs/ingest"
+	"backend/libs/opsys"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -120,18 +121,18 @@ type RootSpanDisplay struct {
 }
 
 type SpanDisplay struct {
-	SpanName                 string            `json:"span_name" binding:"required"`
-	SpanID                   string            `json:"span_id" binding:"required"`
-	ParentID                 string            `json:"parent_id" binding:"required"`
-	Status                   uint8             `json:"status" binding:"required"`
-	StartTime                time.Time         `json:"start_time" binding:"required"`
-	EndTime                  time.Time         `json:"end_time" binding:"required"`
-	Duration                 time.Duration     `json:"duration" binding:"required"`
-	ThreadName               string            `json:"thread_name"`
-	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
-	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
-	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
-	CheckPoints              []CheckPointField `json:"checkpoints"`
+	SpanName                 string             `json:"span_name" binding:"required"`
+	SpanID                   string             `json:"span_id" binding:"required"`
+	ParentID                 string             `json:"parent_id" binding:"required"`
+	Status                   uint8              `json:"status" binding:"required"`
+	StartTime                time.Time          `json:"start_time" binding:"required"`
+	EndTime                  time.Time          `json:"end_time" binding:"required"`
+	Duration                 time.Duration      `json:"duration" binding:"required"`
+	ThreadName               string             `json:"thread_name"`
+	LowPowerModeEnabled      bool               `json:"device_low_power_mode"`
+	ThermalThrottlingEnabled bool               `json:"device_thermal_throttling_enabled"`
+	UserDefinedAttribute     udattr.UDAttribute `json:"user_defined_attributes"`
+	CheckPoints              []CheckPointField  `json:"checkpoints"`
 }
 
 type TraceDisplay struct {
@@ -175,23 +176,24 @@ type SpanMetricsPlotInstance struct {
 }
 
 type SpanField struct {
-	AppID                uuid.UUID         `json:"app_id" binding:"required"`
-	SpanName             string            `json:"name" binding:"required"`
-	SpanID               string            `json:"span_id" binding:"required"`
-	ParentID             string            `json:"parent_id"`
-	TraceID              string            `json:"trace_id" binding:"required"`
-	SessionID            uuid.UUID         `json:"session_id" binding:"required"`
-	Status               uint8             `json:"status" binding:"required"`
-	StartTime            time.Time         `json:"start_time" binding:"required"`
-	EndTime              time.Time         `json:"end_time" binding:"required"`
-	CheckPoints          []CheckPointField `json:"checkpoints"`
-	Attributes           SpanAttributes    `json:"attributes"`
-	UserDefinedAttribute event.UDAttribute `json:"user_defined_attribute" binding:"required"`
+	AppID                uuid.UUID          `json:"app_id" binding:"required"`
+	SpanName             string             `json:"name" binding:"required"`
+	SpanID               string             `json:"span_id" binding:"required"`
+	ParentID             string             `json:"parent_id"`
+	TraceID              string             `json:"trace_id" binding:"required"`
+	SessionID            uuid.UUID          `json:"session_id" binding:"required"`
+	Status               uint8              `json:"status" binding:"required"`
+	StartTime            time.Time          `json:"start_time" binding:"required"`
+	EndTime              time.Time          `json:"end_time" binding:"required"`
+	CheckPoints          []CheckPointField  `json:"checkpoints"`
+	Attributes           SpanAttributes     `json:"attributes"`
+	UserDefinedAttribute udattr.UDAttribute `json:"user_defined_attribute" binding:"required"`
 }
 
 // Validate validates the span for data
 // integrity.
-func (s *SpanField) Validate() error {
+func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
+	config := ingest.NewValidationConfig(opts...)
 
 	if s.AppID == uuid.Nil {
 		return fmt.Errorf(`%q must be an app's valid UUID`, `app_id`)
@@ -235,16 +237,14 @@ func (s *SpanField) Validate() error {
 	// without any enforcement, we lose control on the number of partitions which leads to fragmented query performance.
 	//
 	// For testing, it might be useful to disable this check which can be controlled using the "INGEST_ENFORCE_TIME_WINDOW" environment variable.
-	if server.Server.Config.IngestEnforceTimeWindow {
+	if config.EnforceTimeWindow {
 		now := time.Now()
-		lower := now.Add(-config.MaxPastOffset)
-		upper := now.Add(config.MaxFutureOffset)
 		drift := s.StartTime.Sub(now)
 
-		if s.StartTime.Before(lower) {
-			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxPastOffset)
-		} else if s.StartTime.After(upper) {
-			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "startTime", s.Attributes.AppUniqueID, drift, config.MaxFutureOffset)
+		if err := ingest.ValidateTimeWindow(s.StartTime, now); errors.Is(err, ingest.ErrTooFarInPast) {
+			return fmt.Errorf("%q is too far in the past: app=%s, drift=%s, max_allowed=%s", "timestamp", s.Attributes.AppUniqueID, drift, ingest.MaxPastOffset)
+		} else if errors.Is(err, ingest.ErrTooFarInFuture) {
+			return fmt.Errorf("%q is too far in the future: app=%s, drift=%s, max_allowed=%s", "timestamp", s.Attributes.AppUniqueID, drift, ingest.MaxFutureOffset)
 		}
 	}
 

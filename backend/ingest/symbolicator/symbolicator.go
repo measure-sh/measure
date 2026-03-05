@@ -1,11 +1,11 @@
 package symbolicator
 
 import (
-	"backend/api/cache"
-	"backend/api/opsys"
-	"backend/api/symbol"
-	"backend/ingest/event"
-	"backend/ingest/span"
+	"backend/api/event"
+	"backend/api/span"
+	"backend/libs/cache"
+	"backend/libs/opsys"
+	"backend/libs/symbol"
 	"context"
 	"encoding/json"
 	"errors"

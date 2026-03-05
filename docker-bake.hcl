@@ -4,6 +4,7 @@ target "api" {
   inherits = ["docker-metadata-action"]
   context = "backend/api"
   contexts = {
+    libs = "backend/libs"
     email = "backend/email"
     billing = "backend/billing"
   }
@@ -17,6 +18,7 @@ target "ingest" {
   inherits = ["docker-metadata-action"]
   context = "backend/ingest"
   contexts = {
+    libs = "backend/libs"
     api = "backend/api"
     email = "backend/email"
     billing = "backend/billing"

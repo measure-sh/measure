@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"backend/api/concur"
-	"backend/api/inet"
 	"backend/api/measure"
 	"backend/api/server"
+	"backend/libs/concur"
+	"backend/libs/inet"
 
 	"github.com/gin-gonic/gin"
 

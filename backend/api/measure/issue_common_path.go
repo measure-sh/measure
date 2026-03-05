@@ -11,8 +11,8 @@ import (
 	"backend/api/config"
 	"backend/api/event"
 	"backend/api/group"
-	"backend/api/logcomment"
 	"backend/api/server"
+	"backend/libs/logcomment"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"

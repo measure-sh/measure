@@ -20,7 +20,7 @@ func (t *ISOTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time)
 }
 
-func (i *ISOTime) Scan(src interface{}) error {
+func (i *ISOTime) Scan(src any) error {
 	switch t := src.(type) {
 	case time.Time:
 		*i = ISOTime(t)

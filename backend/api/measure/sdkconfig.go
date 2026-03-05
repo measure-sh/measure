@@ -1,7 +1,6 @@
 package measure
 
 import (
-	"backend/api/server"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +10,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"time"
+
+	"backend/api/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

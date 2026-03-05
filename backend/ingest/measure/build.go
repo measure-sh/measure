@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"backend/api/objstore"
 	"backend/ingest/server"
+	"backend/libs/objstore"
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"

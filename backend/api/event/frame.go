@@ -1,9 +1,10 @@
 package event
 
 import (
-	"backend/api/text"
 	"fmt"
 	"strconv"
+
+	"backend/libs/text"
 )
 
 // FramePrefix is the prefix string that

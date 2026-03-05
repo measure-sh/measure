@@ -1,9 +1,10 @@
 package measure
 
 import (
-	"backend/api/event"
 	"slices"
 	"time"
+
+	"backend/api/event"
 
 	"github.com/google/uuid"
 )

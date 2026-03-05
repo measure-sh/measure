@@ -1,7 +1,6 @@
 package symbolicator
 
 import (
-	"backend/api/chrono"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -11,6 +10,8 @@ import (
 	"net/http"
 	"net/textproto"
 	"time"
+
+	"backend/libs/chrono"
 )
 
 // maxRetryCount defines the maximum

@@ -1,17 +1,6 @@
 package measure
 
 import (
-	"backend/api/ambient"
-	"backend/api/chrono"
-	"backend/api/concur"
-	"backend/api/event"
-	"backend/api/group"
-	"backend/api/inet"
-	"backend/api/objstore"
-	"backend/api/opsys"
-	"backend/api/server"
-	"backend/api/span"
-	"backend/api/symbolicator"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -25,6 +14,19 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"backend/api/event"
+	"backend/api/group"
+	"backend/api/server"
+	"backend/api/span"
+	"backend/api/symbolicator"
+	"backend/libs/ambient"
+	"backend/libs/chrono"
+	"backend/libs/concur"
+	"backend/libs/inet"
+	"backend/libs/ingest"
+	"backend/libs/objstore"
+	"backend/libs/opsys"
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
@@ -160,7 +162,12 @@ func (e *eventreq) uploadAttachments() error {
 		// implement a better solution later using
 		// EndpointResolverV2 with custom resolvers
 		// for non-AWS clouds like GCS
-		attachment.location = event.BuildAttachmentLocation(key)
+		attachment.location = event.BuildAttachmentLocation(key, event.LocationConfig{
+			IsCloud:                 server.Server.Config.IsCloud(),
+			AWSEndpoint:             server.Server.Config.AWSEndpoint,
+			AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
+			AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
+		})
 
 		eventAttachment := event.Attachment{
 			ID:   id,
@@ -185,7 +192,14 @@ func (e *eventreq) uploadAttachments() error {
 			// as you can.
 			bgCtx := context.Background()
 
-			if err := eventAttachment.Upload(bgCtx); err != nil {
+			if err := eventAttachment.Upload(bgCtx, event.UploadConfig{
+				IsCloud:                    server.Server.Config.IsCloud(),
+				AWSEndpoint:                server.Server.Config.AWSEndpoint,
+				AttachmentsBucket:          server.Server.Config.AttachmentsBucket,
+				AttachmentsBucketRegion:    server.Server.Config.AttachmentsBucketRegion,
+				AttachmentsAccessKey:       server.Server.Config.AttachmentsAccessKey,
+				AttachmentsSecretAccessKey: server.Server.Config.AttachmentsSecretAccessKey,
+			}); err != nil {
 				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
 				return
 			}
@@ -608,7 +622,12 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 
 			// Generate upload key and location
 			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
+				IsCloud:                 server.Server.Config.IsCloud(),
+				AWSEndpoint:             server.Server.Config.AWSEndpoint,
+				AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
+				AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
+			})
 			expiry := time.Now().Add(ExpiryDuration)
 
 			metadata := []string{
@@ -657,7 +676,12 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 
 			// Generate upload key and location (same format as multipart flow)
 			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
+				IsCloud:                 config.IsCloud(),
+				AWSEndpoint:             config.AWSEndpoint,
+				AttachmentsBucket:       config.AttachmentsBucket,
+				AttachmentsBucketRegion: config.AttachmentsBucketRegion,
+			})
 
 			signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
 				Bucket: aws.String(config.AttachmentsBucket),
@@ -835,7 +859,7 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 			events[i].Timestamp,
 		)
 
-		if err = exceptionGroup.Insert(ctx); err != nil {
+		if err = exceptionGroup.Insert(ctx, server.Server.ChPool); err != nil {
 			return
 		}
 	}
@@ -867,7 +891,7 @@ func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 			events[i].Timestamp,
 		)
 
-		if err := anrGroup.Insert(ctx); err != nil {
+		if err := anrGroup.Insert(ctx, server.Server.ChPool); err != nil {
 			return err
 		}
 	}
@@ -889,7 +913,7 @@ func (e eventreq) validate() error {
 	}
 
 	for i := range e.events {
-		if err := e.events[i].Validate(); err != nil {
+		if err := e.events[i].Validate(ingest.WithEnforceTimeWindow(server.Server.Config.IngestEnforceTimeWindow)); err != nil {
 			return err
 		}
 		if err := e.events[i].Attribute.Validate(); err != nil {
@@ -918,7 +942,7 @@ func (e eventreq) validate() error {
 	}
 
 	for i := range e.spans {
-		if err := e.spans[i].Validate(); err != nil {
+		if err := e.spans[i].Validate(ingest.WithEnforceTimeWindow(server.Server.Config.IngestEnforceTimeWindow)); err != nil {
 			return err
 		}
 

@@ -1,7 +1,7 @@
 package symbolicator
 
 import (
-	"backend/api/chrono"
+	"backend/libs/chrono"
 	"bytes"
 	"encoding/json"
 	"errors"

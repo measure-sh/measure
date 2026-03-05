@@ -1,4 +1,4 @@
-package event
+package udattr
 
 import (
 	"encoding/json"
@@ -20,10 +20,15 @@ import (
 // attribute keys.
 const attrKeyPattern = "^[a-zA-Z0-9_-]+$"
 
-// maxAllowedDegree defines the maximum
-// nesting depth a recursive nested
-// expression is allowed.
-const maxAllowedDegree = 2
+const (
+	// maxAllowedDegree defines the maximum
+	// nesting depth a recursive nested
+	// expression is allowed.
+	maxAllowedDegree         = 2
+	maxUserDefAttrsCount     = 100
+	maxUserDefAttrsKeyChars  = 256
+	maxUserDefAttrsValsChars = 256
+)
 
 const (
 	AttrUnknown AttrType = iota

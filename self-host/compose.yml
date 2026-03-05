@@ -66,6 +66,7 @@ services:
       dockerfile: dockerfile
       context: ../backend/api
       additional_contexts:
+        libs: ../backend/libs
         email: ../backend/email
         billing: ../backend/billing
       args:
@@ -155,6 +156,7 @@ services:
       dockerfile: dockerfile
       context: ../backend/ingest
       additional_contexts:
+        libs: ../backend/libs
         api: ../backend/api
         email: ../backend/email
         billing: ../backend/billing

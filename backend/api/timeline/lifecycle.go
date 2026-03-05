@@ -1,16 +1,18 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 )
 
 // LifecycleActivity represents lifecycle
 // activity events suitable for session timeline.
 type LifecycleActivity struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleActivity
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -30,9 +32,9 @@ func (la LifecycleActivity) GetTimestamp() time.Time {
 // LifecycleFragment represents lifecycle
 // fragment events suitable for session timeline.
 type LifecycleFragment struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleFragment
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -52,9 +54,9 @@ func (lf LifecycleFragment) GetTimestamp() time.Time {
 // LifecycleViewController represents lifecycle
 // view controller events suitable for session timeline.
 type LifecycleViewController struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleViewController
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -74,9 +76,9 @@ func (lvc LifecycleViewController) GetTimestamp() time.Time {
 // LifecycleSwiftUI represents lifecycle swift ui view
 // events suitable for session timeline.
 type LifecycleSwiftUI struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleSwiftUI
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -96,9 +98,9 @@ func (lsu LifecycleSwiftUI) GetTimestamp() time.Time {
 // LifecycleApp represents lifecycle
 // app events suitable for session timeline.
 type LifecycleApp struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleApp
 	Timestamp time.Time `json:"timestamp"`
 }
