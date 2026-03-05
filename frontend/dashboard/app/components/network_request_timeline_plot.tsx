@@ -105,14 +105,17 @@ const NetworkRequestTimelinePlot: React.FC<Props> = ({ data }) => {
           data={heatmapData}
           theme={canvasTheme}
           colors={theme === 'dark'
-            ? { type: 'sequential', colors: ['#1a2a3a', '#4e79a7'] }
-            : { type: 'sequential', colors: ['#fde8d0', '#e8a838'] }
+            // https://colorbrewer2.org/#type=sequential&scheme=Blues&n=5
+            ? { type: 'diverging', colors: ['#c5d7e2', '#6baed6', '#2171b5'] }
+            // https://colorbrewer2.org/#type=sequential&scheme=Oranges&n=5
+            : { type: 'diverging', colors: ['#fee6ce', '#fdae6b', '#e6550d'] }
           }
-          emptyColor={'transparent'}
+          emptyColor={theme === 'dark' ? '#1a1a1a' : '#f9f9f9'}
           opacity={1}
           activeOpacity={1}
-          inactiveOpacity={0.85}
-          borderWidth={0}
+          inactiveOpacity={theme === 'dark' ? 0.90 : 0.70}
+          borderWidth={1}
+          borderColor={theme === 'dark' ? '#000000' : '#ffffff'}
           margin={{ top: 20, right: 20, bottom: 140, left: 180 }}
           axisTop={null}
           axisRight={null}
@@ -132,6 +135,7 @@ const NetworkRequestTimelinePlot: React.FC<Props> = ({ data }) => {
           enableLabels={false}
           hoverTarget="cell"
           tooltip={({ cell }) => {
+            if (cell.value === null) return null
             const bucketStart = parseInt(cell.data.x as string)
             const bucketEnd = bucketStart + BUCKET_SIZE
             return (

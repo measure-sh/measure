@@ -47,13 +47,13 @@ const NetworkStatusDistributionPlot: React.FC<NetworkStatusDistributionPlotProps
 
   const colorMap = theme === 'dark' ? {
     '2xx': '#4e79a7',
-    '3xx': '#f28e2c',
-    '4xx': '#76b7b2',
+    '3xx': '#76b7b2',
+    '4xx': '#f28e2c',
     '5xx': '#e15759',
   } : {
     '2xx': '#e8c1a0',
-    '3xx': '#f1e15b',
-    '4xx': '#e8a838',
+    '3xx': '#e8a838',
+    '4xx': '#f1e15b',
     '5xx': '#f47560',
   }
 

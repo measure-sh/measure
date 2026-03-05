@@ -499,7 +499,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Request Timeline Section */}
                     <div className="w-full">
                         <p className="font-display text-xl">Timeline</p>
-                        <p className="mt-2 font-body text-xs text-muted-foreground">Find when, and how often popular endpoints are called after a session starts.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
+                        <p className="mt-2 font-body text-xs text-muted-foreground">Distribution of when endpoint patterns are typically called in a session.{!demo && <>{' '}<span className={underlineLinkStyle}>Learn more</span> about how endpoint patterns are generated.</>}</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
                             {pageState.requestTimelineStatus === NetworkRequestTimelinePlotApiStatus.Loading && <LoadingSpinner />}
