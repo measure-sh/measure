@@ -45,6 +45,7 @@ final class BaseDataCleanupService: DataCleanupService {
     func clearStaleData() {
         trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
         cleanupOrphanedAttachments()
+        attachmentStore.deleteExpiredAttachments()
 
         guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
             return

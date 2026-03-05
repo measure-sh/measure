@@ -176,7 +176,7 @@ final class BaseExporter: Exporter {
     }
 
     private func exportAttachments() {
-        while true {
+        uploadLoop: while true {
             let attachments = attachmentStore.getAttachmentsForUpload(batchSize: 5)
             guard !attachments.isEmpty else {
                 logger.internalLog(level: .debug, message: "Exporter: no attachments to upload", error: nil, data: nil)
@@ -190,7 +190,7 @@ final class BaseExporter: Exporter {
                 let success = uploadAttachmentSync(attachment)
                 if !success {
                     logger.internalLog(level: .debug, message: "Exporter: attachment \(attachment.id) upload failed", error: nil, data: nil)
-                    break
+                    break uploadLoop
                 }
                 Thread.sleep(forTimeInterval: TimeInterval(configProvider.attachmentExportIntervalMs) / 1000)
             }

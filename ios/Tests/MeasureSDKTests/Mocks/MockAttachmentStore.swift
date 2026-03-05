@@ -110,4 +110,19 @@ final class MockAttachmentStore: AttachmentStore {
 
         return Set(attachments.values.compactMap { $0.attachment.path })
     }
+
+    func deleteExpiredAttachments() {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+
+        attachments = attachments.filter { _, stored in
+            guard let expiresAtString = stored.attachment.expiresAt,
+                  let expiresAt = formatter.date(from: expiresAtString) else { return true }
+            return expiresAt >= now
+        }
+    }
 }
