@@ -1705,12 +1705,16 @@ func PutEvents(c *gin.Context) {
 	// return early if we can recall this batch
 	if eventReq.seen {
 		if eventReq.json {
-			auiBytes, err := json.Marshal(eventReq.attachmentUploadInfos)
-			if err != nil {
-				fmt.Printf("err aui json marshal: %v", err)
+			if eventReq.hasAttachmentUploadInfos() {
+				if err := eventReq.generateAttachmentUploadURLs(ingestReqCtx); err != nil {
+					msg := `failed to generate attachment upload URLs for seen request`
+					fmt.Println(msg, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": msg,
+					})
+					return
+				}
 			}
-
-			fmt.Println(string(auiBytes))
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.
@@ -1815,12 +1819,6 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.json {
-		auiBytes, err := json.Marshal(eventReq.attachmentUploadInfos)
-		if err != nil {
-			fmt.Printf("err aui json marshal: %v", err)
-		}
-
-		fmt.Println(string(auiBytes))
 		c.JSON(http.StatusOK, IngestResponse{
 			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
 		})
