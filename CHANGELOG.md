@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use clickhouse read pool in api service (#3270) by @detj in #3270
 - (**backend**): Add ingest allow check tests to ingest service by @anupcowkur in #3267
 - (**backend**): Add session start time attribute to events and spans (#3240) by @abhaysood in #3240
 - (**backend**): Add usage threshold banners by @anupcowkur in #3223
