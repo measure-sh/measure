@@ -51,15 +51,15 @@ func ProxyAttachment(c *gin.Context) {
 		return
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(parsed)
-	proxy.Director = func(req *http.Request) {
-		req.URL.Scheme = parsed.Scheme
-		req.URL.Host = parsed.Host
-		req.URL.Path = parsed.Path
-		req.URL.RawQuery = parsed.RawQuery
-		req.Host = parsed.Host
-
-		req.Header = c.Request.Header
+	proxy := &httputil.ReverseProxy{
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.Out.URL.Scheme = parsed.Scheme
+			pr.Out.URL.Host = parsed.Host
+			pr.Out.URL.Path = parsed.Path
+			pr.Out.URL.RawQuery = parsed.RawQuery
+			pr.Out.Host = parsed.Host
+			pr.Out.Header = pr.In.Header.Clone()
+		},
 	}
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
