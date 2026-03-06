@@ -413,7 +413,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 variant="outline"
                 className="mx-4 my-3"
                 onClick={() => {
-                  navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
+                  navigator.clipboard.writeText(process.env.NEXT_PUBLIC_INGEST_BASE_URL ? process.env.NEXT_PUBLIC_INGEST_BASE_URL : process.env.NEXT_PUBLIC_API_BASE_URL!)
                   toastPositive("Base URL copied to clipboard")
                 }}>
                 Copy

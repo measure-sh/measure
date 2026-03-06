@@ -847,6 +847,23 @@ describe('Apps Page', () => {
     expect(mockToastPositive).toHaveBeenCalledWith('Base URL copied to clipboard')
   })
 
+  it('copies ingest URL when NEXT_PUBLIC_INGEST_BASE_URL is set', async () => {
+    process.env.NEXT_PUBLIC_INGEST_BASE_URL = 'https://ingest.measure.sh'
+
+    await renderLoadedPage()
+
+    const copyButtons = screen.getAllByRole('button', { name: 'Copy' })
+
+    await act(async () => {
+      fireEvent.click(copyButtons[0])
+    })
+
+    expect((navigator.clipboard.writeText as jest.Mock)).toHaveBeenCalledWith('https://ingest.measure.sh')
+    expect(mockToastPositive).toHaveBeenCalledWith('Base URL copied to clipboard')
+
+    delete process.env.NEXT_PUBLIC_INGEST_BASE_URL
+  })
+
   it('copy buttons are scoped to Copy SDK Variables section', async () => {
     await renderLoadedPage()
 
