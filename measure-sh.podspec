@@ -22,4 +22,5 @@ Pod::Spec.new do |spec|
   ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "PLCrashReporter", "1.12.0"
+  spec.dependency "KSCrash", "~> 2.5"
 end
