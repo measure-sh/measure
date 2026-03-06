@@ -816,6 +816,24 @@ describe('Apps Page', () => {
     expect(updateAppRetentionFromServer).not.toHaveBeenCalled()
   })
 
+  it('displays ingest URL when NEXT_PUBLIC_INGEST_BASE_URL is set', async () => {
+    process.env.NEXT_PUBLIC_INGEST_BASE_URL = 'https://ingest.measure.sh'
+
+    await renderLoadedPage()
+
+    expect(screen.getByDisplayValue('https://ingest.measure.sh')).toBeInTheDocument()
+
+    delete process.env.NEXT_PUBLIC_INGEST_BASE_URL
+  })
+
+  it('displays api base URL when NEXT_PUBLIC_INGEST_BASE_URL is not set', async () => {
+    delete process.env.NEXT_PUBLIC_INGEST_BASE_URL
+
+    await renderLoadedPage()
+
+    expect(screen.getByDisplayValue('https://api.measure.sh')).toBeInTheDocument()
+  })
+
   it('copies API URL from copy sdk variables section', async () => {
     await renderLoadedPage()
 
