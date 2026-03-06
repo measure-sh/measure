@@ -42,10 +42,6 @@ func main() {
 		if err := server.Server.ChPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse operator connection: %v", err)
 		}
-
-		if err := server.Server.RchPool.Close(); err != nil {
-			log.Fatalf("Unable to close clickhouse reader connection: %v", err)
-		}
 	}()
 
 	// close otel tracer at shutdown
