@@ -21,11 +21,10 @@ import (
 var Server *server
 
 type server struct {
-	PgPool  *pgxpool.Pool
-	ChPool  driver.Conn
-	RchPool driver.Conn
-	Mail    *mail.Client
-	Config  *ServerConfig
+	PgPool *pgxpool.Pool
+	ChPool driver.Conn
+	Mail   *mail.Client
+	Config *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -35,8 +34,7 @@ type PostgresConfig struct {
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	DSN       string
-	ReaderDSN string
+	DSN string
 }
 
 type ServerConfig struct {
@@ -82,11 +80,6 @@ func NewConfig() *ServerConfig {
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
-	}
-
-	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
-	if clickhouseReaderDSN == "" {
-		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
 	smtpHost := os.Getenv("SMTP_HOST")
@@ -135,8 +128,7 @@ func NewConfig() *ServerConfig {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN:       clickhouseDSN,
-			ReaderDSN: clickhouseReaderDSN,
+			DSN: clickhouseDSN,
 		},
 		SiteOrigin:      siteOrigin,
 		SmtpHost:        smtpHost,
@@ -198,19 +190,14 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDSN)
-	if err != nil {
-		log.Printf("unable to parse reader CH connection string %v\n", err)
+	chOpts.Settings = clickhouse.Settings{
+		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
+		"compatibility": "25.10",
 	}
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
 		log.Printf("Unable to create CH connection pool: %v\n", err)
-	}
-
-	rChPool, err := clickhouse.Open(rChOpts)
-	if err != nil {
-		log.Printf("Unable to create reader CH connection pool: %v\n", err)
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
@@ -231,10 +218,9 @@ func Init(config *ServerConfig) {
 	}
 
 	Server = &server{
-		PgPool:  pgPool,
-		ChPool:  chPool,
-		RchPool: rChPool,
-		Config:  config,
-		Mail:    mailClient,
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
+		Mail:   mailClient,
 	}
 }

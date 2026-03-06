@@ -55,7 +55,6 @@ func setupAlertsTest(ctx context.Context, t *testing.T) {
 	// Override connection pools
 	server.Server.PgPool = th.PgPool
 	server.Server.ChPool = th.ChConn
-	server.Server.RchPool = th.ChConn
 }
 
 func cleanupAll(ctx context.Context, t *testing.T) {
