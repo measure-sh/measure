@@ -1,0 +1,61 @@
+//go:build integration
+
+package measure
+
+import (
+	"backend/ingest/server"
+	"backend/testinfra"
+	"context"
+	"fmt"
+	"os"
+	"testing"
+
+	"github.com/google/uuid"
+)
+
+// --------------------------------------------------------------------------
+// TestMain — one-time setup: spin up containers, run migrations, wire server
+// --------------------------------------------------------------------------
+
+var th *testinfra.TestHelper
+
+func TestMain(m *testing.M) {
+	ctx := context.Background()
+
+	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
+	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
+	vk, vkCleanup := testinfra.SetupValkey(ctx)
+
+	th = testinfra.NewTestHelper(pgPool, chConn, vk)
+
+	server.InitForTest(&server.ServerConfig{
+		BillingEnabled: true,
+	}, pgPool, chConn, vk)
+
+	code := m.Run()
+
+	vkCleanup()
+	pgCleanup()
+	chCleanup()
+	os.Exit(code)
+}
+
+// --------------------------------------------------------------------------
+// Thin wrappers delegating to testinfra.TestHelper
+// --------------------------------------------------------------------------
+
+func cleanupAll(ctx context.Context, t *testing.T) {
+	th.CleanupAll(ctx, t)
+}
+
+func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string, allowIngest bool) {
+	th.SeedTeam(ctx, t, teamID.String(), name, allowIngest)
+}
+
+func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retention int) {
+	th.SeedApp(ctx, t, appID.String(), teamID.String(), fmt.Sprintf("app-%s", appID.String()[:8]), retention)
+}
+
+func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, reason string) {
+	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
+}
