@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement MCP server by @anupcowkur in #3254
 - (**backend**): Add ingest service (#3249) by @detj in #3249
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
 - (**backend**): Implement app api key rotation by @anupcowkur in #3188
