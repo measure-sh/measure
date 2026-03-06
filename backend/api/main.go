@@ -32,6 +32,10 @@ func main() {
 		if err := server.Server.ChPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse connection: %v", err)
 		}
+
+		if err := server.Server.RchPool.Close(); err != nil {
+			log.Fatalf("Unable to close clickhouse readonly connection: %v", err)
+		}
 	}()
 
 	// Close geo ip database at shutdown
