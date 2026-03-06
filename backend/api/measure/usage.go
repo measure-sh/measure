@@ -101,7 +101,7 @@ func GetUsage(c *gin.Context) {
 
 	defer metricsStmt.Close()
 
-	metricsRows, err := server.Server.ChPool.Query(ctx, metricsStmt.String(), metricsStmt.Args()...)
+	metricsRows, err := server.Server.RchPool.Query(ctx, metricsStmt.String(), metricsStmt.Args()...)
 	if err != nil {
 		msg := fmt.Sprintf("error occurred while querying usage metrics for team: %s", teamId)
 		fmt.Println(msg, err)

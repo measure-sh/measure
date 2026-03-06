@@ -873,7 +873,7 @@ func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes 
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -947,7 +947,7 @@ func (af AppFilter) getOSVersions(ctx context.Context) (osNames, osVersions []st
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1001,7 +1001,7 @@ func (af AppFilter) getCountries(ctx context.Context) (countries []string, err e
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1053,7 +1053,7 @@ func (af AppFilter) getNetworkProviders(ctx context.Context) (networkProviders [
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1105,7 +1105,7 @@ func (af AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string,
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1157,7 +1157,7 @@ func (af AppFilter) getNetworkGenerations(ctx context.Context) (networkGeneratio
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1212,7 +1212,7 @@ func (af AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []strin
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1264,7 +1264,7 @@ func (af AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufactu
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1316,7 +1316,7 @@ func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, e
 		stmt.Where("anr=true")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1364,7 +1364,7 @@ func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []udattr.UDKeyT
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
