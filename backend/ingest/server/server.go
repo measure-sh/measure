@@ -317,6 +317,15 @@ func Init(config *ServerConfig) {
 	}
 }
 
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn, vk redis.Client) {
+	Server = &server{
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
+		VK:     vk,
+	}
+}
+
 func (sc ServerConfig) InitTracing() func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
