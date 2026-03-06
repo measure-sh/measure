@@ -1,7 +1,6 @@
 package measure
 
 import (
-	"backend/api/server"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -10,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"backend/api/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -143,7 +144,7 @@ func ConnectTeamSlack(c *gin.Context) {
 		Set("created_at", time.Now()).
 		Set("updated_at", time.Now())
 
-	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET 
+	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET
 		slack_team_id = EXCLUDED.slack_team_id,
 		slack_team_name = EXCLUDED.slack_team_name,
 		enterprise_id = EXCLUDED.enterprise_id,

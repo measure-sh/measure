@@ -1,16 +1,18 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 )
 
 // Custom represents custom events.
 type Custom struct {
-	EventType     string             `json:"event_type"`
-	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName    string             `json:"thread_name"`
-	UserTriggered bool               `json:"user_triggered"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	UserTriggered bool                `json:"user_triggered"`
 	*event.Custom
 	Timestamp time.Time `json:"timestamp"`
 }

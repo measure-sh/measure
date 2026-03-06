@@ -14,20 +14,21 @@ import (
 	"strings"
 	"time"
 
-	"backend/api/ambient"
 	"backend/api/config"
 	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/journey"
-	"backend/api/logcomment"
 	"backend/api/metrics"
-	"backend/api/numeric"
-	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/session"
 	"backend/api/span"
 	"backend/api/timeline"
+	"backend/libs/ambient"
+	"backend/libs/logcomment"
+	"backend/libs/numeric"
+	"backend/libs/opsys"
+	"backend/libs/udattr"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
@@ -5180,7 +5181,7 @@ func GetAppFilters(c *gin.Context) {
 	// set user defined attribute keys only if
 	// requested
 	if af.UDAttrKeys {
-		udAttrs["operator_types"] = event.GetUDAttrsOpMap()
+		udAttrs["operator_types"] = udattr.GetUDAttrsOpMap()
 		udAttrs["key_types"] = fl.UDKeyTypes
 	}
 
@@ -7137,7 +7138,10 @@ func GetSession(c *gin.Context) {
 
 	lc := logcomment.New(2).MustPut(logcomment.Root, logcomment.Sessions)
 	settings := clickhouse.Settings{
-		"log_comment": lc.String(),
+		"log_comment":     lc.String(),
+		"use_query_cache": 1,
+		// cache for 10 mins
+		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail")

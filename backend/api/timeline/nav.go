@@ -1,17 +1,19 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 )
 
 // Navigation represents navigation events suitable
 // for session timeline.
 type Navigation struct {
-	EventType     string             `json:"event_type"`
-	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName    string             `json:"thread_name"`
-	UserTriggered bool               `json:"user_triggered"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	UserTriggered bool                `json:"user_triggered"`
 	*event.Navigation
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -19,10 +21,10 @@ type Navigation struct {
 // ScreenView represents screen view events suitable
 // for session timeline.
 type ScreenView struct {
-	EventType     string             `json:"event_type"`
-	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName    string             `json:"thread_name"`
-	UserTriggered bool               `json:"user_triggered"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	UserTriggered bool                `json:"user_triggered"`
 	*event.ScreenView
 	Timestamp time.Time `json:"timestamp"`
 }

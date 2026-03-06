@@ -1,11 +1,12 @@
 package filter
 
 import (
-	"backend/api/event"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -36,8 +37,8 @@ func TestParseRawUDExpression(t *testing.T) {
 	// for item 0
 	{
 		expectedKeyName := "paid_user"
-		expectedKeyType := event.AttrBool
-		expectedOp := event.OpEq
+		expectedKeyType := udattr.AttrBool
+		expectedOp := udattr.OpEq
 		expectedValue := "true"
 		gotKeyName := afOne.UDExpression.And[0].Cmp.Key
 		gotKeyType := afOne.UDExpression.And[0].Cmp.Type
@@ -65,8 +66,8 @@ func TestParseRawUDExpression(t *testing.T) {
 	// for item 1
 	{
 		expectedKeyName := "credit_balance"
-		expectedKeyType := event.AttrInt64
-		expectedOp := event.OpGte
+		expectedKeyType := udattr.AttrInt64
+		expectedOp := udattr.OpGte
 		expectedValue := "1000"
 		gotKeyName := afOne.UDExpression.And[1].Cmp.Key
 		gotKeyType := afOne.UDExpression.And[1].Cmp.Type

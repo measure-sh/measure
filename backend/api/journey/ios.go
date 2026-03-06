@@ -1,14 +1,17 @@
 package journey
 
 import (
-	"backend/api/event"
-	"backend/api/filter"
-	"backend/api/group"
-	"backend/api/set"
 	"context"
 	"fmt"
 	"slices"
 	"strings"
+
+	"backend/api/event"
+	"backend/api/filter"
+	"backend/api/group"
+	"backend/api/server"
+
+	"backend/libs/set"
 
 	"github.com/google/uuid"
 	"github.com/yourbasic/graph"
@@ -295,7 +298,7 @@ func (j *JourneyiOS) SetExceptionGroups(ctx context.Context, af *filter.AppFilte
 		fingerprints = append(fingerprints, k)
 	}
 
-	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, af, fingerprints)
+	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, server.Server.RchPool, af, fingerprints)
 	if err != nil {
 		return
 	}

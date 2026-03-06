@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"backend/api/chrono"
-	"backend/api/server"
 	"backend/email"
+
+	"backend/api/server"
+	"backend/libs/chrono"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

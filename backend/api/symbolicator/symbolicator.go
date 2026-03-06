@@ -1,11 +1,6 @@
 package symbolicator
 
 import (
-	"backend/api/cache"
-	"backend/api/event"
-	"backend/api/opsys"
-	"backend/api/span"
-	"backend/api/symbol"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +8,12 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"backend/api/event"
+	"backend/api/span"
+	"backend/libs/cache"
+	"backend/libs/opsys"
+	"backend/libs/symbol"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"

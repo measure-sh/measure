@@ -1,19 +1,19 @@
 package group
 
 import (
-	"backend/api/ambient"
-	"backend/api/chrono"
-	"backend/api/event"
-	"backend/api/filter"
-	"backend/api/server"
 	"context"
-	"fmt"
 	"math"
 	"slices"
 	"sort"
 	"time"
 
+	"backend/api/event"
+	"backend/api/filter"
+	"backend/libs/ambient"
+	"backend/libs/chrono"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
@@ -107,7 +107,7 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 }
 
 // Insert inserts a new ExceptionGroup into the database.
-func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
+func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err error) {
 	teamId, err := ambient.TeamId(ctx)
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 	defer stmt.Close()
 
 	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
-	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+	return conn.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // GetId provides the ANR's
@@ -186,7 +186,7 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 }
 
 // Insert inserts a new ANRGroup into the database.
-func (a *ANRGroup) Insert(ctx context.Context) (err error) {
+func (a *ANRGroup) Insert(ctx context.Context, conn driver.Conn) (err error) {
 	teamId, err := ambient.TeamId(ctx)
 	if err != nil {
 		return err
@@ -241,7 +241,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 	defer stmt.Close()
 
 	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
-	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+	return conn.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from
@@ -292,7 +292,7 @@ func SortANRGroups(groups []ANRGroup) {
 
 // GetExceptionGroupsFromFingerprints fetches exception groups
 // matched by app filter(s) & exception fingerprint.
-func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, input []string) (exceptionGroups []ExceptionGroup, err error) {
+func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *filter.AppFilter, input []string) (exceptionGroups []ExceptionGroup, err error) {
 	fingerprints := unique(input)
 
 	if len(fingerprints) == 0 {
@@ -352,7 +352,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilte
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := conn.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -382,7 +382,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, af *filter.AppFilte
 
 // GetANRGroupsFromFingerprints fetches ANR groups
 // matched by app filter(s) & ANR fingerprint.
-func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, input []string) (anrGroups []ANRGroup, err error) {
+func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *filter.AppFilter, input []string) (anrGroups []ANRGroup, err error) {
 	fingerprints := unique(input)
 
 	if len(fingerprints) == 0 {
@@ -441,7 +441,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, inp
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := conn.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -467,200 +467,6 @@ func GetANRGroupsFromFingerprints(ctx context.Context, af *filter.AppFilter, inp
 	err = rows.Err()
 
 	return
-}
-
-// GetExceptionGroupsFromExceptionIds gets exception groups
-// matched by app filter(s) and exception event ids.
-func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
-	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
-		Select(`id, exception.fingerprint`).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("id in ?", eventIds)
-	defer eventDataStmt.Close()
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-
-	if err != nil {
-		return nil, err
-	}
-	if eventDataRows == nil {
-		return nil, fmt.Errorf("rows is nil after query")
-	}
-	defer eventDataRows.Close()
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	fingerprints := make([]string, 0)
-	fingerprintSet := make(map[string]struct{})
-	eventIdToFingerprint := make(map[uuid.UUID]string)
-
-	for eventDataRows.Next() {
-		var eventID uuid.UUID
-		var fingerprint string
-		if err := eventDataRows.Scan(&eventID, &fingerprint); err != nil {
-			return nil, err
-		}
-		eventIdToFingerprint[eventID] = fingerprint
-		if _, exists := fingerprintSet[fingerprint]; !exists {
-			fingerprints = append(fingerprints, fingerprint)
-			fingerprintSet[fingerprint] = struct{}{}
-		}
-	}
-
-	// Query groups that match the obtained fingerprints
-	stmt := sqlf.
-		From(`unhandled_exception_groups`).
-		Select(`id`).
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Where(`id IN ?`, fingerprints)
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-
-	if err != nil {
-		return nil, err
-	}
-	if rows == nil {
-		return nil, fmt.Errorf("rows is nil after query")
-	}
-	defer rows.Close()
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	exceptionGroups = make([]ExceptionGroup, 0)
-	for rows.Next() {
-		var group ExceptionGroup
-		err := rows.Scan(
-			&group.ID,
-			&group.Type,
-			&group.Message,
-			&group.MethodName,
-			&group.FileName,
-			&group.LineNumber,
-		)
-		if err != nil {
-			return nil, err
-		}
-		exceptionGroups = append(exceptionGroups, group)
-	}
-
-	// Add event ids to obtained exception groups
-	fingerprintToGroup := make(map[string]*ExceptionGroup)
-	for i := range exceptionGroups {
-		fingerprintToGroup[exceptionGroups[i].ID] = &exceptionGroups[i]
-	}
-
-	for eventID, fingerprint := range eventIdToFingerprint {
-		if group, ok := fingerprintToGroup[fingerprint]; ok {
-			group.EventIDs = append(group.EventIDs, eventID)
-		}
-	}
-
-	return exceptionGroups, nil
-}
-
-// GetANRGroupsFromANRIds gets ANR groups
-// matched by app filter(s) and ANR event ids.
-func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
-	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`events`).
-		Select(`id, anr.fingerprint`).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where(`id in ?`, eventIds)
-	defer eventDataStmt.Close()
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-
-	if err != nil {
-		return nil, err
-	}
-	if eventDataRows == nil {
-		return nil, fmt.Errorf("rows is nil after query")
-	}
-	defer eventDataRows.Close()
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	fingerprints := make([]string, 0)
-	fingerprintSet := make(map[string]struct{})
-	eventIdToFingerprint := make(map[uuid.UUID]string)
-
-	for eventDataRows.Next() {
-		var eventID uuid.UUID
-		var fingerprint string
-		if err := eventDataRows.Scan(&eventID, &fingerprint); err != nil {
-			return nil, err
-		}
-		eventIdToFingerprint[eventID] = fingerprint
-		if _, exists := fingerprintSet[fingerprint]; !exists {
-			fingerprints = append(fingerprints, fingerprint)
-			fingerprintSet[fingerprint] = struct{}{}
-		}
-	}
-
-	// Query groups that match the obtained fingerprints
-	stmt := sqlf.
-		From(`anr_groups`).
-		Select(`id`).
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Where(`id IN ?`, fingerprints)
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-
-	if err != nil {
-		return nil, err
-	}
-	if rows == nil {
-		return nil, fmt.Errorf("rows is nil after query")
-	}
-	defer rows.Close()
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	anrGroups = make([]ANRGroup, 0)
-	for rows.Next() {
-		var group ANRGroup
-		err := rows.Scan(
-			&group.ID,
-			&group.Type,
-			&group.Message,
-			&group.MethodName,
-			&group.FileName,
-			&group.LineNumber,
-		)
-		if err != nil {
-			return nil, err
-		}
-		anrGroups = append(anrGroups, group)
-	}
-
-	// Add event ids to obtained ANR groups
-	fingerprintToGroup := make(map[string]*ANRGroup)
-	for i := range anrGroups {
-		fingerprintToGroup[anrGroups[i].ID] = &anrGroups[i]
-	}
-
-	for eventID, fingerprint := range eventIdToFingerprint {
-		if group, ok := fingerprintToGroup[fingerprint]; ok {
-			group.EventIDs = append(group.EventIDs, eventID)
-		}
-	}
-
-	return anrGroups, nil
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.

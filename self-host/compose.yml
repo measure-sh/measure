@@ -43,6 +43,7 @@ services:
       - POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - NEXT_PUBLIC_INGEST_BASE_URL=${NEXT_PUBLIC_INGEST_BASE_URL}
       - NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD}
       - NEXT_PUBLIC_BILLING_ENABLED=${NEXT_PUBLIC_BILLING_ENABLED}
       - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
@@ -65,6 +66,7 @@ services:
       dockerfile: dockerfile
       context: ../backend/api
       additional_contexts:
+        libs: ../backend/libs
         email: ../backend/email
         billing: ../backend/billing
       args:
@@ -145,6 +147,79 @@ services:
       symboloader:
         condition: service_healthy
       metering:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ingest:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/ingest
+      additional_contexts:
+        libs: ../backend/libs
+        api: ../backend/api
+        email: ../backend/email
+        billing: ../backend/billing
+      args:
+        TARGETTYPE: debug
+    ports:
+      - "8085:8085"
+    environment:
+      - BILLING_ENABLED=${BILLING_ENABLED}
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
+      - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
+      - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
+      - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - PORT=8085
+    develop:
+      watch:
+        - path: ../backend/ingest
+          action: rebuild
+        - path: ../backend/api
+          action: rebuild
+        - path: ../backend/billing
+          action: rebuild
+        - path: ../backend/email
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
+        condition: service_completed_successfully
+        required: false
+      migrator:
+        condition: service_completed_successfully
+        required: false
+      symbolicator:
+        condition: service_healthy
+      symboloader:
         condition: service_healthy
       redis:
         condition: service_healthy

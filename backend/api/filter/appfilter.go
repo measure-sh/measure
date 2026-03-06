@@ -1,20 +1,21 @@
 package filter
 
 import (
-	"backend/api/ambient"
-	"backend/api/config"
-	"backend/api/event"
-	"backend/api/logcomment"
-	"backend/api/opsys"
-	"backend/api/pairs"
-	"backend/api/server"
-	"backend/api/text"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"backend/api/config"
+	"backend/api/pairs"
+	"backend/api/server"
+	"backend/libs/ambient"
+	"backend/libs/logcomment"
+	"backend/libs/opsys"
+	"backend/libs/text"
+	"backend/libs/udattr"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
@@ -36,15 +37,6 @@ const MaxPaginationLimit = 1000
 // DefaultPaginationLimit is the number of items used
 // as default for paginating items.
 const DefaultPaginationLimit = 10
-
-// Operator represents a comparison operator
-// like `eq` for `equal` or `gte` for `greater
-// than or equal` used for filtering various
-// entities.
-type Operator struct {
-	Code string
-	Type event.AttrType
-}
 
 // AppFilter represents various app filtering
 // operations and its parameters to query app's
@@ -148,7 +140,7 @@ type AppFilter struct {
 
 	// UDExpression contains the parsed user defined
 	// attribute expression.
-	UDExpression *event.UDExpression
+	UDExpression *udattr.UDExpression
 
 	// Span indicates the filtering should only
 	// consider spans.
@@ -218,19 +210,19 @@ var validPlotTimeGroups = map[string]struct{}{
 // used in filtering operations of app's issue journey map,
 // metrics, exceptions and ANRs.
 type FilterList struct {
-	Versions            []string          `json:"versions"`
-	VersionCodes        []string          `json:"version_codes"`
-	OsNames             []string          `json:"os_names"`
-	OsVersions          []string          `json:"os_versions"`
-	Countries           []string          `json:"countries"`
-	NetworkProviders    []string          `json:"network_providers"`
-	NetworkTypes        []string          `json:"network_types"`
-	NetworkGenerations  []string          `json:"network_generations"`
-	DeviceLocales       []string          `json:"locales"`
-	DeviceManufacturers []string          `json:"device_manufacturers"`
-	DeviceNames         []string          `json:"device_names"`
-	UDKeyTypes          []event.UDKeyType `json:"ud_keytypes"`
-	UDExpressionRaw     string            `json:"ud_expression"`
+	Versions            []string           `json:"versions"`
+	VersionCodes        []string           `json:"version_codes"`
+	OsNames             []string           `json:"os_names"`
+	OsVersions          []string           `json:"os_versions"`
+	Countries           []string           `json:"countries"`
+	NetworkProviders    []string           `json:"network_providers"`
+	NetworkTypes        []string           `json:"network_types"`
+	NetworkGenerations  []string           `json:"network_generations"`
+	DeviceLocales       []string           `json:"locales"`
+	DeviceManufacturers []string           `json:"device_manufacturers"`
+	DeviceNames         []string           `json:"device_names"`
+	UDKeyTypes          []udattr.UDKeyType `json:"ud_keytypes"`
+	UDExpressionRaw     string             `json:"ud_expression"`
 }
 
 // ExtendLimit extends the limit by one
@@ -375,7 +367,7 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 // parseUDExpression parses the raw user defined
 // attribute expression value.
 func (af *AppFilter) parseUDExpression() (err error) {
-	af.UDExpression = &event.UDExpression{}
+	af.UDExpression = &udattr.UDExpression{}
 	return json.Unmarshal([]byte(af.UDExpressionRaw), af.UDExpression)
 }
 
@@ -1344,7 +1336,7 @@ func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, e
 
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types for events or spans.
-func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
+func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []udattr.UDKeyType, err error) {
 	table := "user_def_attrs final"
 
 	if af.Span {
@@ -1378,7 +1370,7 @@ func (af AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyTy
 	}
 
 	for rows.Next() {
-		var keytype event.UDKeyType
+		var keytype udattr.UDKeyType
 		if err = rows.Scan(&keytype.Key, &keytype.Type); err != nil {
 			return
 		}

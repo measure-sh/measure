@@ -1,8 +1,10 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 )
 
 // MemoryUsage represents memory usage
@@ -22,9 +24,9 @@ type MemoryUsageAbs struct {
 // TrimMemory represents trim memory events
 // suitable for session timeline.
 type TrimMemory struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.TrimMemory
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -44,9 +46,9 @@ func (tm TrimMemory) GetTimestamp() time.Time {
 // LowMemory represents low memory events
 // suitable for session timeline.
 type LowMemory struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.LowMemory
 	Timestamp time.Time `json:"timestamp"`
 }

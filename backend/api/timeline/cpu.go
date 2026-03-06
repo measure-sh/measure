@@ -1,8 +1,9 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
 )
 
 // CPUUsage represents cpu usage

@@ -1,10 +1,11 @@
 package event
 
 import (
-	"backend/api/opsys"
 	"fmt"
 	"slices"
 	"time"
+
+	"backend/libs/opsys"
 
 	"github.com/google/uuid"
 )

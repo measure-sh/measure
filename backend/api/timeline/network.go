@@ -1,16 +1,18 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 )
 
 // NetworkChange represents network change events
 // suitable for session timeline.
 type NetworkChange struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string             `json:"thread_name"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string              `json:"thread_name"`
 	*event.NetworkChange
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -30,10 +32,10 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 // Http represents http events
 // suitable for session timeline.
 type Http struct {
-	EventType     string             `json:"event_type"`
-	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
-	ThreadName    string             `json:"thread_name"`
-	UserTriggered bool               `json:"user_triggered"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	UserTriggered bool                `json:"user_triggered"`
 	*event.Http
 	Duration  time.Duration `json:"duration"`
 	Timestamp time.Time     `json:"timestamp"`

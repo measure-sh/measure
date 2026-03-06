@@ -408,7 +408,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center mt-2">
               <p className="text-sm">API URL</p>
               <div className="px-3" />
-              <Input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96" />
+              <Input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_INGEST_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96" />
               <Button
                 variant="outline"
                 className="mx-4 my-3"
@@ -606,4 +606,4 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       )}
     </div>
   )
-} 
+}

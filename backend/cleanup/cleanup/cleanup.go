@@ -387,7 +387,7 @@ func deleteJourneys(ctx context.Context, retentions []AppRetention) {
 	errCount := 0
 	for _, retention := range retentions {
 		stmt := sqlf.
-			DeleteFrom("journeys").
+			DeleteFrom("journey").
 			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)

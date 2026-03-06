@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"backend/api/concur"
-	"backend/api/inet"
 	"backend/api/measure"
 	"backend/api/server"
+	"backend/libs/concur"
+	"backend/libs/inet"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,6 +25,7 @@ func main() {
 	server.Init(config)
 
 	defer server.Server.PgPool.Close()
+	defer server.Server.VK.Close()
 
 	// Close ClickHouse connection pool at shutdown
 	defer func() {

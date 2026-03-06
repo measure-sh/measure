@@ -1,11 +1,12 @@
 package authsession
 
 import (
-	"backend/api/server"
 	"context"
 	"encoding/json"
 	"errors"
 	"time"
+
+	"backend/api/server"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

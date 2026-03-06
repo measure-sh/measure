@@ -1,17 +1,6 @@
 package measure
 
 import (
-	"backend/api/ambient"
-	"backend/api/chrono"
-	"backend/api/concur"
-	"backend/api/event"
-	"backend/api/group"
-	"backend/api/inet"
-	"backend/api/objstore"
-	"backend/api/opsys"
-	"backend/api/server"
-	"backend/api/span"
-	"backend/api/symbolicator"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -19,11 +8,25 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"backend/api/event"
+	"backend/api/group"
+	"backend/api/server"
+	"backend/api/span"
+	"backend/api/symbolicator"
+	"backend/libs/ambient"
+	"backend/libs/chrono"
+	"backend/libs/concur"
+	"backend/libs/inet"
+	"backend/libs/ingest"
+	"backend/libs/objstore"
+	"backend/libs/opsys"
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
@@ -159,7 +162,12 @@ func (e *eventreq) uploadAttachments() error {
 		// implement a better solution later using
 		// EndpointResolverV2 with custom resolvers
 		// for non-AWS clouds like GCS
-		attachment.location = event.BuildAttachmentLocation(key)
+		attachment.location = event.BuildAttachmentLocation(key, event.LocationConfig{
+			IsCloud:                 server.Server.Config.IsCloud(),
+			AWSEndpoint:             server.Server.Config.AWSEndpoint,
+			AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
+			AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
+		})
 
 		eventAttachment := event.Attachment{
 			ID:   id,
@@ -184,7 +192,14 @@ func (e *eventreq) uploadAttachments() error {
 			// as you can.
 			bgCtx := context.Background()
 
-			if err := eventAttachment.Upload(bgCtx); err != nil {
+			if err := eventAttachment.Upload(bgCtx, event.UploadConfig{
+				IsCloud:                    server.Server.Config.IsCloud(),
+				AWSEndpoint:                server.Server.Config.AWSEndpoint,
+				AttachmentsBucket:          server.Server.Config.AttachmentsBucket,
+				AttachmentsBucketRegion:    server.Server.Config.AttachmentsBucketRegion,
+				AttachmentsAccessKey:       server.Server.Config.AttachmentsAccessKey,
+				AttachmentsSecretAccessKey: server.Server.Config.AttachmentsSecretAccessKey,
+			}); err != nil {
 				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
 				return
 			}
@@ -607,7 +622,12 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 
 			// Generate upload key and location
 			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
+				IsCloud:                 server.Server.Config.IsCloud(),
+				AWSEndpoint:             server.Server.Config.AWSEndpoint,
+				AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
+				AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
+			})
 			expiry := time.Now().Add(ExpiryDuration)
 
 			metadata := []string{
@@ -656,7 +676,12 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 
 			// Generate upload key and location (same format as multipart flow)
 			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
+				IsCloud:                 config.IsCloud(),
+				AWSEndpoint:             config.AWSEndpoint,
+				AttachmentsBucket:       config.AttachmentsBucket,
+				AttachmentsBucketRegion: config.AttachmentsBucketRegion,
+			})
 
 			signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
 				Bucket: aws.String(config.AttachmentsBucket),
@@ -834,7 +859,7 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 			events[i].Timestamp,
 		)
 
-		if err = exceptionGroup.Insert(ctx); err != nil {
+		if err = exceptionGroup.Insert(ctx, server.Server.ChPool); err != nil {
 			return
 		}
 	}
@@ -866,7 +891,7 @@ func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 			events[i].Timestamp,
 		)
 
-		if err := anrGroup.Insert(ctx); err != nil {
+		if err := anrGroup.Insert(ctx, server.Server.ChPool); err != nil {
 			return err
 		}
 	}
@@ -888,7 +913,7 @@ func (e eventreq) validate() error {
 	}
 
 	for i := range e.events {
-		if err := e.events[i].Validate(); err != nil {
+		if err := e.events[i].Validate(ingest.WithEnforceTimeWindow(server.Server.Config.IngestEnforceTimeWindow)); err != nil {
 			return err
 		}
 		if err := e.events[i].Attribute.Validate(); err != nil {
@@ -917,7 +942,7 @@ func (e eventreq) validate() error {
 	}
 
 	for i := range e.spans {
-		if err := e.spans[i].Validate(); err != nil {
+		if err := e.spans[i].Validate(ingest.WithEnforceTimeWindow(server.Server.Config.IngestEnforceTimeWindow)); err != nil {
 			return err
 		}
 
@@ -1588,6 +1613,29 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 }
 
 func PutEvents(c *gin.Context) {
+	// Proxy to ingest service
+	//
+	// Proxy to ingest service for non-Cloud
+	// environments so that SDKS using API endpoint
+	// continue to work. This is temporary & will be
+	// eventually removed.
+	//
+	// SDK consumers are encouraged to migrate to the
+	// ingest endpoint.
+	if !server.Server.Config.IsCloud() {
+		ingestOrigin := "http://ingest:8085"
+		target, err := url.Parse(ingestOrigin)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to parse ingest origin",
+			})
+			return
+		}
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.ServeHTTP(c.Writer, c.Request)
+		return
+	}
+
 	ingestReqTracer := otel.Tracer("ingest-req-tracer")
 	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest-request")
 	defer ingestReqSpan.End()
@@ -1705,6 +1753,16 @@ func PutEvents(c *gin.Context) {
 	// return early if we can recall this batch
 	if eventReq.seen {
 		if eventReq.json {
+			if eventReq.hasAttachmentUploadInfos() {
+				if err := eventReq.generateAttachmentUploadURLs(ingestReqCtx); err != nil {
+					msg := `failed to generate attachment upload URLs for seen request`
+					fmt.Println(msg, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": msg,
+					})
+					return
+				}
+			}
 			// for JSON requests, we return the attachment
 			// upload info again, so that the client can
 			// proceed to upload attachments if any.

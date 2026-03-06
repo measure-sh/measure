@@ -1,9 +1,11 @@
 package timeline
 
 import (
-	"backend/api/event"
 	"context"
 	"time"
+
+	"backend/api/event"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -11,22 +13,22 @@ import (
 // Exception represents exception events suitable
 // for session timeline.
 type Exception struct {
-	EventType     string             `json:"event_type"`
-	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
-	UserTriggered bool               `json:"user_triggered"`
-	GroupId       string             `json:"group_id"`
-	Type          string             `json:"type"`
-	Message       string             `json:"message"`
-	MethodName    string             `json:"method_name"`
-	FileName      string             `json:"file_name"`
-	LineNumber    int32              `json:"line_number"`
-	ThreadName    string             `json:"thread_name"`
-	Handled       bool               `json:"handled"`
-	Stacktrace    string             `json:"stacktrace"`
-	Foreground    bool               `json:"foreground"`
-	Error         *event.Error       `json:"error"`
-	Timestamp     time.Time          `json:"timestamp"`
-	Attachments   []event.Attachment `json:"attachments"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	UserTriggered bool                `json:"user_triggered"`
+	GroupId       string              `json:"group_id"`
+	Type          string              `json:"type"`
+	Message       string              `json:"message"`
+	MethodName    string              `json:"method_name"`
+	FileName      string              `json:"file_name"`
+	LineNumber    int32               `json:"line_number"`
+	ThreadName    string              `json:"thread_name"`
+	Handled       bool                `json:"handled"`
+	Stacktrace    string              `json:"stacktrace"`
+	Foreground    bool                `json:"foreground"`
+	Error         *event.Error        `json:"error"`
+	Timestamp     time.Time           `json:"timestamp"`
+	Attachments   []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -44,19 +46,19 @@ func (e Exception) GetTimestamp() time.Time {
 // ANR represents anr events suitable
 // for session timeline.
 type ANR struct {
-	EventType   string             `json:"event_type"`
-	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	GroupId     string             `json:"group_id"`
-	Type        string             `json:"type"`
-	Message     string             `json:"message"`
-	MethodName  string             `json:"method_name"`
-	FileName    string             `json:"file_name"`
-	LineNumber  int32              `json:"line_number"`
-	ThreadName  string             `json:"thread_name"`
-	Stacktrace  string             `json:"stacktrace"`
-	Foreground  bool               `json:"foreground"`
-	Timestamp   time.Time          `json:"timestamp"`
-	Attachments []event.Attachment `json:"attachments"`
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	GroupId     string              `json:"group_id"`
+	Type        string              `json:"type"`
+	Message     string              `json:"message"`
+	MethodName  string              `json:"method_name"`
+	FileName    string              `json:"file_name"`
+	LineNumber  int32               `json:"line_number"`
+	ThreadName  string              `json:"thread_name"`
+	Stacktrace  string              `json:"stacktrace"`
+	Foreground  bool                `json:"foreground"`
+	Timestamp   time.Time           `json:"timestamp"`
+	Attachments []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread

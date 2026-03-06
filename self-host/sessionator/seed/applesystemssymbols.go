@@ -1,8 +1,8 @@
 package seed
 
 import (
-	"backend/api/chrono"
-	"backend/api/symbol"
+	"backend/libs/chrono"
+	"backend/libs/symbol"
 	"bytes"
 	"context"
 	"encoding/json"

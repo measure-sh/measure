@@ -1,12 +1,13 @@
 package measure
 
 import (
-	"backend/api/server"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"slices"
+
+	"backend/api/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -312,16 +313,16 @@ func GetAuthzRoles(c *gin.Context) {
 	canChangeAppThresholdPrefs := slices.Contains(scopeMap[userRole], *ScopeAppAll)
 
 	c.JSON(http.StatusOK, gin.H{
-		"can_invite_roles":                 inviteeRoles,
-		"can_change_billing":               canChangeBilling,
-		"can_create_app":                   canCreateApp,
-		"can_rename_app":                   canRenameApp,
-		"can_change_retention":             canChangeRetention,
-		"can_rotate_api_key":               canRotateApiKey,
-		"can_write_sdk_config":             canWriteSdkConfig,
-		"can_rename_team":                  canRenameTeam,
-		"can_manage_slack":                 canManageSlack,
-		"can_change_app_threshold_prefs":   canChangeAppThresholdPrefs,
-		"members":                          membersWithAuthz,
+		"can_invite_roles":               inviteeRoles,
+		"can_change_billing":             canChangeBilling,
+		"can_create_app":                 canCreateApp,
+		"can_rename_app":                 canRenameApp,
+		"can_change_retention":           canChangeRetention,
+		"can_rotate_api_key":             canRotateApiKey,
+		"can_write_sdk_config":           canWriteSdkConfig,
+		"can_rename_team":                canRenameTeam,
+		"can_manage_slack":               canManageSlack,
+		"can_change_app_threshold_prefs": canChangeAppThresholdPrefs,
+		"members":                        membersWithAuthz,
 	})
 }
