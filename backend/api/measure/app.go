@@ -259,7 +259,7 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -403,7 +403,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -520,7 +520,7 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter
 	stmt.GroupBy("app_version, datetime_bucket").
 		OrderBy("app_version, datetime_bucket")
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -609,7 +609,7 @@ func (a App) GetExceptionAttributesDistribution(ctx context.Context, fingerprint
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -725,7 +725,7 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -854,7 +854,7 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, fingerprint string, a
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -945,7 +945,7 @@ func (a App) GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (iss
 	stmt.GroupBy("app_version, datetime_bucket").
 		OrderBy("app_version, datetime_bucket")
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1033,7 +1033,7 @@ func (a App) GetANRAttributesDistribution(ctx context.Context, fingerprint strin
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1198,7 +1198,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1312,7 +1312,7 @@ func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filt
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -1512,7 +1512,7 @@ func (a App) GetIssueFreeMetrics(
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
 	}
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
+	if err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
 		return
 	}
 
@@ -1643,7 +1643,7 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 
 	defer stmt.Close()
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
+	if err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
 		return
 	}
 
@@ -1684,7 +1684,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 
 	defer stmt.Close()
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+	if err = server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
 		&launch.ColdLaunchP95,
 		&launch.WarmLaunchP95,
 		&launch.HotLaunchP95,
@@ -2346,7 +2346,7 @@ func (a App) FetchRootSpanNames(ctx context.Context) (traceNames []string, err e
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -2390,7 +2390,7 @@ func (a App) FetchTracesForSessionId(ctx context.Context, sessionID uuid.UUID) (
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -2536,7 +2536,7 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, spanName string,
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -2688,7 +2688,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName s
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -2744,7 +2744,7 @@ func (a App) GetTrace(ctx context.Context, traceId string) (trace span.TraceDisp
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -2973,7 +2973,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) 
 		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -3165,7 +3165,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -3218,7 +3218,7 @@ func (a App) GetBugReportById(ctx context.Context, bugReportId string) (bugRepor
 
 	defer stmt.Close()
 
-	row := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	row := server.Server.RchPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
 
 	if row.Err() != nil {
 		err = row.Err()
@@ -3450,7 +3450,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
@@ -3961,7 +3961,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	stmt.Where("session_id = toUUID(?)", sessionId)
 	stmt.OrderBy("timestamp")
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 
 	if err != nil {
 		return nil, err

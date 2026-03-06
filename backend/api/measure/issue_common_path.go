@@ -234,7 +234,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 	defer countStmt.Close()
 
 	var sessionsAnalyzed uint64
-	if err = server.Server.ChPool.QueryRow(ctx, countStmt.String(), countStmt.Args()...).Scan(&sessionsAnalyzed); err != nil {
+	if err = server.Server.RchPool.QueryRow(ctx, countStmt.String(), countStmt.Args()...).Scan(&sessionsAnalyzed); err != nil {
 		return nil, fmt.Errorf("failed to get session count: %v", err)
 	}
 
@@ -419,7 +419,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "common_path")
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute reproduction steps query: %v", err)
 	}
