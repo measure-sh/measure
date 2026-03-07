@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Reverse proxy urls using recommended api (#3274) by @detj in #3274
 - (**backend**): Close readonly connection pool in api service (#3271) by @detj in #3271
 - (**backend**): Use clickhouse read pool in api service (#3270) by @detj in #3270
 - (**backend**): Add ingest allow check tests to ingest service by @anupcowkur in #3267
