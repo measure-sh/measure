@@ -809,6 +809,58 @@ describe('Usage Page', () => {
         expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('downgraded to Free'))
     })
 
+    it('shows pro plan feature list when on free plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'free',
+                    max_retention: 30,
+                    max_units: 1000000,
+                    stripe_customer_id: null,
+                    stripe_subscription_id: null,
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText(/units per month included/)).toBeInTheDocument()
+        expect(screen.getByText(/Retention up to/)).toBeInTheDocument()
+        expect(screen.getByText(/Extra units & retention charged at/)).toBeInTheDocument()
+    })
+
+    it('hides pro plan feature list when on pro plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText(/units per month included/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Retention up to/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Extra units & retention charged at/)).not.toBeInTheDocument()
+    })
+
     it('shows subscription info on pro plan when user can change billing', async () => {
         const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
