@@ -78,7 +78,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <span className="text-sm">
+                  <span className="text-sm text-primary-foreground">
                     {getInitials(session.user.name)}
                   </span>
                 )}
