@@ -545,8 +545,9 @@ function remove_minio_mc_image() {
 # ------------------------------------------------------------------------------
 run_backfills() {
   if [[ "$FRESH_INSTALL" == "true" ]]; then
-    source ./migrations/v0.9.x-data-backfills.sh
-    source ./migrations/v0.10.x-read-optim.sh
+    # source ./migrations/v0.10.x-data-backfills-1.sh
+    # source ./migrations/v0.10.x-read-optim.sh
+    echo "not running anything for fresh install"
   fi
 }
 
