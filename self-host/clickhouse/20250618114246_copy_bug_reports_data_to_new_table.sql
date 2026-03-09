@@ -1,7 +1,8 @@
 -- migrate:up
 
-insert into bug_reports_new 
-select 
+insert into bug_reports_new
+select
+    team_id,
     event_id,
     app_id,
     session_id,
