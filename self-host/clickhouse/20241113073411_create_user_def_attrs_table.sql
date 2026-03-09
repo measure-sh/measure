@@ -1,32 +1,32 @@
 -- migrate:up
 create table if not exists user_def_attrs
 (
-    `app_id`       UUID not null comment 'associated app id' codec(LZ4),
-    `event_id`     UUID not null comment 'id of the event' codec(LZ4),
-    `session_id`   UUID not null comment 'id of the session' codec(LZ4),
-    `end_of_month` DateTime not null comment 'last day of the month' codec(DoubleDelta, ZSTD(3)),
-    `app_version`  Tuple(LowCardinality(String), LowCardinality(String)) not null comment 'composite app version' codec(ZSTD(3)),
-    `os_version`   Tuple(LowCardinality(String), LowCardinality(String)) comment 'composite os version' codec (ZSTD(3)),
-    `exception`    Bool comment 'true if source is exception event' codec (ZSTD(3)),
-    `anr`          Bool comment 'true if source is anr event' codec (ZSTD(3)),
-    `key`          LowCardinality(String) comment 'key of the user defined attribute' codec (ZSTD(3)),
-    `type`         Enum('string' = 1, 'int64', 'float64', 'bool') comment 'type of the user defined attribute' codec (ZSTD(3)),
-    `value`        String comment 'value of the user defined attribute' codec (ZSTD(3)),
-    index end_of_month_minmax_idx end_of_month type minmax granularity 2,
-    index exception_bloom_idx exception type bloom_filter granularity 2,
-    index anr_bloom_idx anr type bloom_filter granularity 2,
+    `team_id`     LowCardinality(UUID) comment 'associated team id' CODEC(LZ4),
+    `app_id`      LowCardinality(UUID) comment 'associated app id' CODEC(LZ4),
+    `event_id`    UUID comment 'id of the event' CODEC(LZ4),
+    `session_id`  UUID comment 'id of the session' CODEC(LZ4),
+    `app_version` Tuple(LowCardinality(String), LowCardinality(String)) comment 'composite app version' CODEC(ZSTD(3)),
+    `os_version`  Tuple(LowCardinality(String), LowCardinality(String)) comment 'composite os version' CODEC(ZSTD(3)),
+    `bug_report`  Bool comment 'true if source is bug_report event' CODEC(ZSTD(3)),
+    `key`         LowCardinality(String) comment 'key of the user defined attribute' CODEC(ZSTD(3)),
+    `type`        Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4) comment 'type of the user defined attribute' CODEC(ZSTD(3)),
+    `value`       String comment 'value of the user defined attribute' CODEC(ZSTD(3)),
+    `timestamp`   DateTime64(3, 'UTC') comment 'event timestamp' CODEC(DoubleDelta, ZSTD(3)),
+    index timestamp_minmax_idx timestamp type minmax granularity 2,
+    index os_version_bloom_idx toString(os_version) type bloom_filter(0.05) granularity 4,
+    index os_version_set_idx os_version type set(1000) granularity 2,
+    index bug_report_bloom_idx bug_report type bloom_filter(0.05) granularity 2,
     index key_bloom_idx key type bloom_filter(0.05) granularity 1,
-    index key_set_idx key type set(1000) granularity 2,
-    index session_bloom_idx session_id type bloom_filter granularity 2
+    index key_set_idx key type set(5000) granularity 2,
+    index session_bloom_idx session_id type bloom_filter(0.05) granularity 2
 )
-engine = ReplacingMergeTree
-partition by toYYYYMM(end_of_month)
-order by (app_id, end_of_month, app_version, os_version, exception, anr,
-            key, type, value, event_id, session_id)
+engine = ReplacingMergeTree(timestamp)
+partition by toYYYYMM(timestamp)
+primary key (team_id, app_id, app_version.1, app_version.2)
+order by (team_id, app_id, app_version.1, app_version.2, os_version.1, os_version.2, type, key, event_id, value)
 settings index_granularity = 8192
 comment 'derived user defined attributes';
 
 
 -- migrate:down
 drop table if exists user_def_attrs;
-

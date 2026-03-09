@@ -1,43 +1,6 @@
 -- migrate:up
-create materialized view sessions_mv to sessions
-(
-    `session_id`                    UUID,
-    `team_id`                       LowCardinality(UUID),
-    `app_id`                        LowCardinality(UUID),
-    `first_event_timestamp`         SimpleAggregateFunction(min, DateTime64(3, 'UTC')),
-    `last_event_timestamp`          SimpleAggregateFunction(max, DateTime64(3, 'UTC')),
-    `app_version`                   Tuple(LowCardinality(String), LowCardinality(String)),
-    `os_version`                    Tuple(LowCardinality(String), String),
-    `country_codes`                 SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `network_providers`             SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `network_types`                 SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `network_generations`           SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `device_locales`                SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `device_name`                   String,
-    `device_manufacturer`           String,
-    `device_model`                  String,
-    `user_ids`                      SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_types`                  SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_custom_type_names`      SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_strings`                SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_view_classnames`        SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_subview_classnames`     SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_unhandled_exceptions`   SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String, String, String, String))),
-    `unique_handled_exceptions`     SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String, String, String, String))),
-    `unique_errors`                 SimpleAggregateFunction(groupUniqArrayArray, Array(String)),
-    `unique_anrs`                   SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String, String, String, String))),
-    `unique_click_targets`          SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))),
-    `unique_longclick_targets`      SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))),
-    `unique_scroll_targets`         SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))),
-    `event_count`                   SimpleAggregateFunction(sum, UInt64),
-    `crash_count`                   SimpleAggregateFunction(sum, UInt64),
-    `anr_count`                     SimpleAggregateFunction(sum, UInt64),
-    `bug_report_count`              SimpleAggregateFunction(sum, UInt64),
-    `background_count`              SimpleAggregateFunction(sum, UInt64),
-    `foreground_count`              SimpleAggregateFunction(sum, UInt64),
-    `event_type_counts`             SimpleAggregateFunction(sumMap, Map(String, UInt64))
-)
-as select
+alter table sessions_mv modify query
+select
     session_id,
     team_id,
     app_id,
@@ -81,6 +44,40 @@ group by
     app_version,
     os_version;
 
-
 -- migrate:down
-drop view if exists sessions_mv;
+alter table sessions_mv modify query
+SELECT
+    team_id,
+    app_id,
+    session_id,
+    min(timestamp) AS first_event_timestamp,
+    minSimpleState(timestamp) as start_time,
+    maxSimpleState(timestamp) as end_time,
+    anyLast((toString(attribute.app_version), toString(attribute.app_build))) AS app_version,
+    anyLast((toString(attribute.os_name), toString(attribute.os_version))) AS os_version,
+    anyLast(toString(inet.country_code)) AS country_code,
+    anyLast(toString(attribute.network_provider)) AS network_provider,
+    anyLast(toString(attribute.network_type)) AS network_type,
+    anyLast(toString(attribute.network_generation)) AS network_generation,
+    anyLast(toString(attribute.device_locale)) AS device_locale,
+    anyLast(toString(attribute.device_manufacturer)) AS device_manufacturer,
+    anyLast(toString(attribute.device_name)) AS device_name,
+    anyLast(toString(attribute.device_model)) AS device_model,
+    anyLast(toString(attribute.user_id)) AS user_id,
+    groupUniqArrayArraySimpleState(10)([toString(type)]) AS unique_types,
+    groupUniqArrayArraySimpleState(10)([toString(string.string)]) AS unique_strings,
+    groupUniqArrayArraySimpleStateIf(10)([toString(lifecycle_activity.class_name)], (type = 'lifecycle_activity') AND (lifecycle_activity.class_name != '')) AS unique_view_classnames,
+    groupUniqArrayArraySimpleStateIf(10)([toString(lifecycle_fragment.class_name)], (type = 'lifecycle_fragment') AND (lifecycle_fragment.class_name != '')) AS unique_subview_classnames,
+    groupUniqArrayArraySimpleStateIf(5)([(simpleJSONExtractString(exception.exceptions, 'type'), simpleJSONExtractString(exception.exceptions, 'message'), simpleJSONExtractString(exception.exceptions, 'file_name'), simpleJSONExtractString(exception.exceptions, 'class_name'), simpleJSONExtractString(exception.exceptions, 'method_name'))], (type = 'exception') AND (exception.handled = false)) AS unique_exceptions,
+    groupUniqArrayArraySimpleStateIf(5)([(simpleJSONExtractString(anr.exceptions, 'type'), simpleJSONExtractString(anr.exceptions, 'message'), simpleJSONExtractString(anr.exceptions, 'file_name'), simpleJSONExtractString(anr.exceptions, 'class_name'), simpleJSONExtractString(anr.exceptions, 'method_name'))], type = 'anr') AS unique_anrs,
+    groupUniqArrayArraySimpleStateIf(5)([(toString(gesture_click.target), toString(gesture_click.target_id))], type = 'gesture_click') AS unique_click_targets,
+    groupUniqArrayArraySimpleStateIf(5)([(toString(gesture_long_click.target), toString(gesture_long_click.target_id))], type = 'gesture_long_click') AS unique_longclick_targets,
+    groupUniqArrayArraySimpleStateIf(5)([(toString(gesture_scroll.target), toString(gesture_scroll.target_id))], type = 'gesture_scroll') AS unique_scroll_targets,
+    uniqState(id) AS event_count,
+    uniqStateIf(id, (type = 'exception') AND (exception.handled = false)) AS crash_count,
+    uniqStateIf(id, type = 'anr') AS anr_count
+FROM events
+GROUP BY
+    team_id,
+    app_id,
+    session_id;
