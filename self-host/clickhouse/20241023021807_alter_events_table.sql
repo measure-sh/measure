@@ -9,7 +9,6 @@ modify column if exists inet.country_code LowCardinality(FixedString(8)) codec(Z
 modify column if exists timestamp codec(DoubleDelta, ZSTD(3)),
 modify column if exists user_triggered codec(ZSTD(3)),
 modify column if exists attribute.installation_id codec(LZ4),
-modify column if exists attribute.app_version LowCardinality(FixedString(128)) codec(ZSTD(3)),
 modify column if exists attribute.app_build codec(ZSTD(3)),
 modify column if exists attribute.app_unique_id LowCardinality(FixedString(128)) codec(ZSTD(3)),
 modify column if exists attribute.platform codec(ZSTD(3)),

@@ -1,6 +1,5 @@
 -- migrate:up
-alter table events
-modify column if exists `attribute.app_version` FixedString(128);
+select 1;
 
 -- migrate:down
 select 1;
