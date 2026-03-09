@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Show unit-days used in pro plan by @anupcowkur in #3282
 - (**backend**): Remove clickhouse read pool from alerts (#3273) by @detj in #3273
 - (**backend**): Remove proxy symbol method from ingest service (#3276) by @detj in #3276
 - (**backend**): Reverse proxy urls using recommended api (#3274) by @detj in #3274
