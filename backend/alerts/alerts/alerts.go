@@ -81,7 +81,7 @@ const bugReportTimePeriod = 15 * time.Minute
 const defaultErrorGoodThreshold = 95.0
 const defaultErrorCautionThreshold = 85.0
 const defaultErrorSpikeMinCountThreshold = 100
-const defaultErrorSpikeMinRateThreshold  = 0.5 // percent
+const defaultErrorSpikeMinRateThreshold = 0.5 // percent
 
 type AppThresholdPrefs struct {
 	ErrorGoodThreshold          float64
@@ -129,7 +129,7 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 
 			defer sessionCountStmt.Close()
 
-			sessionCountRows, err := server.Server.RchPool.Query(ctx, sessionCountStmt.String(), sessionCountStmt.Args()...)
+			sessionCountRows, err := server.Server.ChPool.Query(ctx, sessionCountStmt.String(), sessionCountStmt.Args()...)
 			if err == nil && sessionCountRows.Next() {
 				if err := sessionCountRows.Scan(&sessionCount); err != nil {
 					fmt.Printf("Error scanning session count for app %q: %v\n", app.ID, err)
@@ -178,7 +178,7 @@ func CreateBugReportAlerts(ctx context.Context) {
 
 			defer bugReportStmt.Close()
 
-			bugReportRows, err := server.Server.RchPool.Query(ctx, bugReportStmt.String(), bugReportStmt.Args()...)
+			bugReportRows, err := server.Server.ChPool.Query(ctx, bugReportStmt.String(), bugReportStmt.Args()...)
 			if err != nil {
 				fmt.Printf("Error fetching bug reports for app %v: %v\n", app.ID, err)
 				continue
@@ -1017,7 +1017,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 	defer crashGroupStmt.Close()
 
-	crashGroupRows, err := server.Server.RchPool.Query(ctx, crashGroupStmt.String(), crashGroupStmt.Args()...)
+	crashGroupRows, err := server.Server.ChPool.Query(ctx, crashGroupStmt.String(), crashGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
 		return
@@ -1063,7 +1063,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 			defer groupInfoStmt.Close()
 
-			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
+			groupInfoRow := server.Server.ChPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
 			if err != nil {
 				fmt.Printf("Error fetching group info for %s: %v\n", fingerprint, err)
@@ -1138,7 +1138,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 
 	defer anrGroupStmt.Close()
 
-	anrGroupRows, err := server.Server.RchPool.Query(ctx, anrGroupStmt.String(), anrGroupStmt.Args()...)
+	anrGroupRows, err := server.Server.ChPool.Query(ctx, anrGroupStmt.String(), anrGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
 		return
@@ -1183,7 +1183,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 
 			defer groupInfoStmt.Close()
 
-			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
+			groupInfoRow := server.Server.ChPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
 			if err != nil {
 				fmt.Printf("Error fetching group info for %s: %v\n", fingerprint, err)
