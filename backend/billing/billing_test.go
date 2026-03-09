@@ -23,7 +23,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
 
-		_, err := GetSubscriptionInfo(ctx, th.PgPool, uuid.New())
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, uuid.New(), "")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -40,7 +40,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		seedTeam(ctx, t, teamID, "free-team", true)
 		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
 
-		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -57,7 +57,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		seedTeam(ctx, t, teamID, "pro-team", true)
 		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), nil)
 
-		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -80,7 +80,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
 
-		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		_, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -114,7 +114,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
 
-		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -157,7 +157,7 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
 
-		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID)
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
 		if err != nil {
 			t.Fatalf("GetSubscriptionInfo: %v", err)
 		}
@@ -178,6 +178,260 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		if info.UpcomingInvoice.Currency != string(stripe.CurrencyUSD) {
 			t.Errorf("currency = %q, want %q", info.UpcomingInvoice.Currency, stripe.CurrencyUSD)
+		}
+	})
+
+	t.Run("billing cycle usage from meter", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_meter"), strPtr("sub_meter"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_meter",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		origMeterID := FindMeterIDFn
+		FindMeterIDFn = func(meterName string) (string, error) {
+			if meterName != "test_meter" {
+				t.Errorf("FindMeterIDFn called with %q, want %q", meterName, "test_meter")
+			}
+			return "mtr_123", nil
+		}
+		t.Cleanup(func() { FindMeterIDFn = origMeterID })
+
+		origUsage := GetMeterUsageFn
+		GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			if meterID != "mtr_123" {
+				t.Errorf("meterID = %q, want %q", meterID, "mtr_123")
+			}
+			if customerID != "cus_meter" {
+				t.Errorf("customerID = %q, want %q", customerID, "cus_meter")
+			}
+			if start != 1700000000 {
+				t.Errorf("start = %d, want 1700000000", start)
+			}
+			if end != 1702678400 {
+				t.Errorf("end = %d, want 1702678400", end)
+			}
+			return 15000000, nil
+		}
+		t.Cleanup(func() { GetMeterUsageFn = origUsage })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "test_meter")
+		if err != nil {
+			t.Fatalf("GetSubscriptionInfo: %v", err)
+		}
+		if info.BillingCycleUsage != 15000000 {
+			t.Errorf("billing_cycle_usage = %f, want 15000000", info.BillingCycleUsage)
+		}
+	})
+
+	t.Run("meter lookup error returns zero usage", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		origMeterID := FindMeterIDFn
+		FindMeterIDFn = func(meterName string) (string, error) {
+			return "", fmt.Errorf("meter not found")
+		}
+		t.Cleanup(func() { FindMeterIDFn = origMeterID })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "test_meter")
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		if info.BillingCycleUsage != 0 {
+			t.Errorf("billing_cycle_usage = %f, want 0", info.BillingCycleUsage)
+		}
+	})
+
+	t.Run("meter usage error returns zero usage", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		origMeterID := FindMeterIDFn
+		FindMeterIDFn = func(meterName string) (string, error) {
+			return "mtr_123", nil
+		}
+		t.Cleanup(func() { FindMeterIDFn = origMeterID })
+
+		origUsage := GetMeterUsageFn
+		GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			return 0, fmt.Errorf("stripe API error")
+		}
+		t.Cleanup(func() { GetMeterUsageFn = origUsage })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "test_meter")
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		if info.BillingCycleUsage != 0 {
+			t.Errorf("billing_cycle_usage = %f, want 0", info.BillingCycleUsage)
+		}
+	})
+
+	t.Run("empty meter name skips usage lookup", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		meterCalled := false
+		origMeterID := FindMeterIDFn
+		FindMeterIDFn = func(meterName string) (string, error) {
+			meterCalled = true
+			return "", nil
+		}
+		t.Cleanup(func() { FindMeterIDFn = origMeterID })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		if meterCalled {
+			t.Error("FindMeterIDFn should not be called when meterName is empty")
+		}
+		if info.BillingCycleUsage != 0 {
+			t.Errorf("billing_cycle_usage = %f, want 0", info.BillingCycleUsage)
+		}
+	})
+
+	t.Run("multiple meter summaries are summed", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := GetStripeSubscriptionFn
+		GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+		origInv := CreateInvoicePreviewFn
+		CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+		origMeterID := FindMeterIDFn
+		FindMeterIDFn = func(meterName string) (string, error) {
+			return "mtr_123", nil
+		}
+		t.Cleanup(func() { FindMeterIDFn = origMeterID })
+
+		origUsage := GetMeterUsageFn
+		GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			// Simulate summed result from multiple summaries
+			return 10000000 + 5000000 + 3000000, nil
+		}
+		t.Cleanup(func() { GetMeterUsageFn = origUsage })
+
+		info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "test_meter")
+		if err != nil {
+			t.Fatalf("GetSubscriptionInfo: %v", err)
+		}
+		if info.BillingCycleUsage != 18000000 {
+			t.Errorf("billing_cycle_usage = %f, want 18000000", info.BillingCycleUsage)
 		}
 	})
 }

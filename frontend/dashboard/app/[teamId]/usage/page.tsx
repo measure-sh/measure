@@ -44,6 +44,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
       amount_due: number
       currency: string
     } | null
+    billing_cycle_usage: number
   }
 
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
@@ -413,6 +414,11 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                           <li className='text-green-900 dark:text-foreground'>
                             Next invoice: <span className='font-semibold'>
                               {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                            </span>
+                          </li>
+                          <li className='text-green-900 dark:text-foreground'>
+                            Unit-days used (units x retention days based on usage so far): <span className='font-semibold'>
+                              {subscriptionInfo.billing_cycle_usage.toLocaleString()}
                             </span>
                           </li>
                           {subscriptionInfo.upcoming_invoice && (
