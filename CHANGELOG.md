@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove proxy symbol method from ingest service (#3276) by @detj in #3276
 - (**backend**): Reverse proxy urls using recommended api (#3274) by @detj in #3274
 - (**backend**): Close readonly connection pool in api service (#3271) by @detj in #3271
 - (**backend**): Use clickhouse read pool in api service (#3270) by @detj in #3270
