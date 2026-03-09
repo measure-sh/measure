@@ -1616,6 +1616,10 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
 
+		origMeterName := server.Server.Config.StripeUnitDaysMeterName
+		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+
 		userID := uuid.New().String()
 		teamID := uuid.New()
 		seedUser(ctx, t, userID, testAdminEmail)
@@ -1646,6 +1650,18 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
 
+		origMeterID := billing.FindMeterIDFn
+		billing.FindMeterIDFn = func(meterName string) (string, error) {
+			return "mtr_test", nil
+		}
+		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
+
+		origUsage := billing.GetMeterUsageFn
+		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			return 12000000, nil
+		}
+		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
+
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
@@ -1669,11 +1685,18 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		if result.UpcomingInvoice.AmountDue != 5000 {
 			t.Errorf("amount_due = %d, want 5000", result.UpcomingInvoice.AmountDue)
 		}
+		if result.BillingCycleUsage != 12000000 {
+			t.Errorf("billing_cycle_usage = %f, want 12000000", result.BillingCycleUsage)
+		}
 	})
 
 	t.Run("owner authorized success", func(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
+
+		origMeterName := server.Server.Config.StripeUnitDaysMeterName
+		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
 
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -1705,6 +1728,18 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
 
+		origMeterID := billing.FindMeterIDFn
+		billing.FindMeterIDFn = func(meterName string) (string, error) {
+			return "mtr_test", nil
+		}
+		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
+
+		origUsage := billing.GetMeterUsageFn
+		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			return 7500000, nil
+		}
+		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
+
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
@@ -1727,6 +1762,131 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 		if result.UpcomingInvoice.AmountDue != 7500 {
 			t.Errorf("amount_due = %d, want 7500", result.UpcomingInvoice.AmountDue)
+		}
+		if result.BillingCycleUsage != 7500000 {
+			t.Errorf("billing_cycle_usage = %f, want 7500000", result.BillingCycleUsage)
+		}
+	})
+
+	t.Run("handler returns zero usage when no meter configured", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		// Clear meter name config
+		origMeterName := server.Server.Config.StripeUnitDaysMeterName
+		server.Server.Config.StripeUnitDaysMeterName = ""
+		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		origSub := billing.GetStripeSubscriptionFn
+		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_test",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
+
+		origInv := billing.CreateInvoicePreviewFn
+		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+
+		var result billing.SubscriptionInfo
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if result.BillingCycleUsage != 0 {
+			t.Errorf("billing_cycle_usage = %f, want 0", result.BillingCycleUsage)
+		}
+	})
+
+	t.Run("handler returns billing_cycle_usage with overage", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		origMeterName := server.Server.Config.StripeUnitDaysMeterName
+		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_over"), strPtr("sub_over"))
+
+		origSub := billing.GetStripeSubscriptionFn
+		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+			return &stripe.Subscription{
+				ID:     "sub_over",
+				Status: stripe.SubscriptionStatusActive,
+				Items: &stripe.SubscriptionItemList{
+					Data: []*stripe.SubscriptionItem{
+						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
+					},
+				},
+			}, nil
+		}
+		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
+
+		origInv := billing.CreateInvoicePreviewFn
+		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+			return &stripe.Invoice{AmountDue: 15000, Currency: stripe.CurrencyUSD}, nil
+		}
+		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
+
+		origMeterID := billing.FindMeterIDFn
+		billing.FindMeterIDFn = func(meterName string) (string, error) {
+			return "mtr_test", nil
+		}
+		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
+
+		// Simulate usage exceeding included units (25M)
+		origUsage := billing.GetMeterUsageFn
+		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
+			return 30000000, nil
+		}
+		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		GetSubscriptionInfo(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+
+		var result billing.SubscriptionInfo
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if result.BillingCycleUsage != 30000000 {
+			t.Errorf("billing_cycle_usage = %f, want 30000000", result.BillingCycleUsage)
 		}
 	})
 }

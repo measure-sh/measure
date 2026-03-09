@@ -291,7 +291,7 @@ func GetSubscriptionInfo(c *gin.Context) {
 		return
 	}
 
-	result, err := billing.GetSubscriptionInfo(ctx, server.Server.PgPool, teamId)
+	result, err := billing.GetSubscriptionInfo(ctx, server.Server.PgPool, teamId, server.Server.Config.StripeUnitDaysMeterName)
 	if err != nil {
 		switch {
 		case errors.Is(err, billing.ErrTeamBillingNotFound):
