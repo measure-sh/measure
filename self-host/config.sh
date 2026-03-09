@@ -197,7 +197,7 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
-REDIS_HOST=valkey
+REDIS_HOST=redis
 REDIS_PORT=6379
 
 ##################
@@ -475,7 +475,7 @@ END
 
     # Set Redis configuration for production
     echo -e "Setting Redis configuration"
-    REDIS_HOST="valkey"
+    REDIS_HOST="redis"
     REDIS_PORT="6379"
 
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
@@ -583,7 +583,7 @@ ensure() {
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
   ingest_origin="http://localhost:8085"
-  redis_host="valkey"
+  redis_host="redis"
   redis_port="6379"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
