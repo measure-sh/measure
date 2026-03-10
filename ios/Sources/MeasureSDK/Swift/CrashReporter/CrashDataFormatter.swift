@@ -104,7 +104,7 @@ final class CrashDataFormatter {
         let symAddr   = frame.symbolAddr
         let objAddr   = frame.objectAddr
 
-        // offset = instruction_addr - symbol_addr (same as POC)
+        // offset = instruction_addr - symbol_addr
         let offset: Int? = (instrAddr > 0 && symAddr != nil)
             ? Int(instrAddr - symAddr!)
             : nil
@@ -119,12 +119,12 @@ final class CrashDataFormatter {
             symbolAddress:      symAddr.map    { hexString($0) },
             inApp:              isInApp,
             className:          nil,
-            methodName:         frame.symbolName,
+            methodName:         nil,
             fileName:           nil,
             lineNumber:         nil,
             columnNumber:       nil,
-            moduleName:         frame.objectName,
-            instructionAddress: instrAddr > 0 ? hexString(instrAddr) : nil
+            moduleName:         nil,
+            instructionAddress: nil
         )
     }
 
@@ -148,14 +148,14 @@ final class CrashDataFormatter {
             guard relevantAddresses.contains(startHex) else { continue }
 
             let endAddr  = base + max(1, img.imageSize)
-            let uuid     = img.hasImageUUID ? img.imageUUID ?? "uuid" : "uuid"
+            let uuid     = img.hasImageUUID ? img.imageUUID.map { $0.replacingOccurrences(of: "-", with: "").lowercased() } ?? "uuid" : "uuid"
             let fullPath = img.imageName ?? ""
             let shortName = URL(fileURLWithPath: fullPath).lastPathComponent
 
             binaryImages.append(BinaryImage(
                 startAddress: startHex,
                 endAddress:   hexString(endAddr),
-                baseAddress:  startHex,
+                baseAddress:  nil,
                 system:       !isAppBinary(name: shortName),
                 name:         shortName,
                 arch:         resolveArch(codeType: img.codeType),
@@ -167,8 +167,6 @@ final class CrashDataFormatter {
         return binaryImages.isEmpty ? nil : binaryImages
     }
 
-    // MARK: - Helpers
-
     private func isAppBinary(name: String?) -> Bool {
         guard let n = name else { return false }
         let short = URL(fileURLWithPath: n).lastPathComponent
@@ -179,7 +177,7 @@ final class CrashDataFormatter {
     }
 
     private func hexString(_ value: UInt64) -> String {
-        String(format: "0x%016llx", value)
+        String(format: "%016llx", value)
     }
 
     private func resolveArch(codeType: CrashReportCodeType?) -> String {

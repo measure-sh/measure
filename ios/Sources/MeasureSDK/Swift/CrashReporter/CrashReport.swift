@@ -37,10 +37,10 @@ struct CrashReportCodeType {
 
 struct CrashReportStackFrame {
     let instructionPointer: UInt64
-    let objectName: String?          // "object_name" — binary/module name
-    let objectAddr: UInt64?          // "object_addr"
-    let symbolName: String?          // "symbol_name"
-    let symbolAddr: UInt64?          // "symbol_addr"
+    let objectName: String?
+    let objectAddr: UInt64?
+    let symbolName: String?
+    let symbolAddr: UInt64?
 }
 
 struct CrashReportThreadInfo {
@@ -49,8 +49,6 @@ struct CrashReportThreadInfo {
     let crashed: Bool
     let stackFrames: [CrashReportStackFrame]
 }
-
-// MARK: - Protocol
 
 protocol CrashReport {
     var images: [CrashReportImage]? { get }
@@ -65,12 +63,9 @@ protocol CrashReport {
     func image(forAddress address: UInt64) -> CrashReportImage?
 }
 
-// MARK: - KSCrash implementation
-
 final class BaseCrashReport: CrashReport {
     private let report: [String: Any]
 
-    // KSCrash stores threads under crash > threads, not top-level
     private var crashDict: [String: Any]    { report["crash"]         as? [String: Any]   ?? [:] }
     private var errorDict: [String: Any]    { crashDict["error"]      as? [String: Any]   ?? [:] }
     private var threadDicts: [[String: Any]]{ crashDict["threads"]    as? [[String: Any]] ?? [] }
@@ -80,8 +75,6 @@ final class BaseCrashReport: CrashReport {
     init(_ report: [String: Any]) {
         self.report = report
     }
-
-    // MARK: - CrashReport
 
     var images: [CrashReportImage]? {
         let imgs = binaryImages.map { img -> CrashReportImage in
@@ -148,8 +141,6 @@ final class BaseCrashReport: CrashReport {
             address <  $0.imageBaseAddress + max(1, $0.imageSize)
         }
     }
-
-    // MARK: - Parsing helpers
 
     private func parseThread(_ dict: [String: Any]) -> CrashReportThreadInfo {
         let index   = dict["index"]   as? Int  ?? 0

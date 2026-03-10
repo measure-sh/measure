@@ -5,7 +5,11 @@
 //  Created by Adwin Ross on 10/06/25.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
 import KSCrash
+#endif
 import Foundation
 
 protocol ExceptionGenerator {
@@ -46,7 +50,6 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         let crashReport = BaseCrashReport(dict)
         let formatter = CrashDataFormatter(crashReport)
         let exception = formatter.getException(true, error: msrError)
-
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 
