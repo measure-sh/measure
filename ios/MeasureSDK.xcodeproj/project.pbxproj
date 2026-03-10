@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		520C23962D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
 		520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
-		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
 		524CC5C32C6A4B12001AB506 /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 526D17922D5A1913009A2E90 /* MSRViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 526D17942D5A1913009A2E90 /* MSRViewController.m */; };
@@ -653,7 +652,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF0F95782F5834450018D95D /* Recording in Frameworks */,
-				523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1416,7 +1414,6 @@
 			);
 			name = Measure;
 			packageProductDependencies = (
-				523C1AC42C6B1B850081D1CC /* CrashReporter */,
 				CF0F95772F5834450018D95D /* Recording */,
 			);
 			productName = MeasureSDK;
@@ -1497,7 +1494,6 @@
 			);
 			mainGroup = 524CC5B02C6A4B11001AB506;
 			packageReferences = (
-				523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */,
 				CF0F95762F5834450018D95D /* XCRemoteSwiftPackageReference "KSCrash" */,
 			);
 			productRefGroup = 524CC5BB2C6A4B11001AB506 /* Products */;
@@ -2405,14 +2401,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/microsoft/plcrashreporter";
-			requirement = {
-				kind = exactVersion;
-				version = 1.12.0;
-			};
-		};
 		CF0F95762F5834450018D95D /* XCRemoteSwiftPackageReference "KSCrash" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/kstenerud/KSCrash.git";
@@ -2424,11 +2412,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		523C1AC42C6B1B850081D1CC /* CrashReporter */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */;
-			productName = CrashReporter;
-		};
 		CF0F95772F5834450018D95D /* Recording */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CF0F95762F5834450018D95D /* XCRemoteSwiftPackageReference "KSCrash" */;

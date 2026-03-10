@@ -5,7 +5,11 @@
 //  Created by Adwin Ross on 20/09/24.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
 import KSCrash
+#endif
 import Foundation
 
 /// A protocol defining the behaviour of a crash reporter.
