@@ -70,7 +70,7 @@ sudo ./config.sh --production --ensure
 sudo ./install.sh
 ```
 
-## 7. Run database back filling script
+## 7. Run data back filling script
 
 Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
 
