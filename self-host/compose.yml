@@ -31,6 +31,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../frontend/dashboard
+      additional_contexts:
+        docs: ../docs
     ports:
       - "3000:3000"
     environment:
@@ -60,6 +62,9 @@ services:
         - path: ../frontend/dashboard
           action: sync
           target: /app
+        - path: ../docs
+          action: sync
+          target: /app/content/docs
 
   api:
     build:

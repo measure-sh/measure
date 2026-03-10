@@ -16,6 +16,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN apk add --no-cache ca-certificates && npm ci
 COPY . .
+COPY --from=docs . ./content/docs
 RUN NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
   NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
   NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \

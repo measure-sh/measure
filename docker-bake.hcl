@@ -75,6 +75,9 @@ target "cleanup" {
 target "dashboard" {
   inherits = ["docker-metadata-action"]
   context = "frontend/dashboard"
+  contexts = {
+    docs = "docs"
+  }
   dockerfile = "dockerfile.prod"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

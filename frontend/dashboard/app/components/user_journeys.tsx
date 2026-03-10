@@ -118,7 +118,7 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
                     <div className='w-full h-[800px]'>
                         {!demo && <div className="py-2" />}
                         {!demo && <DebounceTextInput className="w-full" id="free-text" placeholder="Search nodes..." initialValue={''} onChange={(it) => setPageState(prev => ({ ...prev, searchText: it }))} />}
-                        {!demo && <p className='py-4 text-xs font-body'>Note: Journeys are approximated based on sampled journey events. <Link href="https://github.com/measure-sh/measure/blob/main/docs/features/configuration-options.md#journey-sampling" target="_blank" className={underlineLinkStyle}>Learn more</Link> </p>}
+                        {!demo && <p className='py-4 text-xs font-body'>Note: Journeys are approximated based on sampled journey events. <Link href="/docs/features/configuration-options#journey-sampling" className={underlineLinkStyle}>Learn more</Link> </p>}
                         <div className="py-4" />
 
                         {pageState.plotType === PlotType.Paths &&

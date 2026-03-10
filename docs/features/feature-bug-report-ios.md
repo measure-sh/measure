@@ -25,7 +25,7 @@ Launch the default bug report interface using `Measure.launchBugReport`. A scree
 
 | Dark Mode                                    | Light Mode                                     |
 |----------------------------------------------|------------------------------------------------|
-| ![Dark Mode](assets/ios-bug-report-dark.png) | ![Light Mode](assets/ios-bug-report-light.png) |
+| ![Dark Mode](../assets/ios-bug-report-dark.png) | ![Light Mode](../assets/ios-bug-report-light.png) |
 
 When the screenshot button is clicked, a floating screenshot and exit button appear. Users can traverse through the app and take screenshots of the relevant screen.
 

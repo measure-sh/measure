@@ -29,7 +29,7 @@ efficient to capture and store than traditional screenshots.
 
 | Screenshot                                           | Layout snapshot                                |
 |------------------------------------------------------|------------------------------------------------|
-| ![Screenshot](assets/layout-snapshot-screenshot.png) | ![Layout Snapshot](assets/layout-snapshot.png) |
+| ![Screenshot](../assets/layout-snapshot-screenshot.png) | ![Layout Snapshot](../assets/layout-snapshot.png) |
 
 Layout snapshots are captured along with every gesture click event with throttling (750ms between consecutive
 snapshots). This ensures that you get a representative snapshot of the UI without overwhelming the system with too many

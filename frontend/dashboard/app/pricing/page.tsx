@@ -105,7 +105,7 @@ export default function Pricing() {
         <div className="py-8" />
         <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
           Measure Cloud pricing is based on the data you send to us and how long you retain it.
-          If you are <Link href="https://github.com/measure-sh/measure/blob/main/docs/hosting/README.md" target="_blank" className={underlineLinkStyle}>self hosting</Link>, it is completely free to use.
+          If you are <Link href="/docs/hosting" className={underlineLinkStyle}>self hosting</Link>, it is completely free to use.
         </p>
 
         <div className="py-8" />
