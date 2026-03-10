@@ -20,7 +20,8 @@ alter table events
     drop index if exists attribute_device_manufacturer_idx,
     drop index if exists attribute_device_locale_idx,
     drop index if exists attribute_network_provider_idx,
-    drop index if exists attribute_network_type_idx;
+    drop index if exists attribute_network_type_idx,
+    drop index if exists user_defined_attribute_key_minmax_idx;
 
 -- migrate:down
 alter table events
@@ -34,4 +35,5 @@ alter table events
     modify column if exists `lifecycle_activity.type` LowCardinality(FixedString(32)),
     modify column if exists `lifecycle_fragment.type` LowCardinality(FixedString(32)),
     modify column if exists `lifecycle_app.type` LowCardinality(FixedString(32)),
-    modify column if exists `attribute.device_manufacturer` FixedString(256);
+    modify column if exists `attribute.device_manufacturer` FixedString(256),
+    add index if not exists user_defined_attribute_key_minmax_idx mapKeys(user_defined_attribute) type minmax granularity 16;
