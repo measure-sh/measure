@@ -808,7 +808,7 @@ ensure() {
   # remove `frontend/dashboard/.env.local` file
   # if found
   if [[ -f "../frontend/dashboard/.env.local" ]]; then
-    rm "../frontend/dashboard/.env.local"
+    rm -f "../frontend/dashboard/.env.local"
   fi
 }
 
