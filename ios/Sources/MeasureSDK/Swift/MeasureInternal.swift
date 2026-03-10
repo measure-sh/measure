@@ -400,7 +400,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
-        self.crashReportManager.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -419,7 +418,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
-        self.crashReportManager.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
     }

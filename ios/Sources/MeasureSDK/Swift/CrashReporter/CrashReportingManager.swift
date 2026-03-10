@@ -8,8 +8,6 @@
 import Foundation
 
 protocol CrashReportManager {
-    func enable()
-    func disable()
     func trackException()
     var hasPendingCrashReport: Bool { get }
 }
@@ -40,23 +38,6 @@ final class CrashReportingManager: CrashReportManager {
         self.systemFileManager = systemFileManager
         self.idProvider = idProvider
         self.configProvider = configProvider
-    }
-
-    func enable() {
-        isEnabled.setTrueIfFalse {
-            do {
-                try crashReporter.enable()
-                self.logger.log(level: .info, message: "Crash reporter enabled.", error: nil, data: nil)
-            } catch {
-                self.logger.internalLog(level: .error, message: "Failed to enable crash reporter.", error: error, data: nil)
-            }
-        }
-    }
-
-    func disable() {
-        isEnabled.setFalseIfTrue {
-            self.logger.log(level: .info, message: "Crash reporter disabled.", error: nil, data: nil)
-        }
     }
 
     func trackException() {
@@ -90,7 +71,6 @@ final class CrashReportingManager: CrashReportManager {
             let formatter = CrashDataFormatter(crashReport)
             let exception = formatter.getException()
 
-            // KSCrash stores the crash timestamp under "report" > "timestamp"
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
             let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
 

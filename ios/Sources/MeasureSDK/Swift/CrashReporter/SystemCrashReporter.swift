@@ -27,6 +27,11 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
         self.crashDataPersistence = crashDataPersistence
+        do {
+            try enable()
+        } catch {
+            logger.internalLog(level: .error, message: "SystemCrashReporter: KSCrash init failed.", error: error, data: nil)
+        }
     }
 
     func enable() throws {
@@ -39,25 +44,20 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             .mainThreadDeadlock,
             .memoryTermination
         ]
-        // TODO: use isWritingReportCallback async safety
         config.crashNotifyCallback = { [weak self] _ in
-            // This is async-safe — BaseCrashDataPersistence.writeCrashData()
-            // uses only pre-opened file descriptors and C write().
             CrashDataWriter.shared.writeCrashData()
         }
 
-        // Prepare the crash file before installing so the fd is ready
-        // when crashNotifyCallback fires.
         crashDataPersistence.prepareCrashFile()
 
         do {
             try KSCrash.shared.install(with: config)
         } catch {
-            logger.internalLog(level: .error, message: "Failed to enable KSCrash.", error: error, data: nil)
+            logger.internalLog(level: .error, message: "SystemCrashReporter: Failed to enable KSCrash.", error: error, data: nil)
             throw error
         }
 
-        logger.log(level: .info, message: "Crash reporter enabled.", error: nil, data: nil)
+        logger.log(level: .info, message: "SystemCrashReporter: Crash reporter enabled.", error: nil, data: nil)
     }
 
     func clearCrashData() {

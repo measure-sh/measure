@@ -396,8 +396,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider,
                                                              attributeValueValidator: attributeValueValidator)
-        self.exceptionGenerator = BaseExceptionGenerator(crashReporter: systemCrashReporter,
-                                                         logger: logger)
+        self.exceptionGenerator = BaseExceptionGenerator(logger: logger,
+                                                         crashDataPersistence: crashDataPersistence)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,

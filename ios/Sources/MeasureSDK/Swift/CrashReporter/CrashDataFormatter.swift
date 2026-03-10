@@ -20,46 +20,44 @@ final class CrashDataFormatter {
             self.executableName = name
         }
 
+        // Derive LP64 from binary images, fall back to processorInfo
         var didSet = false
         if let images = crashReport.images {
             for image in images {
-                guard let codeType = image.codeType,
-                      codeType.typeEncoding == .mach else { continue }
-
-                switch Int32(codeType.type) {
-                case CPU_TYPE_ARM:      isLp64 = false; didSet = true
-                case CPU_TYPE_ARM64:    isLp64 = true;  didSet = true
-                case CPU_TYPE_X86:      isLp64 = false; didSet = true
-                case CPU_TYPE_X86_64:   isLp64 = true;  didSet = true
-                case CPU_TYPE_POWERPC:  isLp64 = false; didSet = true
+                guard let ct = image.codeType, ct.typeEncoding == .mach else { continue }
+                switch Int32(ct.type) {
+                case CPU_TYPE_ARM:     isLp64 = false; didSet = true
+                case CPU_TYPE_ARM64:   isLp64 = true;  didSet = true
+                case CPU_TYPE_X86:     isLp64 = false; didSet = true
+                case CPU_TYPE_X86_64:  isLp64 = true;  didSet = true
+                case CPU_TYPE_POWERPC: isLp64 = false; didSet = true
                 default: break
                 }
                 if didSet { break }
             }
         }
-
         if !didSet && crashReport.typeEncoding == .mach {
             switch Int32(crashReport.processorInfo) {
-            case CPU_TYPE_ARM:      isLp64 = false
-            case CPU_TYPE_ARM64:    isLp64 = true
-            case CPU_TYPE_X86:      isLp64 = false
-            case CPU_TYPE_X86_64:   isLp64 = true
-            case CPU_TYPE_POWERPC:  isLp64 = false
-            default:                isLp64 = true
+            case CPU_TYPE_ARM:     isLp64 = false
+            case CPU_TYPE_ARM64:   isLp64 = true
+            case CPU_TYPE_X86:     isLp64 = false
+            case CPU_TYPE_X86_64:  isLp64 = true
+            case CPU_TYPE_POWERPC: isLp64 = false
+            default:               isLp64 = true
             }
         }
     }
 
     func getException(_ handled: Bool = false, error: MsrError? = nil) -> Exception {
-        let crashedThread  = getCrashedThread()
+        let crashedThread = getCrashedThread()
         let exceptionDetail = ExceptionDetail(
-            type:           crashReport.exceptionName,
-            message:        crashReport.exceptionReason,
-            frames:         crashedThread?.frames,
-            signal:         crashReport.signalName,
-            threadName:     crashedThread?.name ?? "",
+            type: crashReport.exceptionName,
+            message: crashReport.exceptionReason,
+            frames: crashedThread?.frames,
+            signal: crashReport.signalName,
+            threadName: crashedThread?.name,
             threadSequence: crashedThread?.sequence ?? 0,
-            osBuildNumber:  crashReport.osBuildNumber
+            osBuildNumber: crashReport.osBuildNumber
         )
 
         guard let crashedThread = crashedThread, let threads = getExceptionStackTrace() else {
@@ -82,8 +80,6 @@ final class CrashDataFormatter {
                          error: error)
     }
 
-    // MARK: - Private
-
     private func getCrashedThread() -> ThreadDetail? {
         crashReport.threads?.first(where: { $0.crashed }).map { getThreadData($0) }
     }
@@ -94,79 +90,48 @@ final class CrashDataFormatter {
     }
 
     private func getThreadData(_ thread: CrashReportThreadInfo) -> ThreadDetail {
-        let frames: [StackFrame] = thread.stackFrames.enumerated().map { idx, frame in
-            formatStackFrame(
-                frameInfo: frame,
-                frameIndex: idx,
-                lp64: isLp64,
-                operatingSystem: crashReport.operatingSystem,
-                imageInfo: crashReport.image(forAddress: frame.instructionPointer)
-            )
+        let frames = thread.stackFrames.enumerated().map { idx, frame in
+            formatStackFrame(frame: frame, frameIndex: idx)
         }
-        let name = thread.crashed
-            ? "Thread \(thread.threadNumber) Crashed"
-            : "Thread \(thread.threadNumber)"
+        // Use thread name from report if available, otherwise generate one
+        let name = thread.threadName
+            ?? (thread.crashed ? "Thread \(thread.threadNumber) Crashed" : "Thread \(thread.threadNumber)")
         return ThreadDetail(name: name, frames: frames, sequence: Number(thread.threadNumber))
     }
 
-    private func formatStackFrame(frameInfo: CrashReportStackFrame,
-                                  frameIndex: Int,
-                                  lp64: Bool,
-                                  operatingSystem: CrashReportOperatingSystem,
-                                  imageInfo: CrashReportImage?) -> StackFrame {
-        var baseAddress: UInt64 = 0
-        var pcOffset: UInt64   = 0
-        var imageName          = "???"
-        var binaryAddress      = ""
-        var offset             = "0"
+    private func formatStackFrame(frame: CrashReportStackFrame, frameIndex: Int) -> StackFrame {
+        let instrAddr = frame.instructionPointer
+        let symAddr   = frame.symbolAddr
+        let objAddr   = frame.objectAddr
 
-        if let imageInfo = imageInfo {
-            imageName   = (imageInfo.imageName as? NSString)?.lastPathComponent ?? "???"
-            baseAddress = imageInfo.imageBaseAddress
-            pcOffset    = frameInfo.instructionPointer - imageInfo.imageBaseAddress
-        }
+        // offset = instruction_addr - symbol_addr (same as POC)
+        let offset: Int? = (instrAddr > 0 && symAddr != nil)
+            ? Int(instrAddr - symAddr!)
+            : nil
 
-        if let symbolInfo = frameInfo.symbolInfo {
-            var symbolName = symbolInfo.symbolName
-            if let name = symbolName, name.hasPrefix("_"), name.count > 1 {
-                switch operatingSystem {
-                case .macOSX, .iPhoneOS, .iPhoneSimulator, .unknown:
-                    symbolName = String(name.dropFirst())
-                default:
-                    break
-                }
-            }
-            let symOffset = frameInfo.instructionPointer - symbolInfo.startAddress
-            binaryAddress = symbolName ?? ""
-            offset        = "\(symOffset)"
-        } else {
-            binaryAddress = String(format: "%llx", baseAddress)
-            offset        = String(format: "%lld", pcOffset)
-        }
-
-        let formattedIP = String(format: "%0*llx", lp64 ? 16 : 8, frameInfo.instructionPointer)
-        let execName    = self.executableName ?? ""
+        let isInApp = isAppBinary(name: frame.objectName)
 
         return StackFrame(
-            binaryName:         imageName,
-            binaryAddress:      binaryAddress,
-            offset:             Int(offset) ?? 0,
+            binaryName:         frame.objectName,
+            binaryAddress:      objAddr.map    { hexString($0) },
+            offset:             offset,
             frameIndex:         Number(frameIndex),
-            symbolAddress:      formattedIP,
-            inApp:              imageName == execName || imageName.contains(execName),
+            symbolAddress:      symAddr.map    { hexString($0) },
+            inApp:              isInApp,
             className:          nil,
-            methodName:         nil,
+            methodName:         frame.symbolName,
             fileName:           nil,
             lineNumber:         nil,
             columnNumber:       nil,
-            moduleName:         nil,
-            instructionAddress: nil
+            moduleName:         frame.objectName,
+            instructionAddress: instrAddr > 0 ? hexString(instrAddr) : nil
         )
     }
 
     private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? {
         guard let images = crashReport.images else { return nil }
 
+        // Collect object addresses from frames to filter relevant images
         let relevantAddresses: Set<String> = Set(
             threads.flatMap { $0.frames.compactMap { $0.binaryAddress } }
         )
@@ -179,29 +144,42 @@ final class CrashDataFormatter {
             guard !seen.contains(base) else { continue }
             seen.insert(base)
 
-            let startAddress = String(format: "%llx", base)
-            guard relevantAddresses.contains(startAddress) else { continue }
+            let startHex = hexString(base)
+            guard relevantAddresses.contains(startHex) else { continue }
 
-            let endAddress = String(format: "%llx", base + max(1, img.imageSize) - 1)
-            let uuid       = img.hasImageUUID ? img.imageUUID ?? "uuid" : "uuid"
-            let imageName  = (img.imageName as? NSString)?.lastPathComponent ?? "???"
-            let path       = img.imageName ?? "path"
-            let arch       = resolveArch(codeType: img.codeType)
-            let execName   = self.executableName ?? ""
+            let endAddr  = base + max(1, img.imageSize)
+            let uuid     = img.hasImageUUID ? img.imageUUID ?? "uuid" : "uuid"
+            let fullPath = img.imageName ?? ""
+            let shortName = URL(fileURLWithPath: fullPath).lastPathComponent
 
             binaryImages.append(BinaryImage(
-                startAddress: startAddress,
-                endAddress:   endAddress,
-                baseAddress:  nil,
-                system:       imageName != execName,
-                name:         imageName,
-                arch:         arch,
+                startAddress: startHex,
+                endAddress:   hexString(endAddr),
+                baseAddress:  startHex,
+                system:       !isAppBinary(name: shortName),
+                name:         shortName,
+                arch:         resolveArch(codeType: img.codeType),
                 uuid:         uuid,
-                path:         path
+                path:         fullPath
             ))
         }
 
         return binaryImages.isEmpty ? nil : binaryImages
+    }
+
+    // MARK: - Helpers
+
+    private func isAppBinary(name: String?) -> Bool {
+        guard let n = name else { return false }
+        let short = URL(fileURLWithPath: n).lastPathComponent
+        let exec  = executableName ?? ""
+        return short == exec
+            || short.hasSuffix(".debug.dylib")
+            || (!exec.isEmpty && short.contains(exec))
+    }
+
+    private func hexString(_ value: UInt64) -> String {
+        String(format: "0x%016llx", value)
     }
 
     private func resolveArch(codeType: CrashReportCodeType?) -> String {
@@ -222,10 +200,10 @@ final class CrashDataFormatter {
             case CPU_SUBTYPE_ARM64E:    return "arm64e"
             default:                    return "arm64-unknown"
             }
-        case CPU_TYPE_X86:    return "i386"
-        case CPU_TYPE_X86_64: return "x86_64"
+        case CPU_TYPE_X86:     return "i386"
+        case CPU_TYPE_X86_64:  return "x86_64"
         case CPU_TYPE_POWERPC: return "powerpc"
-        default:              return "???"
+        default:               return "???"
         }
     }
 }
