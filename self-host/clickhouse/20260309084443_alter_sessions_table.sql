@@ -16,6 +16,18 @@ alter table sessions
 
 -- migrate:up
 alter table sessions
+    modify column if exists `event_count` SimpleAggregateFunction(sum, UInt64),
+    modify column if exists `crash_count` SimpleAggregateFunction(sum, UInt64),
+    modify column if exists `anr_count`   SimpleAggregateFunction(sum, UInt64);
+
+-- migrate:down
+alter table sessions
+    modify column if exists `event_count` AggregateFunction(uniq, UUID),
+    modify column if exists `crash_count` AggregateFunction(uniq, UUID),
+    modify column if exists `anr_count`   AggregateFunction(uniq, UUID);
+
+-- migrate:up
+alter table sessions
     add column if not exists `country_codes`               SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique country codes',
     add column if not exists `network_providers`           SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network service providers',
     add column if not exists `network_types`               SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network types',
