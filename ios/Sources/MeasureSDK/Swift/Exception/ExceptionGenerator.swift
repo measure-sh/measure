@@ -5,6 +5,7 @@
 //  Created by Adwin Ross on 10/06/25.
 //
 
+import KSCrash
 import Foundation
 
 protocol ExceptionGenerator {
@@ -12,39 +13,48 @@ protocol ExceptionGenerator {
 }
 
 final class BaseExceptionGenerator: ExceptionGenerator {
-    private let crashReporter: SystemCrashReporter
     private let logger: Logger
+    private let crashDataPersistence: CrashDataPersistence
 
-    init(crashReporter: SystemCrashReporter, logger: Logger) {
-        self.crashReporter = crashReporter
+    init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
+        self.crashDataPersistence = crashDataPersistence
     }
 
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
-        return generateCurrentStacktrace(error)
+        return generateException(error, collectStackTraces: collectStackTraces)
     }
 
-    private func generateCurrentStacktrace(_ nsError: NSError) -> Exception? {
-        return nil
-        // TODO: implement KSCrash.trackException
-//        do {
-//            let crashData = crashReporter.generateLiveReport()
-//            let plCrashReport = try PLCrashReport(data: crashData)
-//            let crashReport = BaseCrashReport(plCrashReport)
-//            let crashDataFormatter = CrashDataFormatter(crashReport)
-//            let error = MsrError(numcode: Int64(nsError.code),
-//                                 code: nsError.domain,
-//                                 meta: convertToCodableValue(nsError.userInfo))
-//            return crashDataFormatter.getException(true, error: error)
-//        } catch {
-//            logger.internalLog(level: .error, message: "Error parsing crash report.", error: nil, data: nil)
-//            return nil
-//        }
+    private func generateException(_ nsError: NSError, collectStackTraces: Bool) -> Exception? {
+        let nsException = NSException(name: NSExceptionName(rawValue: nsError.domain),
+                                    reason: nsError.localizedDescription,
+                                    userInfo: nsError.userInfo)
+        KSCrash.shared.report(nsException, logAllThreads: collectStackTraces)
+
+        guard let store = KSCrash.shared.reportStore,
+              let reportID = store.reportIDs.last,
+              let report = store.report(for: Int64(truncating: reportID)) else {
+            logger.internalLog(level: .error, message: "ExceptionGenerator: Failed to load live KSCrash report.", error: nil, data: nil)
+            return nil
+        }
+
+        let dict = report.value
+        let msrError = MsrError(numcode: Int64(nsError.code),
+                                code: nsError.domain,
+                                meta: convertToCodableValue(nsError.userInfo))
+
+        let crashReport = BaseCrashReport(dict)
+        let formatter = CrashDataFormatter(crashReport)
+        let exception = formatter.getException(true, error: msrError)
+
+        store.deleteReport(with: Int64(truncating: reportID))
+        crashDataPersistence.clearCrashData()
+
+        return exception
     }
 
-    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] {  // swiftlint:disable:this cyclomatic_complexity
+    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] { // swiftlint:disable:this cyclomatic_complexity
         var result: [String: CodableValue] = [:]
-
         for (key, value) in dictionary {
             switch value {
             case let value as String:
@@ -70,7 +80,6 @@ final class BaseExceptionGenerator: ExceptionGenerator {
                 result[key] = .null
             }
         }
-
         return result
     }
 }

@@ -46,13 +46,13 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
         if let crashFilePath = systemFileManager.getCrashFilePath() {
             crashFileDescriptor = open(crashFilePath.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)
             if crashFileDescriptor == -1 {
-                logger.internalLog(level: .error, message: "Failed to open crash log file at \(crashFilePath.path)", error: nil, data: nil)
+                logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to open crash log file at \(crashFilePath.path)", error: nil, data: nil)
             }
         }
     }
 
     func writeCrashData() {
-        if crashFileDescriptor != -1 {
+        if crashFileDescriptor != -1, attribute != nil {
             let bytes = getAttributesData().cString(using: .utf8)
             if let bytes = bytes {
                 write(crashFileDescriptor, bytes, strlen(bytes))
@@ -73,19 +73,19 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
                 if fileDescriptor != -1 {
                     close(fileDescriptor)
                     prepareCrashFile()
-                    logger.internalLog(level: .info, message: "Crash data file cleared at \(crashFilePath.path)", error: nil, data: nil)
+                    logger.internalLog(level: .info, message: "CrashDataPersistence: Crash data file cleared at \(crashFilePath.path)", error: nil, data: nil)
                 } else {
-                    logger.internalLog(level: .error, message: "Failed to open crash log file for truncation at \(crashFilePath.path)", error: nil, data: nil)
+                    logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to open crash log file for truncation at \(crashFilePath.path)", error: nil, data: nil)
                 }
             } else {
-                logger.internalLog(level: .error, message: "No crash data file found to clear at \(crashFilePath.path)", error: nil, data: nil)
+                logger.internalLog(level: .error, message: "CrashDataPersistence: No crash data file found to clear at \(crashFilePath.path)", error: nil, data: nil)
             }
         }
     }
 
     func readCrashData() -> CrashDataAttributes {
         guard let crashFilePath = systemFileManager.getCrashFilePath() else {
-            logger.internalLog(level: .error, message: "No crash data file found to read.", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "CrashDataPersistence: No crash data file found to read.", error: nil, data: nil)
             return (attribute: nil, sessionId: nil, isForeground: nil)
         }
 
@@ -93,7 +93,7 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
             let crashDataString = try String(contentsOf: crashFilePath, encoding: .utf8)
 
             guard let data = crashDataString.data(using: .utf8) else {
-                logger.internalLog(level: .error, message: "Failed to convert crash data string to Data", error: nil, data: nil)
+                logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to convert crash data string to Data", error: nil, data: nil)
                 return (attribute: nil, sessionId: nil, isForeground: nil)
             }
 
@@ -105,7 +105,7 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
             }
             return (attribute: nil, sessionId: nil, isForeground: nil)
         } catch {
-            logger.internalLog(level: .error, message: "Failed to read or parse crash data file at \(crashFilePath.path)", error: error, data: nil)
+            logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to read or parse crash data file at \(crashFilePath.path)", error: error, data: nil)
             return (attribute: nil, sessionId: nil, isForeground: nil)
         }
     }
