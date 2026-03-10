@@ -24,13 +24,13 @@ minutes before the bug report was submitted. This provides rich context to help 
 
 | Dark Mode                                             | Light Mode                                              |
 |-------------------------------------------------------|---------------------------------------------------------|
-| ![Dark Mode](assets/flutter-ios-bug-report-dark.jpeg) | ![Light Mode](assets/flutter-ios-bug-report-light.jpeg) |
+| ![Dark Mode](../assets/flutter-ios-bug-report-dark.jpeg) | ![Light Mode](../assets/flutter-ios-bug-report-light.jpeg) |
 
 ### Android
 
 | Dark Mode                                                | Light Mode                                                 |
 |----------------------------------------------------------|------------------------------------------------------------|
-| ![Dark Mode](assets/flutter-android-bug-report-dark.png) | ![Light Mode](assets/flutter-android-bug-report-light.png) |
+| ![Dark Mode](../assets/flutter-android-bug-report-dark.png) | ![Light Mode](../assets/flutter-android-bug-report-light.png) |
 
 
 Launch the default bug report interface by using `Measure.instance.createBugReportWidget` method. Usage:

@@ -153,7 +153,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                             </TableRow>
                             <TableRow className='hover:bg-transparent'>
                                 <TableCell colSpan={3} className="p-0 border-b-1">
-                                    <p className='px-4 pt-1 pb-4 text-xs font-body'>Note: Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions. <Link href="https://github.com/measure-sh/measure/blob/main/docs/features/feature-session-timelines.md" target="_blank" className={underlineLinkStyle}>Learn more</Link> </p>
+                                    <p className='px-4 pt-1 pb-4 text-xs font-body'>Note: Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions. <Link href="/docs/features/feature-session-timelines" className={underlineLinkStyle}>Learn more</Link> </p>
                                 </TableCell>
                             </TableRow>
                         </TableHeader>

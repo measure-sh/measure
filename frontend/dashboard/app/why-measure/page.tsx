@@ -85,7 +85,7 @@ export default function WhyMeasure() {
                 Measure Cloud offers clear and transparent <Link href="/pricing" className={underlineLinkStyle}>pricing</Link> based on events sent and data retention. There are no bundles, hidden charges, seats and tiers (although we do offer discounts for high volume apps).
                 <br /><br />
                 Further, with <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link>, you can optimize your data collection to only capture what you need and adjust it dynamically without rolling out app updates, reducing costs and data bloat.
-                You can even <Link target="_blank" href="https://github.com/measure-sh/measure/blob/main/docs/hosting/README.md" className={underlineLinkStyle}>self-host</Link> Measure for free on your own infrastructure!
+                You can even <Link href="/docs/hosting" className={underlineLinkStyle}>self-host</Link> Measure for free on your own infrastructure!
                 <br /><br />
                 If you hate playing with excel sheets and pricing calculators to figure out your monthly bill and would like to adjust your data collection based on changing needs, Measure is the right choice for you.
               </p>

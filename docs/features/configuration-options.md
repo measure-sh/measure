@@ -390,7 +390,7 @@ and image masking is performed on `ImageView`. Image and video masking is curren
 
 Example:
 
-![Mask All Text And Media](assets/screenshot-mask-all-text-and-media.png)
+![Mask All Text And Media](../assets/screenshot-mask-all-text-and-media.png)
 
 #### Mask all text
 
@@ -398,7 +398,7 @@ Masks all text, buttons & input fields.
 
 Example:
 
-![Mask All Text](assets/screenshot-mask-all-text.png)
+![Mask All Text](../assets/screenshot-mask-all-text.png)
 
 #### Mask text except clickable
 
@@ -406,7 +406,7 @@ Masks all text & input fields except clickable views like buttons.
 
 Example:
 
-![Mask Text Except Clickable](assets/screenshot-mask-text-except-clickable.png)
+![Mask Text Except Clickable](../assets/screenshot-mask-text-except-clickable.png)
 
 #### Mask sensitive input fields
 
@@ -423,5 +423,5 @@ are masked in the screenshot by default.
 
 Example:
 
-![Mask Sensitive Input Fields](assets/screenshot-mask-sensitive-input-fields-2.png)
+![Mask Sensitive Input Fields](../assets/screenshot-mask-sensitive-input-fields-2.png)
 

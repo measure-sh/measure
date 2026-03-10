@@ -27,7 +27,7 @@ Launch the default bug report interface using `Measure.launchBugReportActivity`.
 
 | Dark Mode                                        | Light Mode                                         |
 |--------------------------------------------------|----------------------------------------------------|
-| ![Dark Mode](assets/android-bug-report-dark.png) | ![Light Mode](assets/android-bug-report-light.png) |
+| ![Dark Mode](../assets/android-bug-report-dark.png) | ![Light Mode](../assets/android-bug-report-light.png) |
 
 Usage:
 

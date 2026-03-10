@@ -387,7 +387,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
     <div className="w-full">
       <p className="max-w-6xl font-display text-xl">Configure Data Collection</p>
       <p className="mt-2 font-body text-xs text-muted-foreground">
-        See the <Link href="https://github.com/measure-sh/measure/blob/main/docs/features/configuration-options.md" target="_blank" className={underlineLinkStyle}>docs</Link> to learn more
+        See the <Link href="/docs/features/configuration-options" className={underlineLinkStyle}>docs</Link> to learn more
       </p>
 
       <div className="mt-6">

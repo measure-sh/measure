@@ -401,7 +401,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-muted-foreground mt-6">Created at</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>}
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
-                <p className="font-body text-sm">Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
+                <p className="font-body text-sm">Follow our <Link className={underlineLinkStyle} href='/docs'>docs</Link> to finish setting up your app.</p>}
             </div>
             <div className="py-10" />
             <p className="font-display text-xl max-w-6xl">Copy SDK Variables</p>

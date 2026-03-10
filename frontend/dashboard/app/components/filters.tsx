@@ -1278,9 +1278,8 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   <p className="font-body text-sm">
                     Follow our{" "}
                     <Link
-                      target="_blank"
                       className={underlineLinkStyle}
-                      href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
+                      href="/docs"
                     >
                       docs
                     </Link>{" "}

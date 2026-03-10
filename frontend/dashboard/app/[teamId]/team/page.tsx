@@ -650,7 +650,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {/* error creating slack url or fetching team slack status */}
           {(fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Error || fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Error) &&
-            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md'>guide</Link> to set it up if you haven&apos;t done so.</p>
+            <p className="font-body text-sm">Error fetching Slack Integration status. Follow our <Link className={underlineLinkStyle} href='/docs/hosting/slack'>guide</Link> to set it up if you haven&apos;t done so.</p>
           }
 
           {/* slack not connected, show add to slack button */}
