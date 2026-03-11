@@ -16,15 +16,29 @@ alter table sessions
 
 -- migrate:up
 alter table sessions
-    modify column if exists `event_count` SimpleAggregateFunction(sum, UInt64),
-    modify column if exists `crash_count` SimpleAggregateFunction(sum, UInt64),
-    modify column if exists `anr_count`   SimpleAggregateFunction(sum, UInt64);
+    drop column if exists `event_count`,
+    drop column if exists `crash_count`,
+    drop column if exists `anr_count`
+settings mutations_sync = 2;
 
 -- migrate:down
 alter table sessions
-    modify column if exists `event_count` AggregateFunction(uniq, UUID),
-    modify column if exists `crash_count` AggregateFunction(uniq, UUID),
-    modify column if exists `anr_count`   AggregateFunction(uniq, UUID);
+    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64),
+    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64),
+    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64);
+
+-- migrate:up
+alter table sessions
+    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64),
+    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64),
+    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64);
+
+-- migrate:down
+alter table sessions
+    drop column if exists `event_count`,
+    drop column if exists `crash_count`,
+    drop column if exists `anr_count`
+settings mutations_sync = 2;
 
 -- migrate:up
 alter table sessions
