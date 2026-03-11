@@ -58,6 +58,8 @@ final class CrashReportingManager: CrashReportManager {
                                   userDefinedAttributes: nil,
                                   threadName: nil,
                                   needsReporting: true)
+            logger.log(level: .info, message: "Debugging: trackException called", error: nil, data: nil)
+            logger.log(level: .info, message: "Debugging: sessionId: \(crashDataAttributes.sessionId)", error: nil, data: nil)
         }
 
         crashReporter.clearCrashData()
@@ -67,9 +69,8 @@ final class CrashReportingManager: CrashReportManager {
     private func processCrashReport() -> (exception: Exception?, date: Date?) {
         do {
             let reportDict = try crashReporter.loadCrashReport()
-            let crashReport = BaseCrashReport(reportDict)
-            let formatter = CrashDataFormatter(crashReport)
-            let exception = formatter.getException()
+            let formatter  = CrashDataFormatter(reportDict)
+            let exception  = formatter.getException()
 
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
             let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
