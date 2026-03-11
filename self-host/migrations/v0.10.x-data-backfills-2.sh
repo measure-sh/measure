@@ -126,7 +126,6 @@ EOF
   fi
 
   echo "Successfully added default SDK config"
-  shutdown_postgres_service
 }
 
 # kick things off

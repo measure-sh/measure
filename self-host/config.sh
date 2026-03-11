@@ -725,7 +725,7 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
 
-    # Prompt & save ingest service base url if doesn't exist
+    # Prompt & save ingest service base url if it doesn't exist
     if ! check_env_variable "NEXT_PUBLIC_INGEST_BASE_URL"; then
       echo -e "\nSet Measure Ingest service URL"
       echo -e "Example: https://measure-ingest.yourcompany.com"
@@ -803,6 +803,26 @@ ensure() {
 
   if ! check_env_variable "POSTHOG_API_KEY"; then
     add_env_variable "POSTHOG_API_KEY" ""
+  fi
+
+  if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then
+    add_env_variable "NEXT_PUBLIC_IS_CLOUD" "false" "NEXT_PUBLIC_INGEST_BASE_URL"
+  fi
+
+  if ! check_env_variable "BILLING_ENABLED"; then
+    add_env_variable "BILLING_ENABLED" "false"
+  fi
+
+  if ! check_env_variable "STRIPE_API_KEY"; then
+    add_env_variable "STRIPE_API_KEY" "" "BILLING_ENABLED"
+  fi
+
+  if ! check_env_variable "STRIPE_WEBHOOK_SECRET"; then
+    add_env_variable "STRIPE_WEBHOOK_SECRET" "" "STRIPE_API_KEY"
+  fi
+
+  if ! check_env_variable "STRIPE_UNIT_DAYS_METER_NAME"; then
+    add_env_variable "STRIPE_UNIT_DAYS_METER_NAME" "unit_days" "STRIPE_WEBHOOK_SECRET"
   fi
 
   # remove `frontend/dashboard/.env.local` file

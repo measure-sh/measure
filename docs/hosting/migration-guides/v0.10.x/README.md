@@ -40,9 +40,11 @@ git fetch --tags
 git checkout <git-tag>
 ```
 
-## 4. Add Google OAuth client secret (only if using Google sign-in)
+## 4. Create Google OAuth client secret
 
-Skip this step if you only use GitHub for sign-in.
+> [!NOTE]
+>
+> Skip this step if you only use **GitHub** sign in.
 
 Starting with `v0.10.x`, Google sign-in uses a server-side code flow that requires the `OAUTH_GOOGLE_SECRET` environment variable. Previously, only the client ID (`OAUTH_GOOGLE_KEY`) was needed.
 
@@ -72,9 +74,10 @@ sudo ./install.sh
 
 ## 7. Run data back filling script
 
-Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
+Perform this step to complete the migration. Measure dashboard will not work properly until these scripts are run.
 
 ```sh
 sudo ./migrations/v0.10.x-data-backfills-1.sh
 sudo ./migrations/v0.10.x-data-backfills-2.sh
+sudo ./migrations/v0.10.x-read-optim.sh
 ```
