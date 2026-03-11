@@ -136,6 +136,7 @@ create or replace table events_new
     `attribute.network_type` LowCardinality(String) comment 'either - wifi, cellular, vpn, unknown, no_network' CODEC(ZSTD(3)),
     `attribute.network_generation` LowCardinality(String) comment 'either - 2g, 3g, 4g, 5g, unknown' CODEC(ZSTD(3)),
     `attribute.network_provider` String comment 'name of the network service provider' CODEC(ZSTD(3)),
+    `attribute.session_start_time` DateTime64(3, 'UTC') comment 'start time of the session containing this event' CODEC(DoubleDelta, ZSTD(3)),
 
     `user_defined_attribute` Map(LowCardinality(String), Tuple(
         Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
@@ -766,6 +767,7 @@ create or replace table spans_new
     `attribute.thread_name` String comment 'thread on which the span was captured' CODEC(ZSTD(3)),
     `attribute.country_code` LowCardinality(String) comment 'country code' CODEC(ZSTD(3)),
     `attribute.network_provider` LowCardinality(String) comment 'name of the network service provider' CODEC(ZSTD(3)),
+    `attribute.session_start_time` DateTime64(3, 'UTC') comment 'start time of the session containing this span' CODEC(DoubleDelta, ZSTD(3)),
     `attribute.network_type` LowCardinality(String) comment 'wifi, cellular, vpn and so on' CODEC(ZSTD(3)),
     `attribute.network_generation` LowCardinality(String) comment '2g, 3g, 4g and so on' CODEC(ZSTD(3)),
     `attribute.device_name` LowCardinality(String) comment 'name of the device' CODEC(ZSTD(3)),
