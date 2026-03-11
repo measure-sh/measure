@@ -825,6 +825,10 @@ ensure() {
     add_env_variable "STRIPE_UNIT_DAYS_METER_NAME" "unit_days" "STRIPE_WEBHOOK_SECRET"
   fi
 
+  if ! check_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID"; then
+    add_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID" "" "STRIPE_UNIT_DAYS_METER_NAME"
+  fi
+
   # remove `frontend/dashboard/.env.local` file
   # if found
   if [[ -f "../frontend/dashboard/.env.local" ]]; then
