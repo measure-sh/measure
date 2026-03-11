@@ -46,6 +46,7 @@ ZSTD (3)),
 `attribute.network_type` LowCardinality(FixedString(16)) COMMENT 'either - wifi, cellular, vpn, unknown, no_network' CODEC(ZSTD(3)),
 `attribute.network_generation` LowCardinality(FixedString(8)) COMMENT 'either - 2g, 3g, 4g, 5g, unknown' CODEC(ZSTD(3)),
 `attribute.network_provider` FixedString(64) COMMENT 'name of the network service provider' CODEC(ZSTD(3)),
+`attribute.session_start_time` DateTime64(3, 'UTC') comment 'start time of the session containing this event' CODEC(DoubleDelta, ZSTD(3)),
 `user_defined_attribute` Map(
 LowCardinality(String),
 Tuple(
