@@ -78,6 +78,12 @@ Perform this step to complete the migration. Measure dashboard will not work pro
 
 ```sh
 sudo ./migrations/v0.10.x-data-backfills-1.sh
+```
+
+```sh
 sudo ./migrations/v0.10.x-data-backfills-2.sh
+```
+
+```sh
 sudo ./migrations/v0.10.x-read-optim.sh
 ```
