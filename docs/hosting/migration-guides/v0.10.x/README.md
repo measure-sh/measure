@@ -8,9 +8,9 @@ Use this guide only when you are on less than `v0.10.0` and upgrading to `v0.10.
 
 Follow these steps when upgrading to `0.10.x`. There is some downtime involved. During the downtime SDKs would receive a `503 Service Unavailable` when sending sessions. Once the upgrade is complete, ingestion should resume normally. SDKs will retry sending unsent sessions automatically.
 
-## 1. SSH into the VM where Measure is hosted
+## 1. Shutdown all Measure services
 
-## 2. Shutdown all Measure services
+SSH into the VM where Measure is hosted.
 
 ```sh
 cd ~/measure/self-host
@@ -20,7 +20,7 @@ cd ~/measure/self-host
 sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
 ```
 
-## 3. Perform the upgrade
+## 2. Perform the upgrade
 
 Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
 
@@ -40,7 +40,7 @@ git fetch --tags
 git checkout <git-tag>
 ```
 
-## 4. Create Google OAuth client secret
+## 3. Create Google OAuth client secret
 
 > [!NOTE]
 >
@@ -56,23 +56,23 @@ Starting with `v0.10.x`, Google sign-in uses a server-side code flow that requir
     OAUTH_GOOGLE_SECRET=your-google-client-secret  # change this
     ```
 
-## 5. Migrate configurations
+## 4. Migrate configurations
 
 ```sh
-cd self-host
+cd ~/measure/self-host
 ```
 
 ```sh
 sudo ./config.sh --production --ensure
 ```
 
-## 6. Start Measure services
+## 5. Start Measure services
 
 ```sh
 sudo ./install.sh
 ```
 
-## 7. Run data back filling script
+## 6. Run data back filling script
 
 Perform this step to complete the migration. Measure dashboard will not work properly until these scripts are run.
 
