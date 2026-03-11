@@ -58,7 +58,7 @@ export function highlightTerms(text: string, query: string): React.ReactNode {
 
   return parts.map((part, i) =>
     terms.some((t) => part.toLowerCase() === t) ? (
-      <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 rounded-sm px-0.5">
+      <mark key={i} className="bg-yellow-200 dark:bg-yellow-300 rounded-sm px-0.5">
         {part}
       </mark>
     ) : (
