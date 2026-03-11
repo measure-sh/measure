@@ -681,7 +681,7 @@ create or replace table unhandled_exception_groups_new
   `device_models` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device models' CODEC(ZSTD(3)),
 
   `count` AggregateFunction(sum, UInt64) comment 'count of unhandled exception instances' CODEC(ZSTD(3)),
-  `timestamp` DateTime64(3, 'UTC') comment 'timestamp of the exception event' CODEC(DoubleDelta, ZSTD(3)),
+  `timestamp` SimpleAggregateFunction(max, DateTime64(3, 'UTC')) comment 'timestamp of the exception event' CODEC(DoubleDelta, ZSTD(3)),
 
   index id_bloom_idx id type bloom_filter(0.01) granularity 1,
   index timestamp_minmax_idx timestamp type minmax granularity 1
@@ -722,7 +722,7 @@ create or replace table anr_groups_new
   `device_models` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device models' CODEC(ZSTD(3)),
 
   `count` AggregateFunction(sum, UInt64) comment 'count of ANR instances' CODEC(ZSTD(3)),
-  `timestamp` DateTime64(3, 'UTC') comment 'timestamp of the ANR event' CODEC(DoubleDelta, ZSTD(3)),
+  `timestamp` SimpleAggregateFunction(max, DateTime64(3, 'UTC')) comment 'timestamp of the ANR event' CODEC(DoubleDelta, ZSTD(3)),
 
   index id_bloom_idx id type bloom_filter(0.01) granularity 1,
   index timestamp_minmax_idx timestamp type minmax granularity 1
