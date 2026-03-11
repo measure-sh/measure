@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
 - (**backend**): Implement app api key rotation by @anupcowkur in #3188
 - (**backend**): Send alerts on bug reports by @anupcowkur in #3183
+- (**frontend**): Add docs to website by @anupcowkur in #3284
 
 ### :bug: Bug fixes
 
