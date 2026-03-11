@@ -47,8 +47,7 @@ final class BaseExceptionGenerator: ExceptionGenerator {
                                 code: nsError.domain,
                                 meta: convertToCodableValue(nsError.userInfo))
 
-        let crashReport = BaseCrashReport(dict)
-        let formatter = CrashDataFormatter(crashReport)
+        let formatter = CrashDataFormatter(dict)
         let exception = formatter.getException(true, error: msrError)
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()

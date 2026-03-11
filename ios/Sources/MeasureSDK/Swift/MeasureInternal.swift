@@ -158,6 +158,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
+    var previousSessionCrashed = false
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
@@ -169,6 +170,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
         self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
+        previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in
             guard let self else { return }
             if let timestamp = self.sessionManager.getSessionStartTime() {
@@ -182,7 +184,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         if configProvider.autoStart {
             start()
         }
-        configLoader.loadDynamicConfig { dynamicConfig in
+        configLoader.loadDynamicConfig { [weak self] dynamicConfig in
+            guard let self else { return }
             self.configProvider.setDynamicConfig(dynamicConfig)
 
             self.sessionManager.onConfigLoaded()
@@ -191,7 +194,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
 
-            self.exporter.export()
+            // The signal processor and exporter operate on separate threads. When a crash from a previous
+            // session is being tracked, the signal processor needs time to process and persist the exception
+            // event before the exporter runs. If the dynamic config fetch happens before the exception is fully tracked,
+            // it triggers a export prematurely, causing the crash
+            // event to be missed in that batch export.
+            //
+            // A 1 second delay is applied when a previous session crash is detected, giving the signal
+            // processor enough time to complete tracking before export begins. No delay is needed for non-crash sessions.
+            self.exporter.export(after: self.previousSessionCrashed ? 1 : 0)
         }
     }
 
@@ -366,7 +377,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
-        self.exporter.export()
+        self.exporter.export(after: 0)
         self.dataCleanupService.clearStaleData()
     }
 

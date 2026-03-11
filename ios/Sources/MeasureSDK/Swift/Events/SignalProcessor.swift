@@ -177,8 +177,11 @@ final class BaseSignalProcessor: SignalProcessor {
             self.signalStore.store(event,
                                    needsReporting: configProvider.enableFullCollectionMode ? true : needsReporting ?? false)
             self.sessionManager.onEventTracked(event)
+            if event.type == .exception && event.exception?.handled == false {
+                logger.log(level: .info, message: "Debugging: signalProcessor.track eventId: \(event.id) sessionId: \(event.sessionId)", error: nil, data: nil)
+            }
             if event.type == .bugReport {
-                self.exporter.export()
+                self.exporter.export(after: 0)
             }
 
             self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
