@@ -22,7 +22,7 @@ sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile 
 
 ## 2. Perform the upgrade
 
-Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `v[MAJOR].[MINOR].[PATCH]` format. For example, `v0.10.0`.
 
 ```sh
 cd ~/measure
