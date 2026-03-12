@@ -38,3 +38,5 @@ next-env.d.ts
 /content/
 /public/docs/
 /public/sitemap.xml
+/public/llms.txt
+/public/llms-full.txt
