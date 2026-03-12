@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "node ./scripts/copy_docs.js && node ./scripts/generate_sitemap.js",
-    "dev": "node ./scripts/copy_docs.js && next dev",
-    "build": "node ./scripts/copy_docs.js && node ./scripts/generate_sitemap.js && next build",
+    "prebuild": "node ./scripts/copy_docs.js && node ./scripts/generate_llms_txts.js && node ./scripts/generate_sitemap.js",
+    "dev": "node ./scripts/copy_docs.js && node ./scripts/generate_llms_txts.js && next dev",
+    "build": "node ./scripts/copy_docs.js && node ./scripts/generate_llms_txts.js && node ./scripts/generate_sitemap.js && next build",
     "start": "next start",
     "lint": "next lint",
     "generate:sitemap": "node ./scripts/generate_sitemap.js",

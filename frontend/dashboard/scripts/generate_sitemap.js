@@ -4,7 +4,7 @@ const path = require('path')
 const ROOT = path.resolve(__dirname, '..')
 const APP_DIR = path.join(ROOT, 'app')
 const PUBLIC_DIR = path.join(ROOT, 'public')
-const SITE_URL = 'https://measure.sh'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://measure.sh'
 
 function walk(dir) {
     const files = []
