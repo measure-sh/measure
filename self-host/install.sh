@@ -541,17 +541,6 @@ function remove_minio_mc_image() {
 }
 
 # ------------------------------------------------------------------------------
-# run_backfills runs data backfill script when needed.
-# ------------------------------------------------------------------------------
-run_backfills() {
-  if [[ "$FRESH_INSTALL" == "true" ]]; then
-    # source ./migrations/v0.10.x-data-backfills-1.sh
-    # source ./migrations/v0.10.x-read-optim.sh
-    echo "not running anything for fresh install"
-  fi
-}
-
-# ------------------------------------------------------------------------------
 # cleanup detects and removes unused resources.
 # ------------------------------------------------------------------------------
 cleanup() {
@@ -660,5 +649,4 @@ start_docker
 ensure_config
 detect_compose_command
 start_docker_compose
-run_backfills
 cleanup
