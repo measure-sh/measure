@@ -98,8 +98,7 @@ export default function LandingHeader() {
         {/* Desktop nav - hidden on small screens */}
         <div className="hidden md:flex md:flex-row items-center justify-center md:ml-24">
           <Link
-            href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
-            target="_blank"
+            href="/docs"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "w-24"
@@ -185,8 +184,7 @@ export default function LandingHeader() {
         )}
       >
         <Link
-          href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
-          target="_blank"
+          href="/docs"
           className={cn(
             buttonVariants({ variant: "ghost" }),
             "w-full justify-center"

@@ -2,8 +2,10 @@
 FROM node:lts-alpine AS builder
 
 WORKDIR /app
-COPY ./ ./
+COPY package.json package-lock.json* ./
 RUN apk add --no-cache ca-certificates && npm install
+COPY ./ ./
+COPY --from=docs . ./content/docs
 
 FROM builder
 WORKDIR /app

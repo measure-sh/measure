@@ -124,7 +124,7 @@ A **span** is the fundamental building block of a trace. A span represents a sin
 
 Each span can optionally have a **parent span**, which allows you to create a hierarchy of spans. This is useful for tracking nested operations. For example, if a user journey involves multiple steps, each step can be represented as a child span of the main user journey span.
 
-![Trace view](assets/trace-view.png)
+![Trace view](../assets/trace-view.png)
 
 ## API Reference
 
@@ -755,7 +755,7 @@ The spans have the following checkpoints:
 
 The following image shows TTID spans of an Activity along with its two Fragments visualized using Perfetto.
 
-![screen-load-span.png](assets/android-screen-load-span.png)
+![screen-load-span.png](../assets/android-screen-load-span.png)
 
 ### iOS
 

@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 	"github.com/stripe/stripe-go/v84"
+	"github.com/stripe/stripe-go/v84/billing/meter"
+	"github.com/stripe/stripe-go/v84/billing/metereventsummary"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/customer"
 	"github.com/stripe/stripe-go/v84/invoice"
@@ -42,6 +44,8 @@ var (
 	FindActiveSubscriptionFn      = FindActiveSubscription
 	GetStripeSubscriptionFn       = subscription.Get
 	CreateInvoicePreviewFn        = invoice.CreatePreview
+	FindMeterIDFn                 = lookupMeterID
+	GetMeterUsageFn               = getMeterUsage
 )
 
 // Deps bundles all external dependencies for orchestrator functions
@@ -80,11 +84,14 @@ type SubscriptionInfo struct {
 	CurrentPeriodStart int64                `json:"current_period_start"`
 	CurrentPeriodEnd   int64                `json:"current_period_end"`
 	UpcomingInvoice    *UpcomingInvoiceInfo `json:"upcoming_invoice"`
+	BillingCycleUsage  float64              `json:"billing_cycle_usage"`
 }
 
 // GetSubscriptionInfo fetches live subscription status and upcoming invoice
 // from Stripe for the given team. The team must be on the pro plan.
-func GetSubscriptionInfo(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID) (*SubscriptionInfo, error) {
+// If meterName is non-empty, billing cycle usage is fetched from Stripe's
+// meter event summary API.
+func GetSubscriptionInfo(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID, meterName string) (*SubscriptionInfo, error) {
 	cfg, err := GetTeamBilling(ctx, pool, teamID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -134,7 +141,58 @@ func GetSubscriptionInfo(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 		}
 	}
 
+	// Fetch billing cycle usage from Stripe meter — best-effort.
+	if meterName != "" && cfg.StripeCustomerID != nil && *cfg.StripeCustomerID != "" &&
+		info.CurrentPeriodStart > 0 && info.CurrentPeriodEnd > 0 {
+		meterID, err := FindMeterIDFn(meterName)
+		if err != nil {
+			log.Printf("failed to find meter ID for %q (team %s): %v", meterName, teamID, err)
+		} else {
+			usage, err := GetMeterUsageFn(meterID, *cfg.StripeCustomerID, info.CurrentPeriodStart, info.CurrentPeriodEnd)
+			if err != nil {
+				log.Printf("failed to fetch meter usage for team %s: %v", teamID, err)
+			} else {
+				info.BillingCycleUsage = usage
+			}
+		}
+	}
+
 	return info, nil
+}
+
+// lookupMeterID looks up a Stripe billing meter ID by its event name.
+func lookupMeterID(meterName string) (string, error) {
+	iter := meter.List(&stripe.BillingMeterListParams{})
+	for iter.Next() {
+		m := iter.BillingMeter()
+		if m.EventName == meterName {
+			return m.ID, nil
+		}
+	}
+	if err := iter.Err(); err != nil {
+		return "", fmt.Errorf("list meters: %w", err)
+	}
+	return "", fmt.Errorf("meter with event_name=%q not found", meterName)
+}
+
+// getMeterUsage fetches the aggregated meter usage for a customer within a time range.
+func getMeterUsage(meterID, customerID string, start, end int64) (float64, error) {
+	params := &stripe.BillingMeterEventSummaryListParams{
+		ID:        stripe.String(meterID),
+		Customer:  stripe.String(customerID),
+		StartTime: stripe.Int64(start),
+		EndTime:   stripe.Int64(end),
+	}
+	var total float64
+	iter := metereventsummary.List(params)
+	for iter.Next() {
+		summary := iter.BillingMeterEventSummary()
+		total += summary.AggregatedValue
+	}
+	if err := iter.Err(); err != nil {
+		return 0, fmt.Errorf("list meter event summaries: %w", err)
+	}
+	return total, nil
 }
 
 // GetTeamBilling reads the team_billing row for the given team.

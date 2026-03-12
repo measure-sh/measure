@@ -31,6 +31,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../frontend/dashboard
+      additional_contexts:
+        docs: ../docs
     ports:
       - "3000:3000"
     environment:
@@ -60,6 +62,9 @@ services:
         - path: ../frontend/dashboard
           action: sync
           target: /app
+        - path: ../docs
+          action: sync
+          target: /app/content/docs
 
   api:
     build:
@@ -78,6 +83,7 @@ services:
       - STRIPE_API_KEY=${STRIPE_API_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - STRIPE_PRO_UNIT_DAYS_PRICE_ID=${STRIPE_PRO_UNIT_DAYS_PRICE_ID}
+      - STRIPE_UNIT_DAYS_METER_NAME=${STRIPE_UNIT_DAYS_METER_NAME}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}

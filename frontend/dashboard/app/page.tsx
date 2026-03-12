@@ -498,7 +498,7 @@ export default function Home() {
             </div>
             <div className='flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-border'>
               <p className='text-4xl font-body text-center'>Flexible Hosting</p>
-              <p className='text-sm font-display text-center mt-4'><Link href="/auth/login" className={underlineLinkStyle}>Measure Cloud</Link> for convenience or <Link href="https://github.com/measure-sh/measure/blob/main/docs/hosting/README.md" target='_blank' className={underlineLinkStyle}>Self Host</Link></p>
+              <p className='text-sm font-display text-center mt-4'><Link href="/auth/login" className={underlineLinkStyle}>Measure Cloud</Link> for convenience or <Link href="/docs/hosting" className={underlineLinkStyle}>Self Host</Link></p>
             </div>
           </div>
           <div className='w-full bg-card text-card-foreground border border-border p-12 max-w-6xl'>

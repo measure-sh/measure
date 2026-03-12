@@ -209,8 +209,7 @@ export default function LandingFooter() {
             GitHub
           </Link>
           <Link
-            href="https://github.com/measure-sh/measure?tab=readme-ov-file#docs"
-            target="_blank"
+            href="/docs"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "font-display select-none w-full md:w-fit",

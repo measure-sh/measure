@@ -30,6 +30,40 @@ function isDynamic(route) {
     return /\[.+?\]/.test(route)
 }
 
+function getDocsSlugs() {
+    const contentDir = path.join(ROOT, 'content', 'docs')
+    if (!fs.existsSync(contentDir)) {
+        return []
+    }
+
+    const slugs = []
+
+    function walkDocs(dir, prefix) {
+        const entries = fs.readdirSync(dir, { withFileTypes: true })
+        for (const entry of entries) {
+            if (entry.isDirectory()) {
+                if (entry.name === 'assets') {
+                    continue
+                }
+                walkDocs(path.join(dir, entry.name), [...prefix, entry.name])
+            } else if (entry.isFile() && entry.name.endsWith('.md')) {
+                if (entry.name === 'README.md') {
+                    if (prefix.length > 0) {
+                        slugs.push('/docs/' + prefix.join('/'))
+                    }
+                    // Root README.md is /docs (static page, already picked up)
+                } else {
+                    const name = entry.name.replace(/\.md$/, '')
+                    slugs.push('/docs/' + [...prefix, name].join('/'))
+                }
+            }
+        }
+    }
+
+    walkDocs(contentDir, [])
+    return slugs
+}
+
 function ensurePublicDir() {
     if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true })
 }
@@ -60,11 +94,19 @@ function main() {
     for (const f of files) {
         const route = routeFromFile(f)
         if (isDynamic(route)) {
-            // Ignore all dynamic routes when generating sitemap
-            console.log('Ignoring dynamic route:', route)
             continue
         }
         routes.add(route === '/' ? '/' : route.replace(/\\/g, '/'))
+    }
+
+    // Add docs pages from content/docs/
+    const docsSlugs = getDocsSlugs()
+    for (const slug of docsSlugs) {
+        routes.add(slug)
+    }
+
+    if (docsSlugs.length > 0) {
+        console.log(`Added ${docsSlugs.length} docs pages to sitemap`)
     }
 
     const urls = Array.from(routes)
@@ -79,3 +121,5 @@ function main() {
 }
 
 if (require.main === module) main()
+
+module.exports = { walk, routeFromFile, isDynamic, getDocsSlugs, buildSitemap, ensurePublicDir, main, APP_DIR, PUBLIC_DIR, ROOT, SITE_URL }

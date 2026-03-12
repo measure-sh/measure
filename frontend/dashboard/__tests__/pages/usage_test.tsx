@@ -122,6 +122,7 @@ jest.mock('@/app/api/api_calls', () => ({
                 current_period_start: 1700000000,
                 current_period_end: 1702678400,
                 upcoming_invoice: { amount_due: 5000, currency: 'usd' },
+                billing_cycle_usage: 12000000,
             },
         })
     ),
@@ -437,7 +438,7 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Free plan usage:/)).not.toBeInTheDocument()
         expect(screen.queryByText(/free units/)).not.toBeInTheDocument()
     })
 
@@ -809,6 +810,58 @@ describe('Usage Page', () => {
         expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('downgraded to Free'))
     })
 
+    it('shows pro plan feature list when on free plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'free',
+                    max_retention: 30,
+                    max_units: 1000000,
+                    stripe_customer_id: null,
+                    stripe_subscription_id: null,
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText(/units per month included/)).toBeInTheDocument()
+        expect(screen.getByText(/Retention up to/)).toBeInTheDocument()
+        expect(screen.getByText(/Extra units & retention charged at/)).toBeInTheDocument()
+    })
+
+    it('hides pro plan feature list when on pro plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText(/units per month included/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Retention up to/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Extra units & retention charged at/)).not.toBeInTheDocument()
+    })
+
     it('shows subscription info on pro plan when user can change billing', async () => {
         const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
@@ -950,6 +1003,7 @@ describe('Usage Page', () => {
                     current_period_start: 1700000000,
                     current_period_end: 1702678400,
                     upcoming_invoice: null,
+                    billing_cycle_usage: 5000000,
                 },
             })
         )
@@ -962,5 +1016,132 @@ describe('Usage Page', () => {
         expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
         expect(screen.getByText(/Next invoice:/)).toBeInTheDocument()
         expect(screen.queryByText(/Upcoming invoice amount/)).not.toBeInTheDocument()
+    })
+
+    it('shows unit-days used in pro plan card', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    status: 'active',
+                    current_period_start: 1700000000,
+                    current_period_end: 1702678400,
+                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
+                    billing_cycle_usage: 12500000,
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        const unitsItem = screen.getByText(/Unit-days used/)
+        expect(unitsItem).toBeInTheDocument()
+        expect(unitsItem.textContent).toContain('12,500,000')
+    })
+
+    it('shows unit-days used in pro plan card with high usage', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    status: 'active',
+                    current_period_start: 1700000000,
+                    current_period_end: 1702678400,
+                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
+                    billing_cycle_usage: 30000000,
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        const unitsItem = screen.getByText(/Unit-days used/)
+        expect(unitsItem).toBeInTheDocument()
+        expect(unitsItem.textContent).toContain('30,000,000')
+    })
+
+    it('does not show unit-days used on free plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'free',
+                    stripe_customer_id: null,
+                    stripe_subscription_id: null,
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText(/Unit-days used/)).not.toBeInTheDocument()
+    })
+
+    it('does not show unit-days used when subscription info fetch fails', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({ status: 2, data: null }) // Error
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText(/Unit-days used/)).not.toBeInTheDocument()
     })
 })

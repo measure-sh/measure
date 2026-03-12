@@ -19,7 +19,7 @@ Crashes are automatically tracked, optionally with a snapshot of the app's UI at
 
 Metrics related to crashes are automatically computed and shown on the dashboard.
 
-![Crash metrics](assets/crash-metrics.png)
+![Crash metrics](../assets/crash-metrics.png)
 
 ### Crash-Free Rate
 

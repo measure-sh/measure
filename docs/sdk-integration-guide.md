@@ -16,7 +16,7 @@ Create a new app by visiting the _Apps_ section on the dashboard.
 Once the app is created, note the `API URL` & `API Key` for your app. This will be used in the SDK configuration
 in later steps.
 
-![Create new app](features/assets/create-app.png)
+![Create new app](assets/create-app.png)
 
 ## 2. Set Up the SDK
 

@@ -12,11 +12,11 @@ import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
 
 import DangerConfirmationDialog from '@/app/components/danger_confirmation_dialog'
+import { Progress } from '@/app/components/progress'
 import { toastNegative, toastPositive } from '@/app/utils/use_toast'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Progress } from '@/app/components/progress'
 
 export default function Usage({ params }: { params: { teamId: string } }) {
   type BillingInfo = {
@@ -44,6 +44,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
       amount_due: number
       currency: string
     } | null
+    billing_cycle_usage: number
   }
 
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
@@ -376,11 +377,11 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                     {showCurrentPlanBadge()}
                     <div className="p-4 md:p-8 flex flex-col items-center">
                       <p className='text-xl font-display'>FREE</p>
-                      <p className='text-4xl font-display py-4'>$0 per month</p>
-                      <ul className='list-inside space-y-2'>
-                        <li className='font-body text-center'>Up to {FREE_UNITS.toLocaleString()} units per month</li>
-                        <li className='font-body text-center'>{FREE_RETENTION_DAYS} days retention</li>
-                        <li className='font-body text-center'>No credit card needed</li>
+                      <p className='text-4xl font-display py-2'>$0 per month</p>
+                      <ul className='list-disc space-y-2 mt-6'>
+                        <li className='font-body'>Up to {FREE_UNITS.toLocaleString()} units per month</li>
+                        <li className='font-body'>{FREE_RETENTION_DAYS} days retention</li>
+                        <li className='font-body'>No credit card needed</li>
                       </ul>
                     </div>
                   </Card>
@@ -391,40 +392,49 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                   {billingInfo?.plan === 'pro' && showCurrentPlanBadge()}
                   <div className="p-4 md:p-8 flex flex-col items-center">
                     <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
-                    <p className='text-4xl text-green-900 dark:text-primary font-display py-4'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
-                    <ul className='list-inside space-y-2'>
-                      <li className='font-body text-center text-green-900 dark:text-foreground'>{INCLUDED_PRO_UNITS.toLocaleString()} units per month included</li>
-                      <li className='font-body text-center text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
-                      <li className='font-body text-center text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
-                    </ul>
+                    <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
+                    {billingInfo?.plan !== 'pro' && (
+                      <ul className='list-disc space-y-2 mt-6'>
+                        <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_UNITS.toLocaleString()} units per month included</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
+                      </ul>
+                    )}
                     {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Success && subscriptionInfo && (
-                      <div className='mt-4 text-sm font-body text-center space-y-1'>
-                        <p className='text-green-900 dark:text-foreground'>
-                          Status: <span className='font-semibold capitalize'>{subscriptionInfo.status}</span>
-                        </p>
-                        <p className='text-green-900 dark:text-foreground'>
-                          Current billing cycle: <span className='font-semibold'>
-                            {new Date(subscriptionInfo.current_period_start * 1000).toLocaleDateString()} – {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
-                          </span>
-                        </p>
-                        <p className='text-green-900 dark:text-foreground'>
-                          Next invoice: <span className='font-semibold'>
-                            {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
-                          </span>
-                        </p>
-                        {subscriptionInfo.upcoming_invoice && (
-                          <p className='text-green-900 dark:text-foreground'>
-                            Upcoming invoice amount (based on usage so far): <span className='font-semibold'>
-                              {(subscriptionInfo.upcoming_invoice.amount_due / 100).toLocaleString(undefined, {
-                                style: 'currency',
-                                currency: subscriptionInfo.upcoming_invoice.currency.toUpperCase(),
-                              })}
+                      <div className='mt-4 font-body text-start space-y-1'>
+                        <ul className='list-disc list-inside'>
+                          <li className='text-green-900 dark:text-foreground'>
+                            Status: <span className='font-semibold capitalize'>{subscriptionInfo.status}</span>
+                          </li>
+                          <li className='text-green-900 dark:text-foreground'>
+                            Current billing cycle: <span className='font-semibold'>
+                              {new Date(subscriptionInfo.current_period_start * 1000).toLocaleDateString()} – {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
                             </span>
-                          </p>
-                        )}
+                          </li>
+                          <li className='text-green-900 dark:text-foreground'>
+                            Next invoice: <span className='font-semibold'>
+                              {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                            </span>
+                          </li>
+                          <li className='text-green-900 dark:text-foreground'>
+                            Unit-days used (units x retention days based on usage so far): <span className='font-semibold'>
+                              {subscriptionInfo.billing_cycle_usage.toLocaleString()}
+                            </span>
+                          </li>
+                          {subscriptionInfo.upcoming_invoice && (
+                            <li className='text-green-900 dark:text-foreground'>
+                              Upcoming invoice amount (based on usage so far): <span className='font-semibold'>
+                                {(subscriptionInfo.upcoming_invoice.amount_due / 100).toLocaleString(undefined, {
+                                  style: 'currency',
+                                  currency: subscriptionInfo.upcoming_invoice.currency.toUpperCase(),
+                                })}
+                              </span>
+                            </li>
+                          )}
+                        </ul>
                       </div>
                     )}
-                    <div className='pt-6'>
+                    <div className='pt-12'>
                       {billingInfo?.plan === 'free' && (
                         <Button
                           className={buttonVariants({ variant: "default" })}

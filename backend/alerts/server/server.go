@@ -190,14 +190,17 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	chOpts.Settings = clickhouse.Settings{
-		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-		"compatibility": "25.10",
-	}
+	var chPool driver.Conn
+	if chOpts != nil {
+		chOpts.Settings = clickhouse.Settings{
+			// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
+			"compatibility": "25.10",
+		}
 
-	chPool, err := clickhouse.Open(chOpts)
-	if err != nil {
-		log.Printf("Unable to create CH connection pool: %v\n", err)
+		chPool, err = clickhouse.Open(chOpts)
+		if err != nil {
+			log.Printf("Unable to create CH connection pool: %v\n", err)
+		}
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)

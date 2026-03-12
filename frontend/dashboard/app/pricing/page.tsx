@@ -105,7 +105,7 @@ export default function Pricing() {
         <div className="py-8" />
         <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
           Measure Cloud pricing is based on the data you send to us and how long you retain it.
-          If you are <Link href="https://github.com/measure-sh/measure/blob/main/docs/hosting/README.md" target="_blank" className={underlineLinkStyle}>self hosting</Link>, it is completely free to use.
+          If you are <Link href="/docs/hosting" className={underlineLinkStyle}>self hosting</Link>, it is completely free to use.
         </p>
 
         <div className="py-8" />
@@ -113,22 +113,22 @@ export default function Pricing() {
           <Card className='w-full md:w-1/2'>
             <div className="p-4 md:p-8 flex flex-col items-center">
               <p className='text-xl font-display'>FREE</p>
-              <p className='text-4xl font-display py-4'>$0 per month</p>
-              <ul className='list-inside space-y-2'>
-                <li className='font-body text-center'>Up to {formatNumber(FREE_UNITS)} units per month</li>
-                <li className='font-body text-center'>30 day retention</li>
-                <li className='font-body text-center'>No credit card needed</li>
+              <p className='text-4xl font-display py-2'>$0 per month</p>
+              <ul className='list-disc space-y-2 mt-6'>
+                <li className='font-body'>Up to {formatNumber(FREE_UNITS)} units per month</li>
+                <li className='font-body'>30 day retention</li>
+                <li className='font-body'>No credit card needed</li>
               </ul>
             </div>
           </Card>
           <Card className='w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-300 dark:border-border'>
             <div className="p-4 md:p-8 flex flex-col items-center">
               <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
-              <p className='text-4xl text-green-900 dark:text-primary font-display py-4'>$50 per month</p>
-              <ul className='list-inside space-y-2'>
-                <li className='font-body text-center text-green-900 dark:text-foreground'>{formatNumber(INCLUDED_PRO_UNITS)} units per month included</li>
-                <li className='font-body text-center text-green-900 dark:text-foreground'>Retention upto 1 year</li>
-                <li className='font-body text-center text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
+              <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>$50 per month</p>
+              <ul className='list-disc space-y-2 mt-6'>
+                <li className='font-body text-green-900 dark:text-foreground'>{formatNumber(INCLUDED_PRO_UNITS)} units per month included</li>
+                <li className='font-body text-green-900 dark:text-foreground'>Retention upto 1 year</li>
+                <li className='font-body text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
               </ul>
             </div>
           </Card>

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
 - (**backend**): Implement app api key rotation by @anupcowkur in #3188
 - (**backend**): Send alerts on bug reports by @anupcowkur in #3183
+- (**frontend**): Add docs to website by @anupcowkur in #3284
 
 ### :bug: Bug fixes
 
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Show unit-days used in pro plan by @anupcowkur in #3282
 - (**backend**): Remove clickhouse read pool from alerts (#3273) by @detj in #3273
 - (**backend**): Remove proxy symbol method from ingest service (#3276) by @detj in #3276
 - (**backend**): Reverse proxy urls using recommended api (#3274) by @detj in #3274
@@ -54,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
+- (**frontend**): Update search term dark highlight colour by @anupcowkur in #3286
+- (**frontend**): Improve pricing card UI by @anupcowkur in #3280
 - (**frontend**): Add test for ingest url fallback display by @anupcowkur in #3266
 - (**frontend**): Show subscription info for pro plans by @anupcowkur in #3234
 - (**frontend**): Show billing usage progress bar for free plans by @anupcowkur
