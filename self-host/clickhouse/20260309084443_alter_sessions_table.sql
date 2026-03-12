@@ -33,19 +33,6 @@ alter table sessions
 
 -- migrate:up
 alter table sessions
-    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64),
-    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64),
-    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64);
-
--- migrate:down
-alter table sessions
-    drop column if exists `event_count`,
-    drop column if exists `crash_count`,
-    drop column if exists `anr_count`
-settings mutations_sync = 2;
-
--- migrate:up
-alter table sessions
     add column if not exists `country_codes`               SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique country codes',
     add column if not exists `network_providers`           SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network service providers',
     add column if not exists `network_types`               SimpleAggregateFunction(groupUniqArrayArray, Array(String)) comment 'list of all unique network types',
@@ -66,10 +53,14 @@ alter table sessions
     add column if not exists `unique_click_targets`        SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of click targets and ids' CODEC(ZSTD(3)),
     add column if not exists `unique_longclick_targets`    SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of long click targets and ids' CODEC(ZSTD(3)),
     add column if not exists `unique_scroll_targets`       SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of scroll targets and ids' CODEC(ZSTD(3)),
+    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `unique_scroll_targets`,
+    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `event_count`,
+    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `crash_count`,
     add column if not exists `bug_report_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of bug report events in this session' CODEC(ZSTD(3)),
     add column if not exists `background_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of background events in this session' CODEC(ZSTD(3)),
     add column if not exists `foreground_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of foreground events in this session' CODEC(ZSTD(3)),
     add column if not exists `event_type_counts`           SimpleAggregateFunction(sumMap, Map(String, UInt64)) comment 'count of event types in this session' CODEC(ZSTD(3));
+
 
 -- migrate:down
 alter table sessions
@@ -93,7 +84,23 @@ alter table sessions
     drop column if exists `unique_click_targets`,
     drop column if exists `unique_longclick_targets`,
     drop column if exists `unique_scroll_targets`,
+    drop column if exists `event_count`,
+    drop column if exists `crash_count`,
+    drop column if exists `anr_count`,
     drop column if exists `bug_report_count`,
     drop column if exists `background_count`,
     drop column if exists `foreground_count`,
-    drop column if exists `event_type_counts`;
+    drop column if exists `event_type_counts`
+settings mutations_sync = 2;
+
+-- migrate:up
+alter table sessions
+    add index if not exists crash_count_minmax_idx crash_count type minmax granularity 1,
+    add index if not exists anr_count_minmax_idx anr_count type minmax granularity 1
+settings mutations_sync = 2;
+
+-- migrate:down
+alter table sessions
+    drop index if exists crash_count_minmax_idx,
+    drop index if exists anr_count_minmax_idx
+settings mutations_sync = 2;
