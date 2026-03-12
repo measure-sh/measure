@@ -53,9 +53,9 @@ alter table sessions
     add column if not exists `unique_click_targets`        SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of click targets and ids' CODEC(ZSTD(3)),
     add column if not exists `unique_longclick_targets`    SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of long click targets and ids' CODEC(ZSTD(3)),
     add column if not exists `unique_scroll_targets`       SimpleAggregateFunction(groupUniqArrayArray, Array(Tuple(String, String))) comment 'list of unique tuples of scroll targets and ids' CODEC(ZSTD(3)),
-    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `unique_scroll_targets`,
-    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `event_count`,
-    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(3)) after `crash_count`,
+    add column if not exists `event_count` SimpleAggregateFunction(sum, UInt64) comment 'count of events in this session' CODEC(ZSTD(3)) after `unique_scroll_targets`,
+    add column if not exists `crash_count` SimpleAggregateFunction(sum, UInt64) comment 'count of crash events in this session' CODEC(ZSTD(3)) after `event_count`,
+    add column if not exists `anr_count`   SimpleAggregateFunction(sum, UInt64) comment 'count of ANR events in this session' CODEC(ZSTD(3)) after `crash_count`,
     add column if not exists `bug_report_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of bug report events in this session' CODEC(ZSTD(3)),
     add column if not exists `background_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of background events in this session' CODEC(ZSTD(3)),
     add column if not exists `foreground_count`            SimpleAggregateFunction(sum, UInt64) comment 'count of foreground events in this session' CODEC(ZSTD(3)),
@@ -90,8 +90,7 @@ alter table sessions
     drop column if exists `bug_report_count`,
     drop column if exists `background_count`,
     drop column if exists `foreground_count`,
-    drop column if exists `event_type_counts`
-settings mutations_sync = 2;
+    drop column if exists `event_type_counts`;
 
 -- migrate:up
 alter table sessions
