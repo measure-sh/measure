@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 protocol Exporter {
-    func export()
+    func export(after delay: TimeInterval)
 }
 
 final class BaseExporter: Exporter {
@@ -59,7 +59,7 @@ final class BaseExporter: Exporter {
         self.systemFileManager = systemFileManager
     }
 
-    func export() {
+    func export(after delay: TimeInterval) {
         var started = false
         isExporting.setTrueIfFalse { started = true }
 
@@ -72,7 +72,7 @@ final class BaseExporter: Exporter {
 
         startBackgroundTask()
 
-        dispatchQueue.async { [weak self] in
+        dispatchQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self else { return }
 
             self.exportEvents()

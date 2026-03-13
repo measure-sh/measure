@@ -224,15 +224,16 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                    measureDispatchQueue: self.measureDispatchQueue,
                                                    signalSampler: self.signalSampler,
                                                    exporter: self.exporter)
-        self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
+        self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger,
+                                                                                  crashDataPersistence: self.crashDataPersistence)
 
-        self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
-                                                        signalProcessor: self.signalProcessor,
-                                                        crashDataPersistence: self.crashDataPersistence,
-                                                        crashReporter: self.systemCrashReporter,
-                                                        systemFileManager: self.systemFileManager,
-                                                        idProvider: self.idProvider,
-                                                        configProvider: self.configProvider)
+        self.crashReportManager = crashReportManager ?? BaseCrashReportingManager(logger: self.logger,
+                                                                                  signalProcessor: self.signalProcessor,
+                                                                                  crashDataPersistence: self.crashDataPersistence,
+                                                                                  crashReporter: self.systemCrashReporter,
+                                                                                  systemFileManager: self.systemFileManager,
+                                                                                  idProvider: self.idProvider,
+                                                                                  configProvider: self.configProvider)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                signalProcessor: self.signalProcessor,
                                                attributeProcessors: attributeProcessors,
@@ -302,8 +303,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                              timeProvider: self.timeProvider,
                                                              configProvider: self.configProvider,
                                                              attributeValueValidator: self.attributeValueValidator)
-        self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(crashReporter: self.systemCrashReporter,
-                                                         logger: self.logger)
+        self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(logger: self.logger,
+                                                                               crashDataPersistence: self.crashDataPersistence)
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                            timeProvider: self.timeProvider,
                                                                            logger: self.logger,
