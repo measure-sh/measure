@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"backend/api/group"
 	"backend/api/journey"
 	"backend/api/metrics"
+	"backend/api/network"
 	"backend/api/server"
 	"backend/api/session"
 	"backend/api/span"
@@ -8984,4 +8986,939 @@ func PatchConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "config updated successfully"})
+}
+
+func GetNetworkRequestsDomains(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	origins, err := network.FetchDomains(ctx, *app.ID, *team.ID, af.From, af.To)
+	if err != nil {
+		msg := "failed to get network domains"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": origins,
+	})
+}
+
+func GetNetworkRequestsPaths(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	domain := c.Query("domain")
+	if domain == "" {
+		msg := `domain query parameter is required`
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	search := c.Query("search")
+
+	paths, err := network.FetchPaths(ctx, *app.ID, *team.ID, domain, search, af.From, af.To)
+	if err != nil {
+		msg := "failed to get network paths"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": paths,
+	})
+}
+
+func GetNetworkEndpointLatencyPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	domain := c.Query("domain")
+	if domain == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing domain query param"})
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing path query param"})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "network metrics request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	result, err := network.GetEndpointLatencyPlot(ctx, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	if err != nil {
+		msg := "failed to get network latency metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkEndpointStatusCodesPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	domain := c.Query("domain")
+	if domain == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing domain query param"})
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing path query param"})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "network metrics request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	result, err := network.GetEndpointStatusCodesPlot(ctx, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	if err != nil {
+		msg := "failed to get network status distribution metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkRequestsTrends(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "network overview request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	trendsLimit := 10
+	if v, err := strconv.Atoi(c.Query("trends_limit")); err == nil && v > 0 {
+		trendsLimit = v
+	}
+	if trendsLimit > 50 {
+		trendsLimit = 50
+	}
+
+	result, err := network.FetchTrends(ctx, *app.ID, *team.ID, &af, trendsLimit)
+	if err != nil {
+		msg := "failed to get network overview"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkOverviewTimelinePlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "session timeline request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	timelineLimit, _ := strconv.Atoi(c.Query("timeline_limit"))
+
+	result, err := network.FetchOverviewTimeline(ctx, *app.ID, *team.ID, &af, timelineLimit)
+	if err != nil {
+		msg := "failed to get session timeline data"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkEndpointTimelinePlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "endpoint timeline request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	domain := c.Query("domain")
+	if domain == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing domain query param"})
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing path query param"})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	result, err := network.FetchEndpointTimeline(ctx, *app.ID, *team.ID, domain, path, &af)
+	if err != nil {
+		msg := "failed to get endpoint timeline data"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func GetNetworkOverviewStatusCodesPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "network status overview plot request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	if !af.HasPlotTimeGroup() {
+		af.SetDefaultPlotTimeGroup()
+	}
+
+	groupExpr, err := getPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	if err != nil {
+		msg := "failed to get network status overview plot"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

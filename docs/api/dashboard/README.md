@@ -237,6 +237,48 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
   - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-43)
+  - [GET `/apps/:id/networkRequests/domains`](#get-appsidnetworkrequestsdomains)
+    - [Usage Notes](#usage-notes-44)
+    - [Authorization \& Content Type](#authorization--content-type-41)
+    - [Response Body](#response-body-44)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
+  - [GET `/apps/:id/networkRequests/paths`](#get-appsidnetworkrequestspaths)
+    - [Usage Notes](#usage-notes-45)
+    - [Authorization \& Content Type](#authorization--content-type-42)
+    - [Response Body](#response-body-45)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
+  - [GET `/apps/:id/networkRequests/trends`](#get-appsidnetworkrequeststrends)
+    - [Usage Notes](#usage-notes-46)
+    - [Authorization \& Content Type](#authorization--content-type-43)
+    - [Response Body](#response-body-46)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
+  - [GET `/apps/:id/networkRequests/plots/overviewStatusCodes`](#get-appsidnetworkrequestsplotsoverviewstatuscodes)
+    - [Usage Notes](#usage-notes-47)
+    - [Authorization \& Content Type](#authorization--content-type-44)
+    - [Response Body](#response-body-47)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
+  - [GET `/apps/:id/networkRequests/plots/endpointLatency`](#get-appsidnetworkrequestsplotsendpointlatency)
+    - [Usage Notes](#usage-notes-48)
+    - [Authorization \& Content Type](#authorization--content-type-45)
+    - [Response Body](#response-body-48)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
+  - [GET `/apps/:id/networkRequests/plots/endpointStatusCodes`](#get-appsidnetworkrequestsplotsendpointstatuscodes)
+    - [Usage Notes](#usage-notes-49)
+    - [Authorization \& Content Type](#authorization--content-type-46)
+    - [Response Body](#response-body-49)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
+  - [GET `/apps/:id/networkRequests/plots/overviewTimeline`](#get-appsidnetworkrequestsplotsoverviewtimeline)
+    - [Usage Notes](#usage-notes-50)
+    - [Authorization \& Content Type](#authorization--content-type-47)
+    - [Response Body](#response-body-50)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
+  - [GET `/apps/:id/networkRequests/plots/endpointTimeline`](#get-appsidnetworkrequestsplotsendpointtimeline)
+    - [Usage Notes](#usage-notes-51)
+    - [Authorization \& Content Type](#authorization--content-type-48)
+    - [Response Body](#response-body-51)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
@@ -807,6 +849,14 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/alerts`**](#get-appsidalerts) - Fetch an app's alerts with optional filters.
 - [**GET `/apps/:id/config`**](#get-appsidconfig) - Fetch an app's config.
 - [**PATCH `/apps/:id/config`**](#patch-appsidconfig) - Update an app's config.
+- [**GET `/apps/:id/networkRequests/domains`**](#get-appsidnetworkrequestsdomains) - Fetch an app's unique network request domains.
+- [**GET `/apps/:id/networkRequests/paths`**](#get-appsidnetworkrequestspaths) - Fetch an app's network request paths for a domain.
+- [**GET `/apps/:id/networkRequests/trends`**](#get-appsidnetworkrequeststrends) - Fetch an app's network request trends by latency, error rate, and frequency.
+- [**GET `/apps/:id/networkRequests/plots/overviewStatusCodes`**](#get-appsidnetworkrequestsplotsoverviewstatuscodes) - Fetch an app's overall network status distribution plot.
+- [**GET `/apps/:id/networkRequests/plots/endpointLatency`**](#get-appsidnetworkrequestsplotsendpointlatency) - Fetch a network endpoint's latency percentiles plot.
+- [**GET `/apps/:id/networkRequests/plots/endpointStatusCodes`**](#get-appsidnetworkrequestsplotsendpointstatuscodes) - Fetch a network endpoint's status distribution plot.
+- [**GET `/apps/:id/networkRequests/plots/overviewTimeline`**](#get-appsidnetworkrequestsplotsoverviewtimeline) - Fetch an app's overview network request timeline plot.
+- [**GET `/apps/:id/networkRequests/plots/endpointTimeline`**](#get-appsidnetworkrequestsplotsendpointtimeline) - Fetch a network endpoint's request timeline plot.
 
 ### GET `/apps/:id/journey`
 
@@ -5840,6 +5890,767 @@ The required headers must be present in each request.
     ```
   </details>
 
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/domains`
+
+Fetch an app's unique network request domains ordered by request frequency.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "results": [
+      "api.example.com",
+      "cdn.example.com"
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/paths`
+
+Fetch an app's network request paths for a given domain.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `domain` (_required_) - The domain to fetch paths for.
+  - `search` (_optional_) - Case-insensitive substring search filter for paths.
+- Results are limited to 10 paths ordered alphabetically.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "results": [
+      "/api/users",
+      "/api/users/{id}",
+      "/api/products"
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/trends`
+
+Fetch an app's network request trends showing top endpoints by latency, error rate, and frequency.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "trends_latency": [
+      {
+        "domain": "api.example.com",
+        "path_pattern": "/api/users",
+        "p95_latency": 250.5,
+        "error_rate": 2.3,
+        "frequency": 15000
+      }
+    ],
+    "trends_error_rate": [
+      {
+        "domain": "api.example.com",
+        "path_pattern": "/api/auth",
+        "p95_latency": 150.2,
+        "error_rate": 5.8,
+        "frequency": 8500
+      }
+    ],
+    "trends_frequency": [
+      {
+        "domain": "api.example.com",
+        "path_pattern": "/api/feed",
+        "p95_latency": 120.0,
+        "error_rate": 1.2,
+        "frequency": 50000
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Each category returns up to 15 endpoints. P95 latency is in milliseconds. Error rate is a percentage (0-100).
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/plots/overviewStatusCodes`
+
+Fetch an app's overall network status distribution plot across all endpoints.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `plot_time_group` (_optional_) - Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "datetime": "2024-01-15",
+      "total_count": 125000,
+      "count_2xx": 120625,
+      "count_3xx": 2000,
+      "count_4xx": 1250,
+      "count_5xx": 1125
+    },
+    {
+      "datetime": "2024-01-16",
+      "total_count": 128000,
+      "count_2xx": 124480,
+      "count_3xx": 2304,
+      "count_4xx": 768,
+      "count_5xx": 448
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/plots/endpointLatency`
+
+Fetch a network endpoint's latency percentiles plot over time.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `domain` (_required_) - The domain of the network endpoint (e.g., `api.example.com`).
+  - `path` (_required_) - The path of the network endpoint (e.g., `/api/users`).
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `plot_time_group` (_optional_) - Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "datetime": "2024-01-15T14:30:00",
+      "p50": 100.5,
+      "p90": 250.3,
+      "p95": 350.7,
+      "p99": 500.2,
+      "count": 1500
+    },
+    {
+      "datetime": "2024-01-15T15:00:00",
+      "p50": 95.2,
+      "p90": 240.1,
+      "p95": 340.5,
+      "p99": 510.3,
+      "count": 1600
+    }
+  ]
+  ```
+
+  </details>
+
+- Latency values (`p50`, `p90`, `p95`, `p99`) are in milliseconds and may be null.
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/plots/endpointStatusCodes`
+
+Fetch a network endpoint's HTTP status code distribution plot over time.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `domain` (_required_) - The domain of the network endpoint (e.g., `api.example.com`).
+  - `path` (_required_) - The path of the network endpoint (e.g., `/api/users`).
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `plot_time_group` (_optional_) - Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "datetime": "2024-01-15T14:30:00",
+      "total_count": 1500,
+      "count_2xx": 1470,
+      "count_3xx": 15,
+      "count_4xx": 10,
+      "count_5xx": 5
+    },
+    {
+      "datetime": "2024-01-15T15:00:00",
+      "total_count": 1600,
+      "count_2xx": 1568,
+      "count_3xx": 20,
+      "count_4xx": 8,
+      "count_5xx": 4
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/plots/overviewTimeline`
+
+Fetch an app's overview network request timeline plot showing request frequency per endpoint across all endpoints.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+  - `timeline_limit` (_optional_) - Maximum number of top endpoints to include. Defaults to `10`.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Results are limited to the top `timeline_limit` most-requested endpoints (default 10, max 50).
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "interval": 5,
+    "points": [
+      {
+        "elapsed": 0,
+        "domain": "api.example.com",
+        "path_pattern": "/api/users",
+        "count": 125.5
+      },
+      {
+        "elapsed": 5,
+        "domain": "api.example.com",
+        "path_pattern": "/api/users",
+        "count": 128.3
+      },
+      {
+        "elapsed": 0,
+        "domain": "cdn.example.com",
+        "path_pattern": "/images/avatar.png",
+        "count": 45.2
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- `interval` is the time bucket size in seconds. `elapsed` represents seconds of elapsed time within sessions. `count` is the average request count per session for that endpoint in that bucket.
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/networkRequests/plots/endpointTimeline`
+
+Fetch a network endpoint's request timeline plot showing request frequency in 5-second buckets.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Both `version` & `version_codes` should be present if any one of them is present.
+- Accepted query parameters
+  - `domain` (_required_) - The domain of the network endpoint (e.g., `api.example.com`).
+  - `path` (_required_) - The path of the network endpoint (e.g., `/api/users`).
+  - `from` (_optional_) - ISO8601 timestamp to include events after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include events before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings.
+  - `version_codes` (_optional_) - List of comma separated version code identifier strings.
+  - `os_versions` (_optional_) - List of comma separated OS version identifier strings.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings.
+  - `locales` (_optional_) - List of comma separated locale identifier strings.
+  - `http_methods` (_optional_) - List of comma separated HTTP method strings.
+- `from` & `to` will default to a last 24 hours time range if not supplied.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "interval": 5,
+    "points": [
+      {
+        "elapsed": 0,
+        "domain": "api.example.com",
+        "path_pattern": "/api/users",
+        "count": 1.25
+      },
+      {
+        "elapsed": 5,
+        "domain": "api.example.com",
+        "path_pattern": "/api/users",
+        "count": 1.5
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- `interval` is the time bucket size in seconds. `elapsed` represents seconds of elapsed time within sessions. `count` is the average request count per session for that endpoint in that bucket.
 
 - Failed requests have the following response shape
 

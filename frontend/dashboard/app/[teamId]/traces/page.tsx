@@ -112,6 +112,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
                 showBugReportStatus={false}
+                showHttpMethods={false}
                 showUdAttrs={true}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
