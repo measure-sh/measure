@@ -62,6 +62,7 @@ type SdkConfig struct {
 	ANRTakeScreenshot         bool                `json:"anr_take_screenshot"`
 	LaunchSamplingRate        float64             `json:"launch_sampling_rate"`
 	GestureClickTakeSnapshot  bool                `json:"gesture_click_take_snapshot"`
+	HTTPSamplingRate          float64             `json:"http_sampling_rate"`
 	HTTPDisableEventForURLs   []string            `json:"http_disable_event_for_urls"`
 	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
 	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
@@ -84,6 +85,7 @@ type ConfigPatch struct {
 	ANRTakeScreenshot         *bool                `json:"anr_take_screenshot,omitempty"`
 	LaunchSamplingRate        *float64             `json:"launch_sampling_rate,omitempty"`
 	GestureClickSnapshot      *bool                `json:"gesture_click_take_snapshot,omitempty"`
+	HTTPSamplingRate          *float64             `json:"http_sampling_rate,omitempty"`
 	HTTPDisableEventForURLs   *[]string            `json:"http_disable_event_for_urls,omitempty"`
 	HTTPTrackRequestForURLs   *[]string            `json:"http_track_request_for_urls,omitempty"`
 	HTTPTrackResponseForURLs  *[]string            `json:"http_track_response_for_urls,omitempty"`
@@ -158,6 +160,7 @@ func createDefaultConfig() SdkConfig {
 		ANRTakeScreenshot:         true,
 		LaunchSamplingRate:        0.01,
 		GestureClickTakeSnapshot:  true,
+		HTTPSamplingRate:          0.01,
 		HTTPDisableEventForURLs:   []string{},
 		HTTPTrackRequestForURLs:   []string{},
 		HTTPTrackResponseForURLs:  []string{},
@@ -230,6 +233,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		Select("anr_take_screenshot").
 		Select("launch_sampling_rate").
 		Select("gesture_click_take_snapshot").
+		Select("http_sampling_rate").
 		Select("http_disable_event_for_urls").
 		Select("http_track_request_for_urls").
 		Select("http_track_response_for_urls").
@@ -257,6 +261,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		&sdkConfig.ANRTakeScreenshot,
 		&sdkConfig.LaunchSamplingRate,
 		&sdkConfig.GestureClickTakeSnapshot,
+		&sdkConfig.HTTPSamplingRate,
 		&sdkConfig.HTTPDisableEventForURLs,
 		&sdkConfig.HTTPTrackRequestForURLs,
 		&sdkConfig.HTTPTrackResponseForURLs,
@@ -306,6 +311,7 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("anr_take_screenshot", config.ANRTakeScreenshot).
 		Set("launch_sampling_rate", config.LaunchSamplingRate).
 		Set("gesture_click_take_snapshot", config.GestureClickTakeSnapshot).
+		Set("http_sampling_rate", config.HTTPSamplingRate).
 		Set("http_disable_event_for_urls", config.HTTPDisableEventForURLs).
 		Set("http_track_request_for_urls", config.HTTPTrackRequestForURLs).
 		Set("http_track_response_for_urls", config.HTTPTrackResponseForURLs).
@@ -388,6 +394,12 @@ func PatchConfigForApp(c *gin.Context, appID uuid.UUID, userID string) error {
 	}
 	if patch.GestureClickSnapshot != nil {
 		stmt.Set("gesture_click_take_snapshot", *patch.GestureClickSnapshot)
+	}
+	if patch.HTTPSamplingRate != nil {
+		if *patch.HTTPSamplingRate < 0 || *patch.HTTPSamplingRate > 100 {
+			return fmt.Errorf("http_sampling_rate must be between 0-100")
+		}
+		stmt.Set("http_sampling_rate", *patch.HTTPSamplingRate)
 	}
 	if patch.HTTPDisableEventForURLs != nil {
 		stmt.Set("http_disable_event_for_urls", *patch.HTTPDisableEventForURLs)

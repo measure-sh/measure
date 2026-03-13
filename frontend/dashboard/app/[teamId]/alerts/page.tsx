@@ -112,6 +112,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                 showDeviceManufacturers={false}
                 showDeviceNames={false}
                 showBugReportStatus={false}
+                showHttpMethods={false}
                 showUdAttrs={false}
                 showFreeText={false}
                 freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'

@@ -443,6 +443,70 @@ export enum UpdateSdkConfigApiStatus {
   Cancelled,
 }
 
+export enum NetworkDomainsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkPathsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkEndpointLatencyPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkEndpointTimelinePlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkEndpointStatusCodesPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkTrendsApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkOverviewStatusCodesPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum NetworkTimelinePlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
 export enum SessionType {
   Crashes = "Crash Sessions",
   ANRs = "ANR Sessions",
@@ -461,6 +525,14 @@ export enum SpanStatus {
 export enum BugReportStatus {
   Open = "Open",
   Closed = "Closed",
+}
+
+export enum HttpMethod {
+  GET = "get",
+  POST = "post",
+  PUT = "put",
+  PATCH = "patch",
+  DELETE = "delete",
 }
 
 export type Team = {
@@ -1141,6 +1213,7 @@ export type SdkConfig = {
   bug_report_timeline_duration: number
   launch_sampling_rate: number
   journey_sampling_rate: number
+  http_sampling_rate: number
   http_disable_event_for_urls: string[]
   http_track_request_for_urls: string[]
   http_track_response_for_urls: string[]
@@ -1270,6 +1343,68 @@ async function applyGenericFiltersToUrl(
 
   if (filterShortCode !== null) {
     searchParams.append("filter_short_code", filterShortCode)
+  }
+
+  // Append session types if needed
+  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
+    filters.sessionTypes.selected.forEach((v) => {
+      switch (v) {
+        case SessionType.Crashes:
+          searchParams.append("crash", "1")
+          break;
+        case SessionType.ANRs:
+          searchParams.append("anr", "1")
+          break;
+        case SessionType.BugReports:
+          searchParams.append("bug_report", "1")
+          break;
+        case SessionType.UserInteraction:
+          searchParams.append("user_interaction", "1")
+          break;
+        case SessionType.Foreground:
+          searchParams.append("foreground", "1")
+          break;
+        case SessionType.Background:
+          searchParams.append("background", "1")
+          break;
+      }
+    })
+  }
+
+  // Append span name if needed
+  if (filters.rootSpanName !== "") {
+    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
+  }
+
+  // Append span statuses if needed
+  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
+    filters.spanStatuses.selected.forEach((v) => {
+      if (v === SpanStatus.Unset) {
+        searchParams.append("span_statuses", "0")
+      } else if (v === SpanStatus.Ok) {
+        searchParams.append("span_statuses", "1")
+      } else if (v === SpanStatus.Error) {
+        searchParams.append("span_statuses", "2")
+      }
+    })
+  }
+
+  // Append bug report statuses if needed
+  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+    filters.bugReportStatuses.selected.forEach((v) => {
+      if (v === BugReportStatus.Open) {
+        searchParams.append("bug_report_statuses", "0")
+      } else if (v === BugReportStatus.Closed) {
+        searchParams.append("bug_report_statuses", "1")
+      }
+    })
+  }
+
+  // Append http methods if needed
+  if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
+    filters.httpMethods.selected.forEach((v) => {
+      searchParams.append("http_methods", v)
+    })
   }
 
   // Append free text if present
@@ -2752,5 +2887,215 @@ export const updateSdkConfigFromServer = async (appId: string, config: Partial<S
       status: UpdateSdkConfigApiStatus.Cancelled,
       data: null,
     }
+  }
+}
+
+export const fetchNetworkDomainsFromServer = async (selectedApp: App) => {
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${selectedApp.id}/networkRequests/domains`,
+    )
+
+    if (!res.ok) {
+      return { status: NetworkDomainsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null || data.results.length === 0) {
+      return { status: NetworkDomainsApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkDomainsApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkDomainsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: string, search: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}`,
+    )
+
+    if (!res.ok) {
+      return { status: NetworkPathsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null || data.results.length === 0) {
+      return { status: NetworkPathsApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkPathsApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkPathsApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkEndpointLatencyPlotFromServer = async (filters: Filters, domain: string, path: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointLatency?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("domain", domain)
+  u.searchParams.append("path", path)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkEndpointLatencyPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkEndpointLatencyPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkEndpointLatencyPlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkEndpointLatencyPlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkEndpointStatusCodesPlotFromServer = async (filters: Filters, domain: string, path: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointStatusCodes?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("domain", domain)
+  u.searchParams.append("path", path)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkEndpointStatusCodesPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: NetworkEndpointStatusCodesPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkEndpointStatusCodesPlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkEndpointStatusCodesPlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkEndpointTimelinePlotFromServer = async (filters: Filters, domain: string, path: string) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointTimeline?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+
+  const u = new URL(apiUrl, window.location.origin)
+  u.searchParams.append("domain", domain)
+  u.searchParams.append("path", path)
+  apiUrl = u.toString()
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkEndpointTimelinePlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || !data.points || data.points.length === 0) {
+      return { status: NetworkEndpointTimelinePlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkEndpointTimelinePlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkEndpointTimelinePlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkTrendsFromServer = async (
+  filters: Filters,
+  trendsLimit: number = 10,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/trends?`;
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl += `&trends_limit=${trendsLimit}`;
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl);
+
+    if (!res.ok) {
+      return { status: NetworkTrendsApiStatus.Error, data: null };
+    }
+
+    const data = await res.json();
+
+    if (data === null) {
+      return { status: NetworkTrendsApiStatus.NoData, data: null };
+    }
+
+    return { status: NetworkTrendsApiStatus.Success, data: data };
+  } catch {
+    return { status: NetworkTrendsApiStatus.Cancelled, data: null };
+  }
+};
+
+export const fetchNetworkTimelinePlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewTimeline?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkTimelinePlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || !data.points || data.points.length === 0) {
+      return { status: NetworkTimelinePlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkTimelinePlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkTimelinePlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchNetworkOverviewStatusCodesPlotFromServer = async (filters: Filters) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewStatusCodes?`
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+
+  try {
+    const res = await measureAuth.fetchMeasure(apiUrl)
+
+    if (!res.ok) {
+      return { status: NetworkOverviewStatusCodesPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null || (Array.isArray(data) && data.length === 0)) {
+      return { status: NetworkOverviewStatusCodesPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: NetworkOverviewStatusCodesPlotApiStatus.Success, data: data }
+  } catch {
+    return { status: NetworkOverviewStatusCodesPlotApiStatus.Cancelled, data: null }
   }
 }
