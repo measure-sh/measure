@@ -76,7 +76,7 @@ function generateLlmsTxt(navData) {
   lines.push("# measure.sh");
   lines.push("");
   lines.push(
-    "> Open-source, privacy-focused mobile analytics and crash reporting for Android, iOS, and Flutter apps."
+    "> Open source tool to monitor mobile apps"
   );
   lines.push("");
 
