@@ -2,6 +2,9 @@
 name: Lint
 on: [push, pull_request]
 
+env:
+  NODE_VERSION: 24
+
 permissions:
   contents: read
 
@@ -11,11 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - name: Install dependencies
         run: npm ci
       - name: Print versions
