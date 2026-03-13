@@ -12,7 +12,7 @@ protocol CrashReportManager {
     var hasPendingCrashReport: Bool { get }
 }
 
-final class CrashReportingManager: CrashReportManager {
+final class BaseCrashReportingManager: CrashReportManager {
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
     private let signalProcessor: SignalProcessor
@@ -44,7 +44,11 @@ final class CrashReportingManager: CrashReportManager {
         guard hasPendingCrashReport else { return }
 
         let exceptionData = processCrashReport()
-        guard var exception = exceptionData.exception, let date = exceptionData.date else { return }
+        guard var exception = exceptionData.exception, let date = exceptionData.date else {
+            crashReporter.clearCrashData()
+            crashDataPersistence.clearCrashData()
+            return
+        }
 
         let crashDataAttributes = crashDataPersistence.readCrashData()
         if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
@@ -58,8 +62,6 @@ final class CrashReportingManager: CrashReportManager {
                                   userDefinedAttributes: nil,
                                   threadName: nil,
                                   needsReporting: true)
-            logger.log(level: .info, message: "Debugging: trackException called", error: nil, data: nil)
-            logger.log(level: .info, message: "Debugging: sessionId: \(crashDataAttributes.sessionId)", error: nil, data: nil)
         }
 
         crashReporter.clearCrashData()

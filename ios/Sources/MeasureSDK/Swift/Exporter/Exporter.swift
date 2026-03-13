@@ -60,7 +60,6 @@ final class BaseExporter: Exporter {
     }
 
     func export(after delay: TimeInterval) {
-        logger.log(level: .info, message: "Debugging: export called", error: nil, data: nil)
         var started = false
         isExporting.setTrueIfFalse { started = true }
 
@@ -75,7 +74,6 @@ final class BaseExporter: Exporter {
 
         dispatchQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self else { return }
-            self.logger.log(level: .info, message: "Debugging: dispatchQueue.asyncAfter started", error: nil, data: nil)
 
             self.exportEvents()
             self.exportAttachments()
@@ -253,10 +251,8 @@ final class BaseExporter: Exporter {
     private func createNewBatches() -> Int {
         let sessionIds = eventStore.getSessionIdsWithUnBatchedEvents()
         guard !sessionIds.isEmpty else { return 0 }
-        logger.log(level: .info, message: "Debugging: createNewBatches sessionIds \(sessionIds)", error: nil, data: nil)
 
         let prioritySessionIds = sessionStore.getPrioritySessionIds()
-        logger.log(level: .info, message: "Debugging: createNewBatches prioritySessionIds \(prioritySessionIds)", error: nil, data: nil)
         let orderedSessionIds = prioritySessionIds.filter(sessionIds.contains) + sessionIds.filter { !prioritySessionIds.contains($0) }
 
         let maxBatchSize = configProvider.maxEventsInBatch
@@ -285,7 +281,6 @@ final class BaseExporter: Exporter {
         // Process all sessions
         for sessionId in orderedSessionIds {
             let events = eventStore.getUnBatchedEvents(eventCount: Number.max, ascending: true, sessionId: sessionId)
-            logger.log(level: .info, message: "Debugging: createNewBatches eventStore.getUnBatchedEvents \(events)", error: nil, data: nil)
 
             for eventId in events {
                 currentEventIds.insert(eventId)

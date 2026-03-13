@@ -12,7 +12,7 @@ final class MockExporter: Exporter {
     private(set) var exportCallCount = 0
     var onExport: (() -> Void)?
 
-    func export() {
+    func export(after delay: TimeInterval) {
         exportCallCount += 1
         onExport?()
     }

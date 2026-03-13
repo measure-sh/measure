@@ -320,13 +320,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    exporter: exporter)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger,
                                                            crashDataPersistence: crashDataPersistence)
-        self.crashReportManager = CrashReportingManager(logger: logger,
-                                                        signalProcessor: signalProcessor,
-                                                        crashDataPersistence: crashDataPersistence,
-                                                        crashReporter: systemCrashReporter,
-                                                        systemFileManager: systemFileManager,
-                                                        idProvider: idProvider,
-                                                        configProvider: configProvider)
+        self.crashReportManager = BaseCrashReportingManager(logger: logger,
+                                                            signalProcessor: signalProcessor,
+                                                            crashDataPersistence: crashDataPersistence,
+                                                            crashReporter: systemCrashReporter,
+                                                            systemFileManager: systemFileManager,
+                                                            idProvider: idProvider,
+                                                            configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      signalProcessor: signalProcessor,
