@@ -362,12 +362,34 @@ func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, tea
 // characters to match the FixedString(32) id column.
 func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.unhandled_exception_groups
-		(team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, timestamp)
-		VALUES (toUUID('%s'), toUUID('%s'), '%s', ('v1', '1'), 'java.lang.RuntimeException', 'Test crash', 'testMethod', 'TestFile.java', 42, now())`,
-		teamID, appID, fingerprint)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
+
+	query := `insert into
+		unhandled_exception_groups (
+			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+		)
+		select
+			toUUID(?),
+			toUUID(?),
+			?,
+			('v1', '1'),
+			'java.lang.RuntimeException',
+			'Test crash',
+			'testMethod',
+			'TestFile.java',
+			42,
+			groupUniqArrayState(tuple('android', '33')),
+			groupUniqArrayState('US'),
+			groupUniqArrayState('Verizon'),
+			groupUniqArrayState('cellular'),
+			groupUniqArrayState('5g'),
+			groupUniqArrayState('en-US'),
+			groupUniqArrayState('Google'),
+			groupUniqArrayState('Pixel'),
+			groupUniqArrayState('Pixel 8'),
+			sumState(toUInt64(1)),
+			now64(3)`
+
+	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint}...); err != nil {
 		t.Fatalf("seed exception group: %v", err)
 	}
 }
@@ -376,12 +398,34 @@ func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamI
 // lookups succeed. fingerprint must be exactly 32 characters.
 func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.anr_groups
-		(team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, timestamp)
-		VALUES (toUUID('%s'), toUUID('%s'), '%s', ('v1', '1'), 'ANR', 'Test ANR', 'testMethod', 'TestFile.java', 42, now())`,
-		teamID, appID, fingerprint)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
+
+	query := `insert into
+		anr_groups (
+			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+		)
+		select
+			toUUID(?),
+			toUUID(?),
+			?,
+			('v1', '1'),
+			'ANR',
+			'Test ANR',
+			'testMethod',
+			'TestFile.java',
+			42,
+			groupUniqArrayState(tuple('android', '33')),
+			groupUniqArrayState('US'),
+			groupUniqArrayState('Verizon'),
+			groupUniqArrayState('cellular'),
+			groupUniqArrayState('5g'),
+			groupUniqArrayState('en-US'),
+			groupUniqArrayState('Google'),
+			groupUniqArrayState('Pixel'),
+			groupUniqArrayState('Pixel 8'),
+			sumState(toUInt64(1)),
+			now64(3)`
+
+	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint}...); err != nil {
 		t.Fatalf("seed ANR group: %v", err)
 	}
 }

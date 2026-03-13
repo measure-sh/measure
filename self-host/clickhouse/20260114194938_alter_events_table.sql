@@ -9,8 +9,7 @@ add index if not exists attribute_device_manufacturer_idx  `attribute.device_man
 settings mutations_sync = 2;
 
 -- migrate:up
-alter table events
-modify column if exists `attribute.device_manufacturer` FixedString(256);
+select 1;
 
 -- migrate:down
 select 1;

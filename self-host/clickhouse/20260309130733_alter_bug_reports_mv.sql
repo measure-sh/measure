@@ -1,31 +1,6 @@
 -- migrate:up
-create materialized view bug_reports_mv to bug_reports
-(
-    `team_id`                           UUID,
-    `event_id`                          UUID,
-    `app_id`                            UUID,
-    `session_id`                        UUID,
-    `timestamp`                         DateTime64(3, 'UTC'),
-    `updated_at`                        DateTime64(3, 'UTC'),
-    `status`                            UInt8,
-    `description`                       String,
-    `app_version`                       Tuple(String, String),
-    `os_version`                        Tuple(String, String),
-    `country_code`                      String,
-    `network_provider`                  String,
-    `network_type`                      String,
-    `network_generation`                String,
-    `device_locale`                     String,
-    `device_manufacturer`               String,
-    `device_name`                       String,
-    `device_model`                      String,
-    `user_id`                           String,
-    `device_low_power_mode`             Bool,
-    `device_thermal_throttling_enabled` Bool,
-    `user_defined_attribute`            Map(String, Tuple(Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4), String)),
-    `attachments`                       String
-)
-as select
+alter table bug_reports_mv modify query
+select
     team_id,
     event_id,
     app_id,
@@ -83,4 +58,60 @@ from (
 );
 
 -- migrate:down
-drop view if exists bug_reports_mv;
+alter table bug_reports_mv modify query
+SELECT
+    team_id,
+    event_id,
+    app_id,
+    session_id,
+    temp_timestamp AS timestamp,
+    temp_timestamp AS updated_at,
+    status,
+    description,
+    app_version,
+    os_version,
+    country_code,
+    network_provider,
+    network_type,
+    network_generation,
+    device_locale,
+    device_manufacturer,
+    device_name,
+    device_model,
+    user_id,
+    device_low_power_mode,
+    device_thermal_throttling_enabled,
+    user_defined_attribute,
+    attachments
+FROM (
+    SELECT
+        team_id,
+        id AS event_id,
+        app_id,
+        session_id,
+        any(timestamp) AS temp_timestamp,
+        0 AS status,
+        any(bug_report.description) AS description,
+        any((toString(attribute.app_version), toString(attribute.app_build))) AS app_version,
+        any((toString(attribute.os_name), toString(attribute.os_version))) AS os_version,
+        any(toString(inet.country_code)) AS country_code,
+        any(toString(attribute.network_provider)) AS network_provider,
+        any(toString(attribute.network_type)) AS network_type,
+        any(toString(attribute.network_generation)) AS network_generation,
+        any(toString(attribute.device_locale)) AS device_locale,
+        any(toString(attribute.device_manufacturer)) AS device_manufacturer,
+        any(toString(attribute.device_name)) AS device_name,
+        any(toString(attribute.device_model)) AS device_model,
+        any(toString(attribute.user_id)) AS user_id,
+        any(attribute.device_low_power_mode) AS device_low_power_mode,
+        any(attribute.device_thermal_throttling_enabled) AS device_thermal_throttling_enabled,
+        any(user_defined_attribute) AS user_defined_attribute,
+        any(attachments) AS attachments
+    FROM events
+    WHERE type = 'bug_report'
+    GROUP BY
+        team_id,
+        app_id,
+        session_id,
+        event_id
+);

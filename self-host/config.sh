@@ -197,7 +197,7 @@ CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
-REDIS_HOST=valkey
+REDIS_HOST=redis
 REDIS_PORT=6379
 
 ##################
@@ -232,6 +232,7 @@ SYMBOLOADER_ORIGIN=http://symboloader:8083
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 NEXT_PUBLIC_INGEST_BASE_URL=http://localhost:8085
+NEXT_PUBLIC_IS_CLOUD=false
 API_BASE_URL=http://api:8080
 
 ########
@@ -269,6 +270,16 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+###########
+# Billing #
+###########
+
+BILLING_ENABLED=false
+STRIPE_API_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_UNIT_DAYS_PRICE_ID=
+STRIPE_UNIT_DAYS_METER_NAME=unit_days
 
 ########
 # OTEL #
@@ -347,6 +358,7 @@ SYMBOLOADER_ORIGIN=http://symboloader:8083
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL
+NEXT_PUBLIC_IS_CLOUD=false
 API_BASE_URL=http://api:8080
 
 ########
@@ -384,6 +396,16 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+###########
+# Billing #
+###########
+
+BILLING_ENABLED=false
+STRIPE_API_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_UNIT_DAYS_PRICE_ID=
+STRIPE_UNIT_DAYS_METER_NAME=unit_days
 
 ########
 # OTEL #
@@ -475,7 +497,7 @@ END
 
     # Set Redis configuration for production
     echo -e "Setting Redis configuration"
-    REDIS_HOST="valkey"
+    REDIS_HOST="redis"
     REDIS_PORT="6379"
 
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
@@ -583,7 +605,7 @@ ensure() {
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
   ingest_origin="http://localhost:8085"
-  redis_host="valkey"
+  redis_host="redis"
   redis_port="6379"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
@@ -703,7 +725,7 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
 
-    # Prompt & save ingest service base url if doesn't exist
+    # Prompt & save ingest service base url if it doesn't exist
     if ! check_env_variable "NEXT_PUBLIC_INGEST_BASE_URL"; then
       echo -e "\nSet Measure Ingest service URL"
       echo -e "Example: https://measure-ingest.yourcompany.com"
@@ -783,10 +805,34 @@ ensure() {
     add_env_variable "POSTHOG_API_KEY" ""
   fi
 
+  if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then
+    add_env_variable "NEXT_PUBLIC_IS_CLOUD" "false" "NEXT_PUBLIC_INGEST_BASE_URL"
+  fi
+
+  if ! check_env_variable "BILLING_ENABLED"; then
+    add_env_variable "BILLING_ENABLED" "false"
+  fi
+
+  if ! check_env_variable "STRIPE_API_KEY"; then
+    add_env_variable "STRIPE_API_KEY" "" "BILLING_ENABLED"
+  fi
+
+  if ! check_env_variable "STRIPE_WEBHOOK_SECRET"; then
+    add_env_variable "STRIPE_WEBHOOK_SECRET" "" "STRIPE_API_KEY"
+  fi
+
+  if ! check_env_variable "STRIPE_UNIT_DAYS_METER_NAME"; then
+    add_env_variable "STRIPE_UNIT_DAYS_METER_NAME" "unit_days" "STRIPE_WEBHOOK_SECRET"
+  fi
+
+  if ! check_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID"; then
+    add_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID" "" "STRIPE_UNIT_DAYS_METER_NAME"
+  fi
+
   # remove `frontend/dashboard/.env.local` file
   # if found
   if [[ -f "../frontend/dashboard/.env.local" ]]; then
-    rm "../frontend/dashboard/.env.local"
+    rm -f "../frontend/dashboard/.env.local"
   fi
 }
 

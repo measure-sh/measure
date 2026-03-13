@@ -266,6 +266,10 @@ git reset --hard # reset local modifications, if any
 git fetch --tags
 ```
 
+> [!NOTE]
+>
+> To see which tag you are on, run: `git describe --tags --always` from `self-host` directory.
+
 Checkout to a particular git tag.
 
 ```sh

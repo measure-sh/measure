@@ -1,0 +1,7 @@
+-- migrate:up
+alter table span_metrics
+    drop index if exists team_id_idx;
+
+-- migrate:down
+alter table span_metrics
+    add index if not exists team_id_idx `team_id` type bloom_filter(0.025) granularity 8;

@@ -1,20 +1,34 @@
 -- migrate:up
 create table if not exists anr_groups
 (
-    `app_id` UUID not null comment 'linked app id' codec(ZSTD(3)),
-    `id` FixedString(32) not null comment 'unique fingerprint of the unhandled exception which acts as the id of the group' codec(ZSTD(3)),
-    `type` String not null comment 'type of the ANR' codec(ZSTD(3)),
-    `message` String not null comment 'message of the ANR' codec(ZSTD(3)),
-    `method_name` String not null comment 'method name where the ANR occurred' codec(ZSTD(3)),
-    `file_name` String not null comment 'file name where the ANR occurred' codec(ZSTD(3)),
-    `line_number` Int32 not null comment 'line number where the ANR occurred' codec(ZSTD(3)),
-    `updated_at` DateTime64(9, 'UTC') not null comment 'utc timestamp at the time of record updation' codec(DoubleDelta, ZSTD(3))
+    `team_id` LowCardinality(UUID) comment 'associated team id' CODEC(LZ4),
+    `app_id` LowCardinality(UUID) comment 'linked app id' CODEC(LZ4),
+    `id` FixedString(32) comment 'unique fingerprint of the ANR which acts as the id of the group' CODEC(ZSTD(3)),
+    `app_version` Tuple(LowCardinality(String), LowCardinality(String)) comment 'composite app version' CODEC(ZSTD(3)),
+    `type` String comment 'type of the ANR' CODEC(ZSTD(3)),
+    `message` String comment 'message of the ANR' CODEC(ZSTD(3)),
+    `method_name` String comment 'method name where the ANR occurred' CODEC(ZSTD(3)),
+    `file_name` String comment 'file name where the ANR occurred' CODEC(ZSTD(3)),
+    `line_number` Int32 comment 'line number where the ANR occurred' CODEC(ZSTD(3)),
+    `os_versions` AggregateFunction(groupUniqArray, Tuple(LowCardinality(String), LowCardinality(String))) comment 'list of all unique composite os versions' CODEC(ZSTD(3)),
+    `country_codes` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique country codes' CODEC(ZSTD(3)),
+    `network_providers` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network providers' CODEC(ZSTD(3)),
+    `network_types` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network types' CODEC(ZSTD(3)),
+    `network_generations` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique network generations' CODEC(ZSTD(3)),
+    `device_locales` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device locales' CODEC(ZSTD(3)),
+    `device_manufacturers` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device manufacturers' CODEC(ZSTD(3)),
+    `device_names` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device names' CODEC(ZSTD(3)),
+    `device_models` AggregateFunction(groupUniqArray, LowCardinality(String)) comment 'list of all unique device models' CODEC(ZSTD(3)),
+    `count` AggregateFunction(sum, UInt64) comment 'count of ANR instances' CODEC(ZSTD(3)),
+    `timestamp` SimpleAggregateFunction(max, DateTime64(3, 'UTC')) comment 'timestamp of the ANR event' CODEC(DoubleDelta, ZSTD(3)),
+    index id_bloom_idx id type bloom_filter(0.01) granularity 1,
+    index timestamp_minmax_idx timestamp type minmax granularity 1
 )
-engine = ReplacingMergeTree(updated_at)
-partition by toYYYYMM(updated_at)
-order by (app_id, id)
+engine = AggregatingMergeTree
+partition by toYYYYMM(timestamp)
+order by (team_id, app_id, app_version.1, app_version.2, id)
 settings index_granularity = 8192
-comment 'aggregated ANR groups';
+comment 'ANR groups';
 
 -- migrate:down
 drop table if exists anr_groups;
