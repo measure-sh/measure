@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeAll, afterAll } from '@jest/globals'
-import path from 'path'
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 
 const {
   slugToFilePath,
@@ -189,8 +189,7 @@ describe('generateLlmsTxt', () => {
   it('contains blockquote description', () => {
     const result = generateLlmsTxt([])
 
-    expect(result).toContain('> ')
-    expect(result).toContain('mobile analytics')
+    expect(result).toContain('> Open source tool to monitor mobile apps')
   })
 
   it('produces H2 sections for items with children', () => {
