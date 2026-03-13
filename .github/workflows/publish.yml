@@ -46,7 +46,7 @@ jobs:
         run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
 
       - name: Setup Go ${{ matrix.go-version}}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
           cache-dependency-path: backend/ingest/go.sum
@@ -80,7 +80,7 @@ jobs:
         run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
 
       - name: Setup Go ${{ matrix.go-version}}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
           cache-dependency-path: backend/api/go.sum
@@ -126,7 +126,7 @@ jobs:
     needs: [build-test-ingest, build-test-api, build-test-dashboard]
     steps:
       - name: Dispatch Cloud Deploy
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CLOUD_DISPATCH_TOKEN }}
           repository: measure-sh/cloud
