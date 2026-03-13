@@ -11,6 +11,7 @@ protocol UserTriggeredEventCollector {
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?)
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackHttpEvent(url: String,
                         method: String,
                         startTime: UInt64,
@@ -91,6 +92,15 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(error, collectStackTraces: collectStackTraces) {
+            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
+        }
+    }
+
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
+        guard isEnabled.get() else { return }
+        guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
+
+        if let exception = exceptionGenerator.generate(exception, collectStackTraces: collectStackTraces) {
             track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
         }
     }

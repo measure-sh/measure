@@ -380,6 +380,12 @@ extension Measure.Measure {
   @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
+  public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetAttachmentDirectory() -> Swift.String?
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
