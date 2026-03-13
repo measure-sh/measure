@@ -306,6 +306,15 @@ internal object Sql {
             WHERE ${EventTable.COL_SESSION_ID} = '$session'
     """.trimIndent()
 
+    fun getUnbatchedEventsForSession(session: String): String = """
+            SELECT e.${EventTable.COL_ID}
+            FROM ${EventTable.TABLE_NAME} e
+            LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb
+                ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+            WHERE e.${EventTable.COL_SESSION_ID} = '$session'
+                AND eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+    """.trimIndent()
+
     fun getAttachmentsForEvents(events: List<String>): String = """
             SELECT ${AttachmentV1Table.COL_ID}
             FROM ${AttachmentV1Table.TABLE_NAME}

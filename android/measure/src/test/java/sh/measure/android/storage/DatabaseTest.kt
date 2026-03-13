@@ -1429,6 +1429,128 @@ class DatabaseTest {
     }
 
     @Test
+    fun `getUnbatchedEventsForSession returns only unbatched events`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-1",
+                isSampled = true,
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-2",
+                sessionId = "session-1",
+                isSampled = true,
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-3",
+                sessionId = "session-1",
+                isSampled = true,
+            ),
+        )
+        // batch event-1 and event-2
+        database.insertBatch(
+            BatchEntity(
+                batchId = "batch-1",
+                eventIds = setOf("event-1", "event-2"),
+                spanIds = emptySet(),
+                createdAt = 1000L,
+            ),
+        )
+
+        // when
+        val unbatchedEventIds = database.getUnbatchedEventsForSession("session-1")
+
+        // then
+        assertEquals(1, unbatchedEventIds.size)
+        assertTrue(unbatchedEventIds.contains("event-3"))
+    }
+
+    @Test
+    fun `getUnbatchedEventsForSession returns all events when none are batched`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-1",
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-2",
+                sessionId = "session-1",
+            ),
+        )
+
+        // when
+        val unbatchedEventIds = database.getUnbatchedEventsForSession("session-1")
+
+        // then
+        assertEquals(2, unbatchedEventIds.size)
+        assertTrue(unbatchedEventIds.contains("event-1"))
+        assertTrue(unbatchedEventIds.contains("event-2"))
+    }
+
+    @Test
+    fun `getUnbatchedEventsForSession returns empty when all events are batched`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-1",
+                isSampled = true,
+            ),
+        )
+        database.insertBatch(
+            BatchEntity(
+                batchId = "batch-1",
+                eventIds = setOf("event-1"),
+                spanIds = emptySet(),
+                createdAt = 1000L,
+            ),
+        )
+
+        // when
+        val unbatchedEventIds = database.getUnbatchedEventsForSession("session-1")
+
+        // then
+        assertTrue(unbatchedEventIds.isEmpty())
+    }
+
+    @Test
+    fun `getUnbatchedEventsForSession does not return events from other sessions`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-2"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-1",
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-2",
+                sessionId = "session-2",
+            ),
+        )
+
+        // when
+        val unbatchedEventIds = database.getUnbatchedEventsForSession("session-1")
+
+        // then
+        assertEquals(1, unbatchedEventIds.size)
+        assertTrue(unbatchedEventIds.contains("event-1"))
+    }
+
+    @Test
     fun `getEventsCount returns total count`() {
         // given
         database.insertSession(TestData.getSessionEntity(id = "session-1"))
