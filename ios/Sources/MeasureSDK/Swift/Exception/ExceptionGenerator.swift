@@ -14,6 +14,7 @@ import Foundation
 
 protocol ExceptionGenerator {
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception?
+    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception?
 }
 
 final class BaseExceptionGenerator: ExceptionGenerator {
@@ -26,14 +27,29 @@ final class BaseExceptionGenerator: ExceptionGenerator {
     }
 
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
-        return generateException(error, collectStackTraces: collectStackTraces)
+        let nsException = NSException(name: NSExceptionName(rawValue: error.domain),
+                                      reason: error.localizedDescription,
+                                      userInfo: error.userInfo)
+        let msrError = MsrError(numcode: Int64(error.code),
+                                code: error.domain,
+                                meta: convertToCodableValue(error.userInfo))
+        return generateException(nsException, collectStackTraces: collectStackTraces, msrError: msrError)
     }
 
-    private func generateException(_ nsError: NSError, collectStackTraces: Bool) -> Exception? {
-        let nsException = NSException(name: NSExceptionName(rawValue: nsError.domain),
-                                    reason: nsError.localizedDescription,
-                                    userInfo: nsError.userInfo)
-        KSCrash.shared.report(nsException, logAllThreads: collectStackTraces)
+    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+        let userInfo = exception.userInfo?.reduce(into: [String: Any]()) { result, pair in
+            if let key = pair.key as? String {
+                result[key] = pair.value
+            }
+        }
+        let msrError = MsrError(numcode: nil,
+                                code: "\(exception.name.rawValue), \(exception.reason ?? "")",
+                                meta: userInfo.map { convertToCodableValue($0) })
+        return generateException(exception, collectStackTraces: collectStackTraces, msrError: msrError)
+    }
+
+    private func generateException(_ exception: NSException, collectStackTraces: Bool, msrError: MsrError?) -> Exception? {
+        KSCrash.shared.report(exception, logAllThreads: collectStackTraces)
 
         guard let store = KSCrash.shared.reportStore,
               let reportID = store.reportIDs.last,
@@ -42,17 +58,12 @@ final class BaseExceptionGenerator: ExceptionGenerator {
             return nil
         }
 
-        let dict = report.value
-        let msrError = MsrError(numcode: Int64(nsError.code),
-                                code: nsError.domain,
-                                meta: convertToCodableValue(nsError.userInfo))
-
-        let formatter = CrashDataFormatter(dict)
-        let exception = formatter.getException(true, error: msrError)
+        let formatter = CrashDataFormatter(report.value)
+        let result = formatter.getException(true, error: msrError)
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 
-        return exception
+        return result
     }
 
     private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] { // swiftlint:disable:this cyclomatic_complexity

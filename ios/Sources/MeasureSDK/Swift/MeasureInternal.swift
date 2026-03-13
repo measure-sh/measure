@@ -339,6 +339,19 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+    }
+
     func getDocumentDirectoryPath() -> String? {
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
