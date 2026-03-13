@@ -9,27 +9,30 @@ import Foundation
 @testable import Measure
 
 final class MockSystemCrashReporter: SystemCrashReporter {
-    var hasPendingCrashReport: Bool
-    var crashData: Data
+    var hasPendingCrashReport: Bool = false
+    var enableCalled = false
+    var enableShouldThrow = false
+    var clearCrashDataCalled = false
+    var reportToReturn: [String: Any]? = nil
+    var loadCrashReportCalled = false
 
-    init(hasPendingCrashReport: Bool, crashData: Data) {
-        self.hasPendingCrashReport = hasPendingCrashReport
-        self.crashData = crashData
+    func enable() throws {
+        enableCalled = true
+        if enableShouldThrow {
+            throw NSError(domain: "MockSystemCrashReporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock enable failed"])
+        }
     }
 
-    func setCrashCallback(_ handleSignal: @convention(c) (UnsafeMutablePointer<siginfo_t>?, UnsafeMutablePointer<ucontext_t>?, UnsafeMutableRawPointer?) -> Void) {}
-
-    func enable() throws {}
-
     func clearCrashData() {
+        clearCrashDataCalled = true
         hasPendingCrashReport = false
     }
 
-    func loadCrashReport() throws -> Data {
-        return crashData
-    }
-
-    func generateLiveReport() -> Data {
-        return crashData
+    func loadCrashReport() throws -> [String: Any] {
+        loadCrashReportCalled = true
+        guard let report = reportToReturn else {
+            throw NSError(domain: "MockSystemCrashReporter", code: -2, userInfo: [NSLocalizedDescriptionKey: "No report available"])
+        }
+        return report
     }
 }

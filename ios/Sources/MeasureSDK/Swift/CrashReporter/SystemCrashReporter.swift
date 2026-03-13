@@ -48,7 +48,7 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             .mainThreadDeadlock,
             .memoryTermination
         ]
-        config.crashNotifyCallback = { [weak self] _ in
+        config.crashNotifyCallback = { _ in
             CrashDataWriter.shared.writeCrashData()
         }
 
