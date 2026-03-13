@@ -68,6 +68,7 @@ const mockInitialConfig = {
     trace_sampling_rate: 0.1,
     launch_sampling_rate: 0.1,
     journey_sampling_rate: 0.1,
+    http_sampling_rate: 0.1,
     http_disable_event_for_urls: [],
     http_track_request_for_urls: [],
     http_track_response_for_urls: [],
@@ -194,6 +195,7 @@ describe('SdkConfigurator Component', () => {
         expect(screen.getByTestId('journey-sampling-rate-input')).toBeDisabled()
 
         // Check that textareas are disabled
+        expect(screen.getByTestId('http-sampling-rate-input')).toBeDisabled()
         expect(screen.getByTestId('http-disable-urls-textarea')).toBeDisabled()
         expect(screen.getByTestId('http-track-request-urls-textarea')).toBeDisabled()
         expect(screen.getByTestId('http-track-response-urls-textarea')).toBeDisabled()
@@ -449,6 +451,12 @@ describe('SdkConfigurator Component', () => {
         )
 
         // Change all HTTP fields
+        const httpSamplingInput = screen.getByTestId('http-sampling-rate-input')
+        await act(async () => {
+            fireEvent.change(httpSamplingInput, { target: { value: '0.5' } })
+            fireEvent.blur(httpSamplingInput)
+        })
+
         const httpDisableUrlsTextarea = screen.getByTestId('http-disable-urls-textarea')
         await act(async () => {
             fireEvent.change(httpDisableUrlsTextarea, {
@@ -498,6 +506,7 @@ describe('SdkConfigurator Component', () => {
             expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
                 'test-app-id',
                 expect.objectContaining({
+                    http_sampling_rate: 0.5,
                     http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
                     http_track_request_for_urls: ['https://api.example.com/*'],
                     http_track_response_for_urls: ['https://api.example.com/users/*'],
@@ -1052,6 +1061,12 @@ describe('SdkConfigurator Component', () => {
         )
 
         // Change HTTP fields
+        const httpSamplingRateInput = screen.getByTestId('http-sampling-rate-input')
+        await act(async () => {
+            fireEvent.change(httpSamplingRateInput, { target: { value: '0.5' } })
+            fireEvent.blur(httpSamplingRateInput)
+        })
+
         const httpDisableUrlsTextarea = screen.getByTestId('http-disable-urls-textarea')
         await act(async () => {
             fireEvent.change(httpDisableUrlsTextarea, {
@@ -1099,6 +1114,7 @@ describe('SdkConfigurator Component', () => {
             expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
                 'test-app-id',
                 {
+                    http_sampling_rate: 0.5,
                     http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
                     http_track_request_for_urls: ['https://api.example.com/*'],
                     http_track_response_for_urls: ['https://api.example.com/users/*'],

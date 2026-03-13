@@ -142,6 +142,18 @@ func main() {
 		apps.PATCH(":id/config", measure.PatchConfig)
 		apps.GET(":id/retention", measure.GetAppRetention)
 		apps.PATCH(":id/retention", measure.UpdateAppRetention)
+
+		// network requests
+		apps.GET(":id/networkRequests/domains", measure.GetNetworkRequestsDomains)
+		apps.GET(":id/networkRequests/paths", measure.GetNetworkRequestsPaths)
+		apps.GET(":id/networkRequests/trends", measure.GetNetworkRequestsTrends)
+		apps.GET(":id/networkRequests/plots/overviewStatusCodes", measure.GetNetworkOverviewStatusCodesPlot)
+		apps.GET(":id/networkRequests/plots/overviewTimeline", measure.GetNetworkOverviewTimelinePlot)
+		apps.GET(":id/networkRequests/plots/endpointLatency", measure.GetNetworkEndpointLatencyPlot)
+		apps.GET(":id/networkRequests/plots/endpointStatusCodes", measure.GetNetworkEndpointStatusCodesPlot)
+		apps.GET(":id/networkRequests/plots/endpointTimeline", measure.GetNetworkEndpointTimelinePlot)
+
+		// misc
 		apps.PATCH(":id/rename", measure.RenameApp)
 		apps.PATCH(":id/apiKey", measure.RotateApiKey)
 

@@ -29,6 +29,7 @@ const ExceptionsDetails = dynamic(
   () => import('./components/exceptions_details').then((mod) => (mod.ExceptionsDetails as unknown) as React.ComponentType<any>),
   { ssr: false }
 )
+const NetworkOverview = dynamic(() => import('./components/network_overview'), { ssr: false })
 
 const KukuFmLogo = ({ className }: { className?: string }) => (
   <svg
@@ -211,6 +212,10 @@ export default function Home() {
       title: "User Journeys",
       description: "Understand how users move through your app 🧭. Use it to prioritize performance fixes in the most popular paths, see which routes are most affected by issues or see if that new feature you built is gaining traction."
     },
+    {
+      title: "Network Performance",
+        description: "Monitor network request latency and status codes across your app 🌐. See HTTP status distributions over time, find the slowest and most error-prone endpoints and visualize when network requests happen during a session."
+    },
   ];
 
   const [featureIndex, setFeatureIndex] = useState(0);
@@ -376,6 +381,7 @@ export default function Home() {
               <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
               <BugReport demo={true} hideDemoTitle={false} key={`demo-bugreport`} />,
               <UserJourneys demo={true} hideDemoTitle={false} key={`demo-journeys`} />,
+              <NetworkOverview demo={true} hideDemoTitle={false} key={`demo-network`} />,
             ].map((DemoComponent, idx) => (
               <div
                 key={idx}

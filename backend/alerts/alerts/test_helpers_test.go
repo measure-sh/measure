@@ -48,13 +48,9 @@ func setupAlertsTest(ctx context.Context, t *testing.T) {
 	t.Helper()
 	cleanupAll(ctx, t)
 
-	config := server.NewConfig()
-	config.SiteOrigin = "https://test.measure.sh"
-	server.Init(config)
-
-	// Override connection pools
-	server.Server.PgPool = th.PgPool
-	server.Server.ChPool = th.ChConn
+	server.InitForTest(&server.ServerConfig{
+		SiteOrigin: "https://test.measure.sh",
+	}, th.PgPool, th.ChConn)
 }
 
 func cleanupAll(ctx context.Context, t *testing.T) {

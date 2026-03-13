@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"backend/alerts/alerts"
+	"backend/alerts/network"
 	"backend/alerts/server"
 	"backend/alerts/slack"
 
@@ -110,6 +111,20 @@ func initCron(ctx context.Context) *cron.Cron {
 	}
 
 	fmt.Println("Scheduled Slack alert job")
+
+	// run every 1 hour
+	if _, err := cron.AddFunc("@every 1h", func() { network.GeneratePatterns(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule URL pattern generation job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled URL pattern generation job")
+
+	// run every 15 minutes
+	if _, err := cron.AddFunc("@every 15m", func() { network.GenerateMetrics(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule HTTP metrics generation job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled HTTP metrics generation job")
 
 	cron.Start()
 	return cron

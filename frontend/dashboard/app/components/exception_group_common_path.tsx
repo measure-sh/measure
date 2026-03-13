@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { ExceptionGroupCommonPathApiStatus, ExceptionsType, fetchExceptionGroupCommonPathFromServer } from '../api/api_calls'
-import { Badge } from './badge'
+import BetaBadge from './beta_badge'
 import LoadingSpinner from './loading_spinner'
 import { Slider } from './slider'
 
@@ -79,9 +79,7 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ typ
     <div className="flex flex-col font-body w-full">
       <p className="text-3xl">
         Common Path{" "}
-        <sup>
-          <Badge variant="outline" className='select-none'>Beta</Badge>
-        </sup>
+        <BetaBadge />
       </p>
       {exceptionGroupCommonPathApiStatus === ExceptionGroupCommonPathApiStatus.Loading && <div className='py-4'><LoadingSpinner /></div>}
       {exceptionGroupCommonPathApiStatus === ExceptionGroupCommonPathApiStatus.Error && <p className="font-display py-4">Error fetching common path, please refresh page to try again</p>}
