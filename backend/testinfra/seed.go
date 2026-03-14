@@ -615,6 +615,47 @@ func (h *TestHelper) SeedMCPAccessToken(ctx context.Context, t *testing.T, rawTo
 	}
 }
 
+// SeedHttpEvent inserts count rows into the events table with type='http',
+// setting http.url, http.method, http.status_code, http.start_time and
+// http.end_time (100ms latency). url must be a full URL
+// like "https://api.example.com/api/v1/users".
+func (h *TestHelper) SeedHttpEvent(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, url, method string,
+	statusCode int,
+	count int,
+	ts time.Time,
+) {
+	t.Helper()
+	tsStr := ts.UTC().Format("2006-01-02 15:04:05")
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, inserted_at, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`http.url`, `http.method`, `http.status_code`, `http.start_time`, `http.end_time`) "+
+			`SELECT generateUUIDv4(), 'http', generateUUIDv4(), '%s', '%s', '%s', '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', 'android', '0.1', '%s', '%s', %d, 1000, 1100 FROM numbers(%d)`,
+		appID, teamID, tsStr, tsStr, url, method, statusCode, count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed http event: %v", err)
+	}
+}
+
+// SeedUrlPattern inserts a single row into the url_patterns table.
+func (h *TestHelper) SeedUrlPattern(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, domain, path string,
+) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO url_patterns (team_id, app_id, domain, path, updated_at, updated_by) VALUES ('%s', '%s', '%s', '%s', now(), '%s')`,
+		teamID, appID, domain, path, uuid.Nil.String())
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed url_patterns: %v", err)
+	}
+}
+
 // sha256HexTestinfra returns the hex-encoded SHA-256 hash of s.
 func sha256HexTestinfra(s string) string {
 	h := sha256.Sum256([]byte(s))

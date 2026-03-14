@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -670,6 +671,10 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `timestamp`)
 	}
 
+	if e.Attribute.SessionStartTime.After(e.Timestamp) {
+		return fmt.Errorf("%q must not be greater than %q", `attribute.session_start_time`, `timestamp`)
+	}
+
 	// Don't allow batches that contain events too far in the past or future
 	//
 	// Since, these timestamps affect the creation of partitions in the database
@@ -1000,6 +1005,13 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		if e.Http.URL == "" {
 			return fmt.Errorf(`%q must not be empty`, `http.url`)
 		}
+		parsedURL, err := url.Parse(e.Http.URL)
+		if err != nil {
+			return fmt.Errorf(`%q is not a valid URL`, `http.url`)
+		}
+		if parsedURL.Host == "" {
+			return fmt.Errorf(`%q must contain a valid host`, `http.url`)
+		}
 		if e.Http.Method == "" {
 			return fmt.Errorf(`%q must not be empty`, `http.method`)
 		}
@@ -1008,6 +1020,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.Http.Client) > maxHttpClientChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `http.client`, maxHttpClientChars)
+		}
+		if e.Http.EndTime < e.Http.StartTime {
+			return fmt.Errorf(`%q must not be less than %q`, `http.end_time`, `http.start_time`)
 		}
 	}
 

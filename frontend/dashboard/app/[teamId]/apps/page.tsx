@@ -345,6 +345,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showBugReportStatus={false}
+        showHttpMethods={false}
         showUdAttrs={false}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

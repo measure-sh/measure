@@ -80,7 +80,7 @@ require (
 	github.com/wneessen/go-mail v0.7.1
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
-	go.opentelemetry.io/otel/trace v1.40.0 // indirect
+	go.opentelemetry.io/otel/trace v1.40.0
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
