@@ -104,7 +104,10 @@ flowchart TD
     J4 --> E1[Load up to 250 pending rows
         channel=email oldest-first]
     E1 --> E2[Unmarshal EmailInfo]
-    E2 --> E3[Send email via SMTP]
+    E2 --> E2b{Check notif_prefs
+        for recipient via AlertType}
+    E2b -- Opted out --> E2c[Log skip, delete pending row]
+    E2b -- Allowed --> E3[Send email via SMTP]
     E3 --> E4{Send succeeded?}
     E4 -- Yes --> E5[Delete pending row]
     E4 -- No --> E6[Keep row, log error]
@@ -136,7 +139,9 @@ flowchart TD
     B1 -.- N1
 
     N2["Email queue fanout is per team member
-        via email.QueueEmailForTeam"]
+        via email.QueueEmailForTeam.
+        AlertType is set on EmailInfo so the
+        sender can check notif_prefs per user."]
     C7 -.- N2
     A7 -.- N2
     B4 -.- N2
@@ -165,7 +170,7 @@ flowchart TD
     class J1,J2,J3,J4,J5,Cron cron
     class Queue queue
     class C6,C7,C8,A6,A7,A8,B3,B4,B5,D3,D4,E5,S5,S7 action
-    class CSkip1,CSkip2,CSkip3,ASkip1,ASkip2,ASkip3,BSkip,DSkip,E6,S8 skip
+    class CSkip1,CSkip2,CSkip3,ASkip1,ASkip2,ASkip3,BSkip,DSkip,E2c,E6,S8 skip
     class S6 block
     class N1,N2,N3,N4 note
 ```

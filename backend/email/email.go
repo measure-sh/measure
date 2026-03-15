@@ -19,6 +19,7 @@ type EmailInfo struct {
 	Subject     string `json:"subject"`
 	ContentType string `json:"content_type"`
 	Body        string `json:"body"`
+	AlertType   string `json:"alert_type,omitempty"`
 }
 
 // MetricData describes a single metric card for the daily summary email.

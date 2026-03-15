@@ -725,6 +725,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Subject:     subject,
 		ContentType: "text/html",
 		Body:        body,
+		AlertType:   alert.Type,
 	}
 	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, alert.TeamID, alert.AppID, pendingEmail); err != nil {
 		fmt.Printf("Error queueing alert emails for team %v: %v\n", alert.TeamID, err)
@@ -806,6 +807,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		Subject:     appName + " Daily Summary",
 		ContentType: "text/html",
 		Body:        emailBody,
+		AlertType:   "daily_summary",
 	}
 	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, teamId, appId, pendingEmail); err != nil {
 		fmt.Printf("Error queueing daily summary emails for team %v: %v\n", teamId, err)
@@ -1247,6 +1249,61 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 	}
 }
 
+// getNotifPrefByEmail looks up a user's notification preferences by email.
+// Returns all-true defaults if user or prefs not found.
+func getNotifPrefByEmail(ctx context.Context, userEmail string) (errorSpike, appHangSpike, bugReport, dailySummary bool) {
+	stmt := sqlf.PostgreSQL.
+		Select("np.error_spike").
+		Select("np.app_hang_spike").
+		Select("np.bug_report").
+		Select("np.daily_summary").
+		From("notif_prefs np").
+		Join("users u", "np.user_id = u.id").
+		Where("u.email = ?", userEmail)
+	defer stmt.Close()
+
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).
+		Scan(&errorSpike, &appHangSpike, &bugReport, &dailySummary)
+	if err != nil {
+		fmt.Printf("No notif prefs found for email %s, defaulting to all-true: %v\n", userEmail, err)
+		return true, true, true, true
+	}
+	return
+}
+
+// shouldSendEmail checks user's notif prefs against the email's alert type
+// to determine whether the email should be sent. Returns false if the user
+// has opted out of that notification type.
+func shouldSendEmail(ctx context.Context, info email.EmailInfo) bool {
+	if info.AlertType == "" {
+		// Not a notification email (e.g. usage limit) — send by default
+		return true
+	}
+
+	errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, info.To)
+
+	switch info.AlertType {
+	case string(AlertTypeCrashSpike):
+		return errorSpike
+	case string(AlertTypeAnrSpike):
+		return appHangSpike
+	case string(AlertTypeBugReport):
+		return bugReport
+	case "daily_summary":
+		return dailySummary
+	default:
+		return true
+	}
+}
+
+// deletePendingMessage removes a pending alert message by ID.
+func deletePendingMessage(ctx context.Context, msgID string) {
+	delStmt := sqlf.DeleteFrom("pending_alert_messages").Where("id = ?", msgID)
+	if _, err := server.Server.PgPool.Exec(ctx, delStmt.String(), delStmt.Args()...); err != nil {
+		fmt.Printf("failed to delete pending alert message id %s: %s\n", msgID, err)
+	}
+}
+
 // SendPendingAlertEmails checks the pending alert messages in the database and sends them as emails.
 // It processes up to 250 messages at a time, sending each email with a 1 second delay and deleting
 // the message from the database after a successful send. If an error occurs while sending an email,
@@ -1289,16 +1346,21 @@ func SendPendingAlertEmails(ctx context.Context) error {
 			fmt.Printf("failed to unmarshal email data for id %s: %s\n", msg.ID, err)
 			continue
 		}
+
+		// Check user's notification preferences before sending
+		if !shouldSendEmail(ctx, info) {
+			fmt.Printf("Skipping email id %s to %s: user has opted out\n", msg.ID, info.To)
+			deletePendingMessage(ctx, msg.ID)
+			continue
+		}
+
 		if err := email.SendEmail(server.Server.Mail, info); err != nil {
 			fmt.Printf("failed to send email for id %s: %s\n", msg.ID, err)
 			continue
 		}
 
 		// Delete after successful send
-		delStmt := sqlf.DeleteFrom("pending_alert_messages").Where("id = ?", msg.ID)
-		if _, err := server.Server.PgPool.Exec(ctx, delStmt.String(), delStmt.Args()...); err != nil {
-			fmt.Printf("failed to delete pending alert message id %s: %s\n", msg.ID, err)
-		}
+		deletePendingMessage(ctx, msg.ID)
 		time.Sleep(1 * time.Second)
 	}
 

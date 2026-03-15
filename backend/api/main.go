@@ -131,10 +131,6 @@ func main() {
 		// alerts
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
 
-		// alert preferences
-		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
-		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
-
 		// threshold preferences
 		apps.GET(":id/thresholdPrefs", measure.GetAppThresholdPrefs)
 		apps.PATCH(":id/thresholdPrefs", measure.UpdateAppThresholdPrefs)
@@ -176,6 +172,13 @@ func main() {
 		teams.GET(":id/billing/subscriptionInfo", measure.GetSubscriptionInfo)
 		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
 		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
+	}
+
+	// Preferences
+	prefs := r.Group("/prefs", measure.ValidateAccessToken())
+	{
+		prefs.GET("notifPrefs", measure.GetNotifPrefs)
+		prefs.PATCH("notifPrefs", measure.UpdateNotifPrefs)
 	}
 
 	slack := r.Group("/slack")
