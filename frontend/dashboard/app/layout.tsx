@@ -81,7 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <PostHogProvider proxyPath="/yrtmlt">
+          <PostHogProvider>
             <CookieBanner />
             <div className="bg-background text-foreground">{children}</div>
           </PostHogProvider>
