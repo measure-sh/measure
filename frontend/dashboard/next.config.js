@@ -30,32 +30,47 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    const phHost = process.env.POSTHOG_HOST;
+    if (!phHost) return [];
+
+    return [
+      {
+        source: "/yrtmlt/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/yrtmlt/:path*",
+        destination: `${phHost}/:path*`,
+      },
+    ];
+  },
   async headers() {
     // allow loading assets for PostHog session replays
     return [
       {
-        source: '/_next/static/:path*',
+        source: "/_next/static/:path*",
         headers: [
           {
-            key: 'Access-Control-Allow-Origin',
-            value: 'https://us.posthog.com',
+            key: "Access-Control-Allow-Origin",
+            value: "https://us.posthog.com",
           },
           {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET',
+            key: "Access-Control-Allow-Methods",
+            value: "GET",
           },
         ],
       },
       {
-        source: '/fonts/:path*',
+        source: "/fonts/:path*",
         headers: [
           {
-            key: 'Access-Control-Allow-Origin',
-            value: 'https://us.posthog.com',
+            key: "Access-Control-Allow-Origin",
+            value: "https://us.posthog.com",
           },
         ],
       },
-    ]
+    ];
   },
 };
 

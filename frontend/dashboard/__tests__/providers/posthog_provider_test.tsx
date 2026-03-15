@@ -122,4 +122,19 @@ describe('PostHogProvider', () => {
             )
         })
     })
+
+    it('uses proxyPath as api_host when proxyPath prop is provided', async () => {
+        render(
+            <PostHogProvider proxyPath="/yrtmlt">
+                <div />
+            </PostHogProvider>
+        )
+
+        await waitFor(() => {
+            expect(posthog.init).toHaveBeenCalledWith(
+                'test-key',
+                expect.objectContaining({ api_host: '/yrtmlt' })
+            )
+        })
+    })
 })
