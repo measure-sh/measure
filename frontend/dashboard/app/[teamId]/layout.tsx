@@ -107,6 +107,12 @@ const initNavData = {
           external: false,
         },
         {
+          title: "Notifications",
+          url: "notif_prefs",
+          isActive: false,
+          external: false,
+        },
+        {
           title: isCloud() ? "Usage & Billing" : "Usage",
           url: "usage",
           isActive: false,

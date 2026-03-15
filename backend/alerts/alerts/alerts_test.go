@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"backend/email"
+
 	"github.com/google/uuid"
 )
 
@@ -2329,6 +2331,571 @@ func TestScheduleInternalHelpers(t *testing.T) {
 
 		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
 			t.Errorf("want 1 pending email for unknown alert type, got %d", got)
+		}
+	})
+
+	t.Run("scheduleEmailAlertsForteamMembers sets AlertType in queued email", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		alert := Alert{
+			ID:       uuid.New(),
+			TeamID:   uuid.MustParse(teamID),
+			AppID:    uuid.MustParse(appID),
+			EntityID: uuid.New().String(),
+			Type:     string(AlertTypeCrashSpike),
+		}
+
+		scheduleEmailAlertsForteamMembers(ctx, alert, "Crash detected", "https://test.measure.sh", "Test App")
+
+		var data []byte
+		err := th.PgPool.QueryRow(ctx,
+			"SELECT data FROM pending_alert_messages WHERE channel = 'email'").Scan(&data)
+		if err != nil {
+			t.Fatalf("read queued email: %v", err)
+		}
+
+		var info email.EmailInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if info.AlertType != string(AlertTypeCrashSpike) {
+			t.Errorf("AlertType = %q, want %q", info.AlertType, string(AlertTypeCrashSpike))
+		}
+	})
+
+	t.Run("scheduleDailySummaryEmailForteamMembers sets daily_summary AlertType", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		scheduleDailySummaryEmailForteamMembers(ctx, uuid.MustParse(teamID), uuid.MustParse(appID), "<p>Summary</p>", "Test App")
+
+		var data []byte
+		err := th.PgPool.QueryRow(ctx,
+			"SELECT data FROM pending_alert_messages WHERE channel = 'email'").Scan(&data)
+		if err != nil {
+			t.Fatalf("read queued email: %v", err)
+		}
+
+		var info email.EmailInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if info.AlertType != "daily_summary" {
+			t.Errorf("AlertType = %q, want %q", info.AlertType, "daily_summary")
+		}
+	})
+}
+
+// TestNotifPrefFiltering tests the notification preference lookup and
+// filtering logic used by SendPendingAlertEmails.
+func TestNotifPrefFiltering(t *testing.T) {
+	t.Run("getNotifPrefByEmail returns all-true defaults when user has no prefs", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "noprofs@example.com")
+
+		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "noprofs@example.com")
+
+		if !errorSpike || !appHangSpike || !bugReport || !dailySummary {
+			t.Errorf("expected all-true defaults, got error_spike=%v, app_hang_spike=%v, bug_report=%v, daily_summary=%v",
+				errorSpike, appHangSpike, bugReport, dailySummary)
+		}
+	})
+
+	t.Run("getNotifPrefByEmail returns all-true defaults for unknown email", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "unknown@example.com")
+
+		if !errorSpike || !appHangSpike || !bugReport || !dailySummary {
+			t.Errorf("expected all-true defaults for unknown email, got error_spike=%v, app_hang_spike=%v, bug_report=%v, daily_summary=%v",
+				errorSpike, appHangSpike, bugReport, dailySummary)
+		}
+	})
+
+	t.Run("getNotifPrefByEmail returns saved preferences", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "prefs@example.com")
+
+		// Insert notif prefs with some disabled
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, false, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "prefs@example.com")
+
+		if errorSpike {
+			t.Error("error_spike should be false")
+		}
+		if !appHangSpike {
+			t.Error("app_hang_spike should be true")
+		}
+		if bugReport {
+			t.Error("bug_report should be false")
+		}
+		if !dailySummary {
+			t.Error("daily_summary should be true")
+		}
+	})
+
+	t.Run("shouldSendEmail allows email when AlertType is empty", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		info := email.EmailInfo{To: "anyone@example.com", AlertType: ""}
+		if !shouldSendEmail(ctx, info) {
+			t.Error("should send email when AlertType is empty")
+		}
+	})
+
+	t.Run("shouldSendEmail respects crash_spike preference", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "crash@example.com")
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{To: "crash@example.com", AlertType: string(AlertTypeCrashSpike)}
+		if shouldSendEmail(ctx, info) {
+			t.Error("should NOT send crash spike email when error_spike is false")
+		}
+	})
+
+	t.Run("shouldSendEmail respects app_hang_spike preference", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "anr@example.com")
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, false, true, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{To: "anr@example.com", AlertType: string(AlertTypeAnrSpike)}
+		if shouldSendEmail(ctx, info) {
+			t.Error("should NOT send app_hang_spike email when app_hang_spike is false")
+		}
+	})
+
+	t.Run("shouldSendEmail respects bug_report preference", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "bug@example.com")
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, false, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{To: "bug@example.com", AlertType: string(AlertTypeBugReport)}
+		if shouldSendEmail(ctx, info) {
+			t.Error("should NOT send bug report email when bug_report is false")
+		}
+	})
+
+	t.Run("shouldSendEmail respects daily_summary preference", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "daily@example.com")
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{To: "daily@example.com", AlertType: "daily_summary"}
+		if shouldSendEmail(ctx, info) {
+			t.Error("should NOT send daily summary email when daily_summary is false")
+		}
+	})
+
+	t.Run("shouldSendEmail allows unknown alert type", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		info := email.EmailInfo{To: "anyone@example.com", AlertType: "some_future_type"}
+		if !shouldSendEmail(ctx, info) {
+			t.Error("should send email for unknown alert type")
+		}
+	})
+
+	t.Run("shouldSendEmail allows when user has all prefs enabled", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		th.SeedUser(ctx, t, userID, "allon@example.com")
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		for _, alertType := range []string{string(AlertTypeCrashSpike), string(AlertTypeAnrSpike), string(AlertTypeBugReport), "daily_summary"} {
+			info := email.EmailInfo{To: "allon@example.com", AlertType: alertType}
+			if !shouldSendEmail(ctx, info) {
+				t.Errorf("should send email for alert type %q when all prefs enabled", alertType)
+			}
+		}
+	})
+}
+
+// TestDeletePendingMessage tests that deletePendingMessage removes
+// a message from the pending_alert_messages table.
+func TestDeletePendingMessage(t *testing.T) {
+	ctx := context.Background()
+	setupAlertsTest(ctx, t)
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New().String()
+	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+
+	// Queue a message
+	info := email.EmailInfo{
+		From:    "test@example.com",
+		To:      "user@example.com",
+		Subject: "Test",
+		Body:    "<p>test</p>",
+	}
+	if err := email.QueueEmail(ctx, th.PgPool, teamID, nil, info); err != nil {
+		t.Fatalf("QueueEmail: %v", err)
+	}
+
+	// Get the message ID
+	var msgID string
+	if err := th.PgPool.QueryRow(ctx, "SELECT id FROM pending_alert_messages").Scan(&msgID); err != nil {
+		t.Fatalf("get msg id: %v", err)
+	}
+
+	if got := countPending(ctx, t); got != 1 {
+		t.Fatalf("want 1 pending, got %d", got)
+	}
+
+	deletePendingMessage(ctx, msgID)
+
+	if got := countPending(ctx, t); got != 0 {
+		t.Errorf("want 0 pending after delete, got %d", got)
+	}
+}
+
+// TestSendPendingAlertEmailsRespectsNotifPrefs tests that
+// SendPendingAlertEmails skips and deletes messages when the
+// recipient has opted out via notification preferences.
+func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
+	t.Run("skips and deletes email when user has opted out of crash spike", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "optout@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// User opts out of crash spike emails
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		// Queue a crash spike email for the user
+		info := email.EmailInfo{
+			From:        "noreply@measure.sh",
+			To:          "optout@example.com",
+			Subject:     "Test App - Crash Spike Alert",
+			ContentType: "text/html",
+			Body:        "<p>Crash spike</p>",
+			AlertType:   string(AlertTypeCrashSpike),
+		}
+		if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+			t.Fatalf("QueueEmail: %v", err)
+		}
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Fatalf("want 1 pending email, got %d", got)
+		}
+
+		// SendPendingAlertEmails should skip and delete it
+		// (will fail on actual send since no mail server, but the pref check happens first)
+		SendPendingAlertEmails(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 0 {
+			t.Errorf("want 0 pending emails after opt-out skip, got %d", got)
+		}
+	})
+
+	t.Run("skips daily summary when user has opted out", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "nodaily@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// User opts out of daily summary
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{
+			From:        "noreply@measure.sh",
+			To:          "nodaily@example.com",
+			Subject:     "Test App Daily Summary",
+			ContentType: "text/html",
+			Body:        "<p>Summary</p>",
+			AlertType:   "daily_summary",
+		}
+		if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+			t.Fatalf("QueueEmail: %v", err)
+		}
+
+		SendPendingAlertEmails(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 0 {
+			t.Errorf("want 0 pending emails after daily summary opt-out, got %d", got)
+		}
+	})
+
+	t.Run("emails without AlertType are not filtered", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "usage@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+
+		// User has all prefs off — but usage emails have no AlertType
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, false, false, false)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		info := email.EmailInfo{
+			From:        "noreply@measure.sh",
+			To:          "usage@example.com",
+			Subject:     "Usage Limit Warning",
+			ContentType: "text/html",
+			Body:        "<p>Usage limit</p>",
+		}
+		if err := email.QueueEmail(ctx, th.PgPool, teamID, nil, info); err != nil {
+			t.Fatalf("QueueEmail: %v", err)
+		}
+
+		// SendPendingAlertEmails will try to send (and fail since no mail server),
+		// but the message should NOT be deleted by the pref check
+		SendPendingAlertEmails(ctx)
+
+		// Message should still be pending (send failed, not filtered)
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Errorf("want 1 pending email (non-alert should not be filtered), got %d", got)
+		}
+	})
+
+	t.Run("selectively filters when two users have different prefs", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userOptedOut := uuid.New().String()
+		userOptedIn := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userOptedOut, "optout@example.com")
+		th.SeedUser(ctx, t, userOptedIn, "optin@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userOptedOut, "owner")
+		th.SeedTeamMembership(ctx, t, teamID, userOptedIn, "viewer")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// User 1 opts out of crash spike
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			userOptedOut)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		// User 2 keeps all defaults (opted in)
+		_, err = th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
+			userOptedIn)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		// Queue same crash spike alert for both users
+		for _, to := range []string{"optout@example.com", "optin@example.com"} {
+			info := email.EmailInfo{
+				From:        "noreply@measure.sh",
+				To:          to,
+				Subject:     "Test App - Crash Spike Alert",
+				ContentType: "text/html",
+				Body:        "<p>Crash spike</p>",
+				AlertType:   string(AlertTypeCrashSpike),
+			}
+			if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+				t.Fatalf("QueueEmail for %s: %v", to, err)
+			}
+		}
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 2 {
+			t.Fatalf("want 2 pending emails before send, got %d", got)
+		}
+
+		SendPendingAlertEmails(ctx)
+
+		// Opted-out user's email should be deleted.
+		// Opted-in user's email should remain (send fails without mail server).
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Errorf("want 1 pending email (opted-in user only), got %d", got)
+		}
+
+		// Verify the remaining message is for the opted-in user
+		var remainingTo string
+		err = th.PgPool.QueryRow(ctx,
+			"SELECT data->>'to' FROM pending_alert_messages WHERE channel = 'email'").Scan(&remainingTo)
+		if err != nil {
+			t.Fatalf("read remaining email: %v", err)
+		}
+		if remainingTo != "optin@example.com" {
+			t.Errorf("remaining email to = %q, want %q", remainingTo, "optin@example.com")
+		}
+	})
+
+	t.Run("filters per alert type when user opts out of some but not others", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedUser(ctx, t, userID, "partial@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// User opts out of crash spike and daily summary, keeps app_hang_spike and bug_report
+		_, err := th.PgPool.Exec(ctx,
+			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, false)",
+			userID)
+		if err != nil {
+			t.Fatalf("insert notif_prefs: %v", err)
+		}
+
+		// Queue four different alert types
+		alertTypes := []struct {
+			alertType string
+			subject   string
+		}{
+			{string(AlertTypeCrashSpike), "Crash Spike Alert"},
+			{string(AlertTypeAnrSpike), "App Hang Spike Alert"},
+			{string(AlertTypeBugReport), "New Bug Report"},
+			{"daily_summary", "Daily Summary"},
+		}
+		for _, at := range alertTypes {
+			info := email.EmailInfo{
+				From:        "noreply@measure.sh",
+				To:          "partial@example.com",
+				Subject:     at.subject,
+				ContentType: "text/html",
+				Body:        "<p>Alert</p>",
+				AlertType:   at.alertType,
+			}
+			if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+				t.Fatalf("QueueEmail for %s: %v", at.alertType, err)
+			}
+		}
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 4 {
+			t.Fatalf("want 4 pending emails before send, got %d", got)
+		}
+
+		SendPendingAlertEmails(ctx)
+
+		// crash_spike and daily_summary should be deleted (opted out).
+		// app_hang_spike and bug_report should remain (opted in, send fails without mail server).
+		if got := countPendingByChannel(ctx, t, "email"); got != 2 {
+			t.Errorf("want 2 pending emails (app_hang_spike + bug_report), got %d", got)
 		}
 	})
 }

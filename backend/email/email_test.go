@@ -434,6 +434,78 @@ func TestQueueEmailForTeamWithNoMembersQueuesNothing(t *testing.T) {
 	}
 }
 
+func TestQueueEmailPersistsAlertType(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "AlertType Team", true)
+
+	input := EmailInfo{
+		From:        testFromEmail,
+		To:          testToEmail,
+		Subject:     "Crash Spike Alert",
+		ContentType: "text/html",
+		Body:        "<p>Crash alert</p>",
+		AlertType:   "crash_spike",
+	}
+	if err := QueueEmail(ctx, th.PgPool, teamID, nil, input); err != nil {
+		t.Fatalf("QueueEmail: %v", err)
+	}
+
+	var data []byte
+	err := th.PgPool.QueryRow(ctx,
+		"SELECT data FROM pending_alert_messages WHERE team_id = $1",
+		teamID).Scan(&data)
+	if err != nil {
+		t.Fatalf("read queued email: %v", err)
+	}
+
+	var got EmailInfo
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshal email payload: %v", err)
+	}
+	if got.AlertType != "crash_spike" {
+		t.Errorf("AlertType = %q, want %q", got.AlertType, "crash_spike")
+	}
+}
+
+func TestQueueEmailOmitsEmptyAlertType(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "No AlertType Team", true)
+
+	input := EmailInfo{
+		From:        testFromEmail,
+		To:          testToEmail,
+		Subject:     "Usage Limit",
+		ContentType: "text/html",
+		Body:        "<p>Usage</p>",
+	}
+	if err := QueueEmail(ctx, th.PgPool, teamID, nil, input); err != nil {
+		t.Fatalf("QueueEmail: %v", err)
+	}
+
+	var data []byte
+	err := th.PgPool.QueryRow(ctx,
+		"SELECT data FROM pending_alert_messages WHERE team_id = $1",
+		teamID).Scan(&data)
+	if err != nil {
+		t.Fatalf("read queued email: %v", err)
+	}
+
+	// With omitempty, alert_type key should be absent from JSON
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal email payload: %v", err)
+	}
+	if _, exists := raw["alert_type"]; exists {
+		t.Errorf("alert_type should be omitted when empty, got %v", raw["alert_type"])
+	}
+}
+
 func TestSendEmailNilClient(t *testing.T) {
 	err := SendEmail(nil, EmailInfo{
 		From:        testFromEmail,

@@ -318,14 +318,14 @@ export enum SessionTimelineApiStatus {
   Cancelled,
 }
 
-export enum FetchAlertPrefsApiStatus {
+export enum FetchNotifPrefsApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum UpdateAlertPrefsApiStatus {
+export enum UpdateNotifPrefsApiStatus {
   Init,
   Loading,
   Success,
@@ -986,16 +986,11 @@ export const emptyTrace = {
   ],
 }
 
-export const emptyAlertPrefs = {
-  crash_rate_spike: {
-    email: true,
-  },
-  anr_rate_spike: {
-    email: true,
-  },
-  launch_time_spike: {
-    email: true,
-  },
+export const emptyNotifPrefs = {
+  error_spike: true,
+  app_hang_spike: true,
+  bug_report: true,
+  daily_summary: true,
 }
 
 export const emptyAppRetention = {
@@ -2342,45 +2337,44 @@ export const sendTestSlackAlertFromServer = async (
   }
 }
 
-export const fetchAlertPrefsFromServer = async (appId: string) => {
+export const fetchNotifPrefsFromServer = async () => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/alertPrefs`)
+    const res = await measureAuth.fetchMeasure(`/api/prefs/notifPrefs`)
 
     if (!res.ok) {
-      return { status: FetchAlertPrefsApiStatus.Error, data: null }
+      return { status: FetchNotifPrefsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: FetchAlertPrefsApiStatus.Success, data: data }
+    return { status: FetchNotifPrefsApiStatus.Success, data: data }
   } catch {
-    return { status: FetchAlertPrefsApiStatus.Cancelled, data: null }
+    return { status: FetchNotifPrefsApiStatus.Cancelled, data: null }
   }
 }
 
-export const updateAlertPrefsFromServer = async (
-  appdId: string,
-  alertPrefs: typeof emptyAlertPrefs,
+export const updateNotifPrefsFromServer = async (
+  notifPrefs: typeof emptyNotifPrefs,
 ) => {
   const opts = {
     method: "PATCH",
-    body: JSON.stringify(alertPrefs),
+    body: JSON.stringify(notifPrefs),
   }
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/apps/${appdId}/alertPrefs`,
+      `/api/prefs/notifPrefs`,
       opts,
     )
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
+      return { status: UpdateNotifPrefsApiStatus.Error, error: data.error }
     }
 
-    return { status: UpdateAlertPrefsApiStatus.Success }
+    return { status: UpdateNotifPrefsApiStatus.Success }
   } catch {
-    return { status: UpdateAlertPrefsApiStatus.Cancelled }
+    return { status: UpdateNotifPrefsApiStatus.Cancelled }
   }
 }
 
