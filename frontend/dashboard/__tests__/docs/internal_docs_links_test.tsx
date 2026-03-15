@@ -80,6 +80,12 @@ describe('GitHub docs links have been replaced', () => {
     expect(content).toContain("href='/docs/hosting/slack'")
   })
 
+  it('team/page.tsx links to /docs/features/feature-slack-integration', () => {
+    const content = fs.readFileSync(path.join(APP_DIR, '[teamId]/team/page.tsx'), 'utf-8')
+
+    expect(content).toContain("href='/docs/features/feature-slack-integration'")
+  })
+
   it('session_timelines/page.tsx links to /docs/features/feature-session-timelines', () => {
     const content = fs.readFileSync(path.join(APP_DIR, '[teamId]/session_timelines/page.tsx'), 'utf-8')
 

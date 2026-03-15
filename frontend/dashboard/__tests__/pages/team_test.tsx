@@ -272,6 +272,13 @@ describe('Team Page', () => {
     expect(screen.getByText('Change Team Name')).toBeInTheDocument()
   })
 
+  it('renders slack integration doc link', async () => {
+    await renderPage()
+
+    const learnMoreLink = screen.getByRole('link', { name: 'Learn more' })
+    expect(learnMoreLink).toHaveAttribute('href', '/docs/features/feature-slack-integration')
+  })
+
   it('shows team fetch error when teams API fails', async () => {
     const { fetchTeamsFromServer } = require('@/app/api/api_calls')
     fetchTeamsFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
