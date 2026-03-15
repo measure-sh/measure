@@ -645,7 +645,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           <div className="py-8" />
           <p className="font-display text-xl max-w-6xl text-center">Slack Integration</p>
-          <div className="py-2" />
+          <p className="mt-2 font-body text-xs text-muted-foreground">Receive alert notifications and daily summaries in Slack. <Link className={underlineLinkStyle} href='/docs/features/feature-slack-integration'>Learn more</Link></p>
+          <div className="py-4" />
           {(fetchTeamSlackStatusApiStatus === FetchTeamSlackStatusApiStatus.Loading || fetchTeamSlackConnectUrlApiStatus === FetchTeamSlackConnectUrlApiStatus.Loading) && <LoadingSpinner />}
 
           {/* error creating slack url or fetching team slack status */}
