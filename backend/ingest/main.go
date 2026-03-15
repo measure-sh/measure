@@ -25,7 +25,9 @@ func main() {
 	server.Init(config)
 
 	defer server.Server.PgPool.Close()
-	defer server.Server.VK.Close()
+	if server.Server.VK != nil {
+		defer server.Server.VK.Close()
+	}
 
 	// Close ClickHouse connection pool at shutdown
 	defer func() {
