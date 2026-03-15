@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement user notification preferences by @anupcowkur in #3295
 - (**backend**): Implement MCP server by @anupcowkur in #3254
 - (**backend**): Add ingest service (#3249) by @detj in #3249
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
@@ -58,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
+- (**frontend**): Remove custom colour override for slack switch by @anupcowkur in #3296
 - (**frontend**): Update llms.txt title by @anupcowkur in #3290
 - (**frontend**): Update search term dark highlight colour by @anupcowkur in #3286
 - (**frontend**): Improve pricing card UI by @anupcowkur in #3280
