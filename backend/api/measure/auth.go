@@ -363,6 +363,10 @@ func SigninGitHub(c *gin.Context) {
 				return
 			}
 
+			if err := createNotifPref(uuid.MustParse(*msrUser.ID)); err != nil {
+				fmt.Println("failed to create notif prefs", err)
+			}
+
 			userName := msrUser.firstName()
 			teamName := fmt.Sprintf("%s's team", userName)
 
@@ -601,6 +605,10 @@ func SigninGoogle(c *gin.Context) {
 					"error": msg,
 				})
 				return
+			}
+
+			if err := createNotifPref(uuid.MustParse(*msrUser.ID)); err != nil {
+				fmt.Println("failed to create notif prefs", err)
 			}
 
 			userName := msrUser.firstName()

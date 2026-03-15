@@ -1,4 +1,4 @@
-# Feature — Performance Tracing
+# Performance Tracing
 
 * [**Introduction**](#introduction)
 * [**Concepts**](#concepts)
