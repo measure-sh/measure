@@ -32,18 +32,21 @@ const nextConfig = {
   },
   async rewrites() {
     const phHost = process.env.POSTHOG_HOST;
+    console.log({ phHost });
     if (!phHost) return [];
 
-    return [
-      {
-        source: "/yrtmlt/static/:path*",
-        destination: "https://us-assets.i.posthog.com/static/:path*",
-      },
-      {
-        source: "/yrtmlt/:path*",
-        destination: `${phHost}/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: "/yrtmlt/static/:path*",
+          destination: "https://us-assets.i.posthog.com/static/:path*",
+        },
+        {
+          source: "/yrtmlt/:path*",
+          destination: `${phHost}/:path*`,
+        },
+      ],
+    };
   },
   async headers() {
     // allow loading assets for PostHog session replays
