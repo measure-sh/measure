@@ -29,26 +29,26 @@ export function PostHogProvider({
    */
   proxyPath?: string;
 }) {
-  const [isBlocked, setIsBlocked] = useState(true);
+  // const [isBlocked, setIsBlocked] = useState(false);
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
-  useEffect(() => {
-    if (apiKey) {
-      // Canary fetch: fails instantly with ERR_BLOCKED_BY_CLIENT when ad-blocked
-      fetch(host)
-        .then((res) => {
-          if (!res.ok) {
-            setIsBlocked(true);
-          } else {
-            setIsBlocked(false);
-          }
-        })
-        .catch(() => setIsBlocked(true));
-    }
-  }, [apiKey, host]);
+  // useEffect(() => {
+  //   if (apiKey) {
+  //     // Canary fetch: fails instantly with ERR_BLOCKED_BY_CLIENT when ad-blocked
+  //     fetch(host)
+  //       .then((res) => {
+  //         if (!res.ok) {
+  //           setIsBlocked(false);
+  //         } else {
+  //           setIsBlocked(false);
+  //         }
+  //       })
+  //       .catch(() => setIsBlocked(true));
+  //   }
+  // }, [apiKey, host]);
 
-  const shouldInit = !!apiKey && !isBlocked;
+  const shouldInit = !!apiKey;
 
   useEffect(() => {
     if (shouldInit) {
