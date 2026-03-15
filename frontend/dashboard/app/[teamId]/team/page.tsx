@@ -677,7 +677,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               <div className="flex flex-row w-full items-center justify-between">
                 <p className="font-body">Connected to <span className="font-semibold">{teamSlack.slack_team_name}</span> workspace</p>
                 <Switch
-                  className={"data-[state=checked]:bg-emerald-500"}
                   disabled={!authzAndMembers.can_manage_slack || updateTeamSlackStatusApiStatus === UpdateTeamSlackStatusApiStatus.Loading}
                   checked={teamSlack.is_active}
                   onCheckedChange={(checked) => {
