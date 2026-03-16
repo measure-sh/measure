@@ -1,125 +1,131 @@
-import { PostHogProvider } from '@/app/context/posthog'
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
-import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
-import { usePostHog } from 'posthog-js/react'
+import { PostHogProvider } from "@/app/context/posthog";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { render, screen, waitFor } from "@testing-library/react";
+import { usePostHog } from "posthog-js/react";
 
-jest.mock('posthog-js', () => ({
-    __esModule: true,
-    default: {
-        init: jest.fn(),
-        get_explicit_consent_status: jest.fn().mockReturnValue('pending'),
-    },
-}))
+jest.mock("posthog-js", () => ({
+  __esModule: true,
+  default: {
+    init: jest.fn().mockImplementation((_key: string, opts?: { loaded?: () => void }) => {
+      opts?.loaded?.();
+    }),
+    get_explicit_consent_status: jest.fn().mockReturnValue("pending"),
+  },
+}));
 
-import posthog from 'posthog-js'
+import posthog from "posthog-js";
 
 function ConsentStatusChild() {
-    const ph = usePostHog()
-    return <div data-testid="status">{ph?.get_explicit_consent_status?.() ?? ''}</div>
+  const ph = usePostHog();
+  return <div data-testid="status">{ph?.get_explicit_consent_status?.() ?? ""}</div>;
 }
 
 beforeEach(() => {
-    ; (posthog.get_explicit_consent_status as jest.Mock).mockReturnValue('pending')
-    process.env.NEXT_PUBLIC_POSTHOG_API_KEY = 'test-key'
-    global.fetch = jest.fn().mockResolvedValue({ ok: true })
-})
+  (posthog.get_explicit_consent_status as jest.Mock).mockReturnValue("pending");
+  process.env.NEXT_PUBLIC_POSTHOG_API_KEY = "test-key";
+});
 
 afterEach(() => {
-    delete process.env.NEXT_PUBLIC_POSTHOG_API_KEY
-    delete process.env.NEXT_PUBLIC_POSTHOG_HOST
-})
+  delete process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
+  delete process.env.NEXT_PUBLIC_POSTHOG_HOST;
+});
 
-describe('PostHogProvider', () => {
-    it('does not call posthog.init or fetch and uses noop client when no API key', () => {
-        delete process.env.NEXT_PUBLIC_POSTHOG_API_KEY
+describe("PostHogProvider", () => {
+  it("does not call posthog.init and uses noop client when no API key", () => {
+    delete process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 
-        render(
-            <PostHogProvider>
-                <ConsentStatusChild />
-            </PostHogProvider>
-        )
+    render(
+      <PostHogProvider>
+        <ConsentStatusChild />
+      </PostHogProvider>,
+    );
 
-        expect(global.fetch).not.toHaveBeenCalled()
-        expect(posthog.init).not.toHaveBeenCalled()
-        expect(screen.getByTestId('status')).toHaveTextContent('denied')
-    })
+    expect(posthog.init).not.toHaveBeenCalled();
+    expect(screen.getByTestId("status")).toHaveTextContent("denied");
+  });
 
-    it('calls posthog.init with correct params when API key is set and fetch resolves', async () => {
-        render(
-            <PostHogProvider>
-                <ConsentStatusChild />
-            </PostHogProvider>
-        )
+  it("calls posthog.init with correct params when API key is set", async () => {
+    render(
+      <PostHogProvider>
+        <ConsentStatusChild />
+      </PostHogProvider>,
+    );
 
-        await waitFor(() => {
-            expect(posthog.init).toHaveBeenCalledWith('test-key', expect.objectContaining({
-                api_host: 'https://us.i.posthog.com',
-                person_profiles: 'identified_only',
-                defaults: '2025-05-24',
-                cookieless_mode: 'on_reject',
-            }))
-        })
+    await waitFor(() => {
+      expect(posthog.init).toHaveBeenCalledWith(
+        "test-key",
+        expect.objectContaining({
+          api_host: "https://us.i.posthog.com",
+          person_profiles: "identified_only",
+          defaults: "2025-05-24",
+          cookieless_mode: "on_reject",
+        }),
+      );
+    });
 
-        expect(screen.getByTestId('status')).toHaveTextContent('pending')
-    })
+    expect(screen.getByTestId("status")).toHaveTextContent("pending");
+  });
 
-    it('switches to noop client when canary fetch fails (ad blocked)', async () => {
-        global.fetch = jest.fn().mockRejectedValue(new Error('ERR_BLOCKED_BY_CLIENT'))
+  it("uses custom host from NEXT_PUBLIC_POSTHOG_HOST env var", async () => {
+    process.env.NEXT_PUBLIC_POSTHOG_HOST = "https://custom.posthog.com";
 
-        render(
-            <PostHogProvider>
-                <ConsentStatusChild />
-            </PostHogProvider>
-        )
+    render(
+      <PostHogProvider>
+        <div />
+      </PostHogProvider>,
+    );
 
-        // After the rejected promise settles, isBlocked=true → noop client → 'denied'
-        await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('denied')
-        })
-    })
+    await waitFor(() => {
+      expect(posthog.init).toHaveBeenCalledWith(
+        "test-key",
+        expect.objectContaining({ api_host: "https://custom.posthog.com" }),
+      );
+    });
+  });
 
-    it('canary fetch is called with the posthog host', async () => {
-        render(
-            <PostHogProvider>
-                <div />
-            </PostHogProvider>
-        )
+  it("uses proxyPath as api_host when proxyPath prop is provided", async () => {
+    render(
+      <PostHogProvider proxyPath="/yrtmlt">
+        <div />
+      </PostHogProvider>,
+    );
 
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith('https://us.i.posthog.com')
-        })
-    })
+    await waitFor(() => {
+      expect(posthog.init).toHaveBeenCalledWith(
+        "test-key",
+        expect.objectContaining({ api_host: "/yrtmlt" }),
+      );
+    });
+  });
 
-    it('switches to noop client when canary fetch returns a non-success status', async () => {
-        global.fetch = jest.fn().mockResolvedValue({ ok: false })
+  it("sets ui_host when proxyPath is provided", async () => {
+    render(
+      <PostHogProvider proxyPath="/yrtmlt">
+        <div />
+      </PostHogProvider>,
+    );
 
-        render(
-            <PostHogProvider>
-                <ConsentStatusChild />
-            </PostHogProvider>
-        )
+    await waitFor(() => {
+      expect(posthog.init).toHaveBeenCalledWith(
+        "test-key",
+        expect.objectContaining({ ui_host: "https://us.posthog.com" }),
+      );
+    });
+  });
 
-        await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('denied')
-        })
-    })
+  it("does not set ui_host when proxyPath is not provided", async () => {
+    render(
+      <PostHogProvider>
+        <div />
+      </PostHogProvider>,
+    );
 
-    it('uses custom host from NEXT_PUBLIC_POSTHOG_HOST env var', async () => {
-        process.env.NEXT_PUBLIC_POSTHOG_HOST = 'https://custom.posthog.com'
+    await waitFor(() => {
+      expect(posthog.init).toHaveBeenCalled();
+    });
 
-        render(
-            <PostHogProvider>
-                <div />
-            </PostHogProvider>
-        )
-
-        await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith('https://custom.posthog.com')
-            expect(posthog.init).toHaveBeenCalledWith(
-                'test-key',
-                expect.objectContaining({ api_host: 'https://custom.posthog.com' })
-            )
-        })
-    })
-})
+    const initCall = (posthog.init as jest.Mock).mock.calls[0][1];
+    expect(initCall).not.toHaveProperty("ui_host");
+  });
+});
