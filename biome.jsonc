@@ -1,0 +1,23 @@
+// biome configuration for linting & formatting supported
+// languages
+// https://biomejs.dev/internals/language-support/
+// https://biomejs.dev/guides/configure-biome/
+{
+  "$schema": "https://biomejs.dev/schemas/latest/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  }
+}
