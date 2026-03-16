@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Show billing usage progress bar for free plans by @anupcowkur
 - (**frontend**): Add billing unit explanation to usage page by @anupcowkur
 - (**frontend**): Remove uneeded filters from api calls by @anupcowkur in #3224
+- Add biome config (#3300) by @detj in #3300
 
 ### :zap: Performance
 
