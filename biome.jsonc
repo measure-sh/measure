@@ -1,3 +1,7 @@
+// mimnal biome configuration for linting & formatting supported
+// languages
+// https://biomejs.dev/internals/language-support/
+// https://biomejs.dev/guides/configure-biome/
 {
   "$schema": "https://biomejs.dev/schemas/latest/schema.json",
   "formatter": {
