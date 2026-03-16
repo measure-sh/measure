@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
+- (**frontend**): Reverse proxy all dashboard posthog requests (#3298) by @detj in #3298
 - (**frontend**): Add and link slack integration feature doc by @anupcowkur in #3297
 - (**frontend**): Remove custom colour override for slack switch by @anupcowkur in #3296
 - (**frontend**): Update llms.txt title by @anupcowkur in #3290
