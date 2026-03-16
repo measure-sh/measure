@@ -3,20 +3,20 @@
 import Link from "next/link";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useState } from "react";
+import { usePostHogLoaded } from "../context/posthog";
 import { underlineLinkStyle } from "../utils/shared_styles";
 import { Button } from "./button";
 
 export function CookieBanner() {
   const posthog = usePostHog();
+  const phLoaded = usePostHogLoaded();
   const [consentGiven, setConsentGiven] = useState("");
 
   useEffect(() => {
-    if (posthog) {
-      const consent = posthog.get_explicit_consent_status();
-      console.log({ consent });
+    if (phLoaded && posthog) {
       setConsentGiven(posthog.get_explicit_consent_status());
     }
-  }, [posthog]);
+  }, [posthog, phLoaded]);
 
   const handleAcceptCookies = () => {
     posthog.opt_in_capturing();

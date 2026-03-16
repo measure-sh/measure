@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
+
+const PostHogLoadedContext = createContext(false);
+
+export function usePostHogLoaded() {
+  return useContext(PostHogLoadedContext);
+}
 
 // Returns 'denied' so the cookie banner doesn't show when PostHog is unavailable
 const createNoopPostHog = () =>
@@ -29,24 +35,10 @@ export function PostHogProvider({
    */
   proxyPath?: string;
 }) {
-  // const [isBlocked, setIsBlocked] = useState(false);
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
-  // useEffect(() => {
-  //   if (apiKey) {
-  //     // Canary fetch: fails instantly with ERR_BLOCKED_BY_CLIENT when ad-blocked
-  //     fetch(host)
-  //       .then((res) => {
-  //         if (!res.ok) {
-  //           setIsBlocked(false);
-  //         } else {
-  //           setIsBlocked(false);
-  //         }
-  //       })
-  //       .catch(() => setIsBlocked(true));
-  //   }
-  // }, [apiKey, host]);
+  const [phLoaded, setPhLoaded] = useState(false);
 
   const shouldInit = !!apiKey;
 
@@ -58,11 +50,21 @@ export function PostHogProvider({
         person_profiles: "identified_only",
         defaults: "2025-05-24",
         cookieless_mode: "on_reject",
+        loaded: () => setPhLoaded(true),
       });
     }
   }, [shouldInit, apiKey, host, proxyPath]);
 
   const client = useMemo(() => (shouldInit ? posthog : createNoopPostHog()), [shouldInit]);
 
-  return <PHProvider client={client}>{children}</PHProvider>;
+  // When there's no API key the noop client is used immediately — treat as loaded.
+  const phLoadedValue = phLoaded || !shouldInit;
+
+  return (
+    <PHProvider client={client}>
+      <PostHogLoadedContext.Provider value={phLoadedValue}>
+        {children}
+      </PostHogLoadedContext.Provider>
+    </PHProvider>
+  );
 }

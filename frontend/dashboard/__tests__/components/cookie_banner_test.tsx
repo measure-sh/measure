@@ -8,6 +8,12 @@ jest.mock('posthog-js/react', () => ({
     usePostHog: jest.fn(),
 }))
 
+jest.mock('@/app/context/posthog', () => ({
+    usePostHogLoaded: jest.fn().mockReturnValue(true),
+}))
+
+import { usePostHogLoaded } from '@/app/context/posthog'
+
 const mockPostHog = {
     get_explicit_consent_status: jest.fn(),
     opt_in_capturing: jest.fn(),
@@ -16,11 +22,21 @@ const mockPostHog = {
 
 beforeEach(() => {
     ;(usePostHog as jest.Mock).mockReturnValue(mockPostHog)
+    ;(usePostHogLoaded as jest.Mock).mockReturnValue(true)
 })
 
 describe('CookieBanner', () => {
     it('does not render banner when posthog is not available', () => {
         ;(usePostHog as jest.Mock).mockReturnValue(null)
+
+        render(<CookieBanner />)
+
+        expect(screen.queryByText(/we use cookies/i)).not.toBeInTheDocument()
+    })
+
+    it('does not render banner before posthog has loaded, even when consent would be pending', () => {
+        ;(usePostHogLoaded as jest.Mock).mockReturnValue(false)
+        mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
 
         render(<CookieBanner />)
 
