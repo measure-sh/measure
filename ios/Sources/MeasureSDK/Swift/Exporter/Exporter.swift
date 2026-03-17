@@ -209,8 +209,9 @@ final class BaseExporter: Exporter {
             let headersData = attachment.headers,
             let headers = deserializeHeaders(headersData)
         else {
+            logger.log(level: .info, message: "Exporter: Deleting attachment as it is invalid: \(attachment.id)", error: nil, data: nil)
             attachmentStore.deleteAttachments(attachmentIds: [attachment.id])
-            return false
+            return true
         }
 
         let response = httpClient.uploadFile(

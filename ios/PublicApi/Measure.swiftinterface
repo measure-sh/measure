@@ -24,6 +24,7 @@ import os.log
 import os
 import ObjectiveC.runtime
 import os.signpost
+import zlib
 public enum AttributeValue {
   case string(Swift.String)
   case boolean(Swift.Bool)
