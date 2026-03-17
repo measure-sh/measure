@@ -63,7 +63,7 @@ const (
 	maxNavigationToChars                      = 128
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
-	maxScreenViewNameChars                    = 128
+	maxScreenViewNameChars                    = 1024
 	maxCustomNameChars                        = 64
 	maxLayoutElementIDChars                   = 512
 	maxLayoutElementLabelChars                = 512
