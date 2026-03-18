@@ -13,13 +13,13 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/microsoft/plcrashreporter.git", from: "1.12.0")
+        .package(url: "https://github.com/kstenerud/KSCrash.git", from: "2.5.1")
     ],
     targets: [
         .target(
             name: "Measure",
             dependencies: [
-                .product(name: "CrashReporter", package: "plcrashreporter")
+                .product(name: "Recording", package: "KSCrash")
             ],
             path: "ios/Sources/MeasureSDK/Swift",
             resources: [

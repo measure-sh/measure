@@ -318,14 +318,15 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
-        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
-        self.crashReportManager = CrashReportingManager(logger: logger,
-                                                        signalProcessor: signalProcessor,
-                                                        crashDataPersistence: crashDataPersistence,
-                                                        crashReporter: systemCrashReporter,
-                                                        systemFileManager: systemFileManager,
-                                                        idProvider: idProvider,
-                                                        configProvider: configProvider)
+        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger,
+                                                           crashDataPersistence: crashDataPersistence)
+        self.crashReportManager = BaseCrashReportingManager(logger: logger,
+                                                            signalProcessor: signalProcessor,
+                                                            crashDataPersistence: crashDataPersistence,
+                                                            crashReporter: systemCrashReporter,
+                                                            systemFileManager: systemFileManager,
+                                                            idProvider: idProvider,
+                                                            configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      signalProcessor: signalProcessor,
@@ -395,8 +396,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider,
                                                              attributeValueValidator: attributeValueValidator)
-        self.exceptionGenerator = BaseExceptionGenerator(crashReporter: systemCrashReporter,
-                                                         logger: logger)
+        self.exceptionGenerator = BaseExceptionGenerator(logger: logger,
+                                                         crashDataPersistence: crashDataPersistence)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,

@@ -120,7 +120,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: false
+                    needsReporting: false,
+                    synchronous: false
                 )
 
             case EventType.exception.rawValue:
@@ -145,7 +146,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: true,
+                    synchronous: false
                 )
 
             case EventType.screenView.rawValue:
@@ -159,7 +161,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId)
+                    needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),
+                    synchronous: false
                 )
 
             case EventType.http.rawValue:
@@ -173,7 +176,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: signalSampler.shouldSampleHttpEvent()
+                    needsReporting: signalSampler.shouldSampleHttpEvent(),
+                    synchronous: false
                 )
 
             case EventType.bugReport.rawValue:
@@ -188,7 +192,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true
+                    needsReporting: true,
+                    synchronous: false
                 )
             case EventType.gestureClick.rawValue:
                 let bugReportData = try extractClickData(data: data)
@@ -201,7 +206,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: false
+                    needsReporting: false,
+                    synchronous: false
                 )
             case EventType.gestureLongClick.rawValue:
                 let bugReportData = try extractLongClickData(data: data)
@@ -214,7 +220,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: false
+                    needsReporting: false,
+                    synchronous: false
                 )
             case EventType.gestureScroll.rawValue:
                 let bugReportData = try extractScrollData(data: data)
@@ -227,7 +234,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: false
+                    needsReporting: false,
+                    synchronous: false
                 )
             default:
                 logger.log(

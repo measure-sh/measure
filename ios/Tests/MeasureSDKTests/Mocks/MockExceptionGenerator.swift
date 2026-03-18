@@ -14,4 +14,8 @@ final class MockExceptionGenerator: ExceptionGenerator {
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
         return exception
     }
+
+    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+        return self.exception
+    }
 }

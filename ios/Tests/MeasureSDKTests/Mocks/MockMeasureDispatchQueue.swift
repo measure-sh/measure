@@ -9,6 +9,10 @@ import Foundation
 @testable import Measure
 
 final class MockMeasureDispatchQueue: MeasureDispatchQueue {
+    func submitSync(_ block: () -> Void) {
+        block()
+    }
+
     func submit(_ block: @escaping () -> Void) {
         block()
     }

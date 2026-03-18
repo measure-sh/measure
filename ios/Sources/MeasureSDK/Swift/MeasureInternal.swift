@@ -158,6 +158,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
+    var previousSessionCrashed = false
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
@@ -169,6 +170,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
         self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
+        previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in
             guard let self else { return }
             if let timestamp = self.sessionManager.getSessionStartTime() {
@@ -176,14 +178,22 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             }
         }
         self.sessionManager.start()
-        self.crashDataPersistence.prepareCrashFile()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
-        self.crashReportManager.trackException()
+        let group = DispatchGroup()
+        group.enter()
+        self.crashReportManager.trackException {
+            group.leave()
+        }
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
         }
-        configLoader.loadDynamicConfig { dynamicConfig in
+        group.enter()
+        configLoader.loadDynamicConfig { [weak self] dynamicConfig in
+            guard let self else {
+                group.leave()
+                return
+            }
             self.configProvider.setDynamicConfig(dynamicConfig)
 
             self.sessionManager.onConfigLoaded()
@@ -191,7 +201,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.appLaunchCollector.onConfigLoaded()
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
-
+            group.leave()
+        }
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
             self.exporter.export()
         }
     }
@@ -329,6 +342,19 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+    }
+
     func getDocumentDirectoryPath() -> String? {
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
@@ -401,7 +427,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
-        self.crashReportManager.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -420,7 +445,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
-        self.crashReportManager.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
     }
@@ -466,6 +490,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                    attachments: nil,
                                    userDefinedAttributes: nil,
                                    threadName: nil,
-                                   needsReporting: true)
+                                   needsReporting: true,
+                                   synchronous: false)
     }
 }

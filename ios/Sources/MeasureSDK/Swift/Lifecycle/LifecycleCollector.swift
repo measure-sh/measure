@@ -157,6 +157,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
                               attachments: nil,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId))
+                              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId),
+                              synchronous: false)
     }
 }

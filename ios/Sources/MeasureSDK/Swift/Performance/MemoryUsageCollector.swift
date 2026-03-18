@@ -112,6 +112,7 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
                               attachments: nil,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: false)
+                              needsReporting: false,
+                              synchronous: false)
     }
 }

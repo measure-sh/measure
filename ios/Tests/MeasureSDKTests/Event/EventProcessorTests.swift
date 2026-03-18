@@ -148,7 +148,8 @@ final class SignalProcessorTests: XCTestCase {
                               attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: true)
+                              needsReporting: true,
+                              synchronous: false)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
@@ -257,7 +258,8 @@ final class SignalProcessorTests: XCTestCase {
                               attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: true)
+                              needsReporting: true,
+                              synchronous: false)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)
@@ -310,7 +312,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
@@ -340,7 +343,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
@@ -371,7 +375,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
@@ -402,7 +407,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
@@ -463,7 +469,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         XCTAssertEqual(exporter.exportCallCount, 1)
@@ -495,7 +502,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: false
+            needsReporting: false,
+            synchronous: false
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true)
@@ -525,7 +533,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: false
+            needsReporting: false,
+            synchronous: false
         )
 
         XCTAssertEqual(sessionManager.onEventTrackedCallCount, 1)
@@ -555,7 +564,8 @@ final class SignalProcessorTests: XCTestCase {
             attachments: nil,
             userDefinedAttributes: nil,
             threadName: nil,
-            needsReporting: true
+            needsReporting: true,
+            synchronous: false
         )
 
         let event = signalStore.storedEvents.first

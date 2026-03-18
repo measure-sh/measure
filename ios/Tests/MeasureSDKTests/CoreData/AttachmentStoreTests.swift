@@ -160,7 +160,7 @@ final class AttachmentStoreTests: XCTestCase {
         var updated: AttachmentOb?
         context.performAndWait {
             let req: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-            req.predicate = NSPredicate(format: "id == %@", id)
+            req.predicate = NSPredicate(format: "id == %@", id)    
             updated = try? context.fetch(req).first
         }
         XCTAssertEqual(updated?.uploadUrl, "https://example.com/upload")
