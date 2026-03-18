@@ -283,6 +283,7 @@ services:
       dockerfile: dockerfile
       context: ../backend/alerts
       additional_contexts:
+        libs: ../backend/libs
         email: ../backend/email
       args:
         TARGETTYPE: debug
