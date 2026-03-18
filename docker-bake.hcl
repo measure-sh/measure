@@ -33,6 +33,7 @@ target "alerts" {
   inherits = ["docker-metadata-action"]
   context = "backend/alerts"
   contexts = {
+    libs = "backend/libs"
     email = "backend/email"
   }
   dockerfile = "dockerfile"
