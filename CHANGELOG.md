@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Upgrade to clickhouse v25.12 (#3307) by @detj in #3307
 - (**backend**): Add missing libs to alerts in compose.yml (#3305) by @abhaysood in #3305
 - (**backend**): Fix migrations & ready for next release (#3288) by @detj in #3288
 - (**backend**): Show unit-days used in pro plan by @anupcowkur in #3282
