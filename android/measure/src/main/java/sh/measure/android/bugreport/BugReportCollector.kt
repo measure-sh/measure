@@ -14,11 +14,13 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.screenshot.ScreenshotMask
 import sh.measure.android.storage.FileStorage
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.BitmapHelper
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.ResumedActivityProvider
+import sh.measure.android.utils.ScreenshotMaskConfig
 import sh.measure.android.utils.TimeProvider
 import java.io.File
 import java.lang.ref.WeakReference
@@ -153,7 +155,13 @@ internal class BugReportCollectorImpl internal constructor(
                 "msr-captureScreenshot"
             },
             block = {
-                val bitmap = BitmapHelper.captureBitmap(activity, logger)
+                val screenshotMaskConfig = ScreenshotMaskConfig(
+                    maskHexColor = configProvider.screenshotMaskHexColor,
+                    getMaskRects = { view ->
+                        ScreenshotMask(configProvider).findRectsToMask(view)
+                    },
+                )
+                val bitmap = BitmapHelper.captureBitmap(activity, logger, screenshotMaskConfig)
                 if (bitmap == null) {
                     onError()
                     return@trace
