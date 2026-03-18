@@ -75,7 +75,8 @@ final class BaseHttpEventCollector: HttpEventCollector {
                                   attachments: nil,
                                   userDefinedAttributes: nil,
                                   threadName: nil,
-                                  needsReporting: false)
+                                  needsReporting: false,
+                                  synchronous: false)
         }
     }
 }

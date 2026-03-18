@@ -8,7 +8,7 @@
 import Foundation
 
 protocol CrashReportManager {
-    func trackException()
+    func trackException(completion: (() -> Void)?)
     var hasPendingCrashReport: Bool { get }
 }
 
@@ -40,13 +40,17 @@ final class BaseCrashReportingManager: CrashReportManager {
         self.configProvider = configProvider
     }
 
-    func trackException() {
-        guard hasPendingCrashReport else { return }
+    func trackException(completion: (() -> Void)?) {
+        guard hasPendingCrashReport else {
+            completion?()
+            return
+        }
 
         let exceptionData = processCrashReport()
         guard var exception = exceptionData.exception, let date = exceptionData.date else {
             crashReporter.clearCrashData()
             crashDataPersistence.clearCrashData()
+            completion?()
             return
         }
 
@@ -61,11 +65,13 @@ final class BaseCrashReportingManager: CrashReportManager {
                                   attachments: nil,
                                   userDefinedAttributes: nil,
                                   threadName: nil,
-                                  needsReporting: true)
+                                  needsReporting: true,
+                                  synchronous: true)
         }
 
         crashReporter.clearCrashData()
         crashDataPersistence.clearCrashData()
+        completion?()
     }
 
     private func processCrashReport() -> (exception: Exception?, date: Date?) {

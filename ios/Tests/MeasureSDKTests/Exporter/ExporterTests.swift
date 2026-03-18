@@ -123,8 +123,8 @@ final class BaseExporterTests: XCTestCase {
     }
 
     func testSkipsExportWhenAlreadyRunning() {
-        exporter.export(after: 0)
-        exporter.export(after: 0)
+        exporter.export()
+        exporter.export()
 
         XCTAssertNil(network.lastBatchId)
     }
@@ -140,7 +140,7 @@ final class BaseExporterTests: XCTestCase {
 
         let exp = expectation(description: "export")
 
-        exporter.export(after: 0)
+        exporter.export()
 
         DispatchQueue.main.async {
             XCTAssertEqual(self.network.lastBatchId, "b1")
@@ -162,7 +162,7 @@ final class BaseExporterTests: XCTestCase {
 
         let exp = expectation(description: "export")
 
-        exporter.export(after: 0)
+        exporter.export()
 
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -185,7 +185,7 @@ final class BaseExporterTests: XCTestCase {
 
         let exp = expectation(description: "export")
 
-        exporter.export(after: 0)
+        exporter.export()
 
         DispatchQueue.main.async {
             XCTAssertNotNil(self.batchStore.getBatch("b1"))
@@ -228,7 +228,7 @@ final class BaseExporterTests: XCTestCase {
 
         let exp = expectation(description: "export")
 
-        exporter.export(after: 0)
+        exporter.export()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertEqual(self.http.uploadedUrls.first?.absoluteString, "https://example.com/a1")
@@ -249,7 +249,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertEqual(self.network.executedBatchIds, ["b1", "b2"])
@@ -269,7 +269,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertEqual(self.network.lastEvents.count, 1)
@@ -285,7 +285,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -300,7 +300,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -318,7 +318,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -336,7 +336,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -354,7 +354,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNil(self.batchStore.getBatch("b1"))
@@ -372,7 +372,7 @@ final class BaseExporterTests: XCTestCase {
         
         let exp = expectation(description: "export")
         
-        exporter.export(after: 0)
+        exporter.export()
         
         DispatchQueue.main.async {
             XCTAssertNotNil(self.batchStore.getBatch("b1"))

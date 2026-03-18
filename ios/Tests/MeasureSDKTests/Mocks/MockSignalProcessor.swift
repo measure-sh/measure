@@ -19,6 +19,7 @@ final class MockSignalProcessor: SignalProcessor {
     var spanData: SpanData?
     var needsReporting: Bool?
     var trackSpanCallCount = 0
+    var synchronous: Bool?
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
                   timestamp: Number,
@@ -28,7 +29,8 @@ final class MockSignalProcessor: SignalProcessor {
                   attachments: [MsrAttachment]?,
                   userDefinedAttributes: String? = nil,
                   threadName: String? = nil,
-                  needsReporting: Bool? = nil) where T: Codable {
+                  needsReporting: Bool? = nil,
+                  synchronous: Bool) where T: Codable {
         self.data = data
         self.timestamp = timestamp
         self.type = type
@@ -37,6 +39,7 @@ final class MockSignalProcessor: SignalProcessor {
         self.attachments = attachments
         self.userDefinedAttributes = userDefinedAttributes
         self.needsReporting = needsReporting
+        self.synchronous = synchronous
     }
 
     func trackUserTriggered<T>(data: T,  // swiftlint:disable:this function_parameter_count

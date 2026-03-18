@@ -220,6 +220,6 @@ final class CrashReportingManagerTests: XCTestCase {
                                                           systemFileManager: systemFileManager,
                                                           idProvider: idProvider,
                                                           configProvider: configProvider)
-        crashReportingManager.trackException()
+        crashReportingManager.trackException {}
     }
 }

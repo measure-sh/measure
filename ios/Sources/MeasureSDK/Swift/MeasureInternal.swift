@@ -179,13 +179,21 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
         self.sessionManager.start()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
-        self.crashReportManager.trackException()
+        let group = DispatchGroup()
+        group.enter()
+        self.crashReportManager.trackException {
+            group.leave()
+        }
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
         }
+        group.enter()
         configLoader.loadDynamicConfig { [weak self] dynamicConfig in
-            guard let self else { return }
+            guard let self else {
+                group.leave()
+                return
+            }
             self.configProvider.setDynamicConfig(dynamicConfig)
 
             self.sessionManager.onConfigLoaded()
@@ -193,16 +201,11 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.appLaunchCollector.onConfigLoaded()
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
-
-            // The signal processor and exporter operate on separate threads. When a crash from a previous
-            // session is being tracked, the signal processor needs time to process and persist the exception
-            // event before the exporter runs. If the dynamic config fetch happens before the exception is fully tracked,
-            // it triggers a export prematurely, causing the crash
-            // event to be missed in that batch export.
-            //
-            // A 1 second delay is applied when a previous session crash is detected, giving the signal
-            // processor enough time to complete tracking before export begins. No delay is needed for non-crash sessions.
-            self.exporter.export(after: self.previousSessionCrashed ? 1 : 0)
+            group.leave()
+        }
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+            self.exporter.export()
         }
     }
 
@@ -390,7 +393,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
-        self.exporter.export(after: 0)
+        self.exporter.export()
         self.dataCleanupService.clearStaleData()
     }
 
@@ -487,6 +490,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                    attachments: nil,
                                    userDefinedAttributes: nil,
                                    threadName: nil,
-                                   needsReporting: true)
+                                   needsReporting: true,
+                                   synchronous: false)
     }
 }

@@ -90,7 +90,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                                        attachments: nil,
                                        userDefinedAttributes: nil,
                                        threadName: nil,
-                                       needsReporting: self.sampler.shouldTrackLaunchEvents())
+                                       needsReporting: self.sampler.shouldTrackLaunchEvents(),
+                                       synchronous: false)
         }
     }
 
@@ -108,7 +109,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                 attachments: nil,
                 userDefinedAttributes: nil,
                 threadName: nil,
-                needsReporting: self.sampler.shouldTrackLaunchEvents()
+                needsReporting: self.sampler.shouldTrackLaunchEvents(),
+                synchronous: false
             )
         }
     }
@@ -126,7 +128,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                                        attachments: nil,
                                        userDefinedAttributes: nil,
                                        threadName: nil,
-                                       needsReporting: self.sampler.shouldTrackLaunchEvents())
+                                       needsReporting: self.sampler.shouldTrackLaunchEvents(),
+                                       synchronous: false)
         }
     }
 

@@ -10,10 +10,8 @@ import Foundation
 
 final class MockExporter: Exporter {
     private(set) var exportCallCount = 0
-    var onExport: (() -> Void)?
 
-    func export(after delay: TimeInterval) {
+    func export() {
         exportCallCount += 1
-        onExport?()
     }
 }
