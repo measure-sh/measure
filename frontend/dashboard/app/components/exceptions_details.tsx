@@ -275,6 +275,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           showDeviceManufacturers={true}
           showDeviceNames={true}
           showBugReportStatus={false}
+          showHttpMethods={false}
           showUdAttrs={true}
           showFreeText={false}
           onFiltersChanged={handleFiltersChanged} />}

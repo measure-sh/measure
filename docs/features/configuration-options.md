@@ -327,6 +327,16 @@ HTTP events contain information about network requests made by your app. The fol
 available
 for HTTP events:
 
+### HTTP Events Sampling
+
+> [!NOTE]
+> Required minimum SDK versions: Android 0.16.1 and iOS 0.9.2
+
+A sampling rate can be configured to control how often HTTP events are collected.
+
+By default, 0.01% (1 in 10000) of HTTP events are collected. You can adjust this percentage from
+0.001% to 100% to control the amount of data collected.
+
 ### Enable/Disable HTTP events
 
 You can choose to enable or disable the collection of HTTP events by providing a URL. We support both exact URL matches
@@ -424,4 +434,3 @@ are masked in the screenshot by default.
 Example:
 
 ![Mask Sensitive Input Fields](../assets/screenshot-mask-sensitive-input-fields-2.png)
-

@@ -77,6 +77,7 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
                     showDeviceManufacturers={false}
                     showDeviceNames={false}
                     showBugReportStatus={false}
+                    showHttpMethods={false}
                     showFreeText={false}
                     showUdAttrs={false}
                     onFiltersChanged={handleFiltersChanged} />}

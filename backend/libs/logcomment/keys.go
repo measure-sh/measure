@@ -39,3 +39,7 @@ const Spans = "spans"
 // BugReports is the root key for the `bug_reports`
 // logcomment.
 const BugReports = "bug_reports"
+
+// Network is the root key for the `network`
+// logcomment.
+const Network = "network"

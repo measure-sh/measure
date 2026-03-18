@@ -4,7 +4,11 @@ go 1.25.6
 
 require backend/email v0.0.0
 
+require backend/libs v0.0.0
+
 replace backend/email => ../email
+
+replace backend/libs => ../libs
 
 require (
 	cloud.google.com/go/cloudsqlconn v1.18.0

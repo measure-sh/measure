@@ -1,6 +1,11 @@
 # Network Monitoring
 
 * [**Overview**](#overview)
+* [**Configuration Options**](#configuration-options)
+* [**Top endpoints**](#top-endpoints)
+* [**Request timeline**](#request-timeline)
+* [**Searching for endpoints**](#searching-for-endpoints)
+* [**How are endpoint patterns generated**](#how-are-endpoint-patterns-generated)
 * [**Data collected**](#data-collected)
 
 Measure SDK can capture network requests, responses and failures along with useful metrics to help understand how APIs
@@ -99,69 +104,97 @@ Future<http.Response> _trackRequest(
 
 ## Configuration Options
 
-By default, all network requests are tracked with key information like the URL, HTTP method, response status code,
-timestamp, any failure reason, and the duration of the request. You can also optionally, disable certain URLs from
-being tracked or track additional information like request and response headers, request body, and response body.
+See [Configuration Options - HTTP Events](configuration-options.md#http-events) for all available options.
 
-All configuration options can be set during SDK initialization.
+## Top endpoints
 
-### Configure URLs to track or ignore
+The top endpoints section provides a ranked summary of your app's API endpoints across three dimensions:
 
-Use `httpUrlAllowlist` to specify a list of URLs that should be tracked. If this is set, only the URLs in this list
-will be tracked. This is useful to ensure that only specific APIs are monitored, especially in cases where
-you want to avoid tracking sensitive or unnecessary URLs.
+* **Slowest** - endpoints ranked by p95 latency, helping identify the slowest APIs affecting user experience.
+* **Highest Error %** - endpoints ranked by the percentage of 4xx and 5xx responses, highlighting unreliable APIs.
+* **Most Frequent** - endpoints ranked by total request count, showing which APIs are called most often.
 
-If you are unsure about which URLs to track, you can leave this option empty and instead use `httpUrlBlocklist` to
-specify a list of URLs that should not be tracked.
+Clicking on any endpoint navigates to a detailed view with latency percentile charts (p50, p90, p95, p99) and
+status code distribution over time.
 
-You should only use one of these options at a time, either `httpUrlAllowlist` or `httpUrlBlocklist`. If both are
-specified, the SDK will take `httpUrlAllowlist` as the source of truth and ignore the `httpUrlBlocklist`.
+These metrics are computed only for [endpoint patterns](#how-are-endpoint-patterns-generated) that have been
+automatically generated. New endpoints will appear here once enough traffic has been collected to generate a
+pattern.
 
-The check for URLs is done using a simple string match. For example, if you specify `https://api.example.com/`,
-then all requests to `https://api.example.com/` and its sub-paths will be tracked. If you want to track only a specific
-endpoint, you can specify the full URL, like `https://api.example.com/v1/users`.
+![Top Endpoints](../assets/network-top-endpoints.png)
 
-Note that wildcards are not supported yet.
+## Request timeline
 
-### Track HTTP headers
+> This feature requires minimum SDK version: Android 0.16.2 and iOS 0.9.2
 
-Use `trackHttpHeaders` to control whether HTTP headers should be tracked for network requests. By default, this is set
-to `false`. 
+The request timeline is a heatmap that visualizes when network requests happen relative to session start. This helps
+answer questions like "which APIs fire immediately on app launch?" and "are there endpoints being called repeatedly
+in the background?"
 
-To track headers, set `trackHttpHeaders` to true. This applies to both automatically captured network requests and 
-manually tracked requests via `trackHttpEvent`.
+The timeline shows the top [endpoint patterns](#how-are-endpoint-patterns-generated) ranked by request frequency.
+New endpoints will appear here once enough traffic has been collected to generate a pattern.
 
-By default, the following headers are always disallowed to prevent sensitive information from
-leaking:
+![Request Timeline](../assets/network-request-timeline.png)
 
-* Authorization
-* Cookie
-* Set-Cookie
-* Proxy-Authorization
-* WWW-Authenticate
-* X-Api-Key
+## Searching for endpoints
 
-To add additional headers to this list, use the `httpHeadersBlocklist` configuration option to provide a list of
-additional headers that should not be tracked.
+You can search for any endpoint by typing its path in the "Explore endpoint" search bar. You can type the
+exact path or use wildcards to find multiple matching endpoints.
 
-### Track HTTP body
+#### Exact path
 
-Use `trackHttpBody` to control whether HTTP request and response bodies should be tracked for network requests. By
-default, this is set to `false`. This option only works for `application/json` content type.
+Type the full path to find a specific endpoint:
 
-On **iOS**, enable network tracking for a given URLSession to track HTTP body. This is done by adding the
-`MsrNetworkInterceptor` to the URLSession configuration as shown below:
+* `/v1/login` — matches only `/v1/login`
+* `/api/users/123/profile` — matches only `/api/users/123/profile`
 
-```swift
-let configuration = URLSessionConfiguration.default
-MsrNetworkInterceptor.enable(on: configuration)
-self.session = URLSession(configuration: configuration)
-```
+#### Using `*` to match any single part
 
-> [!CAUTION]
-> Note that tracking HTTP bodies can significantly increase the size of the collected data, so it should be used with
-> caution. Typically, setting this to `true` is only recommended using a feature flag which can be controlled remotely
-> and turned on for very specific conditions for a limited time.
+A `*` stands in for any single part of a path:
+
+* `/users/*/orders` — matches `/users/123/orders`, `/users/abc/orders`, etc.
+* `/api/*/profile/*` — matches `/api/users/profile/avatar`, `/api/teams/profile/settings`, etc.
+
+#### Using `**` to match everything after a prefix
+
+Place `**` at the end of a path to match everything that follows:
+
+* `/users/**` — matches `/users/123`, `/users/123/orders`, `/users/123/orders/456`, etc.
+* `/api/v1/**` — matches `/api/v1/login`, `/api/v1/users/123/profile`, etc.
+
+Note: `**` can only be used at the end of a path.
+
+#### Mixing `*` and `**`
+
+You can use `*` for specific parts and end with `**` to match the rest:
+
+* `/api/*/users/**` — matches `/api/v1/users/123`, `/api/v2/users/123/orders/456`, etc.
+
+## How are endpoint patterns generated
+
+Measure automatically groups similar URLs into patterns so that requests like
+`/api/users/123/profile` and `/api/users/456/profile` are grouped together as `/api/users/*/profile`.
+A pattern is only created once it receives significant traffic - at least 100 requests in an hour. Once
+established, patterns are retained as long as they continue to receive traffic. Patterns are discovered every
+hour, and once available, metrics are refreshed every 15 minutes.
+
+Raw URLs are grouped into patterns in two stages:
+
+**1. Path normalization** - Each segment of a URL path is checked against known dynamic value formats. Segments
+that match any of the following are replaced with a `*` wildcard:
+
+* UUIDs (e.g. `550e8400-e29b-41d4-a716-446655440000`)
+* SHA1 and MD5 hashes
+* ISO 8601 date prefixes (e.g. `2024-01-15T...`)
+* Hex values (e.g. `0x1a2b3c`)
+* Integers with 2 or more digits (single-digit segments like `v1` are preserved)
+
+For example, `/api/users/550e8400-e29b-41d4-a716-446655440000/orders/12345` becomes `/api/users/*/orders/*`.
+
+**2. High-cardinality detection** - Some dynamic segments don't match a known format like UUIDs or integers.
+For these, Measure looks at the variety of values seen in each position of a path. If a segment has many distinct
+values (e.g. `/api/products/abc`, `/api/products/xyz`, ...), it is automatically replaced with `*` to form
+`/api/products/*`.
 
 ## Data collected
 

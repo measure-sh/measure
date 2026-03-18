@@ -84,6 +84,15 @@ func DeleteStaleData(ctx context.Context) {
 	// delete spans
 	deleteSpans(ctx, appRetentions)
 
+	// delete http events
+	deleteHttpEvents(ctx, appRetentions)
+
+	// delete http metrics
+	deleteHttpMetrics(ctx, appRetentions)
+
+	// delete url patterns
+	deleteUrlPatterns(ctx, appRetentions)
+
 	// delete events and attachments
 	deleteEventsAndAttachments(ctx, appRetentions)
 
@@ -430,6 +439,84 @@ func deleteSpans(ctx context.Context, retentions []AppRetention) {
 
 	if errCount < 1 {
 		fmt.Println("Successfully deleted stale spans")
+	}
+}
+
+// deleteHttpEvents deletes stale http events for each
+// app's retention threshold.
+func deleteHttpEvents(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("http_events").
+			Where("team_id = toUUID(?)", retention.TeamID).
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("timestamp < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale http events for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale http events")
+	}
+}
+
+// deleteHttpMetrics deletes stale http metrics for each
+// app's retention threshold.
+func deleteHttpMetrics(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("http_metrics").
+			Where("team_id = toUUID(?)", retention.TeamID).
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("timestamp < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale http metrics for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale http metrics")
+	}
+}
+
+// deleteUrlPatterns deletes stale url patterns for each
+// app's retention threshold.
+func deleteUrlPatterns(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("url_patterns").
+			Where("team_id = toUUID(?)", retention.TeamID).
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("updated_at < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale url patterns for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale url patterns")
 	}
 }
 
