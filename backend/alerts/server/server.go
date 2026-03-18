@@ -193,7 +193,7 @@ func Init(config *ServerConfig) {
 
 	chOpts.Settings = clickhouse.Settings{
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-		"compatibility": "25.10",
+		"compatibility": "25.12",
 	}
 
 	chPool, err = clickhouse.Open(chOpts)
