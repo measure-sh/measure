@@ -465,6 +465,14 @@ internal object Sql {
             WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
     """.trimIndent()
 
+    fun getExpiredAttachments(currentTime: String, limit: Int): String = """
+            SELECT ${AttachmentV1Table.COL_ID}, ${AttachmentV1Table.COL_FILE_PATH}
+            FROM ${AttachmentV1Table.TABLE_NAME}
+            WHERE ${AttachmentV1Table.COL_URL_EXPIRES_AT} IS NOT NULL
+                AND ${AttachmentV1Table.COL_URL_EXPIRES_AT} < '$currentTime'
+            LIMIT $limit
+    """.trimIndent()
+
     fun getBatchIds(): String = """
             SELECT ${BatchesTable.COL_BATCH_ID}
             FROM ${BatchesTable.TABLE_NAME}

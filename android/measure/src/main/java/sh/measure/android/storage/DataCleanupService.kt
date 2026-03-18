@@ -6,6 +6,8 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
+import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.iso8601Timestamp
 
 internal interface DataCleanupService {
     fun cleanup()
@@ -27,6 +29,7 @@ internal class DataCleanupServiceImpl(
     private val ioExecutor: MeasureExecutorService,
     private val sessionManager: SessionManager,
     private val configProvider: ConfigProvider,
+    private val timeProvider: TimeProvider,
 ) : DataCleanupService {
     override fun cleanup() {
         val currentSessionId = sessionManager.getSessionId()
@@ -36,6 +39,7 @@ internal class DataCleanupServiceImpl(
                 {
                     deleteEvents(currentSessionId)
                     deleteSpans(currentSessionId)
+                    deleteExpiredAttachments()
                     deleteBugReports(currentSessionId)
                     deleteEmptySessions(currentSessionId)
                     trimMemoryUsage(currentSessionId)
@@ -107,6 +111,35 @@ internal class DataCleanupServiceImpl(
                     }
                     if (deletedSpanIds.isEmpty()) break
                     if (deletedSpanIds.size < DB_DELETION_BATCH_SIZE) break
+                }
+            },
+        )
+    }
+
+    private fun deleteExpiredAttachments() {
+        InternalTrace.trace(
+            { "msr-deleteExpiredAttachments" },
+            {
+                val currentTime = timeProvider.now().iso8601Timestamp()
+                while (true) {
+                    val expiredAttachmentIds = database.getExpiredAttachments(
+                        currentTime = currentTime,
+                        batchSize = DB_DELETION_BATCH_SIZE,
+                    )
+
+                    if (expiredAttachmentIds.isNotEmpty()) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Cleanup: Deleted ${expiredAttachmentIds.size} expired attachments",
+                        )
+                    }
+
+                    if (expiredAttachmentIds.isEmpty()) break
+
+                    fileStorage.deleteAttachmentsIfExist(expiredAttachmentIds)
+                    database.deleteAttachments(expiredAttachmentIds)
+
+                    if (expiredAttachmentIds.size < DB_DELETION_BATCH_SIZE) break
                 }
             },
         )
