@@ -75,7 +75,7 @@ internal class AttachmentHelper(
                     }
                 }
             }
-        } catch (e: RejectedExecutionException) {
+        } catch (_: RejectedExecutionException) {
             onError?.invoke()
         }
     }
@@ -112,7 +112,7 @@ internal class AttachmentHelper(
             return
         }
         val snapshot = LayoutInspector.capture(view)
-        onComplete(snapshot.generateSvgMsrAttachment(null, width, height))
+        onComplete(snapshot.compressToMsrAttachment())
     }
 
     fun imageUriToAttachment(
@@ -186,7 +186,7 @@ internal class AttachmentHelper(
                             ),
                         )
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     onError?.let { mainHandler.post(it) }
                 }
             }

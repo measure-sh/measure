@@ -12,7 +12,6 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.Sampler
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
@@ -40,7 +39,6 @@ internal class SignalStoreImpl(
     private val database: Database,
     private val idProvider: IdProvider,
     private val configProvider: ConfigProvider,
-    private val sampler: Sampler,
 ) : SignalStore {
     private val eventQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         LinkedBlockingQueue<EventEntity>(configProvider.maxInMemorySignalsQueueSize)
@@ -289,7 +287,7 @@ internal class SignalStoreImpl(
                 }
 
                 attachment.bytes != null -> {
-                    fileStorage.writeAttachment(id, attachment.bytes)?.let { path ->
+                    val path = fileStorage.writeAttachment(id, attachment.bytes)?.let { path ->
                         AttachmentEntity(
                             id = id,
                             path = path,
@@ -297,6 +295,13 @@ internal class SignalStoreImpl(
                             type = attachment.type,
                         )
                     }
+                    if (path != null) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Attachment: ${attachment.name} written to file storage",
+                        )
+                    }
+                    return@mapNotNull path
                 }
 
                 else -> {

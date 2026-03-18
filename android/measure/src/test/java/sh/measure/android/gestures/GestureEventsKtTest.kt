@@ -2,7 +2,10 @@ package sh.measure.android.gestures
 
 import org.junit.Assert
 import org.junit.Test
-import sh.measure.android.layoutinspector.Node
+import sh.measure.android.layoutinspector.Bounds
+import sh.measure.android.layoutinspector.ElementFlags
+import sh.measure.android.layoutinspector.ElementType
+import sh.measure.android.layoutinspector.LayoutElement
 
 class ClickDataTest {
 
@@ -15,19 +18,18 @@ class ClickDataTest {
             touchUpTime = 0L,
             timestamp = 0L,
         )
-        val target = Node(
+        val target = LayoutElement(
             id = "button",
-            className = "android.widget.Button",
-            x = 10,
-            y = 20,
-            width = 100,
-            height = 50,
+            label = "Button",
+            type = ElementType.Container,
+            bounds = Bounds(10, 20, 100, 50),
+            flags = ElementFlags.create(scrollable = false, highlighted = false),
         )
         val result = ClickData.fromTargetNode(
             gesture = detectedGesture,
-            node = target,
+            layoutElement = target,
         )
-        Assert.assertEquals(target.className, result.target)
+        Assert.assertEquals(target.label, result.target)
         Assert.assertEquals(target.id, result.target_id)
         Assert.assertEquals(target.width, result.width)
         Assert.assertEquals(target.height, result.height)
@@ -48,19 +50,18 @@ internal class LongClickDataTest {
             touchUpTime = 0L,
             timestamp = 0L,
         )
-        val target = Node(
+        val target = LayoutElement(
             id = "button",
-            className = "android.widget.Button",
-            x = 10,
-            y = 20,
-            width = 100,
-            height = 50,
+            label = "Button",
+            type = ElementType.Container,
+            bounds = Bounds(10, 20, 100, 50),
+            flags = ElementFlags.create(scrollable = false, highlighted = false),
         )
         val result = LongClickData.fromTargetNode(
             gesture = detectedGesture,
-            node = target,
+            layoutElement = target,
         )
-        Assert.assertEquals(target.className, result.target)
+        Assert.assertEquals(target.label, result.target)
         Assert.assertEquals(target.id, result.target_id)
         Assert.assertEquals(target.width, result.width)
         Assert.assertEquals(target.height, result.height)
@@ -84,20 +85,19 @@ internal class ScrollDataTest {
             direction = Direction.Up,
             timestamp = 0L,
         )
-        val node = Node(
+        val target = LayoutElement(
             id = "scroll_view",
-            className = "android.widget.ScrollView",
-            x = 10,
-            y = 20,
-            width = 100,
-            height = 50,
+            label = "ScrollView",
+            type = ElementType.Container,
+            bounds = Bounds(10, 20, 100, 50),
+            flags = ElementFlags.create(scrollable = true, highlighted = false),
         )
         val result = ScrollData.fromTargetNode(
             gesture = detectedGesture,
-            node = node,
+            layoutElement = target,
         )
-        Assert.assertEquals(node.className, result.target)
-        Assert.assertEquals(node.id, result.target_id)
+        Assert.assertEquals(target.label, result.target)
+        Assert.assertEquals(target.id, result.target_id)
         Assert.assertEquals(detectedGesture.x, result.x)
         Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.endX, result.end_x)
