@@ -382,6 +382,7 @@ internal class TestMeasureInitializer(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         sessionManager = sessionManager,
         configProvider = configProvider,
+        timeProvider = timeProvider,
     ),
     override val httpEventCollector: HttpEventCollector = OkHttpEventCollectorImpl(
         logger = logger,

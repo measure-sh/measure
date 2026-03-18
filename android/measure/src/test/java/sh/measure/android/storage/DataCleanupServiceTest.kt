@@ -15,6 +15,7 @@ import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.TimeProvider
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
@@ -25,6 +26,7 @@ class DataCleanupServiceTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val sessionManager = FakeSessionManager()
     private val configProvider = FakeConfigProvider()
+    private val timeProvider = mock<TimeProvider>()
     private val dataCleanupService = DataCleanupServiceImpl(
         logger,
         fileStorage,
@@ -32,6 +34,7 @@ class DataCleanupServiceTest {
         executorService,
         sessionManager,
         configProvider,
+        timeProvider,
     )
 
     private var tempTestDir: File? = null
@@ -226,6 +229,35 @@ class DataCleanupServiceTest {
         assertTrue(fileInRoot.exists())
     }
 
+    @Test
+    fun `deleteExpiredAttachments deletes expired attachments in batches`() {
+        val firstBatch = (1..1000).map { "attachment$it" }
+        val secondBatch = listOf("attachment1001", "attachment1002")
+
+        setupDefaultMocks()
+        `when`(database.getExpiredAttachments(any(), any()))
+            .thenReturn(firstBatch)
+            .thenReturn(secondBatch)
+
+        dataCleanupService.cleanup()
+
+        verify(database, times(2)).getExpiredAttachments(any(), any())
+        verify(fileStorage, times(1)).deleteAttachmentsIfExist(firstBatch)
+        verify(database, times(1)).deleteAttachments(firstBatch)
+        verify(fileStorage, times(1)).deleteAttachmentsIfExist(secondBatch)
+        verify(database, times(1)).deleteAttachments(secondBatch)
+    }
+
+    @Test
+    fun `deleteExpiredAttachments does nothing when no expired attachments exist`() {
+        setupDefaultMocks()
+        `when`(database.getExpiredAttachments(any(), any())).thenReturn(emptyList())
+
+        dataCleanupService.cleanup()
+
+        verify(database, never()).deleteAttachments(any())
+    }
+
     private fun setupDefaultMocks() {
         // Default mocks for deleteEvents
         `when`(database.deleteEvents(any(), any()))
@@ -246,6 +278,10 @@ class DataCleanupServiceTest {
         // Default mocks for trimMemoryUsage
         `when`(database.getEventsCount()).thenReturn(100)
         `when`(database.getSpansCount()).thenReturn(0)
+
+        // Default mocks for deleteExpiredAttachments
+        `when`(timeProvider.now()).thenReturn(1000L)
+        `when`(database.getExpiredAttachments(any(), any())).thenReturn(emptyList())
 
         // Default mocks for deleteBugReports
         val bugReportsDir = mock<File>()
