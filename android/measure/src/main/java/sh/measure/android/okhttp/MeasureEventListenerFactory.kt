@@ -134,14 +134,17 @@ internal class OkHttpEventListener(
     }
 
     override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
+        signalProcessor?.cacheConditionalHit(call, cachedResponse)
         delegate?.cacheConditionalHit(call, cachedResponse)
     }
 
     override fun cacheHit(call: Call, response: Response) {
+        signalProcessor?.cacheHit(call, response)
         delegate?.cacheHit(call, response)
     }
 
     override fun cacheMiss(call: Call) {
+        signalProcessor?.cacheMiss(call)
         delegate?.cacheMiss(call)
     }
 
@@ -170,10 +173,12 @@ internal class OkHttpEventListener(
     }
 
     override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+        signalProcessor?.secureConnectEnd(call, handshake)
         delegate?.secureConnectEnd(call, handshake)
     }
 
     override fun secureConnectStart(call: Call) {
+        signalProcessor?.secureConnectStart(call)
         delegate?.secureConnectStart(call)
     }
 }

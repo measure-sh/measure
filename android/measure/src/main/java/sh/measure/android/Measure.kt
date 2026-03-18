@@ -501,6 +501,15 @@ object Measure {
      * @param responseHeaders The HTTP headers in the response
      * @param requestBody An optional request body
      * @param responseBody An optional response body
+     * @param requestBodySize The number of bytes sent in the request body
+     * @param responseBodySize The number of bytes received in the response body
+     * @param dnsDurationMs The time taken for DNS resolution, in milliseconds
+     * @param connectTimeMs The time taken to establish a TCP connection, in milliseconds
+     * @param tlsTimeMs The time taken for the TLS handshake, in milliseconds
+     * @param cacheStatus The cache status: "hit", "miss", or "conditional_hit"
+     * @param isTimeout Whether the failure was caused by a timeout
+     * @param requestDurationMs The time taken to send the request (headers + body), in milliseconds
+     * @param responseDurationMs The time taken to read the response (headers + body), in milliseconds
      */
     fun trackHttpEvent(
         url: String,
@@ -514,6 +523,15 @@ object Measure {
         requestBody: String? = null,
         responseBody: String? = null,
         client: String = "unknown",
+        requestBodySize: Long? = null,
+        responseBodySize: Long? = null,
+        dnsDurationMs: Long? = null,
+        connectTimeMs: Long? = null,
+        tlsTimeMs: Long? = null,
+        cacheStatus: String? = null,
+        isTimeout: Boolean? = null,
+        requestDurationMs: Long? = null,
+        responseDurationMs: Long? = null,
     ) {
         if (isInitialized.get()) {
             measure.trackHttpEvent(
@@ -528,6 +546,15 @@ object Measure {
                 requestBody,
                 responseBody,
                 client,
+                requestBodySize,
+                responseBodySize,
+                dnsDurationMs,
+                connectTimeMs,
+                tlsTimeMs,
+                cacheStatus,
+                isTimeout,
+                requestDurationMs,
+                responseDurationMs,
             )
         }
     }

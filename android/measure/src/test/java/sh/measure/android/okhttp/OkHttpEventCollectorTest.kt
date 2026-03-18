@@ -581,6 +581,215 @@ class OkHttpEventCollectorTest {
         Assert.assertNull(actualData.response_body)
     }
 
+    @Test
+    fun `tracks request body size for a successful POST request`() {
+        val requestBody = "{ \"key\": \"value\" }"
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(requestBody = requestBody)
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.request_body_size)
+        Assert.assertTrue(actualData.request_body_size!! > 0)
+    }
+
+    @Test
+    fun `tracks response body size for a successful request`() {
+        val responseBody = "{ \"key\": \"value\" }"
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(responseBody = responseBody)
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.response_body_size)
+        Assert.assertTrue(actualData.response_body_size!! > 0)
+    }
+
+    @Test
+    fun `tracks connect time for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.connect_time_ms)
+        Assert.assertTrue(actualData.connect_time_ms!! >= 0)
+    }
+
+    @Test
+    fun `tracks request duration for a successful POST request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.request_duration_ms)
+        Assert.assertTrue(actualData.request_duration_ms!! >= 0)
+    }
+
+    @Test
+    fun `tracks response duration for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.response_duration_ms)
+        Assert.assertTrue(actualData.response_duration_ms!! >= 0)
+    }
+
+    @Test
+    fun `tracks request duration using headers-only fallback for GET request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When - GET request has no body, so requestBodyEnd is never called
+        simulateSuccessfulGetRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.request_duration_ms)
+        Assert.assertNull(actualData.request_body_size)
+    }
+
+    @Test
+    fun `tracks dns duration for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.dns_duration_ms)
+        Assert.assertTrue(actualData.dns_duration_ms!! >= 0)
+    }
+
+    @Test
+    fun `does not track is_timeout for non-timeout failures`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When - ConnectException is not a timeout
+        simulateConnectionFailed()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(actualData.is_timeout)
+    }
+
     /**
      * Creates a mock server and enqueues a successful response for a POST request.
      * Then consumes the response to ensure all events for EventFactory are triggered.
@@ -613,6 +822,30 @@ class OkHttpEventCollectorTest {
                 .header("Content-Type", "application/json")
                 .header(requestHeader.first, requestHeader.second)
                 .post(requestBody.toRequestBody()).build(),
+        ).execute()
+        response.body!!.source().readByteString()
+    }
+
+    /**
+     * Creates a mock server and enqueues a successful response for a GET request.
+     */
+    private fun simulateSuccessfulGetRequest(
+        client: OkHttpClient = clientWithInterceptor,
+        statusCode: Int = 200,
+        url: String = "http://localhost:8080/",
+        responseBody: String = "{ \"key\": \"value\" }",
+    ) {
+        mockWebServer.let {
+            it.enqueue(
+                MockResponse().setResponseCode(statusCode).setBody(responseBody)
+                    .setHeader("Content-Type", "application/json"),
+            )
+            it.start(8080)
+        }
+        val response = client.newCall(
+            Request.Builder().url(url)
+                .header("Content-Type", "application/json")
+                .get().build(),
         ).execute()
         response.body!!.source().readByteString()
     }

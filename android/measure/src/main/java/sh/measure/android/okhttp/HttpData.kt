@@ -67,6 +67,51 @@ internal data class HttpData(
      * @see [HttpClientName]
      */
     val client: String,
+
+    /**
+     * The number of bytes sent in the request body.
+     */
+    val request_body_size: Long? = null,
+
+    /**
+     * The number of bytes received in the response body.
+     */
+    val response_body_size: Long? = null,
+
+    /**
+     * The time taken for DNS resolution, in milliseconds.
+     */
+    val dns_duration_ms: Long? = null,
+
+    /**
+     * The time taken to establish a TCP connection, in milliseconds.
+     */
+    val connect_time_ms: Long? = null,
+
+    /**
+     * The time taken for the TLS handshake, in milliseconds.
+     */
+    val tls_time_ms: Long? = null,
+
+    /**
+     * The cache status: "hit", "miss", or "conditional_hit".
+     */
+    val cache_status: String? = null,
+
+    /**
+     * Whether the failure was caused by a timeout.
+     */
+    val is_timeout: Boolean? = null,
+
+    /**
+     * The time taken to send the request (headers + body), in milliseconds.
+     */
+    val request_duration_ms: Long? = null,
+
+    /**
+     * The time taken to read the response (headers + body), in milliseconds.
+     */
+    val response_duration_ms: Long? = null,
 ) {
 
     // Builder
@@ -83,6 +128,26 @@ internal data class HttpData(
         private var requestBody: String? = null
         private var responseBody: String? = null
         private var client: String = ""
+        private var requestBodySize: Long? = null
+        private var responseBodySize: Long? = null
+        private var dnsDurationMs: Long? = null
+        private var connectTimeMs: Long? = null
+        private var tlsTimeMs: Long? = null
+        private var cacheStatus: String? = null
+        private var isTimeout: Boolean? = null
+        private var requestDurationMs: Long? = null
+        private var responseDurationMs: Long? = null
+
+        // Intermediate timestamps for computing durations (not serialized)
+        internal var dnsStartTime: Long? = null
+        internal var connectStartTime: Long? = null
+        internal var secureConnectStartTime: Long? = null
+        internal var requestStartTime: Long? = null
+        internal var requestHeadersEndTime: Long? = null
+        internal var responseStartTime: Long? = null
+        internal var responseHeadersEndTime: Long? = null
+        internal var requestBodyEndCalled: Boolean = false
+        internal var responseBodyEndCalled: Boolean = false
 
         fun url(url: String) = apply { this.url = url }
 
@@ -108,6 +173,24 @@ internal data class HttpData(
 
         fun client(client: String) = apply { this.client = client }
 
+        fun requestBodySize(size: Long?) = apply { this.requestBodySize = size }
+
+        fun responseBodySize(size: Long?) = apply { this.responseBodySize = size }
+
+        fun dnsDurationMs(duration: Long?) = apply { this.dnsDurationMs = duration }
+
+        fun connectTimeMs(time: Long?) = apply { this.connectTimeMs = time }
+
+        fun tlsTimeMs(time: Long?) = apply { this.tlsTimeMs = time }
+
+        fun cacheStatus(status: String?) = apply { this.cacheStatus = status }
+
+        fun isTimeout(timeout: Boolean?) = apply { this.isTimeout = timeout }
+
+        fun requestDurationMs(duration: Long?) = apply { this.requestDurationMs = duration }
+
+        fun responseDurationMs(duration: Long?) = apply { this.responseDurationMs = duration }
+
         fun build(): HttpData = HttpData(
             url = url,
             method = method,
@@ -121,6 +204,15 @@ internal data class HttpData(
             request_body = requestBody,
             response_body = responseBody,
             client = client,
+            request_body_size = requestBodySize,
+            response_body_size = responseBodySize,
+            dns_duration_ms = dnsDurationMs,
+            connect_time_ms = connectTimeMs,
+            tls_time_ms = tlsTimeMs,
+            cache_status = cacheStatus,
+            is_timeout = isTimeout,
+            request_duration_ms = requestDurationMs,
+            response_duration_ms = responseDurationMs,
         )
     }
 }
