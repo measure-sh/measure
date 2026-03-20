@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Populate session attributes for trace only sessions (#3196) by @detj in #3196
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
 - (**backend**): Migrate ingestion metrics synchronously (#3180) by @detj in #3180
+- (**frontend**): Fix overlapping text in session timeline (#3313) by @abhaysood in #3313
 - (**frontend**): Fix illegible text colour in user profile initials by @anupcowkur in #3279
 - (**frontend**): Copy correct api base url based on env variable by @anupcowkur in #3268
 - (**frontend**): Fix plot render errors by @anupcowkur in #3207
