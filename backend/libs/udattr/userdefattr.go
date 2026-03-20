@@ -466,38 +466,57 @@ func (u UDAttribute) MarshalJSON() (data []byte, err error) {
 			continue
 		}
 
-		strval, ok := raw.(string)
-		if !ok {
-			err = fmt.Errorf("expected attribute %q to be string, got %T", key, raw)
-			return
-		}
-
 		switch keytype {
 		case AttrBool:
-			v, err := strconv.ParseBool(strval)
-			if err != nil {
-				return nil, fmt.Errorf("attribute %q: %w", key, err)
+			switch v := raw.(type) {
+			case bool:
+				// already the correct type from JSON unmarshal
+			case string:
+				parsed, parseErr := strconv.ParseBool(v)
+				if parseErr != nil {
+					return nil, fmt.Errorf("attribute %q: %w", key, parseErr)
+				}
+				attrs[key] = parsed
+			default:
+				return nil, fmt.Errorf("expected attribute %q to be bool or string, got %T", key, raw)
 			}
-			attrs[key] = v
 
 		case AttrInt64:
-			v, err := strconv.ParseInt(strval, 10, 64)
-			if err != nil {
-				// overflow or invalid -> keep as string
-				attrs[key] = strval
-				continue
+			switch v := raw.(type) {
+			case float64:
+				attrs[key] = int64(v)
+			case int64:
+				// already the correct type
+			case string:
+				parsed, parseErr := strconv.ParseInt(v, 10, 64)
+				if parseErr != nil {
+					if numErr, ok := parseErr.(*strconv.NumError); ok && numErr.Err == strconv.ErrRange {
+						// overflow: keep as string
+						continue
+					}
+					return nil, fmt.Errorf("attribute %q: %w", key, parseErr)
+				}
+				attrs[key] = parsed
+			default:
+				return nil, fmt.Errorf("expected attribute %q to be number or string, got %T", key, raw)
 			}
-			attrs[key] = v
 
 		case AttrFloat64:
-			v, err := strconv.ParseFloat(strval, 64)
-			if err != nil {
-				return nil, fmt.Errorf("attribute %q: %w", key, err)
+			switch v := raw.(type) {
+			case float64:
+				// already the correct type from JSON unmarshal
+			case string:
+				parsed, parseErr := strconv.ParseFloat(v, 64)
+				if parseErr != nil {
+					return nil, fmt.Errorf("attribute %q: %w", key, parseErr)
+				}
+				attrs[key] = parsed
+			default:
+				return nil, fmt.Errorf("expected attribute %q to be number or string, got %T", key, raw)
 			}
-			attrs[key] = v
+
 		case AttrString:
-			// already a string
-			// nothing to do
+			// already a string, nothing to do
 		}
 	}
 
