@@ -220,6 +220,20 @@ func (e *eventreq) bumpSize(n int64) {
 	e.size = e.size + n
 }
 
+// estimateAttachmentSize returns an estimated size in bytes
+// for an attachment based on its filename extension. Used for
+// JSON ingest requests where attachments are uploaded
+// out-of-band via signed URLs.
+func estimateAttachmentSize(filename string) int64 {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".webp", ".jpeg", ".jpg", ".png", ".svg":
+		return 50 * 1024 // 50 KB
+	default:
+		return 1024 // 1 KB (layout snapshots, etc.)
+	}
+}
+
 // checkSeen checks & remembers if this request batch was
 // previously ingested.
 func (e *eventreq) checkSeen(ctx context.Context) (err error) {
@@ -491,6 +505,12 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			}
 
 			e.attachmentUploadInfos = append(e.attachmentUploadInfos, attachmentUploadInfo)
+
+			// Estimate attachment size for billing since JSON
+			// requests upload attachments out-of-band via
+			// signed URLs and actual size is unknown at ingest
+			// time.
+			e.bumpSize(estimateAttachmentSize(attachment.Name))
 		}
 
 		// compute launch timings
@@ -2038,7 +2058,8 @@ func PutEvents(c *gin.Context) {
 				Select("sumState(CAST(? AS UInt32)) AS events", events).
 				Select("sumState(CAST(? AS UInt32)) AS spans", spans).
 				Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
-				Select("sumState(CAST(? AS UInt32)) AS metrics", 0)
+				Select("sumState(CAST(? AS UInt32)) AS metrics", 0).
+				Select("sumState(CAST(? AS UInt64)) AS bytes_in", uint64(eventReq.size))
 			selectSQL := insertMetricsIngestionSelectStmt.String()
 			args := insertMetricsIngestionSelectStmt.Args()
 			defer insertMetricsIngestionSelectStmt.Close()

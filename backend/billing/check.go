@@ -147,7 +147,7 @@ func readTeamIngestStatus(ctx context.Context, pool *pgxpool.Pool, teamID string
 // ----------------------------------------------------------------------------
 
 func checkFreePlan(ctx context.Context, deps Deps, team TeamBillingInfo) (bool, *string) {
-	const maxUnits = FreePlanMaxUnits
+	const maxBytes = FreePlanMaxBytes
 
 	cycleStart, cycleEnd, currentCycle := getCalendarMonthCycle()
 
@@ -158,10 +158,10 @@ func checkFreePlan(ctx context.Context, deps Deps, team TeamBillingInfo) (bool, 
 	}
 
 	// Send notification emails at 75%, 90%, and 100% thresholds
-	notifyUsageThresholds(ctx, deps, team, usage, maxUnits, currentCycle)
+	notifyUsageThresholds(ctx, deps, team, usage, maxBytes, currentCycle)
 
 	// Block ingestion when limit is reached
-	if usage >= maxUnits {
+	if usage >= maxBytes {
 		reason := ReasonPlanLimitExceeded
 		return false, &reason
 	}
@@ -179,7 +179,7 @@ func getCalendarMonthCycle() (start time.Time, end time.Time, cycle string) {
 
 func getIngestionUsage(ctx context.Context, chPool driver.Conn, teamID string, start, end time.Time) (uint64, error) {
 	query := sqlf.
-		Select("COALESCE(sumMerge(events), 0) + COALESCE(sumMerge(spans), 0) + COALESCE(sumMerge(metrics), 0) as total").
+		Select("COALESCE(sumMerge(bytes_in), 0) as total").
 		From("ingestion_metrics").
 		Where("team_id = ?", teamID).
 		Where("timestamp >= ?", start).

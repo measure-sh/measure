@@ -41,7 +41,7 @@ type ServerConfig struct {
 	PG                      PostgresConfig
 	CH                      ClickhouseConfig
 	StripeAPIKey            string
-	StripeUnitDaysMeterName string
+	StripeMeterName string
 	SiteOrigin              string
 	EmailDomain             string
 	TxEmailAddress          string
@@ -101,9 +101,9 @@ func NewConfig() *ServerConfig {
 		log.Println("STRIPE_API_KEY env var is not set, stripe integration will not work")
 	}
 
-	stripeUnitDaysMeterName := os.Getenv("STRIPE_UNIT_DAYS_METER_NAME")
-	if stripeUnitDaysMeterName == "" {
-		log.Println("STRIPE_UNIT_DAYS_METER_NAME env var is not set, stripe integration will not work")
+	stripeMeterName := os.Getenv("STRIPE_METER_NAME")
+	if stripeMeterName == "" {
+		log.Println("STRIPE_METER_NAME env var is not set, stripe integration will not work")
 	}
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
@@ -135,7 +135,7 @@ func NewConfig() *ServerConfig {
 
 	return &ServerConfig{
 		StripeAPIKey:            stripeAPIKey,
-		StripeUnitDaysMeterName: stripeUnitDaysMeterName,
+		StripeMeterName: stripeMeterName,
 		PG: PostgresConfig{
 			DSN: postgresDSN,
 		},

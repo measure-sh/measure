@@ -1367,7 +1367,7 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName, true)
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_pro"))
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 6_442_450_944)
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
 		c.Set("userId", userID)
@@ -1391,7 +1391,7 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName, true)
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 740_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 3_972_844_748)
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
 		c.Set("userId", userID)
@@ -1415,7 +1415,7 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName, true)
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 750_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_026_531_840)
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
 		c.Set("userId", userID)
@@ -1439,7 +1439,7 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName, true)
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 900_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_831_838_208)
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
 		c.Set("userId", userID)
@@ -1463,7 +1463,7 @@ func TestGetBillingUsageThreshold(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName, true)
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_000_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 5_368_709_120)
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
 		c.Set("userId", userID)
@@ -1616,9 +1616,9 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
 
-		origMeterName := server.Server.Config.StripeUnitDaysMeterName
-		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+		origMeterName := server.Server.Config.StripeMeterName
+		server.Server.Config.StripeMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
 
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -1694,9 +1694,9 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
 
-		origMeterName := server.Server.Config.StripeUnitDaysMeterName
-		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+		origMeterName := server.Server.Config.StripeMeterName
+		server.Server.Config.StripeMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
 
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -1773,9 +1773,9 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		// Clear meter name config
-		origMeterName := server.Server.Config.StripeUnitDaysMeterName
-		server.Server.Config.StripeUnitDaysMeterName = ""
-		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+		origMeterName := server.Server.Config.StripeMeterName
+		server.Server.Config.StripeMeterName = ""
+		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
 
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -1827,9 +1827,9 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)
 
-		origMeterName := server.Server.Config.StripeUnitDaysMeterName
-		server.Server.Config.StripeUnitDaysMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeUnitDaysMeterName = origMeterName })
+		origMeterName := server.Server.Config.StripeMeterName
+		server.Server.Config.StripeMeterName = "test_meter"
+		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
 
 		userID := uuid.New().String()
 		teamID := uuid.New()

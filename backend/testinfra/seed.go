@@ -181,7 +181,7 @@ func (h *TestHelper) SeedAPIKey(
 	}
 }
 
-func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics uint64, reported bool) {
+func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics, bytesIn uint64, reported bool) {
 	t.Helper()
 	var reportedAt interface{}
 	if reported {
@@ -189,8 +189,8 @@ func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing
 	}
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO billing_metrics_reporting (team_id, report_date, events, spans, metrics, reported_at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		teamID, reportDate, events, spans, metrics, reportedAt)
+		`INSERT INTO billing_metrics_reporting (team_id, report_date, events, spans, metrics, bytes_in, reported_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		teamID, reportDate, events, spans, metrics, bytesIn, reportedAt)
 	if err != nil {
 		t.Fatalf("seed billing_metrics_reporting: %v", err)
 	}
@@ -210,7 +210,7 @@ func (h *TestHelper) SetStripeCustomerID(ctx context.Context, t *testing.T, team
 // ClickHouse seed helpers
 // --------------------------------------------------------------------------
 
-func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32) {
+func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32, bytesIn uint64) {
 	t.Helper()
 
 	query := fmt.Sprintf(`
@@ -220,9 +220,10 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 			sumState(toUInt32(%d)),
 			sumState(toUInt32(%d)),
 			sumState(toUInt32(0)),
-			sumState(toUInt32(%d))
+			sumState(toUInt32(%d)),
+			sumState(toUInt64(%d))
 		FROM system.one`,
-		teamID, appID, ts.UTC().Format("2006-01-02 15:04:05"), events, spans, metrics)
+		teamID, appID, ts.UTC().Format("2006-01-02 15:04:05"), events, spans, metrics, bytesIn)
 
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed ingestion usage: %v", err)

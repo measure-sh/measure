@@ -90,7 +90,7 @@ func initCrons(ctx context.Context) (*cron.Cron, *cron.Cron) {
 		ChPool:         server.Server.RchPool,
 		SiteOrigin:     server.Server.Config.SiteOrigin,
 		TxEmailAddress: server.Server.Config.TxEmailAddress,
-		MeterName:      server.Server.Config.StripeUnitDaysMeterName,
+		MeterName:      server.Server.Config.StripeMeterName,
 		GetSubscription: func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
 			return subscription.Get(id, params)
 		},

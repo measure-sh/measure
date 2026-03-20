@@ -15,9 +15,9 @@ import (
 // Usage notifications
 // ----------------------------------------------------------------------------
 
-func notifyUsageThresholds(ctx context.Context, deps Deps, team TeamBillingInfo, usage, maxUnits uint64, currentCycle string) {
-	if maxUnits == 0 {
-		log.Printf("notifyUsageThresholds called with maxUnits=0 for team %s, skipping", team.TeamID)
+func notifyUsageThresholds(ctx context.Context, deps Deps, team TeamBillingInfo, usage, maxBytes uint64, currentCycle string) {
+	if maxBytes == 0 {
+		log.Printf("notifyUsageThresholds called with maxBytes=0 for team %s, skipping", team.TeamID)
 		return
 	}
 
@@ -27,7 +27,7 @@ func notifyUsageThresholds(ctx context.Context, deps Deps, team TeamBillingInfo,
 		lastNotifiedThreshold = 0
 	}
 
-	usagePercent := float64(usage) / float64(maxUnits) * 100
+	usagePercent := float64(usage) / float64(maxBytes) * 100
 
 	// Determine which threshold we've crossed
 	var currentThreshold int
@@ -43,7 +43,7 @@ func notifyUsageThresholds(ctx context.Context, deps Deps, team TeamBillingInfo,
 	if currentThreshold > lastNotifiedThreshold {
 		log.Printf("Team %s (%s) reached %d%% usage (%.2f%% actual)", team.TeamID, team.TeamName, currentThreshold, usagePercent)
 
-		err := sendUsageNotificationEmails(ctx, deps, team, currentThreshold, usage, maxUnits)
+		err := sendUsageNotificationEmails(ctx, deps, team, currentThreshold, usage, maxBytes)
 		if err != nil {
 			log.Printf("failed to send usage notification emails for team %s: %v", team.TeamID, err)
 			return
@@ -57,8 +57,8 @@ func notifyUsageThresholds(ctx context.Context, deps Deps, team TeamBillingInfo,
 	}
 }
 
-func sendUsageNotificationEmails(ctx context.Context, deps Deps, team TeamBillingInfo, threshold int, usage, maxUnits uint64) error {
-	subject, body := email.UsageLimitEmail(team.TeamName, team.TeamID, deps.SiteOrigin, threshold, usage, maxUnits)
+func sendUsageNotificationEmails(ctx context.Context, deps Deps, team TeamBillingInfo, threshold int, usage, maxBytes uint64) error {
+	subject, body := email.UsageLimitEmail(team.TeamName, team.TeamID, deps.SiteOrigin, threshold, usage, maxBytes)
 	return sendEmailToTeamMembers(ctx, deps, team.TeamID, subject, body)
 }
 
@@ -111,7 +111,7 @@ func notifyManualDowngrade(ctx context.Context, deps Deps, teamID string) {
 		log.Printf("failed to get team name for downgrade notification (team %s): %v", teamID, err)
 		return
 	}
-	subject, body := email.ManualDowngradeEmail(teamName, teamID, deps.SiteOrigin, FreePlanMaxUnits, FreePlanMaxRetentionDays)
+	subject, body := email.ManualDowngradeEmail(teamName, teamID, deps.SiteOrigin, FreePlanMaxBytes, FreePlanMaxRetentionDays)
 	if err := sendEmailToTeamMembers(ctx, deps, teamID, subject, body); err != nil {
 		log.Printf("failed to send downgrade notification emails for team %s: %v", teamID, err)
 	}

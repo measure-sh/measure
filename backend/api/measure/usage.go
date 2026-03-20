@@ -23,6 +23,7 @@ type MonthlyAppUsage struct {
 	Sessions  uint64 `json:"sessions"`
 	Events    uint64 `json:"events"`
 	Spans     uint64 `json:"spans"`
+	BytesIn   uint64 `json:"bytes_in"`
 }
 
 func GetUsage(c *gin.Context) {
@@ -94,6 +95,7 @@ func GetUsage(c *gin.Context) {
 		Select("sumMerge(sessions) AS sessions").
 		Select("sumMerge(events) AS events").
 		Select("sumMerge(spans) AS spans").
+		Select("COALESCE(sumMerge(bytes_in), 0) AS bytes_in").
 		Where("`app_id` in ?", appIds).
 		Where("timestamp >= addMonths(toStartOfMonth(?), -2) AND timestamp < toStartOfMonth(addMonths(?, 1))", now, now).
 		GroupBy("app_id, toStartOfMonth(timestamp)").
@@ -131,9 +133,9 @@ func GetUsage(c *gin.Context) {
 	// Populate appUsageMap with metrics rows from DB
 	for metricsRows.Next() {
 		var appId, monthYear string
-		var sessions, events, spans uint64
+		var sessions, events, spans, bytesIn uint64
 
-		if err := metricsRows.Scan(&appId, &monthYear, &sessions, &events, &spans); err != nil {
+		if err := metricsRows.Scan(&appId, &monthYear, &sessions, &events, &spans, &bytesIn); err != nil {
 			msg := fmt.Sprintf("error occurred while scanning usage metrics row for team: %s", teamId)
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -146,6 +148,7 @@ func GetUsage(c *gin.Context) {
 				Sessions:  sessions,
 				Events:    events,
 				Spans:     spans,
+				BytesIn:   bytesIn,
 			})
 		}
 	}
@@ -174,6 +177,7 @@ func GetUsage(c *gin.Context) {
 					Sessions:  0,
 					Events:    0,
 					Spans:     0,
+					BytesIn:   0,
 				})
 			}
 		}

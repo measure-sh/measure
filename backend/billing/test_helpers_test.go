@@ -51,7 +51,7 @@ func testDeps() Deps {
 		ChPool:         th.ChConn,
 		SiteOrigin:     "https://test.measure.sh",
 		TxEmailAddress: "noreply@test.measure.sh",
-		MeterName:      "test_unit_days",
+		MeterName:      "test_gb_days",
 		GetSubscription: func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
 			panic("GetSubscription not mocked")
 		},
@@ -94,8 +94,8 @@ func seedTeamMembership(ctx context.Context, t *testing.T, teamID, userID, role 
 	th.SeedTeamMembership(ctx, t, teamID, userID, role)
 }
 
-func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32) {
-	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics)
+func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32, bytesIn uint64) {
+	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics, bytesIn)
 }
 
 func seedEvents(ctx context.Context, t *testing.T, teamID, appID string, count int) {
@@ -106,8 +106,8 @@ func seedSpans(ctx context.Context, t *testing.T, teamID, appID string, count in
 	th.SeedSpans(ctx, t, teamID, appID, count)
 }
 
-func seedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics uint64, reported bool) {
-	th.SeedBillingMetricsReporting(ctx, t, teamID, reportDate, events, spans, metrics, reported)
+func seedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics, bytesIn uint64, reported bool) {
+	th.SeedBillingMetricsReporting(ctx, t, teamID, reportDate, events, spans, metrics, bytesIn, reported)
 }
 
 func setStripeCustomerID(ctx context.Context, t *testing.T, teamID, customerID string) {
@@ -192,12 +192,12 @@ func getTeamIngestStatus(ctx context.Context, t *testing.T, teamID string) (allo
 // Shared helpers (used by both integration and functional tests)
 // --------------------------------------------------------------------------
 
-func seedMonthForReporting(ctx context.Context, t *testing.T, teamID string, year int, month time.Month, eventsPerDay, spansPerDay uint64) int {
+func seedMonthForReporting(ctx context.Context, t *testing.T, teamID string, year int, month time.Month, eventsPerDay, spansPerDay, bytesInPerDay uint64) int {
 	t.Helper()
 	days := time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 	for day := 1; day <= days; day++ {
 		date := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-		seedBillingMetricsReporting(ctx, t, teamID, date, eventsPerDay, spansPerDay, 0, false)
+		seedBillingMetricsReporting(ctx, t, teamID, date, eventsPerDay, spansPerDay, 0, bytesInPerDay, false)
 	}
 	return days
 }
@@ -214,12 +214,10 @@ func countReportedRows(ctx context.Context, t *testing.T, teamID string) int {
 	return count
 }
 
-func seedCurrentMonthIngestionUsage(ctx context.Context, t *testing.T, teamID string, totalUnits uint64) {
+func seedCurrentMonthIngestionUsage(ctx context.Context, t *testing.T, teamID string, totalBytes uint64) {
 	t.Helper()
 	appID := uuid.New().String()
-	events := uint32(totalUnits / 2)
-	spans := uint32(totalUnits - uint64(events))
-	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), events, spans, 0)
+	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 0, 0, 0, totalBytes)
 }
 
 func safeDeref(s *string) string {

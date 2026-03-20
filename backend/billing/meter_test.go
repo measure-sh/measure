@@ -22,31 +22,33 @@ func TestMergeUsage(t *testing.T) {
 		events := map[string]uint64{"team-a": 10, "team-b": 20}
 		spans := map[string]uint64{"team-b": 5, "team-c": 15}
 		metrics := map[string]uint64{"team-a": 3}
+		bytes := map[string]uint64{"team-a": 1024, "team-c": 2048}
 
-		result := mergeUsage(events, spans, metrics)
+		result := mergeUsage(events, spans, metrics, bytes)
 
 		if len(result) != 3 {
 			t.Fatalf("got %d teams, want 3", len(result))
 		}
 
 		a := result["team-a"]
-		if a.Events != 10 || a.Spans != 0 || a.Metrics != 3 {
+		if a.Events != 10 || a.Spans != 0 || a.Metrics != 3 || a.BytesIn != 1024 {
 			t.Errorf("team-a = %+v", a)
 		}
 
 		b := result["team-b"]
-		if b.Events != 20 || b.Spans != 5 || b.Metrics != 0 {
+		if b.Events != 20 || b.Spans != 5 || b.Metrics != 0 || b.BytesIn != 0 {
 			t.Errorf("team-b = %+v", b)
 		}
 
 		c := result["team-c"]
-		if c.Events != 0 || c.Spans != 15 || c.Metrics != 0 {
+		if c.Events != 0 || c.Spans != 15 || c.Metrics != 0 || c.BytesIn != 2048 {
 			t.Errorf("team-c = %+v", c)
 		}
 	})
 
 	t.Run("empty maps", func(t *testing.T) {
 		result := mergeUsage(
+			map[string]uint64{},
 			map[string]uint64{},
 			map[string]uint64{},
 			map[string]uint64{},
@@ -74,7 +76,7 @@ func TestSnapshotExists(t *testing.T) {
 		t.Error("expected false when no snapshot exists")
 	}
 
-	seedBillingMetricsReporting(ctx, t, teamID, date, 100, 50, 10, false)
+	seedBillingMetricsReporting(ctx, t, teamID, date, 100, 50, 10, 1024*1024, false)
 
 	if !snapshotExists(ctx, th.PgPool, date) {
 		t.Error("expected true after inserting snapshot")
@@ -182,38 +184,38 @@ func TestSaveSnapshotBatch(t *testing.T) {
 
 		date := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
 		usage := map[string]DailyUsage{
-			teamID: {TeamID: teamID, Events: 100, Spans: 50, Metrics: 10},
+			teamID: {TeamID: teamID, Events: 100, Spans: 50, Metrics: 10, BytesIn: 1024 * 1024},
 		}
 
 		if err := saveSnapshotBatch(ctx, th.PgPool, date, usage); err != nil {
 			t.Fatalf("saveSnapshotBatch (insert): %v", err)
 		}
 
-		var events, spans, metrics uint64
+		var events, spans, metrics, bytesIn uint64
 		err := th.PgPool.QueryRow(ctx,
-			"SELECT events, spans, metrics FROM billing_metrics_reporting WHERE team_id = $1 AND report_date = $2",
-			teamID, date).Scan(&events, &spans, &metrics)
+			"SELECT events, spans, metrics, bytes_in FROM billing_metrics_reporting WHERE team_id = $1 AND report_date = $2",
+			teamID, date).Scan(&events, &spans, &metrics, &bytesIn)
 		if err != nil {
 			t.Fatalf("query: %v", err)
 		}
-		if events != 100 || spans != 50 || metrics != 10 {
-			t.Errorf("got events=%d spans=%d metrics=%d, want 100/50/10", events, spans, metrics)
+		if events != 100 || spans != 50 || metrics != 10 || bytesIn != 1024*1024 {
+			t.Errorf("got events=%d spans=%d metrics=%d bytesIn=%d, want 100/50/10/1048576", events, spans, metrics, bytesIn)
 		}
 
 		// Upsert with new values
-		usage[teamID] = DailyUsage{TeamID: teamID, Events: 200, Spans: 100, Metrics: 20}
+		usage[teamID] = DailyUsage{TeamID: teamID, Events: 200, Spans: 100, Metrics: 20, BytesIn: 2 * 1024 * 1024}
 		if err := saveSnapshotBatch(ctx, th.PgPool, date, usage); err != nil {
 			t.Fatalf("saveSnapshotBatch (upsert): %v", err)
 		}
 
 		err = th.PgPool.QueryRow(ctx,
-			"SELECT events, spans, metrics FROM billing_metrics_reporting WHERE team_id = $1 AND report_date = $2",
-			teamID, date).Scan(&events, &spans, &metrics)
+			"SELECT events, spans, metrics, bytes_in FROM billing_metrics_reporting WHERE team_id = $1 AND report_date = $2",
+			teamID, date).Scan(&events, &spans, &metrics, &bytesIn)
 		if err != nil {
 			t.Fatalf("query after upsert: %v", err)
 		}
-		if events != 200 || spans != 100 || metrics != 20 {
-			t.Errorf("after upsert got events=%d spans=%d metrics=%d, want 200/100/20", events, spans, metrics)
+		if events != 200 || spans != 100 || metrics != 20 || bytesIn != 2*1024*1024 {
+			t.Errorf("after upsert got events=%d spans=%d metrics=%d bytesIn=%d, want 200/100/20/2097152", events, spans, metrics, bytesIn)
 		}
 	})
 
@@ -227,8 +229,8 @@ func TestSaveSnapshotBatch(t *testing.T) {
 
 		date := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
 		usage := map[string]DailyUsage{
-			team1: {TeamID: team1, Events: 10, Spans: 5, Metrics: 1},
-			team2: {TeamID: team2, Events: 20, Spans: 10, Metrics: 2},
+			team1: {TeamID: team1, Events: 10, Spans: 5, Metrics: 1, BytesIn: 1024 * 1024},
+			team2: {TeamID: team2, Events: 20, Spans: 10, Metrics: 2, BytesIn: 2 * 1024 * 1024},
 		}
 
 		if err := saveSnapshotBatch(ctx, th.PgPool, date, usage); err != nil {
@@ -269,24 +271,24 @@ func TestGetUnreportedUsage(t *testing.T) {
 		proTeam := uuid.New().String()
 		seedTeamWithBilling(ctx, t, proTeam, "ProTeam", "pro", true)
 		setStripeCustomerID(ctx, t, proTeam, "cus_pro123")
-		seedBillingMetricsReporting(ctx, t, proTeam, date, 100, 50, 10, false)
+		seedBillingMetricsReporting(ctx, t, proTeam, date, 100, 50, 10, 1024*1024, false)
 
 		// free plan -> should NOT appear
 		freeTeam := uuid.New().String()
 		seedTeamWithBilling(ctx, t, freeTeam, "FreeTeam", "free", true)
 		setStripeCustomerID(ctx, t, freeTeam, "cus_free456")
-		seedBillingMetricsReporting(ctx, t, freeTeam, date, 200, 100, 20, false)
+		seedBillingMetricsReporting(ctx, t, freeTeam, date, 200, 100, 20, 2*1024*1024, false)
 
 		// pro but no stripe_customer_id -> should NOT appear
 		noStripeTeam := uuid.New().String()
 		seedTeamWithBilling(ctx, t, noStripeTeam, "NoStripeTeam", "pro", true)
-		seedBillingMetricsReporting(ctx, t, noStripeTeam, date, 50, 25, 5, false)
+		seedBillingMetricsReporting(ctx, t, noStripeTeam, date, 50, 25, 5, 512*1024, false)
 
 		// pro + stripe_customer_id + already reported -> should NOT appear
 		reportedTeam := uuid.New().String()
 		seedTeamWithBilling(ctx, t, reportedTeam, "ReportedTeam", "pro", true)
 		setStripeCustomerID(ctx, t, reportedTeam, "cus_reported789")
-		seedBillingMetricsReporting(ctx, t, reportedTeam, date, 300, 150, 30, true)
+		seedBillingMetricsReporting(ctx, t, reportedTeam, date, 300, 150, 30, 3*1024*1024, true)
 
 		unreported, err := getUnreportedUsage(ctx, th.PgPool)
 		if err != nil {
@@ -301,8 +303,8 @@ func TestGetUnreportedUsage(t *testing.T) {
 		if u.TeamID != proTeam {
 			t.Errorf("TeamID = %q, want %q", u.TeamID, proTeam)
 		}
-		if u.Events != 100 || u.Spans != 50 || u.Metrics != 10 {
-			t.Errorf("usage = events=%d spans=%d metrics=%d, want 100/50/10", u.Events, u.Spans, u.Metrics)
+		if u.Events != 100 || u.Spans != 50 || u.Metrics != 10 || u.BytesIn != 1024*1024 {
+			t.Errorf("usage = events=%d spans=%d metrics=%d bytesIn=%d, want 100/50/10/1048576", u.Events, u.Spans, u.Metrics, u.BytesIn)
 		}
 		if u.StripeCustomerID == nil || *u.StripeCustomerID != "cus_pro123" {
 			t.Errorf("StripeCustomerID = %v, want cus_pro123", u.StripeCustomerID)
@@ -318,8 +320,8 @@ func TestGetUnreportedUsage(t *testing.T) {
 
 		date1 := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
 		date2 := time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)
-		seedBillingMetricsReporting(ctx, t, teamID, date1, 100, 50, 10, false)
-		seedBillingMetricsReporting(ctx, t, teamID, date2, 200, 100, 20, false)
+		seedBillingMetricsReporting(ctx, t, teamID, date1, 100, 50, 10, 1024*1024, false)
+		seedBillingMetricsReporting(ctx, t, teamID, date2, 200, 100, 20, 2*1024*1024, false)
 
 		unreported, err := getUnreportedUsage(ctx, th.PgPool)
 		if err != nil {
@@ -354,8 +356,8 @@ func TestMarkAsReported(t *testing.T) {
 
 	seedTeamWithBilling(ctx, t, team1, "Team1", "pro", true)
 	seedTeamWithBilling(ctx, t, team2, "Team2", "pro", true)
-	seedBillingMetricsReporting(ctx, t, team1, date, 100, 50, 10, false)
-	seedBillingMetricsReporting(ctx, t, team2, date, 200, 100, 20, false)
+	seedBillingMetricsReporting(ctx, t, team1, date, 100, 50, 10, 1024*1024, false)
+	seedBillingMetricsReporting(ctx, t, team2, date, 200, 100, 20, 2*1024*1024, false)
 
 	if err := markAsReported(ctx, th.PgPool, team1, date); err != nil {
 		t.Fatalf("markAsReported: %v", err)
@@ -399,7 +401,7 @@ func TestReportToStripe(t *testing.T) {
 		}
 
 		date := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
-		err := reportToStripe(deps, "cus_test123", 42, date)
+		err := reportToStripe(deps, "cus_test123", 0.500000, date)
 		if err != nil {
 			t.Fatalf("reportToStripe: %v", err)
 		}
@@ -407,14 +409,14 @@ func TestReportToStripe(t *testing.T) {
 		if captured == nil {
 			t.Fatal("stripe was not called")
 		}
-		if *captured.EventName != "test_unit_days" {
-			t.Errorf("EventName = %q, want %q", *captured.EventName, "test_unit_days")
+		if *captured.EventName != "test_gb_days" {
+			t.Errorf("EventName = %q, want %q", *captured.EventName, "test_gb_days")
 		}
 		if captured.Payload["stripe_customer_id"] != "cus_test123" {
 			t.Errorf("Payload[stripe_customer_id] = %q, want %q", captured.Payload["stripe_customer_id"], "cus_test123")
 		}
-		if captured.Payload["value"] != "42" {
-			t.Errorf("Payload[value] = %q, want %q", captured.Payload["value"], "42")
+		if captured.Payload["value"] != "0.500000" {
+			t.Errorf("Payload[value] = %q, want %q", captured.Payload["value"], "0.500000")
 		}
 		if *captured.Timestamp != date.Unix() {
 			t.Errorf("Timestamp = %d, want %d", *captured.Timestamp, date.Unix())
@@ -432,7 +434,7 @@ func TestReportToStripe(t *testing.T) {
 			return nil, errors.New("stripe down")
 		}
 
-		err := reportToStripe(deps, "cus_test", 10, time.Now())
+		err := reportToStripe(deps, "cus_test", 0.001, time.Now())
 		if err == nil {
 			t.Error("expected error, got nil")
 		}
@@ -453,7 +455,7 @@ func TestTakeStorageSnapshot(t *testing.T) {
 		seedTeamWithBilling(ctx, t, teamID, "SnapTeam", "free", true)
 
 		yesterday := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -1)
-		seedBillingMetricsReporting(ctx, t, teamID, yesterday, 999, 888, 777, false)
+		seedBillingMetricsReporting(ctx, t, teamID, yesterday, 999, 888, 777, 5*1024*1024, false)
 
 		deps := testDeps()
 		// Snapshot already exists, so takeStorageSnapshot should skip.
@@ -542,7 +544,7 @@ func TestReportUnreportedToStripe(t *testing.T) {
 
 		seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
 		setStripeCustomerID(ctx, t, teamID, "cus_report123")
-		seedBillingMetricsReporting(ctx, t, teamID, date, 100, 50, 10, false)
+		seedBillingMetricsReporting(ctx, t, teamID, date, 100, 50, 10, 1024*1024, false)
 
 		var capturedParams *stripe.BillingMeterEventParams
 		deps := testDeps()
@@ -559,9 +561,10 @@ func TestReportUnreportedToStripe(t *testing.T) {
 		if capturedParams == nil {
 			t.Fatal("stripe was not called")
 		}
-		// Total units = 100 + 50 + 10 = 160
-		if capturedParams.Payload["value"] != "160" {
-			t.Errorf("Payload[value] = %q, want %q", capturedParams.Payload["value"], "160")
+		// GB-days = 1024*1024 / (1024*1024*1024) = 1/1024 ≈ 0.000977
+		expectedValue := fmt.Sprintf("%.6f", float64(1024*1024)/float64(1024*1024*1024))
+		if capturedParams.Payload["value"] != expectedValue {
+			t.Errorf("Payload[value] = %q, want %q", capturedParams.Payload["value"], expectedValue)
 		}
 
 		// Verify marked as reported
@@ -585,7 +588,7 @@ func TestReportUnreportedToStripe(t *testing.T) {
 
 		seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
 		setStripeCustomerID(ctx, t, teamID, "cus_zero123")
-		seedBillingMetricsReporting(ctx, t, teamID, date, 0, 0, 0, false)
+		seedBillingMetricsReporting(ctx, t, teamID, date, 0, 0, 0, 0, false)
 
 		called := false
 		deps := testDeps()
@@ -599,7 +602,7 @@ func TestReportUnreportedToStripe(t *testing.T) {
 			t.Fatalf("ReportUnreportedToStripe: %v", err)
 		}
 		if called {
-			t.Error("stripe should not be called for zero units")
+			t.Error("stripe should not be called for zero bytes")
 		}
 
 		// Should still be marked as reported
@@ -624,11 +627,11 @@ func TestReportUnreportedToStripe(t *testing.T) {
 
 		seedTeamWithBilling(ctx, t, team1, "Team1", "pro", true)
 		setStripeCustomerID(ctx, t, team1, "cus_fail1")
-		seedBillingMetricsReporting(ctx, t, team1, date, 100, 50, 10, false)
+		seedBillingMetricsReporting(ctx, t, team1, date, 100, 50, 10, 1024*1024, false)
 
 		seedTeamWithBilling(ctx, t, team2, "Team2", "pro", true)
 		setStripeCustomerID(ctx, t, team2, "cus_ok2")
-		seedBillingMetricsReporting(ctx, t, team2, date, 200, 100, 20, false)
+		seedBillingMetricsReporting(ctx, t, team2, date, 200, 100, 20, 2*1024*1024, false)
 
 		callCount := 0
 		deps := testDeps()
@@ -691,6 +694,7 @@ func TestRunDailyMetering(t *testing.T) {
 
 	seedEvents(ctx, t, teamID, appID, 4)
 	seedSpans(ctx, t, teamID, appID, 6)
+	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 4, 6, 0, 10*1024*1024)
 
 	var capturedParams *stripe.BillingMeterEventParams
 	deps := testDeps()
@@ -723,8 +727,10 @@ func TestRunDailyMetering(t *testing.T) {
 	if capturedParams == nil {
 		t.Fatal("stripe was not called")
 	}
-	if capturedParams.Payload["value"] != "10" {
-		t.Errorf("Payload[value] = %q, want %q", capturedParams.Payload["value"], "10")
+	// GB-days = 10*1024*1024 / (1024*1024*1024) = 10/1024 ≈ 0.009766
+	expectedGBDays := fmt.Sprintf("%.6f", float64(10*1024*1024)/float64(1024*1024*1024))
+	if capturedParams.Payload["value"] != expectedGBDays {
+		t.Errorf("Payload[value] = %q, want %q", capturedParams.Payload["value"], expectedGBDays)
 	}
 
 	// Verify marked as reported

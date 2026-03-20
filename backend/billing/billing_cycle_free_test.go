@@ -19,7 +19,7 @@ func TestBillingCycle_FreeSuccess_OneMonthProcessed_NoStripeReporting(t *testing
 	th.SeedTeam(ctx, t, teamID, "FreeTeamSuccess", true)
 	th.SeedTeamBilling(ctx, t, teamID, "free", nil, nil)
 
-	seedMonthForReporting(ctx, t, teamID, 2026, time.January, 500, 500)
+	seedMonthForReporting(ctx, t, teamID, 2026, time.January, 500, 500, 1024*1024)
 	before := countReportedRows(ctx, t, teamID)
 	if err := ReportUnreportedToStripe(ctx, deps); err != nil {
 		t.Fatalf("ReportUnreportedToStripe: %v", err)
@@ -29,7 +29,7 @@ func TestBillingCycle_FreeSuccess_OneMonthProcessed_NoStripeReporting(t *testing
 		t.Fatalf("reported rows changed for free plan: before=%d after=%d", before, after)
 	}
 
-	seedCurrentMonthIngestionUsage(ctx, t, teamID, uint64(FreePlanMaxUnits)-1000)
+	seedCurrentMonthIngestionUsage(ctx, t, teamID, uint64(FreePlanMaxBytes)-1000)
 	RunHourlyBillingCheck(ctx, deps)
 
 	allow, reason := getTeamIngestStatus(ctx, t, teamID)
@@ -47,7 +47,7 @@ func TestBillingCycle_FreeFailure_OneMonthProcessed_NoStripeReporting(t *testing
 	th.SeedTeam(ctx, t, teamID, "FreeTeamFailure", true)
 	th.SeedTeamBilling(ctx, t, teamID, "free", nil, nil)
 
-	seedMonthForReporting(ctx, t, teamID, 2026, time.February, 500, 500)
+	seedMonthForReporting(ctx, t, teamID, 2026, time.February, 500, 500, 1024*1024)
 	before := countReportedRows(ctx, t, teamID)
 	if err := ReportUnreportedToStripe(ctx, deps); err != nil {
 		t.Fatalf("ReportUnreportedToStripe: %v", err)
@@ -57,7 +57,7 @@ func TestBillingCycle_FreeFailure_OneMonthProcessed_NoStripeReporting(t *testing
 		t.Fatalf("reported rows changed for free plan: before=%d after=%d", before, after)
 	}
 
-	seedCurrentMonthIngestionUsage(ctx, t, teamID, uint64(FreePlanMaxUnits)+1000)
+	seedCurrentMonthIngestionUsage(ctx, t, teamID, uint64(FreePlanMaxBytes)+1000)
 	RunHourlyBillingCheck(ctx, deps)
 
 	allow, reason := getTeamIngestStatus(ctx, t, teamID)

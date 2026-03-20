@@ -20,7 +20,7 @@ import (
 const (
 	FREE_PLAN_MAX_RETENTION_DAYS = billing.FreePlanMaxRetentionDays
 	MAX_RETENTION_DAYS           = billing.MaxRetentionDays
-	FREE_PLAN_MAX_UNITS          = billing.FreePlanMaxUnits
+	FREE_PLAN_MAX_BYTES          = billing.FreePlanMaxBytes
 )
 
 // Mockable Stripe SDK calls — overridden in tests.
@@ -154,7 +154,7 @@ func CreateCheckoutSession(c *gin.Context) {
 		server.Server.PgPool,
 		teamId,
 		*user.Email,
-		server.Server.Config.StripeProUnitDaysPriceID,
+		server.Server.Config.StripeProPriceID,
 		req.SuccessURL,
 		req.CancelURL,
 	)
@@ -291,7 +291,7 @@ func GetSubscriptionInfo(c *gin.Context) {
 		return
 	}
 
-	result, err := billing.GetSubscriptionInfo(ctx, server.Server.PgPool, teamId, server.Server.Config.StripeUnitDaysMeterName)
+	result, err := billing.GetSubscriptionInfo(ctx, server.Server.PgPool, teamId, server.Server.Config.StripeMeterName)
 	if err != nil {
 		switch {
 		case errors.Is(err, billing.ErrTeamBillingNotFound):

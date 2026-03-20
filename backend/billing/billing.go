@@ -24,7 +24,7 @@ import (
 const (
 	FreePlanMaxRetentionDays = 30
 	MaxRetentionDays         = 365
-	FreePlanMaxUnits         = 1000000
+	FreePlanMaxBytes         = 5 * 1024 * 1024 * 1024 // 5 GB
 
 	ingestCacheKeyPrefix = "ingest_allowed:"
 	ingestCacheAllowed   = "1"
@@ -284,7 +284,7 @@ func ProcessDowngrade(ctx context.Context, deps Deps, teamID uuid.UUID) error {
 		return updateTeamIngestStatus(ctx, deps.PgPool, teamID.String(), true, nil)
 	}
 
-	if usage >= uint64(FreePlanMaxUnits) {
+	if usage >= uint64(FreePlanMaxBytes) {
 		reason := ReasonPlanLimitExceeded
 		return updateTeamIngestStatus(ctx, deps.PgPool, teamID.String(), false, &reason)
 	}
@@ -413,7 +413,7 @@ func InitiateUpgrade(
 	}
 
 	if priceID == "" {
-		return nil, fmt.Errorf("stripe pro unit days price ID not configured")
+		return nil, fmt.Errorf("stripe pro GB-days price ID not configured")
 	}
 
 	// Create checkout session
@@ -580,7 +580,7 @@ func GetUsageThreshold(ctx context.Context, pool *pgxpool.Pool, chPool driver.Co
 		return 0, err
 	}
 
-	pct := float64(usage) / float64(FreePlanMaxUnits) * 100
+	pct := float64(usage) / float64(FreePlanMaxBytes) * 100
 
 	switch {
 	case pct >= 100:

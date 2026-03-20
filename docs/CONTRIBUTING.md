@@ -135,8 +135,8 @@ cd backend/email && go test -tags=integration ./...
 **Functional tests** — end-to-end Stripe billing cycle tests. These are only relevant for core developers working on billing. They require a Stripe test environment with the following environment variables:
 
 - `TEST_STRIPE_API_KEY` — Stripe API key for the test environment
-- `TEST_STRIPE_UNIT_DAYS_METER_NAME` — event name of the billing meter
-- `TEST_STRIPE_PRO_UNIT_DAYS_PRICE_ID` — price ID for the pro plan
+- `TEST_STRIPE_METER_NAME` — event name of the billing meter
+- `TEST_STRIPE_PRO_PRICE_ID` — price ID for the pro plan
 
 Note that functional tests take more time than Go's default 10m timeout to run so a custom timeout should be passed in.
 

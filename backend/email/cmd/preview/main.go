@@ -109,13 +109,13 @@ func main() {
 
 	// --- Billing: Usage limits ---
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75, 750000, 1000000)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75, 3_758_096_384, 5_368_709_120)
 	add("08-usage-75-percent.html", body)
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 90, 900000, 1000000)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 90, 4_831_838_208, 5_368_709_120)
 	add("09-usage-90-percent.html", body)
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100, 1000000, 1000000)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100, 5_368_709_120, 5_368_709_120)
 	add("10-usage-100-percent.html", body)
 
 	// --- Billing: Subscription ---
@@ -126,7 +126,7 @@ func main() {
 	_, body = email.UpgradeEmail("Acme Corp", "team-abc", "https://measure.sh", 365)
 	add("12-upgraded-to-pro.html", body)
 
-	_, body = email.ManualDowngradeEmail("Acme Corp", "team-abc", "https://measure.sh", 1000000, 30)
+	_, body = email.ManualDowngradeEmail("Acme Corp", "team-abc", "https://measure.sh", 5_368_709_120, 30)
 	add("13-downgraded-to-free.html", body)
 
 	// --- Alerts: Daily Summary ---
