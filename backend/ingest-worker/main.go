@@ -63,8 +63,8 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// Pub/Sub push endpoint
-	r.POST("/pubsub/push", measure.PushHandler)
+	// ingest batch receive endpoint
+	r.POST("/subscribe/batch", measure.PushHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
