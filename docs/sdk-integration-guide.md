@@ -313,6 +313,7 @@ Flutter SDK as well.
 
 | SDK Version | Minimum Required Self-host Version |
 |-------------|------------------------------------|
+| >= `0.4.0`  | `0.10.0` (releasing soon)          |
 | >= `0.3.0`  | `0.9.0`                            |
 | >= `0.1.0`  | `0.8.0`                            |
 
@@ -324,7 +325,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.3.2
+  measure_flutter: ^0.4.0
 ```
 
 ### Initialize the SDK
