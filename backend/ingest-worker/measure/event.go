@@ -4,34 +4,25 @@ import (
 	"backend/api/event"
 	"backend/api/group"
 	"backend/api/span"
-	"backend/ingest/server"
-	"backend/ingest/symbolicator"
+	"backend/ingest-worker/server"
+	"backend/ingest-worker/symbolicator"
 	"backend/libs/ambient"
 	"backend/libs/chrono"
 	"backend/libs/concur"
 	"backend/libs/inet"
-	"backend/libs/objstore"
 	"backend/libs/opsys"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
-	credentials "cloud.google.com/go/iam/credentials/apiv1"
-	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
-	"cloud.google.com/go/pubsub/v2"
-	"cloud.google.com/go/storage"
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -39,40 +30,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"golang.org/x/sync/errgroup"
 )
-
-// maxBatchSize is the maximum allowed payload
-// size of event request in bytes.
-var maxBatchSize = 20 * 1024 * 1024
-
-// ExpiryDuration is the default expiry duration
-// for signed upload URLs.
-const ExpiryDuration = time.Hour * 24 * 7
-
-// busIngestTopic is the message bus topic name
-// for publishing ingest batches.
-const busIngestTopic = "ingest-batch"
-
-// blob represents each blob present in the
-// event request batch during ingestion.
-type blob struct {
-	// id is the unique id of the blob
-	id uuid.UUID
-	// name is the filename with extension
-	// from SDK
-	name string
-	// key is the s3-like object storage key
-	key string
-	// location is the fully qualified URL
-	// of the s3-like object
-	location string
-	// header is the file bytes which can be
-	// opened and read
-	header *multipart.FileHeader
-	// uploadedAttempted indicates if the blob
-	// was attempted for upload at least once
-	// during ingestion.
-	uploadedAttempted bool
-}
 
 // IngestBatch is a serializable representation
 // of an ingest request batch for publishing
@@ -96,8 +53,6 @@ type eventreq struct {
 	appId uuid.UUID
 	// teamId is the id of the team
 	teamId uuid.UUID
-	// json indicates that content type is JSON
-	json bool
 	// seen indicates whether this request batch
 	// was previously ingested
 	seen bool
@@ -114,125 +69,12 @@ type eventreq struct {
 	exceptionIds []int
 	// anrIds is a list of all ANR event IDs
 	anrIds []int
-	// size keeps track of the ingest payload size
-	size int64
 	// events is the list of events in the ingest
 	// batch
 	events []event.EventField
 	// spans is the list of spans in the ingest
 	// batch
 	spans []span.SpanField
-	// attachments is look up table for attachment
-	// blobs
-	attachments map[uuid.UUID]*blob
-	// attachmentUploadInfos stores attachment upload
-	// metadata
-	attachmentUploadInfos []AttachmentUploadInfo
-}
-
-// IngestRequest is the ingestion request for JSON
-// payload.
-type IngestRequest struct {
-	Events []event.EventField `json:"events"`
-	Spans  []span.SpanField   `json:"spans"`
-}
-
-// IngestResponse represents the response data for
-// JSON payload ingest request.
-type IngestResponse struct {
-	AttachmentUploadInfo []AttachmentUploadInfo `json:"attachments"`
-}
-
-// AttachmentUploadInfo contains the signed URL
-// and related metadata for clients to upload
-// attachments.
-type AttachmentUploadInfo struct {
-	ID        uuid.UUID         `json:"id"`
-	Type      string            `json:"type"`
-	Filename  string            `json:"filename"`
-	UploadURL string            `json:"upload_url"`
-	ExpiresAt time.Time         `json:"expires_at"`
-	Headers   map[string]string `json:"headers,omitempty"`
-	Key       string            `json:"-"`
-	Location  string            `json:"-"`
-}
-
-// uploadAttachments prepares and uploads each attachment.
-func (e *eventreq) uploadAttachments() error {
-	for id, attachment := range e.attachments {
-		if attachment == nil {
-			return fmt.Errorf("attachment[%s]: nil blob", id)
-		}
-
-		if attachment.header == nil {
-			return fmt.Errorf("attachment[%s] (%s): header is nil", id, attachment.name)
-		}
-
-		ext := filepath.Ext(attachment.name)
-		key := attachment.id.String() + ext
-
-		// pre-fill the key and location
-		attachment.key = key
-		// for now, we construct the location manually
-		// implement a better solution later using
-		// EndpointResolverV2 with custom resolvers
-		// for non-AWS clouds like GCS
-		attachment.location = event.BuildAttachmentLocation(key, event.LocationConfig{
-			IsCloud:                 server.Server.Config.IsCloud(),
-			AWSEndpoint:             server.Server.Config.AWSEndpoint,
-			AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
-			AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
-		})
-
-		eventAttachment := event.Attachment{
-			ID:   id,
-			Name: key,
-			Key:  key,
-		}
-
-		file, err := attachment.header.Open()
-		if err != nil {
-			return err
-		}
-
-		eventAttachment.Reader = file
-
-		go func() {
-			defer file.Close()
-			// create fresh context for the upload
-			// operation. ensure uploads proceed even if
-			// the request fails for extra safety.
-			//
-			// better to be safe and process uploads as much
-			// as you can.
-			bgCtx := context.Background()
-
-			if err := eventAttachment.Upload(bgCtx, event.UploadConfig{
-				IsCloud:                    server.Server.Config.IsCloud(),
-				AWSEndpoint:                server.Server.Config.AWSEndpoint,
-				AttachmentsBucket:          server.Server.Config.AttachmentsBucket,
-				AttachmentsBucketRegion:    server.Server.Config.AttachmentsBucketRegion,
-				AttachmentsAccessKey:       server.Server.Config.AttachmentsAccessKey,
-				AttachmentsSecretAccessKey: server.Server.Config.AttachmentsSecretAccessKey,
-			}); err != nil {
-				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
-				return
-			}
-		}()
-
-		// this is just a soft flag to indicate the attachment upload
-		// has been attempted, but does not reflect actual upload completion
-		// or success.
-		attachment.uploadedAttempted = true
-	}
-
-	return nil
-}
-
-// bumpSize increases the payload size of
-// events in bytes.
-func (e *eventreq) bumpSize(n int64) {
-	e.size = e.size + n
 }
 
 // checkSeen checks & remembers if this request batch was
@@ -259,323 +101,6 @@ func (e *eventreq) checkSeen(ctx context.Context) (err error) {
 	}
 
 	return
-}
-
-// readMultipartRequest parses and validates the event request payload for
-// events and attachments.
-func (e *eventreq) readMultipartRequest(c *gin.Context) error {
-	form, err := c.MultipartForm()
-	if err != nil {
-		return err
-	}
-
-	events := form.Value["event"]
-	spans := form.Value["span"]
-	if len(events) < 1 && len(spans) < 1 {
-		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
-	}
-
-	dupEvent := make(map[uuid.UUID]struct{})
-
-	for i := range events {
-		if events[i] == "" {
-			return fmt.Errorf(`any event field must not be empty`)
-		}
-
-		var ev event.EventField
-		bytes := []byte(events[i])
-		if err := json.Unmarshal(bytes, &ev); err != nil {
-			return err
-		}
-
-		// debug null anr/exception in payload cases
-		//
-		// suspicion: this happens for these payloads
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "exception",
-		//   "exception": null,
-		// }
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "anr",
-		//   "anr": null,
-		// }
-		//
-		// most likely, these orginiate from Android 11, 12
-		// & 13 Redmi devices with user agent as "Dalvik/2.1.0 (Linux; U; Android 11; 2201116SI Build/RKQ1.211001.001)".
-		//
-		// since, the SDK has no fix for this issue, we handle
-		// the panic & send a 400 - which would eventually lead
-		// the SDK to delete such events.
-		//
-		// has been observed for exception & ANRs, but other
-		// event types may be affected as well.
-		//
-		// see: https://github.com/measure-sh/measure/issues/2965
-		if ev.IsException() && ev.Exception == nil {
-			return fmt.Errorf(`%q must not be null`, `exception`)
-		}
-		if ev.IsANR() && ev.ANR == nil {
-			return fmt.Errorf(`%q must not be null`, `anr`)
-		}
-
-		// discard batch if duplicate
-		// event ids found
-		_, ok := dupEvent[ev.ID]
-		if ok {
-			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
-		} else {
-			dupEvent[ev.ID] = struct{}{}
-		}
-
-		e.bumpSize(int64(len(bytes)))
-		ev.AppID = e.appId
-
-		if ev.NeedsSymbolication() {
-			e.symbolicateEvents[ev.ID] = i
-		}
-
-		if ev.IsUnhandledException() {
-			e.exceptionIds = append(e.exceptionIds, i)
-		}
-
-		if ev.IsANR() {
-			e.anrIds = append(e.anrIds, i)
-		}
-
-		// partially prepare list of attachments
-		// to extract the filename with extension
-		// because extracting filename from form
-		// field header is not reliable
-		//
-		// form field header may lack file extension
-		// in some cases
-		//
-		// see https://github.com/measure-sh/measure/issues/1736
-		for _, attachment := range ev.Attachments {
-			e.attachments[attachment.ID] = &blob{
-				id:   attachment.ID,
-				name: attachment.Name,
-			}
-		}
-
-		// attachment blobs must be present if
-		// any event has attachments
-		if e.hasAttachmentBlobs() && len(form.File) < 1 {
-			return fmt.Errorf(`some events has attachments, but payload does not contain any attachment blob`)
-		}
-
-		// compute launch timings
-		ev.ComputeLaunchTimes()
-
-		// read OS name from payload
-		// if we haven't figured out
-		// already.
-		if e.osName == "" {
-			e.osName = strings.ToLower(ev.Attribute.OSName)
-		}
-
-		e.events = append(e.events, ev)
-	}
-
-	dupSpan := make(map[string]struct{})
-
-	for i := range spans {
-		if spans[i] == "" {
-			return fmt.Errorf(`any span field must not be empty`)
-		}
-		var sp span.SpanField
-		bytes := []byte(spans[i])
-		if err := json.Unmarshal(bytes, &sp); err != nil {
-			return err
-		}
-
-		// discard batch if duplicate
-		// span ids found
-		_, ok := dupSpan[sp.SpanID]
-		if ok {
-			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
-		} else {
-			dupSpan[sp.SpanID] = struct{}{}
-		}
-
-		e.bumpSize(int64(len(bytes)))
-		sp.AppID = e.appId
-
-		if sp.NeedsSymbolication() {
-			e.symbolicateSpans[sp.SpanName] = i
-		}
-
-		// read OS name from payload
-		// if we haven't figured out
-		// already.
-		if e.osName == "" {
-			e.osName = strings.ToLower(sp.Attributes.OSName)
-		}
-
-		e.spans = append(e.spans, sp)
-	}
-
-	for key, headers := range form.File {
-		id, ok := strings.CutPrefix(key, "blob-")
-		if !ok {
-			continue
-		}
-		blobId, err := uuid.Parse(id)
-		if err != nil {
-			return err
-		}
-		if len(headers) < 1 {
-			return fmt.Errorf(`blob attachments must not be empty`)
-		}
-		header := headers[0]
-		if header == nil {
-			continue
-		}
-		e.bumpSize(header.Size)
-
-		// inject the form field header to
-		// the previously constructed partial
-		// attachment
-		if e.attachments[blobId] != nil {
-			e.attachments[blobId].header = header
-		}
-	}
-
-	return nil
-}
-
-// readJsonRequest reads and validates the JSON event request payload for
-// events and spans. Attachment metadata is extracted but files are not
-// uploaded inline - signed URLs will be returned for separate upload.
-func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
-	if len(payload.Events) < 1 && len(payload.Spans) < 1 {
-		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
-	}
-
-	dupEvent := make(map[uuid.UUID]struct{})
-
-	for i := range payload.Events {
-		ev := payload.Events[i]
-
-		// debug null anr/exception in payload cases
-		//
-		// suspicion: this happens for these payloads
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "exception",
-		//   "exception": null,
-		// }
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "anr",
-		//   "anr": null,
-		// }
-		//
-		// most likely, these orginiate from Android 11, 12
-		// & 13 Redmi devices with user agent as "Dalvik/2.1.0 (Linux; U; Android 11; 2201116SI Build/RKQ1.211001.001)".
-		//
-		// since, the SDK has no fix for this issue, we handle
-		// the panic & send a 400 - which would eventually lead
-		// the SDK to delete such events.
-		//
-		// has been observed for exception & ANRs, but other
-		// event types may be affected as well.
-		//
-		// see: https://github.com/measure-sh/measure/issues/2965
-		if ev.IsException() && ev.Exception == nil {
-			return fmt.Errorf(`%q must not be null`, `exception`)
-		}
-		if ev.IsANR() && ev.ANR == nil {
-			return fmt.Errorf(`%q must not be null`, `anr`)
-		}
-
-		// discard batch if duplicate event ids found
-		_, ok := dupEvent[ev.ID]
-		if ok {
-			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
-		}
-		dupEvent[ev.ID] = struct{}{}
-
-		bytes, err := json.Marshal(ev)
-		if err != nil {
-			return err
-		}
-
-		e.bumpSize(int64(len(bytes)))
-		ev.AppID = e.appId
-
-		if ev.NeedsSymbolication() {
-			e.symbolicateEvents[ev.ID] = i
-		}
-
-		if ev.IsUnhandledException() {
-			e.exceptionIds = append(e.exceptionIds, i)
-		}
-
-		if ev.IsANR() {
-			e.anrIds = append(e.anrIds, i)
-		}
-
-		for _, attachment := range ev.Attachments {
-			attachmentUploadInfo := AttachmentUploadInfo{
-				ID:       attachment.ID,
-				Type:     attachment.Type,
-				Filename: attachment.Name,
-			}
-
-			e.attachmentUploadInfos = append(e.attachmentUploadInfos, attachmentUploadInfo)
-		}
-
-		// compute launch timings
-		ev.ComputeLaunchTimes()
-
-		// read OS name from payload if we haven't figured out already
-		if e.osName == "" {
-			e.osName = strings.ToLower(ev.Attribute.OSName)
-		}
-
-		e.events = append(e.events, ev)
-	}
-
-	dupSpan := make(map[string]struct{})
-
-	for i := range payload.Spans {
-		sp := payload.Spans[i]
-
-		// discard batch if duplicate span ids found
-		_, ok := dupSpan[sp.SpanID]
-		if ok {
-			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
-		}
-		dupSpan[sp.SpanID] = struct{}{}
-
-		bytes, err := json.Marshal(sp)
-		if err != nil {
-			return err
-		}
-
-		e.bumpSize(int64(len(bytes)))
-		sp.AppID = e.appId
-
-		if sp.NeedsSymbolication() {
-			e.symbolicateSpans[sp.SpanName] = i
-		}
-
-		// read OS name from payload if we haven't figured out already
-		if e.osName == "" {
-			e.osName = strings.ToLower(sp.Attributes.OSName)
-		}
-
-		e.spans = append(e.spans, sp)
-	}
-
-	return nil
 }
 
 // infuseInet looks up the country code for the IP
@@ -618,139 +143,6 @@ func (e *eventreq) infuseInet(rawIP string) error {
 	return nil
 }
 
-// generateAttachmentUploadURLs generates signed URLs for attachments
-// to be uploaded by clients.
-func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
-	config := server.Server.Config
-
-	if config.IsCloud() {
-		// GCS flow for cloud deployments
-		client, err := objstore.CreateGCSClient(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to create GCS client: %w", err)
-		}
-		defer client.Close()
-
-		// for creating signed URLs, we need to tie the service account
-		// identity along with the credentials. otherwise, the signed
-		// URLs can't be generated and won't work as expected.
-		iamClient, err := credentials.NewIamCredentialsClient(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to create IAM client: %w", err)
-		}
-		defer iamClient.Close()
-
-		signBytes := func(b []byte) ([]byte, error) {
-			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
-				Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
-				Payload: b,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return resp.SignedBlob, nil
-		}
-
-		var signgroup errgroup.Group
-		signgroup.SetLimit(16)
-
-		for i := range e.attachmentUploadInfos {
-			id := e.attachmentUploadInfos[i].ID
-			filename := e.attachmentUploadInfos[i].Filename
-			ext := filepath.Ext(filename)
-
-			// Generate upload key and location
-			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
-				IsCloud:                 server.Server.Config.IsCloud(),
-				AWSEndpoint:             server.Server.Config.AWSEndpoint,
-				AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
-				AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
-			})
-			expiry := time.Now().Add(ExpiryDuration)
-
-			metadata := []string{
-				fmt.Sprintf("x-goog-meta-original_file_name: %s", filename),
-			}
-
-			signOptions := &storage.SignedURLOptions{
-				GoogleAccessID: config.ServiceAccountEmail,
-				SignBytes:      signBytes,
-				Scheme:         storage.SigningSchemeV4,
-				Method:         "PUT",
-				Expires:        expiry,
-				Headers:        metadata,
-			}
-
-			signgroup.Go(func() error {
-				url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
-				if err != nil {
-					return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
-				}
-
-				// Update the attachment info with URL and metadata
-				e.attachmentUploadInfos[i].UploadURL = url
-				e.attachmentUploadInfos[i].ExpiresAt = expiry
-				e.attachmentUploadInfos[i].Headers = map[string]string{
-					"x-goog-meta-original_file_name": filename,
-				}
-				e.attachmentUploadInfos[i].Key = uploadKey
-				e.attachmentUploadInfos[i].Location = uploadLocation
-
-				return nil
-			})
-		}
-
-		if err := signgroup.Wait(); err != nil {
-			return err
-		}
-	} else {
-		// S3 flow for self-hosted deployments
-		client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
-
-		for i := range e.attachmentUploadInfos {
-			id := e.attachmentUploadInfos[i].ID
-			filename := e.attachmentUploadInfos[i].Filename
-			ext := filepath.Ext(filename)
-
-			// Generate upload key and location (same format as multipart flow)
-			uploadKey := id.String() + ext
-			uploadLocation := event.BuildAttachmentLocation(uploadKey, event.LocationConfig{
-				IsCloud:                 server.Server.Config.IsCloud(),
-				AWSEndpoint:             server.Server.Config.AWSEndpoint,
-				AttachmentsBucket:       server.Server.Config.AttachmentsBucket,
-				AttachmentsBucketRegion: server.Server.Config.AttachmentsBucketRegion,
-			})
-
-			signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
-				Bucket: aws.String(config.AttachmentsBucket),
-				Key:    aws.String(uploadKey),
-				Metadata: map[string]string{
-					"original_file_name": filename,
-				},
-			}, s3.WithPresignExpires(time.Duration(ExpiryDuration)))
-
-			if err != nil {
-				return fmt.Errorf("failed to create S3 PUT pre-signed URL for %v: %w", filename, err)
-			}
-
-			// proxy the url for self-hosted
-			proxyUrl := fmt.Sprintf("%s/proxy/attachments?payload=%s", config.APIOrigin, url.QueryEscape(signedUrl))
-
-			// Update the attachment info with URL and metadata
-			e.attachmentUploadInfos[i].UploadURL = proxyUrl
-			e.attachmentUploadInfos[i].ExpiresAt = time.Now().Add(ExpiryDuration)
-			e.attachmentUploadInfos[i].Headers = map[string]string{
-				"x-amz-meta-original_file_name": filename,
-			}
-			e.attachmentUploadInfos[i].Key = uploadKey
-			e.attachmentUploadInfos[i].Location = uploadLocation
-		}
-	}
-
-	return nil
-}
-
 func (e *eventreq) countMetrics() (sessions, events, spans, attachments uint32) {
 	events = uint32(len(e.events))
 
@@ -761,11 +153,8 @@ func (e *eventreq) countMetrics() (sessions, events, spans, attachments uint32) 
 		}
 	}
 
-	if e.hasAttachmentBlobs() {
-		attachments = uint32(len(e.attachments))
-	} else if e.hasAttachmentUploadInfos() {
-		attachments = uint32(len(e.attachmentUploadInfos))
-	}
+	// attachments count is not tracked in the worker — attachments are
+	// uploaded by the ingest service before publishing the batch.
 
 	spans = uint32(len(e.spans))
 
@@ -806,18 +195,6 @@ func (e eventreq) hasUnhandledExceptions() bool {
 // ANRs.
 func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
-}
-
-// hasAttachmentBlobs returns true if payload
-// contains attachment blobs to be processed.
-func (e eventreq) hasAttachmentBlobs() bool {
-	return len(e.attachments) > 0
-}
-
-// hasAttachmentUploadInfos returns true if payload
-// contains attachment upload infos to be processed.
-func (e eventreq) hasAttachmentUploadInfos() bool {
-	return len(e.attachmentUploadInfos) > 0
 }
 
 // getOSName extracts the operating system name
@@ -971,11 +348,9 @@ func (e eventreq) validate() error {
 			}
 		}
 
-		if e.hasAttachmentBlobs() || e.hasAttachmentUploadInfos() {
-			for j := range e.events[i].Attachments {
-				if err := e.events[i].Attachments[j].Validate(); err != nil {
-					return err
-				}
+		for j := range e.events[i].Attachments {
+			if err := e.events[i].Attachments[j].Validate(); err != nil {
+				return err
 			}
 		}
 	}
@@ -996,10 +371,6 @@ func (e eventreq) validate() error {
 				return err
 			}
 		}
-	}
-
-	if e.size >= int64(maxBatchSize) {
-		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
 
 	return nil
@@ -1651,471 +1022,253 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
-func PutEvents(c *gin.Context) {
-	ingestReqTracer := otel.Tracer("ingest-req-tracer")
-	ingestReqCtx, ingestReqSpan := ingestReqTracer.Start(context.Background(), "ingest-request")
-	defer ingestReqSpan.End()
-
-	appId, err := uuid.Parse(c.GetString("appId"))
+// PushHandler handles incoming Pub/Sub push messages containing
+// ingest batches published by the ingest service.
+func PushHandler(c *gin.Context) {
+	var envelope struct {
+		Message struct {
+			Data string `json:"data"`
+		} `json:"message"`
+	}
+	if err := c.BindJSON(&envelope); err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	raw, err := base64.StdEncoding.DecodeString(envelope.Message.Data)
 	if err != nil {
-		msg := `error parsing app's uuid`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.Status(http.StatusBadRequest)
 		return
 	}
-
-	if err := CheckIngestAllowedForApp(c, appId); err != nil {
-		c.JSON(http.StatusPaymentRequired, gin.H{"error": err.Error()})
+	var batch IngestBatch
+	if err := json.Unmarshal(raw, &batch); err != nil {
+		c.Status(http.StatusBadRequest)
 		return
 	}
+	concur.GlobalWg.Add(1)
+	go func() {
+		defer concur.GlobalWg.Done()
+		processIngestBatch(context.Background(), batch)
+	}()
+	c.Status(http.StatusOK)
+}
 
-	ctx := c.Request.Context()
-
-	reqIdKey := `msr-req-id`
-	reqIdVal := c.Request.Header.Get(reqIdKey)
-	if reqIdVal == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Errorf("no %q header value found", reqIdKey),
-		})
-		return
-	}
-
-	reqId, err := uuid.Parse(reqIdVal)
+// processIngestBatch runs the full ingestion processing pipeline
+// for an ingest batch received from the message bus.
+func processIngestBatch(ctx context.Context, batch IngestBatch) {
+	batchID, err := uuid.Parse(batch.BatchID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Errorf("%q value is not a valid UUID", reqIdKey),
-		})
+		fmt.Println("failed to parse batch id:", err)
+		return
+	}
+	appID, err := uuid.Parse(batch.AppID)
+	if err != nil {
+		fmt.Println("failed to parse app id:", err)
+		return
+	}
+	teamID, err := uuid.Parse(batch.TeamID)
+	if err != nil {
+		fmt.Println("failed to parse team id:", err)
 		return
 	}
 
-	_, selectAppSpan := ingestReqTracer.Start(ctx, "select-app")
-	defer selectAppSpan.End()
-
-	app, err := SelectApp(ctx, appId)
+	app, err := SelectApp(ctx, appID)
 	if app == nil || err != nil {
-		msg := `failed to lookup app`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
+		fmt.Println("failed to lookup app:", err)
 		return
 	}
 
-	selectAppSpan.End()
-
-	msg := `failed to parse event request payload`
-	eventReq := eventreq{
-		id:                reqId,
-		appId:             appId,
-		teamId:            app.TeamId,
-		json:              strings.HasPrefix(c.ContentType(), "application/json"),
-		osName:            app.OSName,
+	eventReq := &eventreq{
+		id:                batchID,
+		appId:             appID,
+		teamId:            teamID,
+		osName:            batch.OsName,
+		events:            batch.Events,
+		spans:             batch.Spans,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
-		attachments:       make(map[uuid.UUID]*blob),
 	}
 
-	if eventReq.json {
-		ingestPayload := IngestRequest{}
-
-		_, parseJSONSpan := ingestReqTracer.Start(ingestReqCtx, "parse-json")
-		defer parseJSONSpan.End()
-
-		if err := c.ShouldBindJSON(&ingestPayload); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
+	// Rebuild exceptionIds, anrIds and symbolication lookups by scanning events.
+	for i := range eventReq.events {
+		eventReq.events[i].AppID = appID
+		if eventReq.events[i].NeedsSymbolication() {
+			eventReq.symbolicateEvents[eventReq.events[i].ID] = i
 		}
-
-		parseJSONSpan.End()
-
-		_, readRequestSpan := ingestReqTracer.Start(ingestReqCtx, "read")
-		defer readRequestSpan.End()
-
-		if err := eventReq.readJsonRequest(&ingestPayload); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
+		if eventReq.events[i].IsUnhandledException() {
+			eventReq.exceptionIds = append(eventReq.exceptionIds, i)
 		}
-
-		readRequestSpan.End()
-	} else {
-		if err := eventReq.readMultipartRequest(c); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
+		if eventReq.events[i].IsANR() {
+			eventReq.anrIds = append(eventReq.anrIds, i)
 		}
 	}
 
-	if err := eventReq.checkSeen(ingestReqCtx); err != nil {
-		msg := "failed to check for duplicate event request batch"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	for i := range eventReq.spans {
+		if eventReq.spans[i].NeedsSymbolication() {
+			eventReq.symbolicateSpans[eventReq.spans[i].SpanName] = i
+		}
+	}
+
+	// Check idempotency — Pub/Sub delivers at-least-once.
+	if err := eventReq.checkSeen(ctx); err != nil {
+		fmt.Println("failed to check seen status:", err)
 		return
 	}
-
-	// return early if we can recall this batch
 	if eventReq.seen {
-		if eventReq.json {
-			if eventReq.hasAttachmentUploadInfos() {
-				if err := eventReq.generateAttachmentUploadURLs(ingestReqCtx); err != nil {
-					msg := `failed to generate attachment upload URLs for seen request`
-					fmt.Println(msg, err)
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"error": msg,
-					})
-					return
-				}
-			}
-			// for JSON requests, we return the attachment
-			// upload info again, so that the client can
-			// proceed to upload attachments if any.
-			c.JSON(http.StatusOK, IngestResponse{
-				AttachmentUploadInfo: eventReq.attachmentUploadInfos,
-			})
-		} else {
-			c.JSON(http.StatusAccepted, gin.H{
-				"ok": "accepted, known event request",
-			})
-		}
-		return
-	}
-
-	_, validateReqSpan := ingestReqTracer.Start(ingestReqCtx, "validate")
-	defer validateReqSpan.End()
-
-	if err := eventReq.validate(); err != nil {
-		msg := `failed to validate event request payload`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	validateReqSpan.End()
-
-	if eventReq.hasAttachmentBlobs() {
-		// start span to trace attachment uploads
-		_, uploadAttachmentSpan := ingestReqTracer.Start(ingestReqCtx, "upload-attachments")
-
-		defer uploadAttachmentSpan.End()
-
-		if err := eventReq.uploadAttachments(); err != nil {
-			msg := `failed to upload attachments`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		uploadAttachmentSpan.End()
-
-		for i := range eventReq.events {
-			if !eventReq.events[i].HasAttachments() {
-				continue
-			}
-
-			for j := range eventReq.events[i].Attachments {
-				id := eventReq.events[i].Attachments[j].ID
-				attachment, ok := eventReq.attachments[id]
-				if !ok {
-					continue
-				}
-				if !attachment.uploadedAttempted {
-					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
-					continue
-				}
-
-				eventReq.events[i].Attachments[j].Location = attachment.location
-				eventReq.events[i].Attachments[j].Key = attachment.key
-			}
-		}
-	}
-
-	if eventReq.hasAttachmentUploadInfos() {
-		_, genSignedURLsSpan := ingestReqTracer.Start(ingestReqCtx, "generate-signed-urls")
-		defer genSignedURLsSpan.End()
-
-		if err := eventReq.generateAttachmentUploadURLs(ingestReqCtx); err != nil {
-			msg := `failed to generate attachment upload URLs`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		// Update event attachments with key and location from upload infos
-		for i := range eventReq.events {
-			if !eventReq.events[i].HasAttachments() {
-				continue
-			}
-
-			for j := range eventReq.events[i].Attachments {
-				id := eventReq.events[i].Attachments[j].ID
-				// Find the corresponding attachment upload info
-				for _, uploadInfo := range eventReq.attachmentUploadInfos {
-					if uploadInfo.ID == id {
-						eventReq.events[i].Attachments[j].Location = uploadInfo.Location
-						eventReq.events[i].Attachments[j].Key = uploadInfo.Key
-						break
-					}
-				}
-			}
-		}
-
-		genSignedURLsSpan.End()
-	}
-
-	if eventReq.json {
-		c.JSON(http.StatusOK, IngestResponse{
-			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
-		})
-	} else {
-		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
-	}
-
-	ingestReqSpan.End()
-
-	// When bus is preferred, publish to bus
-	// and return
-	useBus := os.Getenv("USE_BUS")
-	if useBus != "" {
-		if server.Server.Config.IsCloud() {
-			batch := IngestBatch{
-				BatchID:  eventReq.id.String(),
-				AppID:    eventReq.appId.String(),
-				TeamID:   eventReq.teamId.String(),
-				OsName:   eventReq.osName,
-				ClientIP: c.ClientIP(),
-				Events:   eventReq.events,
-				Spans:    eventReq.spans,
-			}
-
-			payload, err := json.Marshal(batch)
-			if err != nil {
-				fmt.Println("failed to marshal ingest batch for publish:", err)
-				return
-			}
-
-			result := server.Server.BusPublisher.Publish(context.Background(), &pubsub.Message{Data: payload})
-			if _, err := result.Get(context.Background()); err != nil {
-				fmt.Println("failed to publish ingest batch:", err)
-			}
-		} else {
-
-		}
-
 		return
 	}
 
 	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
-
 	ingestTracer := otel.Tracer("ingest-tracer")
 	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
 	defer ingestSpan.End()
 
-	concur.GlobalWg.Add(1)
+	var infuseInetGroup errgroup.Group
+	infuseInetGroup.Go(func() error {
+		_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
+		defer infuseInetSpan.End()
+		if err := eventReq.infuseInet(batch.ClientIP); err != nil {
+			msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, batch.ClientIP)
+			fmt.Println(msg, err)
+			return err
+		}
+		return nil
+	})
 
-	go func() {
-		defer concur.GlobalWg.Done()
-		var infuseInetGroup errgroup.Group
-		infuseInetGroup.Go(func() error {
-			_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
-			defer infuseInetSpan.End()
+	var symbolicationGroup errgroup.Group
+	symbolicationGroup.Go(func() error {
+		if eventReq.needsSymbolication() {
+			config := server.Server.Config
+			origin := config.SymbolicatorOrigin
+			osName := eventReq.osName
+			sources := []symbolicator.Source{}
 
-			if err := eventReq.infuseInet(c.ClientIP()); err != nil {
-				msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, c.ClientIP())
-				fmt.Println(msg, err)
-				return err
-			}
-			infuseInetSpan.End()
-			return nil
-		})
-
-		var symbolicationGroup errgroup.Group
-
-		symbolicationGroup.Go(func() error {
-			if eventReq.needsSymbolication() {
-				config := server.Server.Config
-				origin := config.SymbolicatorOrigin
-				osName := eventReq.osName
-				sources := []symbolicator.Source{}
-
-				// configure correct sources as per
-				// OS
-				switch opsys.ToFamily(osName) {
-				case opsys.Android:
-					if config.IsCloud() {
-						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-						sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-					} else {
-						sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-					}
-				case opsys.AppleFamily:
-					// by default only symbolicate app's own symbols. to symbolicate iOS
-					// system framework symbols, append a GCSSourceApple source containing
-					// all iOS system framework symbol debug information files.
-					if config.IsCloud() {
-						privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-						clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-					} else {
-						sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-					}
+			switch opsys.ToFamily(osName) {
+			case opsys.Android:
+				if config.IsCloud() {
+					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+					sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+				} else {
+					sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 				}
-
-				symblctr := symbolicator.New(origin, osName, sources)
-
-				// start span to trace symbolication
-				_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
-				defer symbolicationSpan.End()
-
-				if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
-					// in case there was symbolication failure, we don't fail
-					// ingestion. ignore the error, log it and continue.
-					fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
-					return err
+			case opsys.AppleFamily:
+				if config.IsCloud() {
+					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+					sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+				} else {
+					sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 				}
-
-				symbolicationSpan.End()
 			}
-			return nil
-		})
 
-		if err := infuseInetGroup.Wait(); err != nil {
-			fmt.Println("failed to lookup IP info")
-		}
+			symblctr := symbolicator.New(origin, osName, sources)
 
-		if err := symbolicationGroup.Wait(); err != nil {
-			fmt.Println("failed to symbolicate", err)
-		}
+			_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
+			defer symbolicationSpan.End()
 
-		var ingestGroup errgroup.Group
-
-		ingestGroup.Go(func() error {
-			_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
-			defer ingestEventsSpan.End()
-			if err := eventReq.ingestEvents(ingestCtx); err != nil {
-				fmt.Println(`failed to ingest events`, err)
+			if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
+				fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
 				return err
 			}
-
-			return nil
-		})
-
-		ingestGroup.Go(func() error {
-			_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
-			defer ingestSpansSpan.End()
-			if err := eventReq.ingestSpans(ingestCtx); err != nil {
-				fmt.Println(`failed to ingest spans`, err)
-				return err
-			}
-
-			return nil
-		})
-
-		if err := ingestGroup.Wait(); err != nil {
-			fmt.Println("failed to ingest", err)
-			return
 		}
+		return nil
+	})
 
-		var bucketGroup errgroup.Group
-		bucketGroup.Go(func() error {
-			// start span to trace bucketing unhandled exceptions
-			_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
+	if err := infuseInetGroup.Wait(); err != nil {
+		fmt.Println("failed to lookup IP info")
+	}
+	if err := symbolicationGroup.Wait(); err != nil {
+		fmt.Println("failed to symbolicate", err)
+	}
 
-			defer bucketUnhandledExceptionsSpan.End()
-
-			if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
-				fmt.Println(`failed to bucket unhandled exceptions`, err)
-				return err
-			}
-
-			return nil
-		})
-
-		bucketGroup.Go(func() error {
-			// start span to trace bucketing ANRs
-			_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
-			defer bucketAnrsSpan.End()
-
-			if err := eventReq.bucketANRs(ingestCtx); err != nil {
-				fmt.Println(`failed to bucket anrs`, err)
-				return err
-			}
-
-			return nil
-		})
-
-		if err := bucketGroup.Wait(); err != nil {
-			fmt.Println("failed to bucket issues", err)
-			return
+	var ingestGroup errgroup.Group
+	ingestGroup.Go(func() error {
+		_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
+		defer ingestEventsSpan.End()
+		if err := eventReq.ingestEvents(ingestCtx); err != nil {
+			fmt.Println(`failed to ingest events`, err)
+			return err
 		}
-
-		var metricsGroup errgroup.Group
-
-		metricsGroup.Go(func() error {
-			_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
-			defer ingestMetricsSpan.End()
-
-			sessions, events, spans, attachments := eventReq.countMetrics()
-
-			// insert metrics into clickhouse table
-			insertMetricsIngestionSelectStmt := sqlf.
-				Select("? AS team_id", eventReq.teamId).
-				Select("? AS app_id", app.ID).
-				Select("? AS timestamp", time.Now()).
-				Select("sumState(CAST(? AS UInt32)) AS sessions", sessions).
-				Select("sumState(CAST(? AS UInt32)) AS events", events).
-				Select("sumState(CAST(? AS UInt32)) AS spans", spans).
-				Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
-				Select("sumState(CAST(? AS UInt32)) AS metrics", 0)
-			selectSQL := insertMetricsIngestionSelectStmt.String()
-			args := insertMetricsIngestionSelectStmt.Args()
-			defer insertMetricsIngestionSelectStmt.Close()
-			insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
-
-			asyncCtx := clickhouse.Context(ingestCtx, clickhouse.WithAsync(true))
-
-			if err := server.Server.ChPool.Exec(asyncCtx, insertMetricsIngestionFullStmt, args...); err != nil {
-				fmt.Println(`failed to insert ingestion metrics`, err)
-				return err
-			}
-			return nil
-		})
-
-		if err := metricsGroup.Wait(); err != nil {
-			fmt.Println(`failed to count ingestion metrics`, err)
-			return
+		return nil
+	})
+	ingestGroup.Go(func() error {
+		_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
+		defer ingestSpansSpan.End()
+		if err := eventReq.ingestSpans(ingestCtx); err != nil {
+			fmt.Println(`failed to ingest spans`, err)
+			return err
 		}
+		return nil
+	})
+	if err := ingestGroup.Wait(); err != nil {
+		fmt.Println("failed to ingest", err)
+		return
+	}
 
-		_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
-		defer rememberIngestSpan.End()
-
-		// Remember that this batch was ingested, so if same
-		// batch is seen again, we can skip ingesting it.
-		if err := eventReq.remember(ingestCtx); err != nil {
-			fmt.Println(`failed to remember event request`, err)
-			return
+	var bucketGroup errgroup.Group
+	bucketGroup.Go(func() error {
+		_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
+		defer bucketUnhandledExceptionsSpan.End()
+		if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
+			fmt.Println(`failed to bucket unhandled exceptions`, err)
+			return err
 		}
-	}()
+		return nil
+	})
+	bucketGroup.Go(func() error {
+		_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
+		defer bucketAnrsSpan.End()
+		if err := eventReq.bucketANRs(ingestCtx); err != nil {
+			fmt.Println(`failed to bucket anrs`, err)
+			return err
+		}
+		return nil
+	})
+	if err := bucketGroup.Wait(); err != nil {
+		fmt.Println("failed to bucket issues", err)
+		return
+	}
+
+	var metricsGroup errgroup.Group
+	metricsGroup.Go(func() error {
+		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
+		defer ingestMetricsSpan.End()
+
+		sessions, events, spans, attachments := eventReq.countMetrics()
+
+		insertMetricsIngestionSelectStmt := sqlf.
+			Select("? AS team_id", eventReq.teamId).
+			Select("? AS app_id", app.ID).
+			Select("? AS timestamp", time.Now()).
+			Select("sumState(CAST(? AS UInt32)) AS sessions", sessions).
+			Select("sumState(CAST(? AS UInt32)) AS events", events).
+			Select("sumState(CAST(? AS UInt32)) AS spans", spans).
+			Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
+			Select("sumState(CAST(? AS UInt32)) AS metrics", 0)
+		selectSQL := insertMetricsIngestionSelectStmt.String()
+		args := insertMetricsIngestionSelectStmt.Args()
+		defer insertMetricsIngestionSelectStmt.Close()
+		insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+		asyncCtx := clickhouse.Context(ingestCtx, clickhouse.WithAsync(true))
+		if err := server.Server.ChPool.Exec(asyncCtx, insertMetricsIngestionFullStmt, args...); err != nil {
+			fmt.Println(`failed to insert ingestion metrics`, err)
+			return err
+		}
+		return nil
+	})
+	if err := metricsGroup.Wait(); err != nil {
+		fmt.Println(`failed to count ingestion metrics`, err)
+		return
+	}
+
+	_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
+	defer rememberIngestSpan.End()
+
+	if err := eventReq.remember(ingestCtx); err != nil {
+		fmt.Println(`failed to remember event request`, err)
+		return
+	}
 
 	if eventReq.onboardable() && !app.Onboarded {
 		_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
@@ -2127,9 +1280,7 @@ func PutEvents(c *gin.Context) {
 		defer tx.Rollback(ingestCtx)
 
 		if err != nil {
-			msg := "failed to acquire transaction while onboarding app"
-			fmt.Println(msg, err)
-			onboardAppSpan.End()
+			fmt.Println("failed to acquire transaction while onboarding app:", err)
 			return
 		}
 
@@ -2139,15 +1290,12 @@ func PutEvents(c *gin.Context) {
 
 		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
 			fmt.Println(`failed to onboard app`, err)
-			onboardAppSpan.End()
 			return
 		}
 
 		if err := tx.Commit(ingestCtx); err != nil {
 			fmt.Println(`failed to commit app onboard transaction`, err)
-			onboardAppSpan.End()
 			return
 		}
-
 	}
 }

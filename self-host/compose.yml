@@ -215,6 +215,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      iggy:
+        condition: service_healthy
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
@@ -526,6 +528,54 @@ services:
       - ./clickhouse:/opt/clickhouse
     command: ["migrate"]
 
+  iggy:
+    image: apache/iggy
+    restart: unless-stopped
+    ports:
+      - "3010:80"
+      - "5100:8090"
+    entrypoint: >
+      bash -c "
+      iggy-server &
+
+      until iggy ping 2>/dev/null; do
+        echo 'Waiting for Iggy server to start...';
+        sleep 1;
+      done;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} stream create measure || true;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure ingest 3 none 7d || true;
+
+      wait %1
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "iggy ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 5
+    environment:
+      - IGGY_ROOT_USERNAME=${IGGY_USERNAME}
+      - IGGY_ROOT_PASSWORD=${IGGY_PASSWORD}
+      - IGGY_HTTP_ENABLED=true
+      - IGGY_HTTP_ADDRESS=0.0.0.0:80
+      - IGGY_TCP_ENABLED=true
+      - IGGY_TCP_ADDRESS=0.0.0.0:8090
+      - IGGY_QUIC_ENABLED=false
+      - IGGY_WEBSOCKET_ENABLED=false
+      - IGGY_HEARTBEAT_ENABLED=true
+      - IGGY_HEARTBEAT_INTERVAL=5s
+    cap_add:
+      - SYS_NICE
+    security_opt:
+      - seccomp=unconfined
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - iggy-data:/iggy/local_data
+
   postgres:
     image: postgres:16.3-alpine
     restart: unless-stopped
@@ -603,4 +653,5 @@ volumes:
   clickhouse-volume:
   migrator-volume:
   minio-data:
+  iggy-data:
   pgdata:

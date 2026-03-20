@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"backend/ingest/measure"
-	"backend/ingest/server"
+	"backend/ingest-worker/measure"
+	"backend/ingest-worker/server"
 	"backend/libs/concur"
 	"backend/libs/inet"
 
@@ -27,12 +27,6 @@ func main() {
 	defer server.Server.PgPool.Close()
 	if server.Server.VK != nil {
 		defer server.Server.VK.Close()
-	}
-	if server.Server.BusPublisher != nil {
-		defer server.Server.BusPublisher.Stop()
-	}
-	if server.Server.BusClient != nil {
-		defer server.Server.BusClient.Close()
 	}
 
 	// Close ClickHouse connection pool at shutdown
@@ -69,14 +63,12 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// SDK routes
-	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
-	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfigForSdk)
+	// Pub/Sub push endpoint
+	r.POST("/pubsub/push", measure.PushHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8085"
+		port = "8086"
 	}
 
 	srv := &http.Server{
@@ -96,7 +88,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	fmt.Println("Shutting down ingest service...")
+	fmt.Println("Shutting down ingest-worker service...")
 
 	shutdownTimeout := 9 * time.Second
 	if gin.Mode() == gin.DebugMode {

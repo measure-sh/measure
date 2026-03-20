@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
-	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -34,12 +32,10 @@ import (
 var Server *server
 
 type server struct {
-	PgPool       *pgxpool.Pool
-	ChPool       driver.Conn
-	Config       *ServerConfig
-	VK           redis.Client
-	BusClient    *pubsub.Client
-	BusPublisher *pubsub.Publisher
+	PgPool *pgxpool.Pool
+	ChPool driver.Conn
+	Config *ServerConfig
+	VK     redis.Client
 }
 
 type PostgresConfig struct {
@@ -74,7 +70,6 @@ type ServerConfig struct {
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
-	BillingEnabled             bool
 }
 
 // IsCloud is true if the service is
@@ -87,25 +82,10 @@ func (sc *ServerConfig) IsCloud() bool {
 	return false
 }
 
-// IsBillingEnabled is true if the service has
-// billing feature enabled.
-func (sc *ServerConfig) IsBillingEnabled() bool {
-	if sc.BillingEnabled {
-		return true
-	}
-
-	return false
-}
-
 func NewConfig() *ServerConfig {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
-	}
-
-	billingEnabled := false
-	if os.Getenv("BILLING_ENABLED") == "true" {
-		billingEnabled = true
 	}
 
 	var serviceAccountEmail string
@@ -225,7 +205,6 @@ func NewConfig() *ServerConfig {
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
-		BillingEnabled:             billingEnabled,
 	}
 }
 
@@ -304,7 +283,7 @@ func Init(config *ServerConfig) {
 	}
 
 	options.ConnWriteTimeout = 30 * time.Second
-	options.ClientName = "measure-ingest"
+	options.ClientName = "measure-ingest-worker"
 
 	vkClient, err := redis.NewClient(options)
 	if err != nil {
@@ -313,30 +292,11 @@ func Init(config *ServerConfig) {
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
 
-	var busClient *pubsub.Client
-	var busPublisher *pubsub.Publisher
-	if config.CloudEnv {
-		projectID, err := metadata.ProjectIDWithContext(ctx)
-		if err != nil {
-			log.Printf("failed to get GCP project ID from metadata server: %v\n", err)
-		} else {
-			busClient, err = pubsub.NewClient(ctx, projectID)
-			if err != nil {
-				log.Printf("failed to create Pub/Sub client: %v\n", err)
-			} else {
-				topicName := fmt.Sprintf("projects/%s/topics/ingest-batch", projectID)
-				busPublisher = busClient.Publisher(topicName)
-			}
-		}
-	}
-
 	Server = &server{
-		PgPool:       pgPool,
-		ChPool:       chPool,
-		Config:       config,
-		VK:           vkClient,
-		BusClient:    busClient,
-		BusPublisher: busPublisher,
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
+		VK:     vkClient,
 	}
 }
 

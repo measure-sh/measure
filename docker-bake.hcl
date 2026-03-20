@@ -29,6 +29,19 @@ target "ingest" {
   platforms = ["linux/amd64"]
 }
 
+target "ingest-worker" {
+  inherits = ["docker-metadata-action"]
+  context = "backend/ingest-worker"
+  contexts = {
+    libs = "backend/libs"
+    api = "backend/api"
+  }
+  dockerfile = "dockerfile"
+  cache-from = ["type=gha"]
+  cache-to = ["type=gha,mode=max"]
+  platforms = ["linux/amd64"]
+}
+
 target "alerts" {
   inherits = ["docker-metadata-action"]
   context = "backend/alerts"
