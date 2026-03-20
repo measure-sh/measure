@@ -7,7 +7,8 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import LoadingSpinner from '@/app/components/loading_spinner'
 
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
-import { FREE_RETENTION_DAYS, FREE_UNITS, INCLUDED_PRO_UNITS, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, UNIT_EXPLANATION } from '@/app/utils/pricing_constants'
+import { formatBytes } from '@/app/utils/number_utils'
+import { FREE_BYTES, FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '@/app/utils/pricing_constants'
 import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
 
@@ -34,6 +35,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     value: number
     events: number
     spans: number
+    bytes_in: number
   }
 
   type SubscriptionInfo = {
@@ -75,8 +77,10 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     }
   }
 
-  const freeUsagePercent = billingInfo?.plan === 'free' && FREE_UNITS > 0
-    ? Math.min(100, Math.round((currentBillingCycleUsage / FREE_UNITS) * 100))
+  const freeUsagePercent = billingInfo?.plan === 'free' && FREE_BYTES > 0
+    ? Math.min(100, currentBillingCycleUsage > 0
+      ? Math.max(0.01, Math.round((currentBillingCycleUsage / FREE_BYTES) * 10000) / 100)
+      : 0)
     : 0
 
   useEffect(() => {
@@ -126,7 +130,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.sessions, events: u.events, spans: u.spans })
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.sessions, events: u.events, spans: u.spans, bytes_in: u.bytes_in })
         }
       })
     })
@@ -152,9 +156,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
         let initialMonth = months[months.length - 1]
         setMonths(months)
         setSelectedMonth(initialMonth)
-        let selectedMonthUsage = parseUsageForMonth(result.data, initialMonth)
-        setSelectedMonthUsage(selectedMonthUsage)
-        setCurrentBillingCycleUsage(selectedMonthUsage.reduce((acc, usage) => acc + usage.events + usage.spans, 0))
+        let initialMonthUsage = parseUsageForMonth(result.data, initialMonth)
+        setSelectedMonthUsage(initialMonthUsage)
+        setCurrentBillingCycleUsage(initialMonthUsage.reduce((acc, usage) => acc + usage.bytes_in, 0))
         break
     }
   }
@@ -361,13 +365,11 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                 <div className='w-full max-w-6xl'>
                   <div className='flex items-center justify-between mb-2'>
                     <p className='font-body'>Free plan usage: <span className='font-semibold'>{freeUsagePercent}%</span></p>
-                    <p className='font-body text-muted-foreground'>{currentBillingCycleUsage.toLocaleString()} used of {FREE_UNITS.toLocaleString()} free units</p>
+                    <p className='font-body text-muted-foreground'>{formatBytes(currentBillingCycleUsage)} used of {FREE_GB} GB</p>
                   </div>
                   <Progress value={freeUsagePercent} />
                 </div>
               )}
-
-              <p className="mt-4 font-body text-xs text-muted-foreground">{UNIT_EXPLANATION}</p>
 
               {/* Plan Cards */}
               <div className='flex flex-col md:flex-row gap-8 w-full mt-12'>
@@ -379,7 +381,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       <p className='text-xl font-display'>FREE</p>
                       <p className='text-4xl font-display py-2'>$0 per month</p>
                       <ul className='list-disc space-y-2 mt-6'>
-                        <li className='font-body'>Up to {FREE_UNITS.toLocaleString()} units per month</li>
+                        <li className='font-body'>Up to {FREE_GB} GB per month</li>
                         <li className='font-body'>{FREE_RETENTION_DAYS} days retention</li>
                         <li className='font-body'>No credit card needed</li>
                       </ul>
@@ -395,9 +397,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                     <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
                     {billingInfo?.plan !== 'pro' && (
                       <ul className='list-disc space-y-2 mt-6'>
-                        <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_UNITS.toLocaleString()} units per month included</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_GB} GB per month included</li>
                         <li className='font-body text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
-                        <li className='font-body text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
                       </ul>
                     )}
                     {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Success && subscriptionInfo && (
@@ -417,7 +419,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                             </span>
                           </li>
                           <li className='text-green-900 dark:text-foreground'>
-                            Unit-days used (units x retention days based on usage so far): <span className='font-semibold'>
+                            GB-days used (data x retention days based on usage so far): <span className='font-semibold'>
                               {subscriptionInfo.billing_cycle_usage.toLocaleString()}
                             </span>
                           </li>
@@ -459,7 +461,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               </div>
               {billingInfo?.plan === 'pro' && (
                 <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
-                  Have large unit volumes?{" "}
+                  Have large data volumes?{" "}
                   <Link
                     href="mailto:hello@measure.sh"
                     className={underlineLinkStyle}>
@@ -478,7 +480,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
             <ul className="list-disc list-inside pt-2 text-sm">
               <li>Your subscription will be canceled immediately</li>
               <li>All app retention will be reset to {FREE_RETENTION_DAYS} days</li>
-              <li>Units will be limited to {FREE_UNITS.toLocaleString()} per month</li>
+              <li>Data will be limited to {FREE_GB} GB per month</li>
             </ul>
           </div>
         }

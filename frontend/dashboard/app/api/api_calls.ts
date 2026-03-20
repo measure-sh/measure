@@ -1079,6 +1079,7 @@ export const emptyUsage = [
         sessions: 0,
         events: 0,
         spans: 0,
+        bytes_in: 0,
       },
     ],
   },

@@ -82,7 +82,8 @@ export default function WhyMeasure() {
             <div className='flex flex-col flex-1'>
               <h2 className="text-3xl font-display mb-4">Simple Pricing</h2>
               <p className="text-justify text-lg">
-                Measure Cloud offers clear and transparent <Link href="/pricing" className={underlineLinkStyle}>pricing</Link> based on events sent and data retention. There are no bundles, hidden charges, seats and tiers (although we do offer discounts for high volume apps).
+                Measure Cloud offers clear and transparent <Link href="/pricing" className={underlineLinkStyle}>pricing</Link> based on data and retention. There are no bundles, hidden charges, seats or tiers (although we do offer discounts for high volume apps).
+                You can send any combination of errors, metrics, spans etc without worrying about exceeding artificial limits.
                 <br /><br />
                 Further, with <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link>, you can optimize your data collection to only capture what you need and adjust it dynamically without rolling out app updates, reducing costs and data bloat.
                 You can even <Link href="/docs/hosting" className={underlineLinkStyle}>self-host</Link> Measure for free on your own infrastructure!

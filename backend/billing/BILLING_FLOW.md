@@ -34,7 +34,7 @@ flowchart TD
         FreeState --> HourlyFree[/"Hourly check · check.go"/]
         HourlyFree --> QueryUsage["Query ingestion_metrics
             (ClickHouse)
-            events + spans + metrics"]
+            bytes_in (GB)"]
         QueryUsage --> ThresholdCheck{Usage level?}
 
         ThresholdCheck -- "< 75%" --> AllowIngest[allow_ingest = true]
@@ -74,9 +74,9 @@ flowchart TD
         ProState["plan = pro"]
 
         ProState --> DailyMeter[/"Daily metering · 3 AM UTC · meter.go"/]
-        DailyMeter --> Snapshot["Snapshot total storage
-            ClickHouse (events + spans) -> billing_metrics_reporting"]
-        Snapshot --> ReportStripe["Report to Stripe Billing Meter
+        DailyMeter --> Snapshot["Snapshot total bytes ingested
+            ClickHouse (bytes_in) -> billing_metrics_reporting"]
+        Snapshot --> ReportStripe["Report GB-days to Stripe Billing Meter
             (idempotent per customer:date)"]
 
         ProState --> HourlyPro[/"Hourly check · check.go"/]
@@ -141,7 +141,7 @@ flowchart TD
 
     %% ── Annotations ───────────────────────────────────────────────
     NoteConstants["ℹ Plan limits are code constants:
-        FreePlanMaxUnits = 1M, FreePlanMaxRetentionDays = 30d, MaxRetentionDays = 365d"]
+        FreePlanMaxBytes = 5 GB, FreePlanMaxRetentionDays = 30d, MaxRetentionDays = 365d"]
     FreeState -.- NoteConstants
     ProState -.- NoteConstants
 

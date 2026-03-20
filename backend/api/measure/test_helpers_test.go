@@ -84,16 +84,14 @@ func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, 
 	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
 }
 
-func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32) {
-	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics)
+func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32, bytesIn uint64) {
+	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics, bytesIn)
 }
 
-func seedCurrentMonthIngestionUsage(ctx context.Context, t *testing.T, teamID string, totalUnits uint64) {
+func seedCurrentMonthIngestionUsage(ctx context.Context, t *testing.T, teamID string, totalBytes uint64) {
 	t.Helper()
 	appID := uuid.New().String()
-	events := uint32(totalUnits / 2)
-	spans := uint32(totalUnits - uint64(events))
-	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), events, spans, 0)
+	seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 0, 0, 0, totalBytes)
 }
 
 func seedAPIKey(
@@ -185,12 +183,12 @@ func newTestGinContext(method, path string, body io.Reader) (*gin.Context, *http
 
 func setStripeConfig(t *testing.T, priceID, webhookSecret string) {
 	t.Helper()
-	origPrice := server.Server.Config.StripeProUnitDaysPriceID
+	origPrice := server.Server.Config.StripeProPriceID
 	origSecret := server.Server.Config.StripeWebhookSecret
-	server.Server.Config.StripeProUnitDaysPriceID = priceID
+	server.Server.Config.StripeProPriceID = priceID
 	server.Server.Config.StripeWebhookSecret = webhookSecret
 	t.Cleanup(func() {
-		server.Server.Config.StripeProUnitDaysPriceID = origPrice
+		server.Server.Config.StripeProPriceID = origPrice
 		server.Server.Config.StripeWebhookSecret = origSecret
 	})
 }

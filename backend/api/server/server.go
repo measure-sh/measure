@@ -94,8 +94,8 @@ type ServerConfig struct {
 	SlackClientSecret          string
 	StripeAPIKey               string
 	StripeWebhookSecret        string
-	StripeProUnitDaysPriceID   string
-	StripeUnitDaysMeterName    string
+	StripeProPriceID   string
+	StripeMeterName    string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
@@ -320,14 +320,14 @@ func NewConfig() *ServerConfig {
 		log.Println("STRIPE_WEBHOOK_SECRET env var is not set, stripe integration will not work")
 	}
 
-	stripeProUnitDaysPriceID := os.Getenv("STRIPE_PRO_UNIT_DAYS_PRICE_ID")
-	if stripeProUnitDaysPriceID == "" {
-		log.Println("STRIPE_PRO_UNIT_DAYS_PRICE_ID env var is not set, stripe integration will not work")
+	stripeProPriceID := os.Getenv("STRIPE_PRO_PRICE_ID")
+	if stripeProPriceID == "" {
+		log.Println("STRIPE_PRO_PRICE_ID env var is not set, stripe integration will not work")
 	}
 
-	stripeUnitDaysMeterName := os.Getenv("STRIPE_UNIT_DAYS_METER_NAME")
-	if stripeUnitDaysMeterName == "" {
-		log.Println("STRIPE_UNIT_DAYS_METER_NAME env var is not set, billing cycle usage will not be available")
+	stripeMeterName := os.Getenv("STRIPE_METER_NAME")
+	if stripeMeterName == "" {
+		log.Println("STRIPE_METER_NAME env var is not set, billing cycle usage will not be available")
 	}
 
 	stripe.Key = stripeAPIKey
@@ -382,8 +382,8 @@ func NewConfig() *ServerConfig {
 		SlackClientSecret:          slackClientSecret,
 		StripeAPIKey:               stripeAPIKey,
 		StripeWebhookSecret:        stripeWebhookSecret,
-		StripeProUnitDaysPriceID:   stripeProUnitDaysPriceID,
-		StripeUnitDaysMeterName:    stripeUnitDaysMeterName,
+		StripeProPriceID:   stripeProPriceID,
+		StripeMeterName:    stripeMeterName,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,

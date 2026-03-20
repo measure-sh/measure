@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../componen
 import LandingFooter from '../components/landing_footer'
 import LandingHeader from '../components/landing_header'
 import { Slider } from '../components/slider'
-import { FREE_UNITS, INCLUDED_PRO_UNITS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_1K_UNITS_MONTH, PRICE_PER_UNIT_DAY, UNIT_EXPLANATION } from '../utils/pricing_constants'
+import { ERROR_EVENT_SIZE_KB, DEFAULT_EVENT_SIZE_KB, FREE_GB, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_DAY, PRICE_PER_GB_MONTH } from '../utils/pricing_constants'
 import { cn } from '../utils/shadcn_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 
@@ -44,30 +44,24 @@ export default function Pricing() {
   const perfSpansPerDay = perfSpansCollectedSessionsPerDay * perfSpanCount
   const journeyEventsPerDay = dailyUsers * averageAppOpens * AVG_SESSION_TIME * JOURNEY_EVENTS_PER_MINUTE * (journeySamplePercent / 100)
 
-  const totalUnitsPerDay = sessionStartPerDay + launchPerDay + crashEventsPerDay + sessionTimelineEventsPerDay + perfSpansPerDay + journeyEventsPerDay
-  const totalUnitsPerMonth = totalUnitsPerDay * 30
+  // Convert event counts to bytes using assumed sizes
+  const crashBytesPerMonth = crashEventsPerDay * 30 * ERROR_EVENT_SIZE_KB * 1024
+  const otherBytesPerMonth = (sessionStartPerDay + launchPerDay + sessionTimelineEventsPerDay + perfSpansPerDay + journeyEventsPerDay) * 30 * DEFAULT_EVENT_SIZE_KB * 1024
+  const totalBytesPerMonth = crashBytesPerMonth + otherBytesPerMonth
+  const totalGBPerMonth = totalBytesPerMonth / (1024 * 1024 * 1024)
 
-  // Calculate Billable Unit Days
-  // 1 Unit retained for 30 days = 30 Unit-Days.
   const retentionDays = retentionMonths * 30
-  const totalUnitsRounded = Math.round(totalUnitsPerMonth)
 
-  // Base units (first 30 days of retention)
-  // If Total > 1M, ALL units are billable for the first 30 days.
-  const baseExcessUnits = totalUnitsRounded > FREE_UNITS ? totalUnitsRounded : 0
-  const billableUnitDaysBase = baseExcessUnits * 30
-
-  // Extended retention (days beyond 30)
-  // All units (including the first 1M) are charged for extra days.
+  // GB-days billing
+  const baseExcessGB = totalGBPerMonth > FREE_GB ? totalGBPerMonth : 0
+  const billableGBDaysBase = baseExcessGB * 30
   const extraRetentionDays = Math.max(0, retentionDays - 30)
-  const billableUnitDaysRetention = totalUnitsRounded * extraRetentionDays
-
-  const baseCost = billableUnitDaysBase * PRICE_PER_UNIT_DAY
-  const retentionCost = billableUnitDaysRetention * PRICE_PER_UNIT_DAY
+  const billableGBDaysRetention = totalGBPerMonth * extraRetentionDays
+  const baseCost = billableGBDaysBase * PRICE_PER_GB_DAY
+  const retentionCost = billableGBDaysRetention * PRICE_PER_GB_DAY
   const rawMonthlyCost = baseCost + retentionCost
 
-  // Free tier applies only when total events are within free limits AND retention is default (1 month)
-  const isFreeTier = totalUnitsRounded <= FREE_UNITS && retentionMonths === 1
+  const isFreeTier = totalGBPerMonth <= FREE_GB && retentionMonths === 1
 
   const compactFormatter = new Intl.NumberFormat(undefined, {
     notation: 'compact',
@@ -115,7 +109,7 @@ export default function Pricing() {
               <p className='text-xl font-display'>FREE</p>
               <p className='text-4xl font-display py-2'>$0 per month</p>
               <ul className='list-disc space-y-2 mt-6'>
-                <li className='font-body'>Up to {formatNumber(FREE_UNITS)} units per month</li>
+                <li className='font-body'>Up to {FREE_GB} GB per month</li>
                 <li className='font-body'>30 day retention</li>
                 <li className='font-body'>No credit card needed</li>
               </ul>
@@ -126,15 +120,15 @@ export default function Pricing() {
               <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
               <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>$50 per month</p>
               <ul className='list-disc space-y-2 mt-6'>
-                <li className='font-body text-green-900 dark:text-foreground'>{formatNumber(INCLUDED_PRO_UNITS)} units per month included</li>
+                <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_GB} GB per month included</li>
                 <li className='font-body text-green-900 dark:text-foreground'>Retention upto 1 year</li>
-                <li className='font-body text-green-900 dark:text-foreground'>Extra units & retention charged at:<br /> ${PRICE_PER_1K_UNITS_MONTH.toFixed(3)} per 1,000 units/month</li>
+                <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
               </ul>
             </div>
           </Card>
         </div>
 
-        <p className="font-body text-sm py-16">{UNIT_EXPLANATION}</p>
+        <div className="py-12" />
 
         <div className='flex flex-wrap justify-between px-4 md:px-0 md:w-4xl gap-4 font-display'>
           <div className='flex flex-row gap-4 items-center'><p>Control costs with <Link href="/product/adaptive-capture" className={underlineLinkStyle}>Adaptive Capture</Link></p>
@@ -339,30 +333,14 @@ export default function Pricing() {
                   <span className="font-display">{formatNumber(Math.round(journeyEventsPerDay * 30))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-secondary-foreground font-semibold">Total units per month:</span>
-                  <span className="font-display font-semibold">{formatNumber(Math.round(totalUnitsPerMonth))}</span>
+                  <span className="text-secondary-foreground font-semibold">Total data per month:</span>
+                  <span className="font-display font-semibold">{totalGBPerMonth.toFixed(2)} GB</span>
                 </div>
-                {totalUnitsRounded <= FREE_UNITS && (
+                {totalGBPerMonth <= FREE_GB && (
                   <div className="flex justify-between">
-                    <span className="text-secondary-foreground font-semibold">Free units per month:</span>
-                    <span className="font-display text-green-600 dark:text-green-500">{formatNumber(FREE_UNITS)}</span>
+                    <span className="text-secondary-foreground font-semibold">Free data per month:</span>
+                    <span className="font-display text-green-600 dark:text-green-500">{FREE_GB} GB</span>
                   </div>
-                )}
-                {!isFreeTier && (
-                  <>
-                    {baseCost > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-secondary-foreground font-semibold">Units price:</span>
-                        <span className="font-display font-semibold">${baseCost.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {retentionCost > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-secondary-foreground font-semibold">Retention price:</span>
-                        <span className="font-display font-semibold">${retentionCost.toFixed(2)}</span>
-                      </div>
-                    )}
-                  </>
                 )}
               </div>
 
@@ -370,7 +348,7 @@ export default function Pricing() {
                 <div className="bg-green-50 dark:bg-background border-2 border-green-300 dark:border-border rounded-lg p-6 mb-8">
                   <div className="flex flex-col items-start gap-1">
                     <h4 className="font-display text-lg text-green-900 dark:text-green-500">Free Tier</h4>
-                    <p className="font-body text-green-800 dark:text-green-500">Your usage is within the free limits ({formatNumber(FREE_UNITS)} units/month). No charges apply.</p>
+                    <p className="font-body text-green-800 dark:text-green-500">Your usage is within the free limits ({FREE_GB} GB/month). No charges apply.</p>
                   </div>
                 </div>
               )}
@@ -394,7 +372,7 @@ export default function Pricing() {
               </Link>
 
               <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
-                Have large unit volumes?{" "}
+                Have large data volumes?{" "}
                 <Link
                   href="mailto:hello@measure.sh"
                   className={underlineLinkStyle}>

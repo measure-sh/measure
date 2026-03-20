@@ -157,7 +157,7 @@ func waitForMeterAggregation(t *testing.T, meterID, customerID string, start, en
 		if err := iter.Err(); err != nil {
 			t.Fatalf("list meter event summaries: %v", err)
 		}
-		if total >= expectedTotal {
+		if total >= expectedTotal-1 { // tolerance for floating point rounding
 			t.Logf("Meter aggregation complete: %.0f (expected %.0f)", total, expectedTotal)
 			return
 		}
@@ -168,19 +168,26 @@ func waitForMeterAggregation(t *testing.T, meterID, customerID string, start, en
 }
 
 // ---------------------------------------------------------------------------
-// Helper: compute units per day to exceed free tier
+// Helper: compute bytes per day to exceed free tier (in GB-days)
 // ---------------------------------------------------------------------------
 
-func computeUnitsPerDay(freeTierLimit int64, daysInMonth int) (eventsPerDay, spansPerDay uint64) {
+func computeBytesPerDay(freeTierLimit int64, daysInMonth int) uint64 {
 	targetOverage := freeTierLimit / 1000
 	if targetOverage < 1000 {
 		targetOverage = 1000
 	}
-	totalNeeded := freeTierLimit + targetOverage
-	unitsPerDay := (totalNeeded + int64(daysInMonth) - 1) / int64(daysInMonth) // ceil
-	eventsPerDay = uint64(unitsPerDay) / 2
-	spansPerDay = uint64(unitsPerDay) - eventsPerDay
-	return
+	totalGBDaysNeeded := freeTierLimit + targetOverage
+	// Each day we report bytesPerDay / 1GB as GB-days, so:
+	// bytesPerDay = (totalGBDaysNeeded / daysInMonth) * 1GB
+	gbPerDay := float64(totalGBDaysNeeded) / float64(daysInMonth)
+	bytesPerDay := uint64(math.Ceil(gbPerDay * 1024 * 1024 * 1024))
+	return bytesPerDay
+}
+
+// gbDaysTotal returns the expected total GB-days for the given bytes per day
+// over a number of days, matching what ReportUnreportedToStripe sends.
+func gbDaysTotal(bytesPerDay uint64, days int) float64 {
+	return float64(bytesPerDay) / (1024 * 1024 * 1024) * float64(days)
 }
 
 // ---------------------------------------------------------------------------
@@ -328,10 +335,10 @@ func requireStripeBillingCycleEnv(t *testing.T) (string, string, string) {
 	t.Helper()
 
 	stripeKey := os.Getenv("TEST_STRIPE_API_KEY")
-	meterName := os.Getenv("TEST_STRIPE_UNIT_DAYS_METER_NAME")
-	priceID := os.Getenv("TEST_STRIPE_PRO_UNIT_DAYS_PRICE_ID")
+	meterName := os.Getenv("TEST_STRIPE_METER_NAME")
+	priceID := os.Getenv("TEST_STRIPE_PRO_PRICE_ID")
 	if stripeKey == "" || meterName == "" || priceID == "" {
-		t.Fatalf("TEST_STRIPE_API_KEY, TEST_STRIPE_UNIT_DAYS_METER_NAME, and TEST_STRIPE_PRO_UNIT_DAYS_PRICE_ID must be set")
+		t.Fatalf("TEST_STRIPE_API_KEY, TEST_STRIPE_METER_NAME, and TEST_STRIPE_PRO_PRICE_ID must be set")
 	}
 
 	return stripeKey, meterName, priceID
@@ -432,11 +439,18 @@ func newProStripeScenarioFixture(t *testing.T, ctx context.Context, scenarioName
 
 func assertCycleInvoicePaidWithAmount(t *testing.T, subID string, expectedAmount int64) {
 	t.Helper()
+	// Allow small tolerance for floating-point aggregation differences
+	// between our local calculation and Stripe's internal meter aggregation.
+	const tolerance int64 = 500 // 5 USD in cents
 	invoices := listSubscriptionInvoices(t, subID)
 	for _, inv := range invoices {
 		if inv.Status == stripe.InvoiceStatusPaid && inv.BillingReason == stripe.InvoiceBillingReasonSubscriptionCycle {
-			if inv.AmountDue != expectedAmount {
-				t.Fatalf("invoice amount mismatch: expected %d, got %d", expectedAmount, inv.AmountDue)
+			diff := inv.AmountDue - expectedAmount
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > tolerance {
+				t.Fatalf("invoice amount mismatch: expected %d (±%d), got %d", expectedAmount, tolerance, inv.AmountDue)
 			}
 			return
 		}
@@ -476,9 +490,8 @@ func TestBillingCycle_ProSuccess_OneMonthProcessed(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-success")
 	janDays := 31
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, janDays)
-	unitsPerDay := int64(eventsPerDay + spansPerDay)
-	seededDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.January, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, janDays)
+	seededDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.January, 0, 0, bytesPerDay)
 	if seededDays != janDays {
 		t.Fatalf("seeded days = %d, want %d", seededDays, janDays)
 	}
@@ -491,15 +504,15 @@ func TestBillingCycle_ProSuccess_OneMonthProcessed(t *testing.T) {
 	if got := countReportedRows(ctx, t, f.teamID); got != janDays {
 		t.Fatalf("reported rows = %d, want %d", got, janDays)
 	}
-	janTotal := unitsPerDay * int64(janDays)
+	janTotalGBDays := gbDaysTotal(bytesPerDay, janDays)
 
 	waitForMeterAggregation(t, f.meterID, f.customerID,
 		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
-		float64(janTotal), 2*time.Minute)
+		janTotalGBDays, 2*time.Minute)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 5, 0, 0, 0, 0, time.UTC))
-	assertCycleInvoicePaidWithAmount(t, f.subscription, calculateTieredAmount(janTotal, f.tiers, f.tiersMode))
+	assertCycleInvoicePaidWithAmount(t, f.subscription, calculateTieredAmount(int64(math.Round(janTotalGBDays)), f.tiers, f.tiersMode))
 
 	bc := getTeamBilling(ctx, t, uuid.MustParse(f.teamID))
 	if bc.Plan != "pro" {
@@ -514,8 +527,8 @@ func TestBillingCycle_ProSuccess_OneMonthProcessed(t *testing.T) {
 func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-failure-exceeded")
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
@@ -524,7 +537,7 @@ func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed(t *testing.
 	}
 
 	finalStatus := advanceToTerminalStatus(t, f.clockID, f.subscription)
-	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxUnits)+1000)
+	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxBytes)+1000)
 
 	subEventRaw, err := json.Marshal(map[string]any{
 		"id":     f.subscription,
@@ -554,8 +567,8 @@ func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed(t *testing.
 func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-failure-within")
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
@@ -564,7 +577,7 @@ func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed(t *testing.T
 	}
 
 	finalStatus := advanceToTerminalStatus(t, f.clockID, f.subscription)
-	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxUnits)-1000)
+	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxBytes)-1000)
 
 	subEventRaw, err := json.Marshal(map[string]any{
 		"id":     f.subscription,
@@ -591,8 +604,8 @@ func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed(t *testing.T
 func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed_HourlyFallback(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-failure-exceeded-hourly")
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
@@ -601,7 +614,7 @@ func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed_HourlyFallb
 	}
 
 	_ = advanceToTerminalStatus(t, f.clockID, f.subscription)
-	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxUnits)+1000)
+	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxBytes)+1000)
 
 	// Webhook path intentionally skipped: hourly check should catch terminal status.
 	RunHourlyBillingCheck(ctx, f.deps)
@@ -622,8 +635,8 @@ func TestBillingCycle_ProFailure_FreeLimitExceeded_OneMonthProcessed_HourlyFallb
 func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed_HourlyFallback(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-failure-within-hourly")
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
@@ -632,7 +645,7 @@ func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed_HourlyFallba
 	}
 
 	_ = advanceToTerminalStatus(t, f.clockID, f.subscription)
-	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxUnits)-1000)
+	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxBytes)-1000)
 
 	// Webhook path intentionally skipped: hourly check should catch terminal status.
 	RunHourlyBillingCheck(ctx, f.deps)
@@ -650,8 +663,8 @@ func TestBillingCycle_ProFailure_WithinFreeLimits_OneMonthProcessed_HourlyFallba
 func TestBillingCycle_ProFailure_DunningRetryTimeline(t *testing.T) {
 	ctx := context.Background()
 	f := newProStripeScenarioFixture(t, ctx, "pro-failure-retries")
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
@@ -698,8 +711,8 @@ func TestBillingCycle_ProFailure_DowngradeSideEffects(t *testing.T) {
 	appID := uuid.New()
 	th.SeedApp(ctx, t, appID.String(), f.teamID, "side-effects-app", 180)
 
-	eventsPerDay, spansPerDay := computeUnitsPerDay(f.freeTierLimit, 28)
-	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, eventsPerDay, spansPerDay)
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 28)
+	seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
 	detachAllPaymentMethods(t, f.customerID)
 	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
 	if err := ReportUnreportedToStripe(ctx, f.deps); err != nil {
@@ -707,7 +720,7 @@ func TestBillingCycle_ProFailure_DowngradeSideEffects(t *testing.T) {
 	}
 
 	_ = advanceToTerminalStatus(t, f.clockID, f.subscription)
-	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxUnits)+1000)
+	seedCurrentMonthIngestionUsage(ctx, t, f.teamID, uint64(FreePlanMaxBytes)+1000)
 	RunHourlyBillingCheck(ctx, f.deps)
 
 	bc := getTeamBilling(ctx, t, uuid.MustParse(f.teamID))
