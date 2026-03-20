@@ -1895,10 +1895,8 @@ func PutEvents(c *gin.Context) {
 	// When bus is preferred, publish to bus
 	// and return
 	useBus := os.Getenv("USE_BUS")
-	fmt.Println("value of USE_BUS", useBus)
 	if useBus != "" {
 		if server.Server.Config.IsCloud() {
-			fmt.Println("cloud env detected")
 			batch := IngestBatch{
 				BatchID:  eventReq.id.String(),
 				AppID:    eventReq.appId.String(),
@@ -1907,6 +1905,26 @@ func PutEvents(c *gin.Context) {
 				ClientIP: c.ClientIP(),
 				Events:   eventReq.events,
 				Spans:    eventReq.spans,
+			}
+
+			if len(batch.Events) > 0 {
+				eventsBytes, err := json.Marshal(batch.Events)
+				if err != nil {
+					fmt.Println("failed to marshal batch.Events:", err)
+					return
+				}
+
+				fmt.Println("eventsBytes:", string(eventsBytes))
+			}
+
+			if len(batch.Spans) > 0 {
+				spansBytes, err := json.Marshal(batch.Spans)
+				if err != nil {
+					fmt.Println("failed to marshal batch.Spans:", err)
+					return
+				}
+
+				fmt.Println("spansBytes:", string(spansBytes))
 			}
 
 			payload, err := json.Marshal(batch)
@@ -1925,12 +1943,8 @@ func PutEvents(c *gin.Context) {
 			fmt.Println("non-cloud env detected")
 		}
 
-		fmt.Println("done, returning")
-
 		return
 	}
-
-	fmt.Println("proceed with non bus ingest")
 
 	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
 
