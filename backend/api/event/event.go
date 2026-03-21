@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -1004,13 +1003,6 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	if e.IsHttp() {
 		if e.Http.URL == "" {
 			return fmt.Errorf(`%q must not be empty`, `http.url`)
-		}
-		parsedURL, err := url.Parse(e.Http.URL)
-		if err != nil {
-			return fmt.Errorf(`%q is not a valid URL`, `http.url`)
-		}
-		if parsedURL.Host == "" {
-			return fmt.Errorf(`%q must contain a valid host`, `http.url`)
 		}
 		if e.Http.Method == "" {
 			return fmt.Errorf(`%q must not be empty`, `http.method`)
