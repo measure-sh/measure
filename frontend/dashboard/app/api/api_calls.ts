@@ -1396,13 +1396,6 @@ async function applyGenericFiltersToUrl(
     })
   }
 
-  // Append http methods if needed
-  if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
-    filters.httpMethods.selected.forEach((v) => {
-      searchParams.append("http_methods", v)
-    })
-  }
-
   // Append free text if present
   if (filters.freeText !== "") {
     searchParams.append("free_text", filters.freeText)
@@ -1486,6 +1479,16 @@ function appendBugReportStatusesToUrl(url: string, filters: Filters): string {
       } else if (v === BugReportStatus.Closed) {
         u.searchParams.append("bug_report_statuses", "1")
       }
+    })
+  }
+  return u.toString()
+}
+
+function appendHttpMethodsToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin)
+  if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
+    filters.httpMethods.selected.forEach((v) => {
+      u.searchParams.append("http_methods", v)
     })
   }
   return u.toString()
@@ -2940,6 +2943,7 @@ export const fetchNetworkEndpointLatencyPlotFromServer = async (filters: Filters
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
 
   const u = new URL(apiUrl, window.location.origin)
   u.searchParams.append("domain", domain)
@@ -2970,6 +2974,7 @@ export const fetchNetworkEndpointStatusCodesPlotFromServer = async (filters: Fil
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
 
   const u = new URL(apiUrl, window.location.origin)
   u.searchParams.append("domain", domain)
@@ -2999,6 +3004,7 @@ export const fetchNetworkEndpointTimelinePlotFromServer = async (filters: Filter
   var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointTimeline?`
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
 
   const u = new URL(apiUrl, window.location.origin)
   u.searchParams.append("domain", domain)
