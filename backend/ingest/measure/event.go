@@ -83,6 +83,7 @@ type IngestBatch struct {
 	TeamID   string             `json:"team_id"`
 	OsName   string             `json:"os_name"`
 	ClientIP string             `json:"client_ip"`
+	Size     uint64             `json:"size"`
 	Events   []event.EventField `json:"events"`
 	Spans    []span.SpanField   `json:"spans"`
 }
@@ -115,7 +116,7 @@ type eventreq struct {
 	// anrIds is a list of all ANR event IDs
 	anrIds []int
 	// size keeps track of the ingest payload size
-	size int64
+	size uint64
 	// events is the list of events in the ingest
 	// batch
 	events []event.EventField
@@ -231,7 +232,7 @@ func (e *eventreq) uploadAttachments() error {
 
 // bumpSize increases the payload size of
 // events in bytes.
-func (e *eventreq) bumpSize(n int64) {
+func (e *eventreq) bumpSize(n uint64) {
 	e.size = e.size + n
 }
 
@@ -239,7 +240,7 @@ func (e *eventreq) bumpSize(n int64) {
 // for an attachment based on its filename extension. Used for
 // JSON ingest requests where attachments are uploaded
 // out-of-band via signed URLs.
-func estimateAttachmentSize(filename string) int64 {
+func estimateAttachmentSize(filename string) uint64 {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
 	case ".webp", ".jpeg", ".jpg", ".png", ".svg":
@@ -345,7 +346,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 			dupEvent[ev.ID] = struct{}{}
 		}
 
-		e.bumpSize(int64(len(bytes)))
+		e.bumpSize(uint64(len(bytes)))
 		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
@@ -416,7 +417,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 			dupSpan[sp.SpanID] = struct{}{}
 		}
 
-		e.bumpSize(int64(len(bytes)))
+		e.bumpSize(uint64(len(bytes)))
 		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
@@ -449,7 +450,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		if header == nil {
 			continue
 		}
-		e.bumpSize(header.Size)
+		e.bumpSize(uint64(header.Size))
 
 		// inject the form field header to
 		// the previously constructed partial
@@ -521,7 +522,7 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			return err
 		}
 
-		e.bumpSize(int64(len(bytes)))
+		e.bumpSize(uint64(len(bytes)))
 		ev.AppID = e.appId
 
 		if ev.NeedsSymbolication() {
@@ -580,7 +581,7 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			return err
 		}
 
-		e.bumpSize(int64(len(bytes)))
+		e.bumpSize(uint64(len(bytes)))
 		sp.AppID = e.appId
 
 		if sp.NeedsSymbolication() {
@@ -1018,7 +1019,7 @@ func (e eventreq) validate() error {
 		}
 	}
 
-	if e.size >= int64(maxBatchSize) {
+	if e.size >= uint64(maxBatchSize) {
 		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
 
@@ -1923,6 +1924,7 @@ func PutEvents(c *gin.Context) {
 				TeamID:   eventReq.teamId.String(),
 				OsName:   eventReq.osName,
 				ClientIP: c.ClientIP(),
+				Size:     eventReq.size,
 				Events:   eventReq.events,
 				Spans:    eventReq.spans,
 			}
@@ -2129,7 +2131,7 @@ func PutEvents(c *gin.Context) {
 				Select("sumState(CAST(? AS UInt32)) AS spans", spans).
 				Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
 				Select("sumState(CAST(? AS UInt32)) AS metrics", 0).
-				Select("sumState(CAST(? AS UInt64)) AS bytes_in", uint64(eventReq.size))
+				Select("sumState(CAST(? AS UInt64)) AS bytes_in", eventReq.size)
 			selectSQL := insertMetricsIngestionSelectStmt.String()
 			args := insertMetricsIngestionSelectStmt.Args()
 			defer insertMetricsIngestionSelectStmt.Close()

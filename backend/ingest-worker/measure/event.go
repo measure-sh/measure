@@ -40,6 +40,7 @@ type IngestBatch struct {
 	TeamID   string             `json:"team_id"`
 	OsName   string             `json:"os_name"`
 	ClientIP string             `json:"client_ip"`
+	Size     uint64             `json:"size"`
 	Events   []event.EventField `json:"events"`
 	Spans    []span.SpanField   `json:"spans"`
 }
@@ -75,6 +76,9 @@ type eventreq struct {
 	// spans is the list of spans in the ingest
 	// batch
 	spans []span.SpanField
+	// size is the byte size of the original
+	// ingest request payload
+	size uint64
 }
 
 // checkSeen checks & remembers if this request batch was
@@ -153,8 +157,9 @@ func (e *eventreq) countMetrics() (sessions, events, spans, attachments uint32) 
 		}
 	}
 
-	// attachments count is not tracked in the worker — attachments are
-	// uploaded by the ingest service before publishing the batch.
+	for _, ev := range e.events {
+		attachments += uint32(len(ev.Attachments))
+	}
 
 	spans = uint32(len(e.spans))
 
@@ -1082,6 +1087,7 @@ func processIngestBatch(ctx context.Context, batch IngestBatch) {
 		appId:             appID,
 		teamId:            teamID,
 		osName:            batch.OsName,
+		size:              batch.Size,
 		events:            batch.Events,
 		spans:             batch.Spans,
 		symbolicateEvents: make(map[uuid.UUID]int),
@@ -1255,7 +1261,8 @@ func processIngestBatch(ctx context.Context, batch IngestBatch) {
 			Select("sumState(CAST(? AS UInt32)) AS events", events).
 			Select("sumState(CAST(? AS UInt32)) AS spans", spans).
 			Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
-			Select("sumState(CAST(? AS UInt32)) AS metrics", 0)
+			Select("sumState(CAST(? AS UInt32)) AS metrics", 0).
+			Select("sumState(CAST(? AS UInt64)) AS bytes_in", eventReq.size)
 		selectSQL := insertMetricsIngestionSelectStmt.String()
 		args := insertMetricsIngestionSelectStmt.Args()
 		defer insertMetricsIngestionSelectStmt.Close()
