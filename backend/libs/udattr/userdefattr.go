@@ -601,9 +601,8 @@ func (u *UDAttribute) HasItems() bool {
 func (u *UDAttribute) Parameterize() (attr map[string]string) {
 	attr = map[string]string{}
 
-	val := ""
-
 	for k, v := range u.rawAttrs {
+		var val string
 		switch v := v.(type) {
 		case bool:
 			val = strconv.FormatBool(v)
