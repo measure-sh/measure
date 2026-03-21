@@ -185,22 +185,20 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
+	var chPool driver.Conn
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	var chPool driver.Conn
-	if chOpts != nil {
-		chOpts.Settings = clickhouse.Settings{
-			// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-			"compatibility": "25.10",
-		}
+	chOpts.Settings = clickhouse.Settings{
+		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
+		"compatibility": "25.12",
+	}
 
-		chPool, err = clickhouse.Open(chOpts)
-		if err != nil {
-			log.Printf("Unable to create CH connection pool: %v\n", err)
-		}
+	chPool, err = clickhouse.Open(chOpts)
+	if err != nil {
+		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
@@ -225,5 +223,13 @@ func Init(config *ServerConfig) {
 		ChPool: chPool,
 		Config: config,
 		Mail:   mailClient,
+	}
+}
+
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn) {
+	Server = &server{
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
 	}
 }

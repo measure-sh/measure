@@ -37,7 +37,7 @@ func TestFormatUsageLimitEmail(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%d%%", tt.threshold), func(t *testing.T) {
-			subject, body := email.UsageLimitEmail("TestTeam", "test-team-id", deps.SiteOrigin, tt.threshold, 750000, 1000000)
+			subject, body := email.UsageLimitEmail("TestTeam", "test-team-id", deps.SiteOrigin, tt.threshold, 3_758_096_384, 5_368_709_120)
 
 			if !strings.Contains(subject, tt.subPart) {
 				t.Errorf("subject %q should contain %q", subject, tt.subPart)
@@ -84,7 +84,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 	tests := []struct {
 		name           string
 		usage          uint64
-		maxUnits       uint64
+		maxBytes       uint64
 		notifiedThresh int
 		notifiedCycle  *string
 		currentCycle   string
@@ -95,7 +95,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "below_75",
 			usage:          700,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 0,
 			notifiedCycle:  nil,
 			currentCycle:   "2026-02",
@@ -106,7 +106,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "at_75",
 			usage:          750,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 0,
 			notifiedCycle:  nil,
 			currentCycle:   "2026-02",
@@ -117,7 +117,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "at_90",
 			usage:          900,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 75,
 			notifiedCycle:  strPtr("2026-02"),
 			currentCycle:   "2026-02",
@@ -128,7 +128,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "at_100",
 			usage:          1000,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 90,
 			notifiedCycle:  strPtr("2026-02"),
 			currentCycle:   "2026-02",
@@ -139,7 +139,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "already_notified",
 			usage:          800,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 75,
 			notifiedCycle:  strPtr("2026-02"),
 			currentCycle:   "2026-02",
@@ -150,7 +150,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 		{
 			name:           "new_cycle_resets",
 			usage:          800,
-			maxUnits:       1000,
+			maxBytes:       1000,
 			notifiedThresh: 75,
 			notifiedCycle:  strPtr("2026-01"),
 			currentCycle:   "2026-02",
@@ -159,9 +159,9 @@ func TestNotifyUsageThresholds(t *testing.T) {
 			wantCycle:      strPtr("2026-02"),
 		},
 		{
-			name:           "zero_max_units",
+			name:           "zero_max_bytes",
 			usage:          500,
-			maxUnits:       0,
+			maxBytes:       0,
 			notifiedThresh: 0,
 			notifiedCycle:  nil,
 			currentCycle:   "2026-02",
@@ -202,7 +202,7 @@ func TestNotifyUsageThresholds(t *testing.T) {
 			}
 
 			deps := testDeps()
-			notifyUsageThresholds(ctx, deps, team, tt.usage, tt.maxUnits, tt.currentCycle)
+			notifyUsageThresholds(ctx, deps, team, tt.usage, tt.maxBytes, tt.currentCycle)
 
 			// Assert email count.
 			var emailCount int
@@ -542,7 +542,7 @@ func TestNotifyUpgrade(t *testing.T) {
 // ==========================================================================
 
 func TestFormatManualDowngradeEmail(t *testing.T) {
-	subject, body := email.ManualDowngradeEmail("TestTeam", "test-team-id", "https://test.measure.sh", FreePlanMaxUnits, FreePlanMaxRetentionDays)
+	subject, body := email.ManualDowngradeEmail("TestTeam", "test-team-id", "https://test.measure.sh", FreePlanMaxBytes, FreePlanMaxRetentionDays)
 
 	if subject != "TestTeam - Downgraded to Free Plan" {
 		t.Errorf("subject = %q, want %q", subject, "TestTeam - Downgraded to Free Plan")
@@ -553,8 +553,8 @@ func TestFormatManualDowngradeEmail(t *testing.T) {
 	if !strings.Contains(body, "TestTeam") {
 		t.Error("body should contain team name")
 	}
-	if !strings.Contains(body, email.FormatNumber(FreePlanMaxUnits)) {
-		t.Errorf("body should contain formatted free plan max units (%s)", email.FormatNumber(FreePlanMaxUnits))
+	if !strings.Contains(body, email.FormatBytes(FreePlanMaxBytes)) {
+		t.Errorf("body should contain formatted free plan max bytes (%s)", email.FormatBytes(FreePlanMaxBytes))
 	}
 	if !strings.Contains(body, fmt.Sprintf("%d", FreePlanMaxRetentionDays)) {
 		t.Errorf("body should contain free plan max retention days (%d)", FreePlanMaxRetentionDays)
@@ -580,7 +580,7 @@ func TestNotifyManualDowngrade(t *testing.T) {
 
 	deps := testDeps()
 	notifyManualDowngrade(ctx, deps, teamID)
-	wantSubject, wantBody := email.ManualDowngradeEmail("TestTeam", teamID, deps.SiteOrigin, FreePlanMaxUnits, FreePlanMaxRetentionDays)
+	wantSubject, wantBody := email.ManualDowngradeEmail("TestTeam", teamID, deps.SiteOrigin, FreePlanMaxBytes, FreePlanMaxRetentionDays)
 
 	var count int
 	err := th.PgPool.QueryRow(ctx,

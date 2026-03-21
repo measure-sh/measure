@@ -257,6 +257,7 @@ internal class MeasureInitializerImpl(
         sessionManager = sessionManager,
         configProvider = configProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
+        timeProvider = timeProvider,
     ),
     override val exporter: Exporter = ExporterImpl(
         logger = logger,

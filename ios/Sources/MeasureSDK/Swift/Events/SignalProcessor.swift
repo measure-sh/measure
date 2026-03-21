@@ -20,7 +20,8 @@ protocol SignalProcessor {
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
         threadName: String?,
-        needsReporting: Bool?)
+        needsReporting: Bool?,
+        synchronous: Bool)
 
     func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -84,7 +85,8 @@ final class BaseSignalProcessor: SignalProcessor {
         attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
         threadName: String?,
-        needsReporting: Bool?) {
+        needsReporting: Bool?,
+        synchronous: Bool = false) {
         SignPost.trace(subcategory: "Event", label: "trackEvent") {
             track(data: data,
                   timestamp: timestamp,
@@ -95,7 +97,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
                   threadName: threadName,
-                  needsReporting: needsReporting)
+                  needsReporting: needsReporting,
+                  synchronous: synchronous)
         }
     }
 
@@ -119,7 +122,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes,
                   threadName: threadName,
-                  needsReporting: needsReporting)
+                  needsReporting: needsReporting,
+                  synchronous: false)
         }
     }
 
@@ -154,11 +158,12 @@ final class BaseSignalProcessor: SignalProcessor {
         sessionId: String?,
         userDefinedAttributes: String?,
         threadName: String?,
-        needsReporting: Bool?
+        needsReporting: Bool?,
+        synchronous: Bool
     ) {
         let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
-        measureDispatchQueue.submit { [weak self] in
+        let work = { [weak self] in
             guard let self else { return }
 
             let event = self.createEvent(
@@ -182,6 +187,12 @@ final class BaseSignalProcessor: SignalProcessor {
             }
 
             self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
+        }
+
+        if synchronous {
+            measureDispatchQueue.submitSync(work)
+        } else {
+            measureDispatchQueue.submit(work)
         }
     }
 

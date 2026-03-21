@@ -123,6 +123,7 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
                               attachments: nil,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: false)
+                              needsReporting: false,
+                              synchronous: false)
     }
 }

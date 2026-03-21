@@ -34,6 +34,16 @@ func (p *Pairs[T, U]) Add(first T, second U) {
 	p.second = append(p.second, second)
 }
 
+// Tuples converts Pairs into [][2]any for use with
+// hasAll on Array(Tuple(...)) columns.
+func (p Pairs[T, U]) Tuples() [][2]any {
+	result := make([][2]any, len(p.first))
+	for i := range p.first {
+		result[i] = [2]any{p.first[i], p.second[i]}
+	}
+	return result
+}
+
 // Parameterize represents Pairs in a slice of clickhouse.GroupSet
 // for direct use in SQL queries.
 func (p Pairs[T, U]) Parameterize() (tuples []clickhouse.GroupSet) {

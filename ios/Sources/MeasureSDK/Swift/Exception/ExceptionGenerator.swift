@@ -5,45 +5,69 @@
 //  Created by Adwin Ross on 10/06/25.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
+import KSCrash
+#endif
 import Foundation
-import CrashReporter
 
 protocol ExceptionGenerator {
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception?
+    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception?
 }
 
 final class BaseExceptionGenerator: ExceptionGenerator {
-    private let crashReporter: SystemCrashReporter
     private let logger: Logger
+    private let crashDataPersistence: CrashDataPersistence
 
-    init(crashReporter: SystemCrashReporter, logger: Logger) {
-        self.crashReporter = crashReporter
+    init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
+        self.crashDataPersistence = crashDataPersistence
     }
 
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
-        return generateCurrentStacktrace(error)
+        let nsException = NSException(name: NSExceptionName(rawValue: error.domain),
+                                      reason: error.localizedDescription,
+                                      userInfo: error.userInfo)
+        let msrError = MsrError(numcode: Int64(error.code),
+                                code: error.domain,
+                                meta: convertToCodableValue(error.userInfo))
+        return generateException(nsException, collectStackTraces: collectStackTraces, msrError: msrError)
     }
 
-    private func generateCurrentStacktrace(_ nsError: NSError) -> Exception? {
-        do {
-            let crashData = crashReporter.generateLiveReport()
-            let plCrashReport = try PLCrashReport(data: crashData)
-            let crashReport = BaseCrashReport(plCrashReport)
-            let crashDataFormatter = CrashDataFormatter(crashReport)
-            let error = MsrError(numcode: Int64(nsError.code),
-                                 code: nsError.domain,
-                                 meta: convertToCodableValue(nsError.userInfo))
-            return crashDataFormatter.getException(true, error: error)
-        } catch {
-            logger.internalLog(level: .error, message: "Error parsing crash report.", error: nil, data: nil)
+    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+        let userInfo = exception.userInfo?.reduce(into: [String: Any]()) { result, pair in
+            if let key = pair.key as? String {
+                result[key] = pair.value
+            }
+        }
+        let msrError = MsrError(numcode: nil,
+                                code: "\(exception.name.rawValue), \(exception.reason ?? "")",
+                                meta: userInfo.map { convertToCodableValue($0) })
+        return generateException(exception, collectStackTraces: collectStackTraces, msrError: msrError)
+    }
+
+    private func generateException(_ exception: NSException, collectStackTraces: Bool, msrError: MsrError?) -> Exception? {
+        KSCrash.shared.report(exception, logAllThreads: collectStackTraces)
+
+        guard let store = KSCrash.shared.reportStore,
+              let reportID = store.reportIDs.last,
+              let report = store.report(for: Int64(truncating: reportID)) else {
+            logger.internalLog(level: .error, message: "ExceptionGenerator: Failed to load live KSCrash report.", error: nil, data: nil)
             return nil
         }
+
+        let formatter = CrashDataFormatter(report.value)
+        let result = formatter.getException(true, error: msrError)
+        store.deleteReport(with: Int64(truncating: reportID))
+        crashDataPersistence.clearCrashData()
+
+        return result
     }
 
-    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] {  // swiftlint:disable:this cyclomatic_complexity
+    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] { // swiftlint:disable:this cyclomatic_complexity
         var result: [String: CodableValue] = [:]
-
         for (key, value) in dictionary {
             switch value {
             case let value as String:
@@ -69,7 +93,6 @@ final class BaseExceptionGenerator: ExceptionGenerator {
                 result[key] = .null
             }
         }
-
         return result
     }
 }

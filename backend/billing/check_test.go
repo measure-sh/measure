@@ -25,7 +25,7 @@ func TestRunHourlyBillingCheck_FreePlanBlocked(t *testing.T) {
 	now := time.Now().UTC()
 
 	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", true)
-	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0) // 1,000,001 total > 1M free limit
+	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0, uint64(FreePlanMaxBytes)+1000) // over 5 GB free limit
 
 	deps := testDeps()
 	RunHourlyBillingCheck(ctx, deps)
@@ -56,7 +56,7 @@ func TestRunHourlyBillingCheck_ProPlanBlocked(t *testing.T) {
 	appID := uuid.New().String()
 	now := time.Now().UTC()
 	seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
-	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0)
+	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0, uint64(FreePlanMaxBytes)+1000)
 
 	_, err := th.PgPool.Exec(ctx,
 		"UPDATE team_billing SET stripe_subscription_id = $1 WHERE team_id = $2",
@@ -239,7 +239,7 @@ func TestCheckFreePlan_UnderLimit(t *testing.T) {
 	now := time.Now().UTC()
 
 	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", true)
-	seedIngestionUsage(ctx, t, teamID, appID, now, 100, 50, 25) // 175 total, well under 1M
+	seedIngestionUsage(ctx, t, teamID, appID, now, 100, 50, 25, 1000) // 1000 bytes, well under 5 GB
 
 	team := TeamBillingInfo{
 		TeamID:   teamID,
@@ -266,7 +266,7 @@ func TestCheckFreePlan_OverLimit(t *testing.T) {
 	now := time.Now().UTC()
 
 	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", true)
-	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0) // 1,000,001 total > 1M free limit
+	seedIngestionUsage(ctx, t, teamID, appID, now, 500001, 500000, 0, uint64(FreePlanMaxBytes)+1000) // over 5 GB free limit
 
 	team := TeamBillingInfo{
 		TeamID:   teamID,
@@ -314,14 +314,14 @@ func TestGetIngestionUsage(t *testing.T) {
 	cycleStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	cycleEnd := cycleStart.AddDate(0, 1, 0)
 
-	seedIngestionUsage(ctx, t, teamID, appID, now, 100, 50, 25)
+	seedIngestionUsage(ctx, t, teamID, appID, now, 100, 50, 25, 175)
 
 	usage, err := getIngestionUsage(ctx, th.ChConn, teamID, cycleStart, cycleEnd)
 	if err != nil {
 		t.Fatalf("getIngestionUsage: %v", err)
 	}
 
-	// Total = events + spans + metrics = 175
+	// Total = bytes_in = 175
 	if usage != 175 {
 		t.Errorf("usage = %d, want 175", usage)
 	}
@@ -351,19 +351,19 @@ func TestGetIngestionUsageNoData(t *testing.T) {
 func TestCheckProPlan_NoSubscriptionID(t *testing.T) {
 	tests := []struct {
 		name       string
-		totalUnits uint64
+		totalBytes uint64
 		wantAllow  bool
 		wantReason *string
 	}{
 		{
 			name:       "over free limit",
-			totalUnits: uint64(FreePlanMaxUnits) + 1,
+			totalBytes: uint64(FreePlanMaxBytes) + 1,
 			wantAllow:  false,
 			wantReason: strPtr(ReasonPlanLimitExceeded),
 		},
 		{
 			name:       "within free limit",
-			totalUnits: 0,
+			totalBytes: 0,
 			wantAllow:  true,
 			wantReason: nil,
 		},
@@ -381,11 +381,9 @@ func TestCheckProPlan_NoSubscriptionID(t *testing.T) {
 			seedUser(ctx, t, userID, "pro@example.com")
 			seedTeamMembership(ctx, t, teamID, userID, "owner")
 
-			if tt.totalUnits > 0 {
+			if tt.totalBytes > 0 {
 				appID := uuid.New().String()
-				events := uint32(tt.totalUnits / 2)
-				spans := uint32(tt.totalUnits - uint64(events))
-				seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), events, spans, 0)
+				seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 1, 1, 0, tt.totalBytes)
 			}
 
 			team := TeamBillingInfo{
@@ -513,19 +511,19 @@ func TestCheckProPlan_PastDueSubscription(t *testing.T) {
 func TestCheckProPlan_CanceledSubscription(t *testing.T) {
 	tests := []struct {
 		name       string
-		totalUnits uint64
+		totalBytes uint64
 		wantAllow  bool
 		wantReason *string
 	}{
 		{
 			name:       "over free limit",
-			totalUnits: uint64(FreePlanMaxUnits) + 1,
+			totalBytes: uint64(FreePlanMaxBytes) + 1,
 			wantAllow:  false,
 			wantReason: strPtr(ReasonPlanLimitExceeded),
 		},
 		{
 			name:       "within free limit",
-			totalUnits: uint64(FreePlanMaxUnits) - 1,
+			totalBytes: uint64(FreePlanMaxBytes) - 1,
 			wantAllow:  true,
 			wantReason: nil,
 		},
@@ -546,13 +544,10 @@ func TestCheckProPlan_CanceledSubscription(t *testing.T) {
 			userID := uuid.New().String()
 			now := time.Now().UTC()
 
-			events := uint32(tt.totalUnits / 2)
-			spans := uint32(tt.totalUnits - uint64(events))
-
 			seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
 			seedUser(ctx, t, userID, "pro@example.com")
 			seedTeamMembership(ctx, t, teamID, userID, "owner")
-			seedIngestionUsage(ctx, t, teamID, appID, now, events, spans, 0)
+			seedIngestionUsage(ctx, t, teamID, appID, now, 1, 1, 0, tt.totalBytes)
 
 			subID := "sub_canceled"
 			team := TeamBillingInfo{

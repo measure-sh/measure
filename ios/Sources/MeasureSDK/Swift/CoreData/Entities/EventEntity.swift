@@ -44,7 +44,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.timestamp = event.timestamp
         self.type = event.type.rawValue
         self.userTriggered = event.userTriggered
-        self.timestampInMillis = event.timestampInMillis ?? 0
+        self.timestampInMillis = event.timestampInMillis
         self.batchId = nil
         self.userDefinedAttributes = event.userDefinedAttributes
         self.needsReporting = needsReporting

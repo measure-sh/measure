@@ -56,7 +56,8 @@ final class SessionManagerTests: XCTestCase {
                                        attachments: nil,
                                        userDefinedAttributes: nil,
                                        threadName: nil,
-                                       needsReporting: true)
+                                       needsReporting: true,
+                                       synchronous: true)
         }
         userDefaultStorage.setRecentAppVersion("1.0.0")
         userDefaultStorage.setRecentBuildNumber("1")

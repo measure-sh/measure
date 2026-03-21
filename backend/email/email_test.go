@@ -74,12 +74,12 @@ func TestUsageLimitContent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%d%%", tt.threshold), func(t *testing.T) {
-			content := UsageLimitContent("Test message", tt.threshold, "750K", "1M")
+			content := UsageLimitContent("Test message", tt.threshold, "3.5 GB", "5 GB")
 
 			if !strings.Contains(content, tt.wantColor) {
 				t.Errorf("content should contain color %q for threshold %d", tt.wantColor, tt.threshold)
 			}
-			if !strings.Contains(content, "750K / 1M units used") {
+			if !strings.Contains(content, "3.5 GB / 5 GB data used") {
 				t.Error("content should contain usage text")
 			}
 			if !strings.Contains(content, "Test message") {

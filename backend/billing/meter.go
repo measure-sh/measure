@@ -19,6 +19,7 @@ type DailyUsage struct {
 	Events  uint64
 	Spans   uint64
 	Metrics uint64
+	BytesIn uint64
 }
 
 // UnreportedUsage represents a billing_metrics_reporting row that has not yet been
@@ -29,6 +30,7 @@ type UnreportedUsage struct {
 	Events           uint64
 	Spans            uint64
 	Metrics          uint64
+	BytesIn          uint64
 	StripeCustomerID *string
 }
 
@@ -74,11 +76,17 @@ func takeStorageSnapshot(ctx context.Context, deps Deps) error {
 		return fmt.Errorf("failed to count spans: %w", err)
 	}
 
+	// Count bytes per team from ingestion_metrics
+	bytesCounts, err := countAllBytes(ctx, deps.ChPool)
+	if err != nil {
+		return fmt.Errorf("failed to count bytes: %w", err)
+	}
+
 	// TODO: Count metrics when table exists
 	metricCounts := make(map[string]uint64)
 
 	// Merge and save
-	usageByTeam := mergeUsage(eventCounts, spanCounts, metricCounts)
+	usageByTeam := mergeUsage(eventCounts, spanCounts, metricCounts, bytesCounts)
 
 	err = saveSnapshotBatch(ctx, deps.PgPool, yesterday, usageByTeam)
 	if err != nil {
@@ -153,7 +161,33 @@ func countAllSpans(ctx context.Context, chPool driver.Conn) (map[string]uint64, 
 	return results, nil
 }
 
-func mergeUsage(events, spans, metrics map[string]uint64) map[string]DailyUsage {
+func countAllBytes(ctx context.Context, chPool driver.Conn) (map[string]uint64, error) {
+	query := sqlf.From("ingestion_metrics").
+		Select("toString(team_id) as team_id").
+		Select("COALESCE(sumMerge(bytes_in), 0) as total_bytes").
+		GroupBy("team_id")
+	defer query.Close()
+
+	rows, err := chPool.Query(ctx, query.String(), query.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make(map[string]uint64)
+	for rows.Next() {
+		var teamID string
+		var totalBytes uint64
+		if err := rows.Scan(&teamID, &totalBytes); err != nil {
+			return nil, err
+		}
+		results[teamID] = totalBytes
+	}
+
+	return results, nil
+}
+
+func mergeUsage(events, spans, metrics, bytes map[string]uint64) map[string]DailyUsage {
 	teamIDs := make(map[string]bool)
 	for id := range events {
 		teamIDs[id] = true
@@ -164,6 +198,9 @@ func mergeUsage(events, spans, metrics map[string]uint64) map[string]DailyUsage 
 	for id := range metrics {
 		teamIDs[id] = true
 	}
+	for id := range bytes {
+		teamIDs[id] = true
+	}
 
 	results := make(map[string]DailyUsage)
 	for teamID := range teamIDs {
@@ -172,6 +209,7 @@ func mergeUsage(events, spans, metrics map[string]uint64) map[string]DailyUsage 
 			Events:  events[teamID],
 			Spans:   spans[teamID],
 			Metrics: metrics[teamID],
+			BytesIn: bytes[teamID],
 		}
 	}
 
@@ -186,7 +224,8 @@ func saveSnapshotBatch(ctx context.Context, pool *pgxpool.Pool, date time.Time, 
 			Set("events", usage.Events).
 			Set("spans", usage.Spans).
 			Set("metrics", usage.Metrics).
-			Clause("ON CONFLICT (team_id, report_date) DO UPDATE SET events = EXCLUDED.events, spans = EXCLUDED.spans, metrics = EXCLUDED.metrics")
+			Set("bytes_in", usage.BytesIn).
+			Clause("ON CONFLICT (team_id, report_date) DO UPDATE SET events = EXCLUDED.events, spans = EXCLUDED.spans, metrics = EXCLUDED.metrics, bytes_in = EXCLUDED.bytes_in")
 
 		_, err := pool.Exec(ctx, stmt.String(), stmt.Args()...)
 		stmt.Close()
@@ -218,11 +257,11 @@ func ReportUnreportedToStripe(ctx context.Context, deps Deps) error {
 			continue
 		}
 
-		// We add up events, spans, and metrics as "events" for billing purposes
-		totalUnits := usage.Events + usage.Spans + usage.Metrics
+		// Convert bytes to GB-days: bytes / (1024^3) gives GB for one day
+		gbDays := float64(usage.BytesIn) / (1024 * 1024 * 1024)
 
-		if totalUnits > 0 {
-			err = reportToStripe(deps, *usage.StripeCustomerID, totalUnits, usage.ReportDate)
+		if gbDays > 0 {
+			err = reportToStripe(deps, *usage.StripeCustomerID, gbDays, usage.ReportDate)
 			if err != nil {
 				log.Printf("failed to report to Stripe for team %s: %v", usage.TeamID, err)
 				continue
@@ -235,8 +274,8 @@ func ReportUnreportedToStripe(ctx context.Context, deps Deps) error {
 			continue
 		}
 
-		log.Printf("Reported team %s for %s: %d units",
-			usage.TeamID, usage.ReportDate.Format("2006-01-02"), totalUnits)
+		log.Printf("Reported team %s for %s: %.6f GB-days",
+			usage.TeamID, usage.ReportDate.Format("2006-01-02"), gbDays)
 	}
 
 	return nil
@@ -249,6 +288,7 @@ func getUnreportedUsage(ctx context.Context, pool *pgxpool.Pool) ([]UnreportedUs
 		Select("mr.events").
 		Select("mr.spans").
 		Select("mr.metrics").
+		Select("mr.bytes_in").
 		Select("tb.stripe_customer_id").
 		From("billing_metrics_reporting mr").
 		Join("team_billing tb", "mr.team_id = tb.team_id").
@@ -273,6 +313,7 @@ func getUnreportedUsage(ctx context.Context, pool *pgxpool.Pool) ([]UnreportedUs
 			&u.Events,
 			&u.Spans,
 			&u.Metrics,
+			&u.BytesIn,
 			&u.StripeCustomerID,
 		); err != nil {
 			return nil, err
@@ -283,14 +324,14 @@ func getUnreportedUsage(ctx context.Context, pool *pgxpool.Pool) ([]UnreportedUs
 	return results, nil
 }
 
-func reportToStripe(deps Deps, customerID string, value uint64, reportDate time.Time) error {
+func reportToStripe(deps Deps, customerID string, gbDays float64, reportDate time.Time) error {
 	idempotencyKey := fmt.Sprintf("%s:%s", customerID, reportDate.Format("2006-01-02"))
 
 	params := &stripe.BillingMeterEventParams{
 		EventName: stripe.String(deps.MeterName),
 		Payload: map[string]string{
 			"stripe_customer_id": customerID,
-			"value":              fmt.Sprintf("%d", value),
+			"value":              fmt.Sprintf("%.6f", gbDays),
 		},
 		Timestamp: stripe.Int64(reportDate.Unix()),
 	}

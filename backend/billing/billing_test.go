@@ -616,8 +616,8 @@ func TestProcessDowngrade(t *testing.T) {
 
 		seedTeam(ctx, t, teamID, "test-team", true)
 		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_abc"), strPtr("sub_abc"))
-		// Seed enough usage to exceed free limit (1M)
-		seedIngestionUsage(ctx, t, teamID.String(), appID, now, 500000, 500000, 100)
+		// Seed enough usage to exceed free limit (5 GB)
+		seedIngestionUsage(ctx, t, teamID.String(), appID, now, 500000, 500000, 100, uint64(FreePlanMaxBytes)+1000)
 
 		deps := testDeps()
 		if err := ProcessDowngrade(ctx, deps, teamID); err != nil {
@@ -1254,7 +1254,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "pro-team", "pro", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 6_442_450_944)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1287,7 +1287,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 740_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 3_972_844_748)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1304,7 +1304,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 750_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_026_531_840)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1321,7 +1321,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 850_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_563_402_752)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1338,7 +1338,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 900_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_831_838_208)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1355,7 +1355,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 950_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 5_100_273_664)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1372,7 +1372,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_000_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 5_368_709_120)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {
@@ -1389,7 +1389,7 @@ func TestGetUsageThreshold(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeamWithBilling(ctx, t, teamID.String(), "free-team", "free", true)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 1_200_000)
+		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 6_442_450_944)
 
 		threshold, err := GetUsageThreshold(ctx, th.PgPool, th.ChConn, teamID)
 		if err != nil {

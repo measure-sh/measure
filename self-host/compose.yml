@@ -82,8 +82,8 @@ services:
       - BILLING_ENABLED=${BILLING_ENABLED}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - STRIPE_PRO_UNIT_DAYS_PRICE_ID=${STRIPE_PRO_UNIT_DAYS_PRICE_ID}
-      - STRIPE_UNIT_DAYS_METER_NAME=${STRIPE_UNIT_DAYS_METER_NAME}
+      - STRIPE_PRO_PRICE_ID=${STRIPE_PRO_PRICE_ID}
+      - STRIPE_METER_NAME=${STRIPE_METER_NAME}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
@@ -285,6 +285,7 @@ services:
       dockerfile: dockerfile
       context: ../backend/alerts
       additional_contexts:
+        libs: ../backend/libs
         email: ../backend/email
       args:
         TARGETTYPE: debug
@@ -376,7 +377,7 @@ services:
     environment:
       - BILLING_ENABLED=${BILLING_ENABLED}
       - STRIPE_API_KEY=${STRIPE_API_KEY}
-      - STRIPE_UNIT_DAYS_METER_NAME=${STRIPE_UNIT_DAYS_METER_NAME}
+      - STRIPE_METER_NAME=${STRIPE_METER_NAME}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
@@ -595,7 +596,7 @@ services:
       - ./postgres/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.10-alpine
+    image: clickhouse/clickhouse-server:25.12-alpine
     environment:
       - CLICKHOUSE_DB=measure
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}

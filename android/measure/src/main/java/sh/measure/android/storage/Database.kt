@@ -219,6 +219,14 @@ internal interface Database : Closeable {
      */
     fun deleteAttachments(attachmentIds: List<String>)
 
+    /**
+     * Returns IDs of attachments whose upload URLs have expired.
+     *
+     * @param currentTime Current time in ISO 8601 format.
+     * @param batchSize Maximum number of attachment IDs to return.
+     */
+    fun getExpiredAttachments(currentTime: String, batchSize: Int): List<String>
+
     // ========================================================================================
     // Batching
     // ========================================================================================
@@ -988,6 +996,22 @@ internal class DatabaseImpl(
             whereClause,
             attachmentIds.toTypedArray(),
         )
+    }
+
+    override fun getExpiredAttachments(currentTime: String, batchSize: Int): List<String> {
+        val attachmentIds = mutableListOf<String>()
+        try {
+            readableDatabase.rawQuery(Sql.getExpiredAttachments(currentTime, batchSize), null)
+                .use { cursor ->
+                    val idIndex = cursor.getColumnIndex(AttachmentV1Table.COL_ID)
+                    while (cursor.moveToNext()) {
+                        attachmentIds.add(cursor.getString(idIndex))
+                    }
+                }
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to get expired attachments", e)
+        }
+        return attachmentIds
     }
 
     // ========================================================================================

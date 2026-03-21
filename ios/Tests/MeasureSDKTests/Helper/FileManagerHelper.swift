@@ -5,7 +5,6 @@
 //  Created by Adwin Ross on 26/09/24.
 //
 
-import CrashReporter
 @testable import Measure
 import Foundation
 import XCTest
@@ -22,20 +21,6 @@ final class FileManagerHelper {
             return try Data(contentsOf: fileURL)
         } catch {
             XCTFail("Error loading file data: \(error)")
-            return nil
-        }
-    }
-
-    func getCrashReport(fileName: String, fileExtension: String) -> BaseCrashReport? {
-        guard let fileData = loadFileData(fileName: fileName, fileExtension: fileExtension) else {
-            return nil
-        }
-
-        do {
-            let plCrashReport = try PLCrashReport(data: fileData)
-            return BaseCrashReport(plCrashReport)
-        } catch {
-            XCTFail("Error creating BaseCrashReport: \(error)")
             return nil
         }
     }

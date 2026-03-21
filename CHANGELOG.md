@@ -15,11 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
 - (**backend**): Implement app api key rotation by @anupcowkur in #3188
 - (**backend**): Send alerts on bug reports by @anupcowkur in #3183
+- (**frontend**): Add network performance tab (#3281) by @abhaysood in #3281
 - (**frontend**): Add llms.txt and llms-full.txt by @anupcowkur in #3289
 - (**frontend**): Add docs to website by @anupcowkur in #3284
 
 ### :bug: Bug fixes
 
+- (**backend**): Add missing libs in alerts dockerfile (#3304) by @detj in #3304
+- (**backend**): Allow more characters for screen view event (#3301) by @detj in #3301
 - (**backend**): Handle panic for unsolvable malformed sdk request (#3278) by @detj in #3278
 - (**backend**): Add `team_id` to app retention query in cleanup (#3236) by @detj in #3236
 - (**backend**): Journey api would return inaccurate results sometimes (#3213) by @detj in #3213
@@ -28,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Populate session attributes for trace only sessions (#3196) by @detj in #3196
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
 - (**backend**): Migrate ingestion metrics synchronously (#3180) by @detj in #3180
+- (**frontend**): Fix overlapping text in session timeline (#3313) by @abhaysood in #3313
 - (**frontend**): Fix illegible text colour in user profile initials by @anupcowkur in #3279
 - (**frontend**): Copy correct api base url based on env variable by @anupcowkur in #3268
 - (**frontend**): Fix plot render errors by @anupcowkur in #3207
@@ -37,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Fix invalid urls in session data (#3322) by @abhaysood in #3322
+- (**backend**): Update billing to GB days by @anupcowkur in #3319
+- (**backend**): Upgrade to clickhouse v25.12 (#3307) by @detj in #3307
+- (**backend**): Add missing libs to alerts in compose.yml (#3305) by @abhaysood in #3305
 - (**backend**): Fix migrations & ready for next release (#3288) by @detj in #3288
 - (**backend**): Show unit-days used in pro plan by @anupcowkur in #3282
 - (**backend**): Remove clickhouse read pool from alerts (#3273) by @detj in #3273
@@ -59,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
+- (**frontend**): Remove http method from generic filters (#3323) by @abhaysood in #3323
 - (**frontend**): Reverse proxy all dashboard posthog requests (#3298) by @detj in #3298
 - (**frontend**): Add and link slack integration feature doc by @anupcowkur in #3297
 - (**frontend**): Remove custom colour override for slack switch by @anupcowkur in #3296

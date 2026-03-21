@@ -100,7 +100,8 @@ final class BaseGestureCollector: GestureCollector {
                                            attachments: attachment == nil ? nil : [attachment!],
                                            userDefinedAttributes: nil,
                                            threadName: nil,
-                                           needsReporting: false)
+                                           needsReporting: false,
+                                           synchronous: false)
             }
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
@@ -129,7 +130,8 @@ final class BaseGestureCollector: GestureCollector {
                                            attachments: attachment == nil ? nil : [attachment!],
                                            userDefinedAttributes: nil,
                                            threadName: nil,
-                                           needsReporting: false)
+                                           needsReporting: false,
+                                           synchronous: false)
             }
         case .scroll(let startX, let startY, let endX, let endY, let direction, let touchDownTime, let touchUpTime, let target, let targetId):
             let startScrollPoint = CGPoint(x: startX, y: startY)
@@ -157,7 +159,8 @@ final class BaseGestureCollector: GestureCollector {
                                            attachments: nil,
                                            userDefinedAttributes: nil,
                                            threadName: nil,
-                                           needsReporting: false)
+                                           needsReporting: false,
+                                           synchronous: false)
             }
         }
         // swiftlint:enable identifier_name

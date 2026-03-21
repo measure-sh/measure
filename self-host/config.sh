@@ -278,8 +278,8 @@ POSTHOG_API_KEY=
 BILLING_ENABLED=false
 STRIPE_API_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_UNIT_DAYS_PRICE_ID=
-STRIPE_UNIT_DAYS_METER_NAME=unit_days
+STRIPE_PRO_PRICE_ID=
+STRIPE_METER_NAME=gb_days
 
 ########
 # OTEL #
@@ -404,8 +404,8 @@ POSTHOG_API_KEY=
 BILLING_ENABLED=false
 STRIPE_API_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_UNIT_DAYS_PRICE_ID=
-STRIPE_UNIT_DAYS_METER_NAME=unit_days
+STRIPE_PRO_PRICE_ID=
+STRIPE_METER_NAME=gb_days
 
 ########
 # OTEL #
@@ -821,12 +821,12 @@ ensure() {
     add_env_variable "STRIPE_WEBHOOK_SECRET" "" "STRIPE_API_KEY"
   fi
 
-  if ! check_env_variable "STRIPE_UNIT_DAYS_METER_NAME"; then
-    add_env_variable "STRIPE_UNIT_DAYS_METER_NAME" "unit_days" "STRIPE_WEBHOOK_SECRET"
+  if ! check_env_variable "STRIPE_METER_NAME"; then
+    add_env_variable "STRIPE_METER_NAME" "gb_days" "STRIPE_WEBHOOK_SECRET"
   fi
 
-  if ! check_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID"; then
-    add_env_variable "STRIPE_PRO_UNIT_DAYS_PRICE_ID" "" "STRIPE_UNIT_DAYS_METER_NAME"
+  if ! check_env_variable "STRIPE_PRO_PRICE_ID"; then
+    add_env_variable "STRIPE_PRO_PRICE_ID" "" "STRIPE_METER_NAME"
   fi
 
   # remove `frontend/dashboard/.env.local` file

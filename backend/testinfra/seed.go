@@ -181,7 +181,7 @@ func (h *TestHelper) SeedAPIKey(
 	}
 }
 
-func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics uint64, reported bool) {
+func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics, bytesIn uint64, reported bool) {
 	t.Helper()
 	var reportedAt interface{}
 	if reported {
@@ -189,8 +189,8 @@ func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing
 	}
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO billing_metrics_reporting (team_id, report_date, events, spans, metrics, reported_at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		teamID, reportDate, events, spans, metrics, reportedAt)
+		`INSERT INTO billing_metrics_reporting (team_id, report_date, events, spans, metrics, bytes_in, reported_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		teamID, reportDate, events, spans, metrics, bytesIn, reportedAt)
 	if err != nil {
 		t.Fatalf("seed billing_metrics_reporting: %v", err)
 	}
@@ -210,7 +210,7 @@ func (h *TestHelper) SetStripeCustomerID(ctx context.Context, t *testing.T, team
 // ClickHouse seed helpers
 // --------------------------------------------------------------------------
 
-func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32) {
+func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32, bytesIn uint64) {
 	t.Helper()
 
 	query := fmt.Sprintf(`
@@ -220,9 +220,10 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 			sumState(toUInt32(%d)),
 			sumState(toUInt32(%d)),
 			sumState(toUInt32(0)),
-			sumState(toUInt32(%d))
+			sumState(toUInt32(%d)),
+			sumState(toUInt64(%d))
 		FROM system.one`,
-		teamID, appID, ts.UTC().Format("2006-01-02 15:04:05"), events, spans, metrics)
+		teamID, appID, ts.UTC().Format("2006-01-02 15:04:05"), events, spans, metrics, bytesIn)
 
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed ingestion usage: %v", err)
@@ -612,6 +613,47 @@ func (h *TestHelper) SeedMCPAccessToken(ctx context.Context, t *testing.T, rawTo
 		if err != nil {
 			t.Fatalf("seed mcp_access_token: %v", err)
 		}
+	}
+}
+
+// SeedHttpEvent inserts count rows into the events table with type='http',
+// setting http.url, http.method, http.status_code, http.start_time and
+// http.end_time (100ms latency). url must be a full URL
+// like "https://api.example.com/api/v1/users".
+func (h *TestHelper) SeedHttpEvent(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, url, method string,
+	statusCode int,
+	count int,
+	ts time.Time,
+) {
+	t.Helper()
+	tsStr := ts.UTC().Format("2006-01-02 15:04:05")
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, inserted_at, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`http.url`, `http.method`, `http.status_code`, `http.start_time`, `http.end_time`, `inet.country_code`) "+
+			`SELECT generateUUIDv4(), 'http', generateUUIDv4(), '%s', '%s', toDateTime64('%s', 3, 'UTC') + toIntervalMillisecond(number), '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', 'android', '0.1', '%s', '%s', %d, 1000, 1100, 'US' FROM numbers(%d)`,
+		appID, teamID, tsStr, tsStr, url, method, statusCode, count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed http event: %v", err)
+	}
+}
+
+// SeedUrlPattern inserts a single row into the url_patterns table.
+func (h *TestHelper) SeedUrlPattern(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, domain, path string,
+) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO url_patterns (team_id, app_id, domain, path, updated_at, updated_by) VALUES ('%s', '%s', '%s', '%s', now(), '%s')`,
+		teamID, appID, domain, path, uuid.Nil.String())
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed url_patterns: %v", err)
 	}
 }
 

@@ -192,7 +192,7 @@ func MessageContent(message string) string {
 
 // UsageLimitContent renders a usage progress bar and message.
 // Used for billing usage threshold notifications.
-func UsageLimitContent(message string, threshold int, usageFormatted, maxUnitsFormatted string) string {
+func UsageLimitContent(message string, threshold int, usageFormatted, maxBytesFormatted string) string {
 	usageBarHTML := fmt.Sprintf(`
             <!-- Usage Bar -->
             <div style="margin-bottom: 32px;">
@@ -200,9 +200,9 @@ func UsageLimitContent(message string, threshold int, usageFormatted, maxUnitsFo
                     <div style="background-color: %s; height: 100%%; width: %d%%; border-radius: 8px;"></div>
                 </div>
                 <div style="text-align: center; margin-top: 8px; font-size: 14px; color: #718096;">
-                    %s / %s units used
+                    %s / %s data used
                 </div>
-            </div>`, getProgressBarColor(threshold), threshold, usageFormatted, maxUnitsFormatted)
+            </div>`, getProgressBarColor(threshold), threshold, usageFormatted, maxBytesFormatted)
 
 	return usageBarHTML + MessageContent(message)
 }

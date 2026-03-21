@@ -1,22 +1,44 @@
 PODS:
-  - measure-sh (0.9.1):
-    - PLCrashReporter (= 1.12.0)
-  - PLCrashReporter (1.12.0)
+  - KSCrash (2.5.1):
+    - KSCrash/Installations (= 2.5.1)
+  - KSCrash/Core (2.5.1)
+  - KSCrash/DemangleFilter (2.5.1):
+    - KSCrash/Recording
+  - KSCrash/Filters (2.5.1):
+    - KSCrash/Recording
+    - KSCrash/RecordingCore
+    - KSCrash/ReportingCore
+  - KSCrash/Installations (2.5.1):
+    - KSCrash/DemangleFilter
+    - KSCrash/Filters
+    - KSCrash/Recording
+    - KSCrash/Sinks
+  - KSCrash/Recording (2.5.1):
+    - KSCrash/RecordingCore
+  - KSCrash/RecordingCore (2.5.1):
+    - KSCrash/Core
+  - KSCrash/ReportingCore (2.5.1):
+    - KSCrash/Core
+  - KSCrash/Sinks (2.5.1):
+    - KSCrash/Filters
+    - KSCrash/Recording
+  - measure-sh (0.9.2):
+    - KSCrash (~> 2.5)
 
 DEPENDENCIES:
   - measure-sh (from `../../`)
 
 SPEC REPOS:
   trunk:
-    - PLCrashReporter
+    - KSCrash
 
 EXTERNAL SOURCES:
   measure-sh:
     :path: "../../"
 
 SPEC CHECKSUMS:
-  measure-sh: 34a0c21e3b908da77bc4cfc02f633413de11e32b
-  PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
+  KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
+  measure-sh: b296cf0d8b84c3b22aff2f5938884ccec0da5b4a
 
 PODFILE CHECKSUM: 828d9701ce9dd588cdabe7bc1a8cb829d2a17f97
 

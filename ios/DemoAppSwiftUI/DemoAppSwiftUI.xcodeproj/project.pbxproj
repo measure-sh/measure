@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CF0F95502F58096B0018D95D /* Measure in Frameworks */ = {isa = PBXBuildFile; productRef = CF0F954F2F58096B0018D95D /* Measure */; };
 		CF9234A62E5F3DF600815D9E /* Measure in Frameworks */ = {isa = PBXBuildFile; productRef = CF9234A52E5F3DF600815D9E /* Measure */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF9234A62E5F3DF600815D9E /* Measure in Frameworks */,
+				CF0F95502F58096B0018D95D /* Measure in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +81,7 @@
 			name = DemoAppSwiftUI;
 			packageProductDependencies = (
 				CF9234A52E5F3DF600815D9E /* Measure */,
+				CF0F954F2F58096B0018D95D /* Measure */,
 			);
 			productName = DemoAppSwiftUI;
 			productReference = CF9234962E5F3D8D00815D9E /* DemoAppSwiftUI.app */;
@@ -109,6 +112,7 @@
 			mainGroup = CF92348D2E5F3D8D00815D9E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				CF0F954E2F58096B0018D95D /* XCLocalSwiftPackageReference "../../../measure" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CF9234972E5F3D8D00815D9E /* Products */;
@@ -341,7 +345,18 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		CF0F954E2F58096B0018D95D /* XCLocalSwiftPackageReference "../../../measure" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../measure;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		CF0F954F2F58096B0018D95D /* Measure */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Measure;
+		};
 		CF9234A52E5F3DF600815D9E /* Measure */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Measure;

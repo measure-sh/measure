@@ -258,6 +258,16 @@ import UIKit
         return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+        guard let measureInternal = self.measureInternal else { return }
+        return measureInternal.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    @objc func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+        guard let measureInternal = self.measureInternal else { return }
+        return measureInternal.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
     func internalGetAttachmentDirectory() -> String? {
         guard let measureInternal = self.measureInternal else { return nil }
         return measureInternal.getDocumentDirectoryPath()
@@ -757,6 +767,24 @@ extension Measure {
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
         Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    /// Tracks a handled NSException and records it as part of the monitoring system.
+    /// - Parameters:
+    ///   - exception: The NSException instance to track.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
+    public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+        Measure.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    /// Tracks a handled NSException and records it as part of the monitoring system.
+    /// - Parameters:
+    ///   - exception: The NSException instance to track.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
+    @objc public static func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+        Measure.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     /// An internal method get the directory path wheere attachments are stored, used by cross-platform frameworks

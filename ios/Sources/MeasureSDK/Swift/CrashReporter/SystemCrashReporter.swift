@@ -5,60 +5,80 @@
 //  Created by Adwin Ross on 20/09/24.
 //
 
-import CrashReporter
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
+import KSCrash
+#endif
 import Foundation
 
-/// A protocol defining the behaviour of a crash reporter. It is responsible for generating and managing crash reports.
+/// A protocol defining the behaviour of a crash reporter.
 protocol SystemCrashReporter {
     var hasPendingCrashReport: Bool { get }
-    func setCrashCallback(_ handleSignal: PLCrashReporterPostCrashSignalCallback)
     func enable() throws
     func clearCrashData()
-    func loadCrashReport() throws -> Data
-    func generateLiveReport() -> Data
+    func loadCrashReport() throws -> [String: Any]
 }
 
 final class BaseSystemCrashReporter: SystemCrashReporter {
-    private let crashReporter: PLCrashReporter
     private let logger: Logger
+    private let crashDataPersistence: CrashDataPersistence
+
     var hasPendingCrashReport: Bool {
-        return crashReporter.hasPendingCrashReport()
+        return KSCrash.shared.reportStore?.reportCount ?? 0 > 0
     }
 
-    init(logger: Logger) {
+    init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
-        let config = PLCrashReporterConfig(signalHandlerType: .BSD, symbolicationStrategy: [], shouldRegisterUncaughtExceptionHandler: false)
-        guard let crashReporter = PLCrashReporter(configuration: config) else {
-            logger.log(level: .error, message: "Could not create an instance of PLCrashReporter with config.", error: nil, data: nil)
-            logger.log(level: .info, message: "Initialising PLCrashReporter with default config.", error: nil, data: nil)
-            self.crashReporter = PLCrashReporter()
-            return
+        self.crashDataPersistence = crashDataPersistence
+        do {
+            try enable()
+        } catch {
+            logger.internalLog(level: .error, message: "SystemCrashReporter: KSCrash init failed.", error: error, data: nil)
         }
-        self.crashReporter = crashReporter
-    }
-
-    func setCrashCallback(_ handleSignal: PLCrashReporterPostCrashSignalCallback) {
-        var crashReporterCallbacks = PLCrashReporterCallbacks(
-            version: 0,
-            context: nil,
-            handleSignal: handleSignal
-        )
-        crashReporter.setCrash(&crashReporterCallbacks)
     }
 
     func enable() throws {
-        return try crashReporter.enableAndReturnError()
+        let config = KSCrashConfiguration()
+        config.monitors = [
+            .machException,
+            .signal,
+            .cppException,
+            .nsException,
+            .mainThreadDeadlock,
+            .memoryTermination
+        ]
+        config.crashNotifyCallback = { _ in
+            CrashDataWriter.shared.writeCrashData()
+        }
+
+        crashDataPersistence.prepareCrashFile()
+
+        do {
+            try KSCrash.shared.install(with: config)
+        } catch {
+            logger.internalLog(level: .error, message: "SystemCrashReporter: Failed to enable KSCrash.", error: error, data: nil)
+            throw error
+        }
+
+        logger.log(level: .info, message: "SystemCrashReporter: Crash reporter enabled.", error: nil, data: nil)
     }
 
     func clearCrashData() {
-        crashReporter.purgePendingCrashReport()
+        KSCrash.shared.reportStore?.deleteAllReports()
     }
 
-    func loadCrashReport() throws -> Data {
-        return try crashReporter.loadPendingCrashReportDataAndReturnError()
+    func loadCrashReport() throws -> [String: Any] {
+        guard let store = KSCrash.shared.reportStore,
+              let reportID = store.reportIDs.first,
+              let report = store.report(for: Int64(truncating: reportID)) else {
+            throw CrashReporterError.noPendingReport
+        }
+        return report.value
     }
+}
 
-    func generateLiveReport() -> Data {
-        return crashReporter.generateLiveReport()
-    }
+enum CrashReporterError: Error {
+    case noPendingReport
+    case invalidReportFormat
 }

@@ -57,7 +57,7 @@ jest.mock('@/app/api/api_calls', () => ({
             app_id: '',
             app_name: '',
             monthly_app_usage: [
-                { month_year: '', sessions: 0, events: 0, spans: 0 },
+                { month_year: '', sessions: 0, events: 0, spans: 0, bytes_in: 0 },
             ],
         },
     ],
@@ -69,8 +69,8 @@ jest.mock('@/app/api/api_calls', () => ({
                     app_id: 'app1',
                     app_name: 'My App',
                     monthly_app_usage: [
-                        { month_year: '2025-01', sessions: 100, events: 500, spans: 200 },
-                        { month_year: '2025-02', sessions: 150, events: 700, spans: 300 },
+                        { month_year: '2025-01', sessions: 100, events: 500, spans: 200, bytes_in: 524288 },
+                        { month_year: '2025-02', sessions: 150, events: 700, spans: 300, bytes_in: 1048576 },
                     ],
                 },
             ],
@@ -400,20 +400,72 @@ describe('Usage Page', () => {
         expect(screen.getByText('Contact us')).toBeInTheDocument()
     })
 
-    it('shows free plan usage progress bar with percentage and units', async () => {
+    it('shows free plan usage progress bar with percentage and GB', async () => {
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // Usage data for 2025-02 (last month = initial): events 700 + spans 300 = 1000
-        // freeUsagePercent = Math.round((1000 / 1_000_000) * 100) = 0
-        expect(screen.getByText('0%')).toBeInTheDocument()
-        expect(screen.getByText(/1,000 used of 1,000,000 free units/)).toBeInTheDocument()
+        // Usage data for 2025-02 (last month = initial): bytes_in = 1048576 (1 MB)
+        // freeUsagePercent = Math.round((1048576 / (5 * 1024 * 1024 * 1024)) * 10000) / 100 = 0.02
+        // Since usage > 0, Math.max(0.01, 0.02) = 0.02
+        expect(screen.getByText('0.02%')).toBeInTheDocument()
+        expect(screen.getByText(/1\.0 MB used of 5 GB/)).toBeInTheDocument()
 
         const progressbar = screen.getByRole('progressbar')
-        expect(progressbar).toHaveAttribute('aria-valuenow', '0')
+        expect(progressbar).toHaveAttribute('aria-valuenow', '0.02')
         expect(progressbar).toHaveAttribute('aria-valuemin', '0')
         expect(progressbar).toHaveAttribute('aria-valuemax', '100')
+    })
+
+    it('shows 0% when there is no usage', async () => {
+        const { fetchUsageFromServer } = require('@/app/api/api_calls')
+        fetchUsageFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: [
+                    {
+                        app_id: 'app1',
+                        app_name: 'Test App',
+                        monthly_app_usage: [
+                            { month_year: '2025-02', sessions: 0, events: 0, spans: 0, bytes_in: 0 },
+                        ],
+                    },
+                ],
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText('0%')).toBeInTheDocument()
+        expect(screen.getByText(/0 B used of 5 GB/)).toBeInTheDocument()
+    })
+
+    it('shows minimum 0.01% for very small usage', async () => {
+        const { fetchUsageFromServer } = require('@/app/api/api_calls')
+        fetchUsageFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: [
+                    {
+                        app_id: 'app1',
+                        app_name: 'Test App',
+                        monthly_app_usage: [
+                            { month_year: '2025-02', sessions: 1, events: 1, spans: 0, bytes_in: 48 },
+                        ],
+                    },
+                ],
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        // 48 bytes / 5 GB = ~0.0000009%, rounds to 0, but Math.max(0.01, 0) = 0.01
+        expect(screen.getByText('0.01%')).toBeInTheDocument()
+        expect(screen.getByText(/48 B used of 5 GB/)).toBeInTheDocument()
     })
 
     it('does not show free plan progress bar when on pro plan', async () => {
@@ -439,7 +491,7 @@ describe('Usage Page', () => {
         })
 
         expect(screen.queryByText(/Free plan usage:/)).not.toBeInTheDocument()
-        expect(screen.queryByText(/free units/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/used of 5 GB/)).not.toBeInTheDocument()
     })
 
     // ---- Upgrade flow ----
@@ -832,9 +884,9 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.getByText(/units per month included/)).toBeInTheDocument()
+        expect(screen.getByText(/GB per month included/)).toBeInTheDocument()
         expect(screen.getByText(/Retention up to/)).toBeInTheDocument()
-        expect(screen.getByText(/Extra units & retention charged at/)).toBeInTheDocument()
+        expect(screen.getByText(/Extra data & retention charged at/)).toBeInTheDocument()
     })
 
     it('hides pro plan feature list when on pro plan', async () => {
@@ -857,9 +909,9 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByText(/units per month included/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/GB per month included/)).not.toBeInTheDocument()
         expect(screen.queryByText(/Retention up to/)).not.toBeInTheDocument()
-        expect(screen.queryByText(/Extra units & retention charged at/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Extra data & retention charged at/)).not.toBeInTheDocument()
     })
 
     it('shows subscription info on pro plan when user can change billing', async () => {
@@ -1018,7 +1070,7 @@ describe('Usage Page', () => {
         expect(screen.queryByText(/Upcoming invoice amount/)).not.toBeInTheDocument()
     })
 
-    it('shows unit-days used in pro plan card', async () => {
+    it('shows GB-days used in pro plan card', async () => {
         const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
 
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
@@ -1051,12 +1103,12 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        const unitsItem = screen.getByText(/Unit-days used/)
+        const unitsItem = screen.getByText(/GB-days used/)
         expect(unitsItem).toBeInTheDocument()
         expect(unitsItem.textContent).toContain('12,500,000')
     })
 
-    it('shows unit-days used in pro plan card with high usage', async () => {
+    it('shows GB-days used in pro plan card with high usage', async () => {
         const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
 
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
@@ -1089,12 +1141,12 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        const unitsItem = screen.getByText(/Unit-days used/)
+        const unitsItem = screen.getByText(/GB-days used/)
         expect(unitsItem).toBeInTheDocument()
         expect(unitsItem.textContent).toContain('30,000,000')
     })
 
-    it('does not show unit-days used on free plan', async () => {
+    it('does not show GB-days used on free plan', async () => {
         const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
 
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
@@ -1115,10 +1167,10 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByText(/Unit-days used/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/GB-days used/)).not.toBeInTheDocument()
     })
 
-    it('does not show unit-days used when subscription info fetch fails', async () => {
+    it('does not show GB-days used when subscription info fetch fails', async () => {
         const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
 
         fetchBillingInfoFromServer.mockImplementationOnce(() =>
@@ -1142,6 +1194,6 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByText(/Unit-days used/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/GB-days used/)).not.toBeInTheDocument()
     })
 })
