@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Revert validations for http urls (#3326) by @abhaysood in #3326
 - (**backend**): Fix invalid urls in session data (#3322) by @abhaysood in #3322
 - (**backend**): Update billing to GB days by @anupcowkur in #3319
 - (**backend**): Upgrade to clickhouse v25.12 (#3307) by @detj in #3307
