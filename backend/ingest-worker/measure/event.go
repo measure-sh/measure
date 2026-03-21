@@ -1112,7 +1112,7 @@ func processIngestBatch(ctx context.Context, batch IngestBatch) {
 	// keyTypes is not serialized in JSON, so it must be rebuilt after
 	// deserializing the IngestBatch from Pub/Sub.
 	//
-	// FIXE: This should be refactored, validate should not have such
+	// FIXME: This should be refactored, validate should not have such
 	// side effects.
 	if err := eventReq.validate(); err != nil {
 		fmt.Println("failed to validate batch:", err)
