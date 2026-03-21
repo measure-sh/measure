@@ -1108,6 +1108,17 @@ func processIngestBatch(ctx context.Context, batch IngestBatch) {
 		}
 	}
 
+	// Validate re-populates UDAttribute.keyTypes for all events and spans.
+	// keyTypes is not serialized in JSON, so it must be rebuilt after
+	// deserializing the IngestBatch from Pub/Sub.
+	//
+	// FIXE: This should be refactored, validate should not have such
+	// side effects.
+	if err := eventReq.validate(); err != nil {
+		fmt.Println("failed to validate batch:", err)
+		return
+	}
+
 	// Check idempotency — Pub/Sub delivers at-least-once.
 	if err := eventReq.checkSeen(ctx); err != nil {
 		fmt.Println("failed to check seen status:", err)
