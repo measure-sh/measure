@@ -28,11 +28,8 @@ func main() {
 	if server.Server.VK != nil {
 		defer server.Server.VK.Close()
 	}
-	if server.Server.BusPublisher != nil {
-		defer server.Server.BusPublisher.Stop()
-	}
-	if server.Server.BusClient != nil {
-		defer server.Server.BusClient.Close()
+	if server.Server.BusProducer != nil {
+		defer server.Server.BusProducer.Close()
 	}
 
 	// Close ClickHouse connection pool at shutdown

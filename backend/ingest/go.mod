@@ -31,6 +31,7 @@ require (
 )
 
 require (
+	github.com/apache/iggy/foreign/go v0.7.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	google.golang.org/api v0.272.0 // indirect

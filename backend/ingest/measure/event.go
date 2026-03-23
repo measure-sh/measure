@@ -27,7 +27,6 @@ import (
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
-	"cloud.google.com/go/pubsub/v2"
 	"cloud.google.com/go/storage"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -48,9 +47,6 @@ var maxBatchSize = 20 * 1024 * 1024
 // for signed upload URLs.
 const ExpiryDuration = time.Hour * 24 * 7
 
-// busIngestTopic is the message bus topic name
-// for publishing ingest batches.
-const busIngestTopic = "ingest-batch"
 
 // blob represents each blob present in the
 // event request batch during ingestion.
@@ -1957,8 +1953,7 @@ func PutEvents(c *gin.Context) {
 
 			fmt.Println("prepared ingest batch payload. len of payload:", len(payload))
 
-			result := server.Server.BusPublisher.Publish(context.Background(), &pubsub.Message{Data: payload})
-			if _, err := result.Get(context.Background()); err != nil {
+			if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
 				fmt.Println("failed to publish ingest batch:", err)
 			}
 		} else {

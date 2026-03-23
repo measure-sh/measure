@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
-	"cloud.google.com/go/pubsub/v2"
+	"backend/libs/bus"
+
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -34,12 +34,11 @@ import (
 var Server *server
 
 type server struct {
-	PgPool       *pgxpool.Pool
-	ChPool       driver.Conn
-	Config       *ServerConfig
-	VK           redis.Client
-	BusClient    *pubsub.Client
-	BusPublisher *pubsub.Publisher
+	PgPool      *pgxpool.Pool
+	ChPool      driver.Conn
+	Config      *ServerConfig
+	VK          redis.Client
+	BusProducer bus.Producer
 }
 
 type PostgresConfig struct {
@@ -55,10 +54,15 @@ type RedisConfig struct {
 	Port int
 }
 
+type IggyConfig struct {
+	Host, Port string
+}
+
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
 	RD                         RedisConfig
+	IG                         IggyConfig
 	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
@@ -186,6 +190,26 @@ func NewConfig() *ServerConfig {
 		log.Println("REDIS_PORT env var is not set, caching will not work")
 	}
 
+	iggyHost := os.Getenv("IGGY_HOST")
+	if iggyHost == "" {
+		log.Println("IGGY_HOST env var is not set, ingestion will not work")
+	}
+
+	iggyPort := os.Getenv("IGGY_PORT")
+	if iggyPort == "" {
+		log.Println("IGGY_PORT env var is not set, ingestion will not work")
+	}
+
+	iggyUsername := os.Getenv("IGGY_USERNAME")
+	if iggyUsername == "" {
+		log.Println("IGGY_USERNAME env var is not set, ingestion will not work")
+	}
+
+	iggyPassword := os.Getenv("IGGY_PASSWORD")
+	if iggyPassword == "" {
+		log.Println("IGGY_PASSWORD env var is not set, ingestion will not work")
+	}
+
 	redisPort, err := strconv.Atoi(redisPortStr)
 	if err != nil {
 		log.Fatalf("Invalid REDIS_PORT value: %v", err)
@@ -209,6 +233,10 @@ func NewConfig() *ServerConfig {
 		RD: RedisConfig{
 			Host: redisHost,
 			Port: redisPort,
+		},
+		IG: IggyConfig{
+			Host: iggyHost,
+			Port: iggyPort,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
@@ -313,30 +341,22 @@ func Init(config *ServerConfig) {
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
 
-	var busClient *pubsub.Client
-	var busPublisher *pubsub.Publisher
+	var busProducer bus.Producer
 	if config.CloudEnv {
-		projectID, err := metadata.ProjectIDWithContext(ctx)
+		p, err := bus.NewPubSubProducer(ctx, "ingest-batch")
 		if err != nil {
-			log.Printf("failed to get GCP project ID from metadata server: %v\n", err)
+			log.Printf("failed to create Pub/Sub producer: %v\n", err)
 		} else {
-			busClient, err = pubsub.NewClient(ctx, projectID)
-			if err != nil {
-				log.Printf("failed to create Pub/Sub client: %v\n", err)
-			} else {
-				topicName := fmt.Sprintf("projects/%s/topics/ingest-batch", projectID)
-				busPublisher = busClient.Publisher(topicName)
-			}
+			busProducer = p
 		}
 	}
 
 	Server = &server{
-		PgPool:       pgPool,
-		ChPool:       chPool,
-		Config:       config,
-		VK:           vkClient,
-		BusClient:    busClient,
-		BusPublisher: busPublisher,
+		PgPool:      pgPool,
+		ChPool:      chPool,
+		Config:      config,
+		VK:          vkClient,
+		BusProducer: busProducer,
 	}
 }
 
