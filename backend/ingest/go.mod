@@ -6,7 +6,6 @@ require (
 	backend/api v0.0.0
 	backend/billing v0.0.0
 	cloud.google.com/go/iam v1.5.3
-	cloud.google.com/go/pubsub/v2 v2.5.0
 	cloud.google.com/go/storage v1.60.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
 	github.com/aws/aws-sdk-go-v2 v1.41.3
@@ -31,7 +30,9 @@ require (
 )
 
 require (
+	cloud.google.com/go/pubsub/v2 v2.5.0 // indirect
 	github.com/apache/iggy/foreign/go v0.7.0 // indirect
+	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	google.golang.org/api v0.272.0 // indirect
@@ -44,7 +45,7 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.18.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	github.com/ClickHouse/ch-go v0.71.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
