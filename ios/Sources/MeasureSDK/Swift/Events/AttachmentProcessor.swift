@@ -10,6 +10,7 @@ import Foundation
 enum AttachmentStorageType {
     case data
     case fileStorage
+    case gzipFileStorage
 }
 
 protocol AttachmentProcessor {
@@ -31,13 +32,27 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
                              storageType: AttachmentStorageType,
                              attachmentType: AttachmentType) -> MsrAttachment? {
         let uuid = idProvider.uuid()
-        let attachmentName = "\(uuid)\(attachmentType == .layoutSnapshot ? ".svg" : ".png")"
+        let attachmentName: String = {
+            switch attachmentType {
+            case .layoutSnapshot: return "\(uuid).svg"
+            case .layoutSnapshotJson: return "\(uuid)"
+            default: return "\(uuid).png"
+            }
+        }()
+
         switch storageType {
         case .data:
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: image, path: nil)
         case .fileStorage:
             guard let fileURL = fileManager.saveFile(data: image, name: attachmentName, folderName: nil, directory: .documentDirectory) else {
                 logger.internalLog(level: .error, message: "Failed to save compressed image to file storage.", error: nil, data: nil)
+                return nil
+            }
+            return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: nil, path: fileURL.path)
+        case .gzipFileStorage:
+            guard let compressedData = image.gzipped(),
+                  let fileURL = fileManager.saveFile(data: compressedData, name: attachmentName, folderName: nil, directory: .documentDirectory) else {
+                logger.internalLog(level: .error, message: "Failed to gzip and save snapshot JSON to file storage.", error: nil, data: nil)
                 return nil
             }
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: nil, path: fileURL.path)

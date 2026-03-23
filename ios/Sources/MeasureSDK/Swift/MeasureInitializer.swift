@@ -293,7 +293,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    configProvider: configProvider,
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
-                                                                   svgGenerator: svgGenerator)
+                                                                   svgGenerator: svgGenerator,
+                                                                   measureDispatchQueue: measureDispatchQueue)
         self.exporter = BaseExporter(logger: logger,
                                      idProvider: idProvider,
                                      dispatchQueue: MeasureQueue.periodicEventExporter,
