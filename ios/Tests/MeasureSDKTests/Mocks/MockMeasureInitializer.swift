@@ -207,10 +207,11 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.userPermissionManager = userPermissionManager ?? BaseUserPermissionManager()
         self.svgGenerator = svgGenerator ?? BaseSvgGenerator()
         self.layoutSnapshotGenerator = layoutSnapshotGenerator ?? BaseLayoutSnapshotGenerator(logger: self.logger,
-                                                                   configProvider: self.configProvider,
-                                                                   timeProvider: self.timeProvider,
-                                                                   attachmentProcessor: self.attachmentProcessor,
-                                                                   svgGenerator: self.svgGenerator)
+                                                                                              configProvider: self.configProvider,
+                                                                                              timeProvider: self.timeProvider,
+                                                                                              attachmentProcessor: self.attachmentProcessor,
+                                                                                              svgGenerator: self.svgGenerator,
+                                                                                              measureDispatchQueue: self.measureDispatchQueue)
         self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider,
                                                                    logger: self.logger)
         self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
