@@ -131,7 +131,7 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
         let shouldTrackResponseBody = configProvider.shouldTrackHttpBody(url: urlString,
                                                                          contentType: httpResponse.allHeaderFields["Content-Type"] as? String)
 
-        let httpData = HttpData(url: urlString.removeHttpPrefix(),
+        let httpData = HttpData(url: urlString,
                                 method: request.httpMethod?.lowercased() ?? "",
                                 statusCode: httpResponse.statusCode,
                                 startTime: startTime,
