@@ -37,6 +37,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var estimatedEventSizeInKb: Int = 2
     override var maxDiskUsageInMb: Int = 50
     override var enableFullCollectionMode: Boolean = true
+    override var enableDiagnosticMode: Boolean = false
     override var maxEventsInBatch: Int = 1000
     override var crashTimelineDurationSeconds: Int = 300
     override var anrTimelineDurationSeconds: Int = 300

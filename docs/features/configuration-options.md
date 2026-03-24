@@ -21,6 +21,7 @@ available in two ways:
     * [**requestHeadersProvider**](#requestHeadersProvider)
     * [**maxDiskUsageInMb**](#maxDiskUsageInMb)
     * [**enableFullCollectionMode**](#enableFullCollectionMode)
+    * [**enableDiagnosticMode**](#enableDiagnosticMode)
 * [**Remote Configuration Options**](#remote-configuration-options)
     * [**Crash Reporting**](#crash-reporting)
     * [**ANR Reporting**](#anr-reporting)
@@ -47,6 +48,7 @@ Measure.init(
         trackActivityIntentData = true,
         requestHeadersProvider = customRequestHeadersProvider,
         enableFullCollectionMode = false,
+        enableDiagnosticMode = false,
     )
 )
 ```
@@ -228,6 +230,36 @@ space for new data.
 Overrides all sampling configurations and enables full data collection for all sessions. Use this option for debugging
 and testing purposes. Defaults to `false`. Use this option with caution as it can lead to high data collection and
 storage costs if done at scale in production.
+
+## `enableDiagnosticMode`
+
+_Applies only to Android._
+
+Enables diagnostic mode which writes all internal SDK logs to a file on disk. The log file can be
+attached when reporting a bug to help with debugging SDK issues.
+
+Log files are stored in the app's internal storage at `files/measure/sdk_debug_logs/`. Each file is
+named with a unique ID and contains a header line with the SDK version and timestamp, followed by all
+SDK log entries.
+
+Defaults to `false`.
+
+> [!NOTE]
+> These files only contain Measure SDK logs, not your app's logs.
+
+#### Pulling log files via adb
+
+To pull all log files to your local machine:
+
+```shell
+adb shell "run-as <your.package.name> tar cf - files/measure/sdk_debug_logs/" | tar xf - -C /tmp/
+```
+
+To delete all diagnostic log files:
+
+```shell
+adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
+```
 
 # Remote Configuration Options
 

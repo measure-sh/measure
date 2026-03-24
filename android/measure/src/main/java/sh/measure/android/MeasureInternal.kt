@@ -9,6 +9,7 @@ import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.SdkDebugLogWriter
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
@@ -31,6 +32,24 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     private val lock = Any()
 
     fun init() {
+        try {
+            if (measure.configProvider.enableDiagnosticMode) {
+                val writer = SdkDebugLogWriter(
+                    logsDir = measure.fileStorage.getSdkDebugLogsDirectory(),
+                    sdkVersion = BuildConfig.MEASURE_SDK_VERSION,
+                    timestamp = measure.timeProvider.now(),
+                    fileId = measure.idProvider.uuid(),
+                    ioExecutor = measure.executorServiceRegistry.ioExecutor(),
+                )
+                writer.start()
+                measure.logger.setLogCallback { level, message, throwable ->
+                    writer.writeLog(level, message, throwable)
+                }
+            }
+        } catch (_: Exception) {
+            // Silently ignore to avoid affecting SDK initialization
+        }
+
         if (!setupNetworkClient()) {
             return
         }
