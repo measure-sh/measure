@@ -167,7 +167,7 @@ final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
 
         sut.generate(for: makeWindow(), touchPoint: .zero) { _ in }
 
-        XCTAssertEqual(mockProcessor.capturedStorageType, .gzipFileStorage)
+        XCTAssertEqual(mockProcessor.capturedStorageType, .gzip)
     }
 
     func test_generateJson_usesLayoutSnapshotJsonAttachmentType() {

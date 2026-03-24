@@ -91,7 +91,7 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
                 }
 
                 let attachment = self.attachmentProcessor.getAttachmentObject(for: jsonStringData,
-                                                                              storageType: .gzipFileStorage,
+                                                                              storageType: .gzip,
                                                                               attachmentType: .layoutSnapshotJson)
 
                 completion(attachment)

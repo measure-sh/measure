@@ -10,7 +10,7 @@ import Foundation
 enum AttachmentStorageType {
     case data
     case fileStorage
-    case gzipFileStorage
+    case gzip
 }
 
 protocol AttachmentProcessor {
@@ -49,13 +49,12 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
                 return nil
             }
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: nil, path: fileURL.path)
-        case .gzipFileStorage:
-            guard let compressedData = image.gzipped(),
-                  let fileURL = fileManager.saveFile(data: compressedData, name: attachmentName, folderName: nil, directory: .documentDirectory) else {
+        case .gzip:
+            guard let compressedData = image.gzipped() else {
                 logger.internalLog(level: .error, message: "Failed to gzip and save snapshot JSON to file storage.", error: nil, data: nil)
                 return nil
             }
-            return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: nil, path: fileURL.path)
+            return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(compressedData.count), id: uuid, bytes: compressedData, path: nil)
         }
     }
 }
