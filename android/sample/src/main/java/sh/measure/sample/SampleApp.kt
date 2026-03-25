@@ -16,7 +16,7 @@ class SampleApp : Application() {
                 trackActivityIntentData = true,
                 autoStart = true,
                 maxDiskUsageInMb = 1500,
-                enableFullCollectionMode = false,
+                enableFullCollectionMode = true,
                 enableDiagnosticMode = true,
             )
         )

@@ -1,7 +1,5 @@
 package sh.measure.android.gestures
 
-import android.os.Build
-import android.util.DisplayMetrics
 import android.view.MotionEvent
 import android.view.Window
 import curtains.Curtains
@@ -9,13 +7,14 @@ import curtains.OnRootViewsChangedListener
 import curtains.OnTouchEventListener
 import curtains.phoneWindow
 import curtains.touchEventInterceptors
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.layoutinspector.LayoutElement
 import sh.measure.android.layoutinspector.LayoutInspector
 import sh.measure.android.layoutinspector.LayoutSnapshot
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
-import sh.measure.android.layoutinspector.Node
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
@@ -77,49 +76,50 @@ internal class GestureCollector(
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
-        InternalTrace.trace(label = { "msr-trackGesture" }, block = {
-            val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
-            if (!(gesture != null && motionEvent.action == MotionEvent.ACTION_UP)) {
-                return@trace
-            }
-            val layoutSnapshot = try {
-                getLayoutSnapshot(gesture, window, motionEvent)
-            } catch (e: Exception) {
-                logger.log(LogLevel.Debug, "Failed to track gesture: unable to parse layout", e)
-                return@trace
-            }
+        try {
+            InternalTrace.trace(label = { "msr-trackGesture" }, block = {
+                val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
+                if (!(gesture != null && motionEvent.action == MotionEvent.ACTION_UP)) {
+                    return@trace
+                }
+                val layoutSnapshot = try {
+                    getLayoutSnapshot(gesture, window, motionEvent)
+                } catch (e: Exception) {
+                    logger.log(LogLevel.Debug, "GestureCollector: unable to parse layout", e)
+                    return@trace
+                }
 
-            if (layoutSnapshot.isEmpty()) {
-                return@trace
-            }
+                if (layoutSnapshot.totalNodeCount() == 0) {
+                    return@trace
+                }
 
-            val targetNode = findTargetNode(layoutSnapshot) ?: return@trace
-            when (gesture) {
-                is DetectedGesture.Click -> handleClick(
-                    gesture,
-                    targetNode,
-                    layoutSnapshot,
-                    window,
-                )
+                val targetNode = findTargetNode(layoutSnapshot) ?: return@trace
+                when (gesture) {
+                    is DetectedGesture.Click -> handleClick(
+                        gesture,
+                        targetNode,
+                        layoutSnapshot,
+                    )
 
-                is DetectedGesture.LongClick -> handleLongClick(gesture, targetNode)
-                is DetectedGesture.Scroll -> handleScroll(gesture, targetNode)
-            }
-        })
+                    is DetectedGesture.LongClick -> handleLongClick(gesture, targetNode)
+                    is DetectedGesture.Scroll -> handleScroll(gesture, targetNode)
+                }
+            })
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "GestureCollector: Failed to track gesture", e)
+        }
     }
 
-    private fun findTargetNode(layoutSnapshot: LayoutSnapshot): Node? = layoutSnapshot.findTargetNode()
+    private fun findTargetNode(layoutSnapshot: LayoutSnapshot): LayoutElement? = layoutSnapshot.findGestureConsumer()
 
     private fun handleClick(
         gesture: DetectedGesture.Click,
-        targetNode: Node,
+        element: LayoutElement,
         layoutSnapshot: LayoutSnapshot,
-        window: Window,
     ) {
-        val (width, height) = getScreenWidthHeight(window)
-        val data = ClickData.fromTargetNode(gesture, targetNode)
+        val data = ClickData.fromTargetNode(gesture, element)
         if (layoutSnapshotThrottler.shouldTakeSnapshot()) {
-            trackClickWithSnapshotAsync(gesture, data, layoutSnapshot, targetNode, width, height)
+            trackClickWithSnapshotAsync(gesture, data, layoutSnapshot)
         } else {
             trackClick(gesture, data)
         }
@@ -129,14 +129,12 @@ internal class GestureCollector(
         gesture: DetectedGesture.Click,
         data: ClickData,
         layoutSnapshot: LayoutSnapshot,
-        targetNode: Node,
-        width: Int,
-        height: Int,
     ) {
         val threadName = Thread.currentThread().name
         try {
             defaultExecutor.submit {
-                val attachment = layoutSnapshot.generateSvgAttachment(targetNode, width, height)
+                val attachment =
+                    layoutSnapshot.compressToAttachment(AttachmentType.LAYOUT_SNAPSHOT_JSON)
                 signalProcessor.track(
                     timestamp = gesture.timestamp,
                     type = EventType.CLICK,
@@ -159,8 +157,8 @@ internal class GestureCollector(
         signalProcessor.track(timestamp = gesture.timestamp, type = EventType.CLICK, data = data)
     }
 
-    private fun handleLongClick(gesture: DetectedGesture.LongClick, targetNode: Node) {
-        val data = LongClickData.fromTargetNode(gesture, targetNode)
+    private fun handleLongClick(gesture: DetectedGesture.LongClick, element: LayoutElement) {
+        val data = LongClickData.fromTargetNode(gesture, element)
         signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.LONG_CLICK,
@@ -168,8 +166,8 @@ internal class GestureCollector(
         )
     }
 
-    private fun handleScroll(gesture: DetectedGesture.Scroll, targetNode: Node) {
-        val data = ScrollData.fromTargetNode(gesture, targetNode)
+    private fun handleScroll(gesture: DetectedGesture.Scroll, element: LayoutElement) {
+        val data = ScrollData.fromTargetNode(gesture, element)
         signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.SCROLL,
@@ -186,21 +184,4 @@ internal class GestureCollector(
         gesture,
         motionEvent,
     )
-
-    // This is required for setting the correct SVG size.
-    // The window size can change when device is rotated, folded/unfolded
-    // or app is resized, Also, certain views like ViewPager do not respect viewport
-    // size, and draw outside of it to improve scroll perf leading to some content being rendered
-    // outside visible bounds of screen.
-    private fun getScreenWidthHeight(window: Window): Pair<Int, Int> = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-        val displayMetrics = DisplayMetrics()
-        @Suppress("DEPRECATION")
-        window.windowManager.defaultDisplay.getMetrics(displayMetrics)
-        Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
-    } else {
-        val bounds = window.windowManager.currentWindowMetrics.bounds
-        val width = bounds.width()
-        val height = bounds.height()
-        Pair(width, height)
-    }
 }

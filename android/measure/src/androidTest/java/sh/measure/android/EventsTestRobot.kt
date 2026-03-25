@@ -31,7 +31,7 @@ class EventsTestRobot {
             inputConfig = config,
         )
         Measure.initForInstrumentationTest(initializer)
-        initializer.configProvider.setDynamicConfig(dynamicConfig ?: DynamicConfig.default())
+        initializer.configProvider.setDynamicConfig(dynamicConfig ?: DynamicConfig())
     }
 
     fun clickButton() {

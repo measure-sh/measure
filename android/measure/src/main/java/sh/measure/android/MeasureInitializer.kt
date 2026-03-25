@@ -236,7 +236,6 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
         configProvider = configProvider,
-        sampler = sampler,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
         application,

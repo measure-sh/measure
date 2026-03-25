@@ -37,7 +37,6 @@ internal class SignalStoreTest {
         database,
         idProvider,
         configProvider,
-        sampler,
     )
 
     @Test
