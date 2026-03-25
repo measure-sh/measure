@@ -522,6 +522,12 @@ Android and iOS native SDK initializations.
 
 </details>
 
+### Flutter iOS — MeasureSDK must be linked statically
+
+Flutter adds `use_frameworks!` to the iOS `Podfile` by default, which causes CocoaPods to link all pods dynamically. MeasureSDK must be linked statically and will not work correctly with dynamic linking.
+
+To fix this, follow the [CocoaPods static linking instructions](#using-cocoapods) in the iOS setup section.
+
 ### Connecting to Locally-hosted Server (for self-host customers)
 
 **iOS**
