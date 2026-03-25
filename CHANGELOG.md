@@ -15,9 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add error rate spike thresholds prefs & make threshold prefs app specific by @anupcowkur in #3233
 - (**backend**): Implement app api key rotation by @anupcowkur in #3188
 - (**backend**): Send alerts on bug reports by @anupcowkur in #3183
+- (**backend**): Add test Slack alerts by @anupcowkur in #2898
+- (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
 - (**frontend**): Add network performance tab (#3281) by @abhaysood in #3281
 - (**frontend**): Add llms.txt and llms-full.txt by @anupcowkur in #3289
 - (**frontend**): Add docs to website by @anupcowkur in #3284
+- (**frontend**): Implement dynamic config (#3007) by @abhaysood in #3007
 
 ### :bug: Bug fixes
 
@@ -31,6 +34,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Populate session attributes for trace only sessions (#3196) by @detj in #3196
 - (**backend**): Fix syntax error in migration (#3181) by @detj in #3181
 - (**backend**): Migrate ingestion metrics synchronously (#3180) by @detj in #3180
+- (**backend**): Update migration for device manufacturer attribute (#3097) by @detj in #3097
+- (**backend**): Allow larger values for device manufacturer attribute (#3094) by @detj in #3094
+- (**backend**): Issue free metrics would not show for some cases (#3093) by @detj in #3093
+- (**backend**): Update migrations for 0.10.x release (#3084) by @abhaysood in #3084
+- (**backend**): Support empty filters in certain dashboard apis by @detj in #3043
+- (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
+- (**backend**): Handle panic on invalid exception payload (#3031) by @detj in #3031
+- (**backend**): Prevent duplicate sessions on search (#3026) by @detj in #3026
+- (**backend**): Improve handling of launch metrics delta nans by @detj in #2985
+- (**backend**): Only show sessions having many events (#2979) by @detj in #2979
+- (**backend**): Fix broken remember query (#2971) by @detj in #2971
+- (**backend**): Some attachments were not getting uploaded (#2967) by @detj in #2967
+- (**backend**): Move to async ingestion flow for higher throughput (#2964) by @detj in #2964
+- (**backend**): Fix default user auth error on clickhouse 25.8 migration (#2925) by @anupcowkur in #2925
+- (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
+- (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
+- (**backend**): Update last_seen for API key by @anupcowkur in #2903
 - (**frontend**): Fix overlapping text in session timeline (#3313) by @abhaysood in #3313
 - (**frontend**): Fix illegible text colour in user profile initials by @anupcowkur in #3279
 - (**frontend**): Copy correct api base url based on env variable by @anupcowkur in #3268
@@ -38,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Set posthog blocked status to true by default by @anupcowkur in #3179
 - (**frontend**): Handle posthog canary fetch non-200 status case by @anupcowkur in #3177
 - (**frontend**): Fix cookie banner issues by @anupcowkur in #3154
+- (**frontend**): Fix date filters by @anupcowkur in #3116
+- (**frontend**): Suppress theme change hydration warnings by @anupcowkur in #3101
+- (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
 
 ### :hammer: Misc
 
@@ -69,62 +92,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self-host gitignore (#3187) by @detj in #3187
 - (**backend**): Use additional context for inter dependencies in go services (#3156) by @detj in #3156
 - (**backend**): Implement cloud billing by @anupcowkur in #3151
-- (**frontend**): Remove http method from generic filters (#3323) by @abhaysood in #3323
-- (**frontend**): Reverse proxy all dashboard posthog requests (#3298) by @detj in #3298
-- (**frontend**): Add and link slack integration feature doc by @anupcowkur in #3297
-- (**frontend**): Remove custom colour override for slack switch by @anupcowkur in #3296
-- (**frontend**): Update llms.txt title by @anupcowkur in #3290
-- (**frontend**): Update search term dark highlight colour by @anupcowkur in #3286
-- (**frontend**): Improve pricing card UI by @anupcowkur in #3280
-- (**frontend**): Add test for ingest url fallback display by @anupcowkur in #3266
-- (**frontend**): Show subscription info for pro plans by @anupcowkur in #3234
-- (**frontend**): Show billing usage progress bar for free plans by @anupcowkur
-- (**frontend**): Add billing unit explanation to usage page by @anupcowkur
-- (**frontend**): Remove uneeded filters from api calls by @anupcowkur in #3224
-- Add biome config (#3300) by @detj in #3300
-
-### :zap: Performance
-
-- (**backend**): Pre-sign attachment urls async in batches (#3200) by @detj in #3200
-- (**backend**): Fetch user defined attribute keys concurrently (#3186) by @detj in #3186
-
-### :books: Documentation
-
-- Update billing flow diagram to include env var by @anupcowkur in #3176
-
-## [measure_build-v0.1.0] - 2026-02-19
-
-### :sparkles: New features
-
-- (**backend**): Add test Slack alerts by @anupcowkur in #2898
-- (**backend**): Add common path for Crashes and ANRs by @anupcowkur in #2894
-- (**frontend**): Implement dynamic config (#3007) by @abhaysood in #3007
-
-### :bug: Bug fixes
-
-- (**backend**): Update migration for device manufacturer attribute (#3097) by @detj in #3097
-- (**backend**): Allow larger values for device manufacturer attribute (#3094) by @detj in #3094
-- (**backend**): Issue free metrics would not show for some cases (#3093) by @detj in #3093
-- (**backend**): Update migrations for 0.10.x release (#3084) by @abhaysood in #3084
-- (**backend**): Support empty filters in certain dashboard apis by @detj in #3043
-- (**backend**): Size metrics will fail sometimes (#3035) by @detj in #3035
-- (**backend**): Handle panic on invalid exception payload (#3031) by @detj in #3031
-- (**backend**): Prevent duplicate sessions on search (#3026) by @detj in #3026
-- (**backend**): Improve handling of launch metrics delta nans by @detj in #2985
-- (**backend**): Only show sessions having many events (#2979) by @detj in #2979
-- (**backend**): Fix broken remember query (#2971) by @detj in #2971
-- (**backend**): Some attachments were not getting uploaded (#2967) by @detj in #2967
-- (**backend**): Move to async ingestion flow for higher throughput (#2964) by @detj in #2964
-- (**backend**): Fix default user auth error on clickhouse 25.8 migration (#2925) by @anupcowkur in #2925
-- (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
-- (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
-- (**backend**): Update last_seen for API key by @anupcowkur in #2903
-- (**frontend**): Fix date filters by @anupcowkur in #3116
-- (**frontend**): Suppress theme change hydration warnings by @anupcowkur in #3101
-- (**frontend**): Take users to overview page on team change by @anupcowkur in #2885
-
-### :hammer: Misc
-
 - (**backend**): Optimize & improve dashboard read queries (#3139) by @detj in #3139
 - (**backend**): Update /usage api response in docs by @anupcowkur in #3108
 - (**backend**): Update ingestion metrics by @anupcowkur in #3107
@@ -153,6 +120,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Remove http method from generic filters (#3323) by @abhaysood in #3323
+- (**frontend**): Reverse proxy all dashboard posthog requests (#3298) by @detj in #3298
+- (**frontend**): Add and link slack integration feature doc by @anupcowkur in #3297
+- (**frontend**): Remove custom colour override for slack switch by @anupcowkur in #3296
+- (**frontend**): Update llms.txt title by @anupcowkur in #3290
+- (**frontend**): Update search term dark highlight colour by @anupcowkur in #3286
+- (**frontend**): Improve pricing card UI by @anupcowkur in #3280
+- (**frontend**): Add test for ingest url fallback display by @anupcowkur in #3266
+- (**frontend**): Show subscription info for pro plans by @anupcowkur in #3234
+- (**frontend**): Show billing usage progress bar for free plans by @anupcowkur
+- (**frontend**): Add billing unit explanation to usage page by @anupcowkur
+- (**frontend**): Remove uneeded filters from api calls by @anupcowkur in #3224
 - (**frontend**): Update pricing breakdown labels by @anupcowkur in #3112
 - (**frontend**): Change label size of usage pie chart by @anupcowkur in #3111
 - (**frontend**): Show combined events in usage by @anupcowkur in #3110
@@ -168,13 +147,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Show app size delta using appropriate size units (#2997) by @detj in #2997
 - (**frontend**): Handle nan for delta & value separately in launch metrics by @anupcowkur in #2989
 - (**frontend**): Rename DangerConfirmationModal to DangerConfirmationDialog by @anupcowkur in #2901
+- Add biome config (#3300) by @detj in #3300
 
 ### :zap: Performance
 
+- (**backend**): Pre-sign attachment urls async in batches (#3200) by @detj in #3200
+- (**backend**): Fetch user defined attribute keys concurrently (#3186) by @detj in #3186
 - (**backend**): Improve performance of read queries (#3042) by @detj in #3042
 
 ### :books: Documentation
 
+- Update billing flow diagram to include env var by @anupcowkur in #3176
 - Add upgrade docs for sdks (#3142) by @abhaysood in #3142
 - Update sdk integration guide (#3109) by @abhaysood in #3109
 - Clarify http headers collection (#3133) by @abhaysood in #3133
@@ -2415,8 +2398,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
-[unreleased]: https://github.com/measure-sh/measure/compare/measure_build-v0.1.0..HEAD
-[measure_build-v0.1.0]: https://github.com/measure-sh/measure/compare/v0.9.2..measure_build-v0.1.0
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.9.2..HEAD
 [0.9.2]: https://github.com/measure-sh/measure/compare/v0.9.1..v0.9.2
 [0.9.1]: https://github.com/measure-sh/measure/compare/v0.9.0..v0.9.1
 [0.9.0]: https://github.com/measure-sh/measure/compare/v0.8.2..v0.9.0
