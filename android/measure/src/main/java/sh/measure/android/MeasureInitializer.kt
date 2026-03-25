@@ -269,7 +269,6 @@ internal class MeasureInitializerImpl(
         httpClient = httpClient,
         configProvider = configProvider,
         eventExportService = executorServiceRegistry.eventExportExecutor(),
-        attachmentExportService = executorServiceRegistry.attachmentExportExecutor(),
     ),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,

@@ -66,7 +66,6 @@ internal class ExporterTest {
         idProvider = idProvider,
         httpClient = httpClient,
         sleeper = sleeper,
-        attachmentExportService = attachmentExecutorService,
         eventExportService = eventExecutorService,
     )
 
