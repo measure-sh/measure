@@ -28,7 +28,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - uses: actions/setup-java@v3
         with:

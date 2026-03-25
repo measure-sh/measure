@@ -21,8 +21,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
-      issues: write
     timeout-minutes: 15
     
     steps:
@@ -31,7 +29,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - name: Setup Git
         run: |
@@ -65,7 +63,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(android): prepare next development version ${{ inputs.version }}"
           branch: prepare-next-android-${{ inputs.version }}
           delete-branch: true
