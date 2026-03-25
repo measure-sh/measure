@@ -138,7 +138,7 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         configProvider = configProvider,
     ),
-    override val idProvider: IdProvider = IdProviderImpl(randomizer),
+    private val idProvider: IdProvider = IdProviderImpl(randomizer),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
         context = application,
@@ -494,6 +494,5 @@ internal interface MeasureInitializer {
     val internalSignalCollector: InternalSignalCollector
     val spanAttributeProcessors: List<AttributeProcessor>
     val fileStorage: FileStorage
-    val idProvider: IdProvider
     val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
 }

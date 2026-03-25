@@ -14,6 +14,7 @@ internal interface DataCleanupService {
 }
 
 private const val DB_DELETION_BATCH_SIZE = 1000
+private const val MAX_SDK_DEBUG_LOG_FILES = 5
 
 /**
  * Cleans up stale data from the database and file storage.
@@ -43,6 +44,7 @@ internal class DataCleanupServiceImpl(
                     deleteBugReports(currentSessionId)
                     deleteEmptySessions(currentSessionId)
                     trimMemoryUsage(currentSessionId)
+                    trimSdkDebugLogs()
                 },
             )
         }
@@ -173,6 +175,23 @@ internal class DataCleanupServiceImpl(
                 }
             },
         )
+    }
+
+    private fun trimSdkDebugLogs() {
+        try {
+            val dir = fileStorage.getSdkDebugLogsDirectory() ?: return
+            val files = dir.listFiles() ?: return
+            if (files.size <= MAX_SDK_DEBUG_LOG_FILES) return
+
+            val filesToDelete = files.sortedBy { it.name }.dropLast(MAX_SDK_DEBUG_LOG_FILES)
+            logger.log(
+                LogLevel.Debug,
+                "Cleanup: Deleting ${filesToDelete.size} old SDK debug log files",
+            )
+            filesToDelete.forEach { it.delete() }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Debug, "Cleanup: Failed to clean up SDK debug log files", e)
+        }
     }
 
     private fun trimMemoryUsage(currentSessionId: String) {
