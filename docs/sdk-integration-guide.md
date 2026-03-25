@@ -239,6 +239,31 @@ visit their website. To integrate MeasureSDK into your Xcode project using Cocoa
 ```ruby
 pod 'measure-sh'
 ```
+> [!NOTE]  
+> MeasureSDK must be linked statically. If you are using `use_frameworks!` in your Podfile, you will need to ensure `measure-sh` is linked statically, as dynamic linking is not supported.
+
+CocoaPods does not natively support per-pod linkage overrides. You will need to install the [`cocoapods-pod-linkage`](https://github.com/microsoft/cocoapods-pod-linkage) plugin:
+
+```sh
+gem install cocoapods-pod-linkage
+```
+
+Then add the plugin and linkage option to your `Podfile`:
+
+```ruby
+plugin 'cocoapods-pod-linkage'
+
+target 'YourApp' do
+  use_frameworks!
+  pod 'measure-sh', :linkage => :static
+  # ... rest of your pods
+end
+```
+
+Alternatively, if all your pods can be linked statically, you can use:
+```ruby
+use_frameworks! :linkage => :static
+```
 
 #### Using Swift Package Manager
 
