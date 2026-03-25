@@ -105,7 +105,7 @@ internal class SessionManagerImpl(
 
     override fun onAppForeground() {
         if (appBackgroundTime == 0L) {
-            // happens when app hasn't gone to background yet
+            // happens when app hasn't gone to background, yet
             // it's coming to foreground for the first time.
             return
         }
@@ -142,10 +142,7 @@ internal class SessionManagerImpl(
     }
 
     override fun onConfigLoaded() {
-        val currentSessionId = sessionId
-        if (currentSessionId == null) {
-            return
-        }
+        val currentSessionId = sessionId ?: return
         if (sampler.shouldTrackJourneyForSession(currentSessionId)) {
             try {
                 ioExecutor.submit {
@@ -176,11 +173,11 @@ internal class SessionManagerImpl(
         this.sessionId = id
         this.sessionStartTime = startTime
         sessionStartListener?.onSessionStart(id, startTime)
-        storeSession(id)
+        storeSession(id, startTime)
         return id
     }
 
-    private fun storeSession(id: String) {
+    private fun storeSession(id: String, startTime: Long) {
         try {
             ioExecutor.submit {
                 InternalTrace.trace(
@@ -191,7 +188,7 @@ internal class SessionManagerImpl(
                             SessionEntity(
                                 id,
                                 pid,
-                                timeProvider.now(),
+                                startTime,
                                 supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                                 appVersion = packageInfoProvider.appVersion,
                                 appBuild = packageInfoProvider.getVersionCode(),
