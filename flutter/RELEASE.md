@@ -1,79 +1,95 @@
 # Release
 
+```mermaid
+graph LR
+    A["1. Run Prepare Flutter\nRelease workflow (manual)"]:::manual --> B["2. Review & merge\nPR (manual)"]:::manual
+    B --> C["3. Tag & push\n(manual)"]:::manual
+    C --> D[Publish to pub.dev]:::auto
+    D --> E[Create draft\nGitHub Release]:::auto
+    D --> F[Trigger prepare-next\nworkflow]:::auto
+    E --> G["4. Publish\nGitHub Release (manual)"]:::manual
+    F --> H["5. Review & merge\nprepare-next PR (manual)"]:::manual
+
+    classDef manual fill:#fff3cd,stroke:#856404
+    classDef auto fill:#d1e7dd,stroke:#0f5132
+```
+
 ## Pre-release Checklist
 
 - Ensure Measure Android SDK has been released and is available in Maven Central.
 - Ensure Measure iOS SDK has been released and is available in CocoaPods.
 
-## measure_flutter
+## Releasing a package
 
-- Checkout a new branch named `measure_flutter-vx.y.z` from the `main` branch.
-- Update the `pubspec.yaml` file with the new version number.
-- Update the `CHANGELOG.md` file with the new version number and release notes.
-- Update the `flutter/packages/measure_flutter/android/build.gradle` file with the required Measure Android SDK version.
-- Update the `flutter/packages/measure_flutter/ios/Podfile` file with the required Measure iOS SDK version.
-- Commit the changes `git commit -m "chore(flutter): prepare measure_flutter-vx.y.z"`.
-- Push the branch to the remote repository `git push origin measure_flutter-vx.y.z`.
-- Create a pull request from `measure_flutter-vx.y.z` to `main`.
-- Review and merge the pull request.
-- Tag the commit that was merged in the pull request with `measure_flutter-vx.y.z` to trigger the release workflow:
-  ```bash
-  git tag measure_flutter-vx.y.z
-  git push origin measure_flutter-vx.y.z
-  ```
-- Once the workflow completes:
-    - Go to Releases
-    - Find the draft release for `measure_flutter-vx.y.z`
-    - Add release notes
-    - Publish release
+All Flutter packages are released using the same **Prepare Flutter Release** workflow. Select the package from the dropdown and fill in the required inputs.
 
-- Checkout a new branch named `measure_flutter-next` from the `main` branch.
-- Update the `pubspec.yaml` file with the next version number.
-- Update the `flutter/packages/measure_flutter/android/build.gradle` file with the next snapshot version.
-- Update the `flutter/packages/measure_flutter/ios/Podfile` file with path to iOS SDK.
-- Commit the changes `git commit -m "chore(flutter): prepare next measure_flutter version"`.
-- Push the branch to the remote repository `git push origin measure_flutter-next`.
-- Create a pull request from `measure_flutter-next` to `main`.
-- Review and merge the pull request.
+### measure_flutter
 
-## measure_build
+1. Go to GitHub Actions and run the **Prepare Flutter Release** workflow with:
+   - `package`: `measure_flutter`
+   - `version`: the release version (e.g., `0.5.0`)
+   - `next_version`: the next development version (e.g., `0.6.0`)
+   - `android_sdk_version`: the Measure Android SDK version (e.g., `0.17.0`)
+   - `ios_sdk_version`: the Measure iOS SDK version (e.g., `0.10.0`)
+2. Review and merge the automatically created PR.
+3. Tag the merge commit and push:
+   ```bash
+   git tag measure_flutter-vX.Y.Z
+   git push origin measure_flutter-vX.Y.Z
+   ```
+4. The tag push triggers the release workflow which:
+   - Publishes to pub.dev
+   - Creates a draft GitHub Release with auto-generated changelog
+   - Triggers the prepare-next workflow automatically
+5. Go to Releases, review the draft, and publish it.
+6. Review and merge the prepare-next PR.
 
-- Checkout a new branch named `measure_build-vx.y.z` from the `main` branch.
-- Update the `pubspec.yaml` file with the new version number.
-- Commit the changes `git commit -m "chore(flutter): prepare measure_build-vx.y.z"`.
-- Push the branch to the remote repository `git push origin measure_build-vx.y.z`.
-- Create a pull request from `measure_build-vx.y.z` to `main`.
-- Review and merge the pull request.
-- Tag the commit that was merged in the pull request with `measure_build-vx.y.z` to trigger the release workflow:
-  ```bash
-  git tag measure_build-vx.y.z
-  git push origin measure_build-vx.y.z
-  ```
-- Once the workflow completes:
-  - Go to Releases
-  - Find the draft release for `measure_build-vx.y.z`
-  - Add release notes
-  - Publish release
+### measure_dio
 
+> **Note:** Ensure `measure_flutter` is released and available on pub.dev first.
 
-## measure_dio
+1. Go to GitHub Actions and run the **Prepare Flutter Release** workflow with:
+   - `package`: `measure_dio`
+   - `version`: the release version (e.g., `0.5.0`)
+   - `next_version`: the next development version (e.g., `0.6.0`)
+   - `measure_flutter_version`: the measure_flutter version to depend on (e.g., `0.5.0`)
+2. Review and merge the automatically created PR.
+3. Tag the merge commit and push:
+   ```bash
+   git tag measure_dio-vX.Y.Z
+   git push origin measure_dio-vX.Y.Z
+   ```
+4. The tag push triggers the release workflow which:
+   - Publishes to pub.dev
+   - Creates a draft GitHub Release with auto-generated changelog
+   - Triggers the prepare-next workflow automatically
+5. Go to Releases, review the draft, and publish it.
+6. Review and merge the prepare-next PR.
 
-- Ensure `measure_flutter` is released and available in the pub.dev.
-- Checkout a new branch named `measure_dio-vx.y.z` from the `main` branch.
-- Update the `pubspec.yaml` file with the new version number.
-- Update the `pubspec.yaml` file required `measure_flutter` version.
-- Update the `CHANGELOG.md` file with the new version number and release notes.
-- Commit the changes `git commit -m "chore(dio): prepare measure_dio-vx.y.z"`.
-- Push the branch to the remote repository `git push origin measure_dio-vx.y.z`.
-- Create a pull request from `measure_dio-vx.y.z` to `main`.
-- Review and merge the pull request.
-- Tag the commit that was merged in the pull request with `measure_dio-vx.y.z` to trigger the release workflow:
-  ```bash
-  git tag measure_dio-vx.y.z
-  git push origin measure_dio-vx.y.z
-  ```
-- Once the workflow completes:
-    - Go to Releases
-    - Find the draft release for `measure_dio-vx.y.z`
-    - Add release notes
-    - Publish release
+### measure_build
+
+1. Go to GitHub Actions and run the **Prepare Flutter Release** workflow with:
+   - `package`: `measure_build`
+   - `version`: the release version (e.g., `0.2.0`)
+   - `next_version`: the next development version (e.g., `0.3.0`)
+2. Review and merge the automatically created PR.
+3. Tag the merge commit and push:
+   ```bash
+   git tag measure_build-vX.Y.Z
+   git push origin measure_build-vX.Y.Z
+   ```
+4. The tag push triggers the release workflow which:
+   - Publishes to pub.dev
+   - Creates a draft GitHub Release with auto-generated changelog
+   - Triggers the prepare-next workflow automatically
+5. Go to Releases, review the draft, and publish it.
+6. Review and merge the prepare-next PR.
+
+## pub.dev Credentials Setup
+
+The release workflow requires a `PUB_DEV_CREDENTIALS` secret in GitHub Actions.
+
+To set it up:
+1. Run `dart pub login` locally
+2. Copy the contents of `~/.config/dart/pub-credentials.json`
+3. Add as a GitHub Actions secret named `PUB_DEV_CREDENTIALS`

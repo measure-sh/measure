@@ -20,6 +20,7 @@ jobs:
         working-directory: android
     permissions:
       contents: write
+      actions: write
     timeout-minutes: 15
     steps:
       - name: Checkout repository
@@ -27,7 +28,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - uses: actions/setup-java@v3
         with:
@@ -48,6 +49,15 @@ jobs:
         run: |
           ./gradlew :measure-android-gradle:publishPlugins
 
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: android/measure-android-gradle/cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,4 +66,23 @@ jobs:
             --title "${{ github.ref_name }}" \
             --draft \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.release-notes.outputs.content }}" \
             --verify-tag
+
+      - name: Extract release metadata from PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          BODY=$(gh pr list --state merged --head "$TAG" --json body --jq '.[0].body' || true)
+          NEXT_VERSION=$(echo "$BODY" | grep -oP '(?<=NEXT_VERSION=)\S+' || true)
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Trigger prepare-next workflow
+        if: steps.meta.outputs.next_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          gh workflow run "Prepare Next Android Gradle Plugin Version" \
+            -f version="${{ steps.meta.outputs.next_version }}"
