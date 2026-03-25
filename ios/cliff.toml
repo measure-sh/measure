@@ -72,7 +72,7 @@ filter_commits = true
 tag_pattern = "^ios-v[0-9]+\\.[0-9]+\\.[0-9]+$"
 
 # Ignore non-iOS tags
-ignore_tags = "^(android|backend|frontend|webapp|flutter|rn)"
+ignore_tags = "^(android|backend|frontend|webapp|flutter|rn|measure_flutter|measure_dio|measure_build)"
 
 # Sorting and ordering
 topo_order = false

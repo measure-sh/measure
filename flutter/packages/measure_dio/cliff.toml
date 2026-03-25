@@ -53,7 +53,7 @@ commit_parsers = [
 
 protect_breaking_commits = false
 filter_commits = true
-tag_pattern = "measure_flutter-v[0-9].*"
-ignore_tags = "^(android|ios|v|rn|measure_dio|measure_build)"
+tag_pattern = "measure_dio-v[0-9].*"
+ignore_tags = "^(android|ios|v|rn|measure_flutter|measure_build)"
 topo_order = false
 sort_commits = "newest"
