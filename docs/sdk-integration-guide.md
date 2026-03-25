@@ -239,6 +239,31 @@ visit their website. To integrate MeasureSDK into your Xcode project using Cocoa
 ```ruby
 pod 'measure-sh'
 ```
+> [!NOTE]  
+> MeasureSDK must be linked statically. If you are using `use_frameworks!` in your Podfile, you will need to ensure `measure-sh` is linked statically, as dynamic linking is not supported.
+
+CocoaPods does not natively support per-pod linkage overrides. You will need to install the [`cocoapods-pod-linkage`](https://github.com/microsoft/cocoapods-pod-linkage) plugin:
+
+```sh
+gem install cocoapods-pod-linkage
+```
+
+Then add the plugin and linkage option to your `Podfile`:
+
+```ruby
+plugin 'cocoapods-pod-linkage'
+
+target 'YourApp' do
+  use_frameworks!
+  pod 'measure-sh', :linkage => :static
+  # ... rest of your pods
+end
+```
+
+Alternatively, if all your pods can be linked statically, you can use:
+```ruby
+use_frameworks! :linkage => :static
+```
 
 #### Using Swift Package Manager
 
@@ -496,6 +521,12 @@ Flutter SDK depends on the native SDKs, so verify that the API URL and API key a
 Android and iOS native SDK initializations.
 
 </details>
+
+### Flutter iOS — MeasureSDK must be linked statically
+
+Flutter adds `use_frameworks!` to the iOS `Podfile` by default, which causes CocoaPods to link all pods dynamically. MeasureSDK must be linked statically and will not work correctly with dynamic linking.
+
+To fix this, follow the [CocoaPods static linking instructions](#using-cocoapods) in the iOS setup section.
 
 ### Connecting to Locally-hosted Server (for self-host customers)
 
