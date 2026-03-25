@@ -17,6 +17,7 @@ class SampleApp : Application() {
                 autoStart = true,
                 maxDiskUsageInMb = 1500,
                 enableFullCollectionMode = false,
+                enableDiagnosticMode = true,
             )
         )
         val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)

@@ -107,6 +107,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     override val requestHeadersProvider: MsrRequestHeadersProvider? =
         defaultConfig.requestHeadersProvider
     override val enableFullCollectionMode: Boolean = defaultConfig.enableFullCollectionMode
+    override val enableDiagnosticMode: Boolean = defaultConfig.enableDiagnosticMode
 
     // Dynamic config properties - use getters so they reflect current dynamicConfig state
     override val maxEventsInBatch: Int

@@ -9,6 +9,7 @@ internal interface Logger {
      */
     val enabled: Boolean
     fun log(level: LogLevel, message: String, throwable: Throwable? = null)
+    fun setLogCallback(callback: ((LogLevel, String, Throwable?) -> Unit)?)
 }
 
 /**

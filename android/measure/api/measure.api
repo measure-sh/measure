@@ -174,9 +174,10 @@ public abstract interface class sh/measure/android/bugreport/MsrShakeListener {
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;Z)V
-	public synthetic fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;ZZ)V
+	public synthetic fun <init> (ZIZZLsh/measure/android/config/MsrRequestHeadersProvider;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
+	public fun getEnableDiagnosticMode ()Z
 	public fun getEnableFullCollectionMode ()Z
 	public fun getEnableLogging ()Z
 	public fun getMaxDiskUsageInMb ()I
