@@ -128,6 +128,34 @@ func TestRunHourlyBillingCheck_ProPlanUnblocked(t *testing.T) {
 	}
 }
 
+func TestRunHourlyBillingCheck_FreePlanUnblockedNewMonth(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New().String()
+
+	// Team was blocked last month
+	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", false)
+	_, err := th.PgPool.Exec(ctx,
+		"UPDATE teams SET ingest_blocked_reason = $1 WHERE id = $2",
+		ReasonPlanLimitExceeded, teamID)
+	if err != nil {
+		t.Fatalf("setup blocked team: %v", err)
+	}
+
+	// No usage seeded for current month — hourly check should unblock
+	deps := testDeps()
+	RunHourlyBillingCheck(ctx, deps)
+
+	allow, reason := getTeamIngestStatus(ctx, t, teamID)
+	if !allow {
+		t.Error("expected allow_ingest=true after new month with no usage")
+	}
+	if reason != nil {
+		t.Errorf("expected reason=nil, got %q", *reason)
+	}
+}
+
 // ==========================================================================
 // Fetch teams with billing config
 // ==========================================================================
@@ -254,6 +282,33 @@ func TestCheckFreePlan_UnderLimit(t *testing.T) {
 	}
 	if reason != nil {
 		t.Errorf("expected reason=nil, got %v", *reason)
+	}
+}
+
+func TestCheckFreePlan_ExactlyAtLimit(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New().String()
+	appID := uuid.New().String()
+	now := time.Now().UTC()
+
+	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", true)
+	seedIngestionUsage(ctx, t, teamID, appID, now, 0, 0, 0, uint64(FreePlanMaxBytes)) // exactly 5 GB
+
+	team := TeamBillingInfo{
+		TeamID:   teamID,
+		TeamName: "TestTeam",
+		Plan:     "free",
+	}
+
+	deps := testDeps()
+	allow, reason := checkFreePlan(ctx, deps, team)
+	if allow {
+		t.Error("expected allow=false at exactly FreePlanMaxBytes")
+	}
+	if reason == nil || *reason != ReasonPlanLimitExceeded {
+		t.Errorf("expected reason=%q, got %v", ReasonPlanLimitExceeded, reason)
 	}
 }
 
@@ -581,6 +636,162 @@ func TestCheckProPlan_CanceledSubscription(t *testing.T) {
 			}
 			if emailCount != 1 {
 				t.Errorf("expected 1 notification email, got %d", emailCount)
+			}
+		})
+	}
+}
+
+func TestCheckProPlan_UnpaidSubscription(t *testing.T) {
+	tests := []struct {
+		name       string
+		totalBytes uint64
+		wantAllow  bool
+		wantReason *string
+	}{
+		{
+			name:       "over free limit",
+			totalBytes: uint64(FreePlanMaxBytes) + 1,
+			wantAllow:  false,
+			wantReason: strPtr(ReasonPlanLimitExceeded),
+		},
+		{
+			name:       "within free limit",
+			totalBytes: 0,
+			wantAllow:  true,
+			wantReason: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			t.Cleanup(func() { cleanupAll(ctx, t) })
+
+			deps := testDeps()
+			deps.GetSubscription = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+				return &stripe.Subscription{Status: stripe.SubscriptionStatusUnpaid}, nil
+			}
+
+			teamID := uuid.New().String()
+			userID := uuid.New().String()
+			seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
+			seedUser(ctx, t, userID, "pro@example.com")
+			seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+			if tt.totalBytes > 0 {
+				appID := uuid.New().String()
+				seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 1, 1, 0, tt.totalBytes)
+			}
+
+			subID := "sub_unpaid"
+			team := TeamBillingInfo{
+				TeamID:               teamID,
+				TeamName:             "ProTeam",
+				Plan:                 "pro",
+				StripeSubscriptionID: &subID,
+			}
+
+			allow, reason := checkProPlan(ctx, deps, team)
+			if allow != tt.wantAllow {
+				t.Errorf("allow = %v, want %v", allow, tt.wantAllow)
+			}
+			if !stringPtrEqual(reason, tt.wantReason) {
+				t.Errorf("reason = %v, want %v", reason, tt.wantReason)
+			}
+
+			bc := getTeamBilling(ctx, t, uuid.MustParse(teamID))
+			if bc.Plan != "free" {
+				t.Errorf("plan = %q, want %q (unpaid is terminal)", bc.Plan, "free")
+			}
+		})
+	}
+}
+
+func TestCheckProPlan_IncompleteExpiredSubscription(t *testing.T) {
+	tests := []struct {
+		name       string
+		totalBytes uint64
+		wantAllow  bool
+		wantReason *string
+	}{
+		{
+			name:       "over free limit",
+			totalBytes: uint64(FreePlanMaxBytes) + 1,
+			wantAllow:  false,
+			wantReason: strPtr(ReasonPlanLimitExceeded),
+		},
+		{
+			name:       "within free limit",
+			totalBytes: 0,
+			wantAllow:  true,
+			wantReason: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			t.Cleanup(func() { cleanupAll(ctx, t) })
+
+			deps := testDeps()
+			deps.GetSubscription = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+				return &stripe.Subscription{Status: stripe.SubscriptionStatusIncompleteExpired}, nil
+			}
+
+			teamID := uuid.New().String()
+			userID := uuid.New().String()
+			seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
+			seedUser(ctx, t, userID, "pro@example.com")
+			seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+			if tt.totalBytes > 0 {
+				appID := uuid.New().String()
+				seedIngestionUsage(ctx, t, teamID, appID, time.Now().UTC(), 1, 1, 0, tt.totalBytes)
+			}
+
+			subID := "sub_incomplete_expired"
+			team := TeamBillingInfo{
+				TeamID:               teamID,
+				TeamName:             "ProTeam",
+				Plan:                 "pro",
+				StripeSubscriptionID: &subID,
+			}
+
+			allow, reason := checkProPlan(ctx, deps, team)
+			if allow != tt.wantAllow {
+				t.Errorf("allow = %v, want %v", allow, tt.wantAllow)
+			}
+			if !stringPtrEqual(reason, tt.wantReason) {
+				t.Errorf("reason = %v, want %v", reason, tt.wantReason)
+			}
+
+			bc := getTeamBilling(ctx, t, uuid.MustParse(teamID))
+			if bc.Plan != "free" {
+				t.Errorf("plan = %q, want %q (incomplete_expired is terminal)", bc.Plan, "free")
+			}
+		})
+	}
+}
+
+func TestIsTerminalSubscriptionStatus(t *testing.T) {
+	tests := []struct {
+		status stripe.SubscriptionStatus
+		want   bool
+	}{
+		{stripe.SubscriptionStatusActive, false},
+		{stripe.SubscriptionStatusPastDue, false},
+		{stripe.SubscriptionStatusIncomplete, false},
+		{stripe.SubscriptionStatusTrialing, false},
+		{stripe.SubscriptionStatusPaused, false},
+		{stripe.SubscriptionStatusCanceled, true},
+		{stripe.SubscriptionStatusUnpaid, true},
+		{stripe.SubscriptionStatusIncompleteExpired, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.status), func(t *testing.T) {
+			if got := IsTerminalSubscriptionStatus(tt.status); got != tt.want {
+				t.Errorf("IsTerminalSubscriptionStatus(%s) = %v, want %v", tt.status, got, tt.want)
 			}
 		})
 	}

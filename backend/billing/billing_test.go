@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 )
@@ -436,6 +437,45 @@ func TestGetSubscriptionInfo(t *testing.T) {
 	})
 }
 
+func TestGetSubscriptionInfo_NoSubscriptionItems(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "pro-team", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+	origSub := GetStripeSubscriptionFn
+	GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+		return &stripe.Subscription{
+			ID:     "sub_test",
+			Status: stripe.SubscriptionStatusActive,
+			Items:  &stripe.SubscriptionItemList{Data: []*stripe.SubscriptionItem{}},
+		}, nil
+	}
+	t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+	origInv := CreateInvoicePreviewFn
+	CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+		return &stripe.Invoice{AmountDue: 1000, Currency: stripe.CurrencyUSD}, nil
+	}
+	t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+	info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if info.Status != string(stripe.SubscriptionStatusActive) {
+		t.Errorf("status = %q, want %q", info.Status, stripe.SubscriptionStatusActive)
+	}
+	if info.CurrentPeriodStart != 0 {
+		t.Errorf("current_period_start = %d, want 0", info.CurrentPeriodStart)
+	}
+	if info.CurrentPeriodEnd != 0 {
+		t.Errorf("current_period_end = %d, want 0", info.CurrentPeriodEnd)
+	}
+}
+
 const testCheckoutUserEmail = "user@test.com"
 
 // --------------------------------------------------------------------------
@@ -656,6 +696,52 @@ func TestProcessDowngrade(t *testing.T) {
 	})
 }
 
+func TestProcessDowngrade_ClickHouseFailure_FailsOpen(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, "test-team", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_abc"), strPtr("sub_abc"))
+	seedApp(ctx, t, appID, teamID, 180)
+
+	// Create a closed ClickHouse connection so queries fail.
+	brokenConn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{"127.0.0.1:1"},
+	})
+	if err != nil {
+		t.Fatalf("clickhouse.Open: %v", err)
+	}
+	brokenConn.Close()
+
+	deps := testDeps()
+	deps.ChPool = brokenConn
+
+	if err := ProcessDowngrade(ctx, deps, teamID); err != nil {
+		t.Fatalf("ProcessDowngrade should not return error on CH failure (fail-open): %v", err)
+	}
+
+	// Verify billing was downgraded
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "free" {
+		t.Errorf("plan = %q, want %q", bc.Plan, "free")
+	}
+
+	// Verify ingest is allowed (fail-open)
+	if !getTeamAllowIngest(ctx, t, teamID) {
+		t.Error("allow_ingest should be true (fail-open on CH error)")
+	}
+	if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
+		t.Errorf("ingest_blocked_reason = %q, want nil (fail-open)", *reason)
+	}
+
+	// Verify retention was still reset
+	if r := getAppRetention(ctx, t, appID); r != FreePlanMaxRetentionDays {
+		t.Errorf("app retention = %d, want %d", r, FreePlanMaxRetentionDays)
+	}
+}
+
 // --------------------------------------------------------------------------
 // CancelAndDowngradeToFree
 // --------------------------------------------------------------------------
@@ -793,6 +879,39 @@ func TestCancelAndDowngradeToFree_SubscriptionAlreadyCanceled(t *testing.T) {
 	}
 	if plan != "free" {
 		t.Errorf("expected plan=free, got %q", plan)
+	}
+}
+
+func TestCancelAndDowngradeToFree_GenericStripeError(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	deps := testDeps()
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "ProTeam", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_123"), strPtr("sub_123"))
+
+	orig := CancelSubscriptionFn
+	CancelSubscriptionFn = func(id string, params *stripe.SubscriptionCancelParams) (*stripe.Subscription, error) {
+		return nil, &stripe.Error{
+			Code: stripe.ErrorCodeCardDeclined,
+			Msg:  "generic stripe failure",
+		}
+	}
+	t.Cleanup(func() { CancelSubscriptionFn = orig })
+
+	err := CancelAndDowngradeToFree(ctx, deps, teamID)
+	if err == nil {
+		t.Fatal("expected error for non-resource-missing Stripe error")
+	}
+	if !strings.Contains(err.Error(), "failed to cancel stripe subscription") {
+		t.Errorf("error = %q, want to contain 'failed to cancel stripe subscription'", err.Error())
+	}
+
+	// Verify team remains on pro (cancel failed, state unchanged)
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "pro" {
+		t.Errorf("plan = %q, want %q (should remain pro after cancel failure)", bc.Plan, "pro")
 	}
 }
 
@@ -956,6 +1075,64 @@ func TestInitiateUpgrade_EmptyPriceID(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "price ID not configured") {
 		t.Errorf("error = %q, want to contain 'price ID not configured'", err.Error())
+	}
+}
+
+func TestInitiateUpgrade_FindActiveSubscriptionFails(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "FreeTeam", true)
+	seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
+
+	origFind := FindActiveSubscriptionFn
+	FindActiveSubscriptionFn = func(customerID string) (*stripe.Subscription, error) {
+		return nil, fmt.Errorf("stripe list subscriptions failed")
+	}
+	t.Cleanup(func() { FindActiveSubscriptionFn = origFind })
+
+	_, err := InitiateUpgrade(ctx, th.PgPool, teamID, testCheckoutUserEmail, "price_123", "https://ok", "https://cancel")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "failed to check existing subscriptions") {
+		t.Errorf("error = %q, want to contain 'failed to check existing subscriptions'", err.Error())
+	}
+
+	// Verify team not modified
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "free" {
+		t.Errorf("plan = %q, want %q (unchanged)", bc.Plan, "free")
+	}
+}
+
+func TestInitiateUpgrade_CheckoutSessionCreationFails(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "FreeTeam", true)
+	seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
+
+	origFind := FindActiveSubscriptionFn
+	FindActiveSubscriptionFn = func(customerID string) (*stripe.Subscription, error) {
+		return nil, nil
+	}
+	t.Cleanup(func() { FindActiveSubscriptionFn = origFind })
+
+	origCheckout := CreateStripeCheckoutSessionFn
+	CreateStripeCheckoutSessionFn = func(params *stripe.CheckoutSessionParams) (*stripe.CheckoutSession, error) {
+		return nil, fmt.Errorf("stripe checkout unavailable")
+	}
+	t.Cleanup(func() { CreateStripeCheckoutSessionFn = origCheckout })
+
+	_, err := InitiateUpgrade(ctx, th.PgPool, teamID, testCheckoutUserEmail, "price_123", "https://ok", "https://cancel")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "failed to create checkout session") {
+		t.Errorf("error = %q, want to contain 'failed to create checkout session'", err.Error())
 	}
 }
 
@@ -1400,3 +1577,4 @@ func TestGetUsageThreshold(t *testing.T) {
 		}
 	})
 }
+
