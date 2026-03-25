@@ -170,6 +170,50 @@ func TestCountAllSpans(t *testing.T) {
 }
 
 // ==========================================================================
+// Byte counting from ClickHouse
+// ==========================================================================
+
+func TestCountAllBytes(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("no data", func(t *testing.T) {
+		t.Cleanup(func() { cleanupAll(ctx, t) })
+
+		counts, err := countAllBytes(ctx, th.ChConn)
+		if err != nil {
+			t.Fatalf("countAllBytes: %v", err)
+		}
+		if len(counts) != 0 {
+			t.Errorf("got %d teams, want 0", len(counts))
+		}
+	})
+
+	t.Run("multiple teams", func(t *testing.T) {
+		t.Cleanup(func() { cleanupAll(ctx, t) })
+
+		teamA := uuid.New().String()
+		teamB := uuid.New().String()
+		appID := uuid.New().String()
+		now := time.Now().UTC()
+
+		seedIngestionUsage(ctx, t, teamA, appID, now, 0, 0, 0, 1024*1024)
+		seedIngestionUsage(ctx, t, teamB, appID, now, 0, 0, 0, 5*1024*1024)
+
+		counts, err := countAllBytes(ctx, th.ChConn)
+		if err != nil {
+			t.Fatalf("countAllBytes: %v", err)
+		}
+
+		if counts[teamA] != 1024*1024 {
+			t.Errorf("teamA bytes = %d, want %d", counts[teamA], 1024*1024)
+		}
+		if counts[teamB] != 5*1024*1024 {
+			t.Errorf("teamB bytes = %d, want %d", counts[teamB], 5*1024*1024)
+		}
+	})
+}
+
+// ==========================================================================
 // Persist daily usage snapshots
 // ==========================================================================
 
