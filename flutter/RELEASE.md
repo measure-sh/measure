@@ -84,12 +84,3 @@ All Flutter packages are released using the same **Prepare Flutter Release** wor
    - Triggers the prepare-next workflow automatically
 5. Go to Releases, review the draft, and publish it.
 6. Review and merge the prepare-next PR.
-
-## pub.dev Credentials Setup
-
-The release workflow requires a `PUB_DEV_CREDENTIALS` secret in GitHub Actions.
-
-To set it up:
-1. Run `dart pub login` locally
-2. Copy the contents of `~/.config/dart/pub-credentials.json`
-3. Add as a GitHub Actions secret named `PUB_DEV_CREDENTIALS`

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.17.0] - 2026-03-25
+
+### :sparkles: New features
+
+- (**android**): Implement improved layout snapshots (#3308) by @abhaysood in #3308
+- (**android**): Add diagnostic mode for SDK logging (#3333) by @abhaysood in #3333
+
+### :bug: Bug fixes
+
+- (**android**): Mask bug report screenshots (#3309) by @abhaysood in #3309
+
+### :hammer: Misc
+
+- (**android**): Use correct session start time in sessions table (#3343) by @abhaysood in #3343
+- (**android**): Fix incorrect export flag handling (#3342) by @abhaysood in #3342
+- (**android**): Limit sdk log files to max 5 (#3340) by @abhaysood in #3340
+- (**android**): Export existing events when a new session starts (#3338) by @abhaysood in #3338
+- (**android**): Increase read and connection timeout (#3335) by @abhaysood in #3335
+- (**android**): Cleanup expired attachments (#3310) by @abhaysood in #3310
+
 ## [android-v0.16.1] - 2026-03-04
 
 ### :bug: Bug fixes
@@ -13,10 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.16.1 (#3258) by @abhaysood in #3258
 - (**android**): Use ISO 8601 for session start time attribute (#3247) by @abhaysood in #3247
 - (**android**): Add session start time attr to events and spans (#3246) by @abhaysood in #3246
 - (**android**): Handle http_sampling_rate dynamic config (#3229) by @abhaysood in #3229
-- (**android**): Upload mapping file artifact in sample app build (#3244) by @abhaysood in #3244
 - (**android**): Allow configuring sample app credentials (#3243) by @abhaysood in #3243
 - (**android**): Set next development version (#3150) by @abhaysood in #3150
 
@@ -100,8 +120,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**android**): Prepare sdk release 0.13.0 (#2782) by @abhaysood in #2782
-- (**android**): Fix config.toml path for changelog generation (#2781) by @abhaysood in #2781
-- (**android**): Fix changelog generation (#2779) by @abhaysood in #2779
 - (**android**): Continue existing attachment export on unregister (#2767) by @abhaysood in #2767
 - (**android**): Json events request & separate attachment upload (#2706) by @abhaysood in #2706
 - (**android**): Support latest okhttp and navigation for auto collection (#2679) by @abhaysood in #2679
@@ -152,7 +170,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**android**): Prepare sdk release 0.11.0 (#2405) by @abhaysood in #2405
-- (**android**): Fix prepare release command (#2402) by @abhaysood in #2402
 - (**android**): Hide config serialization from public api (#2388) by @abhaysood in #2388
 - (**android**): Remove shake to launch bug report config (#2359) by @abhaysood in #2359
 - (**android**): Remove event transformer (#2298) by @abhaysood in #2298
@@ -210,7 +227,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - (**android**): Improve android README by @abhaysood in #1793
-- (**readme**): Update banner image by @gandharva in #1768
 
 ## [android-v0.9.0] - 2025-01-06
 
@@ -238,7 +254,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Upgrade agp to 8.7.3 by @abhaysood in #1672
 - (**android**): Apply spotless to gradle plugin module by @abhaysood
 - (**android**): Remove uneeded log for SVG by @abhaysood in #1662
-- (**android**): Update gradle wrapper validation action by @abhaysood in #1616
 - (**android**): Bump up curtains to 1.2.5 by @abhaysood in #1536
 - (**android**): Prepare next development version of SDK by @abhaysood in #1483
 
@@ -344,10 +359,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**android**): Prepare sdk release 0.6.1 by @abhaysood in #1186
 - (**android**): Prepare next development version for gradle plugin by @abhaysood in #1091
-- (**android**): Re-enable all android workflow jobs by @abhaysood in #1090
-- (**android**): Explicitly publish plugin and plugin marker to maven central by @abhaysood
-- (**android**): Temporary disable all jobs except publish by @abhaysood
-- (**android**): Fix release commands by @abhaysood
 - (**android**): Prepare gradle plugin release 0.6.0 by @abhaysood
 - (**android**): Prepare next development version of SDK by @abhaysood in #1089
 - (**android**): Prepare sdk release 0.6.0 by @abhaysood
@@ -392,9 +403,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add todo for handling event insertion failures for early crashes by @abhaysood in #1008
 - (**android**): Improve error handling for event insertion failures by @abhaysood
 - (**android**): Create new session before any collectors are registered by @abhaysood
-- (**android**): Fix path for CI workflows by @abhaysood
 - (**android**): Implement versioning for sample app by @abhaysood in #1003
-- (**android**): Fix ambiguous path in android workflow by @abhaysood in #999
 - (**android**): Update references to path measure-android to android by @abhaysood in #988
 - (**android**): Rename measure-android directory to android by @abhaysood
 - (**android**): Prepare next development version of gradle plugin by @abhaysood
@@ -577,10 +586,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
-- (**android**): Update workflow to run for tags by @abhaysood in #919
 - (**android**): Prepare next development version by @abhaysood
 - (**android**): Prepare release 0.3.0 for SDK and gradle plugin by @abhaysood
-- (**android**): Update publish step conditions by @abhaysood
 - (**android**): Downgrade android-tools by @abhaysood in #913
 - (**android**): Upgrade dependencies by @abhaysood
 - (**android**): Add configuration to configure measure plugin for variants by @abhaysood in #912
@@ -590,7 +597,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Improve error handling for events export by @abhaysood in #898
 - (**android**): Publish benchmark results on README by @abhaysood
 - (**android**): Fix lint warning by @abhaysood
-- (**android**): Run publish only for releases by @abhaysood in #870
 - (**android**): Enable publishing to maven by @abhaysood in #862
 - (**android**): Fix android tests by @abhaysood in #836
 - (**android**): Remove user defined attributes from network request by @abhaysood
@@ -804,11 +810,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Fix typo in compose theme name by @abhaysood
 - (**android**): Convert gesture benchmark to target finder by @abhaysood in #377
 - (**android**): Reformat by @abhaysood
-- (**android**): Run checks on all projects on ci by @abhaysood
 - (**android**): Rename gradle plugin dir by @abhaysood
 - (**android**): Update dependencies by @abhaysood in #369
-- (**android**): Run gradle plugin tests on CI by @abhaysood in #356
-- (**android**): Add action to publish measure sdk and plugin to github by @abhaysood in #353
 - (**android**): Test plugin doesn't break configuration cache by @abhaysood in #334
 - (**android**): Run all checks on CI by @abhaysood in #344
 - (**android**): Fix formatting by @abhaysood
@@ -866,6 +869,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.17.0]: https://github.com/measure-sh/measure/compare/android-v0.16.1..android-v0.17.0
 [android-v0.16.1]: https://github.com/measure-sh/measure/compare/android-v0.16.0..android-v0.16.1
 [android-v0.16.0]: https://github.com/measure-sh/measure/compare/android-v0.15.1..android-v0.16.0
 [android-v0.15.1]: https://github.com/measure-sh/measure/compare/android-v0.15.0..android-v0.15.1
@@ -882,4 +886,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [android-v0.6.1]: https://github.com/measure-sh/measure/compare/android-v0.5.0..android-v0.6.1
 [android-v0.5.0]: https://github.com/measure-sh/measure/compare/android-v0.4.0..android-v0.5.0
 [android-v0.4.0]: https://github.com/measure-sh/measure/compare/android-v0.3.0..android-v0.4.0
-
