@@ -19,7 +19,17 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface Exporter {
+    /**
+     * Exports existing batches and attachments,
+     * creates new batches if needed and exports
+     * them one by one.
+     */
     fun export()
+
+    /**
+     * Exports existing batches and attachments.
+     */
+    fun flush()
 }
 
 internal class ExporterImpl(
@@ -53,24 +63,21 @@ internal class ExporterImpl(
         }
     }
 
+    override fun flush() {
+        if (isExporting.compareAndSet(false, true)) {
+            eventExportService.submit {
+                exportExistingBatches()
+                exportAttachments()
+            }
+        }
+    }
+
     private fun exportEvents() {
         try {
             eventExportService.submit {
                 try {
                     // First export existing batches
-                    val existingBatches = database.getBatchIds()
-                    if (existingBatches.isNotEmpty()) {
-                        logger.log(
-                            LogLevel.Debug,
-                            "Exporter: found ${existingBatches.size} existing batches, exporting",
-                        )
-
-                        val success = exportBatches(existingBatches)
-                        if (!success) {
-                            // abort if no batches found or export failed
-                            return@submit
-                        }
-                    }
+                    if (exportExistingBatches()) return@submit
 
                     // Then create new batches and export
                     val batchesCreatedCount = database.batchSessions(
@@ -98,6 +105,22 @@ internal class ExporterImpl(
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Exporter: failed to submit export task", e)
         }
+    }
+
+    private fun exportExistingBatches(): Boolean {
+        val existingBatches = database.getBatchIds()
+        if (existingBatches.isNotEmpty()) {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: found ${existingBatches.size} existing batches, exporting",
+            )
+
+            val success = exportBatches(existingBatches)
+            if (!success) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun exportBatches(batches: List<String>): Boolean {

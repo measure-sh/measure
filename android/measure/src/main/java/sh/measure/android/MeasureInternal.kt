@@ -145,6 +145,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             // always sample session start event
             isSampled = true,
         )
+        measure.exporter.flush()
     }
 
     fun setUserId(userId: String) {
