@@ -41,8 +41,8 @@ internal interface HttpClient {
  * body in memory.
  */
 internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient {
-    private val connectionTimeoutMs = 30_000
-    private val readTimeoutMs = 10_000
+    private val connectionTimeoutMs = 60_000
+    private val readTimeoutMs = 60_000
     private val maxRedirects = 5
 
     override fun sendJsonRequest(
