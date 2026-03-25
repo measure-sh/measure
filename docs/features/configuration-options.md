@@ -233,6 +233,9 @@ storage costs if done at scale in production.
 
 ## `enableDiagnosticMode`
 
+> [!WARNING]
+> These files only contain Measure SDK logs, not your app's logs. This option should only be enabled in debug builds.
+
 _Applies only to Android._
 
 Enables diagnostic mode which writes all internal SDK logs to a file on disk. The log file can be
@@ -242,17 +245,16 @@ Log files are stored in the app's internal storage at `files/measure/sdk_debug_l
 named with a unique ID and contains a header line with the SDK version and timestamp, followed by all
 SDK log entries.
 
-Defaults to `false`.
+Only the 5 most recent files are kept, rest are cleaned up automatically.
 
-> [!NOTE]
-> These files only contain Measure SDK logs, not your app's logs.
+Defaults to `false`.
 
 #### Pulling log files via adb
 
 To pull all log files to your local machine:
 
 ```shell
-adb shell "run-as <your.package.name> tar cf - files/measure/sdk_debug_logs/" | tar xf - -C /tmp/
+adb shell "run-as <your.package.name> tar czf - measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
 ```
 
 To delete all diagnostic log files:

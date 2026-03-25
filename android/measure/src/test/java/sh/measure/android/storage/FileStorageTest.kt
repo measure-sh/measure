@@ -93,4 +93,22 @@ class FileStorageTest {
         assertTrue(file.exists())
         assertTrue(file.isDirectory)
     }
+
+    @Test
+    fun `getSdkDebugLogsDirectory creates and returns directory`() {
+        val dir = fileStorage.getSdkDebugLogsDirectory()
+        assertNotNull(dir)
+        assertTrue(dir!!.exists())
+        assertTrue(dir.isDirectory)
+        assertTrue(dir.path.endsWith("measure/sdk_debug_logs"))
+    }
+
+    @Test
+    fun `getSdkDebugLogsDirectory returns existing directory on subsequent calls`() {
+        val dir1 = fileStorage.getSdkDebugLogsDirectory()
+        val dir2 = fileStorage.getSdkDebugLogsDirectory()
+        assertNotNull(dir1)
+        assertNotNull(dir2)
+        assertTrue(dir1!!.path == dir2!!.path)
+    }
 }

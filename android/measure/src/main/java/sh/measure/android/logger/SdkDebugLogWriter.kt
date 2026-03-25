@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit
  * All file I/O (including [sink] access) runs exclusively on the single-threaded [ioExecutor].
  */
 internal class SdkDebugLogWriter(
-    private val logsDir: String,
+    private val logsDir: File,
     private val sdkVersion: String,
-    private val timestamp: Long,
-    private val fileId: String,
+    private val fileName: String,
+    private val timestamp: String,
     private val ioExecutor: MeasureExecutorService,
 ) {
     private val buffer = mutableListOf<LogEntry>()
@@ -30,9 +30,7 @@ internal class SdkDebugLogWriter(
     fun start() {
         ioExecutor.submit {
             try {
-                val dir = File(logsDir)
-                if (!dir.exists()) dir.mkdirs()
-                val file = File(dir, fileId)
+                val file = File(logsDir, fileName)
                 sink = file.sink().buffer()
                 sink?.writeUtf8("$sdkVersion $timestamp\n")?.flush()
             } catch (_: Exception) {

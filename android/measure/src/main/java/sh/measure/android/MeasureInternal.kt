@@ -13,6 +13,7 @@ import sh.measure.android.logger.SdkDebugLogWriter
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
+import sh.measure.android.utils.iso8601Timestamp
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -34,16 +35,20 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     fun init() {
         try {
             if (measure.configProvider.enableDiagnosticMode) {
-                val writer = SdkDebugLogWriter(
-                    logsDir = measure.fileStorage.getSdkDebugLogsDirectory(),
-                    sdkVersion = BuildConfig.MEASURE_SDK_VERSION,
-                    timestamp = measure.timeProvider.now(),
-                    fileId = measure.idProvider.uuid(),
-                    ioExecutor = measure.executorServiceRegistry.ioExecutor(),
-                )
-                writer.start()
-                measure.logger.setLogCallback { level, message, throwable ->
-                    writer.writeLog(level, message, throwable)
+                val logsDir = measure.fileStorage.getSdkDebugLogsDirectory()
+                if (logsDir != null) {
+                    val now = measure.timeProvider.now()
+                    val writer = SdkDebugLogWriter(
+                        logsDir = logsDir,
+                        sdkVersion = BuildConfig.MEASURE_SDK_VERSION,
+                        fileName = now.toString(),
+                        timestamp = now.iso8601Timestamp(),
+                        ioExecutor = measure.executorServiceRegistry.ioExecutor(),
+                    )
+                    writer.start()
+                    measure.logger.setLogCallback { level, message, throwable ->
+                        writer.writeLog(level, message, throwable)
+                    }
                 }
             }
         } catch (_: Exception) {

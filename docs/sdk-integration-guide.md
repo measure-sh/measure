@@ -567,3 +567,50 @@ For example: set the API URL to `https://measure-api.<your-domain>.com`, replaci
 If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42)
 for further
 assistance.
+
+### Enable Diagnostic Mode (Android only)
+
+If you're experiencing issues with the SDK and need to share detailed logs with us, enable diagnostic mode.
+This writes all internal SDK logs to files on disk which can then be pulled from the device and shared
+when reporting a bug.
+
+> [!NOTE]
+> These files only contain Measure SDK logs, not your app's logs.
+
+#### Step 1: Enable diagnostic mode
+
+```kotlin
+val config = MeasureConfig(enableDiagnosticMode = true)
+Measure.init(context, config)
+```
+
+#### Step 2: Reproduce the issue
+
+Run the app and reproduce the issue you're facing. The SDK will write logs to files in the
+app's internal storage.
+
+#### Step 3: Pull the log files
+
+Use `adb` to retrieve the log files from the device:
+
+```shell
+# List all diagnostic log files
+adb shell run-as <your.package.name> ls files/measure/sdk_debug_logs/
+
+# Pull all log files as a tar.gz archive
+adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > /tmp/sdk_debug_logs.tar.gz
+```
+
+#### Step 4: Share the files
+
+Share the pulled log files on [Discord](https://discord.gg/f6zGkBCt42) or send them to us via email
+for us to investigate.
+
+#### Step 5: Disable diagnostic mode
+
+Once you've collected the logs, disable diagnostic mode by removing the `enableDiagnosticMode` flag
+or setting it to `false`. You can also delete the log files from the device:
+
+```shell
+adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
+```
