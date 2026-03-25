@@ -29,7 +29,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - name: Setup Git
         run: |
@@ -61,7 +61,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(gradle): prepare next development version of plugin"
           branch: prepare-next-gradle-plugin-${{ inputs.version }}
           delete-branch: true
