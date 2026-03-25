@@ -245,7 +245,6 @@ internal class TestMeasureInitializer(
         idProvider = idProvider,
         configProvider = configProvider,
         eventExportService = executorServiceRegistry.eventExportExecutor(),
-        attachmentExportService = executorServiceRegistry.attachmentExportExecutor(),
         httpClient = HttpUrlConnectionClient(logger),
         timeProvider = timeProvider,
         sleeper = DefaultSleeper(),

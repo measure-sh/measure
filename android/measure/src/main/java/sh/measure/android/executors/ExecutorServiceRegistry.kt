@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadFactory
  */
 internal interface ExecutorServiceRegistry {
     /**
-     * An executor service dedicated to long running background tasks. Example a database
+     * An executor service dedicated to long-running background tasks. Example a database
      * query or a disk read/write, etc. For exporting data to network, use [eventExportExecutor].
      */
     fun ioExecutor(): MeasureExecutorService
@@ -19,12 +19,7 @@ internal interface ExecutorServiceRegistry {
     fun eventExportExecutor(): MeasureExecutorService
 
     /**
-     * Returns an executor service dedicated to exporting attachments to network.
-     */
-    fun attachmentExportExecutor(): MeasureExecutorService
-
-    /**
-     * An executor for running short lived tasks. Example: processing an event.
+     * An executor for running short-lived tasks. Example: processing an event.
      */
     fun defaultExecutor(): MeasureExecutorService
 }
@@ -47,11 +42,6 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
         MeasureExecutorServiceImpl(threadFactory)
     }
 
-    override fun attachmentExportExecutor(): MeasureExecutorService = executors.getOrPut(ExecutorServiceName.AttachmentExportExecutor) {
-        val threadFactory = namedThreadFactory("msr-attachment-export")
-        MeasureExecutorServiceImpl(threadFactory)
-    }
-
     private fun namedThreadFactory(threadName: String) = ThreadFactory { runnable: Runnable ->
         Executors.defaultThreadFactory().newThread(runnable).apply {
             this.name = threadName
@@ -63,5 +53,4 @@ private enum class ExecutorServiceName {
     IOExecutor,
     DefaultExecutor,
     EventExportExecutor,
-    AttachmentExportExecutor,
 }
