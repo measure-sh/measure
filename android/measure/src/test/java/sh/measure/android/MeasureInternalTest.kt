@@ -396,6 +396,14 @@ class MeasureInternalTest {
         )
     }
 
+    @Test
+    fun `session start callback triggers export for existing batches`() {
+        val initializer = mockMeasureInitializer()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.onSessionStart("session-id", 123456789L)
+        verify(initializer.exporter).flush()
+    }
+
     private fun initWithValidCredentials(): MeasureInitializer {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
