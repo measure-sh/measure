@@ -6,61 +6,10 @@ import (
 	"log"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
-	"cloud.google.com/go/pubsub/v2"
 	iggclient "github.com/apache/iggy/foreign/go/client"
 	"github.com/apache/iggy/foreign/go/client/tcp"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
 )
-
-type pubSubConsumer struct {
-	// client is the underlying Pub/Sub client.
-	client *pubsub.Client
-	// subID is the subscription ID (short form or full resource name).
-	subID string
-}
-
-// NewPubSubConsumer creates a Pub/Sub-backed Consumer using a pull subscription.
-// subscription is the short subscription ID (or the full resource name).
-// If WithPubSubProjectID is not provided, the project ID is auto-detected
-// from the GCE metadata server.
-func NewPubSubConsumer(ctx context.Context, subscription string, opts ...PubSubOption) (Consumer, error) {
-	cfg := &pubSubConfig{}
-	for _, o := range opts {
-		o(cfg)
-	}
-
-	projectID := cfg.projectID
-	if projectID == "" {
-		id, err := metadata.ProjectIDWithContext(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("bus: failed to get GCP project ID: %w", err)
-		}
-		projectID = id
-	}
-
-	client, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("bus: failed to create Pub/Sub client: %w", err)
-	}
-
-	return &pubSubConsumer{client: client, subID: subscription}, nil
-}
-
-func (c *pubSubConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
-	sub := c.client.Subscriber(c.subID)
-	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		if err := handler(ctx, msg.Data); err != nil {
-			msg.Nack()
-		} else {
-			msg.Ack()
-		}
-	})
-}
-
-func (c *pubSubConsumer) Close() error {
-	return c.client.Close()
-}
 
 type iggyConsumer struct {
 	// client is the underlying Iggy client.
@@ -76,11 +25,10 @@ type iggyConsumer struct {
 	partID *uint32
 }
 
-// NewIggyConsumer creates an Iggy-backed Consumer.
-// address is "host:port"; username and password are required for authentication.
-// consumerName identifies this consumer to the Iggy server.
-// streamName and topicName identify the source stream/topic.
-func NewIggyConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
+// newIggyConsumer is the shared builder for both NewIggyConsumer and
+// NewIggyGroupConsumer. When group is true the consumer joins the named
+// consumer group; otherwise a plain single consumer is created.
+func newIggyConsumer(address, username, password, consumerName, streamName, topicName string, group bool, opts ...IggyOption) (Consumer, error) {
 	cfg := &iggyConfig{}
 	for _, o := range opts {
 		o(cfg)
@@ -109,8 +57,14 @@ func NewIggyConsumer(address, username, password, consumerName, streamName, topi
 		return nil, fmt.Errorf("bus: invalid Iggy consumer name: %w", err)
 	}
 
-	if err := client.JoinConsumerGroup(streamID, topicID, consumerID); err != nil {
-		return nil, fmt.Errorf("bus: failed to join Iggy consumer group: %w", err)
+	var consumer iggcon.Consumer
+	if group {
+		if err := client.JoinConsumerGroup(streamID, topicID, consumerID); err != nil {
+			return nil, fmt.Errorf("bus: failed to join Iggy consumer group: %w", err)
+		}
+		consumer = iggcon.NewGroupConsumer(consumerID)
+	} else {
+		consumer = iggcon.NewSingleConsumer(consumerID)
 	}
 
 	var partID *uint32
@@ -132,14 +86,28 @@ func NewIggyConsumer(address, username, password, consumerName, streamName, topi
 	}
 
 	return &iggyConsumer{
-		client: client,
-		// consumer:         iggcon.NewSingleConsumer(consumerID),
-		consumer:         iggcon.NewGroupConsumer(consumerID),
+		client:           client,
+		consumer:         consumer,
 		streamID:         streamID,
 		topicID:          topicID,
 		partitioningKind: partitioningKind,
 		partID:           partID,
 	}, nil
+}
+
+// NewIggyConsumer creates an Iggy-backed Consumer.
+// address is "host:port"; username and password are required for authentication.
+// consumerName identifies this consumer to the Iggy server.
+// streamName and topicName identify the source stream/topic.
+func NewIggyConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
+	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, false, opts...)
+}
+
+// NewIggyGroupConsumer creates an Iggy-backed Consumer that always joins a
+// consumer group. consumerName is used as both the consumer identity and the
+// group name; streamName and topicName identify the source stream/topic.
+func NewIggyGroupConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
+	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, true, opts...)
 }
 
 func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {

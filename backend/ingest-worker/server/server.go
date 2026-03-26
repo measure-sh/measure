@@ -3,6 +3,7 @@ package server
 import (
 	"backend/libs/bus"
 	"backend/libs/inet"
+	"backend/libs/ingest"
 	"context"
 	"fmt"
 	"log"
@@ -324,13 +325,13 @@ func Init(config *ServerConfig) {
 	}
 
 	if !config.CloudEnv {
-		consumer, err := bus.NewIggyConsumer(
+		consumer, err := bus.NewIggyGroupConsumer(
 			config.IG.Addr,
 			config.IG.Username,
 			config.IG.Password,
 			"ingest-batch-consumer",
-			"measure",
-			"ingest-batch",
+			bus.DefaultStreamName,
+			ingest.IngestBatchTopic,
 		)
 		if err != nil {
 			log.Printf("failed to create Iggy consumer: %v\n", err)

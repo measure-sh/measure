@@ -247,7 +247,9 @@ services:
       args:
         TARGETTYPE: debug
     ports:
-      - "8086:8086"
+      - "8086"
+    deploy:
+      replicas: 3
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
@@ -622,7 +624,7 @@ services:
 
       iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} stream create measure || true;
 
-      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure ingest-batch 16 gzip 7d || true;
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure ingest-batch 9 gzip 7d || true;
 
       iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} consumer-group create measure ingest-batch ingest-batch-consumer || true;
 
@@ -637,15 +639,14 @@ services:
       - IGGY_ROOT_USERNAME=${IGGY_USERNAME}
       - IGGY_ROOT_PASSWORD=${IGGY_PASSWORD}
       - IGGY_HTTP_ENABLED=true
-      - IGGY_HTTP_ADDRESS=0.0.0.0:80
+      - IGGY_HTTP_ADDRESS=[::]:80
       - IGGY_TCP_ENABLED=true
-      - IGGY_TCP_ADDRESS=0.0.0.0:8090
+      - IGGY_TCP_ADDRESS=[::]:8090
       - IGGY_QUIC_ENABLED=false
       - IGGY_WEBSOCKET_ENABLED=false
       - IGGY_HEARTBEAT_ENABLED=true
       - IGGY_HEARTBEAT_INTERVAL=5s
       - IGGY_SYSTEM_PATH=/local_data
-      # - IGGY_SYSTEM_COMPRESSION_DEFAULT_ALGORITHM=zstd
     cap_add:
       - SYS_NICE
     security_opt:

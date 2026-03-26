@@ -2,6 +2,9 @@ package bus
 
 import "context"
 
+// DefaultStreamName is the global stream for all message streaming operations.
+const DefaultStreamName = "measure"
+
 // Producer publishes messages to a topic/stream.
 type Producer interface {
 	// Publish sends data to the configured topic/stream. Blocks until the
@@ -40,7 +43,7 @@ func WithPubSubProjectID(projectID string) PubSubOption {
 // IggyOption configures an Iggy producer or consumer.
 type IggyOption func(*iggyConfig)
 
-// iggyPartitioningKind selects the producer partitioning scheme.
+// iggyPartitioningKind selects the partitioning scheme for Iggy producers and consumers.
 type iggyPartitioningKind int
 
 const (
@@ -61,7 +64,7 @@ type iggyConfig struct {
 	partitionID uint32
 	// consumerName is the consumer identity used when polling (default: "default").
 	consumerName string
-	// partitioningKind selects the producer partitioning scheme (default: balanced).
+	// partitioningKind selects the partitioning scheme (default: balanced).
 	partitioningKind iggyPartitioningKind
 	// messageKey is the routing key used when partitioningKind is iggyPartitioningMessageKey.
 	messageKey []byte
