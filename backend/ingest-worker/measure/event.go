@@ -1057,9 +1057,30 @@ func PushHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// ConsumeHandler is the bus.Consumer handler for Iggy-based ingestion.
+// It unmarshals the raw message bytes into an IngestBatch and dispatches
+// processing to a background goroutine.
+func ConsumeHandler(ctx context.Context, data []byte) error {
+	var batch IngestBatch
+	if err := json.Unmarshal(data, &batch); err != nil {
+		return fmt.Errorf("failed to unmarshal ingest batch: %w", err)
+	}
+	concur.GlobalWg.Add(1)
+	go func() {
+		defer concur.GlobalWg.Done()
+		processIngestBatch(ctx, batch)
+	}()
+	return nil
+}
+
+var batchCount = 0
+
 // processIngestBatch runs the full ingestion processing pipeline
 // for an ingest batch received from the message bus.
 func processIngestBatch(ctx context.Context, batch IngestBatch) {
+	batchCount += 1
+	fmt.Printf("Ingesting batch (%d): %s\n", batchCount, batch.BatchID)
+
 	batchID, err := uuid.Parse(batch.BatchID)
 	if err != nil {
 		fmt.Println("failed to parse batch id:", err)

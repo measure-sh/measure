@@ -47,7 +47,6 @@ var maxBatchSize = 20 * 1024 * 1024
 // for signed upload URLs.
 const ExpiryDuration = time.Hour * 24 * 7
 
-
 // blob represents each blob present in the
 // event request batch during ingestion.
 type blob struct {
@@ -1913,51 +1912,47 @@ func PutEvents(c *gin.Context) {
 	// and return
 	useBus := os.Getenv("USE_BUS")
 	if useBus != "" {
-		if server.Server.Config.IsCloud() {
-			batch := IngestBatch{
-				BatchID:  eventReq.id.String(),
-				AppID:    eventReq.appId.String(),
-				TeamID:   eventReq.teamId.String(),
-				OsName:   eventReq.osName,
-				ClientIP: c.ClientIP(),
-				Size:     eventReq.size,
-				Events:   eventReq.events,
-				Spans:    eventReq.spans,
-			}
+		batch := IngestBatch{
+			BatchID:  eventReq.id.String(),
+			AppID:    eventReq.appId.String(),
+			TeamID:   eventReq.teamId.String(),
+			OsName:   eventReq.osName,
+			ClientIP: c.ClientIP(),
+			Size:     eventReq.size,
+			Events:   eventReq.events,
+			Spans:    eventReq.spans,
+		}
 
-			if len(batch.Events) > 0 {
-				eventsBytes, err := json.Marshal(batch.Events)
-				if err != nil {
-					fmt.Println("failed to marshal batch.Events:", err)
-					return
-				}
-
-				fmt.Println("eventsBytes:", string(eventsBytes))
-			}
-
-			if len(batch.Spans) > 0 {
-				spansBytes, err := json.Marshal(batch.Spans)
-				if err != nil {
-					fmt.Println("failed to marshal batch.Spans:", err)
-					return
-				}
-
-				fmt.Println("spansBytes:", string(spansBytes))
-			}
-
-			payload, err := json.Marshal(batch)
+		if len(batch.Events) > 0 {
+			eventsBytes, err := json.Marshal(batch.Events)
 			if err != nil {
-				fmt.Println("failed to marshal ingest batch for publish:", err)
+				fmt.Println("failed to marshal batch.Events:", err)
 				return
 			}
 
-			fmt.Println("prepared ingest batch payload. len of payload:", len(payload))
+			fmt.Println("eventsBytes:", string(eventsBytes))
+		}
 
-			if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
-				fmt.Println("failed to publish ingest batch:", err)
+		if len(batch.Spans) > 0 {
+			spansBytes, err := json.Marshal(batch.Spans)
+			if err != nil {
+				fmt.Println("failed to marshal batch.Spans:", err)
+				return
 			}
-		} else {
-			fmt.Println("non-cloud env detected")
+
+			fmt.Println("spansBytes:", string(spansBytes))
+		}
+
+		payload, err := json.Marshal(batch)
+		if err != nil {
+			fmt.Println("failed to marshal ingest batch for publish:", err)
+			return
+		}
+
+		fmt.Println("prepared ingest batch payload. len of payload:", len(payload))
+
+		if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
+			fmt.Println("failed to publish ingest batch:", err)
 		}
 
 		return

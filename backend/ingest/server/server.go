@@ -55,7 +55,9 @@ type RedisConfig struct {
 }
 
 type IggyConfig struct {
-	Host, Port string
+	Addr     string
+	Username string
+	Password string
 }
 
 type ServerConfig struct {
@@ -190,14 +192,9 @@ func NewConfig() *ServerConfig {
 		log.Println("REDIS_PORT env var is not set, caching will not work")
 	}
 
-	iggyHost := os.Getenv("IGGY_HOST")
-	if iggyHost == "" {
-		log.Println("IGGY_HOST env var is not set, ingestion will not work")
-	}
-
-	iggyPort := os.Getenv("IGGY_PORT")
-	if iggyPort == "" {
-		log.Println("IGGY_PORT env var is not set, ingestion will not work")
+	iggyAddr := os.Getenv("IGGY_ADDR")
+	if iggyAddr == "" {
+		log.Println("IGGY_ADDR env var is not set, ingestion will not work")
 	}
 
 	iggyUsername := os.Getenv("IGGY_USERNAME")
@@ -235,8 +232,9 @@ func NewConfig() *ServerConfig {
 			Port: redisPort,
 		},
 		IG: IggyConfig{
-			Host: iggyHost,
-			Port: iggyPort,
+			Addr:     iggyAddr,
+			Username: iggyUsername,
+			Password: iggyPassword,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
@@ -346,6 +344,20 @@ func Init(config *ServerConfig) {
 		p, err := bus.NewPubSubProducer(ctx, "ingest-batch")
 		if err != nil {
 			log.Printf("failed to create Pub/Sub producer: %v\n", err)
+		} else {
+			busProducer = p
+		}
+	} else {
+		p, err := bus.NewIggyProducer(
+			config.IG.Addr,
+			config.IG.Username,
+			config.IG.Password,
+			"ingest-service",
+			"measure",
+			"ingest-batch",
+		)
+		if err != nil {
+			log.Printf("failed to create Iggy producer: %v\n", err)
 		} else {
 			busProducer = p
 		}

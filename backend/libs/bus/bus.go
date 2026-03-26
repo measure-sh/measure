@@ -40,18 +40,35 @@ func WithPubSubProjectID(projectID string) PubSubOption {
 // IggyOption configures an Iggy producer or consumer.
 type IggyOption func(*iggyConfig)
 
+// iggyPartitioningKind selects the producer partitioning scheme.
+type iggyPartitioningKind int
+
+const (
+	// iggyPartitioningBalanced distributes messages evenly across partitions (default).
+	iggyPartitioningBalanced iggyPartitioningKind = iota
+	// iggyPartitioningPartitionID routes all messages to a fixed partition.
+	iggyPartitioningPartitionID
+	// iggyPartitioningMessageKey routes messages by a message key.
+	iggyPartitioningMessageKey
+)
+
 type iggyConfig struct {
-	// username and password are used for credential-based login. Both must be
-	// set together; if username is empty, authentication is skipped.
+	// username and password are used for credential-based login by the consumer.
 	username string
 	password string
-	// partitionID is the target partition to publish to or poll from (default: 1).
+	// partitionID is the partition to poll from (consumer) or route to (producer
+	// when WithIggyPartitionID is used).
 	partitionID uint32
 	// consumerName is the consumer identity used when polling (default: "default").
 	consumerName string
+	// partitioningKind selects the producer partitioning scheme (default: balanced).
+	partitioningKind iggyPartitioningKind
+	// messageKey is the routing key used when partitioningKind is iggyPartitioningMessageKey.
+	messageKey []byte
 }
 
 // WithIggyCredentials sets the username and password for Iggy authentication.
+// Used by consumers; producers take credentials as required positional parameters.
 func WithIggyCredentials(username, password string) IggyOption {
 	return func(c *iggyConfig) {
 		c.username = username
@@ -59,10 +76,21 @@ func WithIggyCredentials(username, password string) IggyOption {
 	}
 }
 
-// WithIggyPartitionID sets the target partition (default: 1).
+// WithIggyPartitionID routes all produced messages to the given partition ID.
+// For consumers, it sets the partition to poll from.
 func WithIggyPartitionID(id uint32) IggyOption {
 	return func(c *iggyConfig) {
 		c.partitionID = id
+		c.partitioningKind = iggyPartitioningPartitionID
+	}
+}
+
+// WithIggyMessageKey routes produced messages by the given key.
+// key must be between 1 and 255 bytes.
+func WithIggyMessageKey(key []byte) IggyOption {
+	return func(c *iggyConfig) {
+		c.messageKey = key
+		c.partitioningKind = iggyPartitioningMessageKey
 	}
 }
 

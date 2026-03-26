@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,6 +44,9 @@ func main() {
 		}
 	}()
 
+	appCtx, appCancel := context.WithCancel(context.Background())
+	defer appCancel()
+
 	r := gin.Default()
 
 	closeTracer := config.InitTracing()
@@ -64,7 +68,9 @@ func main() {
 	})
 
 	// ingest batch receive endpoint
-	r.POST("/subscribe/batch", measure.PushHandler)
+	if config.IsCloud() {
+		r.POST("/subscribe/batch", measure.PushHandler)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -74,6 +80,16 @@ func main() {
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
+	}
+
+	// Start Iggy consumer if initialized
+	if server.Server.BusConsumer != nil {
+		defer server.Server.BusConsumer.Close()
+		go func() {
+			if err := server.Server.BusConsumer.Listen(appCtx, measure.ConsumeHandler); err != nil && !errors.Is(err, context.Canceled) {
+				log.Printf("bus consumer stopped: %v\n", err)
+			}
+		}()
 	}
 
 	// Run server in a goroutine

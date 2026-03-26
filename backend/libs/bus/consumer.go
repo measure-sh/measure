@@ -70,15 +70,18 @@ type iggyConsumer struct {
 	// topicID identifies the source Iggy topic within the stream.
 	topicID iggcon.Identifier
 	// consumer holds the consumer identity used when polling.
-	consumer iggcon.Consumer
+	consumer         iggcon.Consumer
+	partitioningKind iggcon.PartitioningKind
 	// partID is the partition to poll from.
 	partID *uint32
 }
 
 // NewIggyConsumer creates an Iggy-backed Consumer.
-// address is "host:port"; streamName and topicName identify the source stream/topic.
-func NewIggyConsumer(address, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
-	cfg := &iggyConfig{partitionID: 1, consumerName: "default"}
+// address is "host:port"; username and password are required for authentication.
+// consumerName identifies this consumer to the Iggy server.
+// streamName and topicName identify the source stream/topic.
+func NewIggyConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
+	cfg := &iggyConfig{}
 	for _, o := range opts {
 		o(cfg)
 	}
@@ -88,10 +91,8 @@ func NewIggyConsumer(address, streamName, topicName string, opts ...IggyOption) 
 		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
 	}
 
-	if cfg.username != "" {
-		if _, err := client.LoginUser(cfg.username, cfg.password); err != nil {
-			return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
-		}
+	if _, err := client.LoginUser(username, password); err != nil {
+		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
 	}
 
 	streamID, err := iggcon.NewIdentifier(streamName)
@@ -103,18 +104,41 @@ func NewIggyConsumer(address, streamName, topicName string, opts ...IggyOption) 
 		return nil, fmt.Errorf("bus: invalid Iggy topic name: %w", err)
 	}
 
-	consumerID, err := iggcon.NewIdentifier(cfg.consumerName)
+	consumerID, err := iggcon.NewIdentifier(consumerName)
 	if err != nil {
 		return nil, fmt.Errorf("bus: invalid Iggy consumer name: %w", err)
 	}
 
-	partID := cfg.partitionID
+	if err := client.JoinConsumerGroup(streamID, topicID, consumerID); err != nil {
+		return nil, fmt.Errorf("bus: failed to join Iggy consumer group: %w", err)
+	}
+
+	var partID *uint32
+	var partitioningKind iggcon.PartitioningKind
+	switch cfg.partitioningKind {
+	case iggyPartitioningPartitionID:
+		id := cfg.partitionID
+		partID = &id
+	case iggyPartitioningMessageKey:
+		// Iggy's PollMessages API routes by partition ID, not by message key.
+		// Message keys are a producer-side routing concept; the corresponding
+		// consumer should pin to the specific partition that the key resolves to
+		// (WithIggyPartitionID). Falling back to balanced (round-robin) here.
+		partID = nil
+	default:
+		// Balanced (round-robin): nil tells the server to distribute polling
+		// evenly across all partitions.
+		partitioningKind = iggcon.Balanced
+	}
+
 	return &iggyConsumer{
-		client:   client,
-		streamID: streamID,
-		topicID:  topicID,
-		consumer: iggcon.NewSingleConsumer(consumerID),
-		partID:   &partID,
+		client: client,
+		// consumer:         iggcon.NewSingleConsumer(consumerID),
+		consumer:         iggcon.NewGroupConsumer(consumerID),
+		streamID:         streamID,
+		topicID:          topicID,
+		partitioningKind: partitioningKind,
+		partID:           partID,
 	}, nil
 }
 
@@ -130,7 +154,7 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 		default:
 		}
 
-		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, strategy, batchSize, true, c.partID)
+		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, strategy, batchSize, true, nil)
 		if err != nil {
 			return fmt.Errorf("bus: Iggy poll failed: %w", err)
 		}

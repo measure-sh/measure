@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/libs/bus"
 	"backend/libs/inet"
 	"context"
 	"fmt"
@@ -32,10 +33,11 @@ import (
 var Server *server
 
 type server struct {
-	PgPool *pgxpool.Pool
-	ChPool driver.Conn
-	Config *ServerConfig
-	VK     redis.Client
+	PgPool      *pgxpool.Pool
+	ChPool      driver.Conn
+	Config      *ServerConfig
+	VK          redis.Client
+	BusConsumer bus.Consumer
 }
 
 type PostgresConfig struct {
@@ -51,10 +53,19 @@ type RedisConfig struct {
 	Port int
 }
 
+type IggyConfig struct {
+	// Addr is the Iggy server address in "host:port" form.
+	Addr string
+	// Username and Password are used for credential-based login.
+	Username string
+	Password string
+}
+
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
 	RD                         RedisConfig
+	IG                         IggyConfig
 	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
@@ -179,6 +190,14 @@ func NewConfig() *ServerConfig {
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
 
+	iggyAddr := os.Getenv("IGGY_ADDR")
+	if iggyAddr == "" && !cloudEnv {
+		log.Println("IGGY_ADDR env var is not set, Iggy bus consumption will not work")
+	}
+
+	iggyUsername := os.Getenv("IGGY_USERNAME")
+	iggyPassword := os.Getenv("IGGY_PASSWORD")
+
 	return &ServerConfig{
 		PG: PostgresConfig{
 			DSN: postgresDSN,
@@ -189,6 +208,11 @@ func NewConfig() *ServerConfig {
 		RD: RedisConfig{
 			Host: redisHost,
 			Port: redisPort,
+		},
+		IG: IggyConfig{
+			Addr:     iggyAddr,
+			Username: iggyUsername,
+			Password: iggyPassword,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
@@ -297,6 +321,22 @@ func Init(config *ServerConfig) {
 		ChPool: chPool,
 		Config: config,
 		VK:     vkClient,
+	}
+
+	if !config.CloudEnv {
+		consumer, err := bus.NewIggyConsumer(
+			config.IG.Addr,
+			config.IG.Username,
+			config.IG.Password,
+			"ingest-batch-consumer",
+			"measure",
+			"ingest-batch",
+		)
+		if err != nil {
+			log.Printf("failed to create Iggy consumer: %v\n", err)
+		} else {
+			Server.BusConsumer = consumer
+		}
 	}
 }
 

@@ -73,9 +73,13 @@ type iggyProducer struct {
 }
 
 // NewIggyProducer creates an Iggy-backed Producer.
-// address is "host:port"; streamName and topicName identify the target stream/topic.
-func NewIggyProducer(address, streamName, topicName string, opts ...IggyOption) (Producer, error) {
-	cfg := &iggyConfig{partitionID: 1}
+// address is "host:port"; username and password are required for authentication.
+// consumerName identifies this producer to the Iggy server.
+// streamName and topicName identify the target stream/topic.
+// By default, messages are distributed using the balanced (round-robin) partitioning
+// scheme. Use WithIggyPartitionID or WithIggyMessageKey to override.
+func NewIggyProducer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Producer, error) {
+	cfg := &iggyConfig{}
 	for _, o := range opts {
 		o(cfg)
 	}
@@ -85,10 +89,8 @@ func NewIggyProducer(address, streamName, topicName string, opts ...IggyOption) 
 		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
 	}
 
-	if cfg.username != "" {
-		if _, err := client.LoginUser(cfg.username, cfg.password); err != nil {
-			return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
-		}
+	if _, err := client.LoginUser(username, password); err != nil {
+		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
 	}
 
 	streamID, err := iggcon.NewIdentifier(streamName)
@@ -100,11 +102,29 @@ func NewIggyProducer(address, streamName, topicName string, opts ...IggyOption) 
 		return nil, fmt.Errorf("bus: invalid Iggy topic name: %w", err)
 	}
 
+	var partitioning iggcon.Partitioning
+	switch cfg.partitioningKind {
+	case iggyPartitioningPartitionID:
+		partitioning = iggcon.PartitionId(cfg.partitionID)
+	case iggyPartitioningMessageKey:
+		p, err := iggcon.EntityIdBytes(cfg.messageKey)
+		if err != nil {
+			return nil, fmt.Errorf("bus: invalid message key: %w", err)
+		}
+		partitioning = p
+	default:
+		// iggcon.None() produces a Partitioning with Kind=Balanced, which is
+		// the Iggy SDK's name for the balanced (round-robin) scheme. Despite
+		// the misleading name, it is not a no-op — it distributes messages
+		// evenly across all available partitions.
+		partitioning = iggcon.None()
+	}
+
 	return &iggyProducer{
 		client:       client,
 		streamID:     streamID,
 		topicID:      topicID,
-		partitioning: iggcon.PartitionId(cfg.partitionID),
+		partitioning: partitioning,
 	}, nil
 }
 
