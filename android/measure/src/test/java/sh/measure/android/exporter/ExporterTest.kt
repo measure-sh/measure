@@ -122,6 +122,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -318,6 +319,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -503,6 +505,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -551,6 +554,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -584,6 +588,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -624,6 +629,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -656,6 +662,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = nonExistentPath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -713,12 +720,14 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile1.absolutePath,
                     name = "screenshot1.png",
+                    size = 0,
                 ),
                 AttachmentEntity(
                     id = "attachment-2",
                     type = "screenshot",
                     path = attachmentFile2.absolutePath,
                     name = "screenshot2.png",
+                    size = 0,
                 ),
             ),
         )
