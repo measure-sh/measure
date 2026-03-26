@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Next SNAPSHOT version (e.g., 0.10.0-SNAPSHOT)'
+        description: "Next SNAPSHOT version (e.g., 0.10.0-SNAPSHOT)"
         required: true
         type: string
 
 env:
   JAVA_VERSION: 21
-  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_DISTRIBUTION: "temurin"
 
 jobs:
   prepare-next:
@@ -22,12 +22,12 @@ jobs:
       contents: write
       pull-requests: write
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: 'main'
+          ref: "main"
           fetch-depth: 0
           token: ${{ secrets.SDK_RELEASE }}
 
@@ -70,16 +70,14 @@ jobs:
           title: "chore(android): prepare next development version ${{ inputs.version }}"
           body: |
             This PR prepares the next development version of the Android SDK.
-            
+
             **Changes:**
             - Updated version to `${{ inputs.version }}` in gradle.properties
             - Updated version to `${{ inputs.version }}` in libs.versions.toml
-            
+
             **Version:** ${{ inputs.version }}
           base: main
-          labels: |
-            android
-            version-update
+          labels: android
           assignees: abhaysood
           add-paths: |
             android/gradle.properties
