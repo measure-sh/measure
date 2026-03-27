@@ -5,7 +5,7 @@ module.exports = {
           podspecPath: 'MeasureReactNative.podspec',
         },
         android: {
-          packageInstance: 'new MeasureModule()',
+          packageInstance: 'new MeasurePackage()',
           packageImportPath: 'import sh.measure.rn.MeasurePackage;',
         },
       },

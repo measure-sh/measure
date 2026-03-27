@@ -134,8 +134,8 @@ export class MeasureInternal {
 
   onShake(handler?: (() => void) | null): void {
     this.shakeHandler = handler;
-    const enable = !!handler;
-    setShakeListener(enable, handler ?? undefined);
+    const enable = !!this.shakeHandler;
+    setShakeListener(enable, this.shakeHandler ?? undefined);
 
     this.measureInitializer.logger.internalLog(
       'info',
