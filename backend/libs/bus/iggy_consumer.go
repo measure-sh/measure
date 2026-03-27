@@ -23,12 +23,18 @@ type iggyConsumer struct {
 	partitioningKind iggcon.PartitioningKind
 	// partID is the partition to poll from.
 	partID *uint32
+	// batchSize is the number of messages fetched per poll.
+	batchSize uint32
+	// pollInterval is the delay between polls when no messages are available.
+	pollInterval time.Duration
+	// pollingStrategy selects how the server determines the next batch of messages.
+	pollingStrategy iggcon.PollingStrategy
 }
 
 // newIggyConsumer is the shared builder for both NewIggyConsumer and
-// NewIggyGroupConsumer. When group is true the consumer joins the named
-// consumer group; otherwise a plain single consumer is created.
-func newIggyConsumer(address, username, password, consumerName, streamName, topicName string, group bool, opts ...IggyOption) (Consumer, error) {
+// NewIggyGroupConsumer. When kind is ConsumerKindGroup the consumer joins the
+// named consumer group; otherwise a plain single consumer is created.
+func newIggyConsumer(address, username, password, consumerName, streamName, topicName string, kind iggcon.ConsumerKind, opts ...IggyOption) (Consumer, error) {
 	cfg := &iggyConfig{}
 	for _, o := range opts {
 		o(cfg)
@@ -58,7 +64,7 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	}
 
 	var consumer iggcon.Consumer
-	if group {
+	if kind == iggcon.ConsumerKindGroup {
 		if err := client.JoinConsumerGroup(streamID, topicID, consumerID); err != nil {
 			return nil, fmt.Errorf("bus: failed to join Iggy consumer group: %w", err)
 		}
@@ -85,6 +91,21 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 		partitioningKind = iggcon.Balanced
 	}
 
+	var batchSize uint32 = 10
+	if cfg.batchSize > 0 {
+		batchSize = uint32(cfg.batchSize)
+	}
+
+	pollInterval := 500 * time.Millisecond
+	if cfg.pollInterval > 0 {
+		pollInterval = cfg.pollInterval
+	}
+
+	pollingStrategy := iggcon.NextPollingStrategy()
+	if cfg.pollingStrategy != nil {
+		pollingStrategy = *cfg.pollingStrategy
+	}
+
 	return &iggyConsumer{
 		client:           client,
 		consumer:         consumer,
@@ -92,6 +113,9 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 		topicID:          topicID,
 		partitioningKind: partitioningKind,
 		partID:           partID,
+		batchSize:        batchSize,
+		pollInterval:     pollInterval,
+		pollingStrategy:  pollingStrategy,
 	}, nil
 }
 
@@ -100,21 +124,17 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 // consumerName identifies this consumer to the Iggy server.
 // streamName and topicName identify the source stream/topic.
 func NewIggyConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
-	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, false, opts...)
+	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, iggcon.ConsumerKindSingle, opts...)
 }
 
 // NewIggyGroupConsumer creates an Iggy-backed Consumer that always joins a
 // consumer group. consumerName is used as both the consumer identity and the
 // group name; streamName and topicName identify the source stream/topic.
 func NewIggyGroupConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
-	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, true, opts...)
+	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, iggcon.ConsumerKindGroup, opts...)
 }
 
 func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
-	strategy := iggcon.NextPollingStrategy()
-	const batchSize = 10
-	const pollInterval = 500 * time.Millisecond
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -122,7 +142,7 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 		default:
 		}
 
-		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, strategy, batchSize, true, nil)
+		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, c.pollingStrategy, c.batchSize, true, nil)
 		if err != nil {
 			return fmt.Errorf("bus: Iggy poll failed: %w", err)
 		}
@@ -131,7 +151,7 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case <-time.After(pollInterval):
+			case <-time.After(c.pollInterval):
 			}
 			continue
 		}
@@ -147,5 +167,13 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 }
 
 func (c *iggyConsumer) Close() error {
+	if c.consumer.Kind == iggcon.ConsumerKindGroup {
+		if err := c.client.LeaveConsumerGroup(c.streamID, c.topicID, c.consumer.Id); err != nil {
+			log.Printf("bus: failed to leave iggy consumer group: %v", err)
+		}
+		log.Printf("bus: leaving iggy consumer group\n")
+	}
+
+	log.Printf("bus: closing iggy consumer client\n")
 	return c.client.Close()
 }

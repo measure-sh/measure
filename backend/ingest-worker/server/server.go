@@ -193,11 +193,18 @@ func NewConfig() *ServerConfig {
 
 	iggyAddr := os.Getenv("IGGY_ADDR")
 	if iggyAddr == "" && !cloudEnv {
-		log.Println("IGGY_ADDR env var is not set, Iggy bus consumption will not work")
+		log.Println("IGGY_ADDR env var is not set, Iggy message streaming will not work")
 	}
 
 	iggyUsername := os.Getenv("IGGY_USERNAME")
+	if iggyUsername == "" {
+		log.Println("IGGY_USERNAME env var is not set, Iggy message streaming will not work")
+	}
+
 	iggyPassword := os.Getenv("IGGY_PASSWORD")
+	if iggyPassword == "" {
+		log.Println("IGGY_PASSWORD env var is not set, Iggy message streaming will not work")
+	}
 
 	return &ServerConfig{
 		PG: PostgresConfig{

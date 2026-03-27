@@ -1,6 +1,11 @@
 package bus
 
-import "context"
+import (
+	"context"
+	"time"
+
+	iggcon "github.com/apache/iggy/foreign/go/contracts"
+)
 
 // DefaultStreamName is the global stream for all message streaming operations.
 const DefaultStreamName = "measure"
@@ -68,6 +73,12 @@ type iggyConfig struct {
 	partitioningKind iggyPartitioningKind
 	// messageKey is the routing key used when partitioningKind is iggyPartitioningMessageKey.
 	messageKey []byte
+	// batchSize is the number of messages to fetch per poll (consumer-only).
+	batchSize int
+	// pollInterval is the delay between polls when no messages are available (consumer-only).
+	pollInterval time.Duration
+	// pollingStrategy selects how the server determines the next batch of messages (consumer-only).
+	pollingStrategy *iggcon.PollingStrategy
 }
 
 // WithIggyCredentials sets the username and password for Iggy authentication.
@@ -101,5 +112,28 @@ func WithIggyMessageKey(key []byte) IggyOption {
 func WithIggyConsumerName(name string) IggyOption {
 	return func(c *iggyConfig) {
 		c.consumerName = name
+	}
+}
+
+// WithIggyBatchSize sets the number of messages fetched per poll (default: 10).
+func WithIggyBatchSize(n int) IggyOption {
+	return func(c *iggyConfig) {
+		c.batchSize = n
+	}
+}
+
+// WithIggyPollInterval sets the delay between polls when no messages are
+// available (default: 500ms).
+func WithIggyPollInterval(d time.Duration) IggyOption {
+	return func(c *iggyConfig) {
+		c.pollInterval = d
+	}
+}
+
+// WithIggyPollingStrategy sets the polling strategy used to determine which
+// messages the server returns (default: NextPollingStrategy).
+func WithIggyPollingStrategy(s iggcon.PollingStrategy) IggyOption {
+	return func(c *iggyConfig) {
+		c.pollingStrategy = &s
 	}
 }

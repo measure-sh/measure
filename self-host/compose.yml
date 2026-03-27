@@ -249,7 +249,7 @@ services:
     ports:
       - "8086"
     deploy:
-      replicas: 3
+      replicas: 1
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
