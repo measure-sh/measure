@@ -735,6 +735,14 @@ func TestBillingCycle_ProFailure_DowngradeSideEffects(t *testing.T) {
 		t.Fatalf("app retention = %d, want %d", got, FreePlanMaxRetentionDays)
 	}
 
+	// Verify data_cutoff_date advanced on downgrade (180-day -> 30-day).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	expectedCutoff := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+	gotCutoff := getAppDataCutoffDate(ctx, t, appID)
+	if gotCutoff.Before(expectedCutoff) {
+		t.Fatalf("data_cutoff_date = %v, want >= %v", gotCutoff.Format("2006-01-02"), expectedCutoff.Format("2006-01-02"))
+	}
+
 	var pendingCount int
 	if err := th.PgPool.QueryRow(ctx, "SELECT COUNT(*) FROM pending_alert_messages WHERE team_id = $1", f.teamID).Scan(&pendingCount); err != nil {
 		t.Fatalf("count pending alerts: %v", err)
@@ -904,6 +912,15 @@ func TestBillingCycle_ProCancel_UserInitiated(t *testing.T) {
 	if got := getAppRetention(ctx, t, appID); got != FreePlanMaxRetentionDays {
 		t.Fatalf("app retention = %d, want %d", got, FreePlanMaxRetentionDays)
 	}
+
+	// Verify data_cutoff_date advanced on downgrade (180-day -> 30-day).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	expectedCutoff := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+	gotCutoff := getAppDataCutoffDate(ctx, t, appID)
+	if gotCutoff.Before(expectedCutoff) {
+		t.Fatalf("data_cutoff_date = %v, want >= %v", gotCutoff.Format("2006-01-02"), expectedCutoff.Format("2006-01-02"))
+	}
+
 	// No usage seeded, so ingest should be allowed.
 	allow, reason := getTeamIngestStatus(ctx, t, f.teamID)
 	if !allow || reason != nil {

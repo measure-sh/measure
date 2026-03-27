@@ -74,8 +74,11 @@ flowchart TD
         ProState["plan = pro"]
 
         ProState --> DailyMeter[/"Daily metering · 3 AM UTC · meter.go"/]
-        DailyMeter --> Snapshot["Snapshot total bytes ingested
-            ClickHouse (bytes_in) -> billing_metrics_reporting"]
+        DailyMeter --> AdvanceCutoffs["Advance data_cutoff_date
+            for all apps (high-water mark)"]
+        AdvanceCutoffs --> Snapshot["Snapshot windowed storage
+            ingestion_metrics (per-app retention window)
+            -> billing_metrics_reporting"]
         Snapshot --> ReportStripe["Report GB-days to Stripe Billing Meter
             (idempotent per customer:date)"]
 
@@ -169,6 +172,12 @@ flowchart TD
         Stripe reports use idempotency key."]
     DailyMeter -.- NoteSnapshot
 
+    NoteRetention["ℹ Each app tracks a data_cutoff_date
+        (high-water mark). Window = MAX(cutoff, date − retention).
+        Prevents billing for data deleted after retention increase.
+        advanceCutoffDates runs daily before snapshot."]
+    AdvanceCutoffs -.- NoteRetention
+
     NoteCronGate["ℹ HourlyFree, HourlyPro, and DailyMeter
         are only scheduled when BILLING_ENABLED=true
         (metering/main.go)."]
@@ -196,6 +205,6 @@ flowchart TD
     class CheckoutWebhook,SubDeletedWebhook,SubUpdatedWebhook,HourlyFree,HourlyPro,DailyMeter webhook
     class BlockIngest,ProBlockTemp block
     class AllowIngest,ProAllowIngest allow
-    class NoteDowngrade,NoteHourlyFree,NoteHourlyPro,NoteSnapshot,NoteIngestCache,NoteConstants,NoteBillingEnabled,NoteCronGate,NoteApiGate note
+    class NoteDowngrade,NoteHourlyFree,NoteHourlyPro,NoteSnapshot,NoteRetention,NoteIngestCache,NoteConstants,NoteBillingEnabled,NoteCronGate,NoteApiGate note
     class BillingDisabled disabled
 ```

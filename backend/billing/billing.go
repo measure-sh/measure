@@ -455,9 +455,12 @@ func IsTerminalSubscriptionStatus(status stripe.SubscriptionStatus) bool {
 
 // ResetTeamAppsRetention resets all apps for a team to free plan retention.
 func ResetTeamAppsRetention(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID) error {
+	targetCutoff := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -FreePlanMaxRetentionDays)
+
 	stmt := sqlf.PostgreSQL.
 		Update("apps").
 		Set("retention", FreePlanMaxRetentionDays).
+		SetExpr("data_cutoff_date", "GREATEST(data_cutoff_date, ?)", targetCutoff).
 		Set("updated_at", time.Now()).
 		Where("team_id = ?", teamID)
 	defer stmt.Close()
