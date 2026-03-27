@@ -121,9 +121,10 @@ final class BaseNetworkClient: NetworkClient {
                 return [:]
             }
 
+            fullEventDict.removeValue(forKey: "timestampInMillis")
             if let attachments = fullEventDict["attachments"] as? [[String: Any]] {
                 let cleanedAttachments = attachments.map { attachment in
-                    let requiredKeys: Set<String> = ["id", "name", "type"]
+                    let requiredKeys: Set<String> = ["id", "name", "type", "size"]
                     return attachment.filter { requiredKeys.contains($0.key) }
                 }
 
