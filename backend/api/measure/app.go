@@ -152,8 +152,11 @@ func (a App) getAppRetention() (int, error) {
 }
 
 func (a App) updateRetention(retention int) error {
+	targetCutoff := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -retention)
+
 	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("retention", retention).
+		SetExpr("data_cutoff_date", "GREATEST(data_cutoff_date, ?)", targetCutoff).
 		Set("updated_at", time.Now()).
 		Where("id = ?", a.ID)
 	defer stmt.Close()

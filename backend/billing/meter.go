@@ -13,7 +13,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 )
 
-// DailyUsage holds per-team counts from the ClickHouse snapshot.
+// DailyUsage holds per-team windowed usage for a snapshot day.
 type DailyUsage struct {
 	TeamID  string
 	Events  uint64
@@ -34,17 +34,44 @@ type UnreportedUsage struct {
 	StripeCustomerID *string
 }
 
-// RunDailyMetering takes a storage snapshot and reports unreported usage to Stripe.
+// AppRetentionWindow holds per-app retention settings for windowed billing.
+type AppRetentionWindow struct {
+	TeamID         string
+	AppID          string
+	Retention      int
+	DataCutoffDate time.Time
+}
+
+// ingestionRow holds a single (team, app, day) aggregation from ingestion_metrics.
+type ingestionRow struct {
+	TeamID  string
+	AppID   string
+	Day     time.Time
+	Events  uint64
+	Spans   uint64
+	BytesIn uint64
+}
+
+// RunDailyMetering advances cutoff dates, takes a storage snapshot, and
+// reports unreported usage to Stripe.
 func RunDailyMetering(ctx context.Context, deps Deps) {
 	fmt.Println("Running daily metering job...")
 
-	// 1. Take snapshot for yesterday (if not already done)
-	err := takeStorageSnapshot(ctx, deps)
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
+
+	// 1. Advance cutoff dates for all apps
+	if err := advanceCutoffDates(ctx, deps.PgPool, yesterday); err != nil {
+		log.Printf("failed to advance cutoff dates: %v", err)
+	}
+
+	// 2. Take snapshot for yesterday (if not already done)
+	err := takeStorageSnapshot(ctx, deps, yesterday)
 	if err != nil {
 		log.Printf("failed to take storage snapshot: %v", err)
 	}
 
-	// 2. Report all unreported usage to Stripe
+	// 3. Report all unreported usage to Stripe
 	err = ReportUnreportedToStripe(ctx, deps)
 	if err != nil {
 		log.Printf("failed to report to Stripe: %v", err)
@@ -53,42 +80,56 @@ func RunDailyMetering(ctx context.Context, deps Deps) {
 	fmt.Println("Daily metering job completed.")
 }
 
-func takeStorageSnapshot(ctx context.Context, deps Deps) error {
-	today := time.Now().UTC().Truncate(24 * time.Hour)
-	yesterday := today.AddDate(0, 0, -1)
+// advanceCutoffDates moves each app's data_cutoff_date forward using the
+// high-water mark rule: new_cutoff = MAX(stored_cutoff, date - retention).
+func advanceCutoffDates(ctx context.Context, pool *pgxpool.Pool, date time.Time) error {
+	_, err := pool.Exec(ctx,
+		"UPDATE apps SET data_cutoff_date = GREATEST(data_cutoff_date, $1::date - retention) WHERE data_cutoff_date < $1::date - retention",
+		date)
+	return err
+}
 
-	if snapshotExists(ctx, deps.PgPool, yesterday) {
-		log.Printf("Snapshot for %s already exists, skipping.", yesterday.Format("2006-01-02"))
+func takeStorageSnapshot(ctx context.Context, deps Deps, snapshotDate time.Time) error {
+	if snapshotExists(ctx, deps.PgPool, snapshotDate) {
+		log.Printf("Snapshot for %s already exists, skipping.", snapshotDate.Format("2006-01-02"))
 		return nil
 	}
 
-	log.Printf("Taking snapshot for %s", yesterday.Format("2006-01-02"))
+	log.Printf("Taking snapshot for %s", snapshotDate.Format("2006-01-02"))
 
-	// Count events per team
-	eventCounts, err := countAllEvents(ctx, deps.ChPool)
+	// Fetch per-app retention windows from postgres.
+	appWindows, err := getAppRetentionWindows(ctx, deps.PgPool)
 	if err != nil {
-		return fmt.Errorf("failed to count events: %w", err)
+		return fmt.Errorf("failed to get app retention windows: %w", err)
 	}
 
-	// Count spans per team
-	spanCounts, err := countAllSpans(ctx, deps.ChPool)
-	if err != nil {
-		return fmt.Errorf("failed to count spans: %w", err)
+	if len(appWindows) == 0 {
+		log.Println("No apps found, skipping snapshot.")
+		return nil
 	}
 
-	// Count bytes per team from ingestion_metrics
-	bytesCounts, err := countAllBytes(ctx, deps.ChPool)
-	if err != nil {
-		return fmt.Errorf("failed to count bytes: %w", err)
+	// Find the earliest cutoff across all apps for the ClickHouse query.
+	minCutoff := snapshotDate
+	for _, aw := range appWindows {
+		effectiveCutoff := aw.DataCutoffDate
+		if computed := snapshotDate.AddDate(0, 0, -aw.Retention); computed.After(effectiveCutoff) {
+			effectiveCutoff = computed
+		}
+		if effectiveCutoff.Before(minCutoff) {
+			minCutoff = effectiveCutoff
+		}
 	}
 
-	// TODO: Count metrics when table exists
-	metricCounts := make(map[string]uint64)
+	// Single ClickHouse query for all teams/apps within the widest window.
+	ingestionData, err := queryIngestionByDate(ctx, deps.ChPool, minCutoff, snapshotDate)
+	if err != nil {
+		return fmt.Errorf("failed to query ingestion data: %w", err)
+	}
 
-	// Merge and save
-	usageByTeam := mergeUsage(eventCounts, spanCounts, metricCounts, bytesCounts)
+	// Compute per-team windowed usage.
+	usageByTeam := computeWindowedUsage(ingestionData, appWindows, snapshotDate)
 
-	err = saveSnapshotBatch(ctx, deps.PgPool, yesterday, usageByTeam)
+	err = saveSnapshotBatch(ctx, deps.PgPool, snapshotDate, usageByTeam)
 	if err != nil {
 		return fmt.Errorf("failed to save snapshot: %w", err)
 	}
@@ -109,63 +150,49 @@ func snapshotExists(ctx context.Context, pool *pgxpool.Pool, date time.Time) boo
 	return err == nil
 }
 
-func countAllEvents(ctx context.Context, chPool driver.Conn) (map[string]uint64, error) {
-	query := sqlf.From("measure.events").
-		Select("toString(team_id) as team_id").
-		Select("count(*) as cnt").
-		GroupBy("team_id")
+// getAppRetentionWindows returns all apps with their retention and cutoff date.
+func getAppRetentionWindows(ctx context.Context, pool *pgxpool.Pool) ([]AppRetentionWindow, error) {
+	query := sqlf.PostgreSQL.
+		Select("team_id").
+		Select("id").
+		Select("retention").
+		Select("data_cutoff_date").
+		From("apps")
 	defer query.Close()
 
-	rows, err := chPool.Query(ctx, query.String(), query.Args()...)
+	rows, err := pool.Query(ctx, query.String(), query.Args()...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	results := make(map[string]uint64)
+	var results []AppRetentionWindow
 	for rows.Next() {
-		var teamID string
-		var count uint64
-		if err := rows.Scan(&teamID, &count); err != nil {
+		var aw AppRetentionWindow
+		if err := rows.Scan(&aw.TeamID, &aw.AppID, &aw.Retention, &aw.DataCutoffDate); err != nil {
 			return nil, err
 		}
-		results[teamID] = count
+		results = append(results, aw)
 	}
 
 	return results, nil
 }
 
-func countAllSpans(ctx context.Context, chPool driver.Conn) (map[string]uint64, error) {
-	query := sqlf.From("measure.spans").
-		Select("toString(team_id) as team_id").
-		Select("count(*) as cnt").
-		GroupBy("team_id")
-	defer query.Close()
+// queryIngestionByDate fetches per-(team, app, day) aggregations from
+// ingestion_metrics between minCutoff and snapshotDate (inclusive).
+func queryIngestionByDate(ctx context.Context, chPool driver.Conn, minCutoff, snapshotDate time.Time) ([]ingestionRow, error) {
+	dayEnd := snapshotDate.Truncate(24*time.Hour).AddDate(0, 0, 1)
 
-	rows, err := chPool.Query(ctx, query.String(), query.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	results := make(map[string]uint64)
-	for rows.Next() {
-		var teamID string
-		var count uint64
-		if err := rows.Scan(&teamID, &count); err != nil {
-			return nil, err
-		}
-		results[teamID] = count
-	}
-
-	return results, nil
-}
-
-func countAllBytes(ctx context.Context, chPool driver.Conn) (map[string]uint64, error) {
 	query := sqlf.From("ingestion_metrics").
 		Select("toString(team_id) as team_id").
-		Select("COALESCE(sumMerge(bytes_in), 0) as total_bytes").
-		GroupBy("team_id")
+		Select("toString(app_id) as app_id").
+		Select("toDate(timestamp) as day").
+		Select("COALESCE(sumMerge(events), 0) as events").
+		Select("COALESCE(sumMerge(spans), 0) as spans").
+		Select("COALESCE(sumMerge(bytes_in), 0) as bytes_in").
+		Where("timestamp >= ?", minCutoff).
+		Where("timestamp < ?", dayEnd).
+		GroupBy("team_id, app_id, day")
 	defer query.Close()
 
 	rows, err := chPool.Query(ctx, query.String(), query.Args()...)
@@ -174,43 +201,54 @@ func countAllBytes(ctx context.Context, chPool driver.Conn) (map[string]uint64, 
 	}
 	defer rows.Close()
 
-	results := make(map[string]uint64)
+	var results []ingestionRow
 	for rows.Next() {
-		var teamID string
-		var totalBytes uint64
-		if err := rows.Scan(&teamID, &totalBytes); err != nil {
+		var r ingestionRow
+		if err := rows.Scan(&r.TeamID, &r.AppID, &r.Day, &r.Events, &r.Spans, &r.BytesIn); err != nil {
 			return nil, err
 		}
-		results[teamID] = totalBytes
+		results = append(results, r)
 	}
 
 	return results, nil
 }
 
-func mergeUsage(events, spans, metrics, bytes map[string]uint64) map[string]DailyUsage {
-	teamIDs := make(map[string]bool)
-	for id := range events {
-		teamIDs[id] = true
-	}
-	for id := range spans {
-		teamIDs[id] = true
-	}
-	for id := range metrics {
-		teamIDs[id] = true
-	}
-	for id := range bytes {
-		teamIDs[id] = true
+// computeWindowedUsage filters ingestion data per-app using each app's
+// effective window and aggregates into per-team totals.
+func computeWindowedUsage(data []ingestionRow, appWindows []AppRetentionWindow, snapshotDate time.Time) map[string]DailyUsage {
+	// Build lookup: appID -> AppRetentionWindow
+	windowByApp := make(map[string]AppRetentionWindow, len(appWindows))
+	for _, aw := range appWindows {
+		windowByApp[aw.AppID] = aw
 	}
 
 	results := make(map[string]DailyUsage)
-	for teamID := range teamIDs {
-		results[teamID] = DailyUsage{
-			TeamID:  teamID,
-			Events:  events[teamID],
-			Spans:   spans[teamID],
-			Metrics: metrics[teamID],
-			BytesIn: bytes[teamID],
+	for _, row := range data {
+		aw, ok := windowByApp[row.AppID]
+		if !ok {
+			continue // orphaned data, skip
 		}
+
+		// Effective cutoff: MAX(data_cutoff_date, snapshotDate - retention)
+		effectiveCutoff := aw.DataCutoffDate
+		if computed := snapshotDate.AddDate(0, 0, -aw.Retention); computed.After(effectiveCutoff) {
+			effectiveCutoff = computed
+		}
+
+		// Window is (effectiveCutoff, snapshotDate]
+		if !row.Day.After(effectiveCutoff) {
+			continue
+		}
+		if row.Day.After(snapshotDate) {
+			continue
+		}
+
+		usage := results[aw.TeamID]
+		usage.TeamID = aw.TeamID
+		usage.Events += row.Events
+		usage.Spans += row.Spans
+		usage.BytesIn += row.BytesIn
+		results[aw.TeamID] = usage
 	}
 
 	return results

@@ -98,14 +98,6 @@ func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string,
 	th.SeedIngestionUsage(ctx, t, teamID, appID, ts, events, spans, metrics, bytesIn)
 }
 
-func seedEvents(ctx context.Context, t *testing.T, teamID, appID string, count int) {
-	th.SeedEvents(ctx, t, teamID, appID, count)
-}
-
-func seedSpans(ctx context.Context, t *testing.T, teamID, appID string, count int) {
-	th.SeedSpans(ctx, t, teamID, appID, count)
-}
-
 func seedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics, bytesIn uint64, reported bool) {
 	th.SeedBillingMetricsReporting(ctx, t, teamID, reportDate, events, spans, metrics, bytesIn, reported)
 }
@@ -117,6 +109,26 @@ func setStripeCustomerID(ctx context.Context, t *testing.T, teamID, customerID s
 func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retention int) {
 	t.Helper()
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), appID.String()[:8], retention)
+}
+
+func setAppDataCutoffDate(ctx context.Context, t *testing.T, appID uuid.UUID, date time.Time) {
+	t.Helper()
+	_, err := th.PgPool.Exec(ctx,
+		"UPDATE apps SET data_cutoff_date = $1 WHERE id = $2", date, appID)
+	if err != nil {
+		t.Fatalf("set data_cutoff_date: %v", err)
+	}
+}
+
+func getAppDataCutoffDate(ctx context.Context, t *testing.T, appID uuid.UUID) time.Time {
+	t.Helper()
+	var date time.Time
+	err := th.PgPool.QueryRow(ctx,
+		"SELECT data_cutoff_date FROM apps WHERE id = $1", appID).Scan(&date)
+	if err != nil {
+		t.Fatalf("get data_cutoff_date: %v", err)
+	}
+	return date
 }
 
 func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, reason string) {

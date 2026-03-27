@@ -1165,6 +1165,32 @@ func TestResetTeamAppsRetention(t *testing.T) {
 		}
 	})
 
+	t.Run("advances data_cutoff_date on downgrade", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team", true)
+		seedApp(ctx, t, appID, teamID, 90)
+
+		// Set cutoff to 90 days ago (simulating active 90-day retention)
+		today := time.Now().UTC().Truncate(24 * time.Hour)
+		oldCutoff := today.AddDate(0, 0, -90)
+		setAppDataCutoffDate(ctx, t, appID, oldCutoff)
+
+		if err := ResetTeamAppsRetention(ctx, th.PgPool, teamID); err != nil {
+			t.Fatalf("ResetTeamAppsRetention: %v", err)
+		}
+
+		// Cutoff should jump forward to today - 30 (free plan retention)
+		got := getAppDataCutoffDate(ctx, t, appID)
+		expected := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+		if !got.Equal(expected) {
+			t.Errorf("data_cutoff_date = %v, want %v", got.Format("2006-01-02"), expected.Format("2006-01-02"))
+		}
+	})
+
 	t.Run("does not affect other teams", func(t *testing.T) {
 		ctx := context.Background()
 		defer cleanupAll(ctx, t)

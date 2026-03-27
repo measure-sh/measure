@@ -641,6 +641,58 @@ func TestCheckProPlan_CanceledSubscription(t *testing.T) {
 	}
 }
 
+func TestCheckProPlan_CanceledSubscription_AdvancesCutoffDate(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	deps := testDeps()
+	deps.GetSubscription = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+		return &stripe.Subscription{Status: stripe.SubscriptionStatusCanceled}, nil
+	}
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	userID := uuid.New().String()
+	now := time.Now().UTC()
+	today := now.Truncate(24 * time.Hour)
+
+	seedTeam(ctx, t, teamID, "ProTeam", true)
+	seedTeamBilling(ctx, t, teamID, "pro", nil, nil)
+	seedUser(ctx, t, userID, "pro@example.com")
+	seedTeamMembership(ctx, t, teamID.String(), userID, "owner")
+	seedApp(ctx, t, appID, teamID, 90)
+	seedIngestionUsage(ctx, t, teamID.String(), appID.String(), now, 1, 1, 0, uint64(FreePlanMaxBytes)-1)
+
+	// Set cutoff to 90 days ago (active 90-day retention)
+	oldCutoff := today.AddDate(0, 0, -90)
+	setAppDataCutoffDate(ctx, t, appID, oldCutoff)
+
+	subID := "sub_canceled"
+	team := TeamBillingInfo{
+		TeamID:               teamID.String(),
+		TeamName:             "ProTeam",
+		Plan:                 "pro",
+		StripeSubscriptionID: &subID,
+	}
+
+	checkProPlan(ctx, deps, team)
+
+	// Retention should reset to free plan.
+	if got := getAppRetention(ctx, t, appID); got != FreePlanMaxRetentionDays {
+		t.Errorf("retention = %d, want %d", got, FreePlanMaxRetentionDays)
+	}
+
+	// Cutoff should advance from 90 days ago to 30 days ago.
+	expectedCutoff := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+	gotCutoff := getAppDataCutoffDate(ctx, t, appID)
+	if gotCutoff.Before(expectedCutoff) {
+		t.Errorf("data_cutoff_date = %v, want >= %v", gotCutoff.Format("2006-01-02"), expectedCutoff.Format("2006-01-02"))
+	}
+	if gotCutoff.Before(oldCutoff) {
+		t.Error("data_cutoff_date moved backward (should never happen)")
+	}
+}
+
 func TestCheckProPlan_UnpaidSubscription(t *testing.T) {
 	tests := []struct {
 		name       string
