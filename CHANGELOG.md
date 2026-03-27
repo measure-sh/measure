@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Account for retention in billing meter by @anupcowkur in #3357
 - (**backend**): Add missing libs in alerts dockerfile (#3304) by @detj in #3304
 - (**backend**): Allow more characters for screen view event (#3301) by @detj in #3301
 - (**backend**): Handle panic for unsolvable malformed sdk request (#3278) by @detj in #3278
