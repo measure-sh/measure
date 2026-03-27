@@ -96,6 +96,10 @@ internal data class AttachmentEntity(
      */
     val name: String,
     /**
+     * The size of the attachment in bytes.
+     */
+    val size: Long,
+    /**
      * The path to the attachment.
      */
     @Transient

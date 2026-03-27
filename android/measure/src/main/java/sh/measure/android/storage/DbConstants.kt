@@ -275,9 +275,7 @@ internal object Sql {
                 ${EventTable.COL_DATA_FILE_PATH},
                 ${EventTable.COL_ATTACHMENTS},
                 ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES},
-                ${EventTable.COL_ATTACHMENT_SIZE},
-                ${EventTable.COL_ATTACHMENTS}
+                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
     """.trimIndent()
