@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Tidy billing deps by @anupcowkur in #3358
 - (**backend**): Add more billing tests by @anupcowkur in #3344
 - (**backend**): Revert validations for http urls (#3326) by @abhaysood in #3326
 - (**backend**): Fix invalid urls in session data (#3322) by @abhaysood in #3322
