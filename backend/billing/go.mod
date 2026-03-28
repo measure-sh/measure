@@ -16,6 +16,7 @@ replace backend/email => ../email
 
 require (
 	github.com/ClickHouse/ch-go v0.71.0 // indirect
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
