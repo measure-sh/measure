@@ -25,7 +25,17 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     private let logger: Logger
     private let attachmentProcessor: AttachmentProcessor
     private let userPermissionManager: UserPermissionManager
-    private let maskedClassNameFragments: [String] = ["RCTParagraphTextView"]
+    private let maskedMediaClassNameFragments: [String] = [
+        "RCTImageView",
+        "RCTImageComponentView"
+    ]
+    private let maskedTextClassNameFragments: [String] = [
+        "RCTParagraphTextView",
+        "RCTTextView",
+        "RCTBaseTextInputView",
+        "RCTUITextField",
+        "RCTTextInputComponentView"
+    ]
 
     init(configProvider: ConfigProvider,
          logger: Logger,
@@ -98,18 +108,28 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
 
     private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> [CGRect] {
         var sensitiveFrames: [CGRect] = []
+        let level = configProvider.screenshotMaskLevel
 
+        // UIKit type matching
         for type in types {
             if view.isKind(of: type) {
                 let frameInRootView = view.convert(view.bounds, to: rootView)
                 sensitiveFrames.append(frameInRootView)
                 break
             }
-            let className = String(describing: view)
-            if maskedClassNameFragments.contains(where: { className.contains($0) }) {
-                let frameInRootView = view.convert(view.bounds, to: rootView)
-                sensitiveFrames.append(frameInRootView)
-                break
+        }
+
+        // React Native class-name matching (outside type loop, respects mask level)
+        if sensitiveFrames.isEmpty {
+            let className = String(describing: type(of: view))
+            let isMediaMatch = maskedMediaClassNameFragments.contains(where: { className.contains($0) })
+            let isTextMatch = maskedTextClassNameFragments.contains(where: { className.contains($0) })
+
+            if isMediaMatch && level == .allTextAndMedia {
+                sensitiveFrames.append(view.convert(view.bounds, to: rootView))
+            } else if isTextMatch && (level == .allTextAndMedia || level == .allText ||
+                      level == .allTextExceptClickable || level == .sensitiveFieldsOnly) {
+                sensitiveFrames.append(view.convert(view.bounds, to: rootView))
             }
         }
 

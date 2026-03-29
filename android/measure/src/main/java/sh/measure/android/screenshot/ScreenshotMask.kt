@@ -53,6 +53,15 @@ internal class ScreenshotMask(private val configProvider: ConfigProvider) {
                 findComposableRectsToMask(view, rectsToMask)
             }
 
+            isReactNativeImageView(view) -> {
+                if (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
+                    val rect = Rect()
+                    if (view.getGlobalVisibleRect(rect)) {
+                        rectsToMask.add(rect)
+                    }
+                }
+            }
+
             view is ViewGroup -> {
                 (0 until view.childCount).forEach {
                     recursivelyFindRectsToMask(view.getChildAt(it), rectsToMask)
@@ -98,6 +107,11 @@ internal class ScreenshotMask(private val configProvider: ConfigProvider) {
     ) != null
 
     private fun isExoplayerView(view: View): Boolean = view.javaClass.name.equals("androidx.media3.ui.PlayerView")
+
+    private fun isReactNativeImageView(view: View): Boolean =
+        view.javaClass.name.let { name ->
+            name.contains("ReactImageView") || name.contains("DraweeView")
+        }
 
     private fun androidx.compose.ui.geometry.Rect.toRect(): Rect = Rect(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
 }
