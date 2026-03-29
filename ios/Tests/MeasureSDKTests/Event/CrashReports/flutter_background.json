@@ -1,6 +1,6 @@
 {
     "foreground": false,
-    "handled": true,
+    "type": "handled",
     "threads": [],
     "exceptions": [
         {

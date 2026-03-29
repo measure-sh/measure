@@ -5,11 +5,11 @@ internal object ExceptionFactory {
      * Creates [ExceptionData] from a [Throwable].
      *
      * @param throwable The [Throwable] to create the [ExceptionData] from.
-     * @param handled Whether the exception was handled or not.
+     * @param type The type of exception: "handled", "unhandled", or "fatal".
      */
     fun createMeasureException(
         throwable: Throwable,
-        handled: Boolean,
+        type: String,
         thread: Thread,
         foreground: Boolean,
         framework: String? = ExceptionFramework.JVM,
@@ -57,7 +57,7 @@ internal object ExceptionFactory {
         return ExceptionData(
             exceptions,
             threads = threads,
-            handled = handled,
+            type = type,
             foreground = foreground,
             framework = framework,
         )

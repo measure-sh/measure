@@ -209,7 +209,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         )
 
         let exception = Exception(
-            handled: false,
+            type: "fatal",
             exceptions: [exceptionDetail],
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
@@ -243,7 +243,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
             if let exceptionDict = jsonDict?["exception"] as? [String: Any] {
-                XCTAssertEqual(exceptionDict["handled"] as? Bool, false)
+                XCTAssertEqual(exceptionDict["type"] as? String, "fatal")
                 XCTAssertEqual(exceptionDict["foreground"] as? Bool, true)
 
                 if let exceptionDetails = exceptionDict["exceptions"] as? [[String: Any]],

@@ -156,7 +156,7 @@
       "name" : "Thread 3"
     }
   ],
-  "handled" : false,
+  "type" : "fatal",
   "exceptions" : [
     {
       "thread_sequence" : 0,

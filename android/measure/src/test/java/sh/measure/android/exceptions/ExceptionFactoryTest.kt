@@ -1,7 +1,6 @@
 package sh.measure.android.exceptions
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -15,7 +14,7 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            type = "handled",
             thread = thread,
             foreground = true,
         )
@@ -40,7 +39,7 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            type = "handled",
             thread = thread,
             foreground = true,
         )
@@ -61,7 +60,7 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `ExceptionFactory sets handled to true when the exception is handled`() {
+    fun `ExceptionFactory sets type to handled when the exception is handled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
@@ -69,17 +68,17 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            type = "handled",
             thread = thread,
             foreground = true,
         )
 
         // Then
-        assertTrue(measureException.handled)
+        assertEquals("handled", measureException.type)
     }
 
     @Test
-    fun `ExceptionFactory sets handled to false when the exception is unhandled`() {
+    fun `ExceptionFactory sets type to fatal when the exception is unhandled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
@@ -87,12 +86,12 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = false,
+            type = "fatal",
             thread = thread,
             foreground = true,
         )
 
         // Then
-        assertFalse(measureException.handled)
+        assertEquals("fatal", measureException.type)
     }
 }

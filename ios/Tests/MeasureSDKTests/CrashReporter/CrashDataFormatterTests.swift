@@ -555,16 +555,16 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertEqual(parsed?.first?.path, fullPath)
     }
 
-    func test_getException_setsHandledFlag() {
+    func test_getException_setsHandledType() {
         let sut = makeFormatter()
-        let result = sut.getException(true)
-        XCTAssertTrue(result.handled)
+        let result = sut.getException("handled")
+        XCTAssertEqual(result.type, "handled")
     }
 
-    func test_getException_setsFalseHandledFlag() {
+    func test_getException_setsFatalType() {
         let sut = makeFormatter()
-        let result = sut.getException(false)
-        XCTAssertFalse(result.handled)
+        let result = sut.getException("fatal")
+        XCTAssertEqual(result.type, "fatal")
     }
 
     func test_getException_putsCrashedThreadFramesInExceptionDetail() {
@@ -617,7 +617,7 @@ final class CrashDataFormatterTests: XCTestCase {
     func test_getException_passesMsrErrorThrough() {
         let sut = makeFormatter()
         let msrError = MsrError(numcode: 100, code: "Error", meta: nil)
-        let result = sut.getException(false, error: msrError)
+        let result = sut.getException("fatal", error: msrError)
         XCTAssertNotNil(result.error)
         XCTAssertEqual(result.error?.numcode, 100)
         XCTAssertEqual(result.error?.code, "Error")

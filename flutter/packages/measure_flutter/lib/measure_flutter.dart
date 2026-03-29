@@ -547,7 +547,7 @@ class Measure implements MeasureApi {
   }) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: true, attributes: attributes);
+      return _measure.trackError(details, type: "handled", attributes: attributes);
     }
     return Future.value();
   }
@@ -1044,7 +1044,7 @@ class Measure implements MeasureApi {
   Future<void> _initFlutterOnError() async {
     final originalHandler = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) async {
-      await _measure.trackError(details, handled: false);
+      await _measure.trackError(details, type: "fatal");
       if (originalHandler != null) {
         originalHandler(details);
       }
@@ -1057,7 +1057,7 @@ class Measure implements MeasureApi {
         exception: exception,
         stack: stackTrace,
       );
-      _measure.trackError(details, handled: false);
+      _measure.trackError(details, type: "fatal");
       return false;
     };
   }

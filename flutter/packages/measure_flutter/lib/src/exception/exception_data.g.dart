@@ -11,7 +11,7 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
       exceptions: (json['exceptions'] as List<dynamic>)
           .map((e) => ExceptionUnit.fromJson(e as Map<String, dynamic>))
           .toList(),
-      handled: json['handled'] as bool,
+      type: json['type'] as String,
       threads: (json['threads'] as List<dynamic>)
           .map((e) => MeasureThread.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -25,7 +25,7 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
     <String, dynamic>{
       'exceptions': instance.exceptions.map((e) => e.toJson()).toList(),
-      'handled': instance.handled,
+      'type': instance.type,
       'threads': instance.threads.map((e) => e.toJson()).toList(),
       'foreground': instance.foreground,
       'binary_images': instance.binaryImages.map((e) => e.toJson()).toList(),

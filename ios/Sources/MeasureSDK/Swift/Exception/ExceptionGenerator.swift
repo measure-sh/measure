@@ -59,7 +59,7 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
 
         let formatter = CrashDataFormatter(report.value)
-        let result = formatter.getException(true, error: msrError)
+        let result = formatter.getException("handled", error: msrError)
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 

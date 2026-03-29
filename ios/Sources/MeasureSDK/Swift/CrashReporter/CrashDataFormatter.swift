@@ -25,7 +25,7 @@ final class CrashDataFormatter {
         self.isLp64 = resolveIsLp64(binaryImageDicts: binaryImageDicts)
     }
 
-    func getException(_ handled: Bool = false, error: MsrError? = nil) -> Exception {
+    func getException(_ type: String = "fatal", error: MsrError? = nil) -> Exception {
         let crashedThreadDict = threadDicts.first { $0["crashed"] as? Bool == true || $0["crashed"] as? Int == 1 }
         let otherThreadDicts  = threadDicts.filter { $0["crashed"] as? Bool != true && $0["crashed"] as? Int != 1 }
 
@@ -34,7 +34,7 @@ final class CrashDataFormatter {
         let otherThreads    = otherThreadDicts.map { parseThread($0) }
 
         guard let crashedThread else {
-            return Exception(handled: handled,
+            return Exception(type: type,
                              exceptions: [exceptionDetail],
                              foreground: parseForeground(),
                              threads: nil,
@@ -46,7 +46,7 @@ final class CrashDataFormatter {
         let allThreads   = [crashedThread] + otherThreads
         let binaryImages = parseBinaryImages(threads: allThreads)
 
-        return Exception(handled: handled,
+        return Exception(type: type,
                          exceptions: [exceptionDetail],
                          foreground: parseForeground(),
                          threads: otherThreads,

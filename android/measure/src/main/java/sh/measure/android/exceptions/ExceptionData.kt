@@ -18,9 +18,9 @@ internal data class ExceptionData(
     val threads: List<MeasureThread>,
 
     /**
-     * Whether the exception was handled or not.
+     * The type of exception: "handled", "unhandled", or "fatal".
      */
-    val handled: Boolean,
+    val type: String,
 
     /**
      * Whether the app was in the foreground or not when the exception occurred.

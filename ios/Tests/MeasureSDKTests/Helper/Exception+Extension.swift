@@ -10,7 +10,7 @@ import Foundation
 
 extension Exception: Equatable {
     public static func == (lhs: Exception, rhs: Exception) -> Bool {
-        guard lhs.handled == rhs.handled else { return false }
+        guard lhs.type == rhs.type else { return false }
 
         guard lhs.exceptions.count == rhs.exceptions.count else { return false }
         for (lhsException, rhsException) in zip(lhs.exceptions, rhs.exceptions) {

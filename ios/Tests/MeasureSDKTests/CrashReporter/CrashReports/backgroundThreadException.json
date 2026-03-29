@@ -139,7 +139,7 @@
       "os_build_number" : "23F79"
     }
   ],
-  "handled" : false,
+  "type" : "fatal",
   "threads" : [
     {
       "name" : "Thread 0",

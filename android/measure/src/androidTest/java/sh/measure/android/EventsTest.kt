@@ -445,7 +445,7 @@ class EventsTest {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                handled = false,
+                type = "fatal",
                 foreground = true,
             ),
             timestamp = 987654321L,
@@ -459,7 +459,7 @@ class EventsTest {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                handled = false,
+                type = "fatal",
                 foreground = true,
             ),
             timestamp = 987654321L,

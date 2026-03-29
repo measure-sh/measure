@@ -294,7 +294,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks un-obfuscated flutter exception event`() {
-        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = false)
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(type = "fatal")
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
@@ -331,7 +331,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks obfuscated flutter exception event`() {
-        val exceptionData = TestData.getObfuscatedFlutterExceptionData(handled = false)
+        val exceptionData = TestData.getObfuscatedFlutterExceptionData(type = "fatal")
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
@@ -368,7 +368,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks handled flutter exception event`() {
-        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = true)
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(type = "handled")
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION

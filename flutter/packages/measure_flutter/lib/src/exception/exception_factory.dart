@@ -12,24 +12,24 @@ final class ExceptionFactory {
   static final _buildIdRegex = RegExp(r"build_id: *'([A-Fa-f0-9]+)'");
   static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
-  static ExceptionData? from(FlutterErrorDetails details, bool handled) {
+  static ExceptionData? from(FlutterErrorDetails details, String type) {
     var stackTrace = details.stack;
     if (stackTrace == null) {
       return null;
     }
     final result = _parseStackTrace(stackTrace);
     final List<Trace> traces = result.traces;
-    final type = details.exception.runtimeType.toString();
-    final message = _getMessage(details, type);
+    final exceptionType = details.exception.runtimeType.toString();
+    final message = _getMessage(details, exceptionType);
     final List<ExceptionUnit> exceptions = [];
 
     if (traces.isNotEmpty) {
       final firstTrace = traces.first;
       final List<MsrFrame> primaryFrames = _createMsrFrames(firstTrace.frames);
       exceptions.add(
-          ExceptionUnit(frames: primaryFrames, type: type, message: message));
+          ExceptionUnit(frames: primaryFrames, type: exceptionType, message: message));
     } else {
-      exceptions.add(ExceptionUnit(frames: [], type: type, message: message));
+      exceptions.add(ExceptionUnit(frames: [], type: exceptionType, message: message));
     }
     final remainingTraces = traces.skip(1);
     for (Trace trace in remainingTraces) {
@@ -43,7 +43,7 @@ final class ExceptionFactory {
     // in Flutter.
     return ExceptionData(
       exceptions: exceptions,
-      handled: handled,
+      type: type,
       threads: [],
       foreground: true,
       binaryImages: _createBinaryImage(stackTrace),

@@ -75,7 +75,7 @@ class AnrCollectorTest {
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)
         assertEquals(expectedAnrError.timestamp, timestampCaptor.firstValue)
-        assertEquals(false, dataCaptor.firstValue.handled)
+        assertEquals("fatal", dataCaptor.firstValue.type)
         assertEquals(processInfo.isForegroundProcess(), dataCaptor.firstValue.foreground)
     }
 }

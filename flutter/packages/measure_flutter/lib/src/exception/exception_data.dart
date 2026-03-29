@@ -9,8 +9,8 @@ class ExceptionData implements JsonSerialized {
   /// A list of exceptions that were thrown. Multiple exceptions represent "chained" exceptions.
   final List<ExceptionUnit> exceptions;
 
-  /// Whether the exception was handled or not.
-  final bool handled;
+  /// The type of exception: "handled", "unhandled", or "fatal".
+  final String type;
 
   /// The stacktrace of all the threads at the time of the exception.
   final List<MeasureThread> threads;
@@ -26,7 +26,7 @@ class ExceptionData implements JsonSerialized {
 
   ExceptionData({
     required this.exceptions,
-    required this.handled,
+    required this.type,
     required this.threads,
     required this.foreground,
     required this.binaryImages,
@@ -45,7 +45,7 @@ class ExceptionData implements JsonSerialized {
       other is ExceptionData &&
           runtimeType == other.runtimeType &&
           exceptions == other.exceptions &&
-          handled == other.handled &&
+          type == other.type &&
           threads == other.threads &&
           foreground == other.foreground &&
           binaryImages == other.binaryImages &&
@@ -54,7 +54,7 @@ class ExceptionData implements JsonSerialized {
   @override
   int get hashCode =>
       exceptions.hashCode ^
-      handled.hashCode ^
+      type.hashCode ^
       threads.hashCode ^
       foreground.hashCode ^
       binaryImages.hashCode ^

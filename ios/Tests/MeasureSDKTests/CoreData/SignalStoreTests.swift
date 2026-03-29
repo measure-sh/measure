@@ -79,7 +79,7 @@ final class BaseSignalStoreTests: XCTestCase {
     }
 
     func testMarksTimelineForCrashEvent() {
-        let exception = Exception(handled: false, exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
+        let exception = Exception(type: "fatal", exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
 
@@ -102,7 +102,7 @@ final class BaseSignalStoreTests: XCTestCase {
     }
 
     func testDoesNotMarkTimelineForHandledException() {
-        let exception = Exception(handled: true, exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
+        let exception = Exception(type: "handled", exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
 

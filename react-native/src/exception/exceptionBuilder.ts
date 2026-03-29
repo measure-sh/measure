@@ -33,7 +33,7 @@ export interface ThreadDetail {
 }
 
 export interface ExceptionPayload {
-  handled: boolean;
+  type: string;
   exceptions: ExceptionDetail[];
   foreground?: boolean;
   threads?: ThreadDetail[];
@@ -46,7 +46,7 @@ export interface ExceptionPayload {
  */
 export function buildExceptionPayload(
   error: unknown,
-  handled: boolean
+  type: string
 ): ExceptionPayload {
   const parsed = parseStacktrace(error);
 
@@ -76,7 +76,7 @@ export function buildExceptionPayload(
   };
 
   return {
-    handled,
+    type,
     exceptions: [exceptionDetail],
     foreground: true,
     threads: [thread],

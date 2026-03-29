@@ -8,8 +8,8 @@
 import Foundation
 
 struct Exception: Codable {
-    /// A boolean indicating whether the exception was handled.
-    let handled: Bool
+    /// The type of exception: "handled", "unhandled", or "fatal".
+    let type: String
 
     /// An array of `ExceptionDetail` objects representing the exceptions.
     let exceptions: [ExceptionDetail]
@@ -30,7 +30,7 @@ struct Exception: Codable {
     let error: MsrError?
 
     enum CodingKeys: String, CodingKey {
-        case handled
+        case type
         case exceptions
         case foreground
         case threads

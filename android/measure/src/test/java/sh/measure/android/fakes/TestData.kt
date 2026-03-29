@@ -50,18 +50,18 @@ internal object TestData {
 
     fun getExceptionData(
         exception: Exception = IllegalArgumentException("Test exception"),
-        handled: Boolean = true,
+        type: String = "handled",
         thread: Thread = Thread.currentThread(),
         foreground: Boolean = true,
     ): ExceptionData = ExceptionFactory.createMeasureException(
         exception,
-        handled,
+        type,
         thread,
         foreground,
     )
 
     fun getUnObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        type: String = "fatal",
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -99,13 +99,13 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        type = type,
         threads = listOf(),
         foreground = foreground,
     )
 
     fun getObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        type: String = "fatal",
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -126,7 +126,7 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        type = type,
         threads = listOf(),
         foreground = foreground,
     )

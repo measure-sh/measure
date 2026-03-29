@@ -110,7 +110,7 @@ void main() {
             ],
           ),
         ],
-        handled: false,
+        type: "fatal",
         threads: [],
         foreground: true,
         binaryImages: [],
@@ -120,7 +120,7 @@ void main() {
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        type: "fatal",
         attributes: {},
       );
 
@@ -161,7 +161,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             ],
           ),
         ],
-        handled: false,
+        type: "fatal",
         threads: [],
         foreground: true,
         binaryImages: [
@@ -177,7 +177,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        type: "fatal",
         attributes: {},
       );
 
@@ -234,7 +234,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             ],
           ),
         ],
-        handled: false,
+        type: "fatal",
         threads: [],
         foreground: true,
         binaryImages: [],
@@ -244,7 +244,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        type: "fatal",
         attributes: {},
       );
 
@@ -270,7 +270,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        type: "fatal",
         attributes: attributes,
       );
 

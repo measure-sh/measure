@@ -178,7 +178,7 @@ internal class UserTriggeredEventCollectorImpl(
         signalProcessor.trackUserTriggered(
             data = ExceptionFactory.createMeasureException(
                 throwable = throwable,
-                handled = true,
+                type = "handled",
                 thread = thread,
                 foreground = processInfoProvider.isForegroundProcess(),
             ),

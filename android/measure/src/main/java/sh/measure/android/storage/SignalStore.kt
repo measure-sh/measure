@@ -76,7 +76,7 @@ internal class SignalStoreImpl(
                 return
             }
             val isCrashEvent =
-                eventEntity.type == EventType.EXCEPTION && !(event.data as ExceptionData).handled
+                eventEntity.type == EventType.EXCEPTION && (event.data as ExceptionData).type != "handled"
             val isAnrEvent = eventEntity.type == EventType.ANR
             val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
 

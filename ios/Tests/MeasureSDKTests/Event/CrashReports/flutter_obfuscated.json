@@ -1,6 +1,6 @@
 {
   "foreground" : true,
-  "handled": false,
+  "type": "fatal",
   "threads" : [],
   "framework": "ios",
   "exceptions": [

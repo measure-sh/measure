@@ -6,13 +6,13 @@ describe("buildExceptionPayload", () => {
     err.stack = `Error: Something went wrong
     at myFunc (/src/index.js:12:34)`;
 
-    const payload = buildExceptionPayload(err, true);
+    const payload = buildExceptionPayload(err, "handled");
 
     expect(payload.exceptions).toBeDefined();
     expect(payload.exceptions.length).toBeGreaterThan(0);
 
     const exception = payload.exceptions[0];
-    expect(payload.handled).toBe(true);
+    expect(payload.type).toBe("handled");
     expect(exception).toBeDefined();
     expect(exception?.message).toBe("Something went wrong");
     expect(exception?.frames && exception.frames[0]).toMatchObject({
@@ -26,13 +26,13 @@ describe("buildExceptionPayload", () => {
   });
 
   it("handles non-Error inputs", () => {
-    const payload = buildExceptionPayload("plain string error", false);
+    const payload = buildExceptionPayload("plain string error", "fatal");
 
     expect(payload.exceptions).toBeDefined();
     expect(payload.exceptions.length).toBeGreaterThan(0);
-    
+
     const exception = payload.exceptions[0];
-    expect(payload.handled).toBe(false);
+    expect(payload.type).toBe("fatal");
     expect(exception).toBeDefined();
     expect(exception!.type).toBe("string");
     expect(exception!.frames).toEqual([]);

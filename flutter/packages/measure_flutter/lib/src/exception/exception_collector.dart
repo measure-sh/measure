@@ -45,11 +45,11 @@ final class ExceptionCollector {
 
   Future<void> trackError(
     FlutterErrorDetails details, {
-    required bool handled,
+    required String type,
     required Map<String, AttributeValue> attributes,
   }) async {
     if (!_enabled) return;
-    final ExceptionData? exceptionData = ExceptionFactory.from(details, handled);
+    final ExceptionData? exceptionData = ExceptionFactory.from(details, type);
     if (exceptionData == null) {
       logger.log(LogLevel.error, "Failed to parse exception");
       return;
@@ -57,7 +57,7 @@ final class ExceptionCollector {
 
     final attachments = <MsrAttachment>[];
 
-    if (configProvider.crashTakeScreenshot && !handled) {
+    if (configProvider.crashTakeScreenshot && type != "handled") {
       await _addScreenshot(attachments);
     }
 
