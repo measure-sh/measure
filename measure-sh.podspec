@@ -14,7 +14,8 @@ Pod::Spec.new do |spec|
   spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/ObjC/**/*.{h,m}"
   spec.public_header_files = "ios/Sources/MeasureSDK/ObjC/include/**/*.h"
   spec.pod_target_xcconfig = {
-    "DEFINES_MODULE" => "YES"
+    "DEFINES_MODULE"                   => "YES",
+    "SWIFT_OBJC_INTERFACE_HEADER_NAME" => "Measure-Swift.h"
   }
   spec.resources    = [
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld",

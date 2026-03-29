@@ -10,6 +10,8 @@
 #import <Measure/Measure-Swift.h>
 #elif __has_include("Measure-Swift.h")
 #import "Measure-Swift.h"
+#elif __has_include(<Measure-Swift.h>)
+#import <Measure-Swift.h>
 #else
 #warning "Measure-Swift.h not found. Swift integration may not work."
 #endif
