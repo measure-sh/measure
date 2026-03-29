@@ -146,7 +146,15 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
                                 responseBody: shouldTrackResponseBody
                                 ? responseBodyString?.sanitizeRequestBody()
                                 : nil,
-                                client: "URLSession")
+                                client: "URLSession",
+                                bytesSent: nil,
+                                bytesReceived: nil,
+                                dnsDuration: nil,
+                                tlsDuration: nil,
+                                requestSendDuration: nil,
+                                responseReadDuration: nil,
+                                isClientError: nil,
+                                isTimeout: nil)
 
         httpInterceptorCallbacks.onHttpCompletion(data: httpData)
     }

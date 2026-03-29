@@ -373,7 +373,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                         requestHeaders: [String: String]? = nil,
                         responseHeaders: [String: String]? = nil,
                         requestBody: String? = nil,
-                        responseBody: String? = nil) {
+                        responseBody: String? = nil,
+                        bytesSent: Int64? = nil,
+                        bytesReceived: Int64? = nil,
+                        dnsDuration: Int64? = nil,
+                        tlsDuration: Int64? = nil,
+                        requestSendDuration: Int64? = nil,
+                        responseReadDuration: Int64? = nil,
+                        isClientError: Bool? = nil,
+                        isTimeout: Bool? = nil) {
         return userTriggeredEventCollector.trackHttpEvent(url: url,
                                                           method: method,
                                                           startTime: startTime,
@@ -384,7 +392,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                                           requestHeaders: requestHeaders,
                                                           responseHeaders: responseHeaders,
                                                           requestBody: requestBody,
-                                                          responseBody: responseBody)
+                                                          responseBody: responseBody,
+                                                          bytesSent: bytesSent,
+                                                          bytesReceived: bytesReceived,
+                                                          dnsDuration: dnsDuration,
+                                                          tlsDuration: tlsDuration,
+                                                          requestSendDuration: requestSendDuration,
+                                                          responseReadDuration: responseReadDuration,
+                                                          isClientError: isClientError,
+                                                          isTimeout: isTimeout)
     }
 
     private func applicationDidEnterBackground() {

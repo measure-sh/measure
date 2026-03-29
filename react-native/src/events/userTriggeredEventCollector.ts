@@ -54,6 +54,14 @@ export interface IUserTriggeredEventCollector {
     responseHeaders?: Record<string, string> | null;
     requestBody?: string | null;
     responseBody?: string | null;
+    bytesSent?: number | null;
+    bytesReceived?: number | null;
+    dnsDuration?: number | null;
+    tlsDuration?: number | null;
+    requestSendDuration?: number | null;
+    responseReadDuration?: number | null;
+    isClientError?: boolean | null;
+    isTimeout?: boolean | null;
   }): Promise<void>;
 }
 
@@ -138,6 +146,14 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   responseHeaders?: Record<string, string> | null;
   requestBody?: string | null;
   responseBody?: string | null;
+  bytesSent?: number | null;
+  bytesReceived?: number | null;
+  dnsDuration?: number | null;
+  tlsDuration?: number | null;
+  requestSendDuration?: number | null;
+  responseReadDuration?: number | null;
+  isClientError?: boolean | null;
+  isTimeout?: boolean | null;
 }): Promise<void> {
   if (!this.enabled) return;
 
@@ -152,7 +168,15 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
     requestHeaders = {},
     responseHeaders = {},
     requestBody,
-    responseBody
+    responseBody,
+    bytesSent,
+    bytesReceived,
+    dnsDuration,
+    tlsDuration,
+    requestSendDuration,
+    responseReadDuration,
+    isClientError,
+    isTimeout,
   } = params;
 
   if (!url || !method) {
@@ -172,7 +196,15 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
       responseHeaders ?? {},
       requestBody ?? null,
       responseBody ?? null,
-      client ?? undefined
+      client ?? undefined,
+      bytesSent ?? null,
+      bytesReceived ?? null,
+      dnsDuration ?? null,
+      tlsDuration ?? null,
+      requestSendDuration ?? null,
+      responseReadDuration ?? null,
+      isClientError ?? null,
+      isTimeout ?? null
     );
 
     this.logger.log('info', `Tracked HTTP event: ${method} ${url}`);

@@ -139,6 +139,14 @@ final class MeasureInternal {
     String? requestBody,
     String? responseBody,
     String? client,
+    int? bytesSent,
+    int? bytesReceived,
+    int? dnsDuration,
+    int? tlsDuration,
+    int? requestSendDuration,
+    int? responseReadDuration,
+    bool? isClientError,
+    bool? isTimeout,
   }) {
     _httpCollector.trackHttpEvent(
       url: url,
@@ -153,6 +161,14 @@ final class MeasureInternal {
       requestBody: requestBody,
       responseBody: responseBody,
       client: client,
+      bytesSent: bytesSent,
+      bytesReceived: bytesReceived,
+      dnsDuration: dnsDuration,
+      tlsDuration: tlsDuration,
+      requestSendDuration: requestSendDuration,
+      responseReadDuration: responseReadDuration,
+      isClientError: isClientError,
+      isTimeout: isTimeout,
     );
   }
 

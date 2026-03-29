@@ -22,7 +22,15 @@ protocol UserTriggeredEventCollector {
                         requestHeaders: [String: String]?,
                         responseHeaders: [String: String]?,
                         requestBody: String?,
-                        responseBody: String?)
+                        responseBody: String?,
+                        bytesSent: Int64?,
+                        bytesReceived: Int64?,
+                        dnsDuration: Int64?,
+                        tlsDuration: Int64?,
+                        requestSendDuration: Int64?,
+                        responseReadDuration: Int64?,
+                        isClientError: Bool?,
+                        isTimeout: Bool?)
     func enable()
     func disable()
 }
@@ -115,7 +123,15 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                         requestHeaders: [String: String]?,
                         responseHeaders: [String: String]?,
                         requestBody: String?,
-                        responseBody: String?) {
+                        responseBody: String?,
+                        bytesSent: Int64? = nil,
+                        bytesReceived: Int64? = nil,
+                        dnsDuration: Int64? = nil,
+                        tlsDuration: Int64? = nil,
+                        requestSendDuration: Int64? = nil,
+                        responseReadDuration: Int64? = nil,
+                        isClientError: Bool? = nil,
+                        isTimeout: Bool? = nil) {
         guard isEnabled.get() else { return }
 
         // Validate URL
@@ -186,7 +202,15 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             responseHeaders: safeResponseHeaders,
                             requestBody: shouldTrackRequestHttpBody ? requestBody : nil,
                             responseBody: shouldTrackResponseHttpBody ? responseBody : nil,
-                            client: client)
+                            client: client,
+                            bytesSent: bytesSent,
+                            bytesReceived: bytesReceived,
+                            dnsDuration: dnsDuration,
+                            tlsDuration: tlsDuration,
+                            requestSendDuration: requestSendDuration,
+                            responseReadDuration: responseReadDuration,
+                            isClientError: isClientError,
+                            isTimeout: isTimeout)
 
         track(data, type: .http, needsReporting: signalSampler.shouldSampleHttpEvent())
     }

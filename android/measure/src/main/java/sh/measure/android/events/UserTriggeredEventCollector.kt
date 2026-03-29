@@ -38,6 +38,14 @@ internal interface UserTriggeredEventCollector {
         responseHeaders: MutableMap<String, String>?,
         requestBody: String?,
         responseBody: String?,
+        bytesSent: Long? = null,
+        bytesReceived: Long? = null,
+        dnsDuration: Long? = null,
+        tlsDuration: Long? = null,
+        requestSendDuration: Long? = null,
+        responseReadDuration: Long? = null,
+        isClientError: Boolean? = null,
+        isTimeout: Boolean? = null,
     )
 }
 
@@ -95,6 +103,14 @@ internal class UserTriggeredEventCollectorImpl(
         responseHeaders: MutableMap<String, String>?,
         requestBody: String?,
         responseBody: String?,
+        bytesSent: Long?,
+        bytesReceived: Long?,
+        dnsDuration: Long?,
+        tlsDuration: Long?,
+        requestSendDuration: Long?,
+        responseReadDuration: Long?,
+        isClientError: Boolean?,
+        isTimeout: Boolean?,
     ) {
         val timestamp = timeProvider.now()
         // validate url to be not empty
@@ -155,6 +171,14 @@ internal class UserTriggeredEventCollectorImpl(
             response_body = if (shouldTrackResponseHttpBody) responseBody else null,
             failure_reason = failureReason,
             failure_description = failureDescription,
+            bytes_sent = bytesSent,
+            bytes_received = bytesReceived,
+            dns_duration = dnsDuration,
+            tls_duration = tlsDuration,
+            request_send_duration = requestSendDuration,
+            response_read_duration = responseReadDuration,
+            is_client_error = isClientError,
+            is_timeout = isTimeout,
         )
 
         signalProcessor.track(

@@ -501,6 +501,14 @@ object Measure {
      * @param responseHeaders The HTTP headers in the response
      * @param requestBody An optional request body
      * @param responseBody An optional response body
+     * @param bytesSent The number of bytes sent in the request body, optional
+     * @param bytesReceived The number of bytes received in the response body, optional
+     * @param dnsDuration The duration of DNS resolution in milliseconds, optional
+     * @param tlsDuration The duration of TLS handshake in milliseconds, optional
+     * @param requestSendDuration The duration to send the request in milliseconds, optional
+     * @param responseReadDuration The duration to read the response in milliseconds, optional
+     * @param isClientError Whether the request failed without receiving a server response, optional
+     * @param isTimeout Whether the request failed due to a timeout, optional
      */
     fun trackHttpEvent(
         url: String,
@@ -514,6 +522,14 @@ object Measure {
         requestBody: String? = null,
         responseBody: String? = null,
         client: String = "unknown",
+        bytesSent: Long? = null,
+        bytesReceived: Long? = null,
+        dnsDuration: Long? = null,
+        tlsDuration: Long? = null,
+        requestSendDuration: Long? = null,
+        responseReadDuration: Long? = null,
+        isClientError: Boolean? = null,
+        isTimeout: Boolean? = null,
     ) {
         if (isInitialized.get()) {
             measure.trackHttpEvent(
@@ -528,6 +544,14 @@ object Measure {
                 requestBody,
                 responseBody,
                 client,
+                bytesSent,
+                bytesReceived,
+                dnsDuration,
+                tlsDuration,
+                requestSendDuration,
+                responseReadDuration,
+                isClientError,
+                isTimeout,
             )
         }
     }

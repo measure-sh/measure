@@ -318,6 +318,14 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         requestBody: String?,
         responseBody: String?,
         client: String,
+        bytesSent: Long? = null,
+        bytesReceived: Long? = null,
+        dnsDuration: Long? = null,
+        tlsDuration: Long? = null,
+        requestSendDuration: Long? = null,
+        responseReadDuration: Long? = null,
+        isClientError: Boolean? = null,
+        isTimeout: Boolean? = null,
     ) {
         measure.userTriggeredEventCollector.trackHttp(
             url,
@@ -332,6 +340,14 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             responseHeaders,
             requestBody,
             responseBody,
+            bytesSent,
+            bytesReceived,
+            dnsDuration,
+            tlsDuration,
+            requestSendDuration,
+            responseReadDuration,
+            isClientError,
+            isTimeout,
         )
     }
 

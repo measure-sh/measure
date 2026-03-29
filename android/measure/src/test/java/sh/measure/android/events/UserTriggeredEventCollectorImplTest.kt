@@ -639,4 +639,98 @@ class UserTriggeredEventCollectorImplTest {
         )
         Assert.assertEquals("Response body should be included when tracking is enabled", responseBody, httpDataCaptor.firstValue.response_body)
     }
+
+    @Test
+    fun `tracks http event with new optional timing and error fields`() {
+        val httpDataCaptor = argumentCaptor<HttpData>()
+
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = null,
+            failureReason = "java.net.SocketTimeoutException",
+            failureDescription = "timeout",
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+            bytesSent = 128L,
+            bytesReceived = 256L,
+            dnsDuration = 10L,
+            tlsDuration = 20L,
+            requestSendDuration = 30L,
+            responseReadDuration = 40L,
+            isClientError = true,
+            isTimeout = true,
+        )
+
+        verify(signalProcessor).track(
+            data = httpDataCaptor.capture(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+            isSampled = any(),
+        )
+        val data = httpDataCaptor.firstValue
+        Assert.assertEquals(128L, data.bytes_sent)
+        Assert.assertEquals(256L, data.bytes_received)
+        Assert.assertEquals(10L, data.dns_duration)
+        Assert.assertEquals(20L, data.tls_duration)
+        Assert.assertEquals(30L, data.request_send_duration)
+        Assert.assertEquals(40L, data.response_read_duration)
+        Assert.assertEquals(true, data.is_client_error)
+        Assert.assertEquals(true, data.is_timeout)
+    }
+
+    @Test
+    fun `tracks http event with null values for optional timing and error fields by default`() {
+        val httpDataCaptor = argumentCaptor<HttpData>()
+
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = httpDataCaptor.capture(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+            isSampled = any(),
+        )
+        val data = httpDataCaptor.firstValue
+        Assert.assertNull(data.bytes_sent)
+        Assert.assertNull(data.bytes_received)
+        Assert.assertNull(data.dns_duration)
+        Assert.assertNull(data.tls_duration)
+        Assert.assertNull(data.request_send_duration)
+        Assert.assertNull(data.response_read_duration)
+        Assert.assertNull(data.is_client_error)
+        Assert.assertNull(data.is_timeout)
+    }
 }

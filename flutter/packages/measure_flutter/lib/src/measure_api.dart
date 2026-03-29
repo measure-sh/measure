@@ -63,6 +63,14 @@ abstract class MeasureApi {
     String? requestBody,
     String? responseBody,
     String? client,
+    int? bytesSent,
+    int? bytesReceived,
+    int? dnsDuration,
+    int? tlsDuration,
+    int? requestSendDuration,
+    int? responseReadDuration,
+    bool? isClientError,
+    bool? isTimeout,
   });
 
   Span startSpan(

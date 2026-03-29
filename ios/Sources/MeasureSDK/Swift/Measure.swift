@@ -288,7 +288,15 @@ import UIKit
                         requestHeaders: [String: String]? = nil,
                         responseHeaders: [String: String]? = nil,
                         requestBody: String? = nil,
-                        responseBody: String? = nil) {
+                        responseBody: String? = nil,
+                        bytesSent: Int64? = nil,
+                        bytesReceived: Int64? = nil,
+                        dnsDuration: Int64? = nil,
+                        tlsDuration: Int64? = nil,
+                        requestSendDuration: Int64? = nil,
+                        responseReadDuration: Int64? = nil,
+                        isClientError: Bool? = nil,
+                        isTimeout: Bool? = nil) {
         guard let measureInternal = self.measureInternal else { return }
         measureInternal.trackHttpEvent(url: url,
                                        method: method,
@@ -300,7 +308,15 @@ import UIKit
                                        requestHeaders: requestHeaders,
                                        responseHeaders: responseHeaders,
                                        requestBody: requestBody,
-                                       responseBody: responseBody)
+                                       responseBody: responseBody,
+                                       bytesSent: bytesSent,
+                                       bytesReceived: bytesReceived,
+                                       dnsDuration: dnsDuration,
+                                       tlsDuration: tlsDuration,
+                                       requestSendDuration: requestSendDuration,
+                                       responseReadDuration: responseReadDuration,
+                                       isClientError: isClientError,
+                                       isTimeout: isTimeout)
     }
 }
 
@@ -833,7 +849,15 @@ extension Measure {
                                       requestHeaders: [String: String]? = nil,
                                       responseHeaders: [String: String]? = nil,
                                       requestBody: String? = nil,
-                                      responseBody: String? = nil) {
+                                      responseBody: String? = nil,
+                                      bytesSent: Int64? = nil,
+                                      bytesReceived: Int64? = nil,
+                                      dnsDuration: Int64? = nil,
+                                      tlsDuration: Int64? = nil,
+                                      requestSendDuration: Int64? = nil,
+                                      responseReadDuration: Int64? = nil,
+                                      isClientError: Bool? = nil,
+                                      isTimeout: Bool? = nil) {
         return Measure.shared.trackHttpEvent(url: url,
                                              method: method,
                                              startTime: startTime,
@@ -844,6 +868,14 @@ extension Measure {
                                              requestHeaders: requestHeaders,
                                              responseHeaders: responseHeaders,
                                              requestBody: requestBody,
-                                             responseBody: responseBody)
+                                             responseBody: responseBody,
+                                             bytesSent: bytesSent,
+                                             bytesReceived: bytesReceived,
+                                             dnsDuration: dnsDuration,
+                                             tlsDuration: tlsDuration,
+                                             requestSendDuration: requestSendDuration,
+                                             responseReadDuration: responseReadDuration,
+                                             isClientError: isClientError,
+                                             isTimeout: isTimeout)
     }
 } // swiftlint:disable:this file_length

@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.2 effective-5.10 (swiftlang-6.2.0.19.9 clang-1700.3.19.1)
+// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
 // swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
 import AVKit
 import CoreData
 import CoreMotion
@@ -393,7 +393,7 @@ extension Measure.Measure {
   public static func internalGetDynamicConfigPath() -> Swift.String?
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
-  public static func trackHttpEvent(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String = "unknown", statusCode: Swift.Int? = nil, error: (any Swift.Error)? = nil, requestHeaders: [Swift.String : Swift.String]? = nil, responseHeaders: [Swift.String : Swift.String]? = nil, requestBody: Swift.String? = nil, responseBody: Swift.String? = nil)
+  public static func trackHttpEvent(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String = "unknown", statusCode: Swift.Int? = nil, error: (any Swift.Error)? = nil, requestHeaders: [Swift.String : Swift.String]? = nil, responseHeaders: [Swift.String : Swift.String]? = nil, requestBody: Swift.String? = nil, responseBody: Swift.String? = nil, bytesSent: Swift.Int64? = nil, bytesReceived: Swift.Int64? = nil, dnsDuration: Swift.Int64? = nil, tlsDuration: Swift.Int64? = nil, requestSendDuration: Swift.Int64? = nil, responseReadDuration: Swift.Int64? = nil, isClientError: Swift.Bool? = nil, isTimeout: Swift.Bool? = nil)
   #endif
 }
 @_inheritsConvenienceInitializers @objc public class MSRNetworkInterceptor : ObjectiveC.NSObject {

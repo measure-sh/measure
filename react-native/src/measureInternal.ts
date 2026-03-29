@@ -189,6 +189,14 @@ export class MeasureInternal {
     responseHeaders?: Record<string, string> | null;
     requestBody?: string | null;
     responseBody?: string | null;
+    bytesSent?: number | null;
+    bytesReceived?: number | null;
+    dnsDuration?: number | null;
+    tlsDuration?: number | null;
+    requestSendDuration?: number | null;
+    responseReadDuration?: number | null;
+    isClientError?: boolean | null;
+    isTimeout?: boolean | null;
   }): Promise<void> {
     return this.measureInitializer.userTriggeredEventCollector.trackHttpEvent(
       params

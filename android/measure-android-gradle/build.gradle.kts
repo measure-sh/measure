@@ -67,7 +67,7 @@ mavenPublishing {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 extensions.configure<SpotlessExtension>("spotless") {

@@ -453,6 +453,14 @@ class Measure implements MeasureApi {
     String? requestBody,
     String? responseBody,
     String? client,
+    int? bytesSent,
+    int? bytesReceived,
+    int? dnsDuration,
+    int? tlsDuration,
+    int? requestSendDuration,
+    int? responseReadDuration,
+    bool? isClientError,
+    bool? isTimeout,
   }) {
     if (_isInitialized) {
       _measure.trackHttpEvent(
@@ -468,6 +476,14 @@ class Measure implements MeasureApi {
         requestBody: requestBody,
         responseBody: responseBody,
         client: client,
+        bytesSent: bytesSent,
+        bytesReceived: bytesReceived,
+        dnsDuration: dnsDuration,
+        tlsDuration: tlsDuration,
+        requestSendDuration: requestSendDuration,
+        responseReadDuration: responseReadDuration,
+        isClientError: isClientError,
+        isTimeout: isTimeout,
       );
     }
   }

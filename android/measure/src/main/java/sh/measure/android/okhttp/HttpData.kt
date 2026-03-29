@@ -67,6 +67,46 @@ internal data class HttpData(
      * @see [HttpClientName]
      */
     val client: String,
+
+    /**
+     * Number of bytes sent in the request body.
+     */
+    val bytes_sent: Long? = null,
+
+    /**
+     * Number of bytes received in the response body.
+     */
+    val bytes_received: Long? = null,
+
+    /**
+     * Duration of DNS resolution in milliseconds.
+     */
+    val dns_duration: Long? = null,
+
+    /**
+     * Duration of TLS handshake in milliseconds.
+     */
+    val tls_duration: Long? = null,
+
+    /**
+     * Duration to send the request in milliseconds.
+     */
+    val request_send_duration: Long? = null,
+
+    /**
+     * Duration to read the response in milliseconds.
+     */
+    val response_read_duration: Long? = null,
+
+    /**
+     * Whether the request failed without receiving a server response.
+     */
+    val is_client_error: Boolean? = null,
+
+    /**
+     * Whether the request failed due to a timeout.
+     */
+    val is_timeout: Boolean? = null,
 ) {
 
     // Builder
@@ -83,6 +123,14 @@ internal data class HttpData(
         private var requestBody: String? = null
         private var responseBody: String? = null
         private var client: String = ""
+        private var bytesSent: Long? = null
+        private var bytesReceived: Long? = null
+        private var dnsDuration: Long? = null
+        private var tlsDuration: Long? = null
+        private var requestSendDuration: Long? = null
+        private var responseReadDuration: Long? = null
+        private var isClientError: Boolean? = null
+        private var isTimeout: Boolean? = null
 
         fun url(url: String) = apply { this.url = url }
 
@@ -108,6 +156,22 @@ internal data class HttpData(
 
         fun client(client: String) = apply { this.client = client }
 
+        fun bytesSent(bytesSent: Long?) = apply { this.bytesSent = bytesSent }
+
+        fun bytesReceived(bytesReceived: Long?) = apply { this.bytesReceived = bytesReceived }
+
+        fun dnsDuration(dnsDuration: Long?) = apply { this.dnsDuration = dnsDuration }
+
+        fun tlsDuration(tlsDuration: Long?) = apply { this.tlsDuration = tlsDuration }
+
+        fun requestSendDuration(requestSendDuration: Long?) = apply { this.requestSendDuration = requestSendDuration }
+
+        fun responseReadDuration(responseReadDuration: Long?) = apply { this.responseReadDuration = responseReadDuration }
+
+        fun isClientError(isClientError: Boolean?) = apply { this.isClientError = isClientError }
+
+        fun isTimeout(isTimeout: Boolean?) = apply { this.isTimeout = isTimeout }
+
         fun build(): HttpData = HttpData(
             url = url,
             method = method,
@@ -121,6 +185,14 @@ internal data class HttpData(
             request_body = requestBody,
             response_body = responseBody,
             client = client,
+            bytes_sent = bytesSent,
+            bytes_received = bytesReceived,
+            dns_duration = dnsDuration,
+            tls_duration = tlsDuration,
+            request_send_duration = requestSendDuration,
+            response_read_duration = responseReadDuration,
+            is_client_error = isClientError,
+            is_timeout = isTimeout,
         )
     }
 }

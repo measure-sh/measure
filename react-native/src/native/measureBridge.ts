@@ -133,7 +133,15 @@ export function trackHttpEvent(
   responseHeaders: Record<string, string> = {},
   requestBody?: string | null,
   responseBody?: string | null,
-  client: string = 'unknown'
+  client: string = 'unknown',
+  bytesSent?: number | null,
+  bytesReceived?: number | null,
+  dnsDuration?: number | null,
+  tlsDuration?: number | null,
+  requestSendDuration?: number | null,
+  responseReadDuration?: number | null,
+  isClientError?: boolean | null,
+  isTimeout?: boolean | null
 ): Promise<any> {
   if (!MeasureModule.trackHttpEvent || isDisabled()) {
     return Promise.reject(
@@ -152,7 +160,15 @@ export function trackHttpEvent(
     responseHeaders,
     requestBody,
     responseBody,
-    client
+    client,
+    bytesSent,
+    bytesReceived,
+    dnsDuration,
+    tlsDuration,
+    requestSendDuration,
+    responseReadDuration,
+    isClientError,
+    isTimeout
   );
 }
 

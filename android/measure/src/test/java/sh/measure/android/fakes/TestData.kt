@@ -287,6 +287,14 @@ internal object TestData {
         requestBody: String? = "request-body",
         responseBody: String? = "response-body",
         client: String = "client",
+        bytesSent: Long? = null,
+        bytesReceived: Long? = null,
+        dnsDuration: Long? = null,
+        tlsDuration: Long? = null,
+        requestSendDuration: Long? = null,
+        responseReadDuration: Long? = null,
+        isClientError: Boolean? = null,
+        isTimeout: Boolean? = null,
     ): HttpData = HttpData(
         url,
         method,
@@ -300,6 +308,14 @@ internal object TestData {
         requestBody,
         responseBody,
         client,
+        bytesSent,
+        bytesReceived,
+        dnsDuration,
+        tlsDuration,
+        requestSendDuration,
+        responseReadDuration,
+        isClientError,
+        isTimeout,
     )
 
     fun getMemoryUsageData(

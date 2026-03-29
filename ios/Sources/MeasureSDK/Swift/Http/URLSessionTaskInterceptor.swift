@@ -104,7 +104,15 @@ final class URLSessionTaskInterceptor {
             responseBody: shouldTrackResponseBody
                 ? nil
                 : nil,
-            client: "URLSession"
+            client: "URLSession",
+            bytesSent: task.countOfBytesSent > 0 ? task.countOfBytesSent : nil,
+            bytesReceived: task.countOfBytesReceived > 0 ? task.countOfBytesReceived : nil,
+            dnsDuration: nil,
+            tlsDuration: nil,
+            requestSendDuration: nil,
+            responseReadDuration: nil,
+            isClientError: task.error != nil ? true : nil,
+            isTimeout: task.error.map { ($0 as NSError).code == NSURLErrorTimedOut } ?? nil
         )
 
         if shouldRecordEvent(method: method, url: url, currentTime: UInt64(endTime)) {

@@ -46,6 +46,14 @@ RCT_EXTERN_METHOD(trackHttpEvent:
                   requestBody:(nullable NSString *)requestBody
                   responseBody:(nullable NSString *)responseBody
                   client:(NSString *)client
+                  bytesSent:(nullable NSNumber *)bytesSent
+                  bytesReceived:(nullable NSNumber *)bytesReceived
+                  dnsDuration:(nullable NSNumber *)dnsDuration
+                  tlsDuration:(nullable NSNumber *)tlsDuration
+                  requestSendDuration:(nullable NSNumber *)requestSendDuration
+                  responseReadDuration:(nullable NSNumber *)responseReadDuration
+                  isClientError:(nullable NSNumber *)isClientError
+                  isTimeout:(nullable NSNumber *)isTimeout
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(launchBugReport:(BOOL)takeScreenshot

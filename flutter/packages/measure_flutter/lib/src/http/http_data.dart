@@ -51,6 +51,38 @@ class HttpData implements JsonSerialized {
   /// The name of the client that sent the request.
   final String client;
 
+  /// The number of bytes sent in the request body.
+  @JsonKey(name: "bytes_sent")
+  final int? bytesSent;
+
+  /// The number of bytes received in the response body.
+  @JsonKey(name: "bytes_received")
+  final int? bytesReceived;
+
+  /// The time taken for DNS resolution, in milliseconds.
+  @JsonKey(name: "dns_duration")
+  final int? dnsDuration;
+
+  /// The time taken for TLS handshake, in milliseconds.
+  @JsonKey(name: "tls_duration")
+  final int? tlsDuration;
+
+  /// The time taken to send the request, in milliseconds.
+  @JsonKey(name: "request_send_duration")
+  final int? requestSendDuration;
+
+  /// The time taken to read the response, in milliseconds.
+  @JsonKey(name: "response_read_duration")
+  final int? responseReadDuration;
+
+  /// Whether the request failed before receiving a response from the server.
+  @JsonKey(name: "is_client_error")
+  final bool? isClientError;
+
+  /// Whether the request failed due to a timeout.
+  @JsonKey(name: "is_timeout")
+  final bool? isTimeout;
+
   HttpData({
     required this.url,
     required this.method,
@@ -64,6 +96,14 @@ class HttpData implements JsonSerialized {
     this.responseHeaders,
     this.requestBody,
     this.responseBody,
+    this.bytesSent,
+    this.bytesReceived,
+    this.dnsDuration,
+    this.tlsDuration,
+    this.requestSendDuration,
+    this.responseReadDuration,
+    this.isClientError,
+    this.isTimeout,
   });
 
   @override

@@ -581,6 +581,186 @@ class OkHttpEventCollectorTest {
         Assert.assertNull(actualData.response_body)
     }
 
+    @Test
+    fun `tracks bytes_sent for a successful POST request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(requestBody = "{ \"key\": \"value\" }")
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.bytes_sent)
+        Assert.assertTrue(actualData.bytes_sent!! > 0)
+    }
+
+    @Test
+    fun `tracks bytes_received for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(responseBody = "{ \"key\": \"value\" }")
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.bytes_received)
+        Assert.assertTrue(actualData.bytes_received!! > 0)
+    }
+
+    @Test
+    fun `tracks request_send_duration for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.request_send_duration)
+        Assert.assertTrue(actualData.request_send_duration!! >= 0)
+    }
+
+    @Test
+    fun `tracks response_read_duration for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.response_read_duration)
+        Assert.assertTrue(actualData.response_read_duration!! >= 0)
+    }
+
+    @Test
+    fun `is_client_error and is_timeout are null for a successful request`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(actualData.is_client_error)
+        Assert.assertNull(actualData.is_timeout)
+    }
+
+    @Test
+    fun `tracks is_client_error as true for a connection failure`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateConnectionFailed()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(true, actualData.is_client_error)
+    }
+
+    @Test
+    fun `tracks is_timeout as false for a non-timeout connection failure`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateConnectionFailed()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(false, actualData.is_timeout)
+    }
+
     /**
      * Creates a mock server and enqueues a successful response for a POST request.
      * Then consumes the response to ensure all events for EventFactory are triggered.

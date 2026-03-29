@@ -96,7 +96,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
         resolve("User ID cleared successfully")
     }
 
-    @objc(trackHttpEvent:method:startTime:endTime:statusCode:error:requestHeaders:responseHeaders:requestBody:responseBody:client:resolver:rejecter:)
+    @objc(trackHttpEvent:method:startTime:endTime:statusCode:error:requestHeaders:responseHeaders:requestBody:responseBody:client:bytesSent:bytesReceived:dnsDuration:tlsDuration:requestSendDuration:responseReadDuration:isClientError:isTimeout:resolver:rejecter:)
     func trackHttpEvent(
         url: String,
         method: String,
@@ -109,6 +109,14 @@ class MeasureModule: NSObject, RCTBridgeModule {
         requestBody: String?,
         responseBody: String?,
         client: String,
+        bytesSent: NSNumber?,
+        bytesReceived: NSNumber?,
+        dnsDuration: NSNumber?,
+        tlsDuration: NSNumber?,
+        requestSendDuration: NSNumber?,
+        responseReadDuration: NSNumber?,
+        isClientError: NSNumber?,
+        isTimeout: NSNumber?,
         resolve: RCTPromiseResolveBlock,
         reject: RCTPromiseRejectBlock
     ) {
@@ -123,7 +131,15 @@ class MeasureModule: NSObject, RCTBridgeModule {
             requestHeaders: requestHeaders,
             responseHeaders: responseHeaders,
             requestBody: requestBody,
-            responseBody: responseBody
+            responseBody: responseBody,
+            bytesSent: bytesSent?.int64Value,
+            bytesReceived: bytesReceived?.int64Value,
+            dnsDuration: dnsDuration?.int64Value,
+            tlsDuration: tlsDuration?.int64Value,
+            requestSendDuration: requestSendDuration?.int64Value,
+            responseReadDuration: responseReadDuration?.int64Value,
+            isClientError: isClientError?.boolValue,
+            isTimeout: isTimeout?.boolValue
         )
         resolve("ok")
     }

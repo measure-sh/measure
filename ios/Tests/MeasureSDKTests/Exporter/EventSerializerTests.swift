@@ -769,7 +769,15 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             responseHeaders: ["Server": "nginx", "Content-Length": "123"],
             requestBody: "requestBody",
             responseBody: "responseBody",
-            client: "TestClient"
+            client: "TestClient",
+            bytesSent: nil,
+            bytesReceived: nil,
+            dnsDuration: nil,
+            tlsDuration: nil,
+            requestSendDuration: nil,
+            responseReadDuration: nil,
+            isClientError: nil,
+            isTimeout: nil
         )
 
         let event = Event(

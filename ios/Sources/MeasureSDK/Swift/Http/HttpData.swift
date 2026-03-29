@@ -44,6 +44,30 @@ struct HttpData: Codable {
     /// The name of the client that sent the request.
     let client: String
 
+    /// The number of bytes sent in the request body.
+    let bytesSent: Int64?
+
+    /// The number of bytes received in the response body.
+    let bytesReceived: Int64?
+
+    /// The time taken for DNS resolution, in milliseconds.
+    let dnsDuration: Int64?
+
+    /// The time taken for TLS handshake, in milliseconds.
+    let tlsDuration: Int64?
+
+    /// The time taken to send the request, in milliseconds.
+    let requestSendDuration: Int64?
+
+    /// The time taken to read the response, in milliseconds.
+    let responseReadDuration: Int64?
+
+    /// Whether the request failed before receiving a response from the server.
+    let isClientError: Bool?
+
+    /// Whether the request failed due to a timeout.
+    let isTimeout: Bool?
+
     enum CodingKeys: String, CodingKey {
         case url
         case method
@@ -57,5 +81,13 @@ struct HttpData: Codable {
         case requestBody = "request_body"
         case responseBody = "response_body"
         case client
+        case bytesSent = "bytes_sent"
+        case bytesReceived = "bytes_received"
+        case dnsDuration = "dns_duration"
+        case tlsDuration = "tls_duration"
+        case requestSendDuration = "request_send_duration"
+        case responseReadDuration = "response_read_duration"
+        case isClientError = "is_client_error"
+        case isTimeout = "is_timeout"
     }
 }

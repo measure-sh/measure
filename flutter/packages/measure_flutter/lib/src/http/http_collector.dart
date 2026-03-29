@@ -36,6 +36,14 @@ class HttpCollector {
     String? requestBody,
     String? responseBody,
     String? client,
+    int? bytesSent,
+    int? bytesReceived,
+    int? dnsDuration,
+    int? tlsDuration,
+    int? requestSendDuration,
+    int? responseReadDuration,
+    bool? isClientError,
+    bool? isTimeout,
   }) {
     if (!_enabled) {
       return;
@@ -82,6 +90,14 @@ class HttpCollector {
       requestBody: requestBody,
       responseBody: responseBody,
       client: client ?? 'unknown',
+      bytesSent: bytesSent,
+      bytesReceived: bytesReceived,
+      dnsDuration: dnsDuration,
+      tlsDuration: tlsDuration,
+      requestSendDuration: requestSendDuration,
+      responseReadDuration: responseReadDuration,
+      isClientError: isClientError,
+      isTimeout: isTimeout,
     );
     signalProcessor.trackEvent(
       data: data,

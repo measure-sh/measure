@@ -284,6 +284,14 @@ export const Measure = {
    * @param responseHeaders - The HTTP headers in the response
    * @param requestBody - An optional request body
    * @param responseBody - An optional response body
+   * @param bytesSent - The number of bytes sent in the request body
+   * @param bytesReceived - The number of bytes received in the response body
+   * @param dnsDuration - The time taken for DNS resolution, in milliseconds
+   * @param tlsDuration - The time taken for TLS handshake, in milliseconds
+   * @param requestSendDuration - The time taken to send the request, in milliseconds
+   * @param responseReadDuration - The time taken to read the response, in milliseconds
+   * @param isClientError - Whether the request failed before receiving a response from the server
+   * @param isTimeout - Whether the request failed due to a timeout
    */
   trackHttpEvent(params: {
     url: string;
@@ -297,6 +305,14 @@ export const Measure = {
     responseHeaders?: Record<string, string> | null;
     requestBody?: string | null;
     responseBody?: string | null;
+    bytesSent?: number | null;
+    bytesReceived?: number | null;
+    dnsDuration?: number | null;
+    tlsDuration?: number | null;
+    requestSendDuration?: number | null;
+    responseReadDuration?: number | null;
+    isClientError?: boolean | null;
+    isTimeout?: boolean | null;
   }): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(

@@ -23,6 +23,14 @@ HttpData _$HttpDataFromJson(Map<String, dynamic> json) => HttpData(
       ),
       requestBody: json['request_body'] as String?,
       responseBody: json['response_body'] as String?,
+      bytesSent: (json['bytes_sent'] as num?)?.toInt(),
+      bytesReceived: (json['bytes_received'] as num?)?.toInt(),
+      dnsDuration: (json['dns_duration'] as num?)?.toInt(),
+      tlsDuration: (json['tls_duration'] as num?)?.toInt(),
+      requestSendDuration: (json['request_send_duration'] as num?)?.toInt(),
+      responseReadDuration: (json['response_read_duration'] as num?)?.toInt(),
+      isClientError: json['is_client_error'] as bool?,
+      isTimeout: json['is_timeout'] as bool?,
     );
 
 Map<String, dynamic> _$HttpDataToJson(HttpData instance) => <String, dynamic>{
@@ -38,4 +46,12 @@ Map<String, dynamic> _$HttpDataToJson(HttpData instance) => <String, dynamic>{
       'request_body': instance.requestBody,
       'response_body': instance.responseBody,
       'client': instance.client,
+      'bytes_sent': instance.bytesSent,
+      'bytes_received': instance.bytesReceived,
+      'dns_duration': instance.dnsDuration,
+      'tls_duration': instance.tlsDuration,
+      'request_send_duration': instance.requestSendDuration,
+      'response_read_duration': instance.responseReadDuration,
+      'is_client_error': instance.isClientError,
+      'is_timeout': instance.isTimeout,
     };

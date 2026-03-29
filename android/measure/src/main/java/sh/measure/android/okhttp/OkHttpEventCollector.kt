@@ -13,6 +13,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal abstract class OkHttpEventCollector :
@@ -32,6 +33,10 @@ internal class OkHttpEventCollectorImpl(
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
     ) { mutableMapOf() }
+    private val dnsStartTimes: MutableMap<String, Long> by lazy(LazyThreadSafetyMode.NONE) { mutableMapOf() }
+    private val tlsStartTimes: MutableMap<String, Long> by lazy(LazyThreadSafetyMode.NONE) { mutableMapOf() }
+    private val requestHeadersEndTimes: MutableMap<String, Long> by lazy(LazyThreadSafetyMode.NONE) { mutableMapOf() }
+    private val responseHeadersEndTimes: MutableMap<String, Long> by lazy(LazyThreadSafetyMode.NONE) { mutableMapOf() }
 
     companion object {
         private const val MAX_BODY_SIZE_BYTES = 256 * 1024L
@@ -59,8 +64,55 @@ internal class OkHttpEventCollectorImpl(
         }
     }
 
+    override fun dnsStart(call: Call, domainName: String) {
+        val key = getIdentityHash(call)
+        if (httpDataBuilders.containsKey(key)) {
+            dnsStartTimes[key] = timeProvider.elapsedRealtime
+        }
+    }
+
+    override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<java.net.InetAddress>) {
+        val key = getIdentityHash(call)
+        val startTime = dnsStartTimes.remove(key) ?: return
+        httpDataBuilders[key]?.dnsDuration(timeProvider.elapsedRealtime - startTime)
+    }
+
+    override fun secureConnectStart(call: Call) {
+        val key = getIdentityHash(call)
+        if (httpDataBuilders.containsKey(key)) {
+            tlsStartTimes[key] = timeProvider.elapsedRealtime
+        }
+    }
+
+    override fun secureConnectEnd(call: Call, handshake: okhttp3.Handshake?) {
+        val key = getIdentityHash(call)
+        val startTime = tlsStartTimes.remove(key) ?: return
+        httpDataBuilders[key]?.tlsDuration(timeProvider.elapsedRealtime - startTime)
+    }
+
+    override fun requestBodyEnd(call: Call, byteCount: Long) {
+        val key = getIdentityHash(call)
+        httpDataBuilders[key]?.bytesSent(byteCount)
+    }
+
+    override fun responseHeadersStart(call: Call) {
+        val key = getIdentityHash(call)
+        val sendEndTime = requestHeadersEndTimes[key] ?: return
+        httpDataBuilders[key]?.requestSendDuration(timeProvider.elapsedRealtime - sendEndTime)
+    }
+
+    override fun responseBodyEnd(call: Call, byteCount: Long) {
+        val key = getIdentityHash(call)
+        httpDataBuilders[key]?.bytesReceived(byteCount)
+        val headersEndTime = responseHeadersEndTimes.remove(key)
+        if (headersEndTime != null) {
+            httpDataBuilders[key]?.responseReadDuration(timeProvider.elapsedRealtime - headersEndTime)
+        }
+    }
+
     override fun requestHeadersEnd(call: Call, request: Request) {
         val key = getIdentityHash(call)
+        requestHeadersEndTimes[key] = timeProvider.elapsedRealtime
         if (configProvider.shouldTrackHttpRequestBody(request.url.toString())) {
             val filteredHeaders = request.headers.names()
                 .filter { headerName ->
@@ -79,10 +131,13 @@ internal class OkHttpEventCollectorImpl(
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.elapsedRealtime)
+            ?.isClientError(true)
+            ?.isTimeout(ioe is SocketTimeoutException)
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
         val key = getIdentityHash(call)
+        responseHeadersEndTimes[key] = timeProvider.elapsedRealtime
         if (configProvider.shouldTrackHttpResponseBody(call.request().url.toString())) {
             val filteredHeaders = response.headers.names()
                 .filter { headerName ->
@@ -103,6 +158,7 @@ internal class OkHttpEventCollectorImpl(
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.elapsedRealtime)
+            ?.isTimeout(ioe is SocketTimeoutException)
         trackEvent(call, builder)
     }
 
@@ -118,6 +174,8 @@ internal class OkHttpEventCollectorImpl(
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.elapsedRealtime)
+            ?.isClientError(true)
+            ?.isTimeout(ioe is SocketTimeoutException)
         trackEvent(call, builder)
     }
 
@@ -154,6 +212,10 @@ internal class OkHttpEventCollectorImpl(
             )
         }
         httpDataBuilders.remove(key)
+        dnsStartTimes.remove(key)
+        tlsStartTimes.remove(key)
+        requestHeadersEndTimes.remove(key)
+        responseHeadersEndTimes.remove(key)
     }
 
     private fun getResponseBodyByteString(response: Response): ByteString? {

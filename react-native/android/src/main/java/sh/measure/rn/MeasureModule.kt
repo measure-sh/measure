@@ -174,6 +174,14 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         requestBody: String?,
         responseBody: String?,
         client: String,
+        bytesSent: Double?,
+        bytesReceived: Double?,
+        dnsDuration: Double?,
+        tlsDuration: Double?,
+        requestSendDuration: Double?,
+        responseReadDuration: Double?,
+        isClientError: Boolean?,
+        isTimeout: Boolean?,
         promise: Promise
     ) {
         val errObj = error?.let { Exception(it) }
@@ -189,7 +197,15 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             responseHeaders?.toHashMap()?.mapValues { it.value.toString() }?.toMutableMap(),
             requestBody,
             responseBody,
-            client
+            client,
+            bytesSent?.toLong(),
+            bytesReceived?.toLong(),
+            dnsDuration?.toLong(),
+            tlsDuration?.toLong(),
+            requestSendDuration?.toLong(),
+            responseReadDuration?.toLong(),
+            isClientError,
+            isTimeout
         )
 
         promise.resolve("ok")
