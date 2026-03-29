@@ -33,6 +33,7 @@ struct WarmLaunchData: Codable {
     let launchedActivity: String
     let hasSavedState: Bool
     let intentData: String?
+    let isPreWarm: Bool
 
     enum CodingKeys: String, CodingKey {
         case appVisibleUptime = "app_visible_uptime"
@@ -40,6 +41,7 @@ struct WarmLaunchData: Codable {
         case launchedActivity = "launched_activity"
         case hasSavedState = "has_saved_state"
         case intentData = "intent_data"
+        case isPreWarm = "is_pre_warm"
     }
 }
 

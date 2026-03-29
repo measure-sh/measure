@@ -93,13 +93,14 @@ final class BaseLaunchTracker: LaunchTracker {
             return
         }
 
-        guard !isActivePrewarm else {
-            logger.log(level: .error, message: "Skipping launch data collection as app is prewarmed.", error: nil, data: nil)
-            return
-        }
-
         let now = UnsignedNumber(timeProvider.now())
         let currentLaunchData = LaunchData(appVersion: currentAppVersion, timeSinceLastBoot: currentSystemBootTime)
+
+        guard !isActivePrewarm else {
+            generateWarmLaunchData(appVisibleUptime: processStart, onNextDrawUptime: now, isPreWarm: true)
+            userDefaultStorage.setRecentLaunchData(currentLaunchData)
+            return
+        }
 
         // Mark a launch as cold launch if recent launch data is not available
         guard let recentLaunch = userDefaultStorage.getRecentLaunchData() else {
@@ -111,7 +112,7 @@ final class BaseLaunchTracker: LaunchTracker {
         if recentLaunch.appVersion != currentAppVersion { // if app is updated, mark it as a cold launch
             generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else if recentLaunch.timeSinceLastBoot == currentSystemBootTime { // if the device boot time is same as previous launch, mark it as a warm launch
-            generateWarmLaunchData(appVisibleUptime: processStart, onNextDrawUptime: now)
+            generateWarmLaunchData(appVisibleUptime: processStart, onNextDrawUptime: now, isPreWarm: false)
         } else if currentSystemBootTime > recentLaunch.timeSinceLastBoot { // if the current device boot time is more recent than previous launch, mark it as a cold launch
             generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else { // This else case will only be executed in case of clock skew.
@@ -140,12 +141,13 @@ final class BaseLaunchTracker: LaunchTracker {
         launchCallbacks.onColdLaunch(data: coldLaunchData)
     }
 
-    private func generateWarmLaunchData(appVisibleUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber) {
+    private func generateWarmLaunchData(appVisibleUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber, isPreWarm: Bool) {
         let warmLaunchData = WarmLaunchData(appVisibleUptime: appVisibleUptime,
                                             onNextDrawUptime: onNextDrawUptime,
                                             launchedActivity: getViewControllerName(),
                                             hasSavedState: false,
-                                            intentData: nil)
+                                            intentData: nil,
+                                            isPreWarm: isPreWarm)
         launchCallbacks.onWarmLaunch(data: warmLaunchData)
     }
 
