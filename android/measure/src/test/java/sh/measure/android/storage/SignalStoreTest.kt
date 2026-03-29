@@ -35,7 +35,6 @@ internal class SignalStoreTest {
         logger,
         fileStorage,
         database,
-        idProvider,
         configProvider,
     )
 
@@ -244,14 +243,14 @@ internal class SignalStoreTest {
             id = idProvider.id,
         )
         val bytes = attachment.bytes!!
-        `when`(fileStorage.writeAttachment(event.id, bytes)).thenReturn("fake-path")
+        `when`(fileStorage.writeAttachment(attachment.id, bytes)).thenReturn("fake-path")
 
         // when
         signalStore.store(event)
         signalStore.flush()
 
         // then
-        verify(fileStorage).writeAttachment(event.id, bytes)
+        verify(fileStorage).writeAttachment(attachment.id, bytes)
         val eventsCaptor = argumentCaptor<List<EventEntity>>()
         verify(database).insertSignals(eventsCaptor.capture(), eq(emptyList()))
         val eventEntity = eventsCaptor.firstValue.first()
@@ -334,7 +333,7 @@ internal class SignalStoreTest {
         val eventEntity = eventsCaptor.firstValue.first()
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
-            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":0}]",
+            "[{\"id\":\"${attachment.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":0}]",
             eventEntity.serializedAttachments,
         )
     }
@@ -347,10 +346,11 @@ internal class SignalStoreTest {
             path = null,
             name = "name",
             type = "type",
+            size = 3L,
         )
         `when`(
             fileStorage.writeAttachment(
-                idProvider.id,
+                attachment.id,
                 attachment.bytes!!,
             ),
         ).thenReturn("fake-path")
@@ -370,7 +370,7 @@ internal class SignalStoreTest {
         val eventEntity = eventsCaptor.firstValue.first()
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
-            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":3}]",
+            "[{\"id\":\"${attachment.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":3}]",
             eventEntity.serializedAttachments,
         )
     }
@@ -601,7 +601,7 @@ internal class SignalStoreTest {
 
         // then
         verify(fileStorage).deleteEventIfExist(eventId = event.id)
-        verify(fileStorage).deleteAttachmentsIfExist(listOf(idProvider.id, idProvider.id))
+        verify(fileStorage).deleteAttachmentsIfExist(listOf("attachment-id", "attachment-id"))
     }
 
     @Test

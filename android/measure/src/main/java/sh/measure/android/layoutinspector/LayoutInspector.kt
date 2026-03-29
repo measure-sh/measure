@@ -36,6 +36,7 @@ import okio.buffer
 import sh.measure.android.MsrAttachment
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
+import java.util.UUID
 import sh.measure.android.gestures.DetectedGesture
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.utils.ComposeHelper
@@ -244,10 +245,12 @@ internal data class LayoutSnapshot(
             buffer.readByteArray()
         }
         return Attachment(
+            id = UUID.randomUUID().toString(),
             name = "snapshot.json.gz",
             bytes = bytes,
             path = null,
             type = attachmentType,
+            size = bytes.size.toLong(),
         )
     }
 

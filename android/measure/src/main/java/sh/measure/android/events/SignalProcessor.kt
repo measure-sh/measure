@@ -357,8 +357,10 @@ internal class SignalProcessorImpl(
             if (screenshot != null) {
                 event.addAttachment(
                     Attachment(
+                        id = idProvider.uuid(),
                         name = "screenshot.${screenshot.extension}",
                         type = AttachmentType.SCREENSHOT,
+                        size = screenshot.data.size.toLong(),
                         bytes = screenshot.data,
                     ),
                 )

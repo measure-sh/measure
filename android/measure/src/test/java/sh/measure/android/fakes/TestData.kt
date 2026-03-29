@@ -351,15 +351,19 @@ internal object TestData {
     )
 
     fun getAttachment(
+        id: String = "attachment-id",
         type: String = "type",
         name: String = "name",
         path: String? = "path",
         bytes: ByteArray? = null,
+        size: Long = 0L,
     ): Attachment = Attachment(
+        id = id,
         type = type,
         name = name,
         path = path,
         bytes = bytes,
+        size = size,
     )
 
     fun getAttachmentEntity(

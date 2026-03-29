@@ -2,6 +2,8 @@ package sh.measure.android
 
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
+import java.io.File
+import java.util.UUID
 
 /**
  * An attachment which can be added to an event. Represents a file that provides additional context
@@ -28,9 +30,21 @@ class MsrAttachment internal constructor(
     }
 }
 
-internal fun MsrAttachment.toEventAttachment(attachmentType: String): Attachment = Attachment(
-    name = name,
-    type = attachmentType,
-    bytes = bytes,
-    path = path,
-)
+internal fun MsrAttachment.toEventAttachment(attachmentType: String): Attachment {
+    val id = UUID.randomUUID().toString()
+    val size = bytes?.size?.toLong() ?: path?.let {
+        try {
+            File(it).length()
+        } catch (_: Exception) {
+            0L
+        }
+    } ?: 0L
+    return Attachment(
+        id = id,
+        name = name,
+        type = attachmentType,
+        size = size,
+        bytes = bytes,
+        path = path,
+    )
+}

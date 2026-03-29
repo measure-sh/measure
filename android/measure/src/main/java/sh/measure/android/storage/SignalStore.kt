@@ -11,8 +11,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
-import sh.measure.android.utils.IdProvider
-import java.io.File
+import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -37,7 +36,6 @@ internal class SignalStoreImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
     private val database: Database,
-    private val idProvider: IdProvider,
     private val configProvider: ConfigProvider,
 ) : SignalStore {
     private val eventQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -275,20 +273,15 @@ internal class SignalStoreImpl(
             return null
         }
         val attachmentEntities = attachments.mapNotNull { attachment ->
-            val id = idProvider.uuid()
+            val id = attachment.id
             when {
                 attachment.path != null -> {
-                    val size = try {
-                        File(attachment.path).length()
-                    } catch (e: Exception) {
-                        0L
-                    }
                     AttachmentEntity(
                         id = id,
                         path = attachment.path,
                         name = attachment.name,
                         type = attachment.type,
-                        size = size,
+                        size = attachment.size,
                     )
                 }
 
@@ -299,7 +292,7 @@ internal class SignalStoreImpl(
                             path = path,
                             name = attachment.name,
                             type = attachment.type,
-                            size = attachment.bytes.size.toLong(),
+                            size = attachment.size,
                         )
                     }
                     if (path != null) {

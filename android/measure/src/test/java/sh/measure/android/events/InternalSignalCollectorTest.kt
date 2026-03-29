@@ -15,11 +15,16 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import sh.measure.android.MsrAttachment
+import sh.measure.android.events.Attachment
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
@@ -31,7 +36,6 @@ import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
-import sh.measure.android.toEventAttachment
 import sh.measure.android.tracing.Checkpoint
 import sh.measure.android.tracing.SpanStatus
 
@@ -509,18 +513,23 @@ class InternalSignalCollectorTest {
             threadName = null,
         )
 
+        val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
         verify(signalProcessor).trackBugReport(
-            data = BugReportData(
-                description = "",
-            ),
-            timestamp = timestamp,
-            type = type,
-            attributes = attributes,
-            userDefinedAttributes = userDefinedAttrs,
-            attachments = attachments.map { it.toEventAttachment(AttachmentType.SCREENSHOT) }
-                .toMutableList(),
-            userTriggered = userTriggered,
+            data = eq(BugReportData(description = "")),
+            type = eq(type),
+            timestamp = eq(timestamp),
+            attachments = attachmentsCaptor.capture(),
+            userDefinedAttributes = eq(userDefinedAttrs),
+            userTriggered = eq(userTriggered),
+            attributes = eq(attributes),
         )
+        val capturedAttachments = attachmentsCaptor.firstValue
+        assertEquals(1, capturedAttachments.size)
+        val captured = capturedAttachments[0]
+        assertEquals("screenshot", captured.name)
+        assertEquals(AttachmentType.SCREENSHOT, captured.type)
+        assertEquals("fake/path", captured.path)
+        assertTrue(captured.id.isNotEmpty())
     }
 
     @Test

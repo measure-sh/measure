@@ -215,7 +215,6 @@ internal class TestMeasureInitializer(
         logger = logger,
         database = database,
         fileStorage = fileStorage,
-        idProvider = idProvider,
         configProvider = configProvider,
     ),
     override val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler = PeriodicSignalStoreScheduler(

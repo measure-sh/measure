@@ -234,7 +234,6 @@ internal class MeasureInitializerImpl(
         logger = logger,
         database = database,
         fileStorage = fileStorage,
-        idProvider = idProvider,
         configProvider = configProvider,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(

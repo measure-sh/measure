@@ -8,6 +8,11 @@ import kotlinx.serialization.Transient
 @Serializable
 internal class Attachment(
     /**
+     * Unique identifier for this attachment.
+     */
+    val id: String,
+
+    /**
      * The name of the attachment, e.g. "screenshot.png".
      */
     val name: String,
@@ -16,6 +21,11 @@ internal class Attachment(
      * The type of the attachment. See [AttachmentType] for the list of attachment types.
      */
     val type: String,
+
+    /**
+     * The size of the attachment in bytes.
+     */
+    val size: Long,
 
     /**
      * An optional byte array representing the attachment.
@@ -45,8 +55,10 @@ internal class Attachment(
 
         other as Attachment
 
+        if (id != other.id) return false
         if (name != other.name) return false
         if (type != other.type) return false
+        if (size != other.size) return false
         if (!bytes.contentEquals(other.bytes)) return false
         if (path != other.path) return false
 
@@ -54,8 +66,10 @@ internal class Attachment(
     }
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
+        var result = id.hashCode()
+        result = 31 * result + name.hashCode()
         result = 31 * result + type.hashCode()
+        result = 31 * result + size.hashCode()
         result = 31 * result + (bytes?.contentHashCode() ?: 0)
         result = 31 * result + (path?.hashCode() ?: 0)
         return result

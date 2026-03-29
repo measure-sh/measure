@@ -204,8 +204,10 @@ internal class BugReportCollectorImpl internal constructor(
         if (file.exists()) {
             val bytes = file.readBytes()
             EventAttachment(
+                id = idProvider.uuid(),
                 name = attachment.name,
                 type = AttachmentType.SCREENSHOT,
+                size = bytes.size.toLong(),
                 bytes = bytes,
             )
         } else {
@@ -240,9 +242,11 @@ internal class BugReportCollectorImpl internal constructor(
                     logger,
                 )?.let { (extension, bytes) ->
                     EventAttachment(
+                        id = idProvider.uuid(),
                         name = "screenshot.$extension",
                         bytes = bytes,
                         type = AttachmentType.SCREENSHOT,
+                        size = bytes.size.toLong(),
                     )
                 }
             }
