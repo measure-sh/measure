@@ -1,8 +1,15 @@
+# DEPRECATED: CocoaPods support for measure-sh is deprecated and will be removed in June 2026.
+# Please migrate to Swift Package Manager (SPM). Add the following to your Package.swift:
+#   .package(url: "https://github.com/measure-sh/measure.git", from: "<version>")
+# Or in Xcode: File > Add Package Dependencies... and enter the repository URL above.
+
 Pod::Spec.new do |spec|
   spec.name         = "measure-sh"
   spec.module_name  = "Measure"
   spec.version      = "0.9.2"
-  spec.summary      = "Open source tool to monitor mobile apps"
+  spec.deprecated   = true
+  spec.deprecated_in_favor_of = "Use Swift Package Manager instead"
+  spec.summary      = "[DEPRECATED] Open source tool to monitor mobile apps — migrate to SPM"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
   spec.license      = { :type => "Apache 2.0", :file => "LICENSE" }
   spec.author       = "measure.sh"

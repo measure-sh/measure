@@ -1,0 +1,96 @@
+name: Release iOS SDK
+
+on:
+  push:
+    tags:
+      - 'ios-v*'
+
+jobs:
+  release-ios:
+    name: Build XCFramework and Release
+    runs-on: macos-15
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Switch to Xcode 16.4
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
+
+      - name: Confirm Xcode Version
+        run: xcodebuild -version
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#ios-v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build iOS device archive
+        run: |
+          xcodebuild archive \
+            -scheme Measure \
+            -sdk iphoneos \
+            -archivePath "${{ runner.temp }}/Measure-iOS.xcarchive" \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+      - name: Build iOS Simulator archive
+        run: |
+          xcodebuild archive \
+            -scheme Measure \
+            -sdk iphonesimulator \
+            -archivePath "${{ runner.temp }}/Measure-iOS-Simulator.xcarchive" \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+      - name: Create XCFramework
+        run: |
+          xcodebuild -create-xcframework \
+            -framework "${{ runner.temp }}/Measure-iOS.xcarchive/Products/Library/Frameworks/Measure.framework" \
+            -framework "${{ runner.temp }}/Measure-iOS-Simulator.xcarchive/Products/Library/Frameworks/Measure.framework" \
+            -output "${{ runner.temp }}/Measure.xcframework"
+
+      - name: Zip XCFramework
+        run: |
+          cd "${{ runner.temp }}"
+          zip -r "Measure-${{ steps.version.outputs.version }}.xcframework.zip" Measure.xcframework
+
+      - name: Compute checksum
+        id: checksum
+        run: |
+          CHECKSUM=$(swift package compute-checksum "${{ runner.temp }}/Measure-${{ steps.version.outputs.version }}.xcframework.zip")
+          echo "checksum=$CHECKSUM" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: ios/cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            "${{ runner.temp }}/Measure-${{ steps.version.outputs.version }}.xcframework.zip" \
+            --title "${{ github.ref_name }}" \
+            --draft \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.release-notes.outputs.content }}
+
+          ## XCFramework Checksum
+          \`\`\`
+          ${{ steps.checksum.outputs.checksum }}
+          \`\`\`" \
+            --verify-tag

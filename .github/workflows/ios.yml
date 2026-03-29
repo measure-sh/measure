@@ -51,3 +51,36 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
             ONLY_ACTIVE_ARCH=YES \
             -parallel-testing-enabled NO
+
+  spm_build_and_test:
+    runs-on: macos-15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Switch to Xcode 16.4
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
+
+      - name: Confirm Xcode Version
+        run: xcodebuild -version
+
+      - name: Build via SPM
+        run: |
+          xcodebuild build \
+            -scheme Measure \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            ONLY_ACTIVE_ARCH=YES \
+            SKIP_TESTING=YES
+
+      - name: Run Unit Tests via SPM
+        run: |
+          xcodebuild test \
+            -scheme MeasureSDKTests \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            ONLY_ACTIVE_ARCH=YES \
+            -parallel-testing-enabled NO
