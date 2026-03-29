@@ -8,6 +8,8 @@
 import UIKit
 import WebKit
 import AVKit
+import ImageIO
+import MobileCoreServices
 
 protocol ScreenshotGenerator {
     func generate(window: UIWindow,
@@ -62,7 +64,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                     return
                 }
 
-                guard let compressedData = redactedImage.jpegData(compressionQuality: CGFloat(self.configProvider.screenshotCompressionQuality) / 100.0) else {
+                guard let compressedData = self.encodeImage(redactedImage, compressionQuality: Int(self.configProvider.screenshotCompressionQuality)) else {
                     self.logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
                     completion(nil)
                     return
@@ -93,6 +95,26 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
             }
 
             self.generate(window: window, name: screenshotName, storageType: .data, completion: completion)
+        }
+    }
+
+    private func encodeImage(_ image: UIImage, compressionQuality: Int) -> Data? {
+        if #available(iOS 14.0, *) {
+            let data = NSMutableData()
+            guard let cgImage = image.cgImage,
+                  let destination = CGImageDestinationCreateWithData(data, "public.webp" as CFString, 1, nil) else {
+                return image.jpegData(compressionQuality: CGFloat(compressionQuality) / 100.0)
+            }
+            let options: [CFString: Any] = [
+                kCGImageDestinationLossyCompressionQuality: CGFloat(compressionQuality) / 100.0
+            ]
+            CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+            guard CGImageDestinationFinalize(destination) else {
+                return image.jpegData(compressionQuality: CGFloat(compressionQuality) / 100.0)
+            }
+            return data as Data
+        } else {
+            return image.jpegData(compressionQuality: CGFloat(compressionQuality) / 100.0)
         }
     }
 

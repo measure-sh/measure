@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import ImageIO
 
 protocol BugReportingViewControllerDelegate: AnyObject {
     func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?)
@@ -391,9 +392,29 @@ extension BugReportingViewController: UICollectionViewDelegateFlowLayout {
 
 // MARK: - UIImagePickerControllerDelegate
 extension BugReportingViewController: UIImagePickerControllerDelegate {
+    private func encodeGalleryImage(_ image: UIImage) -> Data? {
+        if #available(iOS 14.0, *) {
+            let data = NSMutableData()
+            guard let cgImage = image.cgImage,
+                  let destination = CGImageDestinationCreateWithData(data, "public.webp" as CFString, 1, nil) else {
+                return image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0)
+            }
+            let options: [CFString: Any] = [
+                kCGImageDestinationLossyCompressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0
+            ]
+            CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+            guard CGImageDestinationFinalize(destination) else {
+                return image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0)
+            }
+            return data as Data
+        } else {
+            return image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0)
+        }
+    }
+
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
-           let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) {
+           let imageData = encodeGalleryImage(image) {
             addAttachment(MsrAttachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil))
         }
         picker.dismiss(animated: true)

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 
@@ -85,18 +86,22 @@ Future<Uint8List> convertRgbaToJpegInIsolate(RgbaToJpegParams params) async {
     order: img.ChannelOrder.rgba,
   );
 
-  final encodedJpg = img.encodeJpg(rgbaImage, quality: params.jpegQuality);
-  return Uint8List.fromList(encodedJpg);
+  final pngBytes = Uint8List.fromList(img.encodePng(rgbaImage));
+  final result = await FlutterImageCompress.compressWithList(
+    pngBytes,
+    quality: params.jpegQuality,
+    format: CompressFormat.webp,
+  );
+  return result;
 }
 
 Future<Uint8List> convertImageToJpegInIsolate(ImageToJpegParams params) async {
-  final originalImage = img.decodeImage(params.originalBytes);
-  if (originalImage == null) {
-    throw Exception('Failed to decode image');
-  }
-
-  final encodedJpg = img.encodeJpg(originalImage, quality: params.jpegQuality);
-  return Uint8List.fromList(encodedJpg);
+  final result = await FlutterImageCompress.compressWithList(
+    params.originalBytes,
+    quality: params.jpegQuality,
+    format: CompressFormat.webp,
+  );
+  return result;
 }
 
 Future<FileProcessingResult> compressAndSaveInIsolate(CompressAndSaveParams params) async {

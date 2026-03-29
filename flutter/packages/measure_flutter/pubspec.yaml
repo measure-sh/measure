@@ -18,6 +18,7 @@ dependencies:
   uuid: ^4.5.1
   image: ^4.5.4
   image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
   stack_trace: ^1.11.0
 
 dev_dependencies:
