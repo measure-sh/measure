@@ -38,6 +38,17 @@ export interface IUserTriggeredEventCollector {
   isEnabled(): boolean;
 
   /**
+   * Tracks a funnel event.
+   *
+   * @param name - The name of the funnel step.
+   * @param attributes - Optional key-value pairs providing context.
+   */
+  trackFunnelEvent(
+    name: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void>;
+
+  /**
    * Tracks an HTTP event manually.
    *
    * Designed for apps using custom HTTP clients.
@@ -124,6 +135,47 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
 
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  async trackFunnelEvent(
+    name: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
+    if (!name || name.length === 0) {
+      this.logger.log('error', 'Invalid funnel event: name is empty');
+      return;
+    }
+
+    const isValidAttributes = validateAttributes(attributes ?? {});
+    if (!isValidAttributes) {
+      this.logger.log(
+        'error',
+        `Invalid attributes provided for funnel event(${name}). Dropping the event.`
+      );
+      return;
+    }
+
+    try {
+      this.signalProcessor.trackEvent(
+        { name },
+        EventType.Funnel,
+        this.timeProvider.now(),
+        {},
+        attributes,
+        true,
+        undefined,
+        undefined,
+        []
+      );
+
+      this.logger.log('info', `Successfully tracked funnel event: ${name}`);
+    } catch (err) {
+      this.logger.log('error', `Failed to track funnel event ${name}: ${err}`);
+    }
   }
 
   async trackHttpEvent(params: {

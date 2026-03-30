@@ -154,6 +154,18 @@ import UIKit
         measureInternal.trackScreenView(screenName, attributes: attributes)
     }
 
+    func trackFunnelEvent(_ name: String, attributes: [String: AttributeValue]?) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.trackFunnelEvent(name, attributes: attributes)
+    }
+
+    @objc func trackFunnelEvent(_ name: String, attributes: [String: Any]?) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.trackFunnelEvent(name, attributes: attributes)
+    }
+
     @objc func setUserId(_ userId: String) {
         guard let measureInternal = measureInternal else { return }
         measureInternal.setUserId(userId)
@@ -549,6 +561,33 @@ extension Measure {
     ///   - attributes: Optional key-value pairs providing additional context to the event.
     @objc public static func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
         Measure.shared.trackScreenView(screenName, attributes: attributes)
+    }
+
+    /// Track a funnel event.
+    ///
+    /// Call this method when the user reaches a specific step in a conversion funnel. Sequences of
+    /// funnel events within a session are used to compute funnel analytics and visualize conversion rates.
+    ///
+    /// Example usage:
+    ///
+    /// ```swift
+    /// Measure.trackFunnelEvent("checkout_started")
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The name of the funnel step.
+    ///   - attributes: Optional key-value pairs providing additional context to the event.
+    public static func trackFunnelEvent(_ name: String, attributes: [String: AttributeValue]? = nil) {
+        Measure.shared.trackFunnelEvent(name, attributes: attributes)
+    }
+
+    /// Track a funnel event (Objective-C compatible).
+    ///
+    /// - Parameters:
+    ///   - name: The name of the funnel step.
+    ///   - attributes: Optional key-value pairs providing additional context to the event.
+    @objc public static func trackFunnelEvent(_ name: String, attributes: [String: Any]?) {
+        Measure.shared.trackFunnelEvent(name, attributes: attributes)
     }
 
     /// Sets the user ID for the current user.

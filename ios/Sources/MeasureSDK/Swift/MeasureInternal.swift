@@ -253,6 +253,20 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         userTriggeredEventCollector.trackScreenView(screenName, attributes: transformedAttributes)
     }
 
+    func trackFunnelEvent(_ name: String, attributes: [String: AttributeValue]?) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackFunnelEvent(name, attributes: attributes)
+    }
+
+    func trackFunnelEvent(_ name: String, attributes: [String: Any]?) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+
+        userTriggeredEventCollector.trackFunnelEvent(name, attributes: transformedAttributes)
+    }
+
     func setUserId(_ userId: String) {
         userAttributeProcessor.setUserId(userId)
     }

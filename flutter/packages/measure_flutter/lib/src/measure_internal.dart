@@ -4,6 +4,8 @@ import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/shake_detector.dart';
 import 'package:measure_flutter/src/config/config_loader.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/events/event_type.dart';
+import 'package:measure_flutter/src/events/funnel_data.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
@@ -123,6 +125,19 @@ final class MeasureInternal {
       name: name,
       userTriggered: userTriggered,
       attributes: attributes,
+    );
+  }
+
+  void trackFunnelEvent({
+    required String name,
+    Map<String, AttributeValue> attributes = const {},
+  }) {
+    initializer.signalProcessor.trackEvent(
+      data: FunnelData(name: name),
+      type: EventType.funnel,
+      timestamp: initializer.timeProvider.now(),
+      userDefinedAttrs: attributes,
+      userTriggered: true,
     );
   }
 

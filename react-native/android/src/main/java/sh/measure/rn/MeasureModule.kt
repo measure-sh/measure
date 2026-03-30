@@ -332,6 +332,18 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun trackFunnelEvent(name: String, attributes: ReadableMap?, promise: Promise) {
+        try {
+            val attrs =
+                attributes?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf()
+            Measure.trackFunnelEvent(name, attrs)
+            promise.resolve("Funnel event tracked successfully")
+        } catch (e: Exception) {
+            promise.reject("TRACK_FUNNEL_EVENT_ERROR", "Failed to track funnel event", e)
+        }
+    }
+
+    @ReactMethod
     fun trackBugReport(
         description: String,
         attachments: ReadableArray?,

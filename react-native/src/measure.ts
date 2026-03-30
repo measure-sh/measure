@@ -162,6 +162,38 @@ export const Measure = {
   },
 
   /**
+   * Tracks a funnel event with optional attributes.
+   *
+   * Use this method to track steps in a conversion funnel, such as
+   * onboarding flows, checkout processes, or any multi-step user journey.
+   *
+   * @param name - The name of the funnel step.
+   * @param attributes - Optional key-value pairs providing additional context.
+   *
+   * @example
+   * ```ts
+   * import { Measure } from '@measure/react-native';
+   *
+   * Measure.trackFunnelEvent("checkout_started", {
+   *   cart_value: 49.99,
+   *   item_count: 3,
+   * });
+   * ```
+   */
+  trackFunnelEvent(
+    name: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.trackFunnelEvent(name, attributes);
+  },
+
+  /**
    * Returns the current time in milliseconds since epoch (Int64 equivalent).
    *
    * @returns The current time in milliseconds since epoch.

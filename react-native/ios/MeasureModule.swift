@@ -244,6 +244,16 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     @objc
+    func trackFunnelEvent(_ name: NSString,
+                          attributes: NSDictionary?,
+                          resolver resolve: @escaping RCTPromiseResolveBlock,
+                          rejecter reject: @escaping RCTPromiseRejectBlock) {
+        let attrDict = attributes as? [String: Any] ?? [:]
+        Measure.trackFunnelEvent(name as String, attributes: attrDict)
+        resolve("Funnel event tracked successfully")
+    }
+
+    @objc
     func trackBugReport(_ description: NSString,
                         attachments: NSArray,
                         attributes: NSDictionary,

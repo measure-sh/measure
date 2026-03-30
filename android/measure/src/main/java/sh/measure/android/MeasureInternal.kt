@@ -165,6 +165,10 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
+    fun trackFunnelEvent(name: String, attributes: Map<String, AttributeValue>) {
+        measure.userTriggeredEventCollector.trackFunnelEvent(name, attributes)
+    }
+
     fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
         measure.userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }

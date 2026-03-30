@@ -7,6 +7,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.funnels.FunnelData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.toEventAttachment
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal interface UserTriggeredEventCollector {
     fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>)
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>)
+    fun trackFunnelEvent(name: String, attributes: Map<String, AttributeValue>)
     fun register()
     fun unregister()
     fun trackBugReport(
@@ -200,5 +202,18 @@ internal class UserTriggeredEventCollectorImpl(
             userDefinedAttributes = attributes,
         )
         logger.log(LogLevel.Debug, "Screen view event received")
+    }
+
+    override fun trackFunnelEvent(name: String, attributes: Map<String, AttributeValue>) {
+        if (!enabled.get()) {
+            return
+        }
+        signalProcessor.trackUserTriggered(
+            data = FunnelData(name = name),
+            timestamp = timeProvider.now(),
+            type = EventType.FUNNEL,
+            userDefinedAttributes = attributes,
+        )
+        logger.log(LogLevel.Debug, "Funnel event received")
     }
 }

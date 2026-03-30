@@ -24,6 +24,7 @@ enum EventType: String, Codable {
     case networkChange = "network_change"
     case custom
     case screenView = "screen_view"
+    case funnel
     case bugReport = "bug_report"
     case sessionStart = "session_start"
 }

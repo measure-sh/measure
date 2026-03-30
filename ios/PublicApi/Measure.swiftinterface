@@ -343,6 +343,12 @@ extension Measure.Measure {
   #if compiler(>=5.3) && $NonescapableTypes
   @objc public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Any]?)
   #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func trackFunnelEvent(_ name: Swift.String, attributes: [Swift.String : Measure.AttributeValue]?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public static func trackFunnelEvent(_ name: Swift.String, attributes: [Swift.String : Any]?)
+  #endif
   @objc public static func setUserId(_ userId: Swift.String)
   @objc public static func clearUserId()
   @objc public static func getCurrentTime() -> Swift.Int64

@@ -20,6 +20,7 @@ internal enum class EventType(val value: String) {
     TRIM_MEMORY("trim_memory"),
     CPU_USAGE("cpu_usage"),
     SCREEN_VIEW("screen_view"),
+    FUNNEL("funnel"),
     CUSTOM("custom"),
     BUG_REPORT("bug_report"),
     SESSION_START("session_start"),

@@ -401,6 +401,29 @@ class Measure implements MeasureApi {
     }
   }
 
+  /// Tracks a funnel event.
+  ///
+  /// Call this method when the user reaches a specific step in a conversion funnel.
+  /// Sequences of funnel events within a session are used to compute funnel analytics
+  /// and visualize conversion rates.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Measure.instance.trackFunnelEvent(name: 'checkout_started');
+  /// ```
+  ///
+  /// - [name]: The name of the funnel step.
+  /// - [attributes]: Optional key-value pairs providing additional context to the event.
+  @override
+  void trackFunnelEvent({
+    required String name,
+    Map<String, AttributeValue> attributes = const {},
+  }) {
+    if (_isInitialized) {
+      _measure.trackFunnelEvent(name: name, attributes: attributes);
+    }
+  }
+
   /// Tracks HTTP network requests with detailed timing and response information.
   ///
   /// This method is typically called automatically by HTTP interceptors,

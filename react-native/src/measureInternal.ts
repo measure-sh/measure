@@ -121,6 +121,15 @@ export class MeasureInternal {
       attributes ?? {}
     );
 
+  trackFunnelEvent = (
+    name: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> =>
+    this.measureInitializer.userTriggeredEventCollector.trackFunnelEvent(
+      name,
+      attributes ?? {}
+    );
+
   launchBugReport = (
     takeScreenshot: boolean = true,
     bugReportConfig: Record<string, any> = {},

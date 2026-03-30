@@ -63,6 +63,10 @@ RCT_EXTERN_METHOD(trackBugReport:(NSString *)description
                   attributes:(NSDictionary *)attributes
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(trackFunnelEvent:(NSString *)name
+                  attributes:(NSDictionary * _Nullable)attributes
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getSessionId:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getDynamicConfig:(RCTPromiseResolveBlock)resolve

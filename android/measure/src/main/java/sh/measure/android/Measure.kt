@@ -168,7 +168,26 @@ object Measure {
     }
 
     /**
-     * Track a handled exception.
+     * Track a funnel event.
+     *
+     * Funnel events represent a user reaching a specific step in a defined conversion funnel.
+     * Sequences of funnel events within a session are used by the backend to compute funnel
+     * analytics and visualize conversion rates.
+     *
+     * Example usage:
+     * ```kotlin
+     * Measure.trackFunnelEvent("checkout_started")
+     * ```
+     *
+     * @param name The name of the funnel step.
+     * @param attributes Optional key-value pairs providing additional context to the event.
+     */
+    @JvmStatic
+    fun trackFunnelEvent(name: String, attributes: Map<String, AttributeValue> = emptyMap()) {
+        if (isInitialized.get()) {
+            measure.trackFunnelEvent(name, attributes)
+        }
+    }
      *
      * Handled exceptions are exceptions that are caught and handled in the app code. These do not
      * cause a crash but can, at times, have implication on the user experience. Tracking these

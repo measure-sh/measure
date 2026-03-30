@@ -9,6 +9,7 @@ import Foundation
 
 protocol UserTriggeredEventCollector {
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?)
+    func trackFunnelEvent(_ name: String, attributes: [String: AttributeValue]?)
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackException(_ exception: NSException, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
@@ -76,6 +77,16 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
               type: .screenView,
               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
               needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId))
+    }
+
+    func trackFunnelEvent(_ name: String, attributes: [String: AttributeValue]? = nil) {
+        guard isEnabled.get() else { return }
+        guard attributeValueValidator.validateAttributes(name: name, attributes: attributes) else { return }
+
+        track(FunnelData(name: name),
+              type: .funnel,
+              userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+              needsReporting: false)
     }
 
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {

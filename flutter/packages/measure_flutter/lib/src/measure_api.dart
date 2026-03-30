@@ -36,6 +36,11 @@ abstract class MeasureApi {
     bool userTriggered = true,
   });
 
+  void trackFunnelEvent({
+    required String name,
+    Map<String, AttributeValue> attributes = const {},
+  });
+
   bool shouldTrackHttpRequestBody(String url);
 
   bool shouldTrackHttpResponseBody(String url);
