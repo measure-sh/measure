@@ -31,6 +31,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
 @property (nonatomic) BOOL enableFullCollectionMode;
 
+/// Enable diagnostic mode to write SDK logs to a file on disk for debugging SDK issues.
+/// Defaults to `false`.
+@property (nonatomic) BOOL enableDiagnosticMode;
+
 /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
 ///
 /// This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
@@ -58,6 +62,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
                            autoStart:(BOOL)autoStart
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
              requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
                  maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb NS_DESIGNATED_INITIALIZER;
 

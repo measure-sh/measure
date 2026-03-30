@@ -12,6 +12,7 @@ protocol MeasureConfig {
     var enableLogging: Bool { get }
     var autoStart: Bool { get }
     var enableFullCollectionMode: Bool { get }
+    var enableDiagnosticMode: Bool { get }
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
     var maxDiskUsageInMb: Number { get }
 }
@@ -29,6 +30,10 @@ protocol MeasureConfig {
     /// Override all sampling configs and track all events and traces.
     /// **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     let enableFullCollectionMode: Bool
+
+    /// Enable diagnostic mode to write SDK logs to a file on disk for debugging SDK issues.
+    /// Defaults to `false`.
+    let enableDiagnosticMode: Bool
 
     /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API. This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
     let requestHeadersProvider: MsrRequestHeadersProvider?
@@ -58,14 +63,17 @@ protocol MeasureConfig {
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+    ///   - enableDiagnosticMode: Enable diagnostic mode to write SDK logs to a file on disk for debugging SDK issues. Defaults to `false`.
     public init(enableLogging: Bool? = nil,
                 autoStart: Bool? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil,
-                enableFullCollectionMode: Bool? = nil) {
+                enableFullCollectionMode: Bool? = nil,
+                enableDiagnosticMode: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.enableFullCollectionMode = enableFullCollectionMode ?? DefaultConfig.enableFullCollectionMode
+        self.enableDiagnosticMode = enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode
         self.requestHeadersProvider = requestHeadersProvider
 
         let minDiskUsage: Number = 20
@@ -93,16 +101,19 @@ protocol MeasureConfig {
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+    ///   - enableDiagnosticMode: Enable diagnostic mode to write SDK logs to a file on disk for debugging SDK issues. Defaults to `false`.
     @objc public convenience init(enableLogging: Bool,
                                   autoStart: Bool,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,
                                   maxDiskUsageInMb: NSNumber?,
-                                  enableFullCollectionMode: Bool) {
+                                  enableFullCollectionMode: Bool,
+                                  enableDiagnosticMode: Bool) {
         self.init(enableLogging: enableLogging,
                   autoStart: autoStart,
                   requestHeadersProvider: requestHeadersProvider,
                   maxDiskUsageInMb: maxDiskUsageInMb?.intValue,
-                  enableFullCollectionMode: enableFullCollectionMode)
+                  enableFullCollectionMode: enableFullCollectionMode,
+                  enableDiagnosticMode: enableDiagnosticMode)
         
     }
 
@@ -112,6 +123,7 @@ protocol MeasureConfig {
         enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
         autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
         enableFullCollectionMode = try container.decodeIfPresent(Bool.self, forKey: .enableFullCollectionMode) ?? DefaultConfig.enableFullCollectionMode
+        enableDiagnosticMode = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticMode) ?? DefaultConfig.enableDiagnosticMode
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
 
         let minDiskUsage: Number = 20
@@ -139,6 +151,7 @@ protocol MeasureConfig {
         // requestHeadersProvider is not encodable
         case maxDiskUsageInMb
         case enableFullCollectionMode
+        case enableDiagnosticMode
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -147,5 +160,6 @@ protocol MeasureConfig {
         try container.encode(autoStart, forKey: .autoStart)
         try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
         try container.encode(enableFullCollectionMode, forKey: .enableFullCollectionMode)
+        try container.encode(enableDiagnosticMode, forKey: .enableDiagnosticMode)
     }
 }

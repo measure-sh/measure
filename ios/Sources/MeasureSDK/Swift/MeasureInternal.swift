@@ -170,6 +170,22 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationDidBecomeActive = applicationDidBecomeActive
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
         self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
+        if configProvider.enableDiagnosticMode {
+            do {
+                guard let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { throw NSError(domain: "Measure", code: 0) }
+                let logsDir = cachesDir.appendingPathComponent("measure/sdk_debug_logs")
+                let timestamp = timeProvider.now()
+                let writer = SdkDebugLogWriter()
+                writer.start(sdkVersion: FrameworkInfo.version,
+                             timestamp: timestamp,
+                             logsDir: logsDir)
+                logger.setLogCallback { [weak writer] level, message, error in
+                    writer?.writeLog(level: level, message: message, error: error)
+                }
+            } catch {
+                // Silently ignore
+            }
+        }
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in

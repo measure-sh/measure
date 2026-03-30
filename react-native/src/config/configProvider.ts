@@ -112,6 +112,10 @@ export class ConfigProvider implements IConfigProvider {
     return this.defaultConfig.enableFullCollectionMode;
   }
 
+  get enableDiagnosticMode(): boolean {
+    return this.defaultConfig.enableDiagnosticMode;
+  }
+
   get maxEventNameLength(): number {
     return this.defaultConfig.maxEventNameLength;
   }

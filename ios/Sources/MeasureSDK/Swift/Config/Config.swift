@@ -47,6 +47,7 @@ struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let autoStart: Bool
     let enableFullCollectionMode: Bool
+    let enableDiagnosticMode: Bool
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let maxDiskUsageInMb: Number
     let httpUrlBlocklist: [String]
@@ -54,11 +55,13 @@ struct Config: InternalConfig, MeasureConfig {
     init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
          autoStart: Bool = DefaultConfig.autoStart,
          enableFullCollectionMode: Bool = DefaultConfig.enableFullCollectionMode,
+         enableDiagnosticMode: Bool = DefaultConfig.enableDiagnosticMode,
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
          maxDiskUsageInMb: Number = DefaultConfig.maxDiskUsageInMb) {
         self.enableLogging = enableLogging
         self.autoStart = autoStart
         self.enableFullCollectionMode = enableFullCollectionMode
+        self.enableDiagnosticMode = enableDiagnosticMode
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.batchExportIntervalMs = 3_000 // 3 seconds

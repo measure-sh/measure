@@ -90,7 +90,8 @@ export class MeasureInitializer implements IMeasureInitializer {
     this.config = new Config(
       config?.enableLogging,
       config?.autoStart,
-      config?.enableFullCollectionMode
+      config?.enableFullCollectionMode,
+      config?.enableDiagnosticMode
     );
     this.configLoader = new ConfigLoader(this.logger);
     this.configProvider = new ConfigProvider(this.config);

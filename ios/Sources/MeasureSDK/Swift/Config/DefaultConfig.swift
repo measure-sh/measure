@@ -13,6 +13,7 @@ struct DefaultConfig {
     static let autoStart = true
     static let maxDiskUsageInMb: Number = 50
     static let enableFullCollectionMode = false
+    static let enableDiagnosticMode = false
     static let disallowedCustomHeaders: [String] = ["Content-Type",
                                                     "msr-req-id",
                                                     "Authorization",

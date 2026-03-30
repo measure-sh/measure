@@ -172,6 +172,7 @@
 		52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */; };
 		52C844B92CB68A2D004BFE71 /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; platformFilter = ios; };
 		52C844BA2CB68A2D004BFE71 /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; platformFilter = ios; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5AAA6E9A2B385E59DE532B92 /* SdkDebugLogWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB461E1A0024AE3ED045D91E /* SdkDebugLogWriter.swift */; };
 		69694F0F2DE0461E008D1AF1 /* Framework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69694F0E2DE04619008D1AF1 /* Framework.swift */; };
 		69C449692DA9266400E44CF4 /* InternalSignalCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C449682DA9266400E44CF4 /* InternalSignalCollector.swift */; };
 		69C4496B2DACC7C700E44CF4 /* InternalSignalCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */; };
@@ -632,10 +633,21 @@
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 		CFF2E6972F69246A003B5A66 /* Data+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Extension.swift"; sourceTree = "<group>"; };
 		CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfigTests.swift; sourceTree = "<group>"; };
+		DB461E1A0024AE3ED045D91E /* SdkDebugLogWriter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SdkDebugLogWriter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		6907519B2DC0F0B20085FDBA /* CrashReports */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = CrashReports; sourceTree = "<group>"; };
+		6907519B2DC0F0B20085FDBA /* CrashReports */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = CrashReports;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1013,6 +1025,7 @@
 				CFD88C6D2D9E94B40095115E /* Tracing */,
 				526D18132D5A1913009A2E90 /* Utils */,
 				526D18152D5A1913009A2E90 /* XCDataModel */,
+				5B8FA40AEF4B8A9568BB900E /* Logger */,
 			);
 			path = Swift;
 			sourceTree = "<group>";
@@ -1245,6 +1258,15 @@
 				524576782CC260FE00B288E5 /* CoreTelephony.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		5B8FA40AEF4B8A9568BB900E /* Logger */ = {
+			isa = PBXGroup;
+			children = (
+				DB461E1A0024AE3ED045D91E /* SdkDebugLogWriter.swift */,
+			);
+			name = Logger;
+			path = Logger;
 			sourceTree = "<group>";
 		};
 		CF1BB3B52DBA39CA00588506 /* Lifecycle */ = {
@@ -1779,6 +1801,7 @@
 				526D18602D5A1913009A2E90 /* HttpEventCollector.swift in Sources */,
 				526D186D2D5A1913009A2E90 /* NetworkChangeCallback.swift in Sources */,
 				CF634D4A2F61966A002B0B81 /* Exporter.swift in Sources */,
+				5AAA6E9A2B385E59DE532B92 /* SdkDebugLogWriter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

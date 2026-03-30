@@ -217,6 +217,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    autoStart: config.autoStart,
                                    enableFullCollectionMode: config.enableFullCollectionMode,
+                                   enableDiagnosticMode: config.enableDiagnosticMode,
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)

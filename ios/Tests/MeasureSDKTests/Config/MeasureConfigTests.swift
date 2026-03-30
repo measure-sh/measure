@@ -41,4 +41,28 @@ final class MeasureConfigTests: XCTestCase {
         let config = BaseMeasureConfig(maxDiskUsageInMb: 300)
         XCTAssertEqual(config.maxDiskUsageInMb, 300)
     }
+
+    // MARK: - enableDiagnosticMode
+
+    func test_enableDiagnosticMode_defaultsToFalse() {
+        let config = BaseMeasureConfig()
+        XCTAssertFalse(config.enableDiagnosticMode)
+    }
+
+    func test_enableDiagnosticMode_canBeSetToTrue() {
+        let config = BaseMeasureConfig(enableDiagnosticMode: true)
+        XCTAssertTrue(config.enableDiagnosticMode)
+    }
+
+    func test_enableDiagnosticMode_encodesAndDecodesCorrectly() throws {
+        let original = BaseMeasureConfig(enableDiagnosticMode: true)
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(original)
+
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(BaseMeasureConfig.self, from: data)
+
+        XCTAssertEqual(decoded.enableDiagnosticMode, original.enableDiagnosticMode)
+    }
 }

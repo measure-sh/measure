@@ -23,14 +23,20 @@ protocol Logger {
 
     func log(level: LogLevel, message: String, error: Error?, data: Encodable?)
     func internalLog(level: LogLevel, message: String, error: Error?, data: Encodable?)
+    func setLogCallback(_ callback: ((LogLevel, String, Error?) -> Void)?)
 }
 
 /// A logger that logs to the Apple unified logging system (os_log).
 final class MeasureLogger: Logger {
     let enabled: Bool
+    private var logCallback: ((LogLevel, String, Error?) -> Void)?
 
     init(enabled: Bool) {
         self.enabled = enabled
+    }
+
+    func setLogCallback(_ callback: ((LogLevel, String, Error?) -> Void)?) {
+        logCallback = callback
     }
 
     /// Add logs to the Apple unified logging system (os_log)
@@ -40,6 +46,7 @@ final class MeasureLogger: Logger {
     ///   - error: Error object to log
     ///   - data: Codable object to log
     func log(level: LogLevel, message: String, error: Error? = nil, data: Encodable? = nil) {
+        logCallback?(level, message, error)
         guard enabled else { return }
 
         let logType: OSLogType

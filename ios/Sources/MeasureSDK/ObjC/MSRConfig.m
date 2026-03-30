@@ -12,14 +12,16 @@
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
                             autoStart:(BOOL)autoStart
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
                requestHeadersProvider:(id<MsrRequestHeadersProvider>)requestHeadersProvider
                      maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb {
-    
+
     self = [super init];
     if (self) {
         _enableLogging = enableLogging;
         _autoStart = autoStart;
         _enableFullCollectionMode = enableFullCollectionMode;
+        _enableDiagnosticMode = enableDiagnosticMode;
         _requestHeadersProvider = requestHeadersProvider;
         _maxDiskUsageInMb = maxDiskUsageInMb;
     }

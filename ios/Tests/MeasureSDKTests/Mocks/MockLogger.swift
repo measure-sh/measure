@@ -27,4 +27,8 @@ final class MockLogger: Logger {
         print("InternalLog: level \(level) message \(message) error \(String(describing: error)) data \(data ?? "")")
         logs.append(message)
     }
+
+    func setLogCallback(_ callback: ((LogLevel, String, Error?) -> Void)?) {
+        // No-op for tests
+    }
 }
