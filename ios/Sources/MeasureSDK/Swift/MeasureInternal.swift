@@ -169,7 +169,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
         self.lifecycleObserver.applicationDidBecomeActive = applicationDidBecomeActive
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
-        self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in
@@ -212,7 +212,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func start() {
         guard !isStarted else { return }
 
-        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Starting Measure SDK", error: nil, data: nil)
         registedCollectors()
         isStarted = true
     }
@@ -220,7 +220,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func stop() {
         guard isStarted && !configProvider.autoStart else { return }
 
-        self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Stopping Measure SDK", error: nil, data: nil)
         unregisterCollectors()
         isStarted = false
     }
@@ -474,7 +474,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             } else if let doubleVal = value as? Double {
                 transformedAttributes[key] = .double(doubleVal)
             } else {
-                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
+                logger.log(level: .fatal, message: "MeasureInternal: Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
             }
         }
 

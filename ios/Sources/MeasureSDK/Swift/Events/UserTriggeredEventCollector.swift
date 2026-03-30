@@ -120,37 +120,37 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
         // Validate URL
         if url.isEmpty {
-            logger.log(level: .error, message: "Failed to track HTTP event, url is required", error: nil, data: nil)
+            logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, url is required", error: nil, data: nil)
             return
         }
 
         // Validate method
         let validMethods = ["get", "post", "put", "delete", "patch"]
         if !validMethods.contains(method.lowercased()) {
-            logger.log(level: .error, message: "Failed to track HTTP event, invalid method \(method)", error: nil, data: nil)
+            logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, invalid method \(method)", error: nil, data: nil)
             return
         }
 
         // Validate timing
         if startTime == 0 || endTime == 0 {
-            logger.log(level: .error, message: "Failed to track HTTP event, invalid start or end time", error: nil, data: nil)
+            logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, invalid start or end time", error: nil, data: nil)
             return
         }
 
         if endTime < startTime {
-            logger.log(level: .error, message: "Failed to track HTTP event, invalid start or end time (end < start)", error: nil, data: nil)
+            logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, invalid start or end time (end < start)", error: nil, data: nil)
             return
         }
 
         // Validate status code
         if let code = statusCode, !(100...599).contains(code) {
-            logger.log(level: .error, message: "Failed to track HTTP event, invalid status code: \(code)", error: nil, data: nil)
+            logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, invalid status code: \(code)", error: nil, data: nil)
             return
         }
 
         // Apply URL filtering
         if !configProvider.shouldTrackHttpUrl(url: url) {
-            logger.log(level: .debug, message: "Discarding HTTP event, URL is not allowed for tracking", error: nil, data: nil)
+            logger.log(level: .debug, message: "UserTriggeredEventCollector: Discarding HTTP event, URL is not allowed for tracking", error: nil, data: nil)
             return
         }
 

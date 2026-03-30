@@ -131,7 +131,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                 } else {
                     logger.log(
                         level: .debug,
-                        message: "Invalid exception event, missing foreground property",
+                        message: "InternalEventCollector: Invalid exception event, missing foreground property",
                         error: nil,
                         data: nil
                     )
@@ -240,7 +240,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
             default:
                 logger.log(
                     level: .debug,
-                    message: "Unimplemented event type: \(type)",
+                    message: "InternalEventCollector: Unimplemented event type: \(type)",
                     error: nil,
                     data: nil
                 )
@@ -248,7 +248,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         } catch {
             logger.log(
                 level: .error,
-                message: "Error processing event: \(error)",
+                message: "InternalEventCollector: Error processing event: \(error)",
                 error: error,
                 data: nil
             )

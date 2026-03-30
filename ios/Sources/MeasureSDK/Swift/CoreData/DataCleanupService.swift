@@ -56,7 +56,7 @@ final class BaseDataCleanupService: DataCleanupService {
         guard !sessionsToDelete.isEmpty else {
             logger.internalLog(
                 level: .info,
-                message: "Cleanup Service: No stale session data to clear after filtering current session.",
+                message: "DataCleanupService: No stale session data to clear after filtering current session.",
                 error: nil,
                 data: nil
             )
@@ -66,7 +66,7 @@ final class BaseDataCleanupService: DataCleanupService {
         deleteSessionData(sessionIds: sessionsToDelete)
         logger.internalLog(
             level: .info,
-            message: "Cleanup Service: Cleared stale session data for \(sessionsToDelete.count) sessions.",
+            message: "DataCleanupService: Cleared stale session data for \(sessionsToDelete.count) sessions.",
             error: nil,
             data: ["sessionIds": sessionsToDelete]
         )
@@ -93,7 +93,7 @@ final class BaseDataCleanupService: DataCleanupService {
 
         logger.internalLog(
             level: .debug,
-            message: "Exporter: Deleting \(sessionsToDelete.count) empty sessions",
+            message: "DataCleanupService: Deleting \(sessionsToDelete.count) empty sessions",
             error: nil,
             data: ["sessionIds": sessionsToDelete]
         )
@@ -128,7 +128,7 @@ final class BaseDataCleanupService: DataCleanupService {
         guard oldestSessionId != sessionId else {
             logger.internalLog(
                 level: .debug,
-                message: "Cleanup Service: Skipping deletion: oldest session is current session \(sessionId)",
+                message: "DataCleanupService: Skipping deletion: oldest session is current session \(sessionId)",
                 error: nil,
                 data: nil
             )
@@ -138,7 +138,7 @@ final class BaseDataCleanupService: DataCleanupService {
         deleteSessionData(sessionIds: [oldestSessionId])
         logger.internalLog(
             level: .info,
-            message: "Cleanup Service: Deleted oldest session: \(oldestSessionId)",
+            message: "DataCleanupService: Deleted oldest session: \(oldestSessionId)",
             error: nil,
             data: nil
         )

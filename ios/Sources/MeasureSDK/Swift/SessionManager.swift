@@ -49,7 +49,7 @@ final class BaseSessionManager: SessionManager {
         if let id = currentSessionId {
             return id
         } else {
-            logger.log(level: .fatal, message: "Session ID is null. Ensure that start() is called before accessing sessionId.", error: nil, data: nil)
+            logger.log(level: .fatal, message: "SessionManager: Session ID is null. Ensure that start() is called before accessing sessionId.", error: nil, data: nil)
             return ""
         }
     }
@@ -84,7 +84,7 @@ final class BaseSessionManager: SessionManager {
         let startTime = timeProvider.now()
         sessionStartTime = startTime
         currentSessionId = idProvider.uuid()
-        logger.log(level: .info, message: "New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
+        logger.log(level: .info, message: "SessionManager: New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
                                     createdAt: Number(startTime),
@@ -104,7 +104,7 @@ final class BaseSessionManager: SessionManager {
 
     func applicationDidEnterBackground() {
         self.appBackgroundTimeMs = timeProvider.millisTime
-        logger.log(level: .info, message: "applicationDidEnterBackground", error: nil, data: nil)
+        logger.internalLog(level: .info, message: "SessionManager: applicationDidEnterBackground", error: nil, data: nil)
     }
 
     func applicationWillEnterForeground() {
@@ -115,11 +115,11 @@ final class BaseSessionManager: SessionManager {
         if shouldEndSession() {
             createNewSession()
         }
-        logger.log(level: .info, message: "applicationWillEnterForeground", error: nil, data: nil)
+        logger.internalLog(level: .info, message: "SessionManager: applicationWillEnterForeground", error: nil, data: nil)
     }
 
     func applicationWillTerminate() {
-        logger.log(level: .info, message: "applicationWillTerminate", error: nil, data: nil)
+        logger.internalLog(level: .info, message: "SessionManager: applicationWillTerminate", error: nil, data: nil)
     }
 
     func onEventTracked<T: Codable>(_ event: Event<T>) {
@@ -161,7 +161,7 @@ final class BaseSessionManager: SessionManager {
             return
         }
 
-        logger.log(level: .debug, message: "SessionManager: Marking journey events session \(sessionId) for export after config load", error: nil, data: nil)
+        logger.internalLog(level: .debug, message: "SessionManager: Marking journey events session \(sessionId) for export after config load", error: nil, data: nil)
 
         eventStore.updateNeedsReportingForJourneyEvents(sessionId: sessionId, needsReporting: true)
 
@@ -176,7 +176,7 @@ final class BaseSessionManager: SessionManager {
         let durationInBackground = timeProvider.millisTime - appBackgroundTimeMs
 
         if durationInBackground >= configProvider.sessionBackgroundTimeoutThresholdMs {
-            logger.log(level: .info, message: "Ending session as app was relaunched after being in background for \(durationInBackground) ms", error: nil, data: nil)
+            logger.log(level: .info, message: "SessionManager: Ending session as app was relaunched after being in background for \(durationInBackground) ms", error: nil, data: nil)
             return true
         }
 
