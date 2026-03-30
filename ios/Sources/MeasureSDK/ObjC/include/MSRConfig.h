@@ -64,7 +64,8 @@ NS_ASSUME_NONNULL_BEGIN
                            autoStart:(BOOL)autoStart
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
              requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
-                 maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb NS_DESIGNATED_INITIALIZER;
+                 maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
 

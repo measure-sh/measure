@@ -156,6 +156,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var signalStore: SignalStore {
         return measureInitializer.signalStore
     }
+    private var measureDispatchQueue: MeasureDispatchQueue {
+        return measureInitializer.measureDispatchQueue
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -163,6 +166,17 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
+        if configProvider.enableDiagnosticMode {
+            let logWriter = SdkDebugLogWriter(fileManager: systemFileManager,
+                                             sdkVersion: FrameworkInfo.version,
+                                             fileId: "\(timeProvider.now())",
+                                             timeProvider: timeProvider,
+                                             measureDispatchQueue: measureDispatchQueue)
+            logWriter.start()
+            logger.setLogCallback { logLevel, message, error in
+                logWriter.writeLog(level: logLevel, message: message, error: error)
+            }
+        }
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground

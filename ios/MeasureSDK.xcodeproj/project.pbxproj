@@ -284,6 +284,7 @@
 		CFE1DD502F62C668003BD29B /* backgroundThreadException.json in Resources */ = {isa = PBXBuildFile; fileRef = CFE1DD4A2F62C668003BD29B /* backgroundThreadException.json */; };
 		CFE1DD522F62E201003BD29B /* CrashDataFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */; };
 		CFE1DD542F62EC6C003BD29B /* CrashReportManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1DD532F62EC6C003BD29B /* CrashReportManagerTests.swift */; };
+		CFE803B32F7A4E7600B15B47 /* SdkDebugLogWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE803B22F7A4E7600B15B47 /* SdkDebugLogWriter.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 		CFF2E6982F69246A003B5A66 /* Data+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF2E6972F69246A003B5A66 /* Data+Extension.swift */; };
@@ -629,6 +630,7 @@
 		CFE1DD4A2F62C668003BD29B /* backgroundThreadException.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = backgroundThreadException.json; sourceTree = "<group>"; };
 		CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashDataFormatterTests.swift; sourceTree = "<group>"; };
 		CFE1DD532F62EC6C003BD29B /* CrashReportManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportManagerTests.swift; sourceTree = "<group>"; };
+		CFE803B22F7A4E7600B15B47 /* SdkDebugLogWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkDebugLogWriter.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 		CFF2E6972F69246A003B5A66 /* Data+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Extension.swift"; sourceTree = "<group>"; };
 		CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfigTests.swift; sourceTree = "<group>"; };
@@ -958,7 +960,8 @@
 				526D18052D5A1913009A2E90 /* Extensions */,
 				526D18082D5A1913009A2E90 /* IdProvider.swift */,
 				526D18092D5A1913009A2E90 /* LifecycleObserver.swift */,
-				526D180A2D5A1913009A2E90 /* Logger.swift */,
+				CFE803B12F7A4E6300B15B47 /* Logger */,
+				CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */,
 				526D180B2D5A1913009A2E90 /* MeasureQueue.swift */,
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
 				CF86818D2DB6541F00C62DA5 /* SpanId.swift */,
@@ -969,7 +972,6 @@
 				CF86818E2DB6541F00C62DA5 /* TraceId.swift */,
 				526D18112D5A1913009A2E90 /* UserDefaultStorage.swift */,
 				526D18122D5A1913009A2E90 /* UserPermissionManager.swift */,
-				CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -1378,6 +1380,15 @@
 			path = CrashReports;
 			sourceTree = "<group>";
 		};
+		CFE803B12F7A4E6300B15B47 /* Logger */ = {
+			isa = PBXGroup;
+			children = (
+				526D180A2D5A1913009A2E90 /* Logger.swift */,
+				CFE803B22F7A4E7600B15B47 /* SdkDebugLogWriter.swift */,
+			);
+			path = Logger;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1650,6 +1661,7 @@
 				CFC7CFD92EF1A0EF00F569AA /* MeasureSDK.m in Sources */,
 				526D187E2D5A1913009A2E90 /* UIDevice+Extension.swift in Sources */,
 				CF1BB4962DCC7FE300588506 /* BugReportCollector.swift in Sources */,
+				CFE803B32F7A4E7600B15B47 /* SdkDebugLogWriter.swift in Sources */,
 				CFD88D0D2DA7968E0095115E /* SpanBuilder.swift in Sources */,
 				526D18342D5A1913009A2E90 /* DefaultConfig.swift in Sources */,
 				69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */,

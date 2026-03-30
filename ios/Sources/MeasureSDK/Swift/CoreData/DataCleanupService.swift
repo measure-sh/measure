@@ -21,6 +21,7 @@ final class BaseDataCleanupService: DataCleanupService {
     private let attachmentStore: AttachmentStore
     private let systemFileManager: SystemFileManager
     private let userDefaultsStorage: UserDefaultStorage
+    private let maxSdkDebugLogFiles = 5
 
     init(eventStore: EventStore,
          spanStore: SpanStore,
@@ -46,6 +47,7 @@ final class BaseDataCleanupService: DataCleanupService {
         trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
         cleanupOrphanedAttachments()
         attachmentStore.deleteExpiredAttachments()
+        trimSdkDebugLogs()
 
         guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
             return
@@ -160,4 +162,36 @@ final class BaseDataCleanupService: DataCleanupService {
 
         userDefaultsStorage.setHasRunOrphanAttachmentCleanup(true)
     }
+
+    private func trimSdkDebugLogs() {
+        guard let dir = systemFileManager.getSdkDebugLogsDirectory() else { return }
+
+        do {
+            let files = try FileManager.default.contentsOfDirectory(
+                at: dir,
+                includingPropertiesForKeys: nil
+            )
+            guard files.count > maxSdkDebugLogFiles else { return }
+
+            let filesToDelete = files.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                .dropLast(maxSdkDebugLogFiles)
+
+            logger.log(
+                level: .debug,
+                message: "Cleanup: Deleting \(filesToDelete.count) old SDK debug log files",
+                error: nil,
+                data: nil
+            )
+
+            filesToDelete.forEach { systemFileManager.deleteFile(atPath: $0.path) }
+        } catch {
+            logger.log(
+                level: .debug,
+                message: "Cleanup: Failed to clean up SDK debug log files",
+                error: error,
+                data: nil
+            )
+        }
+    }
+
 }

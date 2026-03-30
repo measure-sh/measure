@@ -26,7 +26,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                               autoStart: true,
                                               requestHeadersProvider: CustomHeaderProvider(),
                                               maxDiskUsageInMb: 100,
-                                              enableFullCollectionMode: false)
+                                              enableFullCollectionMode: false,
+                                              enableDiagnosticMode: true)
         Measure.initialize(with: clientInfo, config: measureConfig)
         Measure.setUserId("test_user_ios")
         Measure.onShake {
