@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
 - (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
 - (**backend**): Update last_seen for API key by @anupcowkur in #2903
+- (**frontend**): Render HTML tags in markdown with rehype-raw by @anupcowkur in #3373
 - (**frontend**): Fix overlapping text in session timeline (#3313) by @abhaysood in #3313
 - (**frontend**): Fix illegible text colour in user profile initials by @anupcowkur in #3279
 - (**frontend**): Copy correct api base url based on env variable by @anupcowkur in #3268
