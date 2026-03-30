@@ -35,6 +35,9 @@ type PubSubOption func(*pubSubConfig)
 type pubSubConfig struct {
 	// projectID is the GCP project ID. Empty means auto-detect from the metadata server.
 	projectID string
+	// maxOutstandingMessages caps the number of unprocessed messages held by the
+	// subscriber at any time (consumer-only).
+	maxOutstandingMessages int
 }
 
 // WithPubSubProjectID overrides the GCP project ID.
@@ -42,6 +45,14 @@ type pubSubConfig struct {
 func WithPubSubProjectID(projectID string) PubSubOption {
 	return func(c *pubSubConfig) {
 		c.projectID = projectID
+	}
+}
+
+// WithPubSubMaxOutstandingMessages sets the maximum number of unprocessed
+// messages the subscriber will hold at any time (default: 1000).
+func WithPubSubMaxOutstandingMessages(n int) PubSubOption {
+	return func(c *pubSubConfig) {
+		c.maxOutstandingMessages = n
 	}
 }
 

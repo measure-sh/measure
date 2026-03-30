@@ -13,6 +13,8 @@ type pubSubConsumer struct {
 	client *pubsub.Client
 	// subID is the subscription ID (short form or full resource name).
 	subID string
+	// maxOutstandingMessages caps in-flight messages during Receive.
+	maxOutstandingMessages int
 }
 
 // NewPubSubConsumer creates a Pub/Sub-backed Consumer using a pull subscription.
@@ -39,11 +41,18 @@ func NewPubSubConsumer(ctx context.Context, subscription string, opts ...PubSubO
 		return nil, fmt.Errorf("bus: failed to create Pub/Sub client: %w", err)
 	}
 
-	return &pubSubConsumer{client: client, subID: subscription}, nil
+	return &pubSubConsumer{
+		client:                 client,
+		subID:                  subscription,
+		maxOutstandingMessages: cfg.maxOutstandingMessages,
+	}, nil
 }
 
 func (c *pubSubConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
 	sub := c.client.Subscriber(c.subID)
+	if c.maxOutstandingMessages > 0 {
+		sub.ReceiveSettings.MaxOutstandingMessages = c.maxOutstandingMessages
+	}
 	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		if err := handler(ctx, msg.Data); err != nil {
 			msg.Nack()

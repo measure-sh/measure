@@ -1073,6 +1073,17 @@ func ConsumeHandler(ctx context.Context, data []byte) error {
 	return nil
 }
 
+// ConsumeHandlerSync is the bus.Consumer handler for Pub/Sub-based ingestion.
+// It processes the batch synchronously so that returning an error causes the
+// consumer to nack the message for redelivery.
+func ConsumeHandlerSync(ctx context.Context, data []byte) error {
+	var batch IngestBatch
+	if err := json.Unmarshal(data, &batch); err != nil {
+		return fmt.Errorf("failed to unmarshal ingest batch: %w", err)
+	}
+	return processIngestBatchSync(ctx, batch)
+}
+
 var batchCount = 0
 
 // processIngestBatch runs the full ingestion processing pipeline

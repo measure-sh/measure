@@ -331,7 +331,39 @@ func Init(config *ServerConfig) {
 		VK:     vkClient,
 	}
 
-	if !config.CloudEnv {
+	var batchSize = 1000
+	ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
+	if ingestBatchSize != "" {
+		batchSize, err = strconv.Atoi(ingestBatchSize)
+		if err != nil {
+			log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
+		}
+	}
+
+	if config.CloudEnv {
+		subscription := os.Getenv("INGEST_PUBSUB_SUBSCRIPTION")
+		if subscription != "" {
+			consumer, err := bus.NewPubSubConsumer(
+				context.Background(),
+				subscription,
+				bus.WithPubSubMaxOutstandingMessages(batchSize),
+			)
+			if err != nil {
+				log.Printf("failed to create Pub/Sub consumer: %v\n", err)
+			} else {
+				Server.BusConsumer = consumer
+			}
+		}
+	} else {
+		var pollInterval = 30 * time.Second
+		ingestPollInterval := os.Getenv("INGEST_POLL_INTERVAL")
+		if ingestPollInterval != "" {
+			pollInterval, err = time.ParseDuration(ingestPollInterval)
+			if err != nil {
+				log.Printf("failed to parse INGEST_POLL_INTERVAL: %v\n", err)
+			}
+		}
+
 		consumer, err := bus.NewIggyGroupConsumer(
 			config.IG.Addr,
 			config.IG.Username,
@@ -339,6 +371,8 @@ func Init(config *ServerConfig) {
 			"ingest-batch-consumer",
 			bus.DefaultStreamName,
 			ingest.IngestBatchTopic,
+			bus.WithIggyBatchSize(batchSize),
+			bus.WithIggyPollInterval(pollInterval),
 		)
 		if err != nil {
 			log.Printf("failed to create Iggy consumer: %v\n", err)

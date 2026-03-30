@@ -82,11 +82,17 @@ func main() {
 		Handler: r,
 	}
 
-	// Start Iggy consumer if initialized
+	// Start bus consumer if initialized
 	if server.Server.BusConsumer != nil {
 		defer server.Server.BusConsumer.Close()
+
+		handler := measure.ConsumeHandler // async for Iggy
+		if config.IsCloud() {
+			handler = measure.ConsumeHandlerSync // sync for Pub/Sub
+		}
+
 		go func() {
-			if err := server.Server.BusConsumer.Listen(appCtx, measure.ConsumeHandler); err != nil && !errors.Is(err, context.Canceled) {
+			if err := server.Server.BusConsumer.Listen(appCtx, handler); err != nil && !errors.Is(err, context.Canceled) {
 				log.Printf("bus consumer stopped: %v\n", err)
 			}
 		}()
