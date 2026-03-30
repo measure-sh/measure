@@ -54,6 +54,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// usage limit, it will start deleting the oldest data to make space for new data.
 @property (nonatomic) NSNumber *maxDiskUsageInMb;
 
+/// Enables diagnostic mode which writes all SDK logs to a file.
+/// The log file can be attached when reporting a bug to help with debugging SDK issues.
+/// Defaults to `false`.
+@property (nonatomic) BOOL enableDiagnosticMode;
+
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
                            autoStart:(BOOL)autoStart

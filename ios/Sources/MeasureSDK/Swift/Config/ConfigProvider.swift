@@ -83,6 +83,7 @@ final class BaseConfigProvider: ConfigProvider {
     var enableFullCollectionMode: Bool { defaultConfig.enableFullCollectionMode }
     var requestHeadersProvider: MsrRequestHeadersProvider? { defaultConfig.requestHeadersProvider }
     var maxDiskUsageInMb: Number { defaultConfig.maxDiskUsageInMb }
+    var enableDiagnosticMode: Bool { defaultConfig.enableDiagnosticMode }
 
     // InternalConfig
 

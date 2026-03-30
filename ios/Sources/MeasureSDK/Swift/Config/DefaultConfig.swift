@@ -20,6 +20,7 @@ struct DefaultConfig {
     static let journeyEvents: [EventType] = [.lifecycleSwiftUI,
                                              .lifecycleViewController,
                                              .screenView]
+    static let enableDiagnosticMode = false
 
     static let maxEventsInBatch: Number = 10_000
     static let crashTimelineDurationSeconds: Number = 300
