@@ -10,12 +10,12 @@ import Foundation
 final class URLSessionTaskInterceptor {
     static let shared = URLSessionTaskInterceptor()
     private var httpInterceptorCallbacks: HttpInterceptorCallbacks?
-    private var taskStartTimes: [URLSessionTask: UInt64] = [:]
     private var timeProvider: TimeProvider?
     private var configProvider: ConfigProvider?
     private var recentRequests: [String: UInt64] = [:]
     private let dedupeWindowMs: UInt64 = 300
     private var signalSampler: SignalSampler?
+    private let isolationQueue = DispatchQueue(label: "sh.measure.interceptor.isolation")
 
     private init() {}
 
@@ -30,7 +30,7 @@ final class URLSessionTaskInterceptor {
     func setConfigProvider(_ configProvider: ConfigProvider) {
         self.configProvider = configProvider
     }
-    
+
     func setSignalSampler(_ signalSampler: SignalSampler) {
         self.signalSampler = signalSampler
     }
@@ -38,78 +38,87 @@ final class URLSessionTaskInterceptor {
     func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this function_body_length
         guard !MSRNetworkInterceptor.isEnabled else { return }
 
-        guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
-              let timeProvider = self.timeProvider,
-              let configProvider = self.configProvider,
-              let signalSampler = self.signalSampler,
-              let url = task.currentRequest?.url?.absoluteString else { return }
+        let currentTime = UnsignedNumber(self.timeProvider?.millisTime ?? 0)
+        let capturedRequest = task.currentRequest
+        let capturedResponse = task.response as? HTTPURLResponse
+        let capturedError = task.error
 
-        guard configProvider.shouldTrackHttpUrl(url: url) else {
-            return
-        }
-        
-        guard signalSampler.shouldTrackLaunchEvents() else {
-            return
-        }
-
-        if state == .running, taskStartTimes[task] == nil {
-            taskStartTimes[task] = UnsignedNumber(timeProvider.millisTime)
+        if state == .running {
+            if task.msr_startTime == nil {
+                task.msr_startTime = currentTime
+            }
             return
         }
 
         guard state == .completed || state == .canceling else { return }
 
-        let endTime = UnsignedNumber(timeProvider.millisTime)
-        let method = task.currentRequest?.httpMethod?.lowercased() ?? ""
+        let startTime = task.msr_startTime
+        task.msr_startTime = nil
 
-        let requestHeaders = task.currentRequest?.allHTTPHeaderFields
-
-        var requestBody: String?
-        if let stream = task.currentRequest?.httpBodyStream {
-            requestBody = stream.readStream()
-        } else if let data = task.currentRequest?.httpBody {
-            requestBody = String(data: data, encoding: .utf8)
+        isolationQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.processTaskCompletion(url: capturedRequest?.url?.absoluteString,
+                                       method: capturedRequest?.httpMethod,
+                                       requestHeaders: capturedRequest?.allHTTPHeaderFields,
+                                       requestBody: self.extractBody(from: capturedRequest),
+                                       response: capturedResponse,
+                                       error: capturedError,
+                                       startTime: startTime,
+                                       endTime: currentTime)
         }
+    }
 
-        guard let response = task.response as? HTTPURLResponse else {
-            taskStartTimes.removeValue(forKey: task)
-            return
-        }
+    private func processTaskCompletion(url: String?,
+                                       method: String?,
+                                       requestHeaders: [String: String]?,
+                                       requestBody: String?,
+                                       response: HTTPURLResponse?,
+                                       error: Error?,
+                                       startTime: UInt64?,
+                                       endTime: UInt64) {
+        guard let url = url,
+              let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
+              let configProvider = self.configProvider,
+              let signalSampler = self.signalSampler else { return }
 
-        let statusCode = response.statusCode
-        let responseHeaders = response.allHeaderFields as? [String: String]
+        guard configProvider.shouldTrackHttpUrl(url: url) else { return }
+        guard signalSampler.shouldTrackLaunchEvents() else { return }
 
-        let startTime = taskStartTimes[task]
-        taskStartTimes.removeValue(forKey: task)
+        let normalizedMethod = method?.lowercased() ?? ""
 
+        guard shouldRecordEvent(method: normalizedMethod, url: url, currentTime: endTime) else { return }
+
+        let responseHeaders = response?.allHeaderFields as? [String: String]
         let safeRequestHeaders = requestHeaders?.filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
         let safeResponseHeaders = responseHeaders?.filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
-        let shouldTrackRequestBody = configProvider.shouldTrackHttpBody(url: url, contentType: requestHeaders?["Content-Type"])
-
-        let shouldTrackResponseBody = configProvider.shouldTrackHttpBody(url: url, contentType: responseHeaders?["Content-Type"])
-
+        
+        let shouldTrackReqBody = configProvider.shouldTrackHttpBody(url: url, contentType: requestHeaders?["Content-Type"])
+        
         let httpData = HttpData(
             url: url,
-            method: method,
-            statusCode: statusCode,
+            method: normalizedMethod,
+            statusCode: response?.statusCode ?? 0,
             startTime: startTime,
             endTime: endTime,
-            failureReason: task.error.map { String(describing: type(of: $0)) },
-            failureDescription: task.error?.localizedDescription,
+            failureReason: error.map { String(describing: type(of: $0)) },
+            failureDescription: error?.localizedDescription,
             requestHeaders: safeRequestHeaders,
             responseHeaders: safeResponseHeaders,
-            requestBody: shouldTrackRequestBody
-                ? requestBody?.sanitizeRequestBody()
-                : nil,
-            responseBody: shouldTrackResponseBody
-                ? nil
-                : nil,
+            requestBody: shouldTrackReqBody ? requestBody?.sanitizeRequestBody() : nil,
+            responseBody: nil,
             client: "URLSession"
         )
 
-        if shouldRecordEvent(method: method, url: url, currentTime: UInt64(endTime)) {
-            httpInterceptorCallbacks.onHttpCompletion(data: httpData)
+        httpInterceptorCallbacks.onHttpCompletion(data: httpData)
+    }
+
+    private func extractBody(from request: URLRequest?) -> String? {
+        if let stream = request?.httpBodyStream {
+            return stream.readStream()
+        } else if let data = request?.httpBody {
+            return String(data: data, encoding: .utf8)
         }
+        return nil
     }
 
     private func shouldRecordEvent(method: String, url: String, currentTime: UInt64) -> Bool {
@@ -127,4 +136,3 @@ final class URLSessionTaskInterceptor {
         return shouldRecord
     }
 }
-
