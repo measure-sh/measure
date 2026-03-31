@@ -391,6 +391,13 @@ export enum FetchSubscriptionInfoApiStatus {
   Cancelled,
 }
 
+export enum FetchCustomerPortalUrlApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum BugReportsOverviewApiStatus {
   Loading,
   Success,
@@ -2711,6 +2718,30 @@ export const downgradeToFreeFromServer = async (teamId: string) => {
     return { status: DowngradeToFreeApiStatus.Success, data: data }
   } catch {
     return { status: DowngradeToFreeApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchCustomerPortalUrlFromServer = async (teamId: string, returnUrl: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/portal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        return_url: returnUrl,
+      }),
+    })
+
+    if (!res.ok) {
+      return { status: FetchCustomerPortalUrlApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchCustomerPortalUrlApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchCustomerPortalUrlApiStatus.Cancelled, data: null }
   }
 }
 

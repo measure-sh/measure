@@ -1,10 +1,11 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, DowngradeToFreeApiStatus, downgradeToFreeFromServer, emptyUsage, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, FetchStripeCheckoutSessionApiStatus, fetchStripeCheckoutSessionFromServer, FetchSubscriptionInfoApiStatus, fetchSubscriptionInfoFromServer, FetchUsageApiStatus, fetchUsageFromServer } from '@/app/api/api_calls'
+import { AuthzAndMembersApiStatus, DowngradeToFreeApiStatus, downgradeToFreeFromServer, emptyUsage, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, FetchCustomerPortalUrlApiStatus, fetchCustomerPortalUrlFromServer, FetchStripeCheckoutSessionApiStatus, fetchStripeCheckoutSessionFromServer, FetchSubscriptionInfoApiStatus, fetchSubscriptionInfoFromServer, FetchUsageApiStatus, fetchUsageFromServer } from '@/app/api/api_calls'
 import { Button, buttonVariants } from '@/app/components/button'
 import { Card } from '@/app/components/card'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { Skeleton } from '@/app/components/skeleton'
 
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
 import { formatBytes } from '@/app/utils/number_utils'
@@ -60,6 +61,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
   const [isUpgrading, setIsUpgrading] = useState(false)
   const [isDowngrading, setIsDowngrading] = useState(false)
   const [downgradeConfirmationDialogOpen, setDowngradeConfirmationDialogOpen] = useState(false)
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const [currentUserCanChangePlan, setCurrentUserCanChangePlan] = useState(false)
   const [fetchSubscriptionInfoApiStatus, setFetchSubscriptionInfoApiStatus] = useState(FetchSubscriptionInfoApiStatus.Loading)
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
@@ -274,6 +276,32 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     }
   }
 
+  const handleManageBilling = async () => {
+    setIsLoadingPortal(true)
+
+    const returnUrl = window.location.href.split('?')[0]
+    const result = await fetchCustomerPortalUrlFromServer(params.teamId, returnUrl)
+
+    switch (result.status) {
+      case FetchCustomerPortalUrlApiStatus.Success:
+        if (result.data?.url) {
+          window.location.href = result.data.url
+        } else {
+          toastNegative("Failed to open billing portal", "No portal URL returned.")
+          setIsLoadingPortal(false)
+        }
+        break
+      case FetchCustomerPortalUrlApiStatus.Error:
+        toastNegative("Failed to open billing portal", "Please try again.")
+        setIsLoadingPortal(false)
+        break
+      case FetchCustomerPortalUrlApiStatus.Cancelled:
+        toastNegative("Failed to open billing portal", "Request was cancelled.")
+        setIsLoadingPortal(false)
+        break
+    }
+  }
+
   // @ts-ignore
   const CenteredMetric = ({ centerX, centerY }) => {
     let totalSessions = 0
@@ -402,6 +430,15 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                         <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
                       </ul>
                     )}
+                    {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Loading && (
+                      <div className='mt-4 w-full max-w-md space-y-3'>
+                        <Skeleton className='h-4 w-full' />
+                        <Skeleton className='h-4 w-full' />
+                        <Skeleton className='h-4 w-full' />
+                        <Skeleton className='h-4 w-full' />
+                        <Skeleton className='h-4 w-full' />
+                      </div>
+                    )}
                     {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Success && subscriptionInfo && (
                       <div className='mt-4 font-body text-start space-y-1'>
                         <ul className='list-disc list-inside'>
@@ -447,13 +484,24 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                         </Button>
                       )}
                       {billingInfo?.plan === 'pro' && (
-                        <Button
-                          className={buttonVariants({ variant: "secondary" })}
-                          onClick={() => setDowngradeConfirmationDialogOpen(true)}
-                          disabled={!currentUserCanChangePlan || isDowngrading}
-                        >
-                          {isDowngrading ? 'Downgrading...' : 'Downgrade to Free'}
-                        </Button>
+                        <div className='flex flex-col gap-3 items-center'>
+                          <Button
+                            className="w-56"
+                            variant={"default"}
+                            onClick={handleManageBilling}
+                            disabled={!currentUserCanChangePlan || isLoadingPortal || isDowngrading}
+                          >
+                            {isLoadingPortal ? 'Redirecting...' : 'Manage Billing'}
+                          </Button>
+                          <Button
+                            className="w-56"
+                            variant={"destructive"}
+                            onClick={() => setDowngradeConfirmationDialogOpen(true)}
+                            disabled={!currentUserCanChangePlan || isDowngrading || isLoadingPortal}
+                          >
+                            {isDowngrading ? 'Downgrading...' : 'Downgrade to Free'}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
