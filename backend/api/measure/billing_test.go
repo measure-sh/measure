@@ -1890,3 +1890,269 @@ func TestGetSubscriptionInfo(t *testing.T) {
 		}
 	})
 }
+
+// --------------------------------------------------------------------------
+// Handler: CreateCustomerPortalSession
+// --------------------------------------------------------------------------
+
+func TestCreateCustomerPortalSession(t *testing.T) {
+	t.Run("billing disabled", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		defer func() { server.Server.Config.BillingEnabled = orig }()
+
+		c, w := newTestGinContext("POST", "/teams/test/billing/portal", nil)
+		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		}
+		wantJSON(t, w, "error", "billing is not enabled")
+	})
+
+	t.Run("invalid team id", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		c, w := newTestGinContext("POST", "/teams/bad-id/billing/portal", nil)
+		c.Set("userId", uuid.New().String())
+		c.Params = gin.Params{{Key: "id", Value: "bad-id"}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSONContains(t, w, "error", "team id invalid")
+	})
+
+	t.Run("viewer forbidden", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testViewerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "viewer")
+
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		}
+		wantJSONContains(t, w, "error", "you don't have permissions")
+	})
+
+	t.Run("developer forbidden", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testDeveloperEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "developer")
+
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		}
+		wantJSONContains(t, w, "error", "you don't have permissions")
+	})
+
+	t.Run("admin authorized", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testAdminEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "admin")
+
+		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		// 400 (not 403) proves the admin passed authz.
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d (admin should pass authz)", w.Code, http.StatusBadRequest)
+		}
+		wantJSON(t, w, "error", "invalid request body")
+	})
+
+	t.Run("owner authorized", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		// 400 (not 403) proves the owner passed authz.
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d (owner should pass authz)", w.Code, http.StatusBadRequest)
+		}
+		wantJSON(t, w, "error", "invalid request body")
+	})
+
+	t.Run("missing return_url", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: ""})
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSON(t, w, "error", "return_url is required")
+	})
+
+	t.Run("team not on pro plan", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSON(t, w, "error", "team is not on pro plan")
+	})
+
+	t.Run("no stripe customer", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_test"))
+
+		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		}
+		wantJSON(t, w, "error", "team has no stripe customer")
+	})
+
+	t.Run("stripe portal error", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		mockCreateBillingPortalSession(t, func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			return nil, errors.New("stripe unavailable")
+		})
+
+		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+		wantJSON(t, w, "error", "failed to create customer portal session")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		teamID := uuid.New()
+		seedUser(ctx, t, userID, testOwnerEmail)
+		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_123"), strPtr("sub_123"))
+
+		mockCreateBillingPortalSession(t, func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			if *params.Customer != "cus_123" {
+				t.Errorf("customer = %q, want %q", *params.Customer, "cus_123")
+			}
+			if *params.ReturnURL != "https://example.com/usage" {
+				t.Errorf("return_url = %q, want %q", *params.ReturnURL, "https://example.com/usage")
+			}
+			return &stripe.BillingPortalSession{URL: "https://billing.stripe.com/session/test"}, nil
+		})
+
+		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+
+		CreateCustomerPortalSession(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+		wantJSON(t, w, "url", "https://billing.stripe.com/session/test")
+	})
+}

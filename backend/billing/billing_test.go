@@ -1604,3 +1604,109 @@ func TestGetUsageThreshold(t *testing.T) {
 	})
 }
 
+// --------------------------------------------------------------------------
+// CreateCustomerPortalSession
+// --------------------------------------------------------------------------
+
+func TestCreateCustomerPortalSession(t *testing.T) {
+	t.Run("team not found", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, uuid.New(), "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrTeamBillingNotFound) {
+			t.Errorf("want ErrTeamBillingNotFound, got %v", err)
+		}
+	})
+
+	t.Run("free plan", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "free-team", true)
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNotOnProPlan) {
+			t.Errorf("want ErrNotOnProPlan, got %v", err)
+		}
+	})
+
+	t.Run("pro plan but no stripe customer id", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_test"))
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNoStripeCustomer) {
+			t.Errorf("want ErrNoStripeCustomer, got %v", err)
+		}
+	})
+
+	t.Run("stripe portal session error", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		orig := CreateBillingPortalSessionFn
+		CreateBillingPortalSessionFn = func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			return nil, errors.New("stripe unavailable")
+		}
+		t.Cleanup(func() { CreateBillingPortalSessionFn = orig })
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "failed to create billing portal session") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test_123"), strPtr("sub_test"))
+
+		const wantURL = "https://billing.stripe.com/session/test_abc"
+		orig := CreateBillingPortalSessionFn
+		CreateBillingPortalSessionFn = func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			if *params.Customer != "cus_test_123" {
+				t.Errorf("customer = %q, want %q", *params.Customer, "cus_test_123")
+			}
+			if *params.ReturnURL != "https://example.com/usage" {
+				t.Errorf("return_url = %q, want %q", *params.ReturnURL, "https://example.com/usage")
+			}
+			return &stripe.BillingPortalSession{URL: wantURL}, nil
+		}
+		t.Cleanup(func() { CreateBillingPortalSessionFn = orig })
+
+		url, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if url != wantURL {
+			t.Errorf("url = %q, want %q", url, wantURL)
+		}
+	})
+}
+

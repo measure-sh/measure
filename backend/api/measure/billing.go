@@ -308,6 +308,67 @@ func GetSubscriptionInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+type CreateCustomerPortalSessionRequest struct {
+	ReturnURL string `json:"return_url"`
+}
+
+func CreateCustomerPortalSession(c *gin.Context) {
+	if !server.Server.Config.IsBillingEnabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeBillingAll); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var req CreateCustomerPortalSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	if req.ReturnURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "return_url is required"})
+		return
+	}
+
+	portalURL, err := billing.CreateCustomerPortalSession(ctx, server.Server.PgPool, teamId, req.ReturnURL)
+	if err != nil {
+		switch {
+		case errors.Is(err, billing.ErrTeamBillingNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "team billing not found"})
+		case errors.Is(err, billing.ErrNotOnProPlan):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "team is not on pro plan"})
+		case errors.Is(err, billing.ErrNoStripeCustomer):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "team has no stripe customer"})
+		default:
+			fmt.Println("failed to create customer portal session:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create customer portal session"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"url": portalURL})
+}
+
 func HandleStripeWebhook(c *gin.Context) {
 	if !server.Server.Config.IsBillingEnabled() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
