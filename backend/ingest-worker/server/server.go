@@ -342,6 +342,7 @@ func Init(config *ServerConfig) {
 
 	if config.CloudEnv {
 		subscription := os.Getenv("INGEST_PUBSUB_SUBSCRIPTION")
+		fmt.Println("Name of subscription:", subscription)
 		if subscription != "" {
 			consumer, err := bus.NewPubSubConsumer(
 				context.Background(),

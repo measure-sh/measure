@@ -95,6 +95,8 @@ func main() {
 			if err := server.Server.BusConsumer.Listen(appCtx, handler); err != nil && !errors.Is(err, context.Canceled) {
 				log.Printf("bus consumer stopped: %v\n", err)
 			}
+
+			fmt.Println("Listening for ingestion messages")
 		}()
 	}
 
