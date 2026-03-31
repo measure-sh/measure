@@ -3,6 +3,8 @@ package bus
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/pubsub/v2"
@@ -49,17 +51,32 @@ func NewPubSubConsumer(ctx context.Context, subscription string, opts ...PubSubO
 }
 
 func (c *pubSubConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
-	sub := c.client.Subscriber(c.subID)
-	if c.maxOutstandingMessages > 0 {
-		sub.ReceiveSettings.MaxOutstandingMessages = c.maxOutstandingMessages
-	}
-	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		if err := handler(ctx, msg.Data); err != nil {
-			msg.Nack()
-		} else {
-			msg.Ack()
+	for {
+		sub := c.client.Subscriber(c.subID)
+		if c.maxOutstandingMessages > 0 {
+			sub.ReceiveSettings.MaxOutstandingMessages = c.maxOutstandingMessages
 		}
-	})
+		err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+			if err := handler(ctx, msg.Data); err != nil {
+				msg.Nack()
+			} else {
+				msg.Ack()
+			}
+		})
+
+		// Context cancelled means a deliberate shutdown — exit cleanly.
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		// Transient error (e.g. gRPC connection dropped) — log and reconnect.
+		log.Printf("bus: pubsub receive disconnected: %v, reconnecting...", err)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 
 func (c *pubSubConsumer) Close() error {
