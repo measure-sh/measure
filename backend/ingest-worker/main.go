@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -92,11 +91,8 @@ func main() {
 		}
 
 		go func() {
-			if err := server.Server.BusConsumer.Listen(appCtx, handler); err != nil && !errors.Is(err, context.Canceled) {
-				log.Printf("bus consumer stopped: %v\n", err)
-			}
-
-			fmt.Println("Listening for ingestion messages")
+			err := server.Server.BusConsumer.Listen(appCtx, handler)
+			log.Printf("bus consumer exited: %v\n", err)
 		}()
 	}
 
