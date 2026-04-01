@@ -6,6 +6,7 @@ require (
 	backend/api v0.0.0
 	backend/billing v0.0.0
 	cloud.google.com/go/iam v1.5.3
+	cloud.google.com/go/pubsub/v2 v2.5.0
 	cloud.google.com/go/storage v1.60.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
 	github.com/aws/aws-sdk-go-v2 v1.41.3
@@ -30,7 +31,6 @@ require (
 )
 
 require (
-	cloud.google.com/go/pubsub/v2 v2.5.0 // indirect
 	github.com/apache/iggy/foreign/go v0.7.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
