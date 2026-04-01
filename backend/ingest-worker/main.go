@@ -68,7 +68,8 @@ func main() {
 	})
 
 	// ingest batch receive endpoint
-	if config.IsCloud() {
+	pushEnabled := os.Getenv("INGEST_PUBSUB_PUSH_ENABLED") == "true"
+	if config.IsCloud() && pushEnabled {
 		r.POST("/subscribe/batch", measure.PushHandler)
 	}
 
