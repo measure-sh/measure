@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Skip daily snapshots for non-billable teams by @anupcowkur in #3388
 - (**backend**): Calculate correct month names for usage chart by @anupcowkur in #3372
 - (**backend**): Account for retention in billing meter by @anupcowkur in #3357
 - (**backend**): Add missing libs in alerts dockerfile (#3304) by @detj in #3304
