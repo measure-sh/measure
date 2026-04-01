@@ -9,14 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../componen
 import LandingFooter from '../components/landing_footer'
 import LandingHeader from '../components/landing_header'
 import { Slider } from '../components/slider'
-import { ERROR_EVENT_SIZE_KB, DEFAULT_EVENT_SIZE_KB, FREE_GB, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_DAY, PRICE_PER_GB_MONTH } from '../utils/pricing_constants'
+import { calculate } from '../utils/pricing_calculator'
+import { FREE_GB, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '../utils/pricing_constants'
 import { cn } from '../utils/shadcn_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 
-const EVENTS_PER_SESSION_MINUTE = 60 // number of events generated per minute of session time
-const SESSION_TIME_PER_ERROR = 5 // time for which we collect timeline for errored sessions (in minutes)
-const AVG_SESSION_TIME = 10 // average session time in minutes
-const JOURNEY_EVENTS_PER_MINUTE = 10 // number of journey events generated per minute of session time
 const RETENTION_MONTHS = [1, 3, 6, 12] as const
 
 
@@ -33,35 +30,23 @@ export default function Pricing() {
   const [journeySamplePercent, setJourneySamplePercent] = useState(0.01) // percent
   const [retentionMonths, setRetentionMonths] = useState(1) // months (1,3,6,12)
 
-  // Per-day event breakdown based on assumptions
-  const sessionStartPerDay = dailyUsers * averageAppOpens // 1 per open
-  const launchPerDay = dailyUsers * averageAppOpens * (launchSamplePercent / 100)
-  const crashSessionsPerDay = dailyUsers * averageAppOpens * (errorRatePercent / 100)
-  const crashEventsPerDay = crashSessionsPerDay // assume 1 crash event per crashed session
-  const sessionTimelineSessionsPerDay = crashSessionsPerDay
-  const sessionTimelineEventsPerDay = sessionTimelineSessionsPerDay * SESSION_TIME_PER_ERROR * EVENTS_PER_SESSION_MINUTE // events per collected timeline
-  const perfSpansCollectedSessionsPerDay = dailyUsers * averageAppOpens * (perfSpanSamplePercent / 100)
-  const perfSpansPerDay = perfSpansCollectedSessionsPerDay * perfSpanCount
-  const journeyEventsPerDay = dailyUsers * averageAppOpens * AVG_SESSION_TIME * JOURNEY_EVENTS_PER_MINUTE * (journeySamplePercent / 100)
+  const result = calculate({
+    dailyUsers,
+    averageAppOpens,
+    launchSamplePercent,
+    errorRatePercent,
+    perfSpanSamplePercent,
+    perfSpanCount,
+    journeySamplePercent,
+    retentionMonths,
+  })
 
-  // Convert event counts to bytes using assumed sizes
-  const crashBytesPerMonth = crashEventsPerDay * 30 * ERROR_EVENT_SIZE_KB * 1024
-  const otherBytesPerMonth = (sessionStartPerDay + launchPerDay + sessionTimelineEventsPerDay + perfSpansPerDay + journeyEventsPerDay) * 30 * DEFAULT_EVENT_SIZE_KB * 1024
-  const totalBytesPerMonth = crashBytesPerMonth + otherBytesPerMonth
-  const totalGBPerMonth = totalBytesPerMonth / (1024 * 1024 * 1024)
-
-  const retentionDays = retentionMonths * 30
-
-  // GB-days billing
-  const baseExcessGB = totalGBPerMonth > FREE_GB ? totalGBPerMonth : 0
-  const billableGBDaysBase = baseExcessGB * 30
-  const extraRetentionDays = Math.max(0, retentionDays - 30)
-  const billableGBDaysRetention = totalGBPerMonth * extraRetentionDays
-  const baseCost = billableGBDaysBase * PRICE_PER_GB_DAY
-  const retentionCost = billableGBDaysRetention * PRICE_PER_GB_DAY
-  const rawMonthlyCost = baseCost + retentionCost
-
-  const isFreeTier = totalGBPerMonth <= FREE_GB && retentionMonths === 1
+  const {
+    events: { sessionStartPerDay, launchPerDay, crashEventsPerDay, sessionTimelineEventsPerDay, perfSpansPerDay, journeyEventsPerDay },
+    totalGBPerMonth,
+    isFreeTier,
+    rawMonthlyCost,
+  } = result
 
   const compactFormatter = new Intl.NumberFormat(undefined, {
     notation: 'compact',
@@ -336,7 +321,7 @@ export default function Pricing() {
                   <span className="text-secondary-foreground font-semibold">Total data per month:</span>
                   <span className="font-display font-semibold">{totalGBPerMonth.toFixed(2)} GB</span>
                 </div>
-                {totalGBPerMonth <= FREE_GB && (
+                {isFreeTier && (
                   <div className="flex justify-between">
                     <span className="text-secondary-foreground font-semibold">Free data per month:</span>
                     <span className="font-display text-green-600 dark:text-green-500">{FREE_GB} GB</span>
