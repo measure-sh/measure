@@ -449,7 +449,7 @@ func TestTakeStorageSnapshot(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, "SnapTeam", true)
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_snap"), nil)
 		seedApp(ctx, t, appID, teamID, 30)
 
 		yesterday := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -1)
@@ -484,6 +484,74 @@ func TestTakeStorageSnapshot(t *testing.T) {
 		}
 		if bytesIn != 3*1024*1024 {
 			t.Errorf("bytes_in = %d, want %d", bytesIn, 3*1024*1024)
+		}
+	})
+
+	t.Run("skips free-plan teams", func(t *testing.T) {
+		t.Cleanup(func() { cleanupAll(ctx, t) })
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "FreeTeam", true)
+		seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_free"), nil)
+		seedApp(ctx, t, appID, teamID, 30)
+
+		yesterday := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -1)
+
+		cutoff := yesterday.AddDate(0, 0, -30)
+		setAppDataCutoffDate(ctx, t, appID, cutoff)
+
+		seedIngestionUsage(ctx, t, teamID.String(), appID.String(), yesterday.Add(12*time.Hour), 5, 3, 0, 1*1024*1024)
+
+		deps := testDeps()
+		err := takeStorageSnapshot(ctx, deps, yesterday)
+		if err != nil {
+			t.Fatalf("takeStorageSnapshot: %v", err)
+		}
+
+		var count int
+		err = th.PgPool.QueryRow(ctx,
+			"SELECT count(*) FROM billing_metrics_reporting WHERE team_id = $1",
+			teamID.String()).Scan(&count)
+		if err != nil {
+			t.Fatalf("query: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected no snapshot rows for free team, got %d", count)
+		}
+	})
+
+	t.Run("skips pro teams without stripe customer", func(t *testing.T) {
+		t.Cleanup(func() { cleanupAll(ctx, t) })
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "ProNoStripe", true)
+		seedTeamBilling(ctx, t, teamID, "pro", nil, nil)
+		seedApp(ctx, t, appID, teamID, 30)
+
+		yesterday := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -1)
+
+		cutoff := yesterday.AddDate(0, 0, -30)
+		setAppDataCutoffDate(ctx, t, appID, cutoff)
+
+		seedIngestionUsage(ctx, t, teamID.String(), appID.String(), yesterday.Add(12*time.Hour), 5, 3, 0, 1*1024*1024)
+
+		deps := testDeps()
+		err := takeStorageSnapshot(ctx, deps, yesterday)
+		if err != nil {
+			t.Fatalf("takeStorageSnapshot: %v", err)
+		}
+
+		var count int
+		err = th.PgPool.QueryRow(ctx,
+			"SELECT count(*) FROM billing_metrics_reporting WHERE team_id = $1",
+			teamID.String()).Scan(&count)
+		if err != nil {
+			t.Fatalf("query: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected no snapshot rows for pro team without stripe customer, got %d", count)
 		}
 	})
 }
@@ -737,7 +805,7 @@ func TestBillingCycle_RetentionDecrease(t *testing.T) {
 	teamID := uuid.New()
 	appID := uuid.New()
 	seedTeam(ctx, t, teamID, "RetDecTeam", true)
-	seedTeamBilling(ctx, t, teamID, "pro", nil, nil)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_retdec"), nil)
 	seedApp(ctx, t, appID, teamID, 5)
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
@@ -807,7 +875,7 @@ func TestBillingCycle_RetentionIncrease(t *testing.T) {
 	teamID := uuid.New()
 	appID := uuid.New()
 	seedTeam(ctx, t, teamID, "RetIncTeam", true)
-	seedTeamBilling(ctx, t, teamID, "pro", nil, nil)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_retinc"), nil)
 	seedApp(ctx, t, appID, teamID, 2)
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
