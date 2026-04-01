@@ -191,7 +191,7 @@ export function getPlotTimeGroupNivoConfig(plotTimeGroup: PlotTimeGroup): PlotTi
         xFormat: "time:%Y-%m-%d",
         xScaleFormat: "%Y-%m-%d",
         xScalePrecision: "day",
-        axisBottomFormat: "%b %Y",
+        axisBottomFormat: "%d %b, %Y",
       }
     case "days":
     default:

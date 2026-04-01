@@ -77,7 +77,7 @@ describe('BugReportsOverviewPlot', () => {
     render(<BugReportsOverviewPlot filters={filters} />)
 
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-    expect(lastLineProps.axisBottom.format).toBe('%b %Y')
+    expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('uses minute/day configs for shorter ranges', async () => {
