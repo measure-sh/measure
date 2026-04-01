@@ -42,6 +42,11 @@ func NewPubSubProducer(ctx context.Context, topic string, opts ...PubSubOption) 
 
 	topicName := fmt.Sprintf("projects/%s/topics/%s", projectID, topic)
 	publisher := client.Publisher(topicName)
+
+	if cfg.publishSettings != nil {
+		publisher.PublishSettings = *cfg.publishSettings
+	}
+
 	return &pubSubProducer{client: client, publisher: publisher}, nil
 }
 

@@ -12,6 +12,7 @@ import (
 
 	"backend/libs/bus"
 
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -341,7 +342,7 @@ func Init(config *ServerConfig) {
 
 	var busProducer bus.Producer
 	if config.CloudEnv {
-		p, err := bus.NewPubSubProducer(ctx, "ingest-batch")
+		p, err := bus.NewPubSubProducer(ctx, "ingest-batch", bus.WithPubSubPublishSettings(pubsub.PublishSettings{EnableCompression: true}))
 		if err != nil {
 			log.Printf("failed to create Pub/Sub producer: %v\n", err)
 		} else {

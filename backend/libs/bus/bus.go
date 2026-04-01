@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"cloud.google.com/go/pubsub/v2"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
 )
 
@@ -35,9 +36,12 @@ type PubSubOption func(*pubSubConfig)
 type pubSubConfig struct {
 	// projectID is the GCP project ID. Empty means auto-detect from the metadata server.
 	projectID string
-	// maxOutstandingMessages caps the number of unprocessed messages held by the
-	// subscriber at any time (consumer-only).
-	maxOutstandingMessages int
+	// publishSettings configures publish behaviour (producer-only).
+	// If nil, the publisher's default settings are used.
+	publishSettings *pubsub.PublishSettings
+	// receiveSettings configures receive behaviour (consumer-only).
+	// If nil, the subscriber's default settings are used.
+	receiveSettings *pubsub.ReceiveSettings
 }
 
 // WithPubSubProjectID overrides the GCP project ID.
@@ -48,11 +52,20 @@ func WithPubSubProjectID(projectID string) PubSubOption {
 	}
 }
 
-// WithPubSubMaxOutstandingMessages sets the maximum number of unprocessed
-// messages the subscriber will hold at any time (default: 1000).
-func WithPubSubMaxOutstandingMessages(n int) PubSubOption {
+// WithReceiveSettings sets the ReceiveSettings for the Pub/Sub consumer.
+// If not provided, the subscriber's default settings are used.
+// To cap outstanding messages, set ReceiveSettings.MaxOutstandingMessages.
+func WithPubSubReceiveSettings(s pubsub.ReceiveSettings) PubSubOption {
 	return func(c *pubSubConfig) {
-		c.maxOutstandingMessages = n
+		c.receiveSettings = &s
+	}
+}
+
+// WithPublishSettings sets the PublishSettings for the Pub/Sub producer.
+// If not provided, pubsub.DefaultPublishSettings is used.
+func WithPubSubPublishSettings(s pubsub.PublishSettings) PubSubOption {
+	return func(c *pubSubConfig) {
+		c.publishSettings = &s
 	}
 }
 

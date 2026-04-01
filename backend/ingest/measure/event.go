@@ -36,12 +36,27 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
 )
 
 // maxBatchSize is the maximum allowed payload
 // size of event request in bytes.
 var maxBatchSize = 20 * 1024 * 1024
+
+var ingestBatchPublishCount metric.Int64Counter
+
+func init() {
+	meter := otel.Meter("measure/ingest")
+	counter, err := meter.Int64Counter(
+		"ingest_batch_publish_count",
+		metric.WithDescription("Number of ingest batches successfully published to the bus"),
+	)
+	if err != nil {
+		panic(err)
+	}
+	ingestBatchPublishCount = counter
+}
 
 // ExpiryDuration is the default expiry duration
 // for signed upload URLs.
@@ -1910,7 +1925,7 @@ func PutEvents(c *gin.Context) {
 
 	// When bus is preferred, publish to bus
 	// and return
-	useBus := os.Getenv("USE_BUS")
+	useBus := os.Getenv("INGEST_USE_BUS")
 	if useBus != "" {
 		batch := IngestBatch{
 			BatchID:  eventReq.id.String(),
@@ -1953,6 +1968,8 @@ func PutEvents(c *gin.Context) {
 
 		if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
 			fmt.Println("failed to publish ingest batch:", err)
+		} else {
+			ingestBatchPublishCount.Add(c.Request.Context(), 1)
 		}
 
 		return

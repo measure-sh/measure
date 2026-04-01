@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -347,7 +348,7 @@ func Init(config *ServerConfig) {
 			consumer, err := bus.NewPubSubConsumer(
 				context.Background(),
 				subscription,
-				bus.WithPubSubMaxOutstandingMessages(batchSize),
+				bus.WithPubSubReceiveSettings(pubsub.ReceiveSettings{MaxOutstandingMessages: batchSize}),
 			)
 			if err != nil {
 				log.Printf("failed to create Pub/Sub consumer: %v\n", err)

@@ -28,6 +28,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -1084,13 +1085,35 @@ func ConsumeHandlerSync(ctx context.Context, data []byte) error {
 	return processIngestBatchSync(ctx, batch)
 }
 
-var batchCount = 0
+var ingestBatchUnackCount metric.Int64Counter
+var ingestBatchAckCount metric.Int64Counter
+
+func init() {
+	meter := otel.Meter("measure/ingest-worker")
+
+	unackCounter, err := meter.Int64Counter(
+		"ingest_batch_unack_count",
+		metric.WithDescription("Number of ingest batches received for processing"),
+	)
+	if err != nil {
+		panic(err)
+	}
+	ingestBatchUnackCount = unackCounter
+
+	ackCounter, err := meter.Int64Counter(
+		"ingest_batch_ack_count",
+		metric.WithDescription("Number of ingest batches successfully processed"),
+	)
+	if err != nil {
+		panic(err)
+	}
+	ingestBatchAckCount = ackCounter
+}
 
 // processIngestBatch runs the full ingestion processing pipeline
 // for an ingest batch received from the message bus.
 func processIngestBatch(ctx context.Context, batch IngestBatch) {
-	batchCount += 1
-	fmt.Printf("Ingesting batch (%d): %s\n", batchCount, batch.BatchID)
+	ingestBatchUnackCount.Add(ctx, 1)
 
 	batchID, err := uuid.Parse(batch.BatchID)
 	if err != nil {
@@ -1348,15 +1371,15 @@ func processIngestBatch(ctx context.Context, batch IngestBatch) {
 			return
 		}
 	}
+
+	ingestBatchAckCount.Add(ctx, 1)
 }
 
 // processIngestBatchSync runs the full ingestion processing pipeline
 // synchronously and returns any error encountered. Used by PushHandler
 // so that Pub/Sub can retry failed batches.
 func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
-	batchCount += 1
-	fmt.Printf("Ingesting batch (%d): %s\n", batchCount, batch.BatchID)
-
+	ingestBatchUnackCount.Add(ctx, 1)
 	batchID, err := uuid.Parse(batch.BatchID)
 	if err != nil {
 		return fmt.Errorf("failed to parse batch id: %w", err)
@@ -1428,7 +1451,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		return nil
 	}
 
-	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
+	ingestCtx := ambient.WithTeamId(context.Background(), eventReq.teamId)
 	ingestTracer := otel.Tracer("ingest-tracer")
 	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
 	defer ingestSpan.End()
@@ -1603,5 +1626,6 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 	}
 
+	ingestBatchAckCount.Add(ctx, 1)
 	return nil
 }
