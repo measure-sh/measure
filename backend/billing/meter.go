@@ -153,11 +153,14 @@ func snapshotExists(ctx context.Context, pool *pgxpool.Pool, date time.Time) boo
 // getAppRetentionWindows returns all apps with their retention and cutoff date.
 func getAppRetentionWindows(ctx context.Context, pool *pgxpool.Pool) ([]AppRetentionWindow, error) {
 	query := sqlf.PostgreSQL.
-		Select("team_id").
-		Select("id").
-		Select("retention").
-		Select("data_cutoff_date").
-		From("apps")
+		Select("a.team_id").
+		Select("a.id").
+		Select("a.retention").
+		Select("a.data_cutoff_date").
+		From("apps a").
+		Join("team_billing tb", "a.team_id = tb.team_id").
+		Where("tb.plan = 'pro'").
+		Where("tb.stripe_customer_id IS NOT NULL")
 	defer query.Close()
 
 	rows, err := pool.Query(ctx, query.String(), query.Args()...)
