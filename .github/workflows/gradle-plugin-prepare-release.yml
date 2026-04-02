@@ -7,6 +7,10 @@ on:
         description: 'Version to release (e.g., 0.10.0)'
         required: true
         type: string
+      next_version:
+        description: 'Next SNAPSHOT version (e.g., 0.11.0-SNAPSHOT)'
+        required: true
+        type: string
 
 env:
   JAVA_VERSION: 21
@@ -83,6 +87,10 @@ jobs:
             - Updated version to ${{ inputs.version }} in measure-android-gradle/gradle.properties
             - Generated changelog for version ${{ inputs.version }}
             - Updated version in README.md
+
+            <!-- release-meta
+            NEXT_VERSION=${{ inputs.next_version }}
+            -->
           base: main
           labels: android
           assignees: abhaysood

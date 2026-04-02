@@ -99,10 +99,16 @@ internal interface FileStorage {
      * Validates that the file exists.
      */
     fun validateFile(path: String): Boolean
+
+    /**
+     * Returns the directory where SDK debug log files are stored, or null if it doesn't exist.
+     */
+    fun getSdkDebugLogsDirectory(): File?
 }
 
 private const val MEASURE_DIR = "measure"
 private const val BUG_REPORTS_DIR = "bug_reports"
+private const val SDK_DEBUG_LOGS_DIR = "sdk_debug_logs"
 private const val CONFIG_FILE_NAME = "config.json"
 
 internal class FileStorageImpl(
@@ -198,6 +204,19 @@ internal class FileStorageImpl(
     override fun getConfigFile(): File? = getOrCreateFile(CONFIG_FILE_NAME)
 
     override fun getConfigPath(): String = "$rootDir/$MEASURE_DIR/$CONFIG_FILE_NAME"
+
+    override fun getSdkDebugLogsDirectory(): File? {
+        val dir = File("$rootDir/$MEASURE_DIR/$SDK_DEBUG_LOGS_DIR")
+        return try {
+            if (!dir.exists()) {
+                dir.mkdirs()
+            }
+            if (dir.exists()) dir else null
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Debug, "Failed to create sdk debug logs directory", e)
+            null
+        }
+    }
 
     override fun validateFile(path: String): Boolean {
         val file = getFile(path)

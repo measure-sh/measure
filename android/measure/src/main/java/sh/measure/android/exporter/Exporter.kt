@@ -19,7 +19,17 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface Exporter {
+    /**
+     * Exports existing batches and attachments,
+     * creates new batches if needed and exports
+     * them one by one.
+     */
     fun export()
+
+    /**
+     * Exports existing batches and attachments.
+     */
+    fun flush()
 }
 
 internal class ExporterImpl(
@@ -33,7 +43,6 @@ internal class ExporterImpl(
     private val httpClient: HttpClient,
     private val configProvider: ConfigProvider,
     private val eventExportService: MeasureExecutorService,
-    private val attachmentExportService: MeasureExecutorService,
 ) : Exporter {
     @VisibleForTesting
     internal val isExporting = AtomicBoolean(false)
@@ -41,11 +50,34 @@ internal class ExporterImpl(
     override fun export() {
         if (isExporting.compareAndSet(false, true)) {
             try {
-                exportEvents()
-                exportAttachments()
-            } catch (e: Exception) {
-                logger.log(LogLevel.Error, "Exporter: failed to export", e)
-            } finally {
+                eventExportService.submit {
+                    try {
+                        exportEvents()
+                        exportAttachments()
+                    } finally {
+                        isExporting.set(false)
+                    }
+                }
+            } catch (_: RejectedExecutionException) {
+                isExporting.set(false)
+            }
+        } else {
+            logger.log(LogLevel.Debug, "Exporter: export already in progress, skipping")
+        }
+    }
+
+    override fun flush() {
+        if (isExporting.compareAndSet(false, true)) {
+            try {
+                eventExportService.submit {
+                    try {
+                        exportExistingBatches()
+                        exportAttachments()
+                    } finally {
+                        isExporting.set(false)
+                    }
+                }
+            } catch (_: RejectedExecutionException) {
                 isExporting.set(false)
             }
         } else {
@@ -55,66 +87,62 @@ internal class ExporterImpl(
 
     private fun exportEvents() {
         try {
-            eventExportService.submit {
-                try {
-                    // First export existing batches
-                    val existingBatches = database.getBatchIds()
-                    if (existingBatches.isNotEmpty()) {
-                        logger.log(
-                            LogLevel.Debug,
-                            "Exporter: found ${existingBatches.size} existing batches, exporting",
-                        )
+            // First export existing batches
+            if (exportExistingBatches()) return
 
-                        val success = exportBatches(existingBatches)
-                        if (!success) {
-                            // abort if no batches found or export failed
-                            return@submit
-                        }
-                    }
-
-                    // Then create new batches and export
-                    val batchesCreatedCount = database.batchSessions(
-                        idProvider,
-                        timeProvider,
-                        configProvider.maxEventsInBatch,
-                        1000,
-                    )
-                    if (batchesCreatedCount > 0) {
-                        logger.log(
-                            LogLevel.Debug,
-                            "Exporter: created $batchesCreatedCount new batches, exporting",
-                        )
-                        val newBatches = database.getBatchIds()
-                        if (newBatches.isNotEmpty()) {
-                            exportBatches(newBatches)
-                        }
-                    } else {
-                        logger.log(LogLevel.Debug, "Exporter: no batches to export")
-                    }
-                } catch (e: Exception) {
-                    logger.log(LogLevel.Error, "Exporter: failed to export", e)
+            // Then create new batches and export
+            val batchesCreatedCount = database.batchSessions(
+                idProvider,
+                timeProvider,
+                configProvider.maxEventsInBatch,
+                1000,
+            )
+            if (batchesCreatedCount > 0) {
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: created $batchesCreatedCount new batches, exporting",
+                )
+                val newBatches = database.getBatchIds()
+                if (newBatches.isNotEmpty()) {
+                    exportBatches(newBatches)
                 }
+            } else {
+                logger.log(LogLevel.Debug, "Exporter: no batches to export")
             }
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Exporter: failed to submit export task", e)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Exporter: failed to export", e)
         }
     }
 
+    private fun exportExistingBatches(): Boolean {
+        val existingBatches = database.getBatchIds()
+        if (existingBatches.isNotEmpty()) {
+            logger.log(
+                LogLevel.Debug,
+                "Exporter: found ${existingBatches.size} existing batches, exporting",
+            )
+
+            val success = exportBatches(existingBatches)
+            if (!success) {
+                return true
+            }
+        }
+        return false
+    }
+
     private fun exportBatches(batches: List<String>): Boolean {
-        var success = true
-        batches.forEachIndexed { index, batchId ->
+        for ((index, batchId) in batches.withIndex()) {
             val batch = database.getBatch(batchId)
 
             if (!exportBatch(batch)) {
-                success = false
-                return@forEachIndexed
+                return false
             }
 
             if (index < batches.size - 1) {
                 sleeper.sleep(configProvider.batchExportIntervalMs)
             }
         }
-        return success
+        return true
     }
 
     private fun exportBatch(batch: Batch): Boolean {
@@ -167,31 +195,29 @@ internal class ExporterImpl(
     }
 
     private fun exportAttachments() {
-        attachmentExportService.submit {
-            while (true) {
-                val attachments = database.getAttachmentsToUpload(5)
+        while (true) {
+            val attachments = database.getAttachmentsToUpload(5)
 
-                if (attachments.isEmpty()) {
-                    logger.log(
-                        LogLevel.Debug,
-                        "Exporter: no attachments to upload, exiting",
-                    )
-                    return@submit
+            if (attachments.isEmpty()) {
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: no attachments to upload, exiting",
+                )
+                return
+            }
+
+            attachments.forEachIndexed { index, attachment ->
+                logger.log(
+                    LogLevel.Debug,
+                    "Exporter: attachment uploading ${attachment.id}",
+                )
+                val success = uploadAttachment(attachment)
+                if (!success) {
+                    return
                 }
 
-                attachments.forEachIndexed { index, attachment ->
-                    logger.log(
-                        LogLevel.Debug,
-                        "Exporter: attachment uploading ${attachment.id}",
-                    )
-                    val success = uploadAttachment(attachment)
-                    if (!success) {
-                        return@submit
-                    }
-
-                    if (index < attachments.size - 1) {
-                        sleeper.sleep(configProvider.attachmentExportIntervalMs)
-                    }
+                if (index < attachments.size - 1) {
+                    sleeper.sleep(configProvider.attachmentExportIntervalMs)
                 }
             }
         }

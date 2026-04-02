@@ -217,7 +217,6 @@ internal class TestMeasureInitializer(
         fileStorage = fileStorage,
         idProvider = idProvider,
         configProvider = configProvider,
-        sampler = sampler,
     ),
     override val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler = PeriodicSignalStoreScheduler(
         logger = logger,
@@ -246,7 +245,6 @@ internal class TestMeasureInitializer(
         idProvider = idProvider,
         configProvider = configProvider,
         eventExportService = executorServiceRegistry.eventExportExecutor(),
-        attachmentExportService = executorServiceRegistry.attachmentExportExecutor(),
         httpClient = HttpUrlConnectionClient(logger),
         timeProvider = timeProvider,
         sleeper = DefaultSleeper(),

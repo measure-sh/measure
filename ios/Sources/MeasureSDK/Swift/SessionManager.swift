@@ -81,11 +81,13 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func createNewSession() {
+        let startTime = timeProvider.now()
+        sessionStartTime = startTime
         currentSessionId = idProvider.uuid()
         logger.log(level: .info, message: "New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
-                                    createdAt: Number(timeProvider.now()),
+                                    createdAt: Number(startTime),
                                     needsReporting: false,
                                     crashed: false)
         sessionStore.insertSession(session)
@@ -182,7 +184,6 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func trackSessionStart(sessionId: String?) {
-        sessionStartTime = timeProvider.now()
         if let onSessionStartedCallback = onSessionStarted, let sessionId = sessionId {
             onSessionStartedCallback(sessionId)
         }

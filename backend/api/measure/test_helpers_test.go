@@ -225,6 +225,13 @@ func mockCancelStripeSubscription(t *testing.T, fn func(string, *stripe.Subscrip
 	t.Cleanup(func() { billing.CancelSubscriptionFn = orig })
 }
 
+func mockCreateBillingPortalSession(t *testing.T, fn func(*stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error)) {
+	t.Helper()
+	orig := billing.CreateBillingPortalSessionFn
+	billing.CreateBillingPortalSessionFn = fn
+	t.Cleanup(func() { billing.CreateBillingPortalSessionFn = orig })
+}
+
 func mockConstructWebhookEvent(t *testing.T, fn func([]byte, string, string) (stripe.Event, error)) {
 	t.Helper()
 	orig := constructWebhookEventFn

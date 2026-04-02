@@ -1,5 +1,6 @@
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
 import { notFound } from "next/navigation";
 import { getDocBySlug, getAllDocSlugs, extractTocEntries } from "@/app/docs/docs";
@@ -44,7 +45,7 @@ export default function DocPage({ params }: PageProps) {
         <div className="prose-custom">
           <Markdown
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeSlug]}
+            rehypePlugins={[rehypeRaw, rehypeSlug]}
             components={createMarkdownComponents(params.slug)}
           >
             {doc.content}

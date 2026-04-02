@@ -20,6 +20,7 @@ jobs:
         working-directory: android
     permissions:
       contents: write
+      actions: write
     timeout-minutes: 15
     steps:
       - name: Checkout repository
@@ -27,7 +28,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - uses: actions/setup-java@v3
         with:
@@ -38,7 +39,6 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
 
-  
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
@@ -46,6 +46,15 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: android/cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
         env:
@@ -55,4 +64,23 @@ jobs:
             --title "${{ github.ref_name }}" \
             --draft \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.release-notes.outputs.content }}" \
             --verify-tag
+
+      - name: Extract release metadata from PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          BODY=$(gh pr list --state merged --head "$TAG" --json body --jq '.[0].body' || true)
+          NEXT_VERSION=$(echo "$BODY" | grep -oP '(?<=NEXT_VERSION=)\S+' || true)
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Trigger prepare-next workflow
+        if: steps.meta.outputs.next_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          gh workflow run "Prepare Next Android Version" \
+            -f version="${{ steps.meta.outputs.next_version }}"

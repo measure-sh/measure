@@ -3,6 +3,7 @@ package sh.measure.benchmark
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.ExperimentalMetricApi
 import androidx.benchmark.macro.FrameTimingMetric
+import androidx.benchmark.macro.MemoryUsageMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.TraceSectionMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
@@ -28,8 +29,8 @@ class ClickBenchmark {
             packageName = "sh.measure.sample",
             metrics = listOf(
                 FrameTimingMetric(),
-                TraceSectionMetric("msr-trackGesture", TraceSectionMetric.Mode.Average),
-                TraceSectionMetric("msr-generateSvgAttachment", TraceSectionMetric.Mode.Average),
+                MemoryUsageMetric(MemoryUsageMetric.Mode.Max),
+                TraceSectionMetric("msr-trackGesture", TraceSectionMetric.Mode.Max),
             ),
             iterations = 10,
             startupMode = StartupMode.WARM,

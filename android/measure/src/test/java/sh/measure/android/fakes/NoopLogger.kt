@@ -9,4 +9,8 @@ internal class NoopLogger : Logger {
     override fun log(level: LogLevel, message: String, throwable: Throwable?) {
         // No-op
     }
+
+    override fun setLogCallback(callback: ((LogLevel, String, Throwable?) -> Unit)?) {
+        // No-op
+    }
 }

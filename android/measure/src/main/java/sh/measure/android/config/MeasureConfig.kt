@@ -14,6 +14,7 @@ internal interface IMeasureConfig {
     val trackActivityIntentData: Boolean
     val requestHeadersProvider: MsrRequestHeadersProvider?
     val enableFullCollectionMode: Boolean
+    val enableDiagnosticMode: Boolean
 }
 
 /**
@@ -76,4 +77,15 @@ class MeasureConfig(
      * only be enabled for debug mode.
      */
     override val enableFullCollectionMode: Boolean = DefaultConfig.ENABLE_FULL_COLLECTION_MODE,
+
+    /**
+     * Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached
+     * when reporting a bug to help with debugging SDK issues. Defaults to `false`.
+     *
+     * To pull all log files from a device:
+     * ```
+     * adb shell "run-as <your.package.name> tar cf - files/measure/sdk_debug_logs/" | tar xf - -C /tmp/
+     * ```
+     */
+    override val enableDiagnosticMode: Boolean = DefaultConfig.ENABLE_DIAGNOSTIC_MODE,
 ) : IMeasureConfig

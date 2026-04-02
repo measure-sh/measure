@@ -287,5 +287,55 @@ class DataCleanupServiceTest {
         val bugReportsDir = mock<File>()
         `when`(fileStorage.getBugReportDir()).thenReturn(bugReportsDir)
         `when`(bugReportsDir.exists()).thenReturn(false)
+
+        // Default mocks for trimSdkDebugLogs
+        `when`(fileStorage.getSdkDebugLogsDirectory()).thenReturn(null)
+    }
+
+    @Test
+    fun `trimSdkDebugLogs deletes oldest files when more than 5 exist`() {
+        tempTestDir = createTempDirectory("sdk-debug-logs-test").toFile()
+        // Create 7 files with timestamp names (sorted by name = sorted by time)
+        val files = (1L..7L).map { ts ->
+            File(tempTestDir!!, ts.toString()).apply { writeText("log") }
+        }
+
+        setupDefaultMocks()
+        `when`(fileStorage.getSdkDebugLogsDirectory()).thenReturn(tempTestDir)
+
+        dataCleanupService.cleanup()
+
+        // Oldest 2 should be deleted, newest 5 kept
+        assertFalse(files[0].exists())
+        assertFalse(files[1].exists())
+        assertTrue(files[2].exists())
+        assertTrue(files[3].exists())
+        assertTrue(files[4].exists())
+        assertTrue(files[5].exists())
+        assertTrue(files[6].exists())
+    }
+
+    @Test
+    fun `trimSdkDebugLogs does nothing when 5 or fewer files exist`() {
+        tempTestDir = createTempDirectory("sdk-debug-logs-test").toFile()
+        val files = (1L..5L).map { ts ->
+            File(tempTestDir!!, ts.toString()).apply { writeText("log") }
+        }
+
+        setupDefaultMocks()
+        `when`(fileStorage.getSdkDebugLogsDirectory()).thenReturn(tempTestDir)
+
+        dataCleanupService.cleanup()
+
+        files.forEach { assertTrue(it.exists()) }
+    }
+
+    @Test
+    fun `trimSdkDebugLogs handles null directory gracefully`() {
+        setupDefaultMocks()
+        `when`(fileStorage.getSdkDebugLogsDirectory()).thenReturn(null)
+
+        // Should not throw
+        dataCleanupService.cleanup()
     }
 }

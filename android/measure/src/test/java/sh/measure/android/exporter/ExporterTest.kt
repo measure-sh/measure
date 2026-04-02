@@ -66,7 +66,6 @@ internal class ExporterTest {
         idProvider = idProvider,
         httpClient = httpClient,
         sleeper = sleeper,
-        attachmentExportService = attachmentExecutorService,
         eventExportService = eventExecutorService,
     )
 
@@ -77,6 +76,68 @@ internal class ExporterTest {
         exporter.export()
 
         verify(networkClient, never()).execute(any(), any(), any())
+    }
+
+    @Test
+    fun `flush skips when already exporting`() {
+        exporter.isExporting.set(true)
+
+        exporter.flush()
+
+        verify(networkClient, never()).execute(any(), any(), any())
+    }
+
+    @Test
+    fun `flush exports existing batches`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        insertSessionInDb("session1")
+        insertEventInDb("session1", "event1", sampled = true)
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.flush()
+
+        verify(networkClient).execute(
+            eq("batch1"),
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `flush exports attachments`() {
+        val responseJson = attachmentResponseJson("attachment-1")
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success(responseJson))
+        whenever(httpClient.uploadFile(any(), any(), anyOrNull(), any(), any(), any())).thenReturn(HttpResponse.Success())
+
+        val attachmentFile = createTempAttachmentFile("attachment-1")
+        insertSessionInDb("session1")
+        insertEventInDb(
+            sessionId = "session1",
+            eventId = "event1",
+            sampled = true,
+            attachments = listOf(
+                AttachmentEntity(
+                    id = "attachment-1",
+                    type = "screenshot",
+                    path = attachmentFile.absolutePath,
+                    name = "screenshot.png",
+                    size = 0,
+                ),
+            ),
+        )
+        insertBatchInDb("batch1", eventIds = setOf("event1"))
+
+        exporter.flush()
+
+        verify(httpClient).uploadFile(
+            eq("https://example.com/upload/attachment-1"),
+            any(),
+            anyOrNull(),
+            any(),
+            any(),
+            any(),
+        )
     }
 
     @Test
@@ -258,6 +319,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -443,6 +505,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -491,6 +554,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -524,6 +588,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -564,6 +629,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile.absolutePath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -596,6 +662,7 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = nonExistentPath,
                     name = "screenshot.png",
+                    size = 0,
                 ),
             ),
         )
@@ -653,12 +720,14 @@ internal class ExporterTest {
                     type = "screenshot",
                     path = attachmentFile1.absolutePath,
                     name = "screenshot1.png",
+                    size = 0,
                 ),
                 AttachmentEntity(
                     id = "attachment-2",
                     type = "screenshot",
                     path = attachmentFile2.absolutePath,
                     name = "screenshot2.png",
+                    size = 0,
                 ),
             ),
         )

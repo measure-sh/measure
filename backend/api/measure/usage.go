@@ -122,12 +122,15 @@ func GetUsage(c *gin.Context) {
 		}
 	}
 
-	// Get the last three month names
+	// Get the last three month names.
+	// Use the first of the current month to avoid day overflow
+	// (e.g. March 31 minus 1 month = Feb 31 → Go normalizes to March 3).
 	monthYearFormat := "Jan 2006"
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	monthNames := []string{
-		now.AddDate(0, -2, 0).Format(monthYearFormat),
-		now.AddDate(0, -1, 0).Format(monthYearFormat),
-		now.Format(monthYearFormat),
+		startOfMonth.AddDate(0, -2, 0).Format(monthYearFormat),
+		startOfMonth.AddDate(0, -1, 0).Format(monthYearFormat),
+		startOfMonth.Format(monthYearFormat),
 	}
 
 	// Populate appUsageMap with metrics rows from DB

@@ -128,7 +128,7 @@ describe('SpanMetricsPlot', () => {
 
     rerender(<SpanMetricsPlot filters={{ ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-    expect(lastLineProps.axisBottom.format).toBe('%b %Y')
+    expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('throws for invalid quantile selection', async () => {

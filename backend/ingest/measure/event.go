@@ -556,11 +556,14 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 
 			e.attachmentUploadInfos = append(e.attachmentUploadInfos, attachmentUploadInfo)
 
-			// Estimate attachment size for billing since JSON
-			// requests upload attachments out-of-band via
-			// signed URLs and actual size is unknown at ingest
-			// time.
-			e.bumpSize(estimateAttachmentSize(attachment.Name))
+			// Use actual attachment size for billing if provided
+			// by newer SDKs. Fall back to estimates for older
+			// SDKs that don't send size.
+			if attachment.Size > 0 {
+				e.bumpSize(attachment.Size)
+			} else {
+				e.bumpSize(estimateAttachmentSize(attachment.Name))
+			}
 		}
 
 		// compute launch timings

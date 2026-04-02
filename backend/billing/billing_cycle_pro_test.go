@@ -735,11 +735,275 @@ func TestBillingCycle_ProFailure_DowngradeSideEffects(t *testing.T) {
 		t.Fatalf("app retention = %d, want %d", got, FreePlanMaxRetentionDays)
 	}
 
+	// Verify data_cutoff_date advanced on downgrade (180-day -> 30-day).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	expectedCutoff := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+	gotCutoff := getAppDataCutoffDate(ctx, t, appID)
+	if gotCutoff.Before(expectedCutoff) {
+		t.Fatalf("data_cutoff_date = %v, want >= %v", gotCutoff.Format("2006-01-02"), expectedCutoff.Format("2006-01-02"))
+	}
+
 	var pendingCount int
 	if err := th.PgPool.QueryRow(ctx, "SELECT COUNT(*) FROM pending_alert_messages WHERE team_id = $1", f.teamID).Scan(&pendingCount); err != nil {
 		t.Fatalf("count pending alerts: %v", err)
 	}
 	if pendingCount == 0 {
 		t.Fatal("expected subscription failure notification emails to be queued")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Zero-usage billing cycle
+// ---------------------------------------------------------------------------
+
+func TestBillingCycle_ProSuccess_ZeroUsage(t *testing.T) {
+	ctx := context.Background()
+	f := newProStripeScenarioFixture(t, ctx, "pro-zero-usage")
+	janDays := 31
+
+	// Seed a full month of reporting rows with zero bytes.
+	seededDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.January, 0, 0, 0)
+	if seededDays != janDays {
+		t.Fatalf("seeded days = %d, want %d", seededDays, janDays)
+	}
+
+	// ReportUnreportedToStripe should skip Stripe (gbDays=0) but mark rows reported.
+	if err := ReportUnreportedToStripe(ctx, f.deps); err != nil {
+		t.Fatalf("ReportUnreportedToStripe: %v", err)
+	}
+
+	if got := countReportedRows(ctx, t, f.teamID); got != janDays {
+		t.Fatalf("reported rows = %d, want %d (all should be marked reported even with zero bytes)", got, janDays)
+	}
+
+	// Advance past the billing cycle.
+	advanceClock(t, f.clockID, time.Date(2026, 2, 5, 0, 0, 0, 0, time.UTC))
+
+	// Subscription should remain active with zero usage.
+	sub, err := subscription.Get(f.subscription, nil)
+	if err != nil {
+		t.Fatalf("get subscription: %v", err)
+	}
+	if sub.Status != stripe.SubscriptionStatusActive {
+		t.Fatalf("subscription status = %s, want active", sub.Status)
+	}
+
+	bc := getTeamBilling(ctx, t, uuid.MustParse(f.teamID))
+	if bc.Plan != "pro" {
+		t.Fatalf("plan = %s, want pro", bc.Plan)
+	}
+	allow, reason := getTeamIngestStatus(ctx, t, f.teamID)
+	if !allow || reason != nil {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil", allow, safeDeref(reason))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Within-free-tier billing cycle
+// ---------------------------------------------------------------------------
+
+func TestBillingCycle_ProSuccess_WithinFreeTier(t *testing.T) {
+	ctx := context.Background()
+	f := newProStripeScenarioFixture(t, ctx, "pro-within-free-tier")
+	janDays := 31
+
+	// Choose bytes so total GB-days stays well below the free tier limit.
+	// Target half the free tier to stay safely within it.
+	targetGBDays := float64(f.freeTierLimit) / 2
+	bytesPerDay := uint64(math.Ceil(targetGBDays / float64(janDays) * 1024 * 1024 * 1024))
+	seededDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.January, 0, 0, bytesPerDay)
+	if seededDays != janDays {
+		t.Fatalf("seeded days = %d, want %d", seededDays, janDays)
+	}
+
+	advanceClock(t, f.clockID, time.Date(2026, 1, 31, 23, 59, 0, 0, time.UTC))
+	if err := ReportUnreportedToStripe(ctx, f.deps); err != nil {
+		t.Fatalf("ReportUnreportedToStripe: %v", err)
+	}
+
+	if got := countReportedRows(ctx, t, f.teamID); got != janDays {
+		t.Fatalf("reported rows = %d, want %d", got, janDays)
+	}
+
+	janTotalGBDays := gbDaysTotal(bytesPerDay, janDays)
+	waitForMeterAggregation(t, f.meterID, f.customerID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+		janTotalGBDays, 2*time.Minute)
+
+	advanceClock(t, f.clockID, time.Date(2026, 2, 5, 0, 0, 0, 0, time.UTC))
+
+	// Within free tier: per-unit cost is $0, but there may be a flat fee.
+	expectedAmount := calculateTieredAmount(int64(math.Round(janTotalGBDays)), f.tiers, f.tiersMode)
+	assertCycleInvoicePaidWithAmount(t, f.subscription, expectedAmount)
+
+	bc := getTeamBilling(ctx, t, uuid.MustParse(f.teamID))
+	if bc.Plan != "pro" {
+		t.Fatalf("plan = %s, want pro", bc.Plan)
+	}
+	allow, reason := getTeamIngestStatus(ctx, t, f.teamID)
+	if !allow || reason != nil {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil", allow, safeDeref(reason))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// User-initiated cancellation
+// ---------------------------------------------------------------------------
+
+func TestBillingCycle_ProCancel_UserInitiated(t *testing.T) {
+	ctx := context.Background()
+	f := newProStripeScenarioFixture(t, ctx, "pro-cancel-user")
+
+	userID := uuid.New().String()
+	th.SeedUser(ctx, t, userID, "owner@example.com")
+	th.SeedTeamMembership(ctx, t, f.teamID, userID, "owner")
+	appID := uuid.New()
+	th.SeedApp(ctx, t, appID.String(), f.teamID, "cancel-app", 180)
+
+	teamUUID := uuid.MustParse(f.teamID)
+
+	// Call the actual CancelAndDowngradeToFree, which hits real Stripe.
+	if err := CancelAndDowngradeToFree(ctx, f.deps, teamUUID); err != nil {
+		t.Fatalf("CancelAndDowngradeToFree: %v", err)
+	}
+
+	// Verify subscription is canceled in Stripe.
+	sub, err := subscription.Get(f.subscription, nil)
+	if err != nil {
+		t.Fatalf("get subscription: %v", err)
+	}
+	if sub.Status != stripe.SubscriptionStatusCanceled {
+		t.Fatalf("subscription status = %s, want canceled", sub.Status)
+	}
+
+	// DB should still be pro — CancelAndDowngradeToFree relies on webhook for downgrade.
+	bc := getTeamBilling(ctx, t, teamUUID)
+	if bc.Plan != "pro" {
+		t.Fatalf("plan = %s, want pro (webhook not yet fired)", bc.Plan)
+	}
+
+	// Verify downgrade notification email was queued.
+	var emailCount int
+	if err := th.PgPool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM pending_alert_messages WHERE team_id = $1", f.teamID).
+		Scan(&emailCount); err != nil {
+		t.Fatalf("count emails: %v", err)
+	}
+	if emailCount == 0 {
+		t.Fatal("expected manual downgrade notification emails to be queued")
+	}
+
+	// Simulate the webhook that Stripe would send.
+	raw, _ := json.Marshal(map[string]any{"id": f.subscription})
+	HandleSubscriptionDeleted(ctx, f.deps, stripe.Event{
+		Type: "customer.subscription.deleted",
+		Data: &stripe.EventData{Raw: raw},
+	})
+
+	// Now verify full downgrade.
+	bc = getTeamBilling(ctx, t, teamUUID)
+	if bc.Plan != "free" {
+		t.Fatalf("plan = %s, want free", bc.Plan)
+	}
+	if bc.StripeSubscriptionID != nil {
+		t.Fatalf("stripe_subscription_id = %v, want nil", *bc.StripeSubscriptionID)
+	}
+	if got := getAppRetention(ctx, t, appID); got != FreePlanMaxRetentionDays {
+		t.Fatalf("app retention = %d, want %d", got, FreePlanMaxRetentionDays)
+	}
+
+	// Verify data_cutoff_date advanced on downgrade (180-day -> 30-day).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	expectedCutoff := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+	gotCutoff := getAppDataCutoffDate(ctx, t, appID)
+	if gotCutoff.Before(expectedCutoff) {
+		t.Fatalf("data_cutoff_date = %v, want >= %v", gotCutoff.Format("2006-01-02"), expectedCutoff.Format("2006-01-02"))
+	}
+
+	// No usage seeded, so ingest should be allowed.
+	allow, reason := getTeamIngestStatus(ctx, t, f.teamID)
+	if !allow || reason != nil {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil", allow, safeDeref(reason))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Multi-month billing cycle
+// ---------------------------------------------------------------------------
+
+func countPaidCycleInvoices(t *testing.T, subID string) int {
+	t.Helper()
+	invoices := listSubscriptionInvoices(t, subID)
+	var count int
+	for _, inv := range invoices {
+		if inv.Status == stripe.InvoiceStatusPaid && inv.BillingReason == stripe.InvoiceBillingReasonSubscriptionCycle {
+			count++
+		}
+	}
+	return count
+}
+
+func TestBillingCycle_ProSuccess_TwoMonthsProcessed(t *testing.T) {
+	ctx := context.Background()
+	f := newProStripeScenarioFixture(t, ctx, "pro-two-months")
+	bytesPerDay := computeBytesPerDay(f.freeTierLimit, 31)
+
+	// --- Month 1: January (31 days) ---
+	janDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.January, 0, 0, bytesPerDay)
+	if janDays != 31 {
+		t.Fatalf("jan seeded days = %d, want 31", janDays)
+	}
+
+	advanceClock(t, f.clockID, time.Date(2026, 1, 31, 23, 59, 0, 0, time.UTC))
+	if err := ReportUnreportedToStripe(ctx, f.deps); err != nil {
+		t.Fatalf("ReportUnreportedToStripe (Jan): %v", err)
+	}
+
+	janTotalGBDays := gbDaysTotal(bytesPerDay, janDays)
+	waitForMeterAggregation(t, f.meterID, f.customerID,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+		janTotalGBDays, 2*time.Minute)
+
+	advanceClock(t, f.clockID, time.Date(2026, 2, 5, 0, 0, 0, 0, time.UTC))
+	janExpected := calculateTieredAmount(int64(math.Round(janTotalGBDays)), f.tiers, f.tiersMode)
+	assertCycleInvoicePaidWithAmount(t, f.subscription, janExpected)
+
+	if got := countPaidCycleInvoices(t, f.subscription); got != 1 {
+		t.Fatalf("paid cycle invoices after month 1 = %d, want 1", got)
+	}
+
+	// --- Month 2: February (28 days) ---
+	febDays := seedMonthForReporting(ctx, t, f.teamID, 2026, time.February, 0, 0, bytesPerDay)
+	if febDays != 28 {
+		t.Fatalf("feb seeded days = %d, want 28", febDays)
+	}
+
+	advanceClock(t, f.clockID, time.Date(2026, 2, 28, 23, 59, 0, 0, time.UTC))
+	if err := ReportUnreportedToStripe(ctx, f.deps); err != nil {
+		t.Fatalf("ReportUnreportedToStripe (Feb): %v", err)
+	}
+
+	febTotalGBDays := gbDaysTotal(bytesPerDay, febDays)
+	waitForMeterAggregation(t, f.meterID, f.customerID,
+		time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+		febTotalGBDays, 2*time.Minute)
+
+	advanceClock(t, f.clockID, time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC))
+
+	if got := countPaidCycleInvoices(t, f.subscription); got != 2 {
+		t.Fatalf("paid cycle invoices after month 2 = %d, want 2", got)
+	}
+
+	// Verify team remains pro throughout.
+	bc := getTeamBilling(ctx, t, uuid.MustParse(f.teamID))
+	if bc.Plan != "pro" {
+		t.Fatalf("plan = %s, want pro", bc.Plan)
+	}
+	allow, reason := getTeamIngestStatus(ctx, t, f.teamID)
+	if !allow || reason != nil {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil", allow, safeDeref(reason))
 	}
 }

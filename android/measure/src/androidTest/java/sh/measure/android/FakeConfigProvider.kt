@@ -46,6 +46,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
     override val journeySamplingRate: Float = 0.01f
     override val enableFullCollectionMode: Boolean = true
+    override val enableDiagnosticMode: Boolean = false
 
     override val crashTimelineDurationSeconds: Int = 300
     override val anrTimelineDurationSeconds: Int = 300

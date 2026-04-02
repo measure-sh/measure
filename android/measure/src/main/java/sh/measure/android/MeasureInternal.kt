@@ -9,9 +9,11 @@ import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.SdkDebugLogWriter
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
+import sh.measure.android.utils.iso8601Timestamp
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -31,6 +33,28 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     private val lock = Any()
 
     fun init() {
+        try {
+            if (measure.configProvider.enableDiagnosticMode) {
+                val logsDir = measure.fileStorage.getSdkDebugLogsDirectory()
+                if (logsDir != null) {
+                    val now = measure.timeProvider.now()
+                    val writer = SdkDebugLogWriter(
+                        logsDir = logsDir,
+                        sdkVersion = BuildConfig.MEASURE_SDK_VERSION,
+                        fileName = now.toString(),
+                        timestamp = now.iso8601Timestamp(),
+                        ioExecutor = measure.executorServiceRegistry.ioExecutor(),
+                    )
+                    writer.start()
+                    measure.logger.setLogCallback { level, message, throwable ->
+                        writer.writeLog(level, message, throwable)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Silently ignore to avoid affecting SDK initialization
+        }
+
         if (!setupNetworkClient()) {
             return
         }
@@ -126,6 +150,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             // always sample session start event
             isSampled = true,
         )
+        measure.exporter.flush()
     }
 
     fun setUserId(userId: String) {

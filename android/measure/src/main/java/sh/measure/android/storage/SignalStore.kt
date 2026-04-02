@@ -12,7 +12,6 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.Sampler
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
@@ -40,7 +39,6 @@ internal class SignalStoreImpl(
     private val database: Database,
     private val idProvider: IdProvider,
     private val configProvider: ConfigProvider,
-    private val sampler: Sampler,
 ) : SignalStore {
     private val eventQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         LinkedBlockingQueue<EventEntity>(configProvider.maxInMemorySignalsQueueSize)
@@ -280,23 +278,37 @@ internal class SignalStoreImpl(
             val id = idProvider.uuid()
             when {
                 attachment.path != null -> {
+                    val size = try {
+                        File(attachment.path).length()
+                    } catch (e: Exception) {
+                        0L
+                    }
                     AttachmentEntity(
                         id = id,
                         path = attachment.path,
                         name = attachment.name,
                         type = attachment.type,
+                        size = size,
                     )
                 }
 
                 attachment.bytes != null -> {
-                    fileStorage.writeAttachment(id, attachment.bytes)?.let { path ->
+                    val path = fileStorage.writeAttachment(id, attachment.bytes)?.let { path ->
                         AttachmentEntity(
                             id = id,
                             path = path,
                             name = attachment.name,
                             type = attachment.type,
+                            size = attachment.bytes.size.toLong(),
                         )
                     }
+                    if (path != null) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Attachment: ${attachment.name} written to file storage",
+                        )
+                    }
+                    return@mapNotNull path
                 }
 
                 else -> {
@@ -314,15 +326,5 @@ internal class SignalStoreImpl(
     /**
      * Calculates the total size of all attachments, in bytes.
      */
-    private fun calculateAttachmentsSize(attachmentEntities: List<AttachmentEntity>?): Long {
-        fun fileSize(file: File): Long = try {
-            if (file.exists()) file.length() else 0
-        } catch (e: SecurityException) {
-            logger.log(LogLevel.Debug, "Failed to calculate attachment size", e)
-            0
-        }
-        return attachmentEntities?.sumOf {
-            fileStorage.getFile(it.path)?.let { file -> fileSize(file) } ?: 0
-        } ?: 0
-    }
+    private fun calculateAttachmentsSize(attachmentEntities: List<AttachmentEntity>?): Long = attachmentEntities?.sumOf { it.size } ?: 0
 }

@@ -186,6 +186,7 @@ func main() {
 		teams.GET(":id/billing/subscriptionInfo", measure.GetSubscriptionInfo)
 		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
 		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
+		teams.POST(":id/billing/portal", measure.CreateCustomerPortalSession)
 	}
 
 	// Preferences

@@ -366,10 +366,12 @@ internal object TestData {
         id: String = "attachment-id",
         type: String = "type",
         name: String = "name",
+        size: Long = 0,
     ): AttachmentEntity = AttachmentEntity(
         id = id,
         type = type,
         name = name,
+        size = size,
     )
 
     fun getEventEntity(

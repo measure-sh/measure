@@ -163,6 +163,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
+        self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
@@ -177,7 +178,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                 self.trackSessionStart(sessionId, timestamp: timestamp)
             }
         }
-        self.sessionManager.start()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         let group = DispatchGroup()
         group.enter()

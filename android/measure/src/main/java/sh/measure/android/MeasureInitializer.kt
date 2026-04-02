@@ -119,6 +119,7 @@ internal class MeasureInitializerImpl(
             maxDiskUsageInMb = inputConfig.maxDiskUsageInMb,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
             enableFullCollectionMode = inputConfig.enableFullCollectionMode,
+            enableDiagnosticMode = inputConfig.enableDiagnosticMode,
             requestHeadersProvider = inputConfig.requestHeadersProvider,
         ),
     ),
@@ -235,7 +236,6 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
         configProvider = configProvider,
-        sampler = sampler,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
         application,
@@ -269,7 +269,6 @@ internal class MeasureInitializerImpl(
         httpClient = httpClient,
         configProvider = configProvider,
         eventExportService = executorServiceRegistry.eventExportExecutor(),
-        attachmentExportService = executorServiceRegistry.attachmentExportExecutor(),
     ),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,

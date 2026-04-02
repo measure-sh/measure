@@ -14,6 +14,7 @@ import (
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/billing/meter"
 	"github.com/stripe/stripe-go/v84/billing/metereventsummary"
+	portalsession "github.com/stripe/stripe-go/v84/billingportal/session"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/customer"
 	"github.com/stripe/stripe-go/v84/invoice"
@@ -36,11 +37,13 @@ var (
 	ErrAlreadyOnFreePlan   = fmt.Errorf("team is already on free plan")
 	ErrAlreadyOnProPlan    = fmt.Errorf("team is already on pro plan")
 	ErrNotOnProPlan        = fmt.Errorf("team is not on pro plan")
+	ErrNoStripeCustomer    = fmt.Errorf("team has no stripe customer")
 
 	// Stripe SDK calls — swappable in tests.
 	CancelSubscriptionFn          = subscription.Cancel
 	CreateStripeCustomerFn        = customer.New
 	CreateStripeCheckoutSessionFn = session.New
+	CreateBillingPortalSessionFn  = portalsession.New
 	FindActiveSubscriptionFn      = FindActiveSubscription
 	GetStripeSubscriptionFn       = subscription.Get
 	CreateInvoicePreviewFn        = invoice.CreatePreview
@@ -193,6 +196,39 @@ func getMeterUsage(meterID, customerID string, start, end int64) (float64, error
 		return 0, fmt.Errorf("list meter event summaries: %w", err)
 	}
 	return total, nil
+}
+
+// CreateCustomerPortalSession creates a Stripe billing portal session for
+// the given team and returns the portal URL. The team must be on the pro
+// plan and have a Stripe customer ID.
+func CreateCustomerPortalSession(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID, returnURL string) (string, error) {
+	cfg, err := GetTeamBilling(ctx, pool, teamID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", ErrTeamBillingNotFound
+		}
+		return "", fmt.Errorf("error querying team billing: %w", err)
+	}
+
+	if cfg.Plan != "pro" {
+		return "", ErrNotOnProPlan
+	}
+
+	if cfg.StripeCustomerID == nil || *cfg.StripeCustomerID == "" {
+		return "", ErrNoStripeCustomer
+	}
+
+	params := &stripe.BillingPortalSessionParams{
+		Customer:  stripe.String(*cfg.StripeCustomerID),
+		ReturnURL: stripe.String(returnURL),
+	}
+
+	sess, err := CreateBillingPortalSessionFn(params)
+	if err != nil {
+		return "", fmt.Errorf("failed to create billing portal session: %w", err)
+	}
+
+	return sess.URL, nil
 }
 
 // GetTeamBilling reads the team_billing row for the given team.
@@ -455,9 +491,12 @@ func IsTerminalSubscriptionStatus(status stripe.SubscriptionStatus) bool {
 
 // ResetTeamAppsRetention resets all apps for a team to free plan retention.
 func ResetTeamAppsRetention(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UUID) error {
+	targetCutoff := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -FreePlanMaxRetentionDays)
+
 	stmt := sqlf.PostgreSQL.
 		Update("apps").
 		Set("retention", FreePlanMaxRetentionDays).
+		SetExpr("data_cutoff_date", "GREATEST(data_cutoff_date, ?)", targetCutoff).
 		Set("updated_at", time.Now()).
 		Where("team_id = ?", teamID)
 	defer stmt.Close()

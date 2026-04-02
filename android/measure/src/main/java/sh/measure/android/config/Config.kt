@@ -10,6 +10,7 @@ internal data class Config(
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
     override val enableFullCollectionMode: Boolean = DefaultConfig.ENABLE_FULL_COLLECTION_MODE,
+    override val enableDiagnosticMode: Boolean = DefaultConfig.ENABLE_DIAGNOSTIC_MODE,
 ) : InternalConfig,
     IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"

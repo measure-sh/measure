@@ -324,14 +324,14 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
 
     return (
         <div className="flex flex-col items-start">
-            {!hideDemoTitle && <p className="font-display text-4xl max-w-6xl text-center">
+            {!hideDemoTitle && <div className="font-display text-4xl max-w-6xl text-center">
                 Network Performance{" "}
                 {!demo && <BetaBadge popup={<>
                     <p>Some features require minimum SDK versions: Android 0.16.1 and iOS 0.9.2.</p>
                     <br />
                     <p>Review the <Link href={`/${params?.teamId}/apps`} className={underlineLinkStyle}>http sampling rate</Link> configuration to adjust the volume of data collected.</p>
                 </>} />}
-            </p>}
+            </div>}
             {!hideDemoTitle && <div className="py-4" />}
 
             {!demo && params && (

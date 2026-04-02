@@ -132,7 +132,7 @@ describe('ExceptionsOverviewPlot', () => {
 
     rerender(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-    expect(lastLineProps.axisBottom.format).toBe('%b %Y')
+    expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('hides stale chart while new range data is loading', async () => {

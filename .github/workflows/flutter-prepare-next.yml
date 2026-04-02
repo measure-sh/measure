@@ -1,0 +1,87 @@
+name: Prepare Next Flutter Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package name (measure_flutter, measure_dio, measure_build)'
+        required: true
+        type: choice
+        options:
+          - measure_flutter
+          - measure_dio
+          - measure_build
+      version:
+        description: 'Next development version (e.g., 0.6.0)'
+        required: true
+        type: string
+      android_snapshot_version:
+        description: 'Android SDK SNAPSHOT version (only for measure_flutter, e.g., 0.17.0-SNAPSHOT)'
+        required: false
+        type: string
+
+jobs:
+  prepare-next:
+    name: Prepare Next Development Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Update measure_flutter
+        if: inputs.package == 'measure_flutter'
+        run: |
+          # Bump pubspec version
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_flutter/pubspec.yaml
+
+          # Revert Android SDK to snapshot
+          if [ -n "${{ inputs.android_snapshot_version }}" ]; then
+            sed -i 's/api("sh.measure:measure-android:.*")/api("sh.measure:measure-android:${{ inputs.android_snapshot_version }}")/' flutter/packages/measure_flutter/android/build.gradle
+          fi
+
+      - name: Update measure_dio
+        if: inputs.package == 'measure_dio'
+        run: |
+          # Bump pubspec version
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_dio/pubspec.yaml
+
+          # Restore dependency_overrides section
+          if ! grep -q "dependency_overrides:" flutter/packages/measure_dio/pubspec.yaml; then
+            printf "\ndependency_overrides:\n  measure_flutter:\n    path: ../measure_flutter\n" >> flutter/packages/measure_dio/pubspec.yaml
+          fi
+
+      - name: Update measure_build
+        if: inputs.package == 'measure_build'
+        run: |
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_build/pubspec.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(flutter): prepare next ${{ inputs.package }} version ${{ inputs.version }}"
+          branch: "${{ inputs.package }}-next"
+          delete-branch: true
+          title: "chore(flutter): prepare next ${{ inputs.package }} version ${{ inputs.version }}"
+          body: |
+            Automated PR to prepare the next development version of ${{ inputs.package }}.
+
+            Changes:
+            - Bumped version to ${{ inputs.version }}
+            - Reverted development dependencies
+          base: main
+          labels: flutter
+          assignees: abhaysood

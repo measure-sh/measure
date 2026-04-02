@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v84"
 )
@@ -436,6 +437,45 @@ func TestGetSubscriptionInfo(t *testing.T) {
 	})
 }
 
+func TestGetSubscriptionInfo_NoSubscriptionItems(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "pro-team", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+	origSub := GetStripeSubscriptionFn
+	GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+		return &stripe.Subscription{
+			ID:     "sub_test",
+			Status: stripe.SubscriptionStatusActive,
+			Items:  &stripe.SubscriptionItemList{Data: []*stripe.SubscriptionItem{}},
+		}, nil
+	}
+	t.Cleanup(func() { GetStripeSubscriptionFn = origSub })
+
+	origInv := CreateInvoicePreviewFn
+	CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
+		return &stripe.Invoice{AmountDue: 1000, Currency: stripe.CurrencyUSD}, nil
+	}
+	t.Cleanup(func() { CreateInvoicePreviewFn = origInv })
+
+	info, err := GetSubscriptionInfo(ctx, th.PgPool, teamID, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if info.Status != string(stripe.SubscriptionStatusActive) {
+		t.Errorf("status = %q, want %q", info.Status, stripe.SubscriptionStatusActive)
+	}
+	if info.CurrentPeriodStart != 0 {
+		t.Errorf("current_period_start = %d, want 0", info.CurrentPeriodStart)
+	}
+	if info.CurrentPeriodEnd != 0 {
+		t.Errorf("current_period_end = %d, want 0", info.CurrentPeriodEnd)
+	}
+}
+
 const testCheckoutUserEmail = "user@test.com"
 
 // --------------------------------------------------------------------------
@@ -656,6 +696,52 @@ func TestProcessDowngrade(t *testing.T) {
 	})
 }
 
+func TestProcessDowngrade_ClickHouseFailure_FailsOpen(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, "test-team", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_abc"), strPtr("sub_abc"))
+	seedApp(ctx, t, appID, teamID, 180)
+
+	// Create a closed ClickHouse connection so queries fail.
+	brokenConn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{"127.0.0.1:1"},
+	})
+	if err != nil {
+		t.Fatalf("clickhouse.Open: %v", err)
+	}
+	brokenConn.Close()
+
+	deps := testDeps()
+	deps.ChPool = brokenConn
+
+	if err := ProcessDowngrade(ctx, deps, teamID); err != nil {
+		t.Fatalf("ProcessDowngrade should not return error on CH failure (fail-open): %v", err)
+	}
+
+	// Verify billing was downgraded
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "free" {
+		t.Errorf("plan = %q, want %q", bc.Plan, "free")
+	}
+
+	// Verify ingest is allowed (fail-open)
+	if !getTeamAllowIngest(ctx, t, teamID) {
+		t.Error("allow_ingest should be true (fail-open on CH error)")
+	}
+	if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
+		t.Errorf("ingest_blocked_reason = %q, want nil (fail-open)", *reason)
+	}
+
+	// Verify retention was still reset
+	if r := getAppRetention(ctx, t, appID); r != FreePlanMaxRetentionDays {
+		t.Errorf("app retention = %d, want %d", r, FreePlanMaxRetentionDays)
+	}
+}
+
 // --------------------------------------------------------------------------
 // CancelAndDowngradeToFree
 // --------------------------------------------------------------------------
@@ -793,6 +879,39 @@ func TestCancelAndDowngradeToFree_SubscriptionAlreadyCanceled(t *testing.T) {
 	}
 	if plan != "free" {
 		t.Errorf("expected plan=free, got %q", plan)
+	}
+}
+
+func TestCancelAndDowngradeToFree_GenericStripeError(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	deps := testDeps()
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "ProTeam", true)
+	seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_123"), strPtr("sub_123"))
+
+	orig := CancelSubscriptionFn
+	CancelSubscriptionFn = func(id string, params *stripe.SubscriptionCancelParams) (*stripe.Subscription, error) {
+		return nil, &stripe.Error{
+			Code: stripe.ErrorCodeCardDeclined,
+			Msg:  "generic stripe failure",
+		}
+	}
+	t.Cleanup(func() { CancelSubscriptionFn = orig })
+
+	err := CancelAndDowngradeToFree(ctx, deps, teamID)
+	if err == nil {
+		t.Fatal("expected error for non-resource-missing Stripe error")
+	}
+	if !strings.Contains(err.Error(), "failed to cancel stripe subscription") {
+		t.Errorf("error = %q, want to contain 'failed to cancel stripe subscription'", err.Error())
+	}
+
+	// Verify team remains on pro (cancel failed, state unchanged)
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "pro" {
+		t.Errorf("plan = %q, want %q (should remain pro after cancel failure)", bc.Plan, "pro")
 	}
 }
 
@@ -959,6 +1078,64 @@ func TestInitiateUpgrade_EmptyPriceID(t *testing.T) {
 	}
 }
 
+func TestInitiateUpgrade_FindActiveSubscriptionFails(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "FreeTeam", true)
+	seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
+
+	origFind := FindActiveSubscriptionFn
+	FindActiveSubscriptionFn = func(customerID string) (*stripe.Subscription, error) {
+		return nil, fmt.Errorf("stripe list subscriptions failed")
+	}
+	t.Cleanup(func() { FindActiveSubscriptionFn = origFind })
+
+	_, err := InitiateUpgrade(ctx, th.PgPool, teamID, testCheckoutUserEmail, "price_123", "https://ok", "https://cancel")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "failed to check existing subscriptions") {
+		t.Errorf("error = %q, want to contain 'failed to check existing subscriptions'", err.Error())
+	}
+
+	// Verify team not modified
+	bc := getTeamBilling(ctx, t, teamID)
+	if bc.Plan != "free" {
+		t.Errorf("plan = %q, want %q (unchanged)", bc.Plan, "free")
+	}
+}
+
+func TestInitiateUpgrade_CheckoutSessionCreationFails(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "FreeTeam", true)
+	seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
+
+	origFind := FindActiveSubscriptionFn
+	FindActiveSubscriptionFn = func(customerID string) (*stripe.Subscription, error) {
+		return nil, nil
+	}
+	t.Cleanup(func() { FindActiveSubscriptionFn = origFind })
+
+	origCheckout := CreateStripeCheckoutSessionFn
+	CreateStripeCheckoutSessionFn = func(params *stripe.CheckoutSessionParams) (*stripe.CheckoutSession, error) {
+		return nil, fmt.Errorf("stripe checkout unavailable")
+	}
+	t.Cleanup(func() { CreateStripeCheckoutSessionFn = origCheckout })
+
+	_, err := InitiateUpgrade(ctx, th.PgPool, teamID, testCheckoutUserEmail, "price_123", "https://ok", "https://cancel")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "failed to create checkout session") {
+		t.Errorf("error = %q, want to contain 'failed to create checkout session'", err.Error())
+	}
+}
+
 // --------------------------------------------------------------------------
 // ResetTeamAppsRetention
 // --------------------------------------------------------------------------
@@ -985,6 +1162,32 @@ func TestResetTeamAppsRetention(t *testing.T) {
 			if r := getAppRetention(ctx, t, appID); r != FreePlanMaxRetentionDays {
 				t.Errorf("app %s retention = %d, want %d", appID.String()[:8], r, FreePlanMaxRetentionDays)
 			}
+		}
+	})
+
+	t.Run("advances data_cutoff_date on downgrade", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team", true)
+		seedApp(ctx, t, appID, teamID, 90)
+
+		// Set cutoff to 90 days ago (simulating active 90-day retention)
+		today := time.Now().UTC().Truncate(24 * time.Hour)
+		oldCutoff := today.AddDate(0, 0, -90)
+		setAppDataCutoffDate(ctx, t, appID, oldCutoff)
+
+		if err := ResetTeamAppsRetention(ctx, th.PgPool, teamID); err != nil {
+			t.Fatalf("ResetTeamAppsRetention: %v", err)
+		}
+
+		// Cutoff should jump forward to today - 30 (free plan retention)
+		got := getAppDataCutoffDate(ctx, t, appID)
+		expected := today.AddDate(0, 0, -FreePlanMaxRetentionDays)
+		if !got.Equal(expected) {
+			t.Errorf("data_cutoff_date = %v, want %v", got.Format("2006-01-02"), expected.Format("2006-01-02"))
 		}
 	})
 
@@ -1400,3 +1603,110 @@ func TestGetUsageThreshold(t *testing.T) {
 		}
 	})
 }
+
+// --------------------------------------------------------------------------
+// CreateCustomerPortalSession
+// --------------------------------------------------------------------------
+
+func TestCreateCustomerPortalSession(t *testing.T) {
+	t.Run("team not found", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, uuid.New(), "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrTeamBillingNotFound) {
+			t.Errorf("want ErrTeamBillingNotFound, got %v", err)
+		}
+	})
+
+	t.Run("free plan", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "free-team", true)
+		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNotOnProPlan) {
+			t.Errorf("want ErrNotOnProPlan, got %v", err)
+		}
+	})
+
+	t.Run("pro plan but no stripe customer id", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_test"))
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, ErrNoStripeCustomer) {
+			t.Errorf("want ErrNoStripeCustomer, got %v", err)
+		}
+	})
+
+	t.Run("stripe portal session error", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
+
+		orig := CreateBillingPortalSessionFn
+		CreateBillingPortalSessionFn = func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			return nil, errors.New("stripe unavailable")
+		}
+		t.Cleanup(func() { CreateBillingPortalSessionFn = orig })
+
+		_, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "failed to create billing portal session") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		ctx := context.Background()
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "pro-team", true)
+		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test_123"), strPtr("sub_test"))
+
+		const wantURL = "https://billing.stripe.com/session/test_abc"
+		orig := CreateBillingPortalSessionFn
+		CreateBillingPortalSessionFn = func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
+			if *params.Customer != "cus_test_123" {
+				t.Errorf("customer = %q, want %q", *params.Customer, "cus_test_123")
+			}
+			if *params.ReturnURL != "https://example.com/usage" {
+				t.Errorf("return_url = %q, want %q", *params.ReturnURL, "https://example.com/usage")
+			}
+			return &stripe.BillingPortalSession{URL: wantURL}, nil
+		}
+		t.Cleanup(func() { CreateBillingPortalSessionFn = orig })
+
+		url, err := CreateCustomerPortalSession(ctx, th.PgPool, teamID, "https://example.com/usage")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if url != wantURL {
+			t.Errorf("url = %q, want %q", url, wantURL)
+		}
+	})
+}
+

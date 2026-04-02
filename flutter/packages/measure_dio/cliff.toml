@@ -1,0 +1,59 @@
+# git-cliff ~ configuration file
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}\n
+{% for group, commits in commits | group_by(attribute="group") %}
+    {% if commits|length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
+    {% for scope, commits in commits | filter(attribute="merge_commit", value=false) | group_by(attribute="scope") %}{% for commit in commits %}
+            - {% if commit.scope != "other" %}(**{{ commit.scope }}**): {% endif %}\
+            {{ commit.message | upper_first }}\
+            {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+            {% if commit.remote.pr_number %} in #{{ commit.remote.pr_number }}{%- endif -%}
+        {%- endfor -%}
+    {% endfor %}
+{% endfor %}\n
+"""
+
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+# Only include commits with (flutter) scope
+filter_commits_regex = "^.*\\(flutter\\):.*$"
+
+commit_parsers = [
+  { message = "^ci\\(flutter\\):", skip = true },
+  { message = "^docs\\(flutter\\):", group = "<!-- 7 -->:books: Documentation", default_scope = "other" },
+  { message = "^chore\\(flutter\\):", group = "<!-- 2 -->:hammer: Misc", default_scope = "other" },
+  { message = "^feat\\(flutter\\):", group = "<!-- 0 -->:sparkles: New features" },
+  { message = "^test\\(flutter\\):", group = "<!-- 3 -->:test_tube: Testing", skip = true },
+  { message = "^fix\\(flutter\\):", group = "<!-- 1 -->:bug: Bug fixes" },
+  { message = "^perf\\(flutter\\):", group = "<!-- 4 -->:zap: Performance" },
+  { message = "^refactor\\(flutter\\):", group = "<!-- 5 -->:recycle: Refactor" },
+  { message = "^.*\\(flutter\\): remove", group = "<!-- 6 -->:coffin: Removed" },
+  { message = "^.*\\(flutter\\): delete", group = "<!-- 6 -->:coffin: Removed" },
+]
+
+protect_breaking_commits = false
+filter_commits = true
+tag_pattern = "measure_dio-v[0-9].*"
+ignore_tags = "^(android|ios|v|rn|measure_flutter|measure_build)"
+topo_order = false
+sort_commits = "newest"

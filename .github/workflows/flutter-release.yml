@@ -1,0 +1,109 @@
+name: Release Flutter Package
+
+on:
+  push:
+    tags:
+      - 'measure_flutter-v*'
+      - 'measure_dio-v*'
+      - 'measure_build-v*'
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Determine package from tag
+        id: package
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" == measure_flutter-v* ]]; then
+            echo "name=measure_flutter" >> $GITHUB_OUTPUT
+            echo "path=flutter/packages/measure_flutter" >> $GITHUB_OUTPUT
+            echo "cliff_config=flutter/packages/measure_flutter/cliff.toml" >> $GITHUB_OUTPUT
+          elif [[ "$TAG" == measure_dio-v* ]]; then
+            echo "name=measure_dio" >> $GITHUB_OUTPUT
+            echo "path=flutter/packages/measure_dio" >> $GITHUB_OUTPUT
+            echo "cliff_config=flutter/packages/measure_dio/cliff.toml" >> $GITHUB_OUTPUT
+          elif [[ "$TAG" == measure_build-v* ]]; then
+            echo "name=measure_build" >> $GITHUB_OUTPUT
+            echo "path=flutter/packages/measure_build" >> $GITHUB_OUTPUT
+            echo "cliff_config=flutter/packages/measure_build/cliff.toml" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
+        with:
+          channel: stable
+
+      - name: Setup pub.dev credentials
+        run: |
+          mkdir -p "$HOME/.config/dart"
+          echo '${{ secrets.PUB_DEV_CREDENTIALS }}' > "$HOME/.config/dart/pub-credentials.json"
+
+      - name: Publish to pub.dev
+        run: |
+          cd ${{ steps.package.outputs.path }}
+          dart pub publish --force
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: ${{ steps.package.outputs.cliff_config }}
+          args: --latest --strip header --include-path "${{ steps.package.outputs.path }}/**"
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "${{ github.ref_name }}" \
+            --draft \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || '' }} \
+            --notes "${{ steps.release-notes.outputs.content }}" \
+            --verify-tag
+
+      - name: Extract release metadata from PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          BODY=$(gh pr list --state merged --head "$TAG" --json body --jq '.[0].body' || true)
+          NEXT_VERSION=$(echo "$BODY" | grep -oP '(?<=NEXT_VERSION=)\S+' || true)
+          ANDROID_SNAPSHOT=$(echo "$BODY" | grep -oP '(?<=ANDROID_SNAPSHOT_VERSION=)\S+' || true)
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "android_snapshot=$ANDROID_SNAPSHOT" >> $GITHUB_OUTPUT
+
+      - name: Trigger prepare-next workflow
+        if: steps.meta.outputs.next_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          PACKAGE="${{ steps.package.outputs.name }}"
+          NEXT="${{ steps.meta.outputs.next_version }}"
+          ANDROID_SNAPSHOT="${{ steps.meta.outputs.android_snapshot }}"
+
+          if [ "$PACKAGE" = "measure_flutter" ] && [ -n "$ANDROID_SNAPSHOT" ]; then
+            gh workflow run "Prepare Next Flutter Version" \
+              -f package="$PACKAGE" \
+              -f version="$NEXT" \
+              -f android_snapshot_version="$ANDROID_SNAPSHOT"
+          else
+            gh workflow run "Prepare Next Flutter Version" \
+              -f package="$PACKAGE" \
+              -f version="$NEXT"
+          fi

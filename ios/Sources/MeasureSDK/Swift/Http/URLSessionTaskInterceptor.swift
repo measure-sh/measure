@@ -89,7 +89,7 @@ final class URLSessionTaskInterceptor {
         let shouldTrackResponseBody = configProvider.shouldTrackHttpBody(url: url, contentType: responseHeaders?["Content-Type"])
 
         let httpData = HttpData(
-            url: url.removeHttpPrefix(),
+            url: url,
             method: method,
             statusCode: statusCode,
             startTime: startTime,

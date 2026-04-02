@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Next SNAPSHOT version (e.g., 0.10.0-SNAPSHOT)'
+        description: "Next SNAPSHOT version (e.g., 0.10.0-SNAPSHOT)"
         required: true
         type: string
 
 env:
   JAVA_VERSION: 21
-  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_DISTRIBUTION: "temurin"
 
 jobs:
   prepare-next:
@@ -21,17 +21,15 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
-      issues: write
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: 'main'
+          ref: "main"
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - name: Setup Git
         run: |
@@ -65,23 +63,21 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(android): prepare next development version ${{ inputs.version }}"
           branch: prepare-next-android-${{ inputs.version }}
           delete-branch: true
           title: "chore(android): prepare next development version ${{ inputs.version }}"
           body: |
             This PR prepares the next development version of the Android SDK.
-            
+
             **Changes:**
             - Updated version to `${{ inputs.version }}` in gradle.properties
             - Updated version to `${{ inputs.version }}` in libs.versions.toml
-            
+
             **Version:** ${{ inputs.version }}
           base: main
-          labels: |
-            android
-            version-update
+          labels: android
           assignees: abhaysood
           add-paths: |
             android/gradle.properties

@@ -288,7 +288,7 @@ describe('plot time group utils', () => {
         expect(getPlotTimeGroupNivoConfig('minutes').xScalePrecision).toBe('minute')
         expect(getPlotTimeGroupNivoConfig('hours').xScalePrecision).toBe('hour')
         expect(getPlotTimeGroupNivoConfig('days').axisBottomFormat).toBe('%b %d, %Y')
-        expect(getPlotTimeGroupNivoConfig('months').axisBottomFormat).toBe('%b %Y')
+        expect(getPlotTimeGroupNivoConfig('months').axisBottomFormat).toBe('%d %b, %Y')
 
         expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'minutes')).toBe('1 Feb, 2026, 10:00 AM')
         expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'hours')).toBe('1 Feb, 2026, 10:00 AM')

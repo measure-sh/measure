@@ -114,7 +114,7 @@ describe('SessionTimelinesOverviewPlot', () => {
     fetchMock.mockResolvedValue({ status: 'success', data: [{ id: '1.0.0', data: [{ datetime: '2026-01-01', instances: 2 }] }] })
     render(<SessionTimelinesOverviewPlot filters={{ ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-    expect(lastLineProps.axisBottom.format).toBe('%b %Y')
+    expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('renders tooltip with expected labels', async () => {

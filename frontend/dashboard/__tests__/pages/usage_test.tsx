@@ -52,6 +52,12 @@ jest.mock('@/app/api/api_calls', () => ({
         Error: 2,
         Cancelled: 3,
     },
+    FetchCustomerPortalUrlApiStatus: {
+        Loading: 0,
+        Success: 1,
+        Error: 2,
+        Cancelled: 3,
+    },
     emptyUsage: [
         {
             app_id: '',
@@ -125,6 +131,19 @@ jest.mock('@/app/api/api_calls', () => ({
                 billing_cycle_usage: 12000000,
             },
         })
+    ),
+    fetchCustomerPortalUrlFromServer: jest.fn(() =>
+        Promise.resolve({
+            status: 1, // Success
+            data: { url: 'https://billing.stripe.com/session/test' },
+        })
+    ),
+}))
+
+// Mock Skeleton
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => (
+        <div data-testid="skeleton-mock" className={className} {...props} />
     ),
 }))
 
@@ -1195,5 +1214,366 @@ describe('Usage Page', () => {
         })
 
         expect(screen.queryByText(/GB-days used/)).not.toBeInTheDocument()
+    })
+
+    // ---- Manage Billing button ----
+
+    it('shows Manage Billing button when on pro plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText('Manage Billing')).toBeInTheDocument()
+    })
+
+    it('hides Manage Billing button when on free plan', async () => {
+        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'free',
+                    stripe_customer_id: null,
+                    stripe_subscription_id: null,
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText('Manage Billing')).not.toBeInTheDocument()
+    })
+
+    it('Manage Billing button is disabled when user cannot change billing', async () => {
+        const { fetchBillingInfoFromServer, fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: { can_change_billing: false, members: [] },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        const btn = screen.getByText('Manage Billing')
+        expect(btn).toBeDisabled()
+    })
+
+    it('clicking Manage Billing calls portal API and redirects', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(fetchCustomerPortalUrlFromServer).toHaveBeenCalledWith('team1', 'http://localhost/team1/usage')
+        expect(window.location.href).toBe('https://billing.stripe.com/session/test')
+    })
+
+    it('Manage Billing shows Redirecting... while loading', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        let resolvePortal: (value: any) => void
+        fetchCustomerPortalUrlFromServer.mockImplementationOnce(
+            () => new Promise((resolve) => { resolvePortal = resolve })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(screen.getByText('Redirecting...')).toBeInTheDocument()
+
+        await act(async () => {
+            resolvePortal!({ status: 1, data: { url: 'https://billing.stripe.com/session/test' } })
+        })
+    })
+
+    it('Manage Billing error shows toast', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
+            Promise.resolve({ status: 2, data: null }) // Error
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(mockToastNegative).toHaveBeenCalledWith(
+            'Failed to open billing portal',
+            'Please try again.'
+        )
+    })
+
+    it('Manage Billing cancelled shows toast', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
+            Promise.resolve({ status: 3, data: null }) // Cancelled
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(mockToastNegative).toHaveBeenCalledWith(
+            'Failed to open billing portal',
+            'Request was cancelled.'
+        )
+    })
+
+    it('Downgrade button is disabled while Manage Billing is loading', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        let resolvePortal: (value: any) => void
+        fetchCustomerPortalUrlFromServer.mockImplementationOnce(
+            () => new Promise((resolve) => { resolvePortal = resolve })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(screen.getByText('Downgrade to Free')).toBeDisabled()
+
+        await act(async () => {
+            resolvePortal!({ status: 1, data: { url: 'https://billing.stripe.com/session/test' } })
+        })
+    })
+
+    it('Manage Billing button is disabled while downgrading', async () => {
+        const { fetchBillingInfoFromServer, downgradeToFreeFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementation(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        let resolveDowngrade: (value: any) => void
+        downgradeToFreeFromServer.mockImplementationOnce(
+            () => new Promise((resolve) => { resolveDowngrade = resolve })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        // Open and confirm downgrade dialog
+        await act(async () => {
+            fireEvent.click(screen.getByText('Downgrade to Free'))
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('dialog-affirm'))
+        })
+
+        expect(screen.getByText('Manage Billing')).toBeDisabled()
+
+        await act(async () => {
+            resolveDowngrade!({ status: 1, data: {} })
+        })
+    })
+
+    it('shows skeleton placeholders while subscription info is loading on pro plan', async () => {
+        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+
+        let resolveSubscription: (value: any) => void
+        fetchSubscriptionInfoFromServer.mockImplementationOnce(
+            () => new Promise((resolve) => { resolveSubscription = resolve })
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        const skeletons = screen.getAllByTestId('skeleton-mock')
+        expect(skeletons.length).toBeGreaterThan(0)
+
+        await act(async () => {
+            resolveSubscription!({
+                status: 1,
+                data: {
+                    status: 'active',
+                    current_period_start: 1700000000,
+                    current_period_end: 1702678400,
+                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
+                    billing_cycle_usage: 12000000,
+                },
+            })
+        })
+
+        expect(screen.queryAllByTestId('skeleton-mock')).toHaveLength(0)
+    })
+
+    it('Manage Billing success with no URL shows toast', async () => {
+        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
+        fetchBillingInfoFromServer.mockImplementationOnce(() =>
+            Promise.resolve({
+                status: 1,
+                data: {
+                    team_id: 'team1',
+                    plan: 'pro',
+                    stripe_customer_id: 'cus_123',
+                    stripe_subscription_id: 'sub_123',
+                    created_at: '2025-01-01T00:00:00Z',
+                    updated_at: '2025-01-01T00:00:00Z',
+                },
+            })
+        )
+        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
+            Promise.resolve({ status: 1, data: {} }) // Success but no URL
+        )
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Manage Billing'))
+        })
+
+        expect(mockToastNegative).toHaveBeenCalledWith(
+            'Failed to open billing portal',
+            'No portal URL returned.'
+        )
     })
 })

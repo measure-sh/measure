@@ -175,13 +175,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.16.1")
+implementation("sh.measure:measure-android:0.17.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.16.1'
+implementation 'sh.measure:measure-android:0.17.0'
 ```
 
 ### Initialize the SDK
@@ -238,6 +238,31 @@ visit their website. To integrate MeasureSDK into your Xcode project using Cocoa
 
 ```ruby
 pod 'measure-sh'
+```
+> [!NOTE]  
+> MeasureSDK must be linked statically. If you are using `use_frameworks!` in your Podfile, you will need to ensure `measure-sh` is linked statically, as dynamic linking is not supported.
+
+CocoaPods does not natively support per-pod linkage overrides. You will need to install the [`cocoapods-pod-linkage`](https://github.com/microsoft/cocoapods-pod-linkage) plugin:
+
+```sh
+gem install cocoapods-pod-linkage
+```
+
+Then add the plugin and linkage option to your `Podfile`:
+
+```ruby
+plugin 'cocoapods-pod-linkage'
+
+target 'YourApp' do
+  use_frameworks!
+  pod 'measure-sh', :linkage => :static
+  # ... rest of your pods
+end
+```
+
+Alternatively, if all your pods can be linked statically, you can use:
+```ruby
+use_frameworks! :linkage => :static
 ```
 
 #### Using Swift Package Manager
@@ -497,6 +522,12 @@ Android and iOS native SDK initializations.
 
 </details>
 
+### Flutter iOS — MeasureSDK must be linked statically
+
+Flutter adds `use_frameworks!` to the iOS `Podfile` by default, which causes CocoaPods to link all pods dynamically. MeasureSDK must be linked statically and will not work correctly with dynamic linking.
+
+To fix this, follow the [CocoaPods static linking instructions](#using-cocoapods) in the iOS setup section.
+
 ### Connecting to Locally-hosted Server (for self-host customers)
 
 **iOS**
@@ -567,3 +598,50 @@ For example: set the API URL to `https://measure-api.<your-domain>.com`, replaci
 If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42)
 for further
 assistance.
+
+### Enable Diagnostic Mode (Android only)
+
+If you're experiencing issues with the SDK and need to share detailed logs with us, enable diagnostic mode.
+This writes all internal SDK logs to files on disk which can then be pulled from the device and shared
+when reporting a bug.
+
+> [!NOTE]
+> These files only contain Measure SDK logs, not your app's logs.
+
+#### Step 1: Enable diagnostic mode
+
+```kotlin
+val config = MeasureConfig(enableDiagnosticMode = true)
+Measure.init(context, config)
+```
+
+#### Step 2: Reproduce the issue
+
+Run the app and reproduce the issue you're facing. The SDK will write logs to files in the
+app's internal storage.
+
+#### Step 3: Pull the log files
+
+Use `adb` to retrieve the log files from the device:
+
+```shell
+# List all diagnostic log files
+adb shell run-as <your.package.name> ls files/measure/sdk_debug_logs/
+
+# Pull all log files as a tar.gz archive
+adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > /tmp/sdk_debug_logs.tar.gz
+```
+
+#### Step 4: Share the files
+
+Share the pulled log files on [Discord](https://discord.gg/f6zGkBCt42) or send them to us via email
+for us to investigate.
+
+#### Step 5: Disable diagnostic mode
+
+Once you've collected the logs, disable diagnostic mode by removing the `enableDiagnosticMode` flag
+or setting it to `false`. You can also delete the log files from the device:
+
+```shell
+adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
+```

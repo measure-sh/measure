@@ -37,7 +37,6 @@ internal class SignalStoreTest {
         database,
         idProvider,
         configProvider,
-        sampler,
     )
 
     @Test
@@ -298,7 +297,6 @@ internal class SignalStoreTest {
         )
         val file =
             File.createTempFile("fake-attachment", "txt").apply { writeText(attachmentContent) }
-        `when`(fileStorage.getFile(attachment.path!!)).thenReturn(file)
 
         // when
         signalStore.store(event)
@@ -308,7 +306,7 @@ internal class SignalStoreTest {
         val eventsCaptor = argumentCaptor<List<EventEntity>>()
         verify(database).insertSignals(eventsCaptor.capture(), eq(emptyList()))
         val eventEntity = eventsCaptor.firstValue.first()
-        assertEquals(attachmentContent.length.toLong(), eventEntity.attachmentsSize)
+        assertEquals(0L, eventEntity.attachmentsSize)
     }
 
     @Test
@@ -336,7 +334,7 @@ internal class SignalStoreTest {
         val eventEntity = eventsCaptor.firstValue.first()
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
-            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
+            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":0}]",
             eventEntity.serializedAttachments,
         )
     }
@@ -372,7 +370,7 @@ internal class SignalStoreTest {
         val eventEntity = eventsCaptor.firstValue.first()
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
-            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
+            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\",\"size\":3}]",
             eventEntity.serializedAttachments,
         )
     }

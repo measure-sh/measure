@@ -235,6 +235,57 @@ func TestNotifyUsageThresholds(t *testing.T) {
 	}
 }
 
+func TestNotifyUsageThresholds_JumpFrom0To100(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New().String()
+	userID := uuid.New().String()
+
+	seedTeamWithBilling(ctx, t, teamID, "TestTeam", "free", true)
+	seedUser(ctx, t, userID, "user@example.com")
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+
+	team := TeamBillingInfo{
+		TeamID:                 teamID,
+		TeamName:               "TestTeam",
+		Plan:                   "free",
+		UsageNotifiedThreshold: 0,
+		UsageNotifiedCycle:     nil,
+	}
+
+	deps := testDeps()
+	// Usage is at 100% — should send 100% notification even though 75% and 90% were never sent
+	notifyUsageThresholds(ctx, deps, team, 1000, 1000, "2026-03")
+
+	var threshold int
+	var cycle *string
+	err := th.PgPool.QueryRow(ctx,
+		"SELECT usage_notified_threshold, usage_notified_cycle FROM team_billing WHERE team_id = $1", teamID).
+		Scan(&threshold, &cycle)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if threshold != 100 {
+		t.Errorf("threshold = %d, want 100", threshold)
+	}
+	if cycle == nil || *cycle != "2026-03" {
+		t.Errorf("cycle = %v, want %q", cycle, "2026-03")
+	}
+
+	// Only one email should be sent (the 100% notification, not 75% + 90% + 100%)
+	var emailCount int
+	err = th.PgPool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM pending_alert_messages WHERE team_id = $1", teamID).
+		Scan(&emailCount)
+	if err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if emailCount != 1 {
+		t.Errorf("emails = %d, want 1 (single 100%% notification)", emailCount)
+	}
+}
+
 // ==========================================================================
 // Subscription failure notifications
 // ==========================================================================
