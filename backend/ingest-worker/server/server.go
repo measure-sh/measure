@@ -332,7 +332,7 @@ func Init(config *ServerConfig) {
 		VK:     vkClient,
 	}
 
-	var batchSize = 1000
+	var batchSize = 20
 	ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
 	if ingestBatchSize != "" {
 		batchSize, err = strconv.Atoi(ingestBatchSize)
