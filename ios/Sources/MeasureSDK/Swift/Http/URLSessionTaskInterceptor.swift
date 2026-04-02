@@ -121,6 +121,11 @@ final class URLSessionTaskInterceptor {
         return nil
     }
 
+    /// React Native uses multiple parallel connections for a single request, all of which are canceled
+    /// once one succeeds or fails. This causes the same request to be reported multiple times.
+    /// This method deduplicates events by suppressing identical method+URL combinations within a short time window.
+    ///
+    /// This peice of code is not thread safe and needs to be called in a dispatchQueue or a lock.
     private func shouldRecordEvent(method: String, url: String, currentTime: UInt64) -> Bool {
         let key = "\(method.uppercased()) \(url)"
         var shouldRecord = true
