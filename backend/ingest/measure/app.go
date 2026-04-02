@@ -70,24 +70,3 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 
 	return
 }
-
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
-	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("apps").
-		Set("onboarded", true).
-		Set("unique_identifier", uniqueIdentifier).
-		Set("os_name", osName).
-		Set("first_version", firstVersion).
-		Set("onboarded_at", now).
-		Set("updated_at", now).
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}

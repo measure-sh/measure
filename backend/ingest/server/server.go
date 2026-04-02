@@ -1,7 +1,6 @@
 package server
 
 import (
-	"backend/libs/inet"
 	"context"
 	"fmt"
 	"log"
@@ -77,7 +76,6 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AWSEndpoint                string
 	APIOrigin                  string
-	SymbolicatorOrigin         string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
@@ -168,11 +166,6 @@ func NewConfig() *ServerConfig {
 		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
-	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
-	if symbolicatorOrigin == "" {
-		log.Println("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
-	}
-
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
@@ -248,7 +241,6 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AWSEndpoint:                endpoint,
 		APIOrigin:                  apiOrigin,
-		SymbolicatorOrigin:         symbolicatorOrigin,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
@@ -319,10 +311,6 @@ func Init(config *ServerConfig) {
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
 		log.Printf("Unable to create CH connection pool: %v\n", err)
-	}
-
-	if err := inet.Init(); err != nil {
-		log.Printf("Unable to initialize geo ip lookup system: %v\n", err)
 	}
 
 	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)

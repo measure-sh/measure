@@ -12,8 +12,6 @@ import (
 
 	"backend/ingest/measure"
 	"backend/ingest/server"
-	"backend/libs/concur"
-	"backend/libs/inet"
 
 	"github.com/gin-gonic/gin"
 
@@ -36,13 +34,6 @@ func main() {
 	defer func() {
 		if err := server.Server.ChPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse connection: %v", err)
-		}
-	}()
-
-	// Close geo ip database at shutdown
-	defer func() {
-		if err := inet.Close(); err != nil {
-			log.Fatalf("Unable to close geo ip db: %v", err)
 		}
 	}()
 
@@ -108,7 +99,4 @@ func main() {
 		fmt.Printf("Failed to gracefully shutdown server: %v\n", err)
 	}
 
-	// Wait for all background tasks
-	fmt.Println("Waiting for background tasks...")
-	concur.GlobalWg.Wait()
 }
