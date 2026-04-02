@@ -1929,7 +1929,7 @@ func PutEvents(c *gin.Context) {
 	// When bus is preferred, publish to bus
 	// and return
 	useBus := os.Getenv("INGEST_USE_BUS")
-	if useBus != "" {
+	if useBus == "true" {
 		batch := IngestBatch{
 			BatchID:  eventReq.id.String(),
 			AppID:    eventReq.appId.String(),
