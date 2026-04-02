@@ -1941,33 +1941,11 @@ func PutEvents(c *gin.Context) {
 			Spans:    eventReq.spans,
 		}
 
-		if len(batch.Events) > 0 {
-			eventsBytes, err := json.Marshal(batch.Events)
-			if err != nil {
-				fmt.Println("failed to marshal batch.Events:", err)
-				return
-			}
-
-			fmt.Println("eventsBytes:", string(eventsBytes))
-		}
-
-		if len(batch.Spans) > 0 {
-			spansBytes, err := json.Marshal(batch.Spans)
-			if err != nil {
-				fmt.Println("failed to marshal batch.Spans:", err)
-				return
-			}
-
-			fmt.Println("spansBytes:", string(spansBytes))
-		}
-
 		payload, err := json.Marshal(batch)
 		if err != nil {
 			fmt.Println("failed to marshal ingest batch for publish:", err)
 			return
 		}
-
-		fmt.Println("prepared ingest batch payload. len of payload:", len(payload))
 
 		if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
 			fmt.Println("failed to publish ingest batch:", err)

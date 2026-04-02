@@ -69,7 +69,7 @@ type Attachment struct {
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name" binding:"required"`
 	Type     string    `json:"type" binding:"required"`
-	Size     int64     `json:"size"`
+	Size     uint64    `json:"size"`
 	Reader   io.Reader `json:"-"`
 	Key      string    `json:"key"`
 	Location string    `json:"location"`
