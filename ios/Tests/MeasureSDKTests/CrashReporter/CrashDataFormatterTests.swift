@@ -257,7 +257,7 @@ final class CrashDataFormatterTests: XCTestCase {
 
     func test_parseFrame_setsSymbolAddressAsHexFromSymbolAddr() {
         let sut = makeFormatter()
-        let result = sut.parseFrame(makeFrame(symAddr: 0x1F00), index: 0)
+        let result = sut.parseFrame(makeFrame(instrAddr: 0x1F00), index: 0)
         XCTAssertEqual(result.symbolAddress, "0000000000001f00")
     }
 
