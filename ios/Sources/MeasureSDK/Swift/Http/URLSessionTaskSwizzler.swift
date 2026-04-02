@@ -107,19 +107,26 @@ private class URLSessionTaskSearch {
     }
 }
 
-private var isHandlingStateKey: UInt8 = 9
+private var isHandlingStateKey: UInt8 = 0
+private var startTimeKey: UInt8 = 0
+private let isHandlingStateSentinel = NSObject()
 
 extension URLSessionTask {
+    var msr_startTime: UInt64? {
+        get { objc_getAssociatedObject(self, &startTimeKey) as? UInt64 }
+        set { objc_setAssociatedObject(self, &startTimeKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
     @objc fileprivate func setStateSwizzled(state: URLSessionTask.State) {
         if objc_getAssociatedObject(self, &isHandlingStateKey) as? Bool == true {
             self.setStateSwizzled(state: state)
             return
         }
 
-        objc_setAssociatedObject(self, &isHandlingStateKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(self, &isHandlingStateKey, isHandlingStateSentinel, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
         defer {
-            objc_setAssociatedObject(self, &isHandlingStateKey, false, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, &isHandlingStateKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
 
         URLSessionTaskInterceptor.shared.urlSessionTask(self, setState: state)
