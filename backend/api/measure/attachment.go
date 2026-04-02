@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
-	"strings"
 
 	"backend/api/server"
 
@@ -33,20 +31,12 @@ func ProxyAttachment(c *gin.Context) {
 	}
 
 	config := server.Server.Config
-	presignedUrl := payload
 
-	// if the payload already contains origin, then
-	// don't prepend the origin.
-	if !strings.HasPrefix(payload, config.AWSEndpoint) {
-		presignedUrl = config.AWSEndpoint + payload
-	}
-
-	parsed, err := url.Parse(presignedUrl)
+	parsed, err := validateProxyPayload(payload, config.AWSEndpoint)
 	if err != nil {
-		msg := "failed to parse reconstructed presigned url"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+		fmt.Println("attachment proxy validation failed:", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid proxy payload",
 		})
 		return
 	}
