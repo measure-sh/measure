@@ -129,10 +129,10 @@ final class CrashDataFormatter {
             : nil
 
         return StackFrame(binaryName: objName,
-                          binaryAddress: objAddr.map   { hexString($0) },
+                          binaryAddress: objAddr.map { hexString($0) },
                           offset: offset,
                           frameIndex: Number(index),
-                          symbolAddress: symAddr.map   { hexString($0) },
+                          symbolAddress: instrAddr.map {hexString($0)},
                           inApp: isAppBinary(name: objName),
                           className: nil,
                           methodName: nil,
