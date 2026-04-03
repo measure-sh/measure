@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"backend/api/measure"
+	"backend/ingest/measure"
 	"bytes"
 	"encoding/json"
 	"errors"

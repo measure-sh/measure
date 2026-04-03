@@ -2,10 +2,8 @@ package measure
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -18,25 +16,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 	"github.com/valkey-io/valkey-go"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 )
 
 const (
 	configCacheKeyPrefix = "sdk_config:"
-	cacheControlHeader   = "Cache-Control"
-	cacheControlValue    = "max-age=600"
-)
-
-// OTel metric constants
-const (
-	otelMeterName               = "measure/sdk_config"
-	otelCacheRequestsMetricName = "sdkconfig.cache.requests"
-	otelCacheResultAttrKey      = "cache.result"
-	otelCacheHitETagAttrValue   = "hit_etag"
-	otelCacheHitDataAttrValue   = "hit_data"
-	otelCacheMissAttrValue      = "miss"
 )
 
 const (
@@ -92,48 +75,6 @@ type ConfigPatch struct {
 	HTTPBlockedHeaders        *[]string            `json:"http_blocked_headers,omitempty"`
 }
 
-// cacheMetrics encapsulates SDK config cache metrics
-type cacheMetrics struct {
-	requests metric.Int64Counter
-}
-
-var sdkConfigCache *cacheMetrics
-
-func init() {
-	meter := otel.Meter(otelMeterName)
-	counter, err := meter.Int64Counter(
-		otelCacheRequestsMetricName,
-		metric.WithDescription("SDK config cache requests"),
-	)
-	if err != nil {
-		panic(err)
-	}
-	sdkConfigCache = &cacheMetrics{requests: counter}
-}
-
-// RecordHitETag records a cache hit
-// where client's ETag matched
-func (m *cacheMetrics) RecordHitETag(ctx context.Context) {
-	m.requests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(otelCacheResultAttrKey, otelCacheHitETagAttrValue),
-	))
-}
-
-// RecordHitData records a cache hit
-// where data was served from cache
-func (m *cacheMetrics) RecordHitData(ctx context.Context) {
-	m.requests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(otelCacheResultAttrKey, otelCacheHitDataAttrValue),
-	))
-}
-
-// RecordMiss records a cache miss
-func (m *cacheMetrics) RecordMiss(ctx context.Context) {
-	m.requests.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(otelCacheResultAttrKey, otelCacheMissAttrValue),
-	))
-}
-
 func (s ScreenshotMaskLevel) isValid() bool {
 	switch s {
 	case ScreenshotMaskLevelAllText,
@@ -170,52 +111,6 @@ func createDefaultConfig() SdkConfig {
 
 func configCacheKey(appID uuid.UUID) string {
 	return fmt.Sprintf("%s{%s}", configCacheKeyPrefix, appID.String())
-}
-
-func computeETag(data []byte) string {
-	h := fnv.New64a()
-	_, _ = h.Write(data)
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-func getConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
-	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("etag").Build()
-	result := vk.Do(ctx, cmd)
-
-	str, err := result.ToString()
-	if err != nil {
-		return "", nil
-	}
-	return str, nil
-}
-
-func getConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
-	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("data").Build()
-	result := vk.Do(ctx, cmd)
-
-	str, err := result.ToString()
-	if err != nil {
-		return "", nil
-	}
-	return str, nil
-}
-
-func setCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) (string, error) {
-	key := configCacheKey(appID)
-	etag := computeETag(jsonConfig)
-
-	cmd := vk.B().Hset().Key(key).FieldValue().
-		FieldValue("etag", etag).
-		FieldValue("data", string(jsonConfig)).
-		Build()
-
-	if err := vk.Do(ctx, cmd).Error(); err != nil {
-		return "", fmt.Errorf("failed to store config hash: %w", err)
-	}
-
-	return etag, nil
 }
 
 func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
@@ -461,73 +356,7 @@ func GetConfigForSdk(c *gin.Context) {
 		return
 	}
 
-	appId, err := uuid.Parse(c.GetString("appId"))
-	if err != nil {
-		msg := `error parsing app's uuid`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	app, err := SelectApp(ctx, appId)
-	if app == nil || err != nil {
-		msg := `failed to lookup app`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	clientETag := c.GetHeader("If-None-Match")
-
-	cachedETag, err := getConfigETag(ctx, server.Server.VK, appId)
-	if err == nil && cachedETag != "" {
-		if cachedETag == clientETag {
-			fmt.Println("sdk config cache hit (etag match)")
-			sdkConfigCache.RecordHitETag(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Status(http.StatusNotModified)
-			return
-		}
-
-		data, err := getConfigData(ctx, server.Server.VK, appId)
-		if err == nil && data != "" {
-			fmt.Println("sdk config cache hit")
-			sdkConfigCache.RecordHitData(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Data(http.StatusOK, "application/json", []byte(data))
-			return
-		}
-	}
-
-	fmt.Println("sdk config cache miss")
-	sdkConfigCache.RecordMiss(ctx)
-
-	sdkConfig, err := getConfigFromDb(ctx, appId)
-	if err != nil {
-		msg := `error fetching SDK config`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	jsonConfig, err := json.Marshal(sdkConfig)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error marshaling config"})
-		return
-	}
-
-	etag, err := setCacheWithETag(ctx, server.Server.VK, appId, jsonConfig)
-	if err != nil {
-		fmt.Println("error setting cache with ETag:", err)
-	}
-
-	c.Header(cacheControlHeader, cacheControlValue)
-	c.Header("ETag", etag)
-	c.Data(http.StatusOK, "application/json", jsonConfig)
+	c.Status(http.StatusGone)
 }
 
 // GetConfigForDashboard retrieves the SDK
