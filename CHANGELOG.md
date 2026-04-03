@@ -72,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update ingest-worker go dependencies (#3394) by @detj in #3394
+- (**backend**): Introduce event driven ingestion pipeline via iggy & pub/sub (#3314) by @detj in #3314
 - (**backend**): Use attachment size from SDK when available by @anupcowkur in #3385
 - (**backend**): Tidy billing deps by @anupcowkur in #3358
 - (**backend**): Add more billing tests by @anupcowkur in #3344
