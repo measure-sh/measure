@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Order crash/ANR details by descending timestamp by @anupcowkur in #3393
 - (**backend**): Prevent SSRF in proxy attachment and symbol endpoints by @anupcowkur in #3390
 - (**backend**): Skip daily snapshots for non-billable teams by @anupcowkur in #3388
 - (**backend**): Calculate correct month names for usage chart by @anupcowkur in #3372
