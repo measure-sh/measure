@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Avoid long running database transaction during ingest (#2929) by @detj in #2929
 - (**backend**): Only use request context till parsing of body in ingest (#2927) by @detj in #2927
 - (**backend**): Update last_seen for API key by @anupcowkur in #2903
+- (**frontend**): Fix cookie banner privacy policy link by @anupcowkur in #3397
 - (**frontend**): Show full date in monthly plot x-axis labels by @anupcowkur in #3387
 - (**frontend**): Replace invalid <p> nesting with <div> in network overview by @anupcowkur in #3378
 - (**frontend**): Render HTML tags in markdown with rehype-raw by @anupcowkur in #3373
