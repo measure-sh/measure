@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unknown file (#3403) by @detj in #3403
 - (**backend**): Remove ingestion from api service (#3402) by @detj in #3402
 - (**backend**): Update go.mod files again (#3400) by @detj in #3400
 - (**backend**): Update go dependencies (#3399) by @detj in #3399
