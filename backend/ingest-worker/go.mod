@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	backend/api v0.0.0
-	cloud.google.com/go/pubsub/v2 v2.0.0
+	cloud.google.com/go/pubsub/v2 v2.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/google/uuid v1.6.0
@@ -33,6 +33,8 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/mattn/go-sqlite3 v1.14.33 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	google.golang.org/api v0.272.0 // indirect
 )
