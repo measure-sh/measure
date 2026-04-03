@@ -212,6 +212,87 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertNil(persistence.attribute)
     }
 
+    func test_trackException_detectsKotlinCrashFromUserInfo() {
+        reporter.hasPendingCrashReport = true
+        reporter.allReportsToReturn = [makeKotlinCrashReport()]
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        XCTAssertEqual(signalProcessor.type, .exception)
+    }
+
+    func test_trackException_kotlinCrashSkipsSIGABRTDuplicate() {
+        reporter.hasPendingCrashReport = true
+        // SIGABRT report first, then NSException report with Kotlin marker
+        reporter.allReportsToReturn = [makeSignalReport(), makeKotlinCrashReport()]
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        XCTAssertEqual(signalProcessor.type, .exception)
+        // loadCrashReport should NOT be called since Kotlin path was used
+        XCTAssertFalse(reporter.loadCrashReportCalled)
+    }
+
+    func test_trackException_fallsBackToNativeWhenNoKotlinMarker() {
+        reporter.hasPendingCrashReport = true
+        // Reports without Kotlin marker
+        reporter.allReportsToReturn = [makeSignalReport()]
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        XCTAssertTrue(reporter.loadCrashReportCalled)
+    }
+
+    func test_trackException_nativeNSExceptionWithoutKotlinMarkerUsesNativePath() {
+        let nativeNSExceptionReport: [String: Any] = [
+            "crash": [
+                "error": [
+                    "nsexception": [
+                        "name": "NSInvalidArgumentException"
+                    ] as [String: Any]
+                ] as [String: Any],
+                "threads": []
+            ] as [String: Any],
+            "binary_images": [],
+            "system": [:],
+            "report": ["timestamp": 1_700_000_000]
+        ]
+        reporter.hasPendingCrashReport = true
+        reporter.allReportsToReturn = [nativeNSExceptionReport]
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        // No Kotlin marker, so falls back to native path
+        XCTAssertTrue(reporter.loadCrashReportCalled)
+    }
+    
+     private func makeKotlinCrashReport(timestamp: TimeInterval = 1_700_000_000) -> [String: Any] {
+         return [
+             "crash": [
+                 "error": [
+                     "nsexception": [
+                         "name": "kotlin.IllegalStateException",
+                         "userInfo": "{\n    \"msr_kmp_kotlin_crash\" = 1;\n}"
+                     ] as [String: Any]
+                 ] as [String: Any],
+                 "threads": []
+             ] as [String: Any],
+             "binary_images": [],
+             "system": [:],
+             "report": ["timestamp": timestamp]
+         ]
+     }
+
+     private func makeSignalReport(timestamp: TimeInterval = 1_700_000_000) -> [String: Any] {
+         return [
+             "crash": [
+                 "error": [
+                     "signal": ["name": "SIGABRT"] as [String: Any]
+                 ] as [String: Any],
+                 "threads": []
+             ] as [String: Any],
+             "binary_images": [],
+             "system": [:],
+             "report": ["timestamp": timestamp]
+         ]
+     }
+
     private func trackException() {
         crashReportingManager = BaseCrashReportingManager(logger: logger,
                                                           signalProcessor: signalProcessor,

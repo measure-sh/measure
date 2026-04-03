@@ -20,6 +20,7 @@
 		058557BE273AAA2400C9834F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		69C81BB82F7BC10C0099AC5E /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7555FF7B242A565900829871 /* Measure App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Measure App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB000004273AAA2400C9834F /* iosApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "iosApp-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +67,7 @@
 				058557BC273AAA2400C9834F /* MeasureApp.swift */,
 				058557BE273AAA2400C9834F /* Info.plist */,
 				69C81BB82F7BC10C0099AC5E /* GoogleService-Info.plist */,
+				BB000004273AAA2400C9834F /* iosApp-Bridging-Header.h */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -315,11 +317,13 @@
 				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
+					"-ObjC",
 					"-framework",
 					Shared,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = sh.measure.kmp.ios;
 				PRODUCT_NAME = "Measure App";
+				SWIFT_OBJC_BRIDGING_HEADER = "iosApp/iosApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -344,11 +348,13 @@
 				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
+					"-ObjC",
 					"-framework",
 					Shared,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = sh.measure.kmp.ios;
 				PRODUCT_NAME = "Measure App";
+				SWIFT_OBJC_BRIDGING_HEADER = "iosApp/iosApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

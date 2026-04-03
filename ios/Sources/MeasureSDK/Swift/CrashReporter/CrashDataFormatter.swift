@@ -123,10 +123,9 @@ final class CrashDataFormatter {
         let objAddr   = frame["object_addr"]      as? UInt64
         let symAddr   = frame["symbol_addr"]      as? UInt64
         let objName   = frame["object_name"]      as? String
-
         let offset: Int? = (instrAddr != nil && symAddr != nil)
-            ? Int(instrAddr! - symAddr!)
-            : nil
+                ? Int(instrAddr! - symAddr!)
+                : nil
 
         return StackFrame(binaryName: objName,
                           binaryAddress: objAddr.map { hexString($0) },

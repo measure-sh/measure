@@ -5,6 +5,11 @@
 //  Created by Adwin Ross on 16/09/24.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
+import KSCrash
+#endif
 import Foundation
 
 protocol CrashReportManager {
@@ -13,6 +18,8 @@ protocol CrashReportManager {
 }
 
 final class BaseCrashReportingManager: CrashReportManager {
+    private static let kotlinCrashMarker = "msr_kmp_kotlin_crash"
+    
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
     private let signalProcessor: SignalProcessor
@@ -46,7 +53,11 @@ final class BaseCrashReportingManager: CrashReportManager {
             return
         }
 
-        let exceptionData = processCrashReport()
+        // Kotlin crashes embed "msr_kmp_kotlin_crash" in the NSException's userInfo.
+        // KSCrash stores this as a string in the crash report. If found, use the
+        // Kotlin-specific processing which picks the NSException report and skips
+        // the duplicate SIGABRT report. Otherwise, process as a native iOS crash.
+        let exceptionData = processKotlinCrashReport() ?? processCrashReport()
         guard var exception = exceptionData.exception, let date = exceptionData.date else {
             crashReporter.clearCrashData()
             crashDataPersistence.clearCrashData()
@@ -72,6 +83,31 @@ final class BaseCrashReportingManager: CrashReportManager {
         crashReporter.clearCrashData()
         crashDataPersistence.clearCrashData()
         completion?()
+    }
+
+    /// Searches crash reports for a Kotlin-originated crash. Kotlin crashes embed
+    /// "msr_kmp_kotlin_crash" in the NSException's userInfo. KSCrash stores this as
+    /// a string in the report, so a substring check is sufficient.
+    /// Returns nil if no Kotlin crash report is found.
+    private func processKotlinCrashReport() -> (exception: Exception?, date: Date?)? {
+        for reportDict in crashReporter.loadAllCrashReports() {
+            let crashDict = reportDict["crash"] as? [String: Any] ?? [:]
+            let errorDict = crashDict["error"] as? [String: Any] ?? [:]
+
+            guard let nsExceptionDict = errorDict["nsexception"] as? [String: Any],
+                  let userInfo = nsExceptionDict["userInfo"] as? String,
+                  userInfo.contains(Self.kotlinCrashMarker) else {
+                continue
+            }
+
+            let formatter = CrashDataFormatter(reportDict)
+            let exception = formatter.getException()
+            let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
+            let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            return (exception, date)
+        }
+
+        return nil
     }
 
     private func processCrashReport() -> (exception: Exception?, date: Date?) {
