@@ -18,14 +18,14 @@ type iggyConsumer struct {
 	streamID iggcon.Identifier
 	// topicID identifies the source Iggy topic within the stream.
 	topicID iggcon.Identifier
-	// consumer holds the consumer identity used when polling.
-	consumer         iggcon.Consumer
-	partitioningKind iggcon.PartitioningKind
+	// consumer holds the consumer identity used when polling and committing offsets.
+	consumer iggcon.Consumer
 	// partID is the partition to poll from.
 	partID *uint32
 	// batchSize is the number of messages fetched per poll.
 	batchSize uint32
-	// pollInterval is the delay between polls when no messages are available.
+	// pollInterval is the delay between polls when no messages are available
+	// and the initial backoff for poll error retries.
 	pollInterval time.Duration
 	// pollingStrategy selects how the server determines the next batch of messages.
 	pollingStrategy iggcon.PollingStrategy
@@ -44,6 +44,13 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	if err != nil {
 		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
 	}
+
+	ok := false
+	defer func() {
+		if !ok {
+			client.Close()
+		}
+	}()
 
 	if _, err := client.LoginUser(username, password); err != nil {
 		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
@@ -74,12 +81,11 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	}
 
 	var partID *uint32
-	var partitioningKind iggcon.PartitioningKind
 	switch cfg.partitioningKind {
-	case iggyPartitioningPartitionID:
+	case iggcon.PartitionIdKind:
 		id := cfg.partitionID
 		partID = &id
-	case iggyPartitioningMessageKey:
+	case iggcon.MessageKey:
 		// Iggy's PollMessages API routes by partition ID, not by message key.
 		// Message keys are a producer-side routing concept; the corresponding
 		// consumer should pin to the specific partition that the key resolves to
@@ -88,10 +94,10 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	default:
 		// Balanced (round-robin): nil tells the server to distribute polling
 		// evenly across all partitions.
-		partitioningKind = iggcon.Balanced
+		partID = nil
 	}
 
-	var batchSize uint32 = 10
+	var batchSize uint32 = 500
 	if cfg.batchSize > 0 {
 		batchSize = uint32(cfg.batchSize)
 	}
@@ -106,16 +112,16 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 		pollingStrategy = *cfg.pollingStrategy
 	}
 
+	ok = true
 	return &iggyConsumer{
-		client:           client,
-		consumer:         consumer,
-		streamID:         streamID,
-		topicID:          topicID,
-		partitioningKind: partitioningKind,
-		partID:           partID,
-		batchSize:        batchSize,
-		pollInterval:     pollInterval,
-		pollingStrategy:  pollingStrategy,
+		client:          client,
+		consumer:        consumer,
+		streamID:        streamID,
+		topicID:         topicID,
+		partID:          partID,
+		batchSize:       batchSize,
+		pollInterval:    pollInterval,
+		pollingStrategy: pollingStrategy,
 	}, nil
 }
 
@@ -135,6 +141,11 @@ func NewIggyGroupConsumer(address, username, password, consumerName, streamName,
 }
 
 func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
+	const maxPollRetries = 5
+
+	var pollFailures int
+	backoff := c.pollInterval
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -142,10 +153,32 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 		default:
 		}
 
-		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, c.pollingStrategy, c.batchSize, true, nil)
+		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, c.pollingStrategy, c.batchSize, false, c.partID)
 		if err != nil {
-			return fmt.Errorf("bus: Iggy poll failed: %w", err)
+			pollFailures++
+			if pollFailures >= maxPollRetries {
+				return fmt.Errorf("bus: Iggy poll failed after %d consecutive attempts: %w", pollFailures, err)
+			}
+
+			log.Printf("bus: iggy poll error (%d/%d), retrying in %s: %v", pollFailures, maxPollRetries, backoff, err)
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+			}
+
+			// Exponential backoff, capped at 30s.
+			backoff *= 2
+			if backoff > 30*time.Second {
+				backoff = 30 * time.Second
+			}
+			continue
 		}
+
+		// Reset on successful poll.
+		pollFailures = 0
+		backoff = c.pollInterval
 
 		if polled == nil || len(polled.Messages) == 0 {
 			select {
@@ -156,11 +189,15 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 			continue
 		}
 
+		partitionID := polled.PartitionId
 		for _, msg := range polled.Messages {
 			if err := handler(ctx, msg.Payload); err != nil {
-				// Iggy doesn't support per-message nack; offset is already
-				// committed (autoCommit=true). Log and continue.
-				log.Printf("bus: iggy handler error (message not retried): %v", err)
+				log.Printf("bus: iggy handler error (offset %d will be retried): %v", msg.Header.Offset, err)
+				break
+			}
+
+			if err := c.client.StoreConsumerOffset(c.consumer, c.streamID, c.topicID, msg.Header.Offset, &partitionID); err != nil {
+				log.Printf("bus: iggy offset commit failed (offset %d): %v", msg.Header.Offset, err)
 			}
 		}
 	}
@@ -168,10 +205,11 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 
 func (c *iggyConsumer) Close() error {
 	if c.consumer.Kind == iggcon.ConsumerKindGroup {
+		log.Printf("bus: leaving iggy consumer group\n")
+
 		if err := c.client.LeaveConsumerGroup(c.streamID, c.topicID, c.consumer.Id); err != nil {
 			log.Printf("bus: failed to leave iggy consumer group: %v", err)
 		}
-		log.Printf("bus: leaving iggy consumer group\n")
 	}
 
 	log.Printf("bus: closing iggy consumer client\n")

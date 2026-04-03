@@ -51,9 +51,9 @@ func NewIggyProducer(address, username, password, consumerName, streamName, topi
 
 	var partitioning iggcon.Partitioning
 	switch cfg.partitioningKind {
-	case iggyPartitioningPartitionID:
+	case iggcon.PartitionIdKind:
 		partitioning = iggcon.PartitionId(cfg.partitionID)
-	case iggyPartitioningMessageKey:
+	case iggcon.MessageKey:
 		p, err := iggcon.EntityIdBytes(cfg.messageKey)
 		if err != nil {
 			return nil, fmt.Errorf("bus: invalid message key: %w", err)

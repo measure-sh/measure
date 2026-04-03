@@ -72,46 +72,21 @@ func WithPubSubPublishSettings(s pubsub.PublishSettings) PubSubOption {
 // IggyOption configures an Iggy producer or consumer.
 type IggyOption func(*iggyConfig)
 
-// iggyPartitioningKind selects the partitioning scheme for Iggy producers and consumers.
-type iggyPartitioningKind int
-
-const (
-	// iggyPartitioningBalanced distributes messages evenly across partitions (default).
-	iggyPartitioningBalanced iggyPartitioningKind = iota
-	// iggyPartitioningPartitionID routes all messages to a fixed partition.
-	iggyPartitioningPartitionID
-	// iggyPartitioningMessageKey routes messages by a message key.
-	iggyPartitioningMessageKey
-)
-
 type iggyConfig struct {
-	// username and password are used for credential-based login by the consumer.
-	username string
-	password string
 	// partitionID is the partition to poll from (consumer) or route to (producer
 	// when WithIggyPartitionID is used).
 	partitionID uint32
-	// consumerName is the consumer identity used when polling (default: "default").
-	consumerName string
 	// partitioningKind selects the partitioning scheme (default: balanced).
-	partitioningKind iggyPartitioningKind
-	// messageKey is the routing key used when partitioningKind is iggyPartitioningMessageKey.
+	partitioningKind iggcon.PartitioningKind
+	// messageKey is the routing key used when partitioningKind is MessageKey.
 	messageKey []byte
 	// batchSize is the number of messages to fetch per poll (consumer-only).
 	batchSize int
-	// pollInterval is the delay between polls when no messages are available (consumer-only).
+	// pollInterval is the delay between polls when no messages are available
+	// and the initial backoff for poll error retries (consumer-only).
 	pollInterval time.Duration
 	// pollingStrategy selects how the server determines the next batch of messages (consumer-only).
 	pollingStrategy *iggcon.PollingStrategy
-}
-
-// WithIggyCredentials sets the username and password for Iggy authentication.
-// Used by consumers; producers take credentials as required positional parameters.
-func WithIggyCredentials(username, password string) IggyOption {
-	return func(c *iggyConfig) {
-		c.username = username
-		c.password = password
-	}
 }
 
 // WithIggyPartitionID routes all produced messages to the given partition ID.
@@ -119,7 +94,7 @@ func WithIggyCredentials(username, password string) IggyOption {
 func WithIggyPartitionID(id uint32) IggyOption {
 	return func(c *iggyConfig) {
 		c.partitionID = id
-		c.partitioningKind = iggyPartitioningPartitionID
+		c.partitioningKind = iggcon.PartitionIdKind
 	}
 }
 
@@ -128,18 +103,11 @@ func WithIggyPartitionID(id uint32) IggyOption {
 func WithIggyMessageKey(key []byte) IggyOption {
 	return func(c *iggyConfig) {
 		c.messageKey = key
-		c.partitioningKind = iggyPartitioningMessageKey
+		c.partitioningKind = iggcon.MessageKey
 	}
 }
 
-// WithIggyConsumerName sets the consumer identity used when polling (default: "default").
-func WithIggyConsumerName(name string) IggyOption {
-	return func(c *iggyConfig) {
-		c.consumerName = name
-	}
-}
-
-// WithIggyBatchSize sets the number of messages fetched per poll (default: 10).
+// WithIggyBatchSize sets the number of messages fetched per poll (default: 20).
 func WithIggyBatchSize(n int) IggyOption {
 	return func(c *iggyConfig) {
 		c.batchSize = n

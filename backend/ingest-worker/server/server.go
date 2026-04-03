@@ -252,7 +252,7 @@ func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration)
 		if err := pgPool.Ping(ctx); err == nil {
 			return nil
 		} else {
-			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
+			log.Printf("PG ping failed: %v; Retrying...\n", err)
 		}
 
 		select {
@@ -281,7 +281,7 @@ func Init(config *ServerConfig) {
 	pgPool = pool
 
 	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
-		fmt.Printf("Postgres pool not ready: %v\n", err)
+		log.Printf("Postgres pool not ready: %v\n", err)
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
@@ -332,21 +332,22 @@ func Init(config *ServerConfig) {
 		VK:     vkClient,
 	}
 
-	var batchSize = 20
-	ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
-	if ingestBatchSize != "" {
-		batchSize, err = strconv.Atoi(ingestBatchSize)
-		if err != nil {
-			log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
-		}
-	}
-
 	if config.CloudEnv {
+		var batchSize = 20
+		ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
+		if ingestBatchSize != "" {
+			batchSize, err = strconv.Atoi(ingestBatchSize)
+			if err != nil {
+				log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
+			}
+		}
+		log.Println("pub/sub batch Size:", batchSize)
+
 		subscription := os.Getenv("INGEST_PUBSUB_SUBSCRIPTION")
-		fmt.Println("Name of subscription:", subscription)
+		log.Println("pub/sub subscription name:", subscription)
 
 		pullEnabled := os.Getenv("INGEST_PUBSUB_PUSH_ENABLED") != "true"
-		fmt.Println("Pull enabled:", pullEnabled)
+		log.Println("pub/sub pull enabled:", pullEnabled)
 
 		if subscription != "" && pullEnabled {
 			consumer, err := bus.NewPubSubConsumer(
@@ -361,7 +362,17 @@ func Init(config *ServerConfig) {
 			}
 		}
 	} else {
-		var pollInterval = 30 * time.Second
+		var batchSize = 500
+		ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
+		if ingestBatchSize != "" {
+			batchSize, err = strconv.Atoi(ingestBatchSize)
+			if err != nil {
+				log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
+			}
+		}
+		log.Println("iggy batch size:", batchSize)
+
+		pollInterval := 30 * time.Second
 		ingestPollInterval := os.Getenv("INGEST_POLL_INTERVAL")
 		if ingestPollInterval != "" {
 			pollInterval, err = time.ParseDuration(ingestPollInterval)
@@ -369,6 +380,7 @@ func Init(config *ServerConfig) {
 				log.Printf("failed to parse INGEST_POLL_INTERVAL: %v\n", err)
 			}
 		}
+		log.Printf("iggy poll interval: %v\n", pollInterval)
 
 		consumer, err := bus.NewIggyGroupConsumer(
 			config.IG.Addr,

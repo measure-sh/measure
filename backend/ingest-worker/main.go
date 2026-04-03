@@ -13,7 +13,6 @@ import (
 
 	"backend/ingest-worker/measure"
 	"backend/ingest-worker/server"
-	"backend/libs/concur"
 	"backend/libs/inet"
 
 	"github.com/gin-gonic/gin"
@@ -87,17 +86,11 @@ func main() {
 	if server.Server.BusConsumer != nil {
 		defer server.Server.BusConsumer.Close()
 
-		handler := measure.ConsumeHandler // async for Iggy
-		if config.IsCloud() {
-			handler = measure.ConsumeHandlerSync // sync for Pub/Sub
-		}
-
 		go func() {
-			if err := server.Server.BusConsumer.Listen(appCtx, handler); err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Println("bus consumer listening")
+			if err := server.Server.BusConsumer.Listen(appCtx, measure.ConsumeHandler); err != nil && !errors.Is(err, context.Canceled) {
 				log.Printf("bus consumer stopped: %v\n", err)
 			}
-
-			fmt.Println("bus consumer listening")
 		}()
 	}
 
@@ -128,7 +121,4 @@ func main() {
 		fmt.Printf("Failed to gracefully shutdown server: %v\n", err)
 	}
 
-	// Wait for all background tasks
-	fmt.Println("Waiting for background tasks...")
-	concur.GlobalWg.Wait()
 }

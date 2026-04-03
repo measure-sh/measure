@@ -8,7 +8,6 @@ import (
 	"backend/ingest-worker/symbolicator"
 	"backend/libs/ambient"
 	"backend/libs/chrono"
-	"backend/libs/concur"
 	"backend/libs/inet"
 	"backend/libs/opsys"
 	"context"
@@ -1058,26 +1057,10 @@ func PushHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// ConsumeHandler is the bus.Consumer handler for Iggy-based ingestion.
-// It unmarshals the raw message bytes into an IngestBatch and dispatches
-// processing to a background goroutine.
-func ConsumeHandler(ctx context.Context, data []byte) error {
-	var batch IngestBatch
-	if err := json.Unmarshal(data, &batch); err != nil {
-		return fmt.Errorf("failed to unmarshal ingest batch: %w", err)
-	}
-	concur.GlobalWg.Add(1)
-	go func() {
-		defer concur.GlobalWg.Done()
-		processIngestBatch(ctx, batch)
-	}()
-	return nil
-}
-
-// ConsumeHandlerSync is the bus.Consumer handler for Pub/Sub-based ingestion.
+// ConsumeHandler is the bus.Consumer handler for message-based ingestion.
 // It processes the batch synchronously so that returning an error causes the
-// consumer to nack the message for redelivery.
-func ConsumeHandlerSync(ctx context.Context, data []byte) error {
+// consumer to nack/skip-commit the message for redelivery.
+func ConsumeHandler(ctx context.Context, data []byte) error {
 	var batch IngestBatch
 	if err := json.Unmarshal(data, &batch); err != nil {
 		return fmt.Errorf("failed to unmarshal ingest batch: %w", err)
@@ -1110,274 +1093,9 @@ func init() {
 	ingestBatchAckCount = ackCounter
 }
 
-// processIngestBatch runs the full ingestion processing pipeline
-// for an ingest batch received from the message bus.
-func processIngestBatch(ctx context.Context, batch IngestBatch) {
-	ingestBatchUnackCount.Add(ctx, 1)
-
-	batchID, err := uuid.Parse(batch.BatchID)
-	if err != nil {
-		fmt.Println("failed to parse batch id:", err)
-		return
-	}
-	appID, err := uuid.Parse(batch.AppID)
-	if err != nil {
-		fmt.Println("failed to parse app id:", err)
-		return
-	}
-	teamID, err := uuid.Parse(batch.TeamID)
-	if err != nil {
-		fmt.Println("failed to parse team id:", err)
-		return
-	}
-
-	app, err := SelectApp(ctx, appID)
-	if app == nil || err != nil {
-		fmt.Println("failed to lookup app:", err)
-		return
-	}
-
-	eventReq := &eventreq{
-		id:                batchID,
-		appId:             appID,
-		teamId:            teamID,
-		osName:            batch.OsName,
-		size:              batch.Size,
-		events:            batch.Events,
-		spans:             batch.Spans,
-		symbolicateEvents: make(map[uuid.UUID]int),
-		symbolicateSpans:  make(map[string]int),
-	}
-
-	// Rebuild exceptionIds, anrIds and symbolication lookups by scanning events.
-	for i := range eventReq.events {
-		eventReq.events[i].AppID = appID
-		if eventReq.events[i].NeedsSymbolication() {
-			eventReq.symbolicateEvents[eventReq.events[i].ID] = i
-		}
-		if eventReq.events[i].IsUnhandledException() {
-			eventReq.exceptionIds = append(eventReq.exceptionIds, i)
-		}
-		if eventReq.events[i].IsANR() {
-			eventReq.anrIds = append(eventReq.anrIds, i)
-		}
-	}
-
-	for i := range eventReq.spans {
-		if eventReq.spans[i].NeedsSymbolication() {
-			eventReq.symbolicateSpans[eventReq.spans[i].SpanName] = i
-		}
-	}
-
-	// Validate re-populates UDAttribute.keyTypes for all events and spans.
-	// keyTypes is not serialized in JSON, so it must be rebuilt after
-	// deserializing the IngestBatch from Pub/Sub.
-	//
-	// FIXME: This should be refactored, validate should not have such
-	// side effects.
-	if err := eventReq.validate(); err != nil {
-		fmt.Println("failed to validate batch:", err)
-		return
-	}
-
-	// Check idempotency — Pub/Sub delivers at-least-once.
-	if err := eventReq.checkSeen(ctx); err != nil {
-		fmt.Println("failed to check seen status:", err)
-		return
-	}
-	if eventReq.seen {
-		return
-	}
-
-	ingestCtx := ambient.WithTeamId(context.Background(), app.TeamId)
-	ingestTracer := otel.Tracer("ingest-tracer")
-	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
-	defer ingestSpan.End()
-
-	var infuseInetGroup errgroup.Group
-	infuseInetGroup.Go(func() error {
-		_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
-		defer infuseInetSpan.End()
-		if err := eventReq.infuseInet(batch.ClientIP); err != nil {
-			msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, batch.ClientIP)
-			fmt.Println(msg, err)
-			return err
-		}
-		return nil
-	})
-
-	var symbolicationGroup errgroup.Group
-	symbolicationGroup.Go(func() error {
-		if eventReq.needsSymbolication() {
-			config := server.Server.Config
-			origin := config.SymbolicatorOrigin
-			osName := eventReq.osName
-			sources := []symbolicator.Source{}
-
-			switch opsys.ToFamily(osName) {
-			case opsys.Android:
-				if config.IsCloud() {
-					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-					sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-				} else {
-					sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-				}
-			case opsys.AppleFamily:
-				if config.IsCloud() {
-					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-					sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
-				} else {
-					sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-				}
-			}
-
-			symblctr := symbolicator.New(origin, osName, sources)
-
-			_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
-			defer symbolicationSpan.End()
-
-			if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
-				fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
-				return err
-			}
-		}
-		return nil
-	})
-
-	if err := infuseInetGroup.Wait(); err != nil {
-		fmt.Println("failed to lookup IP info")
-	}
-	if err := symbolicationGroup.Wait(); err != nil {
-		fmt.Println("failed to symbolicate", err)
-	}
-
-	var ingestGroup errgroup.Group
-	ingestGroup.Go(func() error {
-		_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
-		defer ingestEventsSpan.End()
-		if err := eventReq.ingestEvents(ingestCtx); err != nil {
-			fmt.Println(`failed to ingest events`, err)
-			return err
-		}
-		return nil
-	})
-	ingestGroup.Go(func() error {
-		_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
-		defer ingestSpansSpan.End()
-		if err := eventReq.ingestSpans(ingestCtx); err != nil {
-			fmt.Println(`failed to ingest spans`, err)
-			return err
-		}
-		return nil
-	})
-	if err := ingestGroup.Wait(); err != nil {
-		fmt.Println("failed to ingest", err)
-		return
-	}
-
-	var bucketGroup errgroup.Group
-	bucketGroup.Go(func() error {
-		_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
-		defer bucketUnhandledExceptionsSpan.End()
-		if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
-			fmt.Println(`failed to bucket unhandled exceptions`, err)
-			return err
-		}
-		return nil
-	})
-	bucketGroup.Go(func() error {
-		_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
-		defer bucketAnrsSpan.End()
-		if err := eventReq.bucketANRs(ingestCtx); err != nil {
-			fmt.Println(`failed to bucket anrs`, err)
-			return err
-		}
-		return nil
-	})
-	if err := bucketGroup.Wait(); err != nil {
-		fmt.Println("failed to bucket issues", err)
-		return
-	}
-
-	var metricsGroup errgroup.Group
-	metricsGroup.Go(func() error {
-		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
-		defer ingestMetricsSpan.End()
-
-		sessions, events, spans, attachments := eventReq.countMetrics()
-
-		insertMetricsIngestionSelectStmt := sqlf.
-			Select("? AS team_id", eventReq.teamId).
-			Select("? AS app_id", app.ID).
-			Select("? AS timestamp", time.Now()).
-			Select("sumState(CAST(? AS UInt32)) AS sessions", sessions).
-			Select("sumState(CAST(? AS UInt32)) AS events", events).
-			Select("sumState(CAST(? AS UInt32)) AS spans", spans).
-			Select("sumState(CAST(? AS UInt32)) AS attachments", attachments).
-			Select("sumState(CAST(? AS UInt32)) AS metrics", 0).
-			Select("sumState(CAST(? AS UInt64)) AS bytes_in", eventReq.size)
-		selectSQL := insertMetricsIngestionSelectStmt.String()
-		args := insertMetricsIngestionSelectStmt.Args()
-		defer insertMetricsIngestionSelectStmt.Close()
-		insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
-
-		asyncCtx := clickhouse.Context(ingestCtx, clickhouse.WithAsync(true))
-		if err := server.Server.ChPool.Exec(asyncCtx, insertMetricsIngestionFullStmt, args...); err != nil {
-			fmt.Println(`failed to insert ingestion metrics`, err)
-			return err
-		}
-		return nil
-	})
-	if err := metricsGroup.Wait(); err != nil {
-		fmt.Println(`failed to count ingestion metrics`, err)
-		return
-	}
-
-	_, rememberIngestSpan := ingestTracer.Start(ingestCtx, "remember-ingest")
-	defer rememberIngestSpan.End()
-
-	if err := eventReq.remember(ingestCtx); err != nil {
-		fmt.Println(`failed to remember event request`, err)
-		return
-	}
-
-	if eventReq.onboardable() && !app.Onboarded {
-		_, onboardAppSpan := ingestTracer.Start(ingestCtx, "onboard-app")
-		defer onboardAppSpan.End()
-
-		tx, err := server.Server.PgPool.BeginTx(ingestCtx, pgx.TxOptions{
-			IsoLevel: pgx.ReadCommitted,
-		})
-		defer tx.Rollback(ingestCtx)
-
-		if err != nil {
-			fmt.Println("failed to acquire transaction while onboarding app:", err)
-			return
-		}
-
-		uniqueID := eventReq.getAppUniqueID()
-		osName := eventReq.getOSName()
-		version := eventReq.getOSVersion()
-
-		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
-			fmt.Println(`failed to onboard app`, err)
-			return
-		}
-
-		if err := tx.Commit(ingestCtx); err != nil {
-			fmt.Println(`failed to commit app onboard transaction`, err)
-			return
-		}
-	}
-
-	ingestBatchAckCount.Add(ctx, 1)
-}
-
 // processIngestBatchSync runs the full ingestion processing pipeline
-// synchronously and returns any error encountered. Used by PushHandler
-// so that Pub/Sub can retry failed batches.
+// synchronously and returns any error encountered. Used by ConsumeHandler
+// and PushHandler so that failed batches can be retried.
 func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	ingestBatchUnackCount.Add(ctx, 1)
 	batchID, err := uuid.Parse(batch.BatchID)
@@ -1435,7 +1153,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 	// Validate re-populates UDAttribute.keyTypes for all events and spans.
 	// keyTypes is not serialized in JSON, so it must be rebuilt after
-	// deserializing the IngestBatch from Pub/Sub.
+	// deserializing the IngestBatch from the message bus.
 	//
 	// FIXME: This should be refactored, validate should not have such
 	// side effects.
@@ -1443,7 +1161,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		return fmt.Errorf("failed to validate batch: %w", err)
 	}
 
-	// Check idempotency — Pub/Sub delivers at-least-once.
+	// Check idempotency — both Pub/Sub and Iggy deliver at-least-once.
 	if err := eventReq.checkSeen(ctx); err != nil {
 		return fmt.Errorf("failed to check seen status: %w", err)
 	}
