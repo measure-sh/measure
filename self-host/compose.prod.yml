@@ -152,6 +152,13 @@ services:
         max-size: 10m
         max-file: 5
 
+  iggy:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
   postgres:
     logging:
       driver: local

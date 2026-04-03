@@ -158,6 +158,80 @@ services:
       redis:
         condition: service_healthy
 
+  ingest-worker:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/ingest-worker
+      additional_contexts:
+        libs: ../backend/libs
+        api: ../backend/api
+      args:
+        TARGETTYPE: debug
+    ports:
+      - "8086"
+    deploy:
+      replicas: 3
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - IGGY_ADDR=${IGGY_ADDR}
+      - IGGY_USERNAME=${IGGY_USERNAME}
+      - IGGY_PASSWORD=${IGGY_PASSWORD}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
+      - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
+      - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
+      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - PORT=8086
+    develop:
+      watch:
+        - path: ../backend/ingest-worker
+          action: rebuild
+        - path: ../backend/api
+          action: rebuild
+        - path: ../backend/libs
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8086/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      iggy:
+        condition: service_healthy
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
+        condition: service_completed_successfully
+        required: false
+      migrator:
+        condition: service_completed_successfully
+        required: false
+      symbolicator:
+        condition: service_healthy
+      symboloader:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   ingest:
     build:
       dockerfile: dockerfile
@@ -175,15 +249,16 @@ services:
       - BILLING_ENABLED=${BILLING_ENABLED}
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
+      - IGGY_ADDR=${IGGY_ADDR}
+      - IGGY_USERNAME=${IGGY_USERNAME}
+      - IGGY_PASSWORD=${IGGY_PASSWORD}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
       - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
-      - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
@@ -215,6 +290,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      iggy:
+        condition: service_healthy
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
@@ -229,6 +306,8 @@ services:
       symboloader:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      ingest-worker:
         condition: service_healthy
 
   cleanup:
@@ -527,6 +606,57 @@ services:
       - ./clickhouse:/opt/clickhouse
     command: ["migrate"]
 
+  iggy:
+    image: apache/iggy
+    restart: unless-stopped
+    ports:
+      - "3010:80"
+      - "8090:8090"
+    entrypoint: >
+      bash -c "
+      iggy-server &
+
+      until iggy ping 2>/dev/null; do
+        echo 'Waiting for Iggy server to start...';
+        sleep 1;
+      done;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} stream create measure || true;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure ingest-batch 9 gzip 7d || true;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} consumer-group create measure ingest-batch ingest-batch-consumer || true;
+
+      wait %1
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "iggy ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 5
+    environment:
+      - IGGY_ROOT_USERNAME=${IGGY_USERNAME}
+      - IGGY_ROOT_PASSWORD=${IGGY_PASSWORD}
+      - IGGY_HTTP_ENABLED=true
+      - IGGY_HTTP_ADDRESS=[::]:80
+      - IGGY_TCP_ENABLED=true
+      - IGGY_TCP_ADDRESS=[::]:8090
+      - IGGY_QUIC_ENABLED=false
+      - IGGY_WEBSOCKET_ENABLED=false
+      - IGGY_HEARTBEAT_ENABLED=true
+      - IGGY_HEARTBEAT_INTERVAL=5s
+      - IGGY_SYSTEM_PATH=/local_data
+    cap_add:
+      - SYS_NICE
+    security_opt:
+      - seccomp=unconfined
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - iggy-data:/local_data
+
   postgres:
     image: postgres:16.3-alpine
     restart: unless-stopped
@@ -600,8 +730,18 @@ services:
       - 9090:8080
       - 4317:4317
 
+  iggy-web:
+    image: apache/iggy-web-ui
+    profiles:
+      - debug
+    ports:
+      - 3050:3050
+    environment:
+      - PUBLIC_IGGY_API_URL=http://localhost:3010
+
 volumes:
   clickhouse-volume:
   migrator-volume:
   minio-data:
+  iggy-data:
   pgdata:

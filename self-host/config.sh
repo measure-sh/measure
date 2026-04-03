@@ -201,6 +201,14 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 
 ##################
+# Message Queue  #
+##################
+
+IGGY_USERNAME=iggy
+IGGY_PASSWORD=dummY_pa55w0rd
+IGGY_ADDR=iggy:8090
+
+##################
 # Object Storage #
 ##################
 
@@ -327,6 +335,14 @@ CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_AD
 
 REDIS_HOST=$REDIS_HOST
 REDIS_PORT=$REDIS_PORT
+
+##################
+# Message Queue  #
+##################
+
+IGGY_USERNAME=$IGGY_USERNAME
+IGGY_PASSWORD=$IGGY_PASSWORD
+IGGY_ADDR=$IGGY_ADDR
 
 ##################
 # Object Storage #
@@ -500,6 +516,12 @@ END
     REDIS_HOST="redis"
     REDIS_PORT="6379"
 
+    # Set Iggy configuration for production
+    IGGY_USERNAME="iggy"
+    echo -e "Generated secure password for Iggy user"
+    IGGY_PASSWORD=$(generate_password 24)
+    IGGY_ADDR="iggy:8090"
+
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
       echo -e "\nSet storage bucket for symbols"
       SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
@@ -593,6 +615,9 @@ ensure() {
   local symboloader_origin
   local redis_host
   local redis_port
+  local iggy_username
+  local iggy_password
+  local iggy_addr
 
   clickhouse_admin_user="app_admin"
   clickhouse_operator_user="app_operator"
@@ -607,11 +632,14 @@ ensure() {
   ingest_origin="http://localhost:8085"
   redis_host="redis"
   redis_port="6379"
+  iggy_username="iggy"
+  iggy_addr="iggy:8090"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
     clickhouse_admin_password="dummY_pa55w0rd"
     clickhouse_operator_password="dummY_pa55w0rd"
     clickhouse_reader_password="dummY_pa55w0rd"
+    iggy_password="dummY_pa55w0rd"
 
     if ! check_env_variable "CLICKHOUSE_USER"; then
       add_env_variable "CLICKHOUSE_USER" "default" "POSTGRES_DSN"
@@ -672,6 +700,7 @@ ensure() {
     clickhouse_admin_password=$(generate_password 24)
     clickhouse_operator_password=$(generate_password 24)
     clickhouse_reader_password=$(generate_password 24)
+    iggy_password=$(generate_password 24)
 
     if ! check_env_variable "CLICKHOUSE_USER"; then
       add_env_variable "CLICKHOUSE_USER" "default" "POSTGRES_DSN"
@@ -763,6 +792,19 @@ ensure() {
 
   if check_env_variable "REDIS_PORT"; then
     update_env_variable "REDIS_PORT" "$redis_port"
+  fi
+
+  # Iggy configuration checks
+  if ! check_env_variable "IGGY_USERNAME"; then
+    add_env_variable "IGGY_USERNAME" "$iggy_username" "REDIS_PORT"
+  fi
+
+  if ! check_env_variable "IGGY_PASSWORD"; then
+    add_env_variable "IGGY_PASSWORD" "$iggy_password" "IGGY_USERNAME"
+  fi
+
+  if ! check_env_variable "IGGY_ADDR"; then
+    add_env_variable "IGGY_ADDR" "$iggy_addr" "IGGY_PASSWORD"
   fi
 
   if ! check_env_variable "SMTP_HOST"; then

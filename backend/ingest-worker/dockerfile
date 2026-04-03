@@ -1,0 +1,37 @@
+# build stage
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETTYPE
+WORKDIR /go/src
+
+# Copy dependency modules first for caching
+COPY --from=libs go.mod go.sum ../libs/
+COPY --from=api go.mod go.sum ../api/
+COPY ["go.mod", "go.sum", "./"]
+
+RUN go mod download
+
+# Copy source
+COPY --from=libs . ../libs/
+COPY --from=api . ../api/
+COPY . .
+
+# Build statically linked binary
+# Conditionally strip symbols if TARGETTYPE is production
+RUN --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  if [ "$TARGETTYPE" = "debug" ]; then \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -o /go/bin/app -v .; \
+  else \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -ldflags="-s -w" -o /go/bin/app -v .; \
+  fi
+
+# final stage
+FROM public.ecr.aws/docker/library/alpine:latest
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /go/bin/app /app
+ENTRYPOINT ["/app"]
+EXPOSE 8086

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,8 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"backend/ingest/measure"
-	"backend/ingest/server"
+	"backend/ingest-worker/measure"
+	"backend/ingest-worker/server"
+	"backend/libs/inet"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,9 +28,6 @@ func main() {
 	if server.Server.VK != nil {
 		defer server.Server.VK.Close()
 	}
-	if server.Server.BusProducer != nil {
-		defer server.Server.BusProducer.Close()
-	}
 
 	// Close ClickHouse connection pool at shutdown
 	defer func() {
@@ -36,6 +35,16 @@ func main() {
 			log.Fatalf("Unable to close clickhouse connection: %v", err)
 		}
 	}()
+
+	// Close geo ip database at shutdown
+	defer func() {
+		if err := inet.Close(); err != nil {
+			log.Fatalf("Unable to close geo ip db: %v", err)
+		}
+	}()
+
+	appCtx, appCancel := context.WithCancel(context.Background())
+	defer appCancel()
 
 	r := gin.Default()
 
@@ -57,19 +66,32 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// SDK routes
-	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
-	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfigForSdk)
+	// ingest batch receive endpoint
+	pushEnabled := os.Getenv("INGEST_PUBSUB_PUSH_ENABLED") == "true"
+	if config.IsCloud() && pushEnabled {
+		r.POST("/subscribe/batch", measure.PushHandler)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8085"
+		port = "8086"
 	}
 
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
+	}
+
+	// Start bus consumer if initialized
+	if server.Server.BusConsumer != nil {
+		defer server.Server.BusConsumer.Close()
+
+		go func() {
+			fmt.Println("bus consumer listening")
+			if err := server.Server.BusConsumer.Listen(appCtx, measure.ConsumeHandler); err != nil && !errors.Is(err, context.Canceled) {
+				log.Printf("bus consumer stopped: %v\n", err)
+			}
+		}()
 	}
 
 	// Run server in a goroutine
@@ -84,7 +106,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	fmt.Println("Shutting down ingest service...")
+	fmt.Println("Shutting down ingest-worker service...")
 
 	shutdownTimeout := 9 * time.Second
 	if gin.Mode() == gin.DebugMode {

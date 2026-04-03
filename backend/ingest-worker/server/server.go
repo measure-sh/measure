@@ -1,6 +1,9 @@
 package server
 
 import (
+	"backend/libs/bus"
+	"backend/libs/inet"
+	"backend/libs/ingest"
 	"context"
 	"fmt"
 	"log"
@@ -8,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"backend/libs/bus"
 
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -38,7 +39,7 @@ type server struct {
 	ChPool      driver.Conn
 	Config      *ServerConfig
 	VK          redis.Client
-	BusProducer bus.Producer
+	BusConsumer bus.Consumer
 }
 
 type PostgresConfig struct {
@@ -55,7 +56,9 @@ type RedisConfig struct {
 }
 
 type IggyConfig struct {
-	Addr     string
+	// Addr is the Iggy server address in "host:port" form.
+	Addr string
+	// Username and Password are used for credential-based login.
 	Username string
 	Password string
 }
@@ -76,10 +79,10 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AWSEndpoint                string
 	APIOrigin                  string
+	SymbolicatorOrigin         string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
-	BillingEnabled             bool
 }
 
 // IsCloud is true if the service is
@@ -92,25 +95,10 @@ func (sc *ServerConfig) IsCloud() bool {
 	return false
 }
 
-// IsBillingEnabled is true if the service has
-// billing feature enabled.
-func (sc *ServerConfig) IsBillingEnabled() bool {
-	if sc.BillingEnabled {
-		return true
-	}
-
-	return false
-}
-
 func NewConfig() *ServerConfig {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
-	}
-
-	billingEnabled := false
-	if os.Getenv("BILLING_ENABLED") == "true" {
-		billingEnabled = true
 	}
 
 	var serviceAccountEmail string
@@ -166,6 +154,11 @@ func NewConfig() *ServerConfig {
 		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
+	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
+	if symbolicatorOrigin == "" {
+		log.Println("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+	}
+
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
@@ -186,21 +179,6 @@ func NewConfig() *ServerConfig {
 		log.Println("REDIS_PORT env var is not set, caching will not work")
 	}
 
-	iggyAddr := os.Getenv("IGGY_ADDR")
-	if iggyAddr == "" {
-		log.Println("IGGY_ADDR env var is not set, ingestion will not work")
-	}
-
-	iggyUsername := os.Getenv("IGGY_USERNAME")
-	if iggyUsername == "" {
-		log.Println("IGGY_USERNAME env var is not set, ingestion will not work")
-	}
-
-	iggyPassword := os.Getenv("IGGY_PASSWORD")
-	if iggyPassword == "" {
-		log.Println("IGGY_PASSWORD env var is not set, ingestion will not work")
-	}
-
 	redisPort, err := strconv.Atoi(redisPortStr)
 	if err != nil {
 		log.Fatalf("Invalid REDIS_PORT value: %v", err)
@@ -213,6 +191,21 @@ func NewConfig() *ServerConfig {
 
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
+
+	iggyAddr := os.Getenv("IGGY_ADDR")
+	if iggyAddr == "" && !cloudEnv {
+		log.Println("IGGY_ADDR env var is not set, Iggy message streaming will not work")
+	}
+
+	iggyUsername := os.Getenv("IGGY_USERNAME")
+	if iggyUsername == "" {
+		log.Println("IGGY_USERNAME env var is not set, Iggy message streaming will not work")
+	}
+
+	iggyPassword := os.Getenv("IGGY_PASSWORD")
+	if iggyPassword == "" {
+		log.Println("IGGY_PASSWORD env var is not set, Iggy message streaming will not work")
+	}
 
 	return &ServerConfig{
 		PG: PostgresConfig{
@@ -241,10 +234,10 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AWSEndpoint:                endpoint,
 		APIOrigin:                  apiOrigin,
+		SymbolicatorOrigin:         symbolicatorOrigin,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
-		BillingEnabled:             billingEnabled,
 	}
 }
 
@@ -259,7 +252,7 @@ func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration)
 		if err := pgPool.Ping(ctx); err == nil {
 			return nil
 		} else {
-			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
+			log.Printf("PG ping failed: %v; Retrying...\n", err)
 		}
 
 		select {
@@ -288,7 +281,7 @@ func Init(config *ServerConfig) {
 	pgPool = pool
 
 	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
-		fmt.Printf("Postgres pool not ready: %v\n", err)
+		log.Printf("Postgres pool not ready: %v\n", err)
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
@@ -300,7 +293,7 @@ func Init(config *ServerConfig) {
 		chOpts.Settings = clickhouse.Settings{
 			"wait_for_async_insert":         1,
 			"wait_for_async_insert_timeout": 1000,
-			"compatibility":                 "25.12",
+			"compatibility":                 "25.10",
 		}
 
 		chOpts.Compression = &clickhouse.Compression{
@@ -313,13 +306,17 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
+	if err := inet.Init(); err != nil {
+		log.Printf("Unable to initialize geo ip lookup system: %v\n", err)
+	}
+
 	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
 	options := redis.ClientOption{
 		InitAddress: []string{addr},
 	}
 
 	options.ConnWriteTimeout = 30 * time.Second
-	options.ClientName = "measure-ingest"
+	options.ClientName = "measure-ingest-worker"
 
 	vkClient, err := redis.NewClient(options)
 	if err != nil {
@@ -328,36 +325,78 @@ func Init(config *ServerConfig) {
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
 
-	var busProducer bus.Producer
+	Server = &server{
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
+		VK:     vkClient,
+	}
+
 	if config.CloudEnv {
-		p, err := bus.NewPubSubProducer(ctx, "ingest-batch", bus.WithPubSubPublishSettings(pubsub.PublishSettings{EnableCompression: true}))
-		if err != nil {
-			log.Printf("failed to create Pub/Sub producer: %v\n", err)
-		} else {
-			busProducer = p
+		var batchSize = 20
+		ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
+		if ingestBatchSize != "" {
+			batchSize, err = strconv.Atoi(ingestBatchSize)
+			if err != nil {
+				log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
+			}
+		}
+		log.Println("pub/sub batch Size:", batchSize)
+
+		subscription := os.Getenv("INGEST_PUBSUB_SUBSCRIPTION")
+		log.Println("pub/sub subscription name:", subscription)
+
+		pullEnabled := os.Getenv("INGEST_PUBSUB_PUSH_ENABLED") != "true"
+		log.Println("pub/sub pull enabled:", pullEnabled)
+
+		if subscription != "" && pullEnabled {
+			consumer, err := bus.NewPubSubConsumer(
+				context.Background(),
+				subscription,
+				bus.WithPubSubReceiveSettings(pubsub.ReceiveSettings{MaxOutstandingMessages: batchSize}),
+			)
+			if err != nil {
+				log.Printf("failed to create Pub/Sub consumer: %v\n", err)
+			} else {
+				Server.BusConsumer = consumer
+			}
 		}
 	} else {
-		p, err := bus.NewIggyProducer(
+		var batchSize = 500
+		ingestBatchSize := os.Getenv("INGEST_BATCH_SIZE")
+		if ingestBatchSize != "" {
+			batchSize, err = strconv.Atoi(ingestBatchSize)
+			if err != nil {
+				log.Printf("failed to parse INGEST_BATCH_SIZE: %v\n", err)
+			}
+		}
+		log.Println("iggy batch size:", batchSize)
+
+		pollInterval := 30 * time.Second
+		ingestPollInterval := os.Getenv("INGEST_POLL_INTERVAL")
+		if ingestPollInterval != "" {
+			pollInterval, err = time.ParseDuration(ingestPollInterval)
+			if err != nil {
+				log.Printf("failed to parse INGEST_POLL_INTERVAL: %v\n", err)
+			}
+		}
+		log.Printf("iggy poll interval: %v\n", pollInterval)
+
+		consumer, err := bus.NewIggyGroupConsumer(
 			config.IG.Addr,
 			config.IG.Username,
 			config.IG.Password,
-			"ingest-service",
-			"measure",
-			"ingest-batch",
+			"ingest-batch-consumer",
+			bus.DefaultStreamName,
+			ingest.IngestBatchTopic,
+			bus.WithIggyBatchSize(batchSize),
+			bus.WithIggyPollInterval(pollInterval),
 		)
 		if err != nil {
-			log.Printf("failed to create Iggy producer: %v\n", err)
+			log.Printf("failed to create Iggy consumer: %v\n", err)
 		} else {
-			busProducer = p
+			Server.BusConsumer = consumer
 		}
-	}
-
-	Server = &server{
-		PgPool:      pgPool,
-		ChPool:      chPool,
-		Config:      config,
-		VK:          vkClient,
-		BusProducer: busProducer,
 	}
 }
 
