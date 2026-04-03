@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.10.0] - 2026-04-03
+
+### :bug: Bug fixes
+
+
+- (**ios**): Send proper symbol address (#3389)
+- (**ios**): Use dispatch queues to track http events (#3384)
+
+### :hammer: Misc
+
+
+- (**ios**): Send attachment size in the event payload (#3355)
+- (**ios**): Update sdk integration docs (#3341)
+- (**ios**): Use correct session start time (#3339)
+- (**ios**): Use core data to save gzip data (#3331)
+- (**ios**): Add correct url host to http events (#3330)
+
+### :sparkles: New features
+
+
+- (**ios**): Implement improved layout snapshots (#3327)
+- (**ios**): Integrate kscrash (#3255)
+
 ## [ios-v0.9.2] - 2026-03-05
 
 ### :bug: Bug fixes
@@ -15,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.9.2 (#3264)
 - (**ios**): Delete expired attachments on cleanup (#3262)
 - (**ios**): Add session start timestamp to attributes (#3250)
 - (**ios**): Add http_sampling_rate dynamic config (#3231)
@@ -360,6 +384,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.10.0]: https://github.com///compare/ios-v0.9.2..ios-v0.10.0
 [ios-v0.9.2]: https://github.com///compare/ios-v0.9.1..ios-v0.9.2
 [ios-v0.9.1]: https://github.com///compare/ios-v0.9.0..ios-v0.9.1
 [ios-v0.9.0]: https://github.com///compare/ios-v0.8.1..ios-v0.9.0
