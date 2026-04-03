@@ -726,7 +726,7 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af
 		stmt.Offset(uint64(af.Offset))
 	}
 
-	stmt.OrderBy("timestamp")
+	stmt.OrderBy("timestamp desc")
 
 	defer stmt.Close()
 
@@ -1313,7 +1313,7 @@ func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filt
 		stmt.Offset(uint64(af.Offset))
 	}
 
-	stmt.OrderBy("timestamp")
+	stmt.OrderBy("timestamp desc")
 
 	defer stmt.Close()
 
