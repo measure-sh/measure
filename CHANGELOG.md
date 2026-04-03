@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add workflow for ingest-worker (#3395) by @detj in #3395
 - (**backend**): Update ingest-worker go dependencies (#3394) by @detj in #3394
 - (**backend**): Introduce event driven ingestion pipeline via iggy & pub/sub (#3314) by @detj in #3314
 - (**backend**): Use attachment size from SDK when available by @anupcowkur in #3385
