@@ -36,7 +36,7 @@ export function CookieBanner() {
             <p>
               We use cookies to understand how you use the product and help us improve it. To learn
               more, please see our{" "}
-              <Link target="_blank" className={underlineLinkStyle} href="/privacy_policy">
+              <Link target="_blank" className={underlineLinkStyle} href="/privacy-policy">
                 privacy policy
               </Link>
               .

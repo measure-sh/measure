@@ -78,6 +78,37 @@ describe('CookieBanner', () => {
         expect(screen.getByRole('button', { name: /accept essential/i })).toBeInTheDocument()
     })
 
+    it('renders the full descriptive text', () => {
+        mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
+
+        render(<CookieBanner />)
+
+        expect(screen.getByText(/we use cookies to understand how you use the product and help us improve it/i)).toBeInTheDocument()
+    })
+
+    it('renders privacy policy link with correct href and target', () => {
+        mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
+
+        render(<CookieBanner />)
+
+        const link = screen.getByRole('link', { name: /privacy policy/i })
+        expect(link).toBeInTheDocument()
+        expect(link).toHaveAttribute('href', '/privacy-policy')
+        expect(link).toHaveAttribute('target', '_blank')
+    })
+
+    it('renders both Accept All and Accept Essential buttons', () => {
+        mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
+
+        render(<CookieBanner />)
+
+        const acceptAllButton = screen.getByRole('button', { name: /accept all/i })
+        const acceptEssentialButton = screen.getByRole('button', { name: /accept essential/i })
+
+        expect(acceptAllButton).toBeInTheDocument()
+        expect(acceptEssentialButton).toBeInTheDocument()
+    })
+
     it('calls opt_in_capturing and hides banner when Accept All is clicked', () => {
         mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
 
