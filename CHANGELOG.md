@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update production compose.yml (#3421) by @detj in #3421
 - (**backend**): Update all workflow dependencies (#3420) by @detj in #3420
 - (**backend**): Modify validation of ingest batch size (#3415) by @detj in #3415
 - (**backend**): Update root go work (#3412) by @detj in #3412
