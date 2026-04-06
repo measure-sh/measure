@@ -176,6 +176,14 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             logger.setLogCallback { logLevel, message, error in
                 logWriter.writeLog(level: logLevel, message: message, error: error)
             }
+
+            DispatchQueue.main.async {
+                guard let window = UIWindow.keyWindow() else { return }
+                let gesture = UITapGestureRecognizer(target: self, action: #selector(self.handleDiagnosticExport))
+                gesture.numberOfTapsRequired = 2
+                gesture.numberOfTouchesRequired = 2
+                window.addGestureRecognizer(gesture)
+            }
         }
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
@@ -222,6 +230,29 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.exporter.export()
         }
     }
+
+    @objc private func handleDiagnosticExport() {
+        guard let rootViewController = UIWindow.keyWindow()?.rootViewController else { return }
+        guard let logsDir = systemFileManager.getSdkDebugLogsDirectory() else { return }
+
+        let files: [URL]
+        do {
+            files = try FileManager.default.contentsOfDirectory(at: logsDir,
+                                                                includingPropertiesForKeys: nil)
+        } catch {
+            logger.log(level: .error, message: "MeasureInternal: Failed to read SDK log files", error: error, data: nil)
+            return
+        }
+
+        guard !files.isEmpty else {
+            logger.log(level: .debug, message: "MeasureInternal: No SDK log files to export", error: nil, data: nil)
+            return
+        }
+
+        let activityVC = UIActivityViewController(activityItems: files, applicationActivities: nil)
+        rootViewController.present(activityVC, animated: true)
+    }
+
 
     func start() {
         guard !isStarted else { return }
