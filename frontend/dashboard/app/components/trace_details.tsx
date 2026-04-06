@@ -9,6 +9,7 @@ import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "
 import { DateTime } from 'luxon'
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import Pill from "./pill"
 
 const demoTimelineLastEventTime = DateTime.now().toUTC()
 const demoTrace = {
@@ -130,20 +131,21 @@ export default function TraceDetails({ params = { teamId: 'demo-team-id', appId:
 
             {traceApiStatus === TraceApiStatus.Success &&
                 <div className="w-full">
-                    <p className="font-body"> User ID: {trace.user_id !== "" ? trace.user_id : "N/A"}</p>
-                    <p className="font-body"> Start Time: {formatDateToHumanReadableDateTime(trace.start_time)}</p>
-                    <p className="font-body"> Duration: {formatMillisToHumanReadable(trace.duration)}</p>
-                    <p className="font-body"> Device: {trace.device_manufacturer + trace.device_model}</p>
-                    <p className="font-body"> App version: {trace.app_version}</p>
-                    <p className="font-body"> Network type: {trace.network_type}</p>
+                    <div className="flex flex-wrap gap-2 py-2 pb-8 items-center">
+                        <Pill title={`User ID: ${trace.user_id !== "" ? trace.user_id : "N/A"}`} />
+                        <Pill title={`Start Time: ${formatDateToHumanReadableDateTime(trace.start_time)}`} />
+                        <Pill title={`Duration: ${formatMillisToHumanReadable(trace.duration)}`} />
+                        <Pill title={`Device: ${trace.device_manufacturer + trace.device_model}`} />
+                        <Pill title={`App version: ${trace.app_version}`} />
+                        <Pill title={`Network type: ${trace.network_type}`} />
+                    </div>
+                    <TraceViz inputTrace={trace} />
                     <div className="py-4" />
                     {demo ? (
                         <div className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>View Session Timeline</div>
                     ) : (
                         <Link href={`/${params.teamId}/session_timelines/${params.appId}/${trace.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>View Session Timeline</Link>
                     )}
-                    <div className="py-4" />
-                    <TraceViz inputTrace={trace} />
                 </div>}
         </div>
 

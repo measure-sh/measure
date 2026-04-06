@@ -5,11 +5,12 @@ import { DateTime, Duration } from 'luxon'
 import React, { useEffect, useRef, useState } from 'react'
 import { emptySessionTimeline } from '../api/api_calls'
 import { kilobytesToMegabytes } from '../utils/number_utils'
-import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
+import { formatChartFormatTimestampToHumanReadable, formatMillisToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
 import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 
 import { useTheme } from 'next-themes'
 import { useScrollStop } from '../utils/scroll_utils'
+import Pill from './pill'
 import SessionTimelineEventCell from './session_timeline_event_cell'
 import SessionTimelineEventDetails from './session_timeline_event_details'
 import SessionTimelineSeekBar from './session_timeline_seekbar'
@@ -569,9 +570,16 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId = 'demo-team',
       {demo && !hideDemoTitle &&
         <>
           <p className="font-display text-4xl max-w-6xl text-start">Session Timeline</p>
-          <div className="py-4" />
+          <div className="py-2" />
         </>
       }
+      <div className="flex flex-wrap gap-2 py-2 pb-8 items-center">
+        <Pill title={`User ID: ${sessionTimeline.attribute.user_id !== "" ? sessionTimeline.attribute.user_id : "N/A"}`} />
+        <Pill title={`Duration: ${formatMillisToHumanReadable(sessionTimeline.duration as unknown as number)}`} />
+        <Pill title={`Device: ${sessionTimeline.attribute.device_manufacturer + sessionTimeline.attribute.device_model}`} />
+        <Pill title={`App version: ${sessionTimeline.attribute.app_version} (${sessionTimeline.attribute.app_build})`} />
+        <Pill title={`Network type: ${sessionTimeline.attribute.network_type}`} />
+      </div>
       {/* Graphs container */}
       {(cpuData != null || memoryData != null || memoryAbsData != null) &&
         <div className="relative"
