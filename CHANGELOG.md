@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Handle lost valkey connection while fetching sdk config (#3417) by @detj in #3417
 - (**backend**): Panic when dart exceptions is missing (#3414) by @detj in #3414
 - (**backend**): Order crash/ANR details by descending timestamp by @anupcowkur in #3393
 - (**backend**): Prevent SSRF in proxy attachment and symbol endpoints by @anupcowkur in #3390
