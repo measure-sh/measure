@@ -31,7 +31,7 @@ import (
 
 // maxBatchSize is the maximum allowed payload
 // size of event request in bytes.
-var maxBatchSize = 20 * 1024 * 1024
+var maxBatchSize = 10 * 1024 * 1024
 
 var ingestBatchPublishCount metric.Int64Counter
 
