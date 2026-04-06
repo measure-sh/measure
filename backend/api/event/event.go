@@ -1280,7 +1280,9 @@ func (e EventField) NeedsSymbolication() (result bool) {
 			}
 			result = false
 		case FrameworkDart:
-			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
+			// Only consider when at least 1 exception &
+			// 1 frame is present.
+			if e.Exception.HasExceptions() && len(e.Exception.Exceptions[0].Frames) > 0 && e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
 				result = true
 			}
 		}
@@ -1387,6 +1389,10 @@ func (e Exception) HasNoFrames() bool {
 		}
 		return len(e.Exceptions[0].Frames) == 0
 	case FrameworkDart:
+		// For some cases, exceptions may not be present
+		if !e.HasExceptions() {
+			return true
+		}
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
