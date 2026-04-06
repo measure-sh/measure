@@ -79,6 +79,8 @@ jobs:
         with:
           context: frontend/dashboard
           file: frontend/dashboard/dockerfile
+          build-contexts: |
+            docs=docs
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
