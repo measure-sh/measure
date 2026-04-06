@@ -153,6 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#3020) by @dependabot[bot] in #3020
 - (**deps**): Bump golang.org/x/crypto in /backend/metering (#3019) by @dependabot[bot] in #3019
 - (**deps**): Bump golang.org/x/crypto in /backend/symboloader (#3018) by @dependabot[bot] in #3018
+- (**frontend**): Display kv pairs as pills by @anupcowkur in #3418
 - (**frontend**): Refactor pricing calculator & add tests by @anupcowkur in #3386
 - (**frontend**): Add stripe portal link in usage page by @anupcowkur in #3382
 - (**frontend**): Update landing page logos & display by @anupcowkur in #3377
