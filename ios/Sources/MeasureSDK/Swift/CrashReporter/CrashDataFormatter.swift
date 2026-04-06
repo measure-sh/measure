@@ -10,6 +10,7 @@ import Foundation
 /// Formats a `CrashReport` into `Exception` model.
 final class CrashDataFormatter {
     private let report: [String: Any]
+    private let sysCtl: SysCtl
     private var isLp64 = true
     private var executableName: String?
 
@@ -19,8 +20,9 @@ final class CrashDataFormatter {
     private var binaryImageDicts: [[String: Any]] { report["binary_images"] as? [[String: Any]] ?? [] }
     private var systemDict: [String: Any]    { report["system"]         as? [String: Any]    ?? [:] }
 
-    init(_ report: [String: Any]) {
+    init(_ report: [String: Any], sysCtl: SysCtl) {
         self.report = report
+        self.sysCtl = sysCtl
         self.executableName = Bundle.main.object(forInfoDictionaryKey: "CFBundleExecutable") as? String
         self.isLp64 = resolveIsLp64(binaryImageDicts: binaryImageDicts)
     }
@@ -63,7 +65,7 @@ final class CrashDataFormatter {
             signal:         parseSignalName(),
             threadName:     crashedThread?.name,
             threadSequence: crashedThread?.sequence ?? 0,
-            osBuildNumber:  parseOsBuildNumber()
+            osBuildNumber:  sysCtl.getOsBuildNumber()
         )
     }
 
@@ -86,10 +88,6 @@ final class CrashDataFormatter {
 
     func parseSignalName() -> String {
         return (errorDict["signal"] as? [String: Any])?["name"] as? String ?? ""
-    }
-
-    func parseOsBuildNumber() -> String {
-        return systemDict["os_version"] as? String ?? ""
     }
 
     func parseForeground() -> Bool? {
