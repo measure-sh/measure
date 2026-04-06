@@ -110,6 +110,9 @@ jobs:
         with:
           context: backend/metering
           file: backend/metering/dockerfile
+          build-contexts: |
+            email=backend/email
+            billing=backend/billing
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
