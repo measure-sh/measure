@@ -108,6 +108,8 @@ func (m *cacheMetrics) RecordMiss(ctx context.Context) {
 	))
 }
 
+// createDefaultConfig returns an SdkConfig populated
+// with sensible defaults for new apps.
 func createDefaultConfig() SdkConfig {
 	return SdkConfig{
 		MaxEventsInBatch:          10000,
@@ -140,6 +142,8 @@ func computeETag(data []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// getConfigETag fetches the cached ETag for an app's
+// SDK config from Valkey.
 func getConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
 	key := configCacheKey(appID)
 	cmd := vk.B().Hget().Key(key).Field("etag").Build()
@@ -152,6 +156,8 @@ func getConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (stri
 	return str, nil
 }
 
+// getConfigData fetches the cached JSON SDK config
+// for an app from Valkey.
 func getConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
 	key := configCacheKey(appID)
 	cmd := vk.B().Hget().Key(key).Field("data").Build()
@@ -164,6 +170,8 @@ func getConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (stri
 	return str, nil
 }
 
+// setCacheWithETag stores the JSON SDK config and its
+// computed ETag in Valkey as a hash.
 func setCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) (string, error) {
 	key := configCacheKey(appID)
 	etag := computeETag(jsonConfig)
@@ -180,6 +188,8 @@ func setCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, js
 	return etag, nil
 }
 
+// getConfigFromDb fetches the SDK config for an app
+// directly from PostgreSQL.
 func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 	q := sqlf.PostgreSQL.
 		Select("max_events_in_batch").
@@ -237,6 +247,8 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 	return &sdkConfig, nil
 }
 
+// invalidateCache deletes the cached SDK config for
+// an app from Valkey. No-ops if vk is nil.
 func invalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) error {
 	if vk == nil {
 		return nil
@@ -249,10 +261,41 @@ func invalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) err
 	return result.Error()
 }
 
-// GetConfigForSdk retrieves the SDK
-// config for the app.
-// It uses the redis cache and falls back
-// to the database if needed.
+// serveConfigFromDb fetches the SDK config from PostgreSQL,
+// populates the Valkey cache if vk is available, and writes
+// the JSON response.
+func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk valkey.Client) {
+	sdkConfig, err := getConfigFromDb(ctx, appId)
+	if err != nil {
+		msg := `error fetching SDK config`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	jsonConfig, err := json.Marshal(sdkConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error marshaling config"})
+		return
+	}
+
+	var etag string
+	if vk != nil {
+		etag, err = setCacheWithETag(ctx, vk, appId, jsonConfig)
+		if err != nil {
+			fmt.Println("error setting cache with ETag:", err)
+		}
+	}
+
+	c.Header(cacheControlHeader, cacheControlValue)
+	c.Header("ETag", etag)
+	c.Data(http.StatusOK, "application/json", jsonConfig)
+}
+
+// GetConfigForSdk retrieves the SDK config for the app.
+// It serves from the Valkey cache when available, falling
+// back to PostgreSQL on cache miss or when Valkey is
+// unavailable.
 func GetConfigForSdk(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
@@ -273,8 +316,15 @@ func GetConfigForSdk(c *gin.Context) {
 	}
 
 	clientETag := c.GetHeader("If-None-Match")
+	vk := server.Server.VK
 
-	cachedETag, err := getConfigETag(ctx, server.Server.VK, appId)
+	if vk == nil {
+		fmt.Println("valkey client not available, skipping cache")
+		serveConfigFromDb(c, ctx, appId, nil)
+		return
+	}
+
+	cachedETag, err := getConfigETag(ctx, vk, appId)
 	if err == nil && cachedETag != "" {
 		if cachedETag == clientETag {
 			fmt.Println("sdk config cache hit (etag match)")
@@ -285,7 +335,7 @@ func GetConfigForSdk(c *gin.Context) {
 			return
 		}
 
-		data, err := getConfigData(ctx, server.Server.VK, appId)
+		data, err := getConfigData(ctx, vk, appId)
 		if err == nil && data != "" {
 			fmt.Println("sdk config cache hit")
 			sdkConfigCache.RecordHitData(ctx)
@@ -298,27 +348,5 @@ func GetConfigForSdk(c *gin.Context) {
 
 	fmt.Println("sdk config cache miss")
 	sdkConfigCache.RecordMiss(ctx)
-
-	sdkConfig, err := getConfigFromDb(ctx, appId)
-	if err != nil {
-		msg := `error fetching SDK config`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	jsonConfig, err := json.Marshal(sdkConfig)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error marshaling config"})
-		return
-	}
-
-	etag, err := setCacheWithETag(ctx, server.Server.VK, appId, jsonConfig)
-	if err != nil {
-		fmt.Println("error setting cache with ETag:", err)
-	}
-
-	c.Header(cacheControlHeader, cacheControlValue)
-	c.Header("ETag", etag)
-	c.Data(http.StatusOK, "application/json", jsonConfig)
+	serveConfigFromDb(c, ctx, appId, vk)
 }
