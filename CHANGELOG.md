@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update all workflow dependencies (#3420) by @detj in #3420
 - (**backend**): Modify validation of ingest batch size (#3415) by @detj in #3415
 - (**backend**): Update root go work (#3412) by @detj in #3412
 - (**backend**): Remove unknown file (#3403) by @detj in #3403
@@ -194,6 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update v0.10.x migration guide (#3419) by @detj in #3419
 - Update billing flow diagram to include env var by @anupcowkur in #3176
 - Add upgrade docs for sdks (#3142) by @abhaysood in #3142
 - Update sdk integration guide (#3109) by @abhaysood in #3109
