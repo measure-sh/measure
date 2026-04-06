@@ -14,12 +14,12 @@ import {
   AppsApiStatus,
   AppVersion,
   BugReportStatus,
-  HttpMethod,
   fetchAppsFromServer,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
   FiltersApiStatus,
   FilterSource,
+  HttpMethod,
   OsVersion,
   RootSpanNamesApiStatus,
   SessionType,
@@ -34,9 +34,9 @@ import {
 } from "../utils/time_utils"
 import DebounceTextInput from "./debounce_text_input"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
-import FilterPill from "./filter_pill"
 import { Input } from "./input"
 import LoadingSpinner from "./loading_spinner"
+import Pill from "./pill"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
 
 export enum AppVersionsInitialSelectionType {
@@ -1650,88 +1650,88 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
               <div className="py-4" />
               <div className="flex flex-wrap gap-2 items-center">
                 {filterSource === FilterSource.Spans && (
-                  <FilterPill title={selectedRootSpanName} />
+                  <Pill title={selectedRootSpanName} />
                 )}
                 {showDates && (
-                  <FilterPill
+                  <Pill
                     title={`${formatDateToHumanReadableDateTime(selectedStartDate)} to ${formatDateToHumanReadableDateTime(selectedEndDate)}`}
                   />
                 )}
                 {showAppVersions && selectedVersions.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedVersions)
                       .map((v) => v.displayName)
                       .join(", ")}
                   />
                 )}
                 {showSessionTypes && selectedSessionTypes.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedSessionTypes).join(", ")}
                   />
                 )}
                 {filterSource === FilterSource.Spans &&
                   selectedSpanStatuses.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedSpanStatuses).join(", ")}
                     />
                   )}
                 {showBugReportStatus &&
                   selectedBugReportStatuses.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedBugReportStatuses).join(", ")}
                     />
                   )}
                 {showHttpMethods &&
                   selectedHttpMethods.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedHttpMethods).map((m) => m.toUpperCase()).join(", ")}
                     />
                   )}
                 {showOsVersions && selectedOsVersions.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedOsVersions)
                       .map((v) => v.displayName)
                       .join(", ")}
                   />
                 )}
                 {showCountries && selectedCountries.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedCountries).join(", ")}
                   />
                 )}
                 {showNetworkProviders &&
                   selectedNetworkProviders.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedNetworkProviders).join(", ")}
                     />
                   )}
                 {showNetworkTypes && selectedNetworkTypes.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedNetworkTypes).join(", ")}
                   />
                 )}
                 {showNetworkGenerations &&
                   selectedNetworkGenerations.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedNetworkGenerations).join(", ")}
                     />
                   )}
                 {showLocales && selectedLocales.length > 0 && (
-                  <FilterPill title={Array.from(selectedLocales).join(", ")} />
+                  <Pill title={Array.from(selectedLocales).join(", ")} />
                 )}
                 {showDeviceManufacturers &&
                   selectedDeviceManufacturers.length > 0 && (
-                    <FilterPill
+                    <Pill
                       title={Array.from(selectedDeviceManufacturers).join(", ")}
                     />
                   )}
                 {showDeviceNames && selectedDeviceNames.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={Array.from(selectedDeviceNames).join(", ")}
                   />
                 )}
                 {showUdAttrs && selectedUdAttrMatchers.length > 0 && (
-                  <FilterPill
+                  <Pill
                     title={selectedUdAttrMatchers
                       .map(
                         (matcher) =>
@@ -1741,7 +1741,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   />
                 )}
                 {showFreeText && selectedFreeText !== "" && (
-                  <FilterPill title={"Search Text: " + selectedFreeText} />
+                  <Pill title={"Search Text: " + selectedFreeText} />
                 )}
               </div>
             </div>

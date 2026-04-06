@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`FilterPill renders correctly 1`] = `
+exports[`Pill renders correctly 1`] = `
 {
   "asFragment": [Function],
   "baseElement": <body>

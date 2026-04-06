@@ -10,6 +10,7 @@ import { DateTime } from 'luxon'
 import Image from 'next/image'
 import Link from "next/link"
 import { FormEventHandler, useEffect, useState } from "react"
+import Pill from "./pill"
 
 const demoBugReport = {
     session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
@@ -141,22 +142,21 @@ export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'd
 
             {bugReportApiStatus === BugReportApiStatus.Success &&
                 <div>
-                    <p className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${bugReport.status === 0 ? 'border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background' : 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
-                    <div className="py-2" />
-                    <p className="font-body"> User ID: {bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}</p>
-                    <p className="font-body"> Time: {formatDateToHumanReadableDateTime(bugReport.timestamp)}</p>
-                    <p className="font-body"> Device: {bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}</p>
-                    <p className="font-body"> App version: {bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
-                    <p className="font-body"> Network type: {bugReport.attribute.network_type}</p>
-                    {bugReport.user_defined_attribute !== undefined && bugReport.user_defined_attribute !== null && (
-                        <div key="user_defined_attribute">
-                            {Object.entries(bugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
-                                <p key={attrKey + ":" + attrValue} className="font-body"> {attrKey}: {attrValue?.toString()}</p>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="py-6" />
+                    <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
+                        <p className={`w-fit px-2 py-1 rounded-full border text-xs font-body ${bugReport.status === 0 ? 'border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background' : 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
+                        <Pill title={`User ID: ${bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}`} />
+                        <Pill title={`Time: ${formatDateToHumanReadableDateTime(bugReport.timestamp)}`} />
+                        <Pill title={`Device: ${bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}`} />
+                        <Pill title={`App version: ${bugReport.attribute.app_version} (${bugReport.attribute.app_build})`} />
+                        <Pill title={`Network type: ${bugReport.attribute.network_type}`} />
+                        {bugReport.user_defined_attribute !== undefined && bugReport.user_defined_attribute !== null && (
+                            <>
+                                {Object.entries(bugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
+                                    <Pill key={`${attrKey}-${attrValue?.toString()}}`} title={`${attrKey}: ${attrValue?.toString()}`} />
+                                ))}
+                            </>
+                        )}
+                    </div>
                     {bugReport.description && <p className="font-body text-lg">{bugReport.description}</p>}
                     <div className="py-8" />
                     <div className="flex flex-row">

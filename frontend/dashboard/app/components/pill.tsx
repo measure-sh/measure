@@ -2,13 +2,13 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
 
-interface FilterPillProps {
+interface PillProps {
   title: string,
 }
 
 const tooltipChars = 1000
 
-const FilterPill: React.FC<FilterPillProps> = ({ title }) => {
+const Pill: React.FC<PillProps> = ({ title }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -23,4 +23,4 @@ const FilterPill: React.FC<FilterPillProps> = ({ title }) => {
   );
 };
 
-export default FilterPill
+export default Pill
