@@ -177,12 +177,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                 logWriter.writeLog(level: logLevel, message: message, error: error)
             }
 
-            DispatchQueue.main.async {
-                guard let window = UIWindow.keyWindow() else { return }
-                let gesture = UITapGestureRecognizer(target: self, action: #selector(self.handleDiagnosticExport))
-                gesture.numberOfTapsRequired = 2
-                gesture.numberOfTouchesRequired = 2
-                window.addGestureRecognizer(gesture)
+            if configProvider.enableDiagnosticModeDoubleTapGesture {
+                enableDoubleTapGesture()
             }
         }
         self.sessionManager.start()
@@ -228,6 +224,16 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         group.notify(queue: .main) { [weak self] in
             guard let self else { return }
             self.exporter.export()
+        }
+    }
+
+    private func enableDoubleTapGesture() {
+        DispatchQueue.main.async {
+            guard let window = UIWindow.keyWindow() else { return }
+            let gesture = UITapGestureRecognizer(target: self, action: #selector(self.handleDiagnosticExport))
+            gesture.numberOfTapsRequired = 2
+            gesture.numberOfTouchesRequired = 2
+            window.addGestureRecognizer(gesture)
         }
     }
 

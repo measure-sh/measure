@@ -59,13 +59,19 @@ NS_ASSUME_NONNULL_BEGIN
 /// Defaults to `false`.
 @property (nonatomic) BOOL enableDiagnosticMode;
 
+/// Enable double finger double tap gesture to export SDK logs via share sheet.
+/// This functionality is only available if `enableDiagnosticMode` is set to `true`.
+/// Defaults to `false`.
+@property (nonatomic) BOOL enableDiagnosticModeDoubleTapGesture;
+
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
-                           autoStart:(BOOL)autoStart
+                            autoStart:(BOOL)autoStart
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
-             requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
-                 maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
-                 enableDiagnosticMode:(BOOL)enableDiagnosticMode NS_DESIGNATED_INITIALIZER;
+               requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
+                     maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
+ enableDiagnosticModeDoubleTapGesture:(BOOL)enableDiagnosticModeDoubleTapGesture NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
 

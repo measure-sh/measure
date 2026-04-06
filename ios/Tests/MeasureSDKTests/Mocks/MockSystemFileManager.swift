@@ -13,6 +13,8 @@ final class MockSystemFileManager: SystemFileManager {
     var directoryPath: String?
     var dynamicConfigPath: String?
     var savedFiles: [String: Data] = [:]
+    var sdkDebugLogsDirectory: URL?
+    var logFile: URL?
     
     func getCrashFilePath() -> URL? {
         return crashFilePath
@@ -53,5 +55,13 @@ final class MockSystemFileManager: SystemFileManager {
                 savedFiles.removeValue(forKey: path)
             }
         }
+    }
+
+    func getSdkDebugLogsDirectory() -> URL? {
+        return sdkDebugLogsDirectory
+    }
+    
+    func getLogFile(_ fileId: String) -> URL? {
+        return logFile
     }
 }

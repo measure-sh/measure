@@ -84,6 +84,7 @@ final class BaseConfigProvider: ConfigProvider {
     var requestHeadersProvider: MsrRequestHeadersProvider? { defaultConfig.requestHeadersProvider }
     var maxDiskUsageInMb: Number { defaultConfig.maxDiskUsageInMb }
     var enableDiagnosticMode: Bool { defaultConfig.enableDiagnosticMode }
+    var enableDiagnosticModeDoubleTapGesture: Bool { defaultConfig.enableDiagnosticModeDoubleTapGesture }
 
     // InternalConfig
 

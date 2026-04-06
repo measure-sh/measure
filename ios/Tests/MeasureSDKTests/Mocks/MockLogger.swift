@@ -13,6 +13,7 @@ final class MockLogger: Logger {
     var logs = [String]()
     var onLog: ((LogLevel, String, (any Error)?, Encodable?) -> Void)?
     var onInternalLog: ((LogLevel, String, (any Error)?, Encodable?) -> Void)?
+    var logCallback: ((LogLevel, String, (any Error)?) -> Void)?
 
     func log(level: LogLevel, message: String, error: (any Error)?, data: Encodable?) {
         onLog?(level, message, error, data)
@@ -26,5 +27,9 @@ final class MockLogger: Logger {
         print("---------------------------------------------------------------------------")
         print("InternalLog: level \(level) message \(message) error \(String(describing: error)) data \(data ?? "")")
         logs.append(message)
+    }
+
+    func setLogCallback(_ callback: ((LogLevel, String, (any Error)?) -> Void)?) {
+        logCallback = callback
     }
 }

@@ -14,7 +14,8 @@
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
                requestHeadersProvider:(id<MsrRequestHeadersProvider>)requestHeadersProvider
                      maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
-                 enableDiagnosticMode:(BOOL)enableDiagnosticMode {
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
+ enableDiagnosticModeDoubleTapGesture:(BOOL)enableDiagnosticModeDoubleTapGesture{
     
     self = [super init];
     if (self) {
@@ -24,6 +25,7 @@
         _requestHeadersProvider = requestHeadersProvider;
         _maxDiskUsageInMb = maxDiskUsageInMb;
         _enableDiagnosticMode = enableDiagnosticMode;
+        _enableDiagnosticModeDoubleTapGesture = enableDiagnosticModeDoubleTapGesture;
     }
     return self;
 }

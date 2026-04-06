@@ -29,7 +29,8 @@
                                                 requestHeadersProvider:config.requestHeadersProvider
                                                       maxDiskUsageInMb:config.maxDiskUsageInMb
                                               enableFullCollectionMode:config.enableFullCollectionMode
-                                                  enableDiagnosticMode:config.enableDiagnosticMode];
+                                                  enableDiagnosticMode:config.enableDiagnosticMode
+                                  enableDiagnosticModeDoubleTapGesture:config.enableDiagnosticModeDoubleTapGesture];
     }
 
     [Measure initializeWith:client config:swiftConfig];
