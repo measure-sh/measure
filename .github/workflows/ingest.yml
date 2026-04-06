@@ -113,6 +113,7 @@ jobs:
           context: backend/ingest
           file: backend/ingest/dockerfile
           build-contexts: |
+            libs=backend/libs
             api=backend/api
             email=backend/email
             billing=backend/billing

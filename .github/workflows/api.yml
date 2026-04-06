@@ -110,6 +110,10 @@ jobs:
         with:
           context: backend/api
           file: backend/api/dockerfile
+          build-contexts: |
+            libs=backend/libs
+            email=backend/email
+            billing=backend/billing
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

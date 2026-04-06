@@ -110,6 +110,9 @@ jobs:
         with:
           context: backend/alerts
           file: backend/alerts/dockerfile
+          build-contexts: |
+            libs=backend/libs
+            email=backend/email
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
