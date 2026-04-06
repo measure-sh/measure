@@ -57,7 +57,11 @@ Starting with `v0.10.x`, Google sign-in uses a server-side code flow that requir
     OAUTH_GOOGLE_SECRET=your-google-client-secret  # change this
     ```
 
-## 4. Migrate configurations
+## 4. Set up an ingest endopint
+
+Set up a new DNS A record for the new ingest endpoint like: `https://measure-ingest.yourcompany.com` pointing to your VM's IP. This step is new and recommended to ensure the best possible ingestion performance. Make sure to also update this endpoint as the `API_URL` in your apps. All the app versions prior to this change will continue to ingest as well.
+
+## 5. Migrate configurations
 
 ```sh
 cd ~/measure/self-host
@@ -67,13 +71,17 @@ cd ~/measure/self-host
 sudo ./config.sh --production --ensure
 ```
 
-## 5. Start Measure services
+You'll be prompted to enter the ingest endpoint you created in step 4 above. Should look like below:
+
+<img width="792" height="98" alt="Image" src="https://github.com/user-attachments/assets/247a075a-4da5-4967-8a6f-3dac1e28c670" />
+
+## 6. Start Measure services
 
 ```sh
 sudo ./install.sh
 ```
 
-## 6. Run data back filling script
+## 7. Run data back filling script
 
 Perform this step to complete the migration. Measure dashboard will not work properly until these scripts are run.
 
