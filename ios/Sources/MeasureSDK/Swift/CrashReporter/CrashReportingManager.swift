@@ -19,6 +19,7 @@ final class BaseCrashReportingManager: CrashReportManager {
     private let crashDataPersistence: CrashDataPersistence
     private let systemFileManager: SystemFileManager
     private let idProvider: IdProvider
+    private let sysCtl: SysCtl
     private let configProvider: ConfigProvider
     private var isEnabled = AtomicBool(false)
     let hasPendingCrashReport: Bool
@@ -29,6 +30,7 @@ final class BaseCrashReportingManager: CrashReportManager {
          crashReporter: SystemCrashReporter,
          systemFileManager: SystemFileManager,
          idProvider: IdProvider,
+         sysCtl: SysCtl,
          configProvider: ConfigProvider) {
         self.logger = logger
         self.signalProcessor = signalProcessor
@@ -37,6 +39,7 @@ final class BaseCrashReportingManager: CrashReportManager {
         self.hasPendingCrashReport = crashReporter.hasPendingCrashReport
         self.systemFileManager = systemFileManager
         self.idProvider = idProvider
+        self.sysCtl = sysCtl
         self.configProvider = configProvider
     }
 
@@ -77,7 +80,7 @@ final class BaseCrashReportingManager: CrashReportManager {
     private func processCrashReport() -> (exception: Exception?, date: Date?) {
         do {
             let reportDict = try crashReporter.loadCrashReport()
-            let formatter  = CrashDataFormatter(reportDict)
+            let formatter  = CrashDataFormatter(reportDict, sysCtl: sysCtl)
             let exception  = formatter.getException()
 
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval

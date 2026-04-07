@@ -321,12 +321,14 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    exporter: exporter)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger,
                                                            crashDataPersistence: crashDataPersistence)
+        self.sysCtl = BaseSysCtl()
         self.crashReportManager = BaseCrashReportingManager(logger: logger,
                                                             signalProcessor: signalProcessor,
                                                             crashDataPersistence: crashDataPersistence,
                                                             crashReporter: systemCrashReporter,
                                                             systemFileManager: systemFileManager,
                                                             idProvider: idProvider,
+                                                            sysCtl: sysCtl,
                                                             configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
@@ -360,7 +362,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          signalSampler: signalSampler)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
-        self.sysCtl = BaseSysCtl()
         self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
                                                        configProvider: configProvider,
                                                        signalProcessor: signalProcessor,
@@ -398,7 +399,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              configProvider: configProvider,
                                                              attributeValueValidator: attributeValueValidator)
         self.exceptionGenerator = BaseExceptionGenerator(logger: logger,
-                                                         crashDataPersistence: crashDataPersistence)
+                                                         crashDataPersistence: crashDataPersistence,
+                                                         sysCtl: sysCtl)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,

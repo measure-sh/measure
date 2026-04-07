@@ -17,6 +17,7 @@ final class CrashReportingManagerTests: XCTestCase {
     var idProvider: MockIdProvider!
     var configProvider: MockConfigProvider!
     var crashReportingManager: BaseCrashReportingManager!
+    var sysCtl: MockSysCtl!
 
     override func setUp() {
         super.setUp()
@@ -31,6 +32,7 @@ final class CrashReportingManagerTests: XCTestCase {
         systemFileManager = MockSystemFileManager()
         idProvider = MockIdProvider()
         configProvider = MockConfigProvider()
+        sysCtl = MockSysCtl()
     }
 
     override func tearDown() {
@@ -42,6 +44,7 @@ final class CrashReportingManagerTests: XCTestCase {
         systemFileManager = nil
         idProvider = nil
         configProvider = nil
+        sysCtl = nil
         super.tearDown()
     }
 
@@ -219,6 +222,7 @@ final class CrashReportingManagerTests: XCTestCase {
                                                           crashReporter: reporter,
                                                           systemFileManager: systemFileManager,
                                                           idProvider: idProvider,
+                                                          sysCtl: sysCtl,
                                                           configProvider: configProvider)
         crashReportingManager.trackException {}
     }

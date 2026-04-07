@@ -14,6 +14,7 @@ final class MockSysCtl: SysCtl {
     var mockMaximumAvailableRam: UnsignedNumber = 0
     var processStartTime: UnsignedNumber = 0
     var systemBootTime: UnsignedNumber = 0
+    var osBuildNumber: String?
 
     func getCpuCores() -> UInt8 {
         return mockCpuCores
@@ -33,5 +34,9 @@ final class MockSysCtl: SysCtl {
 
     func getSystemBootTime() -> UnsignedNumber? {
         return systemBootTime
+    }
+
+    func getOsBuildNumber() -> String? {
+        return osBuildNumber
     }
 }
