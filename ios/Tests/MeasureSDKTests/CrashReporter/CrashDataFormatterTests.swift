@@ -28,7 +28,7 @@ final class CrashDataFormatterTests: XCTestCase {
                                binaryImages: [[String: Any]] = [],
                                system: [String: Any] = [:]) -> CrashDataFormatter {
         CrashDataFormatter(makeReport(error: error, threads: threads,
-                                      binaryImages: binaryImages, system: system))
+                                      binaryImages: binaryImages, system: system), sysCtl: MockSysCtl())
     }
 
     private func makeImage(addr: UInt64 = 0x1000,
@@ -132,16 +132,6 @@ final class CrashDataFormatterTests: XCTestCase {
     func test_parseSignalName_returnsEmptyStringWhenMissing() {
         let sut = makeFormatter()
         XCTAssertEqual(sut.parseSignalName(), "")
-    }
-
-    func test_parseOsBuildNumber_returnsOsVersion() {
-        let sut = makeFormatter(system: ["os_version": "iPhone OS 17.0 (21A329)"])
-        XCTAssertEqual(sut.parseOsBuildNumber(), "iPhone OS 17.0 (21A329)")
-    }
-
-    func test_parseOsBuildNumber_returnsEmptyStringWhenMissing() {
-        let sut = makeFormatter()
-        XCTAssertEqual(sut.parseOsBuildNumber(), "")
     }
 
     func test_parseForeground_returnsTrueWhenBoolTrue() {
