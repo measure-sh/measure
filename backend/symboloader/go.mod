@@ -1,6 +1,6 @@
 module symboloader
 
-go 1.25.7
+go 1.26
 
 require (
 	cloud.google.com/go/cloudsqlconn v1.20.2

@@ -1,6 +1,6 @@
 module backend/billing
 
-go 1.25.7
+go 1.26
 
 require (
 	backend/email v0.0.0
