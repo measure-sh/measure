@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
 
