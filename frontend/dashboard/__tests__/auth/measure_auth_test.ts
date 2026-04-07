@@ -13,7 +13,7 @@ if (typeof globalThis.Request === 'undefined' || !(globalThis.Request.prototype 
 // Mock posthog before importing the module under test
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { reset: jest.fn() },
+    default: { reset: jest.fn(), capture: jest.fn() },
 }))
 
 import posthog from 'posthog-js'
@@ -684,6 +684,136 @@ describe('MeasureAuth', () => {
             await expect(
                 auth.fetchMeasure('/api/test')
             ).rejects.toThrow('Failed to fetch')
+        })
+    })
+
+    describe('latency tracking', () => {
+        beforeEach(() => {
+            auth.init(mockRouter())
+            ;(posthog.capture as jest.Mock).mockClear()
+        })
+
+        it('captures api_call_completed with correct properties', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/api/apps/test')
+
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({
+                    endpoint: '/api/apps/test',
+                    method: 'GET',
+                    status_code: 200,
+                    success: true,
+                })
+            )
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({
+                    latency_ms: expect.any(Number),
+                })
+            )
+        })
+
+        it('captures correct method for POST requests', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/api/test', { method: 'POST' })
+
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({ method: 'POST' })
+            )
+        })
+
+        it('captures success: false for non-ok responses', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+
+            await auth.fetchMeasure('/api/test')
+
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({
+                    status_code: 500,
+                    success: false,
+                })
+            )
+        })
+
+        it('does not capture for /auth/refresh requests', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/auth/refresh')
+
+            expect(posthog.capture).not.toHaveBeenCalled()
+        })
+
+        it('captures retried: true on retry after token refresh', async () => {
+            // First call returns 401
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 401 })
+            // Refresh succeeds
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+            // Retry succeeds
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/api/test')
+
+            expect(posthog.capture).toHaveBeenCalledTimes(2)
+            // First capture: original 401
+            expect(posthog.capture).toHaveBeenNthCalledWith(
+                1,
+                'api_call_completed',
+                expect.objectContaining({
+                    status_code: 401,
+                    success: false,
+                })
+            )
+            // Second capture: retry with retried flag
+            expect(posthog.capture).toHaveBeenNthCalledWith(
+                2,
+                'api_call_completed',
+                expect.objectContaining({
+                    status_code: 200,
+                    success: true,
+                    retried: true,
+                })
+            )
+        })
+
+        it('normalizes UUIDs to :id in endpoint', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/api/apps/5952c302-0e9f-4a00-98c4-f4e6106faedc/journey')
+
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({
+                    endpoint: '/api/apps/:id/journey',
+                })
+            )
+        })
+
+        it('normalizes multiple UUIDs in endpoint', async () => {
+            mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
+
+            await auth.fetchMeasure('/api/teams/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/apps/11111111-2222-3333-4444-555555555555/filters')
+
+            expect(posthog.capture).toHaveBeenCalledWith(
+                'api_call_completed',
+                expect.objectContaining({
+                    endpoint: '/api/teams/:id/apps/:id/filters',
+                })
+            )
+        })
+
+        it('does not capture for aborted requests', async () => {
+            mockFetch.mockRejectedValueOnce(
+                new DOMException('The operation was aborted', 'AbortError')
+            )
+
+            await expect(auth.fetchMeasure('/api/test')).rejects.toThrow()
+
+            expect(posthog.capture).not.toHaveBeenCalled()
         })
     })
 
