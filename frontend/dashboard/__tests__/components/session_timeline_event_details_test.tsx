@@ -199,6 +199,56 @@ describe('SessionTimelineEventDetails', () => {
         })
     })
 
+    describe('Error exception rendering', () => {
+        it('renders error object fields when present', () => {
+            renderDetails({
+                eventDetails: {
+                    name: 'test',
+                    error: { numcode: 500, code: 'INTERNAL', meta: null },
+                },
+            })
+            expect(screen.getByText('numcode')).toBeInTheDocument()
+            expect(screen.getByText('500')).toBeInTheDocument()
+            expect(screen.getByText('code')).toBeInTheDocument()
+            expect(screen.getByText('INTERNAL')).toBeInTheDocument()
+        })
+
+        it('renders error meta object as JSON', () => {
+            renderDetails({
+                eventDetails: {
+                    name: 'test',
+                    error: { numcode: 1, code: '', meta: { detail: 'Something broke' } },
+                },
+            })
+            expect(screen.getByText(/Something broke/)).toBeInTheDocument()
+        })
+    })
+
+    describe('Demo mode details links', () => {
+        it('renders non-clickable crash details label in demo mode', () => {
+            renderDetails({
+                demo: true,
+                eventType: 'exception',
+                eventDetails: {
+                    id: 'ex-1', group_id: 'grp-1', type: 'NPE',
+                    file_name: 'Main.java', user_triggered: false, handled: false,
+                },
+            })
+            expect(screen.getByText('View Crash Details')).toBeInTheDocument()
+            expect(screen.getByText('View Crash Details').closest('a')).toBeNull()
+        })
+
+        it('renders non-clickable bug report label in demo mode', () => {
+            renderDetails({
+                demo: true,
+                eventType: 'bug_report',
+                eventDetails: { id: 'br-1', bug_report_id: 'bug-123', description: 'Login issue' },
+            })
+            expect(screen.getByText('View Bug Report Details')).toBeInTheDocument()
+            expect(screen.getByText('View Bug Report Details').closest('a')).toBeNull()
+        })
+    })
+
     describe('Attachments', () => {
         it('renders image attachments for crash events', () => {
             renderDetails({

@@ -1,6 +1,14 @@
-import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatPlotTooltipDate, formatTimestampToChartFormat, formatUserInputDateToServerFormat, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig, isValidTimestamp } from '@/app/utils/time_utils'
+import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatPlotTooltipDate, formatTimestampToChartFormat, formatUserInputDateToServerFormat, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig, getTimeZoneForServer, isValidTimestamp } from '@/app/utils/time_utils'
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
 import { DateTime, Settings } from "luxon"
+
+describe('getTimeZoneForServer', () => {
+    it('should return a valid timezone string', () => {
+        const tz = getTimeZoneForServer()
+        expect(typeof tz).toBe('string')
+        expect(tz.length).toBeGreaterThan(0)
+    })
+})
 
 describe('formatMillisToHumanReadable', () => {
     it('should return milliseconds for values less than a second', () => {
@@ -208,7 +216,7 @@ describe('formatUserSelectedDateToServerFormat', () => {
 
     it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp'
-        expect(() => formatTimestampToChartFormat(timestamp)).toThrow()
+        expect(() => formatUserInputDateToServerFormat(timestamp)).toThrow()
     })
 })
 
@@ -236,7 +244,7 @@ describe('formatIsoDateForDateTimeInputField', () => {
 
     it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp'
-        expect(() => formatTimestampToChartFormat(timestamp)).toThrow()
+        expect(() => formatIsoDateForDateTimeInputField(timestamp)).toThrow()
     })
 })
 
@@ -284,16 +292,32 @@ describe('plot time group utils', () => {
         expect(getPlotTimeGroupForRange('2026-01-01T00:00:00Z', '2026-04-02T00:00:00Z')).toBe('months')
     })
 
-    it('returns expected nivo config and tooltip formatting', () => {
+    it('returns expected nivo config for each time group', () => {
         expect(getPlotTimeGroupNivoConfig('minutes').xScalePrecision).toBe('minute')
         expect(getPlotTimeGroupNivoConfig('hours').xScalePrecision).toBe('hour')
         expect(getPlotTimeGroupNivoConfig('days').axisBottomFormat).toBe('%b %d, %Y')
         expect(getPlotTimeGroupNivoConfig('months').axisBottomFormat).toBe('%d %b, %Y')
+    })
 
+    it('formats tooltip dates for minutes and hours groups', () => {
         expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'minutes')).toBe('1 Feb, 2026, 10:00 AM')
         expect(formatPlotTooltipDate('2026-02-01T10:00:00', 'hours')).toBe('1 Feb, 2026, 10:00 AM')
+    })
+
+    it('formats tooltip dates for days group', () => {
         expect(formatPlotTooltipDate('2026-02-01', 'days')).toBe('1 Feb, 2026')
+    })
+
+    it('formats tooltip dates for months group', () => {
         expect(formatPlotTooltipDate('2026-02-01', 'months')).toBe('Feb, 2026')
+    })
+
+    it('returns raw value for invalid ISO input', () => {
         expect(formatPlotTooltipDate('not-iso', 'days')).toBe('not-iso')
+    })
+
+    it('falls back to days format for unknown time group', () => {
+        // default case in the switch
+        expect(formatPlotTooltipDate('2026-02-01', 'unknown' as any)).toBe('1 Feb, 2026')
     })
 })

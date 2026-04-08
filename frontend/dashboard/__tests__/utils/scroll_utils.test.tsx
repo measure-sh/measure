@@ -35,6 +35,20 @@ describe('useScrollDirection', () => {
 
     expect(screen.getByText('scrolling up')).toBeInTheDocument()
   })
+
+  it('should not change direction when scroll position has not changed', async () => {
+    render(<TestComponent />)
+
+    fireEvent.scroll(window, { target: { scrollY: 100 } })
+    await screen.findByText('scrolling down')
+
+    // Scroll again at the same position — threshold check (abs diff < threshold)
+    Object.defineProperty(window, 'scrollY', { value: 100, writable: true })
+    fireEvent.scroll(window)
+
+    // Should still say scrolling down (threshold check prevents update)
+    expect(screen.getByText('scrolling down')).toBeInTheDocument()
+  })
 })
 
 describe('useScrollStop', () => {

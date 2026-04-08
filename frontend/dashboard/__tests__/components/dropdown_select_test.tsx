@@ -470,6 +470,51 @@ describe('DropdownSelect', () => {
         })
     })
 
+    // --- Keyboard interaction ---
+
+    describe('Keyboard interaction', () => {
+        it('selects all on Enter key on All button', () => {
+            const onChangeSelected = jest.fn()
+            render(
+                <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={['US', 'IN', 'GB']} initialSelected={['US']} onChangeSelected={onChangeSelected} />
+            )
+            fireEvent.keyDown(screen.getByText('All'), { key: 'Enter' })
+            const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0]
+            expect(lastCall).toEqual(['US', 'IN', 'GB'])
+        })
+
+        it('clears all on Enter key on Clear button', () => {
+            const onChangeSelected = jest.fn()
+            render(
+                <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={['US', 'IN']} initialSelected={['US']} onChangeSelected={onChangeSelected} />
+            )
+            fireEvent.keyDown(screen.getByText('Clear'), { key: 'Enter' })
+            const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0]
+            expect(lastCall).toEqual([])
+        })
+
+        it('selects latest on Enter key on Latest button', () => {
+            const onChangeSelected = jest.fn()
+            render(
+                <DropdownSelect type={DropdownSelectType.MultiAppVersion} title="Versions" items={[av('1.0', '1'), av('2.0', '10')]} initialSelected={[av('1.0', '1'), av('2.0', '10')]} onChangeSelected={onChangeSelected} />
+            )
+            fireEvent.keyDown(screen.getByText('Latest'), { key: 'Enter' })
+            const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0]
+            expect(lastCall).toHaveLength(1)
+            expect(lastCall[0].displayName).toBe('2.0 (10)')
+        })
+
+        it('selects item on Enter key on command item', () => {
+            const onChangeSelected = jest.fn()
+            render(
+                <DropdownSelect type={DropdownSelectType.SingleString} title="Fruit" items={['Apple', 'Banana']} initialSelected="Apple" onChangeSelected={onChangeSelected} />
+            )
+            const items = getItems()
+            fireEvent.keyDown(items[1], { key: 'Enter' })
+            expect(onChangeSelected).toHaveBeenCalledWith('Banana')
+        })
+    })
+
     // --- Disabled state ---
 
     describe('Disabled state', () => {
