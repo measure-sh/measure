@@ -1,0 +1,4 @@
+TEAM_ID=
+BUNDLE_ID=sh.measure.kmp.ios
+APP_NAME=Measure
+MEASURE_IOS_SDK_VERSION=0.2.0

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".MeasureApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MeasureApp">
+        <meta-data
+            android:name="sh.measure.android.API_KEY"
+            android:value="msrsh_06217a0a3b9e7b39bc8c8b9777f856be9e7f01b85dabb487525f174f93cc7bd0_4f8daa52" />
+        <meta-data
+            android:name="sh.measure.android.API_URL"
+            android:value="https://staging-ingest.measure.sh" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
