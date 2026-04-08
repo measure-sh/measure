@@ -8,6 +8,7 @@ RELEASE_TYPE=$1
 # File paths
 FRAMEWORK_INFO_FILE="ios/Sources/MeasureSDK/Swift/FrameworkInfo.swift"
 PODSPEC_FILE="measure-sh.podspec"
+RN_PODSPEC_FILE="react-native/MeasureReactNative.podspec"
 README_FILE="docs/sdk-integration-guide.md"
 
 # Function to get the current version from FrameworkInfo.swift
@@ -63,6 +64,9 @@ sed -i '' "s/static let version = \".*\"/static let version = \"$NEW_VERSION\"/"
 # Update version in podspec
 awk -v new_version="$NEW_VERSION" '/spec.version *= *"[0-9]+\.[0-9]+\.[0-9]+"/ { sub(/[0-9]+\.[0-9]+\.[0-9]+/, new_version); }1' "$PODSPEC_FILE" > temp_podspec && mv temp_podspec "$PODSPEC_FILE"
 
+# Update version in React Native podspec
+awk -v new_version="$NEW_VERSION" '/s\.version *= *"[0-9]+\.[0-9]+\.[0-9]+"/ { sub(/[0-9]+\.[0-9]+\.[0-9]+/, new_version); }1' "$RN_PODSPEC_FILE" > temp_rn_podspec && mv temp_rn_podspec "$RN_PODSPEC_FILE"
+
 # Update version in README.md for Swift Package Manager instructions
 sed -E -i '' "s|(\\.package\\(url: \"https://github.com/measure-sh/measure.git\", branch: \"ios-v)[0-9]+\.[0-9]+\.[0-9]+(\")|\1$NEW_VERSION\2|g" "$README_FILE"
 
@@ -70,6 +74,7 @@ sed -E -i '' "s|(\\.package\\(url: \"https://github.com/measure-sh/measure.git\"
 echo "🔍 Verifying updates..."
 grep "static let version" "$FRAMEWORK_INFO_FILE"
 grep "spec.version" "$PODSPEC_FILE"
+grep 's.version' "$RN_PODSPEC_FILE"
 grep 'branch: "ios-v' "$README_FILE"
 
 # Ask user if they want to generate the changelog
