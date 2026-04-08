@@ -19,7 +19,7 @@ jest.mock('next/link', () => ({
 
 jest.mock('next/image', () => ({
     __esModule: true,
-    default: ({ alt, src, onError, ...props }: any) => <img alt={alt} src={src} {...props} />,
+    default: ({ alt, src, onError, unoptimized, ...props }: any) => <img alt={alt} src={src} {...props} />,
 }))
 
 jest.mock('@/app/components/layout_snapshot', () => ({
