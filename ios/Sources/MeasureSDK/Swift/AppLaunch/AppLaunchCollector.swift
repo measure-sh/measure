@@ -72,7 +72,7 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
 
         guard let pending, !pending.isEmpty else { return }
 
-        logger.log(level: .debug, message: "AppLaunchCollector: flushing \(pending.count) buffered launch events", error: nil, data: nil)
+        logger.internalLog(level: .debug, message: "AppLaunchCollector: flushing \(pending.count) buffered launch events", error: nil, data: nil)
 
         pending.forEach { $0() }
     }
@@ -140,7 +140,7 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
             trackEventBuffer = buffer
             bufferLock.unlock()
 
-            logger.log(level: .debug, message: "AppLaunchCollector: buffering launch event until config is loaded", error: nil, data: nil)
+            logger.internalLog(level: .debug, message: "AppLaunchCollector: buffering launch event until config is loaded", error: nil, data: nil)
         } else {
             bufferLock.unlock()
             action()

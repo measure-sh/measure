@@ -29,7 +29,7 @@ final class BaseCoreDataManager: CoreDataManager {
         #if SWIFT_PACKAGE
         guard let modelURL = Bundle.module.url(forResource: "MeasureModel", withExtension: "momd"),
               let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
-            logger.log(level: .fatal, message: "Failed to load Core Data model (SPM)", error: nil, data: nil)
+            logger.log(level: .fatal, message: "CoreDataManager: Failed to load Core Data model (SPM)", error: nil, data: nil)
             initializationFailed = true
             signalReadyOnce()
             return
@@ -38,7 +38,7 @@ final class BaseCoreDataManager: CoreDataManager {
         #else
         guard let modelURL = Bundle(for: type(of: self)).url(forResource: "MeasureModel", withExtension: "momd"),
               let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
-            logger.log(level: .fatal, message: "Failed to load Core Data model", error: nil, data: nil)
+            logger.log(level: .fatal, message: "CoreDataManager: Failed to load Core Data model", error: nil, data: nil)
             initializationFailed = true
             signalReadyOnce()
             return
@@ -55,7 +55,7 @@ final class BaseCoreDataManager: CoreDataManager {
             if let error {
                 self.logger.log(
                     level: .fatal,
-                    message: "Unresolved error loading persistent stores: \(error.localizedDescription)",
+                    message: "CoreDataManager: Unresolved error loading persistent stores: \(error.localizedDescription)",
                     error: error,
                     data: nil
                 )
@@ -72,7 +72,7 @@ final class BaseCoreDataManager: CoreDataManager {
 
             self.logger.log(
                 level: .info,
-                message: "Core Data persistent store loaded successfully.",
+                message: "CoreDataManager: Core Data persistent store loaded successfully.",
                 error: nil,
                 data: nil
             )
@@ -91,7 +91,7 @@ final class BaseCoreDataManager: CoreDataManager {
         if initializationFailed {
             logger.log(
                 level: .error,
-                message: "Core Data unavailable due to failed initialization",
+                message: "CoreDataManager: Core Data unavailable due to failed initialization",
                 error: nil,
                 data: nil
             )

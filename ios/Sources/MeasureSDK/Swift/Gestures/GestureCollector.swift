@@ -68,7 +68,7 @@ final class BaseGestureCollector: GestureCollector {
     private func handleGesture(_ gesture: DetectedGesture) { // swiftlint:disable:this function_body_length
         // swiftlint:disable identifier_name
         guard let window = window else {
-            logger.log(level: .error, message: "No window detected. Could not enable GestureCollector.", error: nil, data: nil)
+            logger.log(level: .error, message: "GestureCollector: No window detected. Could not enable GestureCollector.", error: nil, data: nil)
             return
         }
         switch gesture {

@@ -55,7 +55,7 @@ final class BaseLaunchTracker: LaunchTracker {
     func applicationWillResignActive() {
         if state == .launching {
             state = .inactiveDuringLaunch
-            logger.log(level: .info, message: "Resigned before active, skipping launch tracking.", error: nil, data: nil)
+            logger.log(level: .info, message: "LaunchTracker: Resigned before active, skipping launch tracking.", error: nil, data: nil)
         }
     }
 
@@ -89,12 +89,12 @@ final class BaseLaunchTracker: LaunchTracker {
     private func processAppLaunchData() {
         guard let processStart = sysCtl.getProcessStartTime(),
               let currentSystemBootTime = sysCtl.getSystemBootTime() else {
-            logger.log(level: .error, message: "Could not get process start time.", error: nil, data: nil)
+            logger.log(level: .error, message: "LaunchTracker: Could not get process start time.", error: nil, data: nil)
             return
         }
 
         guard !isActivePrewarm else {
-            logger.log(level: .error, message: "Skipping launch data collection as app is prewarmed.", error: nil, data: nil)
+            logger.log(level: .error, message: "LaunchTracker: Skipping launch data collection as app is prewarmed.", error: nil, data: nil)
             return
         }
 

@@ -72,10 +72,10 @@ extension Measure.SessionOb {
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
   #if compiler(>=5.3) && $NonescapableTypes
-  public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil)
+  public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil, enableDiagnosticMode: Swift.Bool? = nil, enableDiagnosticModeGesture: Swift.Bool? = nil)
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
-  @objc convenience public init(enableLogging: Swift.Bool, autoStart: Swift.Bool, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?, maxDiskUsageInMb: Foundation.NSNumber?, enableFullCollectionMode: Swift.Bool)
+  @objc convenience public init(enableLogging: Swift.Bool, autoStart: Swift.Bool, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?, maxDiskUsageInMb: Foundation.NSNumber?, enableFullCollectionMode: Swift.Bool, enableDiagnosticMode: Swift.Bool, enableDiagnosticModeGesture: Swift.Bool)
   #endif
   required public init(from decoder: any Swift.Decoder) throws
   final public func encode(to encoder: any Swift.Encoder) throws

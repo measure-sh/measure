@@ -50,17 +50,23 @@ struct Config: InternalConfig, MeasureConfig {
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let maxDiskUsageInMb: Number
     let httpUrlBlocklist: [String]
+    let enableDiagnosticMode: Bool
+    let enableDiagnosticModeGesture: Bool
     
     init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
          autoStart: Bool = DefaultConfig.autoStart,
          enableFullCollectionMode: Bool = DefaultConfig.enableFullCollectionMode,
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
-         maxDiskUsageInMb: Number = DefaultConfig.maxDiskUsageInMb) {
+         maxDiskUsageInMb: Number = DefaultConfig.maxDiskUsageInMb,
+         enableDiagnosticMode: Bool = DefaultConfig.enableDiagnosticMode,
+         enableDiagnosticModeGesture: Bool = DefaultConfig.enableDiagnosticModeGesture) {
         self.enableLogging = enableLogging
         self.autoStart = autoStart
         self.enableFullCollectionMode = enableFullCollectionMode
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.enableDiagnosticMode = enableDiagnosticMode
+        self.enableDiagnosticModeGesture = enableDiagnosticModeGesture
         self.batchExportIntervalMs = 3_000 // 3 seconds
         self.attachmentExportIntervalMs = 500 // 500 ms
         self.defaultHttpHeadersBlocklist = ["Authorization",

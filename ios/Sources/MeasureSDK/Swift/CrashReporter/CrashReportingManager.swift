@@ -88,7 +88,7 @@ final class BaseCrashReportingManager: CrashReportManager {
 
             return (exception, date)
         } catch {
-            logger.internalLog(level: .error, message: "Error parsing crash report.", error: error, data: nil)
+            logger.internalLog(level: .error, message: "CrashReportManager: Error parsing crash report.", error: error, data: nil)
             return (nil, nil)
         }
     }
