@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"backend/api/allowlist"
 	"backend/api/authsession"
 	"backend/api/server"
 
@@ -21,11 +20,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
 )
-
-// MSRAllowlistAuthErr represents the error condition
-// when an identity doesn't pass the allowlist
-// authentication filter.
-var MSRAllowlistAuthErr = errors.New("allowlist_banned")
 
 // extractToken extracts the access token
 // from the cookie or Authorization header.
@@ -328,16 +322,6 @@ func SigninGitHub(c *gin.Context) {
 			return
 		}
 
-		// TODO: Remove allowlist filter when appropriate
-		config := server.Server.Config
-		if config.IsCloud() && !allowlist.IsAllowed(ghUser.Email) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":   MSRAllowlistAuthErr.Error(),
-				"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
-			})
-			return
-		}
-
 		userMeta, err := json.Marshal(ghUser)
 		if err != nil {
 			return
@@ -570,16 +554,6 @@ func SigninGoogle(c *gin.Context) {
 			Name:    claims.Name,
 			Email:   claims.Email,
 			Picture: claims.Picture,
-		}
-
-		// TODO: Remove allowlist filter when appropriate
-		config := server.Server.Config
-		if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":   MSRAllowlistAuthErr.Error(),
-				"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
-			})
-			return
 		}
 
 		userMeta, err := json.Marshal(googUser)

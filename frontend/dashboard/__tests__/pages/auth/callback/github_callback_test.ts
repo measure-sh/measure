@@ -162,19 +162,4 @@ describe('GitHub Callback Route', () => {
         expect(mockRedirect.mock.calls[0][1]).toEqual({ status: 302 })
     })
 
-    it('dashboard flow: allowlist_banned shows details in redirect', async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: false,
-            status: 403,
-            json: () => Promise.resolve({ error: 'allowlist_banned', details: 'user@example.com not allowed' }),
-        })
-
-        await GET(makeRequest('?code=gh-code&state=dashboard-state'))
-
-        expect(mockRedirect).toHaveBeenCalledTimes(1)
-        const url = mockRedirect.mock.calls[0][0] as string
-        expect(url).toContain('/auth/login')
-        expect(url).toContain('message=')
-        expect(url).toContain('not+allowed')
-    })
 })
