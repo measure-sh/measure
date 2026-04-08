@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, render, screen } from '@testing-library/react'
 
-const mockGetSession = jest.fn(() => Promise.resolve({ session: null }))
+const mockGetSession = jest.fn(() => Promise.resolve<{ session: any }>({ session: null }))
 const mockRouterReplace = jest.fn()
-const mockValidateInvites = jest.fn(() => Promise.resolve({ status: 'success' }))
+const mockValidateInvites = jest.fn((_arg?: any) => Promise.resolve({ status: 'success' }))
 const mockPosthogIdentify = jest.fn()
 
 jest.mock('@/app/auth/measure_auth', () => ({
     measureAuth: {
-        getSession: (...args: any[]) => mockGetSession.apply(null, args),
+        getSession: () => mockGetSession(),
         encodeOAuthState: jest.fn(() => 'encoded-state'),
     },
     MeasureAuthSession: {},
@@ -18,7 +18,7 @@ jest.mock('@/app/auth/measure_auth', () => ({
 
 jest.mock('@/app/api/api_calls', () => ({
     ValidateInviteApiStatus: { Error: 'error', Success: 'success' },
-    validateInvitesFromServer: (...args: any[]) => mockValidateInvites(...args),
+    validateInvitesFromServer: (arg: any) => mockValidateInvites(arg),
 }))
 
 jest.mock('next/navigation', () => ({
@@ -41,7 +41,7 @@ jest.mock('next-themes', () => ({
 }))
 
 jest.mock('posthog-js', () => ({
-    posthog: { identify: (...args: any[]) => mockPosthogIdentify(...args) },
+    posthog: { identify: (...args: [...any[]]) => mockPosthogIdentify(...args) },
 }))
 
 jest.mock('@/app/utils/env_utils', () => ({
