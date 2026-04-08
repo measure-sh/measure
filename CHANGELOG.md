@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**frontend**): Add tests for data components by @anupcowkur in #3443
 - (**frontend**): Remove login page alpha disclaimer by @anupcowkur in #3442
 - (**frontend**): Add dashboard tests by @anupcowkur in #3441
 - (**frontend**): Add tests for create app & team components by @anupcowkur in #3440
