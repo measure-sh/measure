@@ -164,34 +164,22 @@ final class BaseDataCleanupService: DataCleanupService {
     }
 
     private func trimSdkDebugLogs() {
-        guard let dir = systemFileManager.getSdkDebugLogsDirectory() else { return }
+        guard systemFileManager.getSdkDebugLogsDirectory() != nil else { return }
 
-        do {
-            let files = try FileManager.default.contentsOfDirectory(
-                at: dir,
-                includingPropertiesForKeys: nil
-            )
-            guard files.count > maxSdkDebugLogFiles else { return }
+        let files = systemFileManager.getContentsOfDebugLogsDirectory()
+        guard files.count > maxSdkDebugLogFiles else { return }
 
-            let filesToDelete = files.sorted { $0.lastPathComponent < $1.lastPathComponent }
-                .dropLast(maxSdkDebugLogFiles)
+        let filesToDelete = files
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .dropLast(maxSdkDebugLogFiles)
 
-            logger.log(
-                level: .debug,
-                message: "Cleanup: Deleting \(filesToDelete.count) old SDK debug log files",
-                error: nil,
-                data: nil
-            )
+        logger.log(
+            level: .debug,
+            message: "Cleanup: Deleting \(filesToDelete.count) old SDK debug log files",
+            error: nil,
+            data: nil
+        )
 
-            filesToDelete.forEach { systemFileManager.deleteFile(atPath: $0.path) }
-        } catch {
-            logger.log(
-                level: .debug,
-                message: "Cleanup: Failed to clean up SDK debug log files",
-                error: error,
-                data: nil
-            )
-        }
+        filesToDelete.forEach { systemFileManager.deleteFile(atPath: $0.path) }
     }
-
 }

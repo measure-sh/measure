@@ -26,6 +26,7 @@ protocol SystemFileManager {
     func cleanupOrphanedAttachmentFiles(validPaths: Set<String>)
     func getSdkDebugLogsDirectory() -> URL?
     func getLogFile(_ fileId: String) -> URL?
+    func getContentsOfDebugLogsDirectory() -> [URL]
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -237,5 +238,15 @@ final class BaseSystemFileManager: SystemFileManager {
         }
 
         return fileURL
+    }
+
+    func getContentsOfDebugLogsDirectory() -> [URL] {
+        guard let dir = getSdkDebugLogsDirectory() else { return [] }
+        do {
+            return try fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+        } catch {
+            logger.internalLog(level: .error, message: "SystemFileManager: Failed to list sdk_debug_logs directory", error: error, data: nil)
+            return []
+        }
     }
 }
