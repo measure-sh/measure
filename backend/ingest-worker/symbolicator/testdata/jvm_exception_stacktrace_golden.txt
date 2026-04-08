@@ -1,0 +1,3 @@
+java.lang.IllegalStateException: Test exception
+	at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$2(ExceptionDemoActivity.kt:29)
+	at android.view.View.performClick(View.java:7506)

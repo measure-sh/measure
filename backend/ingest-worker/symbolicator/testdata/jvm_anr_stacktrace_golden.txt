@@ -1,0 +1,3 @@
+java.lang.RuntimeException: ANR detected
+	at sh.measure.sample.ANRDemoActivity.triggerAnr(ANRDemoActivity.kt:50)
+	at java.lang.Thread.sleep(Thread.java:-2)

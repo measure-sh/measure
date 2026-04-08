@@ -1,0 +1,138 @@
+[
+  {
+    "type": "exception",
+    "exception_types": [
+      "FormatException"
+    ],
+    "exception_frames": [
+      [
+        {
+          "class_name": "",
+          "method_name": "_MainScreenState._throwException",
+          "file_name": "screen_main.dart",
+          "line_num": 186
+        },
+        {
+          "class_name": "",
+          "method_name": "_MainScreenState._throwException",
+          "file_name": "screen_main.dart",
+          "line_num": 185
+        },
+        {
+          "class_name": "",
+          "method_name": "_InkResponseState.handleTap",
+          "file_name": "ink_well.dart",
+          "line_num": 1224
+        },
+        {
+          "class_name": "",
+          "method_name": "_InkResponseState.handleTap",
+          "file_name": "ink_well.dart",
+          "line_num": 1216
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureRecognizer.invokeCallback",
+          "file_name": "recognizer.dart",
+          "line_num": 345
+        },
+        {
+          "class_name": "",
+          "method_name": "TapGestureRecognizer.handleTapUp",
+          "file_name": "tap.dart",
+          "line_num": 758
+        },
+        {
+          "class_name": "",
+          "method_name": "BaseTapGestureRecognizer._checkUp",
+          "file_name": "tap.dart",
+          "line_num": 383
+        },
+        {
+          "class_name": "",
+          "method_name": "BaseTapGestureRecognizer.acceptGesture",
+          "file_name": "tap.dart",
+          "line_num": 353
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureArenaManager.sweep",
+          "file_name": "arena.dart",
+          "line_num": 173
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding.handleEvent",
+          "file_name": "binding.dart",
+          "line_num": 532
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding.dispatchEvent",
+          "file_name": "binding.dart",
+          "line_num": 498
+        },
+        {
+          "class_name": "",
+          "method_name": "RendererBinding.dispatchEvent",
+          "file_name": "binding.dart",
+          "line_num": 473
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding._handlePointerEventImmediately",
+          "file_name": "binding.dart",
+          "line_num": 437
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding.handlePointerEvent",
+          "file_name": "binding.dart",
+          "line_num": 394
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding._flushPointerEventQueue",
+          "file_name": "binding.dart",
+          "line_num": 341
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding._handlePointerDataPacket",
+          "file_name": "binding.dart",
+          "line_num": 308
+        },
+        {
+          "class_name": "",
+          "method_name": "GestureBinding._handlePointerDataPacket",
+          "file_name": "binding.dart",
+          "line_num": 300
+        },
+        {
+          "class_name": "",
+          "method_name": "_invoke1",
+          "file_name": "hooks.dart",
+          "line_num": 439
+        },
+        {
+          "class_name": "",
+          "method_name": "PlatformDispatcher._dispatchPointerDataPacket",
+          "file_name": "platform_dispatcher.dart",
+          "line_num": 470
+        },
+        {
+          "class_name": "",
+          "method_name": "_dispatchPointerDataPacket",
+          "file_name": "hooks.dart",
+          "line_num": 374
+        },
+        {
+          "class_name": "",
+          "method_name": "_dispatchPointerDataPacket",
+          "file_name": "hooks.dart",
+          "line_num": 372
+        }
+      ]
+    ]
+  }
+]

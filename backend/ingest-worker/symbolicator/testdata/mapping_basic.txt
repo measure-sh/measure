@@ -1,0 +1,24 @@
+# compiler: R8
+# compiler_version: 8.9.27
+# min_api: 21
+# common_typos_disable
+# {"id":"com.android.tools.r8.mapping","version":"2.2"}
+sh.measure.sample.ExceptionDemoActivity -> a.b.c:
+# {"id":"sourceFile","fileName":"ExceptionDemoActivity.kt"}
+    29:29:void onCreate$lambda$2(android.view.View):29:29 -> d
+    35:35:void onResume():35:35 -> e
+sh.measure.sample.HomeActivity -> f.g:
+# {"id":"sourceFile","fileName":"HomeActivity.kt"}
+    102:102:void onClick(android.view.View):102:102 -> h
+sh.measure.sample.ANRDemoActivity -> i.j:
+# {"id":"sourceFile","fileName":"ANRDemoActivity.kt"}
+    50:50:void triggerAnr():50:50 -> k
+sh.measure.sample.ComposeActivity -> l.m:
+# {"id":"sourceFile","fileName":"ComposeActivity.kt"}
+    10:10:void onStart():10:10 -> n
+sh.measure.sample.LaunchActivity -> o.p:
+# {"id":"sourceFile","fileName":"LaunchActivity.kt"}
+sh.measure.sample.SettingsFragment -> q.r:
+# {"id":"sourceFile","fileName":"SettingsFragment.kt"}
+sh.measure.sample.AppExitHandler -> s.t:
+# {"id":"sourceFile","fileName":"AppExitHandler.kt"}
