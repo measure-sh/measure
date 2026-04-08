@@ -73,6 +73,14 @@ describe('number_utils', () => {
       expect(formatBytes(1024 ** 5)).toBe('1.00 PB')
       expect(formatBytes(2 * 1024 ** 5)).toBe('2.00 PB')
     })
+
+    it('should handle negative values', () => {
+      expect(formatBytes(-1024)).toBe('-1.0 KB')
+      expect(formatBytes(-(1024 ** 2))).toBe('-1.0 MB')
+      expect(formatBytes(-(1024 ** 3))).toBe('-1.00 GB')
+      expect(formatBytes(-(1024 ** 4))).toBe('-1.00 TB')
+      expect(formatBytes(-(1024 ** 5))).toBe('-1.00 PB')
+    })
   })
 
   describe('numberToKMB', () => {

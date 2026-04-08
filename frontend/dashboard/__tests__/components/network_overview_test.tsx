@@ -218,6 +218,36 @@ describe('NetworkOverview', () => {
             })
         })
 
+        it('shows status distribution section after domains succeed', async () => {
+            mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
+            mockFetchStatusPlot.mockResolvedValue({ status: 2 })
+            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
+            mockFetchPaths.mockReturnValue(new Promise(() => { }))
+
+            render(<NetworkOverview params={{ teamId: 'team-1' }} />)
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('set-filters-ready'))
+            })
+            await waitFor(() => {
+                expect(screen.getByText('Status Distribution')).toBeInTheDocument()
+            })
+        })
+
+        it('shows timeline section after domains succeed', async () => {
+            mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
+            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
+            mockFetchTimeline.mockResolvedValue({ status: 2 })
+            mockFetchPaths.mockReturnValue(new Promise(() => { }))
+
+            render(<NetworkOverview params={{ teamId: 'team-1' }} />)
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('set-filters-ready'))
+            })
+            await waitFor(() => {
+                expect(screen.getByText('Timeline')).toBeInTheDocument()
+            })
+        })
+
         it('shows search section when domains succeed', async () => {
             mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
             mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))

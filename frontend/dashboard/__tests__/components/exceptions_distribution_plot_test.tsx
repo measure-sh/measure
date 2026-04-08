@@ -17,11 +17,18 @@ jest.mock('next-themes', () => ({
 }))
 
 jest.mock('@nivo/bar', () => ({
-    ResponsiveBar: ({ data, keys }: any) => (
-        <div data-testid="responsive-bar" data-keys={JSON.stringify(keys)}>
-            {JSON.stringify(data)}
-        </div>
-    ),
+    ResponsiveBar: ({ data, keys, tooltip, axisLeft, valueFormat }: any) => {
+        // Exercise the tooltip and format functions to cover them
+        const tooltipNode = tooltip?.({ id: 'test', value: 1234, color: '#000' })
+        const formattedValue = valueFormat?.(5000) ?? ''
+        const axisLabel = axisLeft?.format?.(100) ?? ''
+        return (
+            <div data-testid="responsive-bar" data-keys={JSON.stringify(keys)} data-formatted={formattedValue} data-axis-label={axisLabel}>
+                {tooltipNode}
+                {JSON.stringify(data)}
+            </div>
+        )
+    },
 }))
 
 jest.mock('@/app/utils/number_utils', () => ({
@@ -121,6 +128,50 @@ describe('ExceptionsDistributionPlot', () => {
                 const data = bar.textContent!
                 expect(data).toContain('App Version')
                 expect(data).toContain('Country')
+            })
+        })
+
+        it('transforms ios os_version keys', async () => {
+            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'ios 17': 500 } } })
+            await act(async () => {
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+            })
+            await waitFor(() => {
+                const bar = screen.getByTestId('responsive-bar')
+                expect(bar.textContent).toContain('iOS 17')
+            })
+        })
+
+        it('transforms ipados os_version keys', async () => {
+            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'ipados 17': 300 } } })
+            await act(async () => {
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+            })
+            await waitFor(() => {
+                const bar = screen.getByTestId('responsive-bar')
+                expect(bar.textContent).toContain('iPadOS 17')
+            })
+        })
+
+        it('passes through unknown os names', async () => {
+            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'linux 5.4': 100 } } })
+            await act(async () => {
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+            })
+            await waitFor(() => {
+                const bar = screen.getByTestId('responsive-bar')
+                expect(bar.textContent).toContain('linux 5.4')
+            })
+        })
+
+        it('handles single-word os_version key without version', async () => {
+            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'unknown': 50 } } })
+            await act(async () => {
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+            })
+            await waitFor(() => {
+                const bar = screen.getByTestId('responsive-bar')
+                expect(bar.textContent).toContain('unknown')
             })
         })
 

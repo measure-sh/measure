@@ -183,6 +183,50 @@ describe('NetworkDetails', () => {
         })
     })
 
+    describe('Success rendering', () => {
+        it('renders latency plot on success', async () => {
+            mockFetchLatency.mockResolvedValue({ status: 1, data: [{ datetime: '2024-01-01', p50: 100, p90: 200, p95: 300, p99: 400, count: 10 }] })
+            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
+            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
+
+            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('set-filters-ready'))
+            })
+            await waitFor(() => {
+                expect(screen.getByTestId('latency-plot')).toBeInTheDocument()
+            })
+        })
+
+        it('renders status codes plot on success', async () => {
+            mockFetchLatency.mockReturnValue(new Promise(() => { }))
+            mockFetchStatusCodes.mockResolvedValue({ status: 1, data: { status_codes: [200, 404], data_points: [{ datetime: '2024-01-01', total_count: 100 }] } })
+            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
+
+            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('set-filters-ready'))
+            })
+            await waitFor(() => {
+                expect(screen.getByTestId('status-codes-plot')).toBeInTheDocument()
+            })
+        })
+
+        it('renders timeline plot on success', async () => {
+            mockFetchLatency.mockReturnValue(new Promise(() => { }))
+            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
+            mockFetchTimeline.mockResolvedValue({ status: 1, data: { interval: 5, points: [{ elapsed: 1, domain: 'a', path_pattern: '/b', count: 1 }] } })
+
+            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('set-filters-ready'))
+            })
+            await waitFor(() => {
+                expect(screen.getByTestId('timeline-plot')).toBeInTheDocument()
+            })
+        })
+    })
+
     describe('API calls', () => {
         it('does not fetch before filters are ready', () => {
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
