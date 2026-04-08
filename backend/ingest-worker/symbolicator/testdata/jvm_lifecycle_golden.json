@@ -1,0 +1,23 @@
+[
+  {
+    "type": "lifecycle_activity",
+    "class_name": "sh.measure.sample.ExceptionDemoActivity"
+  },
+  {
+    "type": "lifecycle_fragment",
+    "class_name": "sh.measure.sample.SettingsFragment",
+    "parent_activity": "sh.measure.sample.ExceptionDemoActivity"
+  },
+  {
+    "type": "cold_launch",
+    "launched_activity": "sh.measure.sample.LaunchActivity"
+  },
+  {
+    "type": "hot_launch",
+    "launched_activity": "sh.measure.sample.ComposeActivity"
+  },
+  {
+    "type": "app_exit",
+    "trace": "sh.measure.sample.ExceptionDemoActivity"
+  }
+]
