@@ -15,7 +15,7 @@ final class MockConfigProvider: ConfigProvider {
     var requestHeadersProvider: MsrRequestHeadersProvider?
     var maxDiskUsageInMb: Number
     var enableDiagnosticMode: Bool
-    var enableDiagnosticModeDoubleTapGesture: Bool
+    var enableDiagnosticModeGesture: Bool
     var batchExportIntervalMs: Number
     var attachmentExportIntervalMs: Number
     var defaultHttpHeadersBlocklist: [String]
@@ -79,7 +79,7 @@ final class MockConfigProvider: ConfigProvider {
          enableFullCollectionMode: Bool = false,
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
          enableDiagnosticMode: Bool = false,
-         enableDiagnosticModeDoubleTapGesture: Bool = false,
+         enableDiagnosticModeGesture: Bool = false,
          maxDiskUsageInMb: Number = 50,
          batchExportIntervalMs: Number = 3_000,
          attachmentExportIntervalMs: Number = 500,
@@ -172,7 +172,7 @@ final class MockConfigProvider: ConfigProvider {
         self.requestHeadersProvider = requestHeadersProvider
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.enableDiagnosticMode = enableDiagnosticMode
-        self.enableDiagnosticModeDoubleTapGesture = enableDiagnosticModeDoubleTapGesture
+        self.enableDiagnosticModeGesture = enableDiagnosticModeGesture
         self.batchExportIntervalMs = batchExportIntervalMs
         self.attachmentExportIntervalMs = attachmentExportIntervalMs
         self.eventsBatchingIntervalMs = eventsBatchingIntervalMs

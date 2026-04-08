@@ -220,7 +220,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb,
                                    enableDiagnosticMode: config.enableDiagnosticMode,
-                                   enableDiagnosticModeDoubleTapGesture: config.enableDiagnosticModeDoubleTapGesture)
+                                   enableDiagnosticModeGesture: config.enableDiagnosticModeGesture)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
         self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
         self.userDefaultStorage = BaseUserDefaultStorage()

@@ -177,7 +177,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                 logWriter.writeLog(level: logLevel, message: message, error: error)
             }
 
-            if configProvider.enableDiagnosticModeDoubleTapGesture {
+            if configProvider.enableDiagnosticModeGesture {
                 enableDoubleTapGesture()
             }
         }

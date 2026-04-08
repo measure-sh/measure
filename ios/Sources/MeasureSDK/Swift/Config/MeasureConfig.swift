@@ -15,7 +15,7 @@ protocol MeasureConfig {
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
     var maxDiskUsageInMb: Number { get }
     var enableDiagnosticMode: Bool { get }
-    var enableDiagnosticModeDoubleTapGesture: Bool { get }
+    var enableDiagnosticModeGesture: Bool { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -61,7 +61,7 @@ protocol MeasureConfig {
     /// Enable double finger double tap gesture to export SDK logs via share sheet.
     /// This functionality is only available if `enableDiagnosticMode` is set to `true`.
     /// Defaults to `false`.
-    let enableDiagnosticModeDoubleTapGesture: Bool
+    let enableDiagnosticModeGesture: Bool
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
@@ -71,20 +71,20 @@ protocol MeasureConfig {
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     ///   - enableDiagnosticMode: Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached when reporting a bug to help with debugging SDK issues. Defaults to `false`.
-    ///   - enableDiagnosticModeDoubleTapGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
+    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
     public init(enableLogging: Bool? = nil,
                 autoStart: Bool? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil,
                 enableFullCollectionMode: Bool? = nil,
                 enableDiagnosticMode: Bool? = nil,
-                enableDiagnosticModeDoubleTapGesture: Bool? = nil) {
+                enableDiagnosticModeGesture: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.enableFullCollectionMode = enableFullCollectionMode ?? DefaultConfig.enableFullCollectionMode
         self.requestHeadersProvider = requestHeadersProvider
         self.enableDiagnosticMode = enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode
-        self.enableDiagnosticModeDoubleTapGesture = enableDiagnosticModeDoubleTapGesture ?? DefaultConfig.enableDiagnosticModeDoubleTapGesture
+        self.enableDiagnosticModeGesture = enableDiagnosticModeGesture ?? DefaultConfig.enableDiagnosticModeGesture
 
         let minDiskUsage: Number = 20
         let maxDiskUsage: Number = 1500
@@ -112,21 +112,21 @@ protocol MeasureConfig {
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     ///   - enableDiagnosticMode: Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached when reporting a bug to help with debugging SDK issues. Defaults to `false`.
-    ///   - enableDiagnosticModeDoubleTapGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
+    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
     @objc public convenience init(enableLogging: Bool,
                                   autoStart: Bool,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,
                                   maxDiskUsageInMb: NSNumber?,
                                   enableFullCollectionMode: Bool,
                                   enableDiagnosticMode: Bool,
-                                  enableDiagnosticModeDoubleTapGesture: Bool) {
+                                  enableDiagnosticModeGesture: Bool) {
         self.init(enableLogging: enableLogging,
                   autoStart: autoStart,
                   requestHeadersProvider: requestHeadersProvider,
                   maxDiskUsageInMb: maxDiskUsageInMb?.intValue,
                   enableFullCollectionMode: enableFullCollectionMode,
                   enableDiagnosticMode: enableDiagnosticMode,
-                  enableDiagnosticModeDoubleTapGesture: enableDiagnosticModeDoubleTapGesture)
+                  enableDiagnosticModeGesture: enableDiagnosticModeGesture)
         
     }
 
@@ -138,7 +138,7 @@ protocol MeasureConfig {
         enableFullCollectionMode = try container.decodeIfPresent(Bool.self, forKey: .enableFullCollectionMode) ?? DefaultConfig.enableFullCollectionMode
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
         enableDiagnosticMode = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticMode) ?? DefaultConfig.enableDiagnosticMode
-        enableDiagnosticModeDoubleTapGesture = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticModeDoubleTapGesture) ?? DefaultConfig.enableDiagnosticModeDoubleTapGesture
+        enableDiagnosticModeGesture = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticModeGesture) ?? DefaultConfig.enableDiagnosticModeGesture
 
         let minDiskUsage: Number = 20
         let maxDiskUsage: Number = 1500
@@ -166,7 +166,7 @@ protocol MeasureConfig {
         case maxDiskUsageInMb
         case enableFullCollectionMode
         case enableDiagnosticMode
-        case enableDiagnosticModeDoubleTapGesture
+        case enableDiagnosticModeGesture
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -176,6 +176,6 @@ protocol MeasureConfig {
         try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
         try container.encode(enableFullCollectionMode, forKey: .enableFullCollectionMode)
         try container.encode(enableDiagnosticMode, forKey: .enableDiagnosticMode)
-        try container.encode(enableDiagnosticModeDoubleTapGesture, forKey: .enableDiagnosticModeDoubleTapGesture)
+        try container.encode(enableDiagnosticModeGesture, forKey: .enableDiagnosticModeGesture)
     }
 }
