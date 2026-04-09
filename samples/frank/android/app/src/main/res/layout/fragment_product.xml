@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/measure_background">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_open_checkout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/open_checkout"
+        app:backgroundTint="@color/measure_primary"
+        android:textColor="@color/measure_on_primary" />
+
+</FrameLayout>

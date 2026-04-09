@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FrankensteinApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/measure_primary</item>
+        <item name="colorOnPrimary">@color/measure_on_primary</item>
+        <item name="colorPrimaryContainer">@color/measure_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/measure_on_primary_container</item>
+        <item name="android:colorBackground">@color/measure_background</item>
+        <item name="colorSurface">@color/measure_surface</item>
+        <item name="colorOnSurface">@color/measure_on_surface</item>
+        <item name="colorSurfaceVariant">@color/measure_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/measure_on_surface_variant</item>
+    </style>
+</resources>

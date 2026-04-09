@@ -30,6 +30,7 @@ import java.net.URL
 internal const val HEADER_AUTHORIZATION = "Authorization"
 private const val TYPE_PROGUARD = "proguard"
 private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
+private const val TYPE_RN_SOURCE_MAP = "rn_source_map"
 private const val BUILDS_PATH = "builds"
 
 private const val ERROR_MSG_401 =
@@ -96,6 +97,10 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputDirectory
     abstract val flutterSymbolsDirProperty: RegularFileProperty
 
+    @get:Optional
+    @get:InputFile
+    abstract val rnSourceMapFileProperty: RegularFileProperty
+
     @get:InputFile
     abstract val manifestFileProperty: RegularFileProperty
 
@@ -114,12 +119,13 @@ abstract class BuildUploadTask : DefaultTask() {
         val mappingFile = mappingFileProperty.getOrNull()?.asFile
         val buildMetadataFile = buildMetadataFileProperty.get().asFile
         val flutterSymbolsDir = flutterSymbolsDirProperty.getOrNull()?.asFile
+        val rnSourceMapFile = rnSourceMapFileProperty.getOrNull()?.asFile
 
         val manifestData = readManifestData(manifestFile)
         val (buildSize, buildType) = readBuildMetadata(buildMetadataFile)
 
         val client = httpClientProvider.get().client
-        val mappings = collectMappingInfo(mappingFile, flutterSymbolsDir)
+        val mappings = collectMappingInfo(mappingFile, flutterSymbolsDir, rnSourceMapFile)
         val buildsRequest = createBuildsRequest(manifestData, buildSize, buildType, mappings)
 
         sendBuildsRequest(
@@ -128,13 +134,15 @@ abstract class BuildUploadTask : DefaultTask() {
             buildsRequest,
             mappings,
             mappingFile,
-            flutterSymbolsDir
+            flutterSymbolsDir,
+            rnSourceMapFile,
         )
     }
 
     private fun collectMappingInfo(
         mappingFile: File?,
         flutterSymbolsDir: File?,
+        rnSourceMapFile: File?,
     ): List<MappingInfo> {
         val mappings = mutableListOf<MappingInfo>()
 
@@ -151,6 +159,11 @@ abstract class BuildUploadTask : DefaultTask() {
             symbolsFiles?.forEach { symbolsFile ->
                 mappings.add(MappingInfo(type = TYPE_FLUTTER_SYMBOLS, filename = symbolsFile.name))
             }
+        }
+
+        if (rnSourceMapFile != null) {
+            logger.info("measure: RN source map found at ${rnSourceMapFile.absolutePath}")
+            mappings.add(MappingInfo(type = TYPE_RN_SOURCE_MAP, filename = rnSourceMapFile.name))
         }
 
         return mappings
@@ -178,10 +191,11 @@ abstract class BuildUploadTask : DefaultTask() {
         mappings: List<MappingInfo>,
         mappingFile: File?,
         flutterSymbolsDir: File?,
+        rnSourceMapFile: File?,
     ) {
         val buildsResponse = callBuildsApi(client, manifestData, buildsRequest)
         if (buildsResponse != null && mappings.isNotEmpty()) {
-            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbolsDir)
+            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbolsDir, rnSourceMapFile)
         }
     }
 
@@ -228,6 +242,7 @@ abstract class BuildUploadTask : DefaultTask() {
         buildsResponse: BuildsApiResponse,
         mappingFile: File?,
         flutterSymbolsDir: File?,
+        rnSourceMapFile: File?,
     ) {
         buildsResponse.mappings.forEach { mapping ->
             val file = when (mapping.type) {
@@ -236,7 +251,7 @@ abstract class BuildUploadTask : DefaultTask() {
                     flutterSymbolsDir?.listFiles { f -> f.extension == "symbols" && f.name == mapping.filename }
                         ?.firstOrNull()
                 }
-
+                TYPE_RN_SOURCE_MAP -> rnSourceMapFile
                 else -> null
             }
 
