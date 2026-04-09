@@ -17,6 +17,8 @@ private val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
 private val groupId = properties["GROUP"] as String
 private val artifactId = properties["MEASURE_ARTIFACT_ID"] as String
 
+group = groupId
+
 mavenPublishing {
     coordinates(groupId, artifactId, measureSdkVersion)
     publishToMavenCentral(automaticRelease = true)

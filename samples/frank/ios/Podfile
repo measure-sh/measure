@@ -1,0 +1,156 @@
+platform :ios, '16.0'
+
+# Flutter module integration
+flutter_application_path = '../flutter'
+load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+
+# React Native integration
+require_relative '../react_native/node_modules/react-native/scripts/react_native_pods'
+
+target 'FrankensteinApp' do
+  use_frameworks! :linkage => :static
+
+  # Measure SDK (local)
+  pod 'measure-sh', :path => '../../..'
+
+  # Flutter pods
+  install_all_flutter_pods(flutter_application_path)
+
+  # React Native pods
+  use_react_native!(
+    :path => '../react_native/node_modules/react-native',
+    :app_path => '../react_native'
+  )
+
+  # Measure React Native SDK (manual pod — use_native_modules! doesn't work
+  # in add-to-app setups where the RN root is outside the ios directory)
+  pod 'MeasureReactNative', :path => '../react_native/node_modules/@measuresh/react-native'
+
+  # Copy Firebase config per build configuration
+  script_phase :name => 'Copy GoogleService-Info.plist',
+    :script => <<~SCRIPT,
+      set -e
+      if [[ "$CONFIGURATION" == "Debug" ]]; then
+        SRC="$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist"
+      else
+        SRC="$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist"
+      fi
+      DEST="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist"
+      if [[ -f "$SRC" ]]; then
+        cp "$SRC" "$DEST"
+      else
+        echo "warning: GoogleService-Info.plist not found at $SRC"
+      fi
+    SCRIPT
+    :execution_position => :before_compile
+
+  # Upload dSYMs to Firebase Crashlytics
+  script_phase :name => 'Upload dSYMs to Firebase Crashlytics',
+    :script => <<~SCRIPT,
+      set -e
+      if [[ "$CONFIGURATION" == "Debug" ]]; then
+        PLIST="$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist"
+      else
+        PLIST="$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist"
+      fi
+
+      if [[ ! -f "$PLIST" ]]; then
+        echo "warning: GoogleService-Info.plist not found at $PLIST, skipping dSYM upload"
+        exit 0
+      fi
+
+      "${PODS_ROOT}/FirebaseCrashlytics/upload-symbols" \
+        -gsp "$PLIST" \
+        -p ios \
+        "${DWARF_DSYM_FOLDER_PATH}"
+    SCRIPT
+    :execution_position => :after_compile
+
+  # Upload dSYMs to Measure after each build
+  script_phase :name => 'Upload dSYMs to Measure',
+    :script => <<~SCRIPT,
+      set -e
+      if [[ -z "$MEASURE_API_KEY" || -z "$MEASURE_API_URL" ]]; then
+        echo "warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping dSYM upload"
+        exit 0
+      fi
+
+      DSYM_FOLDER="${DWARF_DSYM_FOLDER_PATH}"
+      if [[ ! -d "$DSYM_FOLDER" ]] || [[ -z "$(ls -A "$DSYM_FOLDER"/*.dSYM 2>/dev/null)" ]]; then
+        echo "warning: No dSYMs found at $DSYM_FOLDER, skipping upload"
+        exit 0
+      fi
+
+      VERSION_NAME="${MARKETING_VERSION}"
+      VERSION_CODE="${CURRENT_PROJECT_VERSION}"
+      APP_ID="${PRODUCT_BUNDLE_IDENTIFIER}"
+      BUILD_SIZE=$(stat -f%z "${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}" 2>/dev/null || echo "0")
+
+      UPLOAD_SCRIPT="$SRCROOT/../../../ios/Scripts/upload_dsym_manual.sh"
+      if [[ ! -f "$UPLOAD_SCRIPT" ]]; then
+        echo "error: upload_dsym_manual.sh not found at $UPLOAD_SCRIPT"
+        exit 1
+      fi
+
+      bash "$UPLOAD_SCRIPT" \
+        "$DSYM_FOLDER" \
+        "$MEASURE_API_URL" \
+        "$MEASURE_API_KEY" \
+        "$VERSION_NAME" \
+        "$VERSION_CODE" \
+        "$APP_ID" \
+        "$BUILD_SIZE"
+    SCRIPT
+    :execution_position => :after_compile
+
+  # Bundle React Native JS into the app
+  script_phase :name => 'Bundle React Native JS',
+    :script => <<~SCRIPT,
+      set -e
+      export PATH="/opt/homebrew/bin:$PATH"
+      if [[ "$CONFIGURATION" == "Debug" ]]; then
+        BUNDLE_CONFIG="--dev true"
+      else
+        BUNDLE_CONFIG="--dev false"
+      fi
+      REACT_NATIVE_DIR="$SRCROOT/../react_native"
+      DEST_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+      mkdir -p "$DEST_DIR"
+      cd "$REACT_NATIVE_DIR"
+      npx react-native bundle \
+        --platform ios \
+        $BUNDLE_CONFIG \
+        --entry-file index.js \
+        --bundle-output "$DEST_DIR/main.jsbundle" \
+        --assets-dest "$DEST_DIR"
+    SCRIPT
+    :execution_position => :before_compile
+end
+
+post_install do |installer|
+  flutter_post_install(installer)
+  react_native_post_install(installer, '../react_native/node_modules/react-native')
+
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+    end
+  end
+
+  # Inject Measure xcconfig into Pods xcconfig files
+  debug_xcconfig = File.join(__dir__, 'MeasureDebug.xcconfig')
+  release_xcconfig = File.join(__dir__, 'MeasureRelease.xcconfig')
+  pods_dir = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-FrankensteinApp')
+  {
+    'Pods-FrankensteinApp.debug.xcconfig' => debug_xcconfig,
+    'Pods-FrankensteinApp.release.xcconfig' => release_xcconfig
+  }.each do |filename, config_path|
+    xcconfig_path = File.join(pods_dir, filename)
+    next unless File.exist?(xcconfig_path)
+    include_line = "#include \"#{config_path}\""
+    content = File.read(xcconfig_path)
+    unless content.include?(include_line)
+      File.write(xcconfig_path, "#{include_line}\n#{content}")
+    end
+  end
+end

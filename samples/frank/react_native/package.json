@@ -1,0 +1,19 @@
+{
+  "name": "frankenstein-rn",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "react-native start"
+  },
+  "dependencies": {
+    "@measuresh/react-native": "link:../../../react-native",
+    "react": "19.2.3",
+    "react-native": "0.84.1"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.1.3",
+    "@react-native-community/cli-platform-android": "^20.1.3",
+    "@react-native/babel-preset": "0.84.1",
+    "@react-native/metro-config": "0.84.1"
+  }
+}
