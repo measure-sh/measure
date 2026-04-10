@@ -286,9 +286,6 @@ func TestMain(m *testing.M) {
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        symbolicatorImage,
 			ExposedPorts: []string{"3021/tcp"},
-			Env: map[string]string{
-				"RUST_LOG": "trace",
-			},
 			Files: []testcontainers.ContainerFile{
 				{
 					HostFilePath:      configPath,
