@@ -652,7 +652,7 @@ object Measure {
     }
 
     /**
-     * An internal method that adds logs Measure logger. 
+     * An internal method that adds logs Measure logger.
      * This method is not intended for public usage.
      */
     fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
