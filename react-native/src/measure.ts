@@ -37,10 +37,12 @@ export const Measure = {
    * ts
    * import { Measure, BaseMeasureConfig } from '@measure/react-native';
    *
-   * const measureConfig = new MeasureConfig(
-   * true,   // enableLogging
-   * false,  // autoStart
-   * );
+   * const measureConfig = new MeasureConfig({
+   *       enableLogging: true,
+   *       autoStart: true,
+   *       enableFullCollectionMode: false,
+   *       enableDiagnosticMode: true,
+   *     });
    *
    * Measure.init(client, measureConfig);
    *

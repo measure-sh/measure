@@ -237,6 +237,20 @@ export function trackBugReport(
   return MeasureModule.trackBugReport(description, attachments, attributes);
 }
 
+export function internalAddLog(
+  platform: string,
+  message: string,
+  errorMessage?: string | null
+): Promise<void> {
+  if (!MeasureModule.internalAddLog || isDisabled()) {
+    return Promise.reject(
+      new Error('internalAddLog native method not available.')
+    );
+  }
+
+  return MeasureModule.internalAddLog(platform, message, errorMessage ?? null);
+}
+
 export function getSessionId(): Promise<string | null> {
   if (!MeasureModule.getSessionId || isDisabled()) {
     return Promise.reject(

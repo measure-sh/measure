@@ -264,6 +264,23 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     @objc
+    func internalAddLog(_ platform: NSString,
+                        message: NSString,
+                        errorMessage: NSString?,
+                        resolver resolve: @escaping RCTPromiseResolveBlock,
+                        rejecter reject: @escaping RCTPromiseRejectBlock) {
+        let nsError: NSError? = errorMessage.map {
+            NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: $0 as String])
+        }
+        Measure.internalAddLog(
+            platform: platform as String,
+            message: message as String,
+            error: nsError
+        )
+        resolve(nil)
+    }
+    
+    @objc
     func getDynamicConfig(_ resolve: @escaping RCTPromiseResolveBlock,
                           rejecter reject: @escaping RCTPromiseRejectBlock) {
 
