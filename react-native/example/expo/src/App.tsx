@@ -24,6 +24,7 @@ export default function App() {
         enableLogging: true,
         autoStart: true,
         enableFullCollectionMode: false,
+        enableDiagnosticMode: true,
       });
 
       await Measure.init(measureConfig);

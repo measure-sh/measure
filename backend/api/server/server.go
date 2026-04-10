@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"backend/api/allowlist"
 	"backend/libs/inet"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -505,11 +504,6 @@ func Init(config *ServerConfig) {
 		if err != nil {
 			log.Printf("failed to create email client: %v\n", err)
 		}
-	}
-
-	// init auth allowlist
-	if err := allowlist.Init(); err != nil {
-		log.Printf("failed to initialize auth allowlist: %v\n", err)
 	}
 
 	Server = &server{

@@ -3,11 +3,14 @@ import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, render, screen } from '@testing-library/react'
 
-const mockGetSession = jest.fn(() => Promise.resolve({ session: null }))
+const mockGetSession = jest.fn(() => Promise.resolve<{ session: any }>({ session: null }))
+const mockRouterReplace = jest.fn()
+const mockValidateInvites = jest.fn((_arg?: any) => Promise.resolve({ status: 'success' }))
+const mockPosthogIdentify = jest.fn()
 
 jest.mock('@/app/auth/measure_auth', () => ({
     measureAuth: {
-        getSession: (...args: any[]) => mockGetSession.apply(null, args),
+        getSession: () => mockGetSession(),
         encodeOAuthState: jest.fn(() => 'encoded-state'),
     },
     MeasureAuthSession: {},
@@ -15,11 +18,11 @@ jest.mock('@/app/auth/measure_auth', () => ({
 
 jest.mock('@/app/api/api_calls', () => ({
     ValidateInviteApiStatus: { Error: 'error', Success: 'success' },
-    validateInvitesFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
+    validateInvitesFromServer: (arg: any) => mockValidateInvites(arg),
 }))
 
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ replace: jest.fn() }),
+    useRouter: () => ({ replace: mockRouterReplace }),
     useSearchParams: () => ({ get: jest.fn(() => null) }),
 }))
 
@@ -38,7 +41,7 @@ jest.mock('next-themes', () => ({
 }))
 
 jest.mock('posthog-js', () => ({
-    posthog: { identify: jest.fn() },
+    posthog: { identify: (...args: [...any[]]) => mockPosthogIdentify(...args) },
 }))
 
 jest.mock('@/app/utils/env_utils', () => ({
@@ -55,7 +58,12 @@ Object.defineProperty(window, 'location', {
 describe('Login Page', () => {
     beforeEach(() => {
         mockGetSession.mockClear()
+        mockGetSession.mockResolvedValue({ session: null })
         mockAssign.mockClear()
+        mockRouterReplace.mockClear()
+        mockValidateInvites.mockClear()
+        mockValidateInvites.mockResolvedValue({ status: 'success' })
+        mockPosthogIdentify.mockClear()
         process.env.NEXT_PUBLIC_API_BASE_URL = 'https://api.example.com'
     })
 
@@ -157,5 +165,78 @@ describe('Login Page', () => {
         render(<Login searchParams={{ mcp: '1', response_type: 'code', client_id: 'c', redirect_uri: 'http://x/cb', state: 's', code_challenge: 'ch', inviteId: 'some-invite' }} />)
 
         expect(screen.queryByText('Invalid or expired invite link.')).not.toBeInTheDocument()
+    })
+
+    it('validates invite when inviteId is present in non-MCP mode', async () => {
+        await act(async () => {
+            render(<Login searchParams={{ inviteId: 'invite-123' }} />)
+        })
+
+        expect(mockValidateInvites).toHaveBeenCalledWith('invite-123')
+    })
+
+    it('shows invalid invite message when invite validation fails', async () => {
+        mockValidateInvites.mockResolvedValue({ status: 'error' })
+
+        await act(async () => {
+            render(<Login searchParams={{ inviteId: 'bad-invite' }} />)
+        })
+
+        expect(screen.getByText('Invalid or expired invite link.')).toBeInTheDocument()
+    })
+
+    it('does not show invalid invite message when invite is valid', async () => {
+        mockValidateInvites.mockResolvedValue({ status: 'success' })
+
+        await act(async () => {
+            render(<Login searchParams={{ inviteId: 'good-invite' }} />)
+        })
+
+        expect(screen.queryByText('Invalid or expired invite link.')).not.toBeInTheDocument()
+    })
+
+    it('redirects to overview when session exists', async () => {
+        mockGetSession.mockResolvedValue({
+            session: { user: { id: 'user-1', email: 'test@example.com', name: 'Test', own_team_id: 'team-1' } },
+        })
+
+        await act(async () => {
+            render(<Login searchParams={{}} />)
+        })
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/team-1/overview')
+    })
+
+    it('shows "Logging in..." when session exists and redirecting', async () => {
+        mockGetSession.mockResolvedValue({
+            session: { user: { id: 'user-1', email: 'test@example.com', name: 'Test', own_team_id: 'team-1' } },
+        })
+
+        await act(async () => {
+            render(<Login searchParams={{}} />)
+        })
+
+        expect(screen.getByText('Logging in...')).toBeInTheDocument()
+    })
+
+    it('calls posthog.identify when session exists', async () => {
+        mockGetSession.mockResolvedValue({
+            session: { user: { id: 'user-1', email: 'test@example.com', name: 'Test User', own_team_id: 'team-1' } },
+        })
+
+        await act(async () => {
+            render(<Login searchParams={{}} />)
+        })
+
+        expect(mockPosthogIdentify).toHaveBeenCalledWith(
+            'user-1',
+            { email: 'test@example.com', name: 'Test User', plan: 'free' }
+        )
+    })
+
+    it('does not validate invite in MCP mode', () => {
+        render(<Login searchParams={{ mcp: '1', response_type: 'code', client_id: 'c', redirect_uri: 'http://x/cb', state: 's', code_challenge: 'ch', inviteId: 'some-invite' }} />)
+
+        expect(mockValidateInvites).not.toHaveBeenCalled()
     })
 })

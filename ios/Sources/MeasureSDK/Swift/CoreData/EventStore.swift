@@ -35,7 +35,7 @@ final class BaseEventStore: EventStore {
 
     func insertEvent(event: EventEntity) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -86,14 +86,14 @@ final class BaseEventStore: EventStore {
             do {
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to save event: \(event.id)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to save event: \(event.id)", error: error, data: nil)
             }
         }
     }
 
     func getEvents(eventIds: [String]) -> [EventEntity]? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -108,7 +108,7 @@ final class BaseEventStore: EventStore {
                 let events = try context.fetch(fetchRequest)
                 result = events.compactMap { $0.toEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch events by IDs.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch events by IDs.", error: error, data: nil)
                 result = nil
             }
         }
@@ -118,7 +118,7 @@ final class BaseEventStore: EventStore {
 
     func getEventsForSessions(sessions: [String]) -> [EventEntity]? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -132,7 +132,7 @@ final class BaseEventStore: EventStore {
                 let events = try context.fetch(fetchRequest)
                 result = events.compactMap { $0.toEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch events by session IDs.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch events by session IDs.", error: error, data: nil)
                 result = nil
             }
         }
@@ -142,7 +142,7 @@ final class BaseEventStore: EventStore {
 
     func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -170,7 +170,7 @@ final class BaseEventStore: EventStore {
                 let events = try context.fetch(fetchRequest)
                 eventIds = events.compactMap { $0.id }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch unbatched events.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch unbatched events.", error: error, data: nil)
             }
         }
 
@@ -179,7 +179,7 @@ final class BaseEventStore: EventStore {
 
     func deleteEvents(eventIds: [String]) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -192,14 +192,14 @@ final class BaseEventStore: EventStore {
                 events.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to delete events by IDs.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by IDs.", error: error, data: nil)
             }
         }
     }
 
     func deleteEvents(sessionIds: [String]) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -212,7 +212,7 @@ final class BaseEventStore: EventStore {
                 events.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to delete events by session IDs.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by session IDs.", error: error, data: nil)
             }
         }
     }
@@ -221,7 +221,7 @@ final class BaseEventStore: EventStore {
         guard !events.isEmpty else { return }
 
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -234,14 +234,14 @@ final class BaseEventStore: EventStore {
                 fetchedEvents.forEach { $0.batchId = batchId }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update batchId for events.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to update batchId for events.", error: error, data: nil)
             }
         }
     }
 
     func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -259,14 +259,14 @@ final class BaseEventStore: EventStore {
                 events.forEach { $0.needsReporting = needsReporting }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update needsReporting for journey events.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to update needsReporting for journey events.", error: error, data: nil)
             }
         }
     }
 
     func getEventsCount() -> Int {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return 0
         }
 
@@ -279,7 +279,7 @@ final class BaseEventStore: EventStore {
             do {
                 count = try context.count(for: fetchRequest)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch event count.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch event count.", error: error, data: nil)
                 count = 0
             }
         }
@@ -289,7 +289,7 @@ final class BaseEventStore: EventStore {
 
     func getEventCount(forSessionId sessionId: String) -> Int {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return 0
         }
 
@@ -303,7 +303,7 @@ final class BaseEventStore: EventStore {
             do {
                 count = try context.count(for: fetchRequest)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch event count for sessionId: \(sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch event count for sessionId: \(sessionId)", error: error, data: nil)
                 count = 0
             }
         }
@@ -315,7 +315,7 @@ final class BaseEventStore: EventStore {
         let lowerBound = eventTimestampMillis - Int64(durationSeconds * 1_000)
 
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -332,14 +332,14 @@ final class BaseEventStore: EventStore {
                 events.forEach { $0.needsReporting = true }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to mark timeline events for reporting.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to mark timeline events for reporting.", error: error, data: nil)
             }
         }
     }
 
     func getSessionIdsWithUnBatchedEvents() -> [String] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -360,7 +360,7 @@ final class BaseEventStore: EventStore {
                 let results = try context.fetch(fetchRequest)
                 sessionIds = results.compactMap { $0["sessionId"] as? String }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch sessionIds with unbatched events.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch sessionIds with unbatched events.", error: error, data: nil)
             }
         }
 
@@ -369,7 +369,7 @@ final class BaseEventStore: EventStore {
 
     func getAllEvents() -> [EventEntity] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -382,7 +382,7 @@ final class BaseEventStore: EventStore {
                 let events = try context.fetch(fetchRequest)
                 result = events.compactMap { $0.toEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch all events.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch all events.", error: error, data: nil)
             }
         }
 

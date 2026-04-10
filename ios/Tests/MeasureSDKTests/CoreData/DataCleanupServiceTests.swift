@@ -214,4 +214,58 @@ final class DataCleanupServiceTests: XCTestCase {
 
         XCTAssertEqual(sessionStore.getAllSessions().count, 1)
     }
+
+    // MARK: - trimSdkDebugLogs
+
+    func testTrimSdkDebugLogs_doesNothingWhenDirectoryIsNil() {
+        systemFileManager.sdkDebugLogsDirectory = nil
+
+        dataCleanupService.clearStaleData()
+
+        XCTAssertTrue(systemFileManager.deletedPaths.isEmpty)
+    }
+
+    func testTrimSdkDebugLogs_doesNothingWhenFileCountIsBelowLimit() {
+        systemFileManager.sdkDebugLogsDirectory = URL(fileURLWithPath: "/mock/logs")
+        systemFileManager.sdkDebugLogFiles = makeLogFileURLs(count: 3)
+
+        dataCleanupService.clearStaleData()
+
+        XCTAssertTrue(systemFileManager.deletedPaths.isEmpty)
+    }
+
+    func testTrimSdkDebugLogs_keepsNewestFiles() {
+        systemFileManager.sdkDebugLogsDirectory = URL(fileURLWithPath: "/mock/logs")
+        systemFileManager.sdkDebugLogFiles = (1...7).map {
+            URL(fileURLWithPath: "/mock/logs/\($0).log")
+        }
+
+        dataCleanupService.clearStaleData()
+
+        let remainingFiles = systemFileManager.sdkDebugLogFiles.map { $0.lastPathComponent }.sorted()
+        XCTAssertEqual(remainingFiles, ["3.log", "4.log", "5.log", "6.log", "7.log"])
+    }
+
+    func testTrimSdkDebugLogs_deletesAllButFiveWhenManyFilesExist() {
+        systemFileManager.sdkDebugLogsDirectory = URL(fileURLWithPath: "/mock/logs")
+        systemFileManager.sdkDebugLogFiles = makeLogFileURLs(count: 10)
+
+        dataCleanupService.clearStaleData()
+
+        XCTAssertEqual(systemFileManager.deletedPaths.count, 5)
+    }
+
+    func testTrimSdkDebugLogs_runsEvenWhenNoSessionsToDelete() {
+        systemFileManager.sdkDebugLogsDirectory = URL(fileURLWithPath: "/mock/logs")
+        systemFileManager.sdkDebugLogFiles = makeLogFileURLs(count: 7)
+        // No sessions inserted
+
+        dataCleanupService.clearStaleData()
+
+        XCTAssertEqual(systemFileManager.deletedPaths.count, 2)
+    }
+
+    private func makeLogFileURLs(count: Int) -> [URL] {
+        (1...count).map { URL(fileURLWithPath: "/mock/logs/\($0).log") }
+    }
 }

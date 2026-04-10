@@ -306,6 +306,14 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     fun getAttachmentDirectory(): String? = measure.fileStorage.getAttachmentDirectory()
 
+    fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
+        measure.logger.log(
+            LogLevel.Debug,
+            "[$platform] $message",
+            throwable,
+        )
+    }
+
     fun trackHttpEvent(
         url: String,
         method: String,

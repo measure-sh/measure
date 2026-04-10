@@ -54,12 +54,24 @@ NS_ASSUME_NONNULL_BEGIN
 /// usage limit, it will start deleting the oldest data to make space for new data.
 @property (nonatomic) NSNumber *maxDiskUsageInMb;
 
+/// Enables diagnostic mode which writes all SDK logs to a file.
+/// The log file can be attached when reporting a bug to help with debugging SDK issues.
+/// Defaults to `false`.
+@property (nonatomic) BOOL enableDiagnosticMode;
+
+/// Enable double finger double tap gesture to export SDK logs via share sheet.
+/// This functionality is only available if `enableDiagnosticMode` is set to `true`.
+/// Defaults to `false`.
+@property (nonatomic) BOOL enableDiagnosticModeGesture;
+
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
-                           autoStart:(BOOL)autoStart
+                            autoStart:(BOOL)autoStart
              enableFullCollectionMode:(BOOL)enableFullCollectionMode
-             requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
-                 maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb NS_DESIGNATED_INITIALIZER;
+               requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
+                     maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
+ enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
 

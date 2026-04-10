@@ -72,10 +72,10 @@ extension Measure.SessionOb {
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
   #if compiler(>=5.3) && $NonescapableTypes
-  public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil)
+  public init(enableLogging: Swift.Bool? = nil, autoStart: Swift.Bool? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil, maxDiskUsageInMb: Swift.Int? = nil, enableFullCollectionMode: Swift.Bool? = nil, enableDiagnosticMode: Swift.Bool? = nil, enableDiagnosticModeGesture: Swift.Bool? = nil)
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
-  @objc convenience public init(enableLogging: Swift.Bool, autoStart: Swift.Bool, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?, maxDiskUsageInMb: Foundation.NSNumber?, enableFullCollectionMode: Swift.Bool)
+  @objc convenience public init(enableLogging: Swift.Bool, autoStart: Swift.Bool, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?, maxDiskUsageInMb: Foundation.NSNumber?, enableFullCollectionMode: Swift.Bool, enableDiagnosticMode: Swift.Bool, enableDiagnosticModeGesture: Swift.Bool)
   #endif
   required public init(from decoder: any Swift.Decoder) throws
   final public func encode(to encoder: any Swift.Encoder) throws
@@ -327,6 +327,9 @@ extension Measure.Measure {
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
   public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?, attachments: [Measure.MsrAttachment])
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func internalAddLog(platform: Swift.String, message: Swift.String, error: (any Swift.Error)?)
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
   public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)

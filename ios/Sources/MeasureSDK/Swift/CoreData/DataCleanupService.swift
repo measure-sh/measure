@@ -21,6 +21,7 @@ final class BaseDataCleanupService: DataCleanupService {
     private let attachmentStore: AttachmentStore
     private let systemFileManager: SystemFileManager
     private let userDefaultsStorage: UserDefaultStorage
+    private let maxSdkDebugLogFiles = 5
 
     init(eventStore: EventStore,
          spanStore: SpanStore,
@@ -46,6 +47,7 @@ final class BaseDataCleanupService: DataCleanupService {
         trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
         cleanupOrphanedAttachments()
         attachmentStore.deleteExpiredAttachments()
+        trimSdkDebugLogs()
 
         guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
             return
@@ -56,7 +58,7 @@ final class BaseDataCleanupService: DataCleanupService {
         guard !sessionsToDelete.isEmpty else {
             logger.internalLog(
                 level: .info,
-                message: "Cleanup Service: No stale session data to clear after filtering current session.",
+                message: "DataCleanupService: No stale session data to clear after filtering current session.",
                 error: nil,
                 data: nil
             )
@@ -66,7 +68,7 @@ final class BaseDataCleanupService: DataCleanupService {
         deleteSessionData(sessionIds: sessionsToDelete)
         logger.internalLog(
             level: .info,
-            message: "Cleanup Service: Cleared stale session data for \(sessionsToDelete.count) sessions.",
+            message: "DataCleanupService: Cleared stale session data for \(sessionsToDelete.count) sessions.",
             error: nil,
             data: ["sessionIds": sessionsToDelete]
         )
@@ -93,7 +95,7 @@ final class BaseDataCleanupService: DataCleanupService {
 
         logger.internalLog(
             level: .debug,
-            message: "Exporter: Deleting \(sessionsToDelete.count) empty sessions",
+            message: "DataCleanupService: Deleting \(sessionsToDelete.count) empty sessions",
             error: nil,
             data: ["sessionIds": sessionsToDelete]
         )
@@ -128,7 +130,7 @@ final class BaseDataCleanupService: DataCleanupService {
         guard oldestSessionId != sessionId else {
             logger.internalLog(
                 level: .debug,
-                message: "Cleanup Service: Skipping deletion: oldest session is current session \(sessionId)",
+                message: "DataCleanupService: Skipping deletion: oldest session is current session \(sessionId)",
                 error: nil,
                 data: nil
             )
@@ -138,7 +140,7 @@ final class BaseDataCleanupService: DataCleanupService {
         deleteSessionData(sessionIds: [oldestSessionId])
         logger.internalLog(
             level: .info,
-            message: "Cleanup Service: Deleted oldest session: \(oldestSessionId)",
+            message: "DataCleanupService: Deleted oldest session: \(oldestSessionId)",
             error: nil,
             data: nil
         )
@@ -159,5 +161,25 @@ final class BaseDataCleanupService: DataCleanupService {
         systemFileManager.cleanupOrphanedAttachmentFiles(validPaths: validPaths)
 
         userDefaultsStorage.setHasRunOrphanAttachmentCleanup(true)
+    }
+
+    private func trimSdkDebugLogs() {
+        guard systemFileManager.getSdkDebugLogsDirectory() != nil else { return }
+
+        let files = systemFileManager.getContentsOfDebugLogsDirectory()
+        guard files.count > maxSdkDebugLogFiles else { return }
+
+        let filesToDelete = files
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .dropLast(maxSdkDebugLogFiles)
+
+        logger.log(
+            level: .debug,
+            message: "Cleanup: Deleting \(filesToDelete.count) old SDK debug log files",
+            error: nil,
+            data: nil
+        )
+
+        filesToDelete.forEach { systemFileManager.deleteFile(atPath: $0.path) }
     }
 }

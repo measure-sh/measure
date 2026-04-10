@@ -32,7 +32,7 @@ final class BaseCustomEventCollector: CustomEventCollector {
             self.customEventNameRegex = try NSRegularExpression(pattern: configProvider.customEventNameRegex)
         } catch {
             self.customEventNameRegex = nil
-            logger.log(level: .error, message: "Failed to create NSRegularExpression", error: error, data: nil)
+            logger.log(level: .error, message: "CustomEventCollector: Failed to create NSRegularExpression", error: error, data: nil)
         }
     }
 
@@ -69,18 +69,18 @@ final class BaseCustomEventCollector: CustomEventCollector {
 
     private func validateName(_ name: String) -> Bool {
         if name.isEmpty {
-            logger.log(level: .warning, message: "Event name is empty. This event will be dropped.", error: nil, data: nil )
+            logger.log(level: .warning, message: "CustomEventCollector: Event name is empty. This event will be dropped.", error: nil, data: nil )
             return false
         }
 
         if name.count > configProvider.maxEventNameLength {
-            logger.log(level: .warning, message: "Event(\(name)) exceeded max allowed length. This event will be dropped.", error: nil, data: nil)
+            logger.log(level: .warning, message: "CustomEventCollector: Event(\(name)) exceeded max allowed length. This event will be dropped.", error: nil, data: nil)
             return false
         }
 
         if let regex = customEventNameRegex,
            regex.firstMatch(in: name, options: [], range: NSRange(location: 0, length: name.count)) == nil {
-            logger.log(level: .warning, message: "Event(\(name)) does not match the allowed pattern. This event will be dropped.", error: nil, data: nil)
+            logger.log(level: .warning, message: "CustomEventCollector: Event(\(name)) does not match the allowed pattern. This event will be dropped.", error: nil, data: nil)
             return false
         }
 

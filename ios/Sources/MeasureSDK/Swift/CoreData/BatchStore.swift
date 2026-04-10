@@ -28,7 +28,7 @@ final class BaseBatchStore: BatchStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "BatchStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -50,7 +50,7 @@ final class BaseBatchStore: BatchStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to save batch: \(batch.batchId)",
+                    message: "BatchStore: Failed to save batch: \(batch.batchId)",
                     error: error,
                     data: nil
                 )
@@ -65,7 +65,7 @@ final class BaseBatchStore: BatchStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "BatchStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -96,7 +96,7 @@ final class BaseBatchStore: BatchStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to fetch batches",
+                    message: "BatchStore: Failed to fetch batches",
                     error: error,
                     data: nil
                 )
@@ -111,7 +111,7 @@ final class BaseBatchStore: BatchStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "BatchStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -144,7 +144,7 @@ final class BaseBatchStore: BatchStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to fetch batch \(batchId)",
+                    message: "BatchStore: Failed to fetch batch \(batchId)",
                     error: error,
                     data: nil
                 )
@@ -159,7 +159,7 @@ final class BaseBatchStore: BatchStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context unavailable while deleting batch",
+                message: "BatchStore: Background context unavailable while deleting batch",
                 error: nil,
                 data: nil
             )
@@ -179,7 +179,7 @@ final class BaseBatchStore: BatchStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to delete batch with id: \(batchId)",
+                    message: "BatchStore: Failed to delete batch with id: \(batchId)",
                     error: error,
                     data: nil
                 )

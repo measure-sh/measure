@@ -45,13 +45,13 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: image, path: nil)
         case .fileStorage:
             guard let fileURL = fileManager.saveFile(data: image, name: attachmentName, folderName: nil, directory: .documentDirectory) else {
-                logger.internalLog(level: .error, message: "Failed to save compressed image to file storage.", error: nil, data: nil)
+                logger.internalLog(level: .error, message: "AttachmentProcessor: Failed to save compressed image to file storage.", error: nil, data: nil)
                 return nil
             }
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: nil, path: fileURL.path)
         case .gzip:
             guard let compressedData = image.gzipped() else {
-                logger.internalLog(level: .error, message: "Failed to gzip and save snapshot JSON to file storage.", error: nil, data: nil)
+                logger.internalLog(level: .error, message: "AttachmentProcessor: Failed to gzip and save snapshot JSON to file storage.", error: nil, data: nil)
                 return nil
             }
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(compressedData.count), id: uuid, bytes: compressedData, path: nil)

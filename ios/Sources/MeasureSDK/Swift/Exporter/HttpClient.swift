@@ -35,7 +35,7 @@ final class BaseHttpClient: HttpClient {
 
     private func sendJsonRequestWithRedirects(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data, redirectCount: Int) -> HttpResponse {
         if redirectCount >= maxRedirects {
-            self.logger.internalLog(level: .error, message: "Too many redirects for JSON request to \(url.absoluteString)", error: nil, data: nil)
+            self.logger.internalLog(level: .error, message: "HttpClient: Too many redirects for JSON request to \(url.absoluteString)", error: nil, data: nil)
             return .error(.unknownError("Too many redirects"))
         }
 
@@ -67,7 +67,7 @@ final class BaseHttpClient: HttpClient {
         headers: [String: String], fileData: Data, redirectCount: Int
     ) -> HttpResponse {
         if redirectCount >= maxRedirects {
-            self.logger.internalLog(level: .error, message: "Too many redirects for file upload to \(url.absoluteString)", error: nil, data: nil)
+            self.logger.internalLog(level: .error, message: "HttpClient: Too many redirects for file upload to \(url.absoluteString)", error: nil, data: nil)
             return .error(.unknownError("Too many redirects"))
         }
 
@@ -95,11 +95,11 @@ final class BaseHttpClient: HttpClient {
 
     private func handleRequestCompletion(data: Data?, urlResponse: URLResponse?, error: Error?, redirectHandler: (URL) -> HttpResponse) -> HttpResponse {
         if let error = error {
-            self.logger.internalLog(level: .error, message: "Failed to send request: \(error.localizedDescription)", error: nil, data: nil)
+            self.logger.internalLog(level: .error, message: "HttpClient: Failed to send request: \(error.localizedDescription)", error: nil, data: nil)
             return .error(.unknownError(error.localizedDescription))
         } else if let httpResponse = urlResponse as? HTTPURLResponse, self.isRedirect(httpResponse.statusCode) {
             if let location = httpResponse.allHeaderFields["Location"] as? String, let baseUrl = urlResponse?.url, let newUrl = self.resolveRedirectUrl(baseUrl: baseUrl, location: location) {
-                self.logger.internalLog(level: .info, message: "Redirecting to: \(newUrl.absoluteString)", error: nil, data: nil)
+                self.logger.internalLog(level: .info, message: "HttpClient: Redirecting to: \(newUrl.absoluteString)", error: nil, data: nil)
                 return redirectHandler(newUrl)
             } else {
                 return .error(.unknownError("Redirect location missing"))
@@ -168,9 +168,9 @@ final class BaseHttpClient: HttpClient {
         let responseBody = data.flatMap({ String(data: $0, encoding: .utf8) })
 
         if let body = responseBody {
-            logger.internalLog(level: .info, message: "Response (\(httpResponse.statusCode)): \(body)", error: nil, data: nil)
+            logger.internalLog(level: .info, message: "HttpClient: Response (\(httpResponse.statusCode)): \(body)", error: nil, data: nil)
         } else {
-            logger.internalLog(level: .info, message: "Response (\(httpResponse.statusCode)): No body", error: nil, data: nil)
+            logger.internalLog(level: .info, message: "HttpClient: Response (\(httpResponse.statusCode)): No body", error: nil, data: nil)
         }
 
         let etag = httpResponse.allHeaderFields["Etag"] as? String

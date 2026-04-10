@@ -74,7 +74,7 @@ struct BaseConfigLoader: ConfigLoader {
                                      folderName: ConfigFileConstants.folderName,
                                      directory: ConfigFileConstants.directory)
         } catch {
-            logger.internalLog(level: .error, message: "Failed to save Dynamic config to disk.", error: error, data: nil)
+            logger.internalLog(level: .error, message: "ConfigLoader: Failed to save Dynamic config to disk.", error: error, data: nil)
         }
     }
 

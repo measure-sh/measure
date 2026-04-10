@@ -11,6 +11,7 @@ enum ConfigFileConstants {
     static let fileName = "dynamic_config.json"
     static let folderName = "measure"
     static let directory: FileManager.SearchPathDirectory = .cachesDirectory
+    static let sdkDebugLogsFolderName = "sdk_debug_logs"
 }
 
 /// A protocol that defines file system related operations.
@@ -23,6 +24,9 @@ protocol SystemFileManager {
     func retrieveFile(atPath path: String) -> Data?
     func deleteFile(atPath path: String)
     func cleanupOrphanedAttachmentFiles(validPaths: Set<String>)
+    func getSdkDebugLogsDirectory() -> URL?
+    func getLogFile(_ fileId: String) -> URL?
+    func getContentsOfDebugLogsDirectory() -> [URL]
 }
 
 final class BaseSystemFileManager: SystemFileManager {
@@ -198,6 +202,51 @@ final class BaseSystemFileManager: SystemFileManager {
                     )
                 }
             }
+        }
+    }
+
+    func getSdkDebugLogsDirectory() -> URL? {
+        guard let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access application support directory", error: nil, data: nil)
+            return nil
+        }
+
+        let debugLogsDirectory = appSupportDirectory.appendingPathComponent(ConfigFileConstants.sdkDebugLogsFolderName)
+
+        if !fileManager.fileExists(atPath: debugLogsDirectory.path) {
+            do {
+                try fileManager.createDirectory(at: debugLogsDirectory, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                logger.internalLog(level: .error, message: "SystemFileManager: Failed to create sdk_debug_logs directory", error: error, data: nil)
+                return nil
+            }
+        }
+
+        return debugLogsDirectory
+    }
+
+    func getLogFile(_ fileId: String) -> URL? {
+        guard let debugLogsDir = getSdkDebugLogsDirectory() else { return nil }
+
+        let fileURL = debugLogsDir.appendingPathComponent(fileId)
+
+        if !fileManager.fileExists(atPath: fileURL.path) {
+            guard fileManager.createFile(atPath: fileURL.path, contents: nil) else {
+                logger.internalLog(level: .error, message: "SystemFileManager: Failed to create log file \(fileId)", error: nil, data: nil)
+                return nil
+            }
+        }
+
+        return fileURL
+    }
+
+    func getContentsOfDebugLogsDirectory() -> [URL] {
+        guard let dir = getSdkDebugLogsDirectory() else { return [] }
+        do {
+            return try fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+        } catch {
+            logger.internalLog(level: .error, message: "SystemFileManager: Failed to list sdk_debug_logs directory", error: error, data: nil)
+            return []
         }
     }
 }

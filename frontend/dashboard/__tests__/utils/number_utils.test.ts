@@ -1,4 +1,4 @@
-import { formatBytes, kilobytesToMegabytes, numberToKMB } from '@/app/utils/number_utils'
+import { formatBytes, kilobytesToMegabytes, toKiloBytes, toMegaBytes, numberToKMB } from '@/app/utils/number_utils'
 import { describe, expect, it } from '@jest/globals'
 
 describe('number_utils', () => {
@@ -14,6 +14,28 @@ describe('number_utils', () => {
 
     it('should return -1 when input is negative', () => {
       expect(kilobytesToMegabytes(-1024)).toBe(-1)
+    })
+  })
+
+  describe('toKiloBytes', () => {
+    it('should convert bytes to kilobytes', () => {
+      expect(toKiloBytes(1024)).toBe(1)
+      expect(toKiloBytes(2048)).toBe(2)
+    })
+
+    it('should return 0 when input is 0', () => {
+      expect(toKiloBytes(0)).toBe(0)
+    })
+  })
+
+  describe('toMegaBytes', () => {
+    it('should convert bytes to megabytes', () => {
+      expect(toMegaBytes(1024 * 1024)).toBe(1)
+      expect(toMegaBytes(2 * 1024 * 1024)).toBe(2)
+    })
+
+    it('should return 0 when input is 0', () => {
+      expect(toMegaBytes(0)).toBe(0)
     })
   })
 
@@ -50,6 +72,14 @@ describe('number_utils', () => {
     it('should format petabytes', () => {
       expect(formatBytes(1024 ** 5)).toBe('1.00 PB')
       expect(formatBytes(2 * 1024 ** 5)).toBe('2.00 PB')
+    })
+
+    it('should handle negative values', () => {
+      expect(formatBytes(-1024)).toBe('-1.0 KB')
+      expect(formatBytes(-(1024 ** 2))).toBe('-1.0 MB')
+      expect(formatBytes(-(1024 ** 3))).toBe('-1.00 GB')
+      expect(formatBytes(-(1024 ** 4))).toBe('-1.00 TB')
+      expect(formatBytes(-(1024 ** 5))).toBe('-1.00 PB')
     })
   })
 

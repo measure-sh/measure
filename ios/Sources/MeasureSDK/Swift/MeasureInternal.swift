@@ -156,6 +156,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var signalStore: SignalStore {
         return measureInitializer.signalStore
     }
+    private var measureDispatchQueue: MeasureDispatchQueue {
+        return measureInitializer.measureDispatchQueue
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -163,13 +166,28 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
+        if configProvider.enableDiagnosticMode {
+            let logWriter = SdkDebugLogWriter(fileManager: systemFileManager,
+                                             sdkVersion: FrameworkInfo.version,
+                                             fileId: "\(timeProvider.now())",
+                                             timeProvider: timeProvider,
+                                             measureDispatchQueue: measureDispatchQueue)
+            logWriter.start()
+            logger.setLogCallback { logLevel, message, error in
+                logWriter.writeLog(level: logLevel, message: message, error: error)
+            }
+
+            if configProvider.enableDiagnosticModeGesture {
+                enableDoubleTapGesture()
+            }
+        }
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
         self.lifecycleObserver.applicationDidBecomeActive = applicationDidBecomeActive
         self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
-        self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in
@@ -209,10 +227,43 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
     }
 
+    private func enableDoubleTapGesture() {
+        DispatchQueue.main.async {
+            guard let window = UIWindow.keyWindow() else { return }
+            let gesture = UITapGestureRecognizer(target: self, action: #selector(self.handleDiagnosticExport))
+            gesture.numberOfTapsRequired = 2
+            gesture.numberOfTouchesRequired = 2
+            window.addGestureRecognizer(gesture)
+        }
+    }
+
+    @objc private func handleDiagnosticExport() {
+        guard let rootViewController = UIWindow.keyWindow()?.rootViewController else { return }
+        guard let logsDir = systemFileManager.getSdkDebugLogsDirectory() else { return }
+
+        let files: [URL]
+        do {
+            files = try FileManager.default.contentsOfDirectory(at: logsDir,
+                                                                includingPropertiesForKeys: nil)
+        } catch {
+            logger.log(level: .error, message: "MeasureInternal: Failed to read SDK log files", error: error, data: nil)
+            return
+        }
+
+        guard !files.isEmpty else {
+            logger.log(level: .debug, message: "MeasureInternal: No SDK log files to export", error: nil, data: nil)
+            return
+        }
+
+        let activityVC = UIActivityViewController(activityItems: files, applicationActivities: nil)
+        rootViewController.present(activityVC, animated: true)
+    }
+
+
     func start() {
         guard !isStarted else { return }
 
-        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Starting Measure SDK", error: nil, data: nil)
         registedCollectors()
         isStarted = true
     }
@@ -220,7 +271,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func stop() {
         guard isStarted && !configProvider.autoStart else { return }
 
-        self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
+        self.logger.log(level: .info, message: "MeasureInternal: Stopping Measure SDK", error: nil, data: nil)
         unregisterCollectors()
         isStarted = false
     }
@@ -387,6 +438,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                                           responseBody: responseBody)
     }
 
+    func internalAddLog(platform: String, message: String, error: Error?) {
+        logger.log(level: .info, message: "[\(platform)] \(message)", error: error, data: nil)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false
@@ -474,7 +529,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             } else if let doubleVal = value as? Double {
                 transformedAttributes[key] = .double(doubleVal)
             } else {
-                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
+                logger.log(level: .fatal, message: "MeasureInternal: Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
             }
         }
 

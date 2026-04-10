@@ -13,12 +13,14 @@ protocol SysCtl {
     func getMaximumAvailableRam() -> UnsignedNumber
     func getProcessStartTime() -> UnsignedNumber?
     func getSystemBootTime() -> UnsignedNumber?
+    func getOsBuildNumber() -> String?
 }
 
 final class BaseSysCtl: SysCtl {
     private var maximumAvailableRam: UnsignedNumber = 0
     private var cpuCores: UInt8 = 0
     private var clockSpeed: UInt64 = 0
+    private var osBuildNumber: String?
 
     func getCpuCores() -> UInt8 {
         guard cpuCores == 0 else {
@@ -175,4 +177,18 @@ final class BaseSysCtl: SysCtl {
 
         return UnsignedNumber(bootTime.tv_sec) * 1000 + UnsignedNumber(bootTime.tv_usec) / 1000
     }
+
+    func getOsBuildNumber() -> String? {
+        if let osBuildNumber {
+            return osBuildNumber
+        }
+        var size = 0
+        sysctlbyname("kern.osversion", nil, &size, nil, 0)
+        guard size > 0 else { return nil }
+        var build = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("kern.osversion", &build, &size, nil, 0) == 0 else { return nil }
+        osBuildNumber = String(cString: build)
+        return osBuildNumber
+    }
+
 }

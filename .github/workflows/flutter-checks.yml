@@ -6,17 +6,17 @@ permissions:
 on:
   pull_request:
     paths:
-      - 'flutter/**'
-      - 'android/measure/api/**'
+      - "flutter/**"
+      - "android/measure/api/**"
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
-      - 'flutter/**'
+      - "flutter/**"
 
 env:
   JAVA_VERSION: 21
-  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_DISTRIBUTION: "temurin"
   GITHUB_ACTOR: ${{ github.actor }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flutter-version: ['3.24.0', '3.38.3']
+        flutter-version: ["3.24.0", "3.41.0"]
     defaults:
       run:
         working-directory: flutter

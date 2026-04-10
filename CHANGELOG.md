@@ -7,11 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+
 ### :hammer: Misc
 
+- (**backend**): Remove auth gatekeeping (#3437) by @detj in #3437
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**frontend**): Fix lint error in login page test file by @anupcowkur in #3453
+- (**frontend**): Add frontend tests by @anupcowkur in #3447
+- (**frontend**): Add docs sidebar tests (#3445) by @anupcowkur in #3445
+- (**frontend**): Add missing number utils tests by @anupcowkur in #3444
+- (**frontend**): Add tests for data components by @anupcowkur in #3443
+- (**frontend**): Remove login page alpha disclaimer by @anupcowkur in #3442
+- (**frontend**): Add dashboard tests by @anupcowkur in #3441
+- (**frontend**): Add tests for create app & team components by @anupcowkur in #3440
+- (**frontend**): Add tests for user_def_attr_selector component by @anupcowkur in #3439
+- (**frontend**): Add tests for filters component by @anupcowkur in #3438
+- (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
 
 ## [0.10.0] - 2026-04-06
 

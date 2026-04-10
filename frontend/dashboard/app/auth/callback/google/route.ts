@@ -74,22 +74,6 @@ export async function GET(request: Request) {
       body = await res.text();
     }
 
-    // Check if allowlist banned this identity
-    if (typeof body === "object" && body.error === "allowlist_banned") {
-      err = "Google login failure: allowlist banned"
-      posthog.captureException(err, {
-        source: 'google_oauth_callback'
-      })
-      console.log(err);
-
-      const parsedUrl = new URL(errRedirectUrl);
-      if (body?.details) {
-        parsedUrl.searchParams.set("message", body.details);
-      }
-
-      return NextResponse.redirect(parsedUrl.toString(), { status: 302 });
-    }
-
     if (body) {
       err = `Google login failure - post /auth/google returned ${res.status}. Details: ${JSON.stringify(body)}`
     } else {

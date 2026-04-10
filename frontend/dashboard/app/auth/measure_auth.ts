@@ -231,6 +231,10 @@ export class MeasureAuth {
     }
 
     const endpoint = getEndpoint(resource)
+    const metricEndpoint = endpoint.replace(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      ":id",
+    )
 
     // Skip token refresh if we're already refreshing
     const isRefreshRequest = endpoint === `/auth/refresh`
@@ -260,9 +264,23 @@ export class MeasureAuth {
       },
     }
 
+    const method = (config.method || "GET").toUpperCase()
+
     try {
       // Make the request
+      const start = performance.now()
       let response = await fetch(resource, newConfig)
+      const latencyMs = Math.round(performance.now() - start)
+
+      if (!isRefreshRequest) {
+        posthog.capture("api_call_completed", {
+          endpoint: metricEndpoint,
+          method,
+          status_code: response.status,
+          latency_ms: latencyMs,
+          success: response.ok,
+        })
+      }
 
       // If we get a 401 Unauthorized and it's not already a refresh request
       if (response.status === 401 && !isRefreshRequest) {
@@ -284,7 +302,18 @@ export class MeasureAuth {
             },
           }
 
+          const retryStart = performance.now()
           response = await fetch(resource, retryConfig)
+          const retryLatencyMs = Math.round(performance.now() - retryStart)
+
+          posthog.capture("api_call_completed", {
+            endpoint,
+            method,
+            status_code: response.status,
+            latency_ms: retryLatencyMs,
+            success: response.ok,
+            retried: true,
+          })
 
           if (response.status === 401 && redirectToLogin) {
             // If response is still 401 after refresh and retry has been attempted, redirect to login

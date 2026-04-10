@@ -27,7 +27,7 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
         }
 
         if attributes.count > configProvider.maxUserDefinedAttributesPerEvent {
-            logger.log(level: .warning, message: "Event(\(name)) contains more than max allowed attributes. This event will be dropped.", error: nil, data: nil)
+            logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) contains more than max allowed attributes. This event will be dropped.", error: nil, data: nil)
             return false
         }
 
@@ -36,10 +36,10 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
             let isValueValid = validateValue(value)
 
             if !isKeyValid {
-                logger.log(level: .warning, message: "Event(\(name)) contains invalid attribute key: \(key). This event will be dropped.", error: nil, data: nil)
+                logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) contains invalid attribute key: \(key). This event will be dropped.", error: nil, data: nil)
             }
             if !isValueValid {
-                logger.log(level: .warning, message: "Event(\(name)) contains invalid attribute value. This event will be dropped.", error: nil, data: nil)
+                logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) contains invalid attribute value. This event will be dropped.", error: nil, data: nil)
             }
 
             return isKeyValid && isValueValid
@@ -61,10 +61,10 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
                 validAttributes[key] = value
             } else {
                 if !isKeyValid {
-                    logger.log(level: .warning, message: "Event(\(name)) dropped attribute with invalid key: \(key)", error: nil, data: nil)
+                    logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) dropped attribute with invalid key: \(key)", error: nil, data: nil)
                 }
                 if !isValueValid {
-                    logger.log(level: .warning, message: "Event(\(name)) dropped attribute with invalid value for key: \(key)", error: nil, data: nil)
+                    logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) dropped attribute with invalid value for key: \(key)", error: nil, data: nil)
                 }
             }
         }
@@ -75,7 +75,7 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
             let trimmedPairs = Array(validAttributes.prefix(maxAllowed))
             let trimmedAttributes = Dictionary(uniqueKeysWithValues: trimmedPairs)
 
-            logger.log(level: .warning, message: "Event(\(name)) exceeded max attributes. Dropped \(validAttributes.count - trimmedAttributes.count) attributes.", error: nil, data: nil)
+            logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) exceeded max attributes. Dropped \(validAttributes.count - trimmedAttributes.count) attributes.", error: nil, data: nil)
             return trimmedAttributes
         }
 

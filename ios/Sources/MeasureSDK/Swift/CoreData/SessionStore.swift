@@ -31,7 +31,7 @@ final class BaseSessionStore: SessionStore {
 
     func insertSession(_ session: SessionEntity) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -46,14 +46,14 @@ final class BaseSessionStore: SessionStore {
             do {
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to save session: \(session.sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to save session: \(session.sessionId)", error: error, data: nil)
             }
         }
     }
 
     func getSession(byId sessionId: String) -> SessionEntity? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -75,7 +75,7 @@ final class BaseSessionStore: SessionStore {
                     )
                 }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch session: \(sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to fetch session: \(sessionId)", error: error, data: nil)
                 result = nil
             }
         }
@@ -85,7 +85,7 @@ final class BaseSessionStore: SessionStore {
 
     func markCrashedSession(sessionId: String) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -100,14 +100,14 @@ final class BaseSessionStore: SessionStore {
                     try context.saveIfNeeded()
                 }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to mark crashed session: \(sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to mark crashed session: \(sessionId)", error: error, data: nil)
             }
         }
     }
 
     func updateNeedsReporting(sessionId: String, needsReporting: Bool) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -122,14 +122,14 @@ final class BaseSessionStore: SessionStore {
                     try context.saveIfNeeded()
                 }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update needsReporting for session: \(sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to update needsReporting for session: \(sessionId)", error: error, data: nil)
             }
         }
     }
 
     func getOldestSession() -> String? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -143,7 +143,7 @@ final class BaseSessionStore: SessionStore {
             do {
                 sessionId = try context.fetch(fetchRequest).first?.sessionId
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch oldest session.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to fetch oldest session.", error: error, data: nil)
                 sessionId = nil
             }
         }
@@ -153,7 +153,7 @@ final class BaseSessionStore: SessionStore {
 
     func deleteSessions(_ sessionIds: [String]) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -167,14 +167,14 @@ final class BaseSessionStore: SessionStore {
                 sessions.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to delete sessions: \(sessionIds.joined(separator: ","))", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to delete sessions: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
         }
     }
 
     func getSessionsToDelete() -> [String]? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -188,7 +188,7 @@ final class BaseSessionStore: SessionStore {
                 let sessions = try context.fetch(fetchRequest)
                 sessionIds = sessions.compactMap { $0.sessionId }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch sessions to delete.", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to fetch sessions to delete.", error: error, data: nil)
                 sessionIds = nil
             }
         }
@@ -198,7 +198,7 @@ final class BaseSessionStore: SessionStore {
 
     func getPrioritySessionIds() -> [String] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -215,7 +215,7 @@ final class BaseSessionStore: SessionStore {
                 let sessions = try context.fetch(fetchRequest)
                 sessionIds = sessions.compactMap { $0.sessionId }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch priority sessions", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to fetch priority sessions", error: error, data: nil)
             }
         }
 
@@ -224,7 +224,7 @@ final class BaseSessionStore: SessionStore {
 
     func getAllSessions() -> [SessionEntity] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SessionStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -245,7 +245,7 @@ final class BaseSessionStore: SessionStore {
                     )
                 }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch all sessions", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SessionStore: Failed to fetch all sessions", error: error, data: nil)
                 result = []
             }
         }

@@ -31,7 +31,7 @@ final class BaseSpanStore: SpanStore {
 
     func insertSpan(span: SpanEntity) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -58,14 +58,14 @@ final class BaseSpanStore: SpanStore {
             do {
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to save span: \(span.spanId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to save span: \(span.spanId)", error: error, data: nil)
             }
         }
     }
 
     func getSpans(spanIds: [String]) -> [SpanEntity]? {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return nil
         }
 
@@ -79,7 +79,7 @@ final class BaseSpanStore: SpanStore {
                 let spans = try context.fetch(fetchRequest)
                 result = spans.map { $0.toSpanEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch spans for IDs", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to fetch spans for IDs", error: error, data: nil)
                 result = nil
             }
         }
@@ -89,7 +89,7 @@ final class BaseSpanStore: SpanStore {
 
     func deleteSpans(spanIds: [String]) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -111,14 +111,14 @@ final class BaseSpanStore: SpanStore {
 
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to delete spans: \(spanIds)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to delete spans: \(spanIds)", error: error, data: nil)
             }
         }
     }
 
     func deleteSpans(sessionIds: [String]) {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -133,7 +133,7 @@ final class BaseSpanStore: SpanStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to delete spans for sessionIds: \(sessionIds)",
+                    message: "SpanStore: Failed to delete spans for sessionIds: \(sessionIds)",
                     error: error,
                     data: nil
                 )
@@ -143,7 +143,7 @@ final class BaseSpanStore: SpanStore {
 
     func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -161,7 +161,7 @@ final class BaseSpanStore: SpanStore {
                 let spans = try context.fetch(fetchRequest)
                 spanIds = spans.compactMap { $0.spanId }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch unbatched spans", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to fetch unbatched spans", error: error, data: nil)
             }
         }
 
@@ -172,7 +172,7 @@ final class BaseSpanStore: SpanStore {
         guard !spans.isEmpty else { return }
 
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -187,14 +187,14 @@ final class BaseSpanStore: SpanStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                logger.internalLog(level: .error, message: "Failed to update batchId for spans: \(spans)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to update batchId for spans: \(spans)", error: error, data: nil)
             }
         }
     }
 
     func getSpansCount() -> Int {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return 0
         }
 
@@ -207,7 +207,7 @@ final class BaseSpanStore: SpanStore {
             do {
                 count = try context.count(for: fetchRequest)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch spans count", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to fetch spans count", error: error, data: nil)
             }
         }
 
@@ -216,7 +216,7 @@ final class BaseSpanStore: SpanStore {
 
     func getSpansCount(sessionId: String) -> Int {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return 0
         }
 
@@ -230,7 +230,7 @@ final class BaseSpanStore: SpanStore {
             do {
                 count = try context.count(for: fetchRequest)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch spans count for sessionId: \(sessionId)", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to fetch spans count for sessionId: \(sessionId)", error: error, data: nil)
             }
         }
 
@@ -239,7 +239,7 @@ final class BaseSpanStore: SpanStore {
 
     func getAllSpans() -> [SpanEntity] {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "SpanStore: Background context not available", error: nil, data: nil)
             return []
         }
 
@@ -252,7 +252,7 @@ final class BaseSpanStore: SpanStore {
                 let spans = try context.fetch(fetchRequest)
                 result = spans.map { $0.toSpanEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch all spans", error: error, data: nil)
+                logger.internalLog(level: .error, message: "SpanStore: Failed to fetch all spans", error: error, data: nil)
             }
         }
 

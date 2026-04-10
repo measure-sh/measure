@@ -35,9 +35,11 @@ const App = (): React.JSX.Element => {
 
   const initializeMeasure = async () => {
     const measureConfig = new MeasureConfig({
-      enableLogging: true,
-      autoStart: true,
-    });
+        enableLogging: true,
+        autoStart: true,
+        enableFullCollectionMode: false,
+        enableDiagnosticMode: true,
+      });
 
     await Measure.init(measureConfig);
 

@@ -34,7 +34,7 @@ final class BaseAttachmentStore: AttachmentStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "AttachmentStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -59,7 +59,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to delete attachments by IDs.",
+                    message: "AttachmentStore: Failed to delete attachments by IDs.",
                     error: error,
                     data: ["attachmentIds": attachmentIds]
                 )
@@ -77,7 +77,7 @@ final class BaseAttachmentStore: AttachmentStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "AttachmentStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -98,7 +98,7 @@ final class BaseAttachmentStore: AttachmentStore {
                 } else {
                     logger.internalLog(
                         level: .warning,
-                        message: "Attachment with ID \(attachmentId) not found for upload update.",
+                        message: "AttachmentStore: Attachment with ID \(attachmentId) not found for upload update.",
                         error: nil,
                         data: nil
                     )
@@ -106,7 +106,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to update upload details for attachment.",
+                    message: "AttachmentStore: Failed to update upload details for attachment.",
                     error: error,
                     data: ["attachmentId": attachmentId]
                 )
@@ -118,7 +118,7 @@ final class BaseAttachmentStore: AttachmentStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "AttachmentStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -138,7 +138,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to fetch attachments for upload.",
+                    message: "AttachmentStore: Failed to fetch attachments for upload.",
                     error: error,
                     data: ["batchSize": batchSize]
                 )
@@ -154,7 +154,7 @@ final class BaseAttachmentStore: AttachmentStore {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(
                 level: .error,
-                message: "Background context not available",
+                message: "AttachmentStore: Background context not available",
                 error: nil,
                 data: nil
             )
@@ -171,7 +171,7 @@ final class BaseAttachmentStore: AttachmentStore {
 
                 logger.internalLog(
                     level: .debug,
-                    message: "Deleting \(attachments.count) attachments for \(sessionIds.count) sessions.",
+                    message: "AttachmentStore: Deleting \(attachments.count) attachments for \(sessionIds.count) sessions.",
                     error: nil,
                     data: ["sessionIds": sessionIds]
                 )
@@ -186,7 +186,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to delete attachments for session IDs.",
+                    message: "AttachmentStore: Failed to delete attachments for session IDs.",
                     error: error,
                     data: ["sessionIds": sessionIds]
                 )
@@ -218,7 +218,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to fetch attachment paths for orphan cleanup.",
+                    message: "AttachmentStore: Failed to fetch attachment paths for orphan cleanup.",
                     error: error,
                     data: nil
                 )
@@ -230,7 +230,7 @@ final class BaseAttachmentStore: AttachmentStore {
 
     func deleteExpiredAttachments() {
         guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "Background context not available", error: nil, data: nil)
+            logger.internalLog(level: .error, message: "AttachmentStore: Background context not available", error: nil, data: nil)
             return
         }
 
@@ -256,7 +256,7 @@ final class BaseAttachmentStore: AttachmentStore {
 
                 logger.internalLog(
                     level: .debug,
-                    message: "Cleanup Service: Deleting \(expired.count) expired attachments",
+                    message: "AttachmentStore: Cleanup Service: Deleting \(expired.count) expired attachments",
                     error: nil,
                     data: nil
                 )
@@ -271,7 +271,7 @@ final class BaseAttachmentStore: AttachmentStore {
             } catch {
                 logger.internalLog(
                     level: .error,
-                    message: "Failed to delete expired attachments.",
+                    message: "AttachmentStore: Failed to delete expired attachments.",
                     error: error,
                     data: nil
                 )

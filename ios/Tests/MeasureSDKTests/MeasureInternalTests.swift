@@ -29,7 +29,7 @@ final class MeasureInternalTests: XCTestCase {
             XCTFail("Unexpected logger type.")
             return
         }
-        XCTAssertTrue(logger.logs.contains("Initializing Measure SDK"))
+        XCTAssertTrue(logger.logs.contains("MeasureInternal: Initializing Measure SDK"))
     }
 
     func testStart_logsStartMessage() {
@@ -38,7 +38,7 @@ final class MeasureInternalTests: XCTestCase {
             XCTFail("Unexpected logger type.")
             return
         }
-        XCTAssertTrue(logger.logs.contains("Starting Measure SDK"))
+        XCTAssertTrue(logger.logs.contains("MeasureInternal: Starting Measure SDK"))
     }
 
     func testStop_logsStopMessage() {
@@ -48,8 +48,8 @@ final class MeasureInternalTests: XCTestCase {
             XCTFail("Unexpected logger type.")
             return
         }
-        XCTAssertTrue(logger.logs.contains("Starting Measure SDK"))
-        XCTAssertTrue(logger.logs.contains("Stopping Measure SDK"))
+        XCTAssertTrue(logger.logs.contains("MeasureInternal: Starting Measure SDK"))
+        XCTAssertTrue(logger.logs.contains("MeasureInternal: Stopping Measure SDK"))
     }
 
     func testStart_registersCollectors() {
@@ -126,7 +126,7 @@ final class MeasureInternalTests: XCTestCase {
             XCTFail("Unexpected logger type.")
             return
         }
-        XCTAssertTrue(logger.logs.contains("Initializing Measure SDK"))
+        XCTAssertTrue(logger.logs.contains("MeasureInternal: Initializing Measure SDK"))
         measureInternal.stop()
         XCTAssertFalse(logger.logs.contains("Stopping Measure SDK"), "stop() should not log a message if not started")
         measureInternal.start()

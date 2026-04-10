@@ -20,10 +20,12 @@ protocol ExceptionGenerator {
 final class BaseExceptionGenerator: ExceptionGenerator {
     private let logger: Logger
     private let crashDataPersistence: CrashDataPersistence
+    private let sysCtl: SysCtl
 
-    init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
+    init(logger: Logger, crashDataPersistence: CrashDataPersistence, sysCtl: SysCtl) {
         self.logger = logger
         self.crashDataPersistence = crashDataPersistence
+        self.sysCtl = sysCtl
     }
 
     func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
@@ -58,7 +60,7 @@ final class BaseExceptionGenerator: ExceptionGenerator {
             return nil
         }
 
-        let formatter = CrashDataFormatter(report.value)
+        let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
         let result = formatter.getException(true, error: msrError)
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()

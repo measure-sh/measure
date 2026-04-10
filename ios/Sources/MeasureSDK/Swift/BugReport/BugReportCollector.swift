@@ -46,7 +46,7 @@ final class BaseBugReportCollector: BugReportCollector {
     func startBugReportFlow(takeScreenshot: Bool,
                             bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue]?) {
-        logger.log(level: .info, message: "Bug Report Flow Started", error: nil, data: nil)
+        logger.log(level: .info, message: "BugReportCollector: Bug Report Flow Started", error: nil, data: nil)
         self.userDefinedAttributes = attributes
         bugReportManager.setBugReportConfig(bugReportConfig)
         bugReportManager.openBugReporter([], takeScreenshot: takeScreenshot)
