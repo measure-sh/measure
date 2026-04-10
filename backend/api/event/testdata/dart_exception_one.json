@@ -1,0 +1,179 @@
+{
+    "handled": false,
+    "framework": "dart",
+    "exceptions": [
+        {
+            "thread_sequence": 0,
+            "frames": [
+                {
+                    "method_name": "MainScreen._trackError",
+                    "file_name": "main.dart",
+                    "class_name": "MainScreen",
+                    "col_num": 5,
+                    "module_name": "package:measure_flutter_example/",
+                    "frame_index": 0,
+                    "line_num": 119,
+                    "in_app": false
+                },
+                {
+                    "method_name": "_InkResponseState.handleTap",
+                    "file_name": "ink_well.dart",
+                    "class_name": "_InkResponseState",
+                    "col_num": 21,
+                    "module_name": "package:flutter/src/material/",
+                    "frame_index": 1,
+                    "line_num": 1185,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureRecognizer.invokeCallback",
+                    "file_name": "recognizer.dart",
+                    "class_name": "GestureRecognizer",
+                    "col_num": 24,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 2,
+                    "line_num": 357,
+                    "in_app": false
+                },
+                {
+                    "method_name": "TapGestureRecognizer.handleTapUp",
+                    "file_name": "tap.dart",
+                    "class_name": "TapGestureRecognizer",
+                    "col_num": 11,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 3,
+                    "line_num": 653,
+                    "in_app": false
+                },
+                {
+                    "method_name": "BaseTapGestureRecognizer._checkUp",
+                    "file_name": "tap.dart",
+                    "class_name": "BaseTapGestureRecognizer",
+                    "col_num": 5,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 4,
+                    "line_num": 307,
+                    "in_app": false
+                },
+                {
+                    "method_name": "BaseTapGestureRecognizer.acceptGesture",
+                    "file_name": "tap.dart",
+                    "class_name": "BaseTapGestureRecognizer",
+                    "col_num": 7,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 5,
+                    "line_num": 277,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureArenaManager.sweep",
+                    "file_name": "arena.dart",
+                    "class_name": "GestureArenaManager",
+                    "col_num": 27,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 6,
+                    "line_num": 173,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding.handleEvent",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 20,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 7,
+                    "line_num": 534,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding.dispatchEvent",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 22,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 8,
+                    "line_num": 499,
+                    "in_app": false
+                },
+                {
+                    "method_name": "RendererBinding.dispatchEvent",
+                    "file_name": "binding.dart",
+                    "class_name": "RendererBinding",
+                    "col_num": 11,
+                    "module_name": "package:flutter/src/rendering/",
+                    "frame_index": 9,
+                    "line_num": 460,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding._handlePointerEventImmediately",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 7,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 10,
+                    "line_num": 437,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding.handlePointerEvent",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 5,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 11,
+                    "line_num": 394,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding._flushPointerEventQueue",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 7,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 12,
+                    "line_num": 341,
+                    "in_app": false
+                },
+                {
+                    "method_name": "GestureBinding._handlePointerDataPacket",
+                    "file_name": "binding.dart",
+                    "class_name": "GestureBinding",
+                    "col_num": 9,
+                    "module_name": "package:flutter/src/gestures/",
+                    "frame_index": 13,
+                    "line_num": 308,
+                    "in_app": false
+                },
+                {
+                    "method_name": "_invoke1",
+                    "file_name": "hooks.dart",
+                    "module_name": "dart:ui/",
+                    "col_num": 13,
+                    "frame_index": 14,
+                    "line_num": 332,
+                    "in_app": false
+                },
+                {
+                    "method_name": "PlatformDispatcher._dispatchPointerDataPacket",
+                    "file_name": "platform_dispatcher.dart",
+                    "class_name": "PlatformDispatcher",
+                    "col_num": 7,
+                    "module_name": "dart:ui/",
+                    "frame_index": 15,
+                    "line_num": 451,
+                    "in_app": false
+                },
+                {
+                    "method_name": "_dispatchPointerDataPacket",
+                    "file_name": "hooks.dart",
+                    "module_name": "dart:ui/",
+                    "col_num": 31,
+                    "frame_index": 16,
+                    "line_num": 267,
+                    "in_app": false
+                }
+            ]
+        }
+    ]
+}

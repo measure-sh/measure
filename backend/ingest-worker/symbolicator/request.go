@@ -178,7 +178,7 @@ func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator, origin
 
 // prepareJvmRequest prepares the jvm request
 // for symbolicator.
-func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator, origin string, sources []Source) (err error) {
+func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator, origin string, sources []SentrySource) (err error) {
 	var reqBody bytes.Buffer
 	url := origin
 

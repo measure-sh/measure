@@ -80,6 +80,7 @@ type ServerConfig struct {
 	AWSEndpoint                string
 	APIOrigin                  string
 	SymbolicatorOrigin         string
+	SymboloaderOrigin          string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
@@ -159,6 +160,11 @@ func NewConfig() *ServerConfig {
 		log.Println("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
 	}
 
+	symboloaderOrigin := os.Getenv("SYMBOLOADER_ORIGIN")
+	if symboloaderOrigin == "" {
+		log.Println("SYMBOLOADER_ORIGIN env var not set. Need for ProGuard symbol lookups.")
+	}
+
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
@@ -235,6 +241,7 @@ func NewConfig() *ServerConfig {
 		AWSEndpoint:                endpoint,
 		APIOrigin:                  apiOrigin,
 		SymbolicatorOrigin:         symbolicatorOrigin,
+		SymboloaderOrigin:          symboloaderOrigin,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,

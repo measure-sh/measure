@@ -1,0 +1,806 @@
+[
+  {
+    "type": "exception",
+    "exception_types": [
+      "NSRangeException"
+    ],
+    "exception_frames": [
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "specialized ViewController.triggerCrash(type: String)",
+          "file_name": "ViewController.swift",
+          "line_num": 335
+        },
+        {
+          "class_name": "",
+          "method_name": "ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)",
+          "file_name": "ViewController.swift",
+          "line_num": 237
+        },
+        {
+          "class_name": "",
+          "method_name": "@objc ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)",
+          "file_name": "\u003ccompiler-generated\u003e",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "main",
+          "file_name": "AppDelegate.swift",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ]
+    ],
+    "thread_frames": [
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ],
+      [
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        },
+        {
+          "class_name": "",
+          "method_name": "",
+          "file_name": "",
+          "line_num": 0
+        }
+      ]
+    ]
+  }
+]

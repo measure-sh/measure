@@ -1,0 +1,41 @@
+sh.measure.sample.CustomException: This is a nested custom exception
+	at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$1(ExceptionDemoActivity.kt:23)
+	at sh.measure.sample.ExceptionDemoActivity.$r8$lambda$NwLOrF0prbPyxt_3Qpfl9mFUtC8
+	at sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda2.onClick(D8$$SyntheticClass)
+	at android.view.View.performClick(View.java:7506)
+	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
+	at android.view.View.performClickInternal(View.java:7483)
+	at android.view.View.-$$Nest$mperformClickInternal
+	at android.view.View$PerformClick.run(View.java:29334)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:201)
+	at android.os.Looper.loop(Looper.java:288)
+	at android.app.ActivityThread.main(ActivityThread.java:7872)
+	at java.lang.reflect.Method.invoke(Method.java:-2)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+Caused by: sh.measure.sample.CustomException: This is a nested custom exception
+	at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$1(ExceptionDemoActivity.kt:22)
+	at sh.measure.sample.ExceptionDemoActivity.$r8$lambda$NwLOrF0prbPyxt_3Qpfl9mFUtC8
+	at sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda2.onClick(D8$$SyntheticClass)
+	at android.view.View.performClick(View.java:7506)
+	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
+	at android.view.View.performClickInternal(View.java:7483)
+	at android.view.View.-$$Nest$mperformClickInternal
+	at android.view.View$PerformClick.run(View.java:29334)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:201)
+	at android.os.Looper.loop(Looper.java:288)
+	at android.app.ActivityThread.main(ActivityThread.java:7872)
+	at java.lang.reflect.Method.invoke(Method.java:-2)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+Caused by: java.io.IOException: This is a test exception
+	at java.lang.reflect.Method.invoke(Method.java:-2)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+Caused by: java.lang.reflect.InvocationTargetException
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)

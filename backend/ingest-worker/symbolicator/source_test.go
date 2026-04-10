@@ -11,7 +11,7 @@ func TestNewS3SourceApple(t *testing.T) {
 	{
 		bytes, _ := json.Marshal(source)
 
-		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"path_style":true,"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["mach_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["mach_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
 		got := string(bytes)
 
 		if expected != got {
@@ -26,7 +26,7 @@ func TestNewS3SourceAndroid(t *testing.T) {
 	{
 		bytes, _ := json.Marshal(source)
 
-		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"path_style":true,"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["proguard","elf_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["proguard","elf_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
 		got := string(bytes)
 
 		if expected != got {
@@ -42,6 +42,21 @@ func TestNewGCSSourceApple(t *testing.T) {
 		bytes, _ := json.Marshal(source)
 
 		expected := `{"id":"my-id","type":"gcs","bucket":"my-bucket","prefix":"","private_key":"my-private-key","client_email":"my-client-email","filters":{"filetypes":["mach_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		got := string(bytes)
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+}
+
+func TestNewSentrySource(t *testing.T) {
+	source := NewSentrySource("my-id", "http://symboloader:8083/symbols", "my-token")
+
+	{
+		bytes, _ := json.Marshal(source)
+
+		expected := `{"id":"my-id","type":"sentry","url":"http://symboloader:8083/symbols","token":"my-token"}`
 		got := string(bytes)
 
 		if expected != got {

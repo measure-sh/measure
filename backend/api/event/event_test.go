@@ -34,12 +34,12 @@ func readStacktrace(path string) (stacktrace string, err error) {
 }
 
 func TestExceptionStacktraceOne(t *testing.T) {
-	exception, err := readException("./exception_one.json")
+	exception, err := readException("./testdata/exception_one.json")
 	if err != nil {
 		panic(err)
 	}
 
-	expected, err := readStacktrace("./exception_stacktrace_one.txt")
+	expected, err := readStacktrace("./testdata/exception_stacktrace_one.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -51,12 +51,12 @@ func TestExceptionStacktraceOne(t *testing.T) {
 }
 
 func TestNestedExceptionStacktraceOne(t *testing.T) {
-	exception, err := readException("./nested_exception_one.json")
+	exception, err := readException("./testdata/nested_exception_one.json")
 	if err != nil {
 		panic(err)
 	}
 
-	expected, err := readStacktrace("./nested_exception_stacktrace_one.txt")
+	expected, err := readStacktrace("./testdata/nested_exception_stacktrace_one.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -68,12 +68,12 @@ func TestNestedExceptionStacktraceOne(t *testing.T) {
 }
 
 func TestANRStacktraceOne(t *testing.T) {
-	anr, err := readANR("./anr_one.json")
+	anr, err := readANR("./testdata/anr_one.json")
 	if err != nil {
 		panic(err)
 	}
 
-	expected, err := readStacktrace("./anr_stacktrace_one.txt")
+	expected, err := readStacktrace("./testdata/anr_stacktrace_one.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -85,12 +85,12 @@ func TestANRStacktraceOne(t *testing.T) {
 }
 
 func TestObfuscatedDartNestedExceptionStacktraceOne(t *testing.T) {
-	exception, err := readException("./dart_nested_exception_one.json")
+	exception, err := readException("./testdata/dart_nested_exception_one.json")
 	if err != nil {
 		panic(err)
 	}
 
-	expected, err := readStacktrace("./dart_nested_exception_stacktrace_one.txt")
+	expected, err := readStacktrace("./testdata/dart_nested_exception_stacktrace_one.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -102,12 +102,12 @@ func TestObfuscatedDartNestedExceptionStacktraceOne(t *testing.T) {
 }
 
 func TestObfuscatedDartExceptionStacktraceOne(t *testing.T) {
-	exception, err := readException("./dart_exception_one.json")
+	exception, err := readException("./testdata/dart_exception_one.json")
 	if err != nil {
 		panic(err)
 	}
 
-	expected, err := readStacktrace("./dart_exception_stacktrace_one.txt")
+	expected, err := readStacktrace("./testdata/dart_exception_stacktrace_one.txt")
 	if err != nil {
 		panic(err)
 	}

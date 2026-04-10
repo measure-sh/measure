@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/api/idtoken"
 )
 
 // IngestBatch is a serializable representation
@@ -1193,6 +1194,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 			origin := config.SymbolicatorOrigin
 			osName := eventReq.osName
 			sources := []symbolicator.Source{}
+			var sentrySources []symbolicator.SentrySource
 
 			switch opsys.ToFamily(osName) {
 			case opsys.Android:
@@ -1202,6 +1204,20 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 					sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
 				} else {
 					sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+				}
+				if config.SymboloaderOrigin != "" {
+					if config.IsCloud() {
+						ts, err := idtoken.NewTokenSource(ingestCtx, config.SymboloaderOrigin)
+						if err != nil {
+							fmt.Printf("failed to create identity token source for symboloader: %v\n", err)
+						} else if tok, err := ts.Token(); err != nil {
+							fmt.Printf("failed to generate identity token for symboloader: %v\n", err)
+						} else {
+							sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", tok.AccessToken))
+						}
+					} else {
+						sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", "measure"))
+					}
 				}
 			case opsys.AppleFamily:
 				if config.IsCloud() {
@@ -1213,7 +1229,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 				}
 			}
 
-			symblctr := symbolicator.New(origin, osName, sources)
+			symblctr := symbolicator.New(origin, osName, sources, sentrySources)
 
 			_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 			defer symbolicationSpan.End()

@@ -1,0 +1,146 @@
+{
+    "id": "1811075d-488a-4e07-b0d9-021da466e953",
+    "session_id": "e465fd23-89a9-4bb0-bc94-a3f0b1cd5ce1",
+    "user_triggered": false,
+    "timestamp": "2026-04-08T08:30:48.69600000Z",
+    "type": "exception",
+    "exception": {
+        "exceptions": [
+            {
+                "type": "FormatException",
+                "message": "This is an exception",
+                "frames": [
+                    {
+                        "instruction_address": "0x708aaab7e05b",
+                        "frame_index": 0
+                    },
+                    {
+                        "instruction_address": "0x708aaab7e023",
+                        "frame_index": 1
+                    },
+                    {
+                        "instruction_address": "0x708aaab9265f",
+                        "frame_index": 2
+                    },
+                    {
+                        "instruction_address": "0x708aaab92437",
+                        "frame_index": 3
+                    },
+                    {
+                        "instruction_address": "0x708aaadb66bf",
+                        "frame_index": 4
+                    },
+                    {
+                        "instruction_address": "0x708aaad4b51f",
+                        "frame_index": 5
+                    },
+                    {
+                        "instruction_address": "0x708aaac476eb",
+                        "frame_index": 6
+                    },
+                    {
+                        "instruction_address": "0x708aaac47627",
+                        "frame_index": 7
+                    },
+                    {
+                        "instruction_address": "0x708aaaaf8c67",
+                        "frame_index": 8
+                    },
+                    {
+                        "instruction_address": "0x708aaaaf8aef",
+                        "frame_index": 9
+                    },
+                    {
+                        "instruction_address": "0x708aaada338f",
+                        "frame_index": 10
+                    },
+                    {
+                        "instruction_address": "0x708aaaa31cff",
+                        "frame_index": 11
+                    },
+                    {
+                        "instruction_address": "0x708aaaa31c3f",
+                        "frame_index": 12
+                    },
+                    {
+                        "instruction_address": "0x708aaaa316f3",
+                        "frame_index": 13
+                    },
+                    {
+                        "instruction_address": "0x708aaade8467",
+                        "frame_index": 14
+                    },
+                    {
+                        "instruction_address": "0x708aaad884fb",
+                        "frame_index": 15
+                    },
+                    {
+                        "instruction_address": "0x708aaaa11d87",
+                        "frame_index": 16
+                    },
+                    {
+                        "instruction_address": "0x708aaaa1487f",
+                        "frame_index": 17
+                    },
+                    {
+                        "instruction_address": "0x708aaaa14807",
+                        "frame_index": 18
+                    },
+                    {
+                        "instruction_address": "0x708aaaa156fb",
+                        "frame_index": 19
+                    }
+                ]
+            }
+        ],
+        "threads": [],
+        "handled": false,
+        "foreground": true,
+        "binary_images": [
+            {
+                "uuid": "ea47d982ecc4473f2a94b949fe4b9166",
+                "arch": "arm64",
+                "base_addr": "708aaa8b8000"
+            }
+        ],
+        "framework": "dart"
+    },
+    "attachments": [
+        {
+            "id": "5efa12b3-4ea0-47af-98aa-8eabf49559e4",
+            "type": "screenshot",
+            "name": "972d1d74-13cf-4e15-8b7a-7d9901dd7bf2"
+        }
+    ],
+    "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "emu64a16k",
+        "device_model": "sdk_gphone16k_arm64",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": false,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2220,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "36",
+        "os_page_size": 16,
+        "app_version": "0.4.0",
+        "app_build": "1",
+        "app_unique_id": "sh.measure.android.flutter",
+        "measure_sdk_version": "0.17.0-SNAPSHOT",
+        "installation_id": "786b22ee-cee3-4825-9d88-609ac626dfb7",
+        "network_type": "unknown",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false,
+        "session_start_time": "2026-04-08T08:30:22.97800000Z"
+    },
+    "user_defined_attribute": null
+}

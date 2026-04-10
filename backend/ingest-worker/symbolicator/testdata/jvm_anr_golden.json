@@ -1,0 +1,34 @@
+[
+  {
+    "type": "anr",
+    "exception_types": [
+      "java.lang.RuntimeException"
+    ],
+    "exception_frames": [
+      [
+        {
+          "class_name": "sh.measure.sample.ANRDemoActivity",
+          "method_name": "triggerAnr",
+          "file_name": "ANRDemoActivity.kt",
+          "line_num": 50
+        },
+        {
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep",
+          "file_name": "Thread.java",
+          "line_num": -2
+        }
+      ]
+    ],
+    "thread_frames": [
+      [
+        {
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "method_name": "onCreate$lambda$2",
+          "file_name": "ExceptionDemoActivity.kt",
+          "line_num": 29
+        }
+      ]
+    ]
+  }
+]

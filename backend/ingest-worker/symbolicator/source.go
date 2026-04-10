@@ -28,8 +28,6 @@ type Source struct {
 	// service pass a tuple:
 	// ["custom-region-name", "http://minio-address/"]
 	Region []string `json:"region,omitempty"`
-	// PathStyle when true uses path style URLs.
-	PathStyle bool `json:"path_style,omitempty"`
 	// AccessKey is the AWS access key to use.
 	AccessKey string `json:"access_key,omitempty"`
 	// SecretKey is the AWS secret key to use.
@@ -70,7 +68,6 @@ func NewS3SourceApple(id, bucket, region, origin, accessKey, secretKey string) (
 	source.Bucket = bucket
 	source.Prefix = ""
 	source.Region = []string{region, origin}
-	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
 	source.Filters.FileTypes = []string{"mach_debug"}
@@ -89,7 +86,6 @@ func NewS3SourceAndroid(id, bucket, region, origin, accessKey, secretKey string)
 	source.Bucket = bucket
 	source.Prefix = ""
 	source.Region = []string{region, origin}
-	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
 	source.Filters.FileTypes = []string{"proguard", "elf_debug"}
@@ -132,4 +128,28 @@ func NewGCSSourceAndroid(id, bucket, privateKey, clientEmail string) (source Sou
 	source.Layout.Casing = "lowercase"
 
 	return
+}
+
+// SentrySource represents a Sentry-type symbolicator source.
+// The symbolicator uses this source to fetch symbols via HTTP
+// requests to a Sentry-compatible API endpoint.
+//
+// This is needed for ProGuard symbol lookups on symbolicator
+// 26.3.1+ where S3/GCS sources cannot resolve ProGuard files.
+type SentrySource struct {
+	ID    string `json:"id"`
+	Type  string `json:"type"`
+	URL   string `json:"url"`
+	Token string `json:"token"`
+}
+
+// NewSentrySource creates a Sentry source for ProGuard
+// symbol lookups via HTTP.
+func NewSentrySource(id, url, token string) SentrySource {
+	return SentrySource{
+		ID:    id,
+		Type:  "sentry",
+		URL:   url,
+		Token: token,
+	}
 }

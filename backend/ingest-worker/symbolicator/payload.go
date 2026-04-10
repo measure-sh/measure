@@ -153,7 +153,7 @@ type requestJVM struct {
 	// Sources is the lists of symbol Sources
 	// as defined by Sentry Symbolicator.
 	// https://getsentry.github.io/symbolicator/api/
-	Sources []Source `json:"sources"`
+	Sources []SentrySource `json:"sources"`
 	// Classes form a list of all classes that
 	// needs symbolication.
 	Classes []string `json:"classes"`

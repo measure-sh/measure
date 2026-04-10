@@ -131,6 +131,11 @@ type Symbolicator struct {
 	// Sources is a list of symbol sources
 	// the symbolicator is requested to use.
 	Sources []Source
+	// SentrySources is a list of Sentry-type sources
+	// used for ProGuard symbol lookups. On symbolicator
+	// 26.3.1+, S3/GCS sources cannot resolve ProGuard
+	// files, so a Sentry source is needed instead.
+	SentrySources []SentrySource
 	// jvmSymbolicator maintains state for
 	// a JVM symbolication request.
 	jvmSymbolicator *jvmSymbolicator
@@ -154,7 +159,7 @@ type Symbolicator struct {
 }
 
 // New creates a new Symbolicator instance.
-func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolicator) {
+func New(origin, operatingSys string, sources []Source, sentrySources []SentrySource) (symbolicator *Symbolicator) {
 	symbolicator = &Symbolicator{
 		Origin: origin,
 		OSName: operatingSys,
@@ -162,6 +167,10 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 
 	if len(sources) > 0 {
 		symbolicator.Sources = sources
+	}
+
+	if len(sentrySources) > 0 {
+		symbolicator.SentrySources = sentrySources
 	}
 
 	// rewrite jvm stacktrace classnames by matching all
@@ -319,7 +328,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	}
 
 	if s.jvmSymbolicator != nil {
-		if err := s.jvmSymbolicator.symbolicate(events, spans, s.Origin, s.Sources, s.jvmLambdaWorkaround); err != nil {
+		if err := s.jvmSymbolicator.symbolicate(events, spans, s.Origin, s.SentrySources, s.jvmLambdaWorkaround); err != nil {
 			return fmt.Errorf("jvm symbolication failed: %w", err)
 		}
 	}
@@ -335,7 +344,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 
 // symbolicate performs symbolication for
 // the JVM symbolicator.
-func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField, origin string, sources []Source, lambdaWorkaround bool) (err error) {
+func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField, origin string, sources []SentrySource, lambdaWorkaround bool) (err error) {
 	if js.request != nil {
 		sr := &SymbolicatorRequest{}
 		if err = sr.prepareJvmRequest(js, origin, sources); err != nil {
