@@ -469,7 +469,7 @@ Measure.init(context, config)
 
 ```swift
 let config = BaseMeasureConfig(
-    enableFullCollectionMode: 1
+    enableFullCollectionMode: true
 )
 Measure.initialize(with: clientInfo, config: config)
 ```
@@ -599,7 +599,7 @@ If none of the above steps resolve the issue, feel free to reach out to us on [D
 for further
 assistance.
 
-### Enable Diagnostic Mode (Android only)
+### Enable Diagnostic Mode
 
 If you're experiencing issues with the SDK and need to share detailed logs with us, enable diagnostic mode.
 This writes all internal SDK logs to files on disk which can then be pulled from the device and shared
@@ -610,10 +610,29 @@ when reporting a bug.
 
 #### Step 1: Enable diagnostic mode
 
+<details>
+    <summary>Android</summary>
+
+Enable diagnostic mode during SDK initialization.
+
 ```kotlin
 val config = MeasureConfig(enableDiagnosticMode = true)
 Measure.init(context, config)
 ```
+
+</details>
+
+<details>
+    <summary>iOS</summary>
+
+Enable diagnostic mode during SDK initialization. iOS provides an additional option called `enableDiagnosticModeGesture`. When this flag is enabled, you can use double finger double tap gesture to open share sheet and send logs immediately.
+
+```swift
+let config = BaseMeasureConfig(enableDiagnosticMode: true, enableDiagnosticModeGesture: true)
+Measure.initialize(with: clientInfo, config: config)
+```
+
+</details>
 
 #### Step 2: Reproduce the issue
 
@@ -621,6 +640,9 @@ Run the app and reproduce the issue you're facing. The SDK will write logs to fi
 app's internal storage.
 
 #### Step 3: Pull the log files
+
+<details>
+    <summary>Android</summary>
 
 Use `adb` to retrieve the log files from the device:
 
@@ -632,6 +654,22 @@ adb shell run-as <your.package.name> ls files/measure/sdk_debug_logs/
 adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > /tmp/sdk_debug_logs.tar.gz
 ```
 
+</details>
+
+<details>
+    <summary>iOS</summary>
+
+iOS provides an option called `enableDiagnosticModeGesture`. When this flag is enabled, you can use double finger double tap gesture to open share sheet and send logs immediately.
+
+```swift
+let config = BaseMeasureConfig(enableDiagnosticMode: true, enableDiagnosticModeGesture: true)
+Measure.initialize(with: clientInfo, config: config)
+```
+
+</details>
+
+
+
 #### Step 4: Share the files
 
 Share the pulled log files on [Discord](https://discord.gg/f6zGkBCt42) or send them to us via email
@@ -642,6 +680,11 @@ for us to investigate.
 Once you've collected the logs, disable diagnostic mode by removing the `enableDiagnosticMode` flag
 or setting it to `false`. You can also delete the log files from the device:
 
+
+<details>
+    <summary>Android</summary>
+
 ```shell
 adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
 ```
+</details>

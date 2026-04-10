@@ -438,6 +438,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                                           responseBody: responseBody)
     }
 
+    func internalAddLog(platform: String, message: String, error: Error?) {
+        logger.log(level: .info, message: "[\(platform)] \(message)", error: error, data: nil)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false

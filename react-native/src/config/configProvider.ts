@@ -10,7 +10,10 @@ import type { ScreenshotMaskLevel } from './screenshotMaskLevel';
  * Configuration Provider for the Measure SDK.
  * See `BaseConfigProvider` for details.
  */
-export interface IConfigProvider extends IMeasureConfig, InternalConfig, IDynamicConfig {
+export interface IConfigProvider
+  extends IMeasureConfig,
+    InternalConfig,
+    IDynamicConfig {
   setDynamicConfig(config: IDynamicConfig): void;
 }
 
@@ -31,7 +34,7 @@ export class ConfigProvider implements IConfigProvider {
   constructor(defaultConfig: Config) {
     this.defaultConfig = defaultConfig;
   }
-  
+
   get maxEventsInBatch(): number {
     return this.dynamicConfig.maxEventsInBatch;
   }
@@ -110,6 +113,10 @@ export class ConfigProvider implements IConfigProvider {
 
   get enableFullCollectionMode(): boolean {
     return this.defaultConfig.enableFullCollectionMode;
+  }
+
+  get enableDiagnosticMode(): boolean {
+    return this.defaultConfig.enableDiagnosticMode;
   }
 
   get maxEventNameLength(): number {

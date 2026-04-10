@@ -53,6 +53,7 @@ class MainApplication : Application(), ReactApplication {
         autoStart = true,
         maxDiskUsageInMb = 1500,
         enableFullCollectionMode = false,
+        enableDiagnosticMode = true,
       )
     )
     SoLoader.init(this, false)

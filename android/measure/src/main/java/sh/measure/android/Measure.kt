@@ -652,6 +652,16 @@ object Measure {
     }
 
     /**
+     * An internal method that adds logs Measure logger.
+     * This method is not intended for public usage.
+     */
+    fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
+        if (isInitialized.get()) {
+            measure.internalAddLog(platform, message, throwable)
+        }
+    }
+
+    /**
      * Returns the path to the dynamic config file if available. The SDK must be initialized
      * before calling this method.
      */

@@ -37,6 +37,7 @@ import {
 } from './bugReport/bugReportCollector';
 import { ScreenshotCollector, type IScreenshotCollector } from './screenshot/screenshotCollector';
 import { LayoutSnapshotCollector, type ILayoutSnapshotCollector } from './layoutSnapshot/layoutSnapshotCollector';
+import { DefaultConfig } from './config/defaultConfig';
 
 export interface IMeasureInitializer {
   logger: Logger;
@@ -84,13 +85,15 @@ export class MeasureInitializer implements IMeasureInitializer {
   constructor(config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
       'Measure',
-      config?.enableLogging ?? true,
-      true
+      config?.enableLogging ?? DefaultConfig.enableLogging,
+      true,
+      config?.enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode
     );
     this.config = new Config(
       config?.enableLogging,
       config?.autoStart,
-      config?.enableFullCollectionMode
+      config?.enableFullCollectionMode,
+      config?.enableDiagnosticMode
     );
     this.configLoader = new ConfigLoader(this.logger);
     this.configProvider = new ConfigProvider(this.config);
