@@ -1779,11 +1779,10 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
 		}
 
-		// only apply background or foreground as AND
-		// if either of them are true
-		//
-		// background or foreground inclusion is orthogonal
-		// to the rest of the filters like crash, anr, bug_report or user_interaction.
+		// background/foreground filter is applied as an AND expression
+		// that gets ORed with the other session type filters (crash, anr,
+		// bug_report, user_interaction). this ensures foreground/background
+		// sessions are included alongside sessions matching other filters.
 		//
 		// if both background and foreground are true, then
 		// we don't need to filter, include everything.
@@ -1799,23 +1798,22 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				orExprs = append(orExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
-				// andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				orExprs = append(orExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
-				// andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				andExprs = append(andExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
 			}
 		}
 
-		if len(orExprs) > 0 {
-			cond := strings.Join(orExprs, " or ")
-			base.Where("(" + cond + ")")
-		}
-
-		if len(andExprs) > 0 {
-			cond := strings.Join(andExprs, " and ")
-			base.Where("(" + cond + ")")
+		if len(orExprs) > 0 || len(andExprs) > 0 {
+			var parts []string
+			if len(orExprs) > 0 {
+				parts = append(parts, "("+strings.Join(orExprs, " or ")+")")
+			}
+			if len(andExprs) > 0 {
+				parts = append(parts, "("+strings.Join(andExprs, " and ")+")")
+			}
+			base.Where("(" + strings.Join(parts, " or ") + ")")
 		}
 	}
 
@@ -2031,11 +2029,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
 		}
 
-		// only apply background or foreground as AND
-		// if either of them are true
-		//
-		// background or foreground inclusion is orthogonal
-		// to the rest of the filters like crash, anr, bug_report or user_interaction.
+		// background/foreground filter is applied as an AND expression
+		// that gets ORed with the other session type filters (crash, anr,
+		// bug_report, user_interaction). this ensures foreground/background
+		// sessions are included alongside sessions matching other filters.
 		//
 		// if both background and foreground are true, then
 		// we don't need to filter, include everything.
@@ -2051,23 +2048,22 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				orExprs = append(orExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
-				// andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				orExprs = append(orExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
-				// andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				andExprs = append(andExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
 			}
 		}
 
-		if len(orExprs) > 0 {
-			cond := strings.Join(orExprs, " or ")
-			base.Where("(" + cond + ")")
-		}
-
-		if len(andExprs) > 0 {
-			cond := strings.Join(andExprs, " and ")
-			base.Where("(" + cond + ")")
+		if len(orExprs) > 0 || len(andExprs) > 0 {
+			var parts []string
+			if len(orExprs) > 0 {
+				parts = append(parts, "("+strings.Join(orExprs, " or ")+")")
+			}
+			if len(andExprs) > 0 {
+				parts = append(parts, "("+strings.Join(andExprs, " and ")+")")
+			}
+			base.Where("(" + strings.Join(parts, " or ") + ")")
 		}
 	}
 
