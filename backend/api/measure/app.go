@@ -152,7 +152,7 @@ func (a App) getAppRetention() (int, error) {
 }
 
 func (a App) updateRetention(retention int) error {
-	targetCutoff := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -retention)
+	targetCutoff := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -retention)
 
 	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("retention", retention).
@@ -1786,13 +1786,23 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		// to the rest of the filters like crash, anr, bug_report or user_interaction.
 		//
 		// if both background and foreground are true, then
-		// we don't need to filter, inlcude everything
+		// we don't need to filter, include everything.
+		//
+		// a session is considered foreground if it has any of the following:
+		// - lifecycle_app foreground event (foreground_count >= 1)
+		// - gesture events (gesture_click, gesture_long_click, gesture_scroll)
+		// - lifecycle_activity event
+		// - lifecycle_view_controller event
+		// - screen_view event
+		//
+		// a session is considered background if none of the above
+		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1")
+				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				andExprs = append(andExprs, "background_count >= 1")
+				andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
 			}
 		}
 
@@ -2026,13 +2036,23 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		// to the rest of the filters like crash, anr, bug_report or user_interaction.
 		//
 		// if both background and foreground are true, then
-		// we don't need to filter, inlcude everything
+		// we don't need to filter, include everything.
+		//
+		// a session is considered foreground if it has any of the following:
+		// - lifecycle_app foreground event (foreground_count >= 1)
+		// - gesture events (gesture_click, gesture_long_click, gesture_scroll)
+		// - lifecycle_activity event
+		// - lifecycle_view_controller event
+		// - screen_view event
+		//
+		// a session is considered background if none of the above
+		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1")
+				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				andExprs = append(andExprs, "background_count >= 1")
+				andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
 			}
 		}
 
@@ -7455,7 +7475,6 @@ func GetSession(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-
 
 func GetAppRetention(c *gin.Context) {
 	appId, err := uuid.Parse(c.Param("id"))
