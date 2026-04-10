@@ -28,8 +28,6 @@ type Source struct {
 	// service pass a tuple:
 	// ["custom-region-name", "http://minio-address/"]
 	Region []string `json:"region,omitempty"`
-	// PathStyle when true uses path style URLs.
-	PathStyle bool `json:"path_style,omitempty"`
 	// AccessKey is the AWS access key to use.
 	AccessKey string `json:"access_key,omitempty"`
 	// SecretKey is the AWS secret key to use.
@@ -70,7 +68,6 @@ func NewS3SourceApple(id, bucket, region, origin, accessKey, secretKey string) (
 	source.Bucket = bucket
 	source.Prefix = ""
 	source.Region = []string{region, origin}
-	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
 	source.Filters.FileTypes = []string{"mach_debug"}
@@ -89,7 +86,6 @@ func NewS3SourceAndroid(id, bucket, region, origin, accessKey, secretKey string)
 	source.Bucket = bucket
 	source.Prefix = ""
 	source.Region = []string{region, origin}
-	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
 	source.Filters.FileTypes = []string{"proguard", "elf_debug"}
