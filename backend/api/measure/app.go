@@ -1799,10 +1799,12 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				orExprs = append(orExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				// andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				orExprs = append(orExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				// andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
 			}
 		}
 
@@ -2049,10 +2051,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		// foreground-indicating events are present.
 		if af.Background != af.Foreground {
 			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				orExprs = append(orExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
+				// andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
 			}
 			if af.Background {
-				andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				orExprs = append(orExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
+				// andExprs = append(andExprs, "foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1")
 			}
 		}
 
