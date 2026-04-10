@@ -49,3 +49,18 @@ func TestNewGCSSourceApple(t *testing.T) {
 		}
 	}
 }
+
+func TestNewSentrySource(t *testing.T) {
+	source := NewSentrySource("my-id", "http://symboloader:8083/symbols", "my-token")
+
+	{
+		bytes, _ := json.Marshal(source)
+
+		expected := `{"id":"my-id","type":"sentry","url":"http://symboloader:8083/symbols","token":"my-token"}`
+		got := string(bytes)
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+}

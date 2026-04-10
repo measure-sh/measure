@@ -8,11 +8,14 @@ It communicates with the [Sentry Symbolicator](https://github.com/getsentry/symb
 
 The entry point is `Symbolicate()`, which takes a batch of events, determines which ones need symbolication, and dispatches them to the appropriate platform handler:
 
-- **JVM (Android)** - Sends obfuscated class/method names to `/symbolicate-jvm` with a ProGuard mapping file. Handles inline frame expansion and the lambda workaround for R8 synthetic classes.
+- **JVM (Android)** - Sends obfuscated class/method names to `/symbolicate-jvm` with a ProGuard mapping file. Handles inline frame expansion and the lambda workaround for R8 synthetic classes. ProGuard files are fetched via a Sentry source (HTTP from symboloader).
 - **Apple (iOS)** - Constructs an Apple crash report from binary image addresses and sends it to `/applecrashreport` with dSYM debug symbols. Symbolicated per-event (not batched).
 - **Dart (Flutter)** - Sends instruction addresses to `/symbolicate` with ELF debug symbols. Handles inline frame expansion.
 
-Mapping files (ProGuard `.txt`, dSYM Mach-O binaries, ELF `.symbols`) are stored in S3-compatible object storage using Sentry's unified layout format. The symbolicator service fetches them on demand via source configurations passed in each request.
+Mapping files (ProGuard `.txt`, dSYM Mach-O binaries, ELF `.symbols`) are stored in S3-compatible object storage using Sentry's unified layout format. The symbolicator service fetches them on demand via source configurations passed in each request. Two source types are used:
+
+- **S3/GCS sources** (`Source`) - Used for Apple dSYM and Dart ELF files. The symbolicator resolves S3 paths directly from debug IDs using the unified layout.
+- **Sentry sources** (`SentrySource`) - Used for JVM ProGuard files. Required because symbolicator 26.3.1+ cannot resolve ProGuard files from S3 paths (`FileType::Proguard => None` in path generation). The symbolicator fetches ProGuard files via HTTP from the symboloader's `/symbols` endpoint, which implements the Sentry source protocol.
 
 ## Tests
 
@@ -74,9 +77,11 @@ Tests spin up three containers via testcontainers:
 
 - **PostgreSQL** - Stores `build_mappings` entries (JVM and Dart tests need mapping lookups; Apple tests skip DB entirely)
 - **MinIO** - S3-compatible object storage holding ProGuard mappings, dSYM binaries, and ELF debug symbols in unified layout
-- **Symbolicator** - The Sentry symbolicator service (`ghcr.io/measure-sh/symbolicator`)
+- **Symbolicator** - The Sentry symbolicator service (`ghcr.io/getsentry/symbolicator:26.3.1`)
 
-MinIO and Symbolicator share a Docker network so the symbolicator can fetch symbols from MinIO. All containers are cleaned up after test completion.
+A **Sentry source HTTP handler** also runs on the host, serving ProGuard files from MinIO via the Sentry source protocol (`?debug_id=` to list, `?id=` to download). The symbolicator container reaches it via `host.docker.internal`.
+
+MinIO and Symbolicator share a Docker network so the symbolicator can fetch dSYM and ELF symbols from MinIO via S3 sources. All containers are cleaned up after test completion.
 
 ### Test Data
 

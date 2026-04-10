@@ -24,3 +24,4 @@ caches:
 
 # network
 max_concurrent_requests: 1024
+connect_to_reserved_ips: true

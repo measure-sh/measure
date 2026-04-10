@@ -189,6 +189,7 @@ services:
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
       - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
       - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
+      - SYMBOLOADER_ORIGIN=${SYMBOLOADER_ORIGIN}
       - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
@@ -521,13 +522,13 @@ services:
     command: ["migrate"]
 
   symbolicator:
-    image: ghcr.io/measure-sh/symbolicator
+    image: ghcr.io/getsentry/symbolicator:26.3.1
     ports:
       - "3021:3021"
     volumes:
       - ./symbolicator/config.yml:/etc/symbolicator/config.yml:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:3021/healthcheck || exit 1"]
+      test: ["CMD", "symbolicator", "healthcheck"]
       interval: 3s
       timeout: 10s
       retries: 5

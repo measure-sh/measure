@@ -11,6 +11,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/docker/docker/api/types/container"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
@@ -27,18 +31,26 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// symbolicatorImage is the Docker image used for the symbolicator service.
+// Change this to test against a different version.
+const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.3.1"
+
 var (
-	pgPool              *pgxpool.Pool
-	symbolicatorOrigin  string
-	minioEndpoint       string
-	s3Client            *s3.Client
-	symbolsBucket       = "test-symbols"
+	pgPool                  *pgxpool.Pool
+	symbolicatorOrigin      string
+	minioEndpoint           string
+	s3Client                *s3.Client
+	symbolsBucket           = "test-symbols"
 	basicProguardMappingKey string // unified layout key for the basic proguard mapping
-	basicProguardDebugID   string // UUID-formatted debug ID for the basic proguard mapping
-	realProguardMappingKey string // unified layout key for the real proguard mapping
-	elfDebugMappingKey     string // unified layout key for the ELF debug symbols
-	update              = flag.Bool("update", false, "update golden files")
-	testdataDir         string
+	basicProguardDebugID    string // UUID-formatted debug ID for the basic proguard mapping
+	realProguardMappingKey  string // unified layout key for the real proguard mapping
+	elfDebugMappingKey      string // unified layout key for the ELF debug symbols
+	symbolicatorContainer   testcontainers.Container
+	minioContainer          testcontainers.Container
+	sentrySourceURL         string // URL for the Sentry source handler, reachable from symbolicator container
+	sentryListener          net.Listener
+	update                  = flag.Bool("update", false, "update golden files")
+	testdataDir             string
 )
 
 func TestMain(m *testing.M) {
@@ -53,7 +65,7 @@ func TestMain(m *testing.M) {
 	defaultRetryDuration = 1 * time.Second
 
 	// 1. Create shared Docker network
-	nw, err := network.New(ctx, network.WithCheckDuplicate())
+	nw, err := network.New(ctx)
 	if err != nil {
 		fmt.Printf("failed to create docker network: %v\n", err)
 		os.Exit(1)
@@ -66,7 +78,7 @@ func TestMain(m *testing.M) {
 	pgPool = pool
 
 	// 3. Start MinIO
-	minioContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	minioContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "quay.io/minio/minio:latest",
 			ExposedPorts: []string{"9000/tcp"},
@@ -74,8 +86,8 @@ func TestMain(m *testing.M) {
 				"MINIO_ROOT_USER":     "minioadmin",
 				"MINIO_ROOT_PASSWORD": "minioadmin",
 			},
-			Cmd:        []string{"server", "/data"},
-			Networks:   []string{networkName},
+			Cmd:      []string{"server", "/data"},
+			Networks: []string{networkName},
 			NetworkAliases: map[string][]string{
 				networkName: {"minio"},
 			},
@@ -215,12 +227,68 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// 4. Start Symbolicator
+	// 4. Start Sentry source HTTP handler (serves ProGuard files from MinIO)
+	sentryMux := http.NewServeMux()
+	sentryMux.HandleFunc("/symbols", func(w http.ResponseWriter, r *http.Request) {
+		debugID := r.URL.Query().Get("debug_id")
+		fileID := r.URL.Query().Get("id")
+
+		if debugID != "" {
+			// List mode: check if proguard file exists for this debug ID
+			key := symbol.BuildUnifiedLayout(debugID) + "/proguard"
+			_, err := s3Client.HeadObject(r.Context(), &s3.HeadObjectInput{
+				Bucket: aws.String(symbolsBucket),
+				Key:    aws.String(key),
+			})
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte("[]"))
+				return
+			}
+			type sentryFile struct {
+				ID         string `json:"id"`
+				SymbolType string `json:"symbolType"`
+			}
+			resp, _ := json.Marshal([]sentryFile{{ID: key, SymbolType: "proguard"}})
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(resp)
+		} else if fileID != "" {
+			// Download mode: fetch file from MinIO
+			output, err := s3Client.GetObject(r.Context(), &s3.GetObjectInput{
+				Bucket: aws.String(symbolsBucket),
+				Key:    aws.String(fileID),
+			})
+			if err != nil {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			defer output.Body.Close()
+			io.Copy(w, output.Body)
+		}
+	})
+
+	sentryListener, err = net.Listen("tcp", ":0")
+	if err != nil {
+		fmt.Printf("failed to start sentry source listener: %v\n", err)
+		os.Exit(1)
+	}
+	sentryPort := sentryListener.Addr().(*net.TCPAddr).Port
+	go http.Serve(sentryListener, sentryMux)
+
+	// The Sentry source URL must be reachable from inside the symbolicator
+	// container. host.docker.internal resolves to the host on Docker Desktop
+	// (macOS/Windows). The HostConfigModifier below adds the mapping for Linux.
+	sentrySourceURL = fmt.Sprintf("http://host.docker.internal:%d/symbols", sentryPort)
+
+	// 5. Start Symbolicator
 	configPath := filepath.Join(testdataDir, "symbolicator.yml")
-	symbolicatorContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	symbolicatorContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "ghcr.io/measure-sh/symbolicator",
+			Image:        symbolicatorImage,
 			ExposedPorts: []string{"3021/tcp"},
+			Env: map[string]string{
+				"RUST_LOG": "trace",
+			},
 			Files: []testcontainers.ContainerFile{
 				{
 					HostFilePath:      configPath,
@@ -232,6 +300,9 @@ func TestMain(m *testing.M) {
 			Networks: []string{networkName},
 			NetworkAliases: map[string][]string{
 				networkName: {"symbolicator"},
+			},
+			HostConfigModifier: func(hc *container.HostConfig) {
+				hc.ExtraHosts = append(hc.ExtraHosts, "host.docker.internal:host-gateway")
 			},
 			WaitingFor: wait.ForHTTP("/healthcheck").WithPort("3021/tcp").WithStartupTimeout(60 * time.Second),
 		},
@@ -252,6 +323,7 @@ func TestMain(m *testing.M) {
 
 	symbolicatorContainer.Terminate(ctx)
 	minioContainer.Terminate(ctx)
+	sentryListener.Close()
 	pgCleanup()
 	nw.Remove(ctx)
 
@@ -304,6 +376,11 @@ func newS3Source() Source {
 		"minioadmin",
 		"minioadmin",
 	)
+}
+
+// newSentrySource creates a Sentry source pointing to the test HTTP handler.
+func newSentrySource() SentrySource {
+	return NewSentrySource("test-sentry-source", sentrySourceURL, "test-token")
 }
 
 // makeJVMExceptionEvents creates EventField entries with obfuscated
@@ -490,15 +567,15 @@ func makeJVMLifecycleEvents(versionName, versionCode string) []event.EventField 
 type symbolicatedResult struct {
 	Type string `json:"type"`
 	// Exception fields
-	ExceptionTypes   []string          `json:"exception_types,omitempty"`
-	ExceptionFrames  [][]goldenFrame   `json:"exception_frames,omitempty"`
-	ThreadFrames     [][]goldenFrame   `json:"thread_frames,omitempty"`
+	ExceptionTypes  []string        `json:"exception_types,omitempty"`
+	ExceptionFrames [][]goldenFrame `json:"exception_frames,omitempty"`
+	ThreadFrames    [][]goldenFrame `json:"thread_frames,omitempty"`
 	// Lifecycle fields
-	ClassName        string            `json:"class_name,omitempty"`
-	ParentActivity   string            `json:"parent_activity,omitempty"`
-	ParentFragment   string            `json:"parent_fragment,omitempty"`
-	LaunchedActivity string            `json:"launched_activity,omitempty"`
-	Trace            string            `json:"trace,omitempty"`
+	ClassName        string `json:"class_name,omitempty"`
+	ParentActivity   string `json:"parent_activity,omitempty"`
+	ParentFragment   string `json:"parent_fragment,omitempty"`
+	LaunchedActivity string `json:"launched_activity,omitempty"`
+	Trace            string `json:"trace,omitempty"`
 }
 
 type goldenFrame struct {
@@ -648,7 +725,7 @@ func TestJVMExceptionSymbolicationBasic(t *testing.T) {
 	events := makeJVMExceptionEvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -673,7 +750,7 @@ func TestJVMANRSymbolicationBasic(t *testing.T) {
 	events := makeJVMANREvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -698,7 +775,7 @@ func TestJVMLifecycleSymbolicationBasic(t *testing.T) {
 	events := makeJVMLifecycleEvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -724,7 +801,7 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	origClassName := events[0].Exception.Exceptions[0].Frames[0].ClassName
 	origMethodName := events[0].Exception.Exceptions[0].Frames[0].MethodName
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -770,7 +847,7 @@ func TestSymbolicationNonSymbolicatableEvents(t *testing.T) {
 	origTarget := events[0].GestureClick.Target
 
 	sources := []Source{newS3Source()}
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -817,11 +894,11 @@ func makeAppleExceptionEvents(t *testing.T, fixture, versionName, versionCode st
 			Timestamp: time.Now(),
 			Type:      event.TypeException,
 			Attribute: event.Attribute{
-				AppVersion:     versionName,
-				AppBuild:       versionCode,
-				OSName:         "ios",
-				OSVersion:      "26.0",
-				DeviceCPUArch:  "arm64",
+				AppVersion:    versionName,
+				AppBuild:      versionCode,
+				OSName:        "ios",
+				OSVersion:     "26.0",
+				DeviceCPUArch: "arm64",
 			},
 			Exception: &exception,
 		},
@@ -841,7 +918,7 @@ func TestAppleExceptionSymbolication(t *testing.T) {
 	events := makeAppleExceptionEvents(t, "apple_abort_input.json", versionName, versionCode)
 	sources := []Source{newS3SourceApple()}
 
-	symb := New(symbolicatorOrigin, "ios", sources)
+	symb := New(symbolicatorOrigin, "ios", sources, nil)
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -865,7 +942,7 @@ func TestAppleNSExceptionSymbolication(t *testing.T) {
 	events := makeAppleExceptionEvents(t, "apple_nsexception_input.json", versionName, versionCode)
 	sources := []Source{newS3SourceApple()}
 
-	symb := New(symbolicatorOrigin, "ios", sources)
+	symb := New(symbolicatorOrigin, "ios", sources, nil)
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -924,7 +1001,7 @@ func TestDartExceptionSymbolication(t *testing.T) {
 	events := makeDartExceptionEvents(t, versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, nil)
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
@@ -982,7 +1059,7 @@ func TestJVMSingleExceptionReal(t *testing.T) {
 	events := makeJVMRealEvents(t, "jvm_single_input.json", versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	// Enable lambda workaround to match production behavior where
 	// SyntheticLambda class names are rewritten from the Classes map.
 	symb.jvmLambdaWorkaround = true
@@ -1010,7 +1087,7 @@ func TestJVMNestedExceptionReal(t *testing.T) {
 	events := makeJVMRealEvents(t, "jvm_nested_input.json", versionName, versionCode)
 	sources := []Source{newS3Source()}
 
-	symb := New(symbolicatorOrigin, "android", sources)
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	symb.jvmLambdaWorkaround = true
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
 	if err != nil {

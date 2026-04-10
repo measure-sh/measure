@@ -133,3 +133,27 @@ func NewGCSSourceAndroid(id, bucket, privateKey, clientEmail string) (source Sou
 
 	return
 }
+
+// SentrySource represents a Sentry-type symbolicator source.
+// The symbolicator uses this source to fetch symbols via HTTP
+// requests to a Sentry-compatible API endpoint.
+//
+// This is needed for ProGuard symbol lookups on symbolicator
+// 26.3.1+ where S3/GCS sources cannot resolve ProGuard files.
+type SentrySource struct {
+	ID    string `json:"id"`
+	Type  string `json:"type"`
+	URL   string `json:"url"`
+	Token string `json:"token"`
+}
+
+// NewSentrySource creates a Sentry source for ProGuard
+// symbol lookups via HTTP.
+func NewSentrySource(id, url, token string) SentrySource {
+	return SentrySource{
+		ID:    id,
+		Type:  "sentry",
+		URL:   url,
+		Token: token,
+	}
+}

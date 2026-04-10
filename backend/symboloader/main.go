@@ -44,6 +44,8 @@ func main() {
 		r.POST("/receive-symbols", ProcessSymbolNotification)
 	}
 
+	r.GET("/symbols", HandleSymbolsRequest)
+
 	// listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")
 	if port == "" {

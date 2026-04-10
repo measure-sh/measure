@@ -43,15 +43,9 @@
       ],
       [
         {
-          "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda11",
-          "method_name": "onClick",
-          "file_name": "ExceptionDemoActivity",
-          "line_num": 0
-        },
-        {
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
           "method_name": "onCreate$lambda$1",
-          "file_name": "",
+          "file_name": "ExceptionDemoActivity.kt",
           "line_num": 41
         },
         {
@@ -106,13 +100,13 @@
           "class_name": "android.app.ActivityThread",
           "method_name": "main",
           "file_name": "ActivityThread.java",
-          "line_num": -2
+          "line_num": 9067
         },
         {
           "class_name": "java.lang.reflect.Method",
           "method_name": "invoke",
           "file_name": "Method.java",
-          "line_num": 0
+          "line_num": -2
         },
         {
           "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
@@ -459,19 +453,13 @@
         {
           "class_name": "sh.measure.android.exporter.HttpUrlConnectionClient",
           "method_name": "getConfig",
-          "file_name": "",
+          "file_name": "HttpUrlConnectionClient.kt",
           "line_num": 137
-        },
-        {
-          "class_name": "e9.ConfigLoaderImpl$$ExternalSyntheticLambda0",
-          "method_name": "call",
-          "file_name": "ConfigLoaderImpl",
-          "line_num": 0
         },
         {
           "class_name": "sh.measure.android.config.ConfigLoaderImpl",
           "method_name": "refreshConfigFromServer$lambda$1",
-          "file_name": "",
+          "file_name": "ConfigLoaderImpl.java",
           "line_num": 48
         },
         {
