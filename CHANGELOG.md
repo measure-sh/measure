@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+
 ### :hammer: Misc
 
 - (**backend**): Remove auth gatekeeping (#3437) by @detj in #3437
