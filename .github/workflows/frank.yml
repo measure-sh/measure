@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   frank-android:
-    name: Frank Android (${{ matrix.build-type }})
+    name: Frank Android
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,18 +33,6 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 30
-    strategy:
-      matrix:
-        build-type: [debug, release]
-        include:
-          - build-type: debug
-            gradle-task: assembleDebug
-            apk-path: samples/frank/android/app/build/outputs/apk/debug/app-debug.apk
-            package-name: sh.frankenstein.android.debug
-          - build-type: release
-            gradle-task: assembleRelease
-            apk-path: samples/frank/android/app/build/outputs/apk/release/app-release.apk
-            package-name: sh.frankenstein.android
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
@@ -67,7 +55,7 @@ jobs:
         run: |
           corepack prepare yarn@3.6.1 --activate
           yarn install
-          yarn prepare
+          npx bob build --target module
         working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
@@ -81,44 +69,37 @@ jobs:
         run: |
           echo '${{ secrets.FRANK_APP_ENV }}' > .env
           ./setup-secrets.sh
-      - name: Extract Firebase App ID from google-services.json
+      - name: Extract Firebase App IDs from google-services.json
         run: |
-          echo "FIREBASE_APP_ID=$(jq -r '.client[] | select(.client_info.android_client_info.package_name == "${{ matrix.package-name }}") | .client_info.mobilesdk_app_id' android/app/google-services.json)" >> $GITHUB_ENV
-      - name: Assemble ${{ matrix.build-type }}
-        run: ./gradlew :android:app:${{ matrix.gradle-task }} --no-daemon --no-parallel --no-configuration-cache --stacktrace
-      - name: Publish ${{ matrix.build-type }} APK to Firebase App Distribution
+          echo "FIREBASE_ANDROID_APP_ID_DEBUG=$(jq -r '.client[] | select(.client_info.android_client_info.package_name == "sh.frankenstein.android.debug") | .client_info.mobilesdk_app_id' android/app/google-services.json)" >> $GITHUB_ENV
+          echo "FIREBASE_ANDROID_APP_ID_RELEASE=$(jq -r '.client[] | select(.client_info.android_client_info.package_name == "sh.frankenstein.android") | .client_info.mobilesdk_app_id' android/app/google-services.json)" >> $GITHUB_ENV
+      - name: Assemble debug
+        run: ./gradlew :android:app:assembleDebug --no-daemon --no-parallel --no-configuration-cache --stacktrace
+      - name: Assemble release
+        run: ./gradlew :android:app:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace
+      - name: Publish debug APK to Firebase App Distribution
         if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${{ env.FIREBASE_APP_ID }}
+          appId: ${{ env.FIREBASE_ANDROID_APP_ID_DEBUG }}
           serviceCredentialsFileContent: ${{ secrets.FRANK_APP_FIREBASE_SERVICE_ACCOUNT }}
-          file: ${{ matrix.apk-path }}
+          file: samples/frank/android/app/build/outputs/apk/debug/app-debug.apk
+          groups: measure-devs
+      - name: Publish release APK to Firebase App Distribution
+        if: github.event_name == 'push'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ env.FIREBASE_ANDROID_APP_ID_RELEASE }}
+          serviceCredentialsFileContent: ${{ secrets.FRANK_APP_FIREBASE_SERVICE_ACCOUNT }}
+          file: samples/frank/android/app/build/outputs/apk/release/app-release.apk
           groups: measure-devs
 
   frank-ios:
-    name: Frank iOS (${{ matrix.build-type }})
+    name: Frank iOS
     runs-on: macos-15
     permissions:
       contents: read
     timeout-minutes: 45
-    strategy:
-      matrix:
-        build-type: [debug, release]
-        include:
-          - build-type: debug
-            configuration: Debug
-            export-options-plist: samples/frank/ios/ExportOptions-Debug.plist
-            firebase-plist-path: samples/frank/ios/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist
-            certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_DEBUG
-            certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_DEBUG
-            provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_DEBUG
-          - build-type: release
-            configuration: Release
-            export-options-plist: samples/frank/ios/ExportOptions-Release.plist
-            firebase-plist-path: samples/frank/ios/FrankensteinApp/Firebase/Release/GoogleService-Info.plist
-            certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_RELEASE
-            certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_RELEASE
-            provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_RELEASE
     steps:
       - uses: actions/checkout@v4
       - name: Switch to Xcode 16.4
@@ -138,7 +119,7 @@ jobs:
         run: |
           corepack prepare yarn@3.6.1 --activate
           yarn install
-          yarn prepare
+          npx bob build --target module
         working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
@@ -156,9 +137,10 @@ jobs:
         run: |
           echo '${{ secrets.FRANK_APP_ENV }}' > samples/frank/.env
           cd samples/frank && ./setup-secrets.sh
-      - name: Extract Firebase App ID from GoogleService-Info.plist
+      - name: Extract Firebase App IDs from GoogleService-Info.plist
         run: |
-          echo "FIREBASE_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :GOOGLE_APP_ID' ${{ matrix.firebase-plist-path }})" >> $GITHUB_ENV
+          echo "FIREBASE_IOS_APP_ID_DEBUG=$(/usr/libexec/PlistBuddy -c 'Print :GOOGLE_APP_ID' samples/frank/ios/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist)" >> $GITHUB_ENV
+          echo "FIREBASE_IOS_APP_ID_RELEASE=$(/usr/libexec/PlistBuddy -c 'Print :GOOGLE_APP_ID' samples/frank/ios/FrankensteinApp/Firebase/Release/GoogleService-Info.plist)" >> $GITHUB_ENV
       - name: Install CocoaPods dependencies
         run: pod install
         working-directory: samples/frank/ios
@@ -169,37 +151,68 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          echo "${{ secrets[matrix.certificate-p12-secret] }}" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 -P "${{ secrets[matrix.certificate-password-secret] }}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          # Import debug (development) certificate
+          echo "${{ secrets.FRANK_APP_IOS_CERTIFICATE_P12_DEBUG }}" | base64 --decode > $RUNNER_TEMP/cert-debug.p12
+          security import $RUNNER_TEMP/cert-debug.p12 -P "${{ secrets.FRANK_APP_IOS_CERTIFICATE_PASSWORD_DEBUG }}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          # Import release (distribution) certificate
+          echo "${{ secrets.FRANK_APP_IOS_CERTIFICATE_P12_RELEASE }}" | base64 --decode > $RUNNER_TEMP/cert-release.p12
+          security import $RUNNER_TEMP/cert-release.p12 -P "${{ secrets.FRANK_APP_IOS_CERTIFICATE_PASSWORD_RELEASE }}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+          # Install provisioning profiles
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets[matrix.provisioning-profile-secret] }}" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
-          cp $RUNNER_TEMP/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          echo "${{ secrets.FRANK_APP_IOS_PROVISIONING_PROFILE_DEBUG }}" | base64 --decode > $RUNNER_TEMP/profile-debug.mobileprovision
+          DEBUG_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile-debug.mobileprovision)")
+          cp $RUNNER_TEMP/profile-debug.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$DEBUG_UUID.mobileprovision
+          echo "${{ secrets.FRANK_APP_IOS_PROVISIONING_PROFILE_RELEASE }}" | base64 --decode > $RUNNER_TEMP/profile-release.mobileprovision
+          RELEASE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile-release.mobileprovision)")
+          cp $RUNNER_TEMP/profile-release.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$RELEASE_UUID.mobileprovision
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-      - name: Archive ${{ matrix.build-type }}
+      - name: Archive debug
         run: |
           xcodebuild archive \
             -workspace samples/frank/ios/FrankensteinApp.xcworkspace \
             -scheme FrankensteinApp \
-            -configuration ${{ matrix.configuration }} \
-            -archivePath $RUNNER_TEMP/FrankensteinApp-${{ matrix.configuration }}.xcarchive \
+            -configuration Debug \
+            -archivePath $RUNNER_TEMP/FrankensteinApp-Debug.xcarchive \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO
-      - name: Export ${{ matrix.build-type }} IPA
+      - name: Export debug IPA
         run: |
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/FrankensteinApp-${{ matrix.configuration }}.xcarchive \
-            -exportOptionsPlist ${{ matrix.export-options-plist }} \
-            -exportPath $RUNNER_TEMP/frank-${{ matrix.build-type }}-ipa
-      - name: Publish ${{ matrix.build-type }} IPA to Firebase App Distribution
+            -archivePath $RUNNER_TEMP/FrankensteinApp-Debug.xcarchive \
+            -exportOptionsPlist samples/frank/ios/ExportOptions-Debug.plist \
+            -exportPath $RUNNER_TEMP/frank-debug-ipa
+      - name: Archive release
+        run: |
+          xcodebuild archive \
+            -workspace samples/frank/ios/FrankensteinApp.xcworkspace \
+            -scheme FrankensteinApp \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/FrankensteinApp-Release.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Export release IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/FrankensteinApp-Release.xcarchive \
+            -exportOptionsPlist samples/frank/ios/ExportOptions-Release.plist \
+            -exportPath $RUNNER_TEMP/frank-release-ipa
+      - name: Publish debug IPA to Firebase App Distribution
         if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${{ env.FIREBASE_APP_ID }}
+          appId: ${{ env.FIREBASE_IOS_APP_ID_DEBUG }}
           serviceCredentialsFileContent: ${{ secrets.FRANK_APP_FIREBASE_SERVICE_ACCOUNT }}
-          file: ${{ runner.temp }}/frank-${{ matrix.build-type }}-ipa/FrankensteinApp.ipa
+          file: ${{ runner.temp }}/frank-debug-ipa/FrankensteinApp.ipa
+          groups: measure-devs
+      - name: Publish release IPA to Firebase App Distribution
+        if: github.event_name == 'push'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ env.FIREBASE_IOS_APP_ID_RELEASE }}
+          serviceCredentialsFileContent: ${{ secrets.FRANK_APP_FIREBASE_SERVICE_ACCOUNT }}
+          file: ${{ runner.temp }}/frank-release-ipa/FrankensteinApp.ipa
           groups: measure-devs
       - name: Cleanup keychain
         if: always()
