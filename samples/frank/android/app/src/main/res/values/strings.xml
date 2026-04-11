@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Measure</string>
+    <string name="open_product">Open Product</string>
+    <string name="open_checkout">Open Checkout</string>
+    <string name="checkout_fragment">Checkout</string>
+    <string name="parent_fragment">Parent Fragment</string>
+    <string name="child_fragment">Child Fragment</string>
+</resources>

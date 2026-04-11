@@ -101,7 +101,11 @@ class MeasurePlugin : Plugin<Project> {
         ) {
             it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-            it.flutterSymbolsDirProperty.set(getFlutterSymbolsDirPath(project))
+            getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
+                it.flutterSymbolsDirProperty.set(path)
+            }
+            // TODO: add RN source map support once backend handles rn_source_map type
+            // it.rnSourceMapFileProperty.set(getRnSourceMapFile(project, variant))
             it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
@@ -160,33 +164,43 @@ class MeasurePlugin : Plugin<Project> {
     private fun extractManifestDataTaskName(variant: Variant) =
         "extract${variant.name.capitalize()}ManifestData"
 
+    // Returns a provider for the React Native source map file if RNGP is applied.
+    // RNGP generates composed source maps at:
+    // <app-build-dir>/generated/sourcemaps/react/<variant>/index.android.bundle.map
+    private fun getRnSourceMapFile(project: Project, variant: Variant): Provider<RegularFile>? {
+        val hasReactExtension = project.extensions.findByName("react") != null
+        if (!hasReactExtension) return null
+        return project.layout.buildDirectory.file(
+            "generated/sourcemaps/react/${variant.name}/index.android.bundle.map"
+        )
+    }
+
     // Returns the path to the flutter symbols directory if it exists.
     // This function uses the flutter extension to get the source directory and then uses the
     // split-debug-info gradle property to get the symbols directory.
+    // In add-to-app setups, the flutter extension lives on a separate subproject (e.g. :flutter),
+    // so we search all projects in the build. Multiple projects may have the flutter extension
+    // (e.g. Flutter plugins), so we find the one whose source directory contains a pubspec.yaml,
+    // which identifies it as the actual Flutter module.
     private fun getFlutterSymbolsDirPath(project: Project): File? {
-        val hasFlutterExtension = project.extensions.findByName("flutter") != null
-        if (hasFlutterExtension) {
-            val splitDebugInfoPath = project.providers.gradleProperty("split-debug-info").orNull
-            if (splitDebugInfoPath != null) {
-                try {
-                    val flutterExtension = project.extensions.findByName("flutter")
-                    val flutterSourceDir = flutterExtension?.let {
-                        val source = it::class.java.getMethod("getSource").invoke(it)
-                        if (source != null) {
-                            project.file(source)
-                        } else {
-                            null
-                        }
-                    }
-                    if (flutterSourceDir != null) {
-                        val symbolsRootPath = File(flutterSourceDir, splitDebugInfoPath)
-                        return symbolsRootPath
-                    } else {
-                        project.logger.lifecycle("Flutter source directory not set")
-                    }
-                } catch (e: Exception) {
-                    project.logger.error("Error accessing Flutter source directory: ${e.message}")
-                }
+        val splitDebugInfoPath = project.providers.gradleProperty("split-debug-info").orNull
+            ?: return null
+
+        val flutterProjects = project.rootProject.allprojects.filter {
+            it.extensions.findByName("flutter") != null
+        }
+        if (flutterProjects.isEmpty()) return null
+
+        for (flutterProject in flutterProjects) {
+            try {
+                val flutterExtension = flutterProject.extensions.findByName("flutter") ?: continue
+                val source = flutterExtension::class.java.getMethod("getSource").invoke(flutterExtension)
+                    ?: continue
+                val flutterSourceDir = flutterProject.file(source)
+                if (!File(flutterSourceDir, "pubspec.yaml").exists()) continue
+                return File(flutterSourceDir, splitDebugInfoPath)
+            } catch (e: Exception) {
+                project.logger.error("measure: Error accessing Flutter source directory: ${e.message}")
             }
         }
         return null
