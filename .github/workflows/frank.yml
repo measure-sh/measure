@@ -43,8 +43,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Prepare Yarn
+        run: corepack prepare yarn@3.6.1 --activate
       - name: Install React Native dependencies
-        run: npm install --prefix react_native
+        run: yarn install
+        working-directory: samples/frank/react_native
       - name: Generate Flutter module files
         run: flutter pub get
         working-directory: samples/frank/flutter
@@ -96,8 +101,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Prepare Yarn
+        run: corepack prepare yarn@3.6.1 --activate
       - name: Install React Native dependencies
-        run: npm install --prefix samples/frank/react_native
+        run: yarn install
+        working-directory: samples/frank/react_native
       - name: Generate Flutter module files
         run: flutter pub get
         working-directory: samples/frank/flutter
