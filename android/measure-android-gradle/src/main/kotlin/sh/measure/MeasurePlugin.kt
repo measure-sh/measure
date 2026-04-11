@@ -101,7 +101,9 @@ class MeasurePlugin : Plugin<Project> {
         ) {
             it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-            it.flutterSymbolsDirProperty.set(getFlutterSymbolsDirPath(project))
+            getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
+                it.flutterSymbolsDirProperty.set(path)
+            }
             // TODO: add RN source map support once backend handles rn_source_map type
             // it.rnSourceMapFileProperty.set(getRnSourceMapFile(project, variant))
             it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
