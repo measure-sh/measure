@@ -19,6 +19,9 @@ pluginManagement {
 includeBuild("../../android/measure-android-gradle")
 includeBuild("../../android") {
     name = "measure-android"
+    dependencySubstitution {
+        substitute(module("sh.measure:measure-android")).using(project(":measure"))
+    }
 }
 
 plugins {
