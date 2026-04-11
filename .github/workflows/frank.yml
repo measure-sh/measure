@@ -19,6 +19,10 @@ on:
       - 'flutter/**'
       - 'react-native/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frank-android:
     name: Frank Android (${{ matrix.build-type }})
@@ -102,6 +106,8 @@ jobs:
             certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_DEBUG
             certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_DEBUG
             provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_DEBUG
+            code-sign-identity: Apple Development
+            provisioning-profile-name: Frankenstein Debug Development
           - build-type: release
             configuration: Release
             export-options-plist: samples/frank/ios/ExportOptions-Release.plist
@@ -109,6 +115,8 @@ jobs:
             certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_RELEASE
             certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_RELEASE
             provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_RELEASE
+            code-sign-identity: Apple Distribution
+            provisioning-profile-name: Frank Release Ad Hoc
     steps:
       - uses: actions/checkout@v4
       - name: Switch to Xcode 16.4
@@ -168,7 +176,10 @@ jobs:
             -configuration ${{ matrix.configuration }} \
             -archivePath $RUNNER_TEMP/FrankensteinApp-${{ matrix.configuration }}.xcarchive \
             -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="${{ matrix.code-sign-identity }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ matrix.provisioning-profile-name }}" \
+            DEVELOPMENT_TEAM=FZ7UUKUP84
       - name: Export ${{ matrix.build-type }} IPA
         run: |
           xcodebuild -exportArchive \
