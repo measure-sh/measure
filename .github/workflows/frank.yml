@@ -167,7 +167,8 @@ jobs:
             -scheme FrankensteinApp \
             -configuration ${{ matrix.configuration }} \
             -archivePath $RUNNER_TEMP/FrankensteinApp-${{ matrix.configuration }}.xcarchive \
-            -destination 'generic/platform=iOS'
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates
       - name: Export ${{ matrix.build-type }} IPA
         run: |
           xcodebuild -exportArchive \
