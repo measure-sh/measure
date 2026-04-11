@@ -1,5 +1,5 @@
 import { CookieBanner } from '@/app/components/cookie_banner'
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { usePostHog } from 'posthog-js/react'
@@ -21,13 +21,13 @@ const mockPostHog = {
 }
 
 beforeEach(() => {
-    ;(usePostHog as jest.Mock).mockReturnValue(mockPostHog)
-    ;(usePostHogLoaded as jest.Mock).mockReturnValue(true)
+    ; (usePostHog as jest.Mock).mockReturnValue(mockPostHog)
+        ; (usePostHogLoaded as jest.Mock).mockReturnValue(true)
 })
 
 describe('CookieBanner', () => {
     it('does not render banner when posthog is not available', () => {
-        ;(usePostHog as jest.Mock).mockReturnValue(null)
+        ; (usePostHog as jest.Mock).mockReturnValue(null)
 
         render(<CookieBanner />)
 
@@ -35,7 +35,7 @@ describe('CookieBanner', () => {
     })
 
     it('does not render banner before posthog has loaded, even when consent would be pending', () => {
-        ;(usePostHogLoaded as jest.Mock).mockReturnValue(false)
+        ; (usePostHogLoaded as jest.Mock).mockReturnValue(false)
         mockPostHog.get_explicit_consent_status.mockReturnValue('pending')
 
         render(<CookieBanner />)

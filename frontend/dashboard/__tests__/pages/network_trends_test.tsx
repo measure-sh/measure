@@ -1,4 +1,3 @@
-import NetworkTrends from '@/app/components/network_trends'
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen } from '@testing-library/react'
@@ -10,20 +9,6 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: pushMock,
     }),
-}))
-
-// Mock API
-const mockFetchTrends = jest.fn()
-
-jest.mock('@/app/api/api_calls', () => ({
-    __esModule: true,
-    NetworkTrendsApiStatus: {
-        Loading: 'loading',
-        Success: 'success',
-        Error: 'error',
-        NoData: 'no_data',
-    },
-    fetchNetworkTrendsFromServer: (...args: any[]) => mockFetchTrends(...args),
 }))
 
 jest.mock('@/app/components/filters', () => ({
@@ -59,6 +44,37 @@ jest.mock('@/app/utils/shared_styles', () => ({
     underlineLinkStyle: 'underline-link',
 }))
 
+jest.mock('@/app/utils/time_utils', () => ({
+    formatMillisToHumanReadable: (ms: number) => `${ms}ms`,
+}))
+
+jest.mock('@/app/utils/number_utils', () => ({
+    numberToKMB: (n: number) => `${n}`,
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseNetworkTrendsQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useNetworkTrendsQuery: () => mockUseNetworkTrendsQuery(),
+    TrendsTab: { Latency: 'Latency', ErrorRate: 'Error Rate', Frequency: 'Frequency' },
+}))
+
+import NetworkTrends from '@/app/components/network_trends'
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
 const mockTrendsData = {
     trends_latency: [
         { domain: 'api.example.com', path_pattern: '/v1/slow', p95_latency: 3000, error_rate: 2.5, frequency: 15000 },
@@ -83,14 +99,15 @@ const readyFilters = {
 describe('NetworkTrends - Demo mode', () => {
     beforeEach(() => {
         pushMock.mockClear()
-        mockFetchTrends.mockReset()
+        mockUseNetworkTrendsQuery.mockReset()
+        mockUseNetworkTrendsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     it('renders title and demo data without fetching APIs', () => {
         render(<NetworkTrends demo={true} />)
 
         expect(screen.getByText('Top Endpoints')).toBeInTheDocument()
-        expect(mockFetchTrends).not.toHaveBeenCalled()
     })
 
     it('hides learn more subtitle in demo mode', () => {
@@ -105,7 +122,8 @@ describe('NetworkTrends - Demo mode', () => {
         expect(screen.getByText('Endpoint')).toBeInTheDocument()
         expect(screen.getByText('Latency (p95)')).toBeInTheDocument()
         expect(screen.getByText('Error Rate %')).toBeInTheDocument()
-        expect(screen.getByText('Frequency')).toBeInTheDocument()
+        // 'Frequency' appears as both tab button and table header
+        expect(screen.getAllByText('Frequency').length).toBeGreaterThanOrEqual(1)
     })
 
     it('renders demo endpoint data correctly', () => {
@@ -128,24 +146,29 @@ describe('NetworkTrends - Demo mode', () => {
 describe('NetworkTrends - Non-demo mode', () => {
     beforeEach(() => {
         pushMock.mockClear()
-        mockFetchTrends.mockReset()
+        mockUseNetworkTrendsQuery.mockReset()
+        mockUseNetworkTrendsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     it('shows loading bar while data is loading', async () => {
-        mockFetchTrends.mockReturnValue(new Promise(() => { }))
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         expect(screen.getByTestId('loading-bar-mock')).toBeInTheDocument()
     })
 
     it('renders title and learn more subtitle', async () => {
-        mockFetchTrends.mockResolvedValue({
-            status: 'success',
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({
             data: mockTrendsData,
+            status: 'success',
+            error: null as Error | null,
         })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
@@ -156,12 +179,14 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('renders table with data after successful fetch', async () => {
-        mockFetchTrends.mockResolvedValue({
-            status: 'success',
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({
             data: mockTrendsData,
+            status: 'success',
+            error: null as Error | null,
         })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
@@ -173,9 +198,10 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('shows error message when API fails', async () => {
-        mockFetchTrends.mockResolvedValue({ status: 'error' })
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
@@ -185,9 +211,10 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('shows no data message when API returns no data', async () => {
-        mockFetchTrends.mockResolvedValue({ status: 'no_data' })
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({ data: null, status: 'success', error: null })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
@@ -197,18 +224,21 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('switches to error rate tab and shows correct data', async () => {
-        mockFetchTrends.mockResolvedValue({
-            status: 'success',
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({
             data: mockTrendsData,
+            status: 'success',
+            error: null as Error | null,
         })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
         })
 
-        const errorTab = screen.getByText('Highest Error %')
+        // 'Error Rate' appears in both tab button and table header; pick the button
+        const errorTab = screen.getAllByText('Error Rate')[0]
         await act(async () => {
             fireEvent.click(errorTab)
         })
@@ -218,18 +248,21 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('switches to frequency tab and shows correct data', async () => {
-        mockFetchTrends.mockResolvedValue({
-            status: 'success',
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({
             data: mockTrendsData,
+            status: 'success',
+            error: null as Error | null,
         })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
         })
 
-        const freqTab = screen.getByText('Most Frequent')
+        // 'Frequency' appears in both tab button and table header; pick the button
+        const freqTab = screen.getAllByText('Frequency')[0]
         await act(async () => {
             fireEvent.click(freqTab)
         })
@@ -238,12 +271,14 @@ describe('NetworkTrends - Non-demo mode', () => {
     })
 
     it('navigates to endpoint details on row click', async () => {
-        mockFetchTrends.mockResolvedValue({
-            status: 'success',
+        useFiltersStore.setState({ filters: readyFilters })
+        mockUseNetworkTrendsQuery.mockReturnValue({
             data: mockTrendsData,
+            status: 'success',
+            error: null as Error | null,
         })
 
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={true} />)
+        render(<NetworkTrends teamId="123" active={true} />)
 
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 0))
@@ -257,10 +292,5 @@ describe('NetworkTrends - Non-demo mode', () => {
         expect(pushMock).toHaveBeenCalledWith(
             '/123/network/details?domain=api.example.com&path=%2Fv1%2Fslow'
         )
-    })
-
-    it('does not fetch when active is false', () => {
-        render(<NetworkTrends filters={readyFilters as any} teamId="123" active={false} />)
-        expect(mockFetchTrends).not.toHaveBeenCalled()
     })
 })

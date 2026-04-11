@@ -1,9 +1,8 @@
 import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
 let lastLineProps: any = null
-const fetchMock = jest.fn()
 
 jest.mock('@nivo/line', () => ({
   ResponsiveLine: (props: any) => {
@@ -15,97 +14,114 @@ jest.mock('@nivo/line', () => ({
 jest.mock('next-themes', () => ({ useTheme: () => ({ theme: 'light' }) }))
 jest.mock('@/app/components/loading_spinner', () => ({ __esModule: true, default: () => <div>loading</div> }))
 
-jest.mock('@/app/api/api_calls', () => ({
+const mockUseSessionsVsExceptionsPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
+
+jest.mock('@/app/query/hooks', () => ({
   __esModule: true,
-  SessionsVsExceptionsPlotApiStatus: { Loading: 'loading', Success: 'success', Error: 'error', NoData: 'no_data' },
-  fetchSessionsVsExceptionsPlotFromServer: (...args: any[]) => fetchMock(...args),
+  useSessionsVsExceptionsPlotQuery: () => mockUseSessionsVsExceptionsPlotQuery(),
 }))
 
-const filters = { ready: true, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' } as any
+jest.mock('@/app/stores/provider', () => {
+  const { create } = jest.requireActual('zustand')
+  const filtersStore = create(() => ({
+    filters: { ready: false, serialisedFilters: '', startDate: '', endDate: '' },
+  }))
+  return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const filters = { ready: true, serialisedFilters: 'test', startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }
 
 describe('SessionsVsExceptionsPlot', () => {
   beforeEach(() => {
-    fetchMock.mockReset()
     lastLineProps = null
+    useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '', startDate: '', endDate: '' } })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
   })
 
-  it('renders no data state', async () => {
-    fetchMock.mockResolvedValue({ status: 'no_data', data: null })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
-
-    expect(await screen.findByText('No Data')).toBeInTheDocument()
+  it('renders no data state', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({ data: null, status: 'success', error: null })
+    render(<SessionsVsExceptionsPlot />)
+    expect(screen.getByText('No Data')).toBeInTheDocument()
   })
 
-  it('renders error state', async () => {
-    fetchMock.mockResolvedValue({ status: 'error', data: null })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
-    expect(await screen.findByText(/Error fetching plot/)).toBeInTheDocument()
+  it('renders error state', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({ data: undefined, status: 'error', error: new Error('test') })
+    render(<SessionsVsExceptionsPlot />)
+    expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument()
   })
 
-  it('does not fetch when filters are not ready', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [] })
-    render(<SessionsVsExceptionsPlot filters={{ ...filters, ready: false }} />)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('renders loading state before request resolves', async () => {
-    let resolvePromise: (value: any) => void = () => { }
-    const pending = new Promise((resolve) => {
-      resolvePromise = resolve
-    })
-    fetchMock.mockReturnValue(pending)
-
-    render(<SessionsVsExceptionsPlot filters={filters} />)
+  it('renders loading state', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
+    render(<SessionsVsExceptionsPlot />)
     expect(screen.getByText('loading')).toBeInTheDocument()
-
-    resolvePromise({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }] })
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
   })
 
-  it('uses demo data and bypasses API in demo mode', async () => {
-    render(<SessionsVsExceptionsPlot filters={filters} demo />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-    expect(fetchMock).not.toHaveBeenCalled()
+  it('uses demo data and bypasses API in demo mode', () => {
+    useFiltersStore.setState({ filters })
+    render(<SessionsVsExceptionsPlot demo />)
+    expect(screen.getByTestId('line-mock')).toBeInTheDocument()
     expect(lastLineProps.data[0].id).toBe('Sessions')
   })
 
-  it('renders data and minute precision axis for sub-12h range', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }] })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
+  it('renders data and minute precision axis for sub-12h range', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
+      data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<SessionsVsExceptionsPlot />)
 
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+    expect(screen.getByTestId('line-mock')).toBeInTheDocument()
     expect(lastLineProps.xScale.precision).toBe('minute')
     expect(lastLineProps.data[0].id).toBe('Sessions')
-    expect(fetchMock).toHaveBeenCalledWith(filters)
   })
 
-  it('uses hour/day/month axis config based on range', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }] })
-
-    const { rerender } = render(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-06T00:00:00Z' }} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+  it('uses hour/day/month axis config based on range', () => {
+    // Hours range (5 days)
+    const hourFilters = { ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-06T00:00:00Z' }
+    useFiltersStore.setState({ filters: hourFilters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
+      data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }],
+      status: 'success',
+      error: null,
+    })
+    const { unmount: u1 } = render(<SessionsVsExceptionsPlot />)
     expect(lastLineProps.xScale.precision).toBe('hour')
+    u1()
 
-    rerender(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+    // Days range (73 days)
+    const dayFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }
+    useFiltersStore.setState({ filters: dayFilters })
+    const { unmount: u2 } = render(<SessionsVsExceptionsPlot />)
     expect(lastLineProps.xScale.precision).toBe('day')
+    u2()
 
-    rerender(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+    // Months range (1 year)
+    const monthFilters = { ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }
+    useFiltersStore.setState({ filters: monthFilters })
+    render(<SessionsVsExceptionsPlot />)
     expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
-  it('renders tooltip in Sessions, Crashes, ANRs order', async () => {
-    fetchMock.mockResolvedValue({
-      status: 'success',
+  it('renders tooltip in Sessions, Crashes, ANRs order', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
       data: [
         { id: 'ANRs', data: [{ id: 'a1', x: '2026-02-01T01:00:00', y: 1 }] },
         { id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] },
         { id: 'Crashes', data: [{ id: 'c1', x: '2026-02-01T01:00:00', y: 2 }] },
       ],
+      status: 'success',
+      error: null,
     })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+    render(<SessionsVsExceptionsPlot />)
+    expect(screen.getByTestId('line-mock')).toBeInTheDocument()
 
     const tooltip = lastLineProps.sliceTooltip({
       slice: {
@@ -123,16 +139,17 @@ describe('SessionsVsExceptionsPlot', () => {
     expect(text.indexOf('Crashes')).toBeLessThan(text.indexOf('ANRs'))
   })
 
-  it('skips missing tooltip series and keeps known ordering', async () => {
-    fetchMock.mockResolvedValue({
-      status: 'success',
+  it('skips missing tooltip series and keeps known ordering', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
       data: [
         { id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] },
         { id: 'ANRs', data: [{ id: 'a1', x: '2026-02-01T01:00:00', y: 1 }] },
       ],
+      status: 'success',
+      error: null,
     })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+    render(<SessionsVsExceptionsPlot />)
 
     const tooltip = lastLineProps.sliceTooltip({
       slice: {
@@ -150,28 +167,38 @@ describe('SessionsVsExceptionsPlot', () => {
     expect(text).toContain('ANRs')
   })
 
-  it('uses fallback color for unknown series id', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }] })
-    render(<SessionsVsExceptionsPlot filters={filters} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
+  it('uses fallback color for unknown series id', () => {
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
+      data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<SessionsVsExceptionsPlot />)
 
     expect(lastLineProps.colors({ id: 'Unknown' })).toBe('#888')
     expect(lastLineProps.pointBorderColor({ serieId: 'Unknown' })).toBe('#888')
   })
 
-  it('hides stale chart while new range data is loading', async () => {
-    fetchMock
-      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-03-01', y: 10 }] }] })
-      .mockImplementationOnce(() => new Promise(() => { }))
-
-    const { rerender } = render(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
-
-    rerender(<SessionsVsExceptionsPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('loading')).toBeInTheDocument()
-      expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
+  it('hides stale chart while new range data is loading', () => {
+    // First render with data
+    useFiltersStore.setState({ filters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({
+      data: [{ id: 'Sessions', data: [{ id: 's1', x: '2026-02-01T01:00:00', y: 10 }] }],
+      status: 'success',
+      error: null,
     })
+    const { unmount } = render(<SessionsVsExceptionsPlot />)
+    expect(screen.getByTestId('line-mock')).toBeInTheDocument()
+    unmount()
+
+    // New range, data loading
+    const newFilters = { ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T03:00:00Z' }
+    useFiltersStore.setState({ filters: newFilters })
+    mockUseSessionsVsExceptionsPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
+    render(<SessionsVsExceptionsPlot />)
+
+    expect(screen.getByText('loading')).toBeInTheDocument()
+    expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
   })
 })

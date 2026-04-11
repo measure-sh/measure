@@ -6,11 +6,26 @@ import { fireEvent, render, screen } from '@testing-library/react'
 const mockFetch = jest.fn(() => Promise.resolve({ ok: true, status: 200 }))
 global.fetch = mockFetch as any
 
-jest.mock('@/app/auth/measure_auth', () => ({
-    measureAuth: {
-        encodeOAuthState: jest.fn(() => 'encoded-state'),
-    },
-}))
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const store = create((set: any) => ({
+        session: null,
+        error: null,
+        loaded: false,
+        init: jest.fn(),
+        fetchSession: jest.fn(),
+        signOut: jest.fn(),
+        signInWithOAuth: jest.fn(),
+        encodeOAuthState: jest.fn(() => 'mock-state'),
+        reset: jest.fn(),
+    }))
+    const mockRegistry = { sessionStore: store }
+    return {
+        __esModule: true,
+        useSessionStore: store,
+        useMeasureStoreRegistry: () => mockRegistry,
+    }
+})
 
 jest.mock('next/image', () => ({
     __esModule: true,

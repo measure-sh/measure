@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 // --- Mocks ---
 

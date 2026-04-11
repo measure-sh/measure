@@ -1,12 +1,22 @@
 "use client"
 
-import { AuthzAndMembersApiStatus, DowngradeToFreeApiStatus, downgradeToFreeFromServer, emptyUsage, fetchAuthzAndMembersFromServer, FetchBillingInfoApiStatus, fetchBillingInfoFromServer, FetchCustomerPortalUrlApiStatus, fetchCustomerPortalUrlFromServer, FetchStripeCheckoutSessionApiStatus, fetchStripeCheckoutSessionFromServer, FetchSubscriptionInfoApiStatus, fetchSubscriptionInfoFromServer, FetchUsageApiStatus, fetchUsageFromServer } from '@/app/api/api_calls'
 import { Button, buttonVariants } from '@/app/components/button'
 import { Card } from '@/app/components/card'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
 import { Skeleton } from '@/app/components/skeleton'
 
+import { queryClient } from '@/app/query/query_client'
+import {
+  fetchCustomerPortalUrl,
+  useBillingInfoQuery,
+  useDowngradeToFreeMutation,
+  useHandleUpgradeMutation,
+  usePollForPlanQuery,
+  useSubscriptionInfoQuery,
+  useUsagePermissionsQuery,
+  useUsageQuery,
+} from '@/app/query/hooks'
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
 import { formatBytes } from '@/app/utils/number_utils'
 import { FREE_BYTES, FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '@/app/utils/pricing_constants'
@@ -20,80 +30,85 @@ import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
+type AppMonthlyUsage = {
+  id: string
+  label: string
+  value: number
+  events: number
+  spans: number
+  bytes_in: number
+}
+
+function parseMonths(data: any[]): string[] {
+  const monthYearSet: Set<string> = new Set()
+  data.forEach(app => {
+    app.monthly_app_usage.forEach((u: any) => {
+      monthYearSet.add(u.month_year)
+    })
+  })
+  return Array.from(monthYearSet)
+}
+
+function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
+  const result: AppMonthlyUsage[] = []
+  usage.forEach(app => {
+    app.monthly_app_usage.forEach((u: any) => {
+      if (u.month_year === month) {
+        result.push({ id: app.app_id, label: app.app_name, value: u.sessions, events: u.events, spans: u.spans, bytes_in: u.bytes_in })
+      }
+    })
+  })
+  return result
+}
+
 export default function Usage({ params }: { params: { teamId: string } }) {
-  type BillingInfo = {
-    team_id: string
-    plan: string
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    created_at: string
-    updated_at: string
-  }
+  const { theme } = useTheme()
 
-  type AppMonthlyUsage = {
-    id: string
-    label: string
-    value: number
-    events: number
-    spans: number
-    bytes_in: number
-  }
+  // TanStack Query: reads
+  const { data: usageData, status: usageStatus } = useUsageQuery(params.teamId)
+  const { data: permissions } = useUsagePermissionsQuery(isBillingEnabled() ? params.teamId : undefined)
+  const { data: billingInfo, status: billingInfoStatus } = useBillingInfoQuery(isBillingEnabled() ? params.teamId : undefined)
+  const currentUserCanChangePlan = permissions?.canChangePlan === true
 
-  type SubscriptionInfo = {
-    status: string
-    current_period_start: number
-    current_period_end: number
-    upcoming_invoice: {
-      amount_due: number
-      currency: string
-    } | null
-    billing_cycle_usage: number
-  }
+  const { data: subscriptionInfo, status: subscriptionInfoStatus } = useSubscriptionInfoQuery(
+    isBillingEnabled() && billingInfo?.plan === 'pro' && currentUserCanChangePlan ? params.teamId : undefined
+  )
 
-  const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
-  const [usage, setUsage] = useState(emptyUsage)
-  const [months, setMonths] = useState<string[]>()
-  const [currentBillingCycleUsage, setCurrentBillingCycleUsage] = useState<number>(0)
-  const [selectedMonth, setSelectedMonth] = useState<string>()
-  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
-  const [fetchBillingInfoApiStatus, setFetchBillingInfoApiStatus] = useState(FetchBillingInfoApiStatus.Loading)
-  const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null)
+  // UI-only local state
   const [isUpgrading, setIsUpgrading] = useState(false)
   const [isDowngrading, setIsDowngrading] = useState(false)
   const [downgradeConfirmationDialogOpen, setDowngradeConfirmationDialogOpen] = useState(false)
   const [isLoadingPortal, setIsLoadingPortal] = useState(false)
-  const [currentUserCanChangePlan, setCurrentUserCanChangePlan] = useState(false)
-  const [fetchSubscriptionInfoApiStatus, setFetchSubscriptionInfoApiStatus] = useState(FetchSubscriptionInfoApiStatus.Loading)
-  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
-  const { theme } = useTheme()
 
-  const getCurrentUserCanChangePlan = async () => {
-    const result = await fetchAuthzAndMembersFromServer(params.teamId)
+  // Month selection state
+  const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined)
 
-    switch (result.status) {
-      case AuthzAndMembersApiStatus.Error:
-        break
-      case AuthzAndMembersApiStatus.Success:
-        setCurrentUserCanChangePlan(result.data.can_change_billing === true)
-        break
-    }
-  }
+  // Polling state for plan changes
+  const [pollingTargetPlan, setPollingTargetPlan] = useState<string | undefined>(undefined)
+  const { data: polledBillingInfo } = usePollForPlanQuery(
+    pollingTargetPlan ? params.teamId : undefined,
+    pollingTargetPlan
+  )
 
-  const freeUsagePercent = billingInfo?.plan === 'free' && FREE_BYTES > 0
-    ? Math.min(100, currentBillingCycleUsage > 0
-      ? Math.max(0.01, Math.round((currentBillingCycleUsage / FREE_BYTES) * 10000) / 100)
-      : 0)
-    : 0
+  // TanStack Query: mutations
+  const upgradeMutation = useHandleUpgradeMutation()
+  const downgradeMutation = useDowngradeToFreeMutation()
 
+  // Derived data from usage
+  const months = usageData ? parseMonths(usageData) : []
+  const effectiveMonth = selectedMonth ?? (months.length > 0 ? months[months.length - 1] : undefined)
+  const selectedMonthUsage = usageData && effectiveMonth ? parseUsageForMonth(usageData, effectiveMonth) : []
+  const currentBillingCycleUsage = selectedMonthUsage.reduce((acc, u) => acc + u.bytes_in, 0)
+
+  // Set initial month when usage data loads
   useEffect(() => {
-    if (isBillingEnabled()) {
-      getCurrentUserCanChangePlan()
+    if (usageData && !selectedMonth && months.length > 0) {
+      setSelectedMonth(months[months.length - 1])
     }
-  }, [params.teamId])
+  }, [usageData])
 
   // Handle success/cancel from Stripe redirect
   useEffect(() => {
-    // Small delay to ensure toast provider is mounted
     const timer = setTimeout(() => {
       const searchParams = new URLSearchParams(window.location.search)
       const success = searchParams.get('success')
@@ -101,12 +116,10 @@ export default function Usage({ params }: { params: { teamId: string } }) {
 
       if (success === 'true') {
         toastPositive("Successfully upgraded to Pro! Your plan is now active.")
-        pollForPlan('pro')
-        // Clean up URL
+        setPollingTargetPlan('pro')
         window.history.replaceState({}, '', window.location.pathname)
       } else if (canceled === 'true') {
         toastNegative("Checkout canceled", "You can try again anytime.")
-        // Clean up URL
         window.history.replaceState({}, '', window.location.pathname)
       }
     }, 100)
@@ -114,191 +127,80 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     return () => clearTimeout(timer)
   }, [])
 
-  function parseMonths(data: typeof emptyUsage): string[] {
-    const monthYearSet: Set<string> = new Set()
-
-    data.forEach(app => {
-      app.monthly_app_usage.forEach(u => {
-        monthYearSet.add(u.month_year)
-      })
-    })
-
-    return Array.from(monthYearSet)
-  }
-
-  function parseUsageForMonth(usage: typeof emptyUsage, month: string): AppMonthlyUsage[] {
-    const selectedMonthUsages: AppMonthlyUsage[] = []
-
-    usage.forEach(app => {
-      app.monthly_app_usage.forEach(u => {
-        if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.sessions, events: u.events, spans: u.spans, bytes_in: u.bytes_in })
-        }
-      })
-    })
-    return selectedMonthUsages
-  }
-
-  const getUsage = async () => {
-    setFetchUsageApiStatus(FetchUsageApiStatus.Loading)
-
-    const result = await fetchUsageFromServer(params.teamId)
-
-    switch (result.status) {
-      case FetchUsageApiStatus.NoApps:
-        setFetchUsageApiStatus(FetchUsageApiStatus.NoApps)
-        break
-      case FetchUsageApiStatus.Error:
-        setFetchUsageApiStatus(FetchUsageApiStatus.Error)
-        break
-      case FetchUsageApiStatus.Success:
-        setFetchUsageApiStatus(FetchUsageApiStatus.Success)
-        setUsage(result.data)
-        let months = parseMonths(result.data)
-        let initialMonth = months[months.length - 1]
-        setMonths(months)
-        setSelectedMonth(initialMonth)
-        let initialMonthUsage = parseUsageForMonth(result.data, initialMonth)
-        setSelectedMonthUsage(initialMonthUsage)
-        setCurrentBillingCycleUsage(initialMonthUsage.reduce((acc, usage) => acc + usage.bytes_in, 0))
-        break
-    }
-  }
-
+  // Stop polling when target plan is reached
   useEffect(() => {
-    getUsage()
-  }, [])
-
-  useEffect(() => {
-    setSelectedMonthUsage(parseUsageForMonth(usage, selectedMonth!))
-  }, [selectedMonth])
-
-  const getBillingInfo = async () => {
-    setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Loading)
-
-    const result = await fetchBillingInfoFromServer(params.teamId)
-
-    switch (result.status) {
-      case FetchBillingInfoApiStatus.Error:
-        setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Error)
-        break
-      case FetchBillingInfoApiStatus.Success:
-        setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Success)
-        setBillingInfo(result.data)
-        break
+    if (polledBillingInfo?.plan === pollingTargetPlan) {
+      // Plan change confirmed — invalidate the regular billing query so it
+      // picks up the new plan, then stop polling.
+      queryClient.invalidateQueries({ queryKey: ["billingInfo", params.teamId] })
+      setPollingTargetPlan(undefined)
     }
-  }
+  }, [polledBillingInfo, pollingTargetPlan])
 
-  const pollForPlan = async (targetPlan: string) => {
-    for (let i = 0; i < 60; i++) {
-      const result = await fetchBillingInfoFromServer(params.teamId)
-      if (result.status === FetchBillingInfoApiStatus.Success && result.data?.plan === targetPlan) {
-        setFetchBillingInfoApiStatus(FetchBillingInfoApiStatus.Success)
-        setBillingInfo(result.data)
-        return
-      }
-      await new Promise(r => setTimeout(r, 1000))
-    }
-    // Fallback: show whatever the current state is
-    getBillingInfo()
-  }
+  // While polling, use the polled data. Otherwise use the regular query.
+  const effectiveBillingInfo = pollingTargetPlan ? polledBillingInfo ?? billingInfo : billingInfo
 
-  useEffect(() => {
-    if (isBillingEnabled()) {
-      getBillingInfo()
-    }
-  }, [])
+  const freeUsagePercent = effectiveBillingInfo?.plan === 'free' && FREE_BYTES > 0
+    ? Math.min(100, currentBillingCycleUsage > 0
+      ? Math.max(0.01, Math.round((currentBillingCycleUsage / FREE_BYTES) * 10000) / 100)
+      : 0)
+    : 0
 
-  const getSubscriptionInfo = async () => {
-    setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Loading)
-
-    const result = await fetchSubscriptionInfoFromServer(params.teamId)
-
-    switch (result.status) {
-      case FetchSubscriptionInfoApiStatus.Error:
-        setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Error)
-        break
-      case FetchSubscriptionInfoApiStatus.Success:
-        setFetchSubscriptionInfoApiStatus(FetchSubscriptionInfoApiStatus.Success)
-        setSubscriptionInfo(result.data)
-        break
-    }
-  }
-
-  useEffect(() => {
-    if (isBillingEnabled() && billingInfo?.plan === 'pro' && currentUserCanChangePlan) {
-      getSubscriptionInfo()
-    }
-  }, [billingInfo, currentUserCanChangePlan])
-
-  const handleUpgrade = async () => {
+  const onUpgrade = async () => {
     setIsUpgrading(true)
-
     const currentUrl = window.location.href.split('?')[0]
-    const result = await fetchStripeCheckoutSessionFromServer(
-      params.teamId,
-      `${currentUrl}?success=true`,
-      `${currentUrl}?canceled=true`
-    )
 
-    if (result.status === FetchStripeCheckoutSessionApiStatus.Success) {
-      if (result.data?.already_upgraded) {
-        toastPositive("Your Pro plan is now active! A previous subscription was found and applied.")
-        getBillingInfo()
-        setIsUpgrading(false)
-      } else if (result.data?.checkout_url) {
-        window.location.href = result.data.checkout_url
-      } else {
-        toastNegative("Failed to start checkout", "Please try again.")
-        setIsUpgrading(false)
+    upgradeMutation.mutate(
+      { teamId: params.teamId, successUrl: `${currentUrl}?success=true`, cancelUrl: `${currentUrl}?canceled=true` },
+      {
+        onSuccess: (data) => {
+          if (data?.already_upgraded) {
+            toastPositive("Your Pro plan is now active! A previous subscription was found and applied.")
+            setIsUpgrading(false)
+          } else if (data?.checkout_url) {
+            window.location.href = data.checkout_url
+          } else {
+            toastNegative("Failed to start checkout", "Please try again.")
+            setIsUpgrading(false)
+          }
+        },
+        onError: () => {
+          toastNegative("Failed to start checkout", "Please try again.")
+          setIsUpgrading(false)
+        },
       }
-    } else {
-      toastNegative("Failed to start checkout", "Please try again.")
-      setIsUpgrading(false)
-    }
+    )
   }
 
-  const handleDowngrade = async () => {
+  const onDowngrade = async () => {
     setIsDowngrading(true)
 
-    const result = await downgradeToFreeFromServer(params.teamId)
-
-    switch (result.status) {
-      case DowngradeToFreeApiStatus.Error:
-        toastNegative("Failed to downgrade", "Please try again.")
-        setIsDowngrading(false)
-        break
-      case DowngradeToFreeApiStatus.Success:
-        await pollForPlan('free')
-        toastPositive("Successfully downgraded to Free plan.")
-        setIsDowngrading(false)
-        break
-    }
+    downgradeMutation.mutate(
+      { teamId: params.teamId },
+      {
+        onSuccess: () => {
+          toastPositive("Successfully downgraded to Free plan.")
+          setPollingTargetPlan('free')
+          setIsDowngrading(false)
+        },
+        onError: () => {
+          toastNegative("Failed to downgrade", "Please try again.")
+          setIsDowngrading(false)
+        },
+      }
+    )
   }
 
-  const handleManageBilling = async () => {
+  const onManageBilling = async () => {
     setIsLoadingPortal(true)
-
     const returnUrl = window.location.href.split('?')[0]
-    const result = await fetchCustomerPortalUrlFromServer(params.teamId, returnUrl)
+    const result = await fetchCustomerPortalUrl(params.teamId, returnUrl)
 
-    switch (result.status) {
-      case FetchCustomerPortalUrlApiStatus.Success:
-        if (result.data?.url) {
-          window.location.href = result.data.url
-        } else {
-          toastNegative("Failed to open billing portal", "No portal URL returned.")
-          setIsLoadingPortal(false)
-        }
-        break
-      case FetchCustomerPortalUrlApiStatus.Error:
-        toastNegative("Failed to open billing portal", "Please try again.")
-        setIsLoadingPortal(false)
-        break
-      case FetchCustomerPortalUrlApiStatus.Cancelled:
-        toastNegative("Failed to open billing portal", "Request was cancelled.")
-        setIsLoadingPortal(false)
-        break
+    if (result.redirect) {
+      window.location.href = result.redirect
+    } else {
+      toastNegative("Failed to open billing portal", result.error)
+      setIsLoadingPortal(false)
     }
   }
 
@@ -307,7 +209,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     let totalSessions = 0
     let totalEvents = 0
     let totalSpans = 0
-    selectedMonthUsage!.forEach(appMonthlyUsage => {
+    selectedMonthUsage.forEach(appMonthlyUsage => {
       totalSessions += appMonthlyUsage.value
       totalEvents += appMonthlyUsage.events
       totalSpans += appMonthlyUsage.spans
@@ -328,24 +230,30 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     )
   }
 
+  // Determine usage display status
+  const usageHasNoApps = usageStatus === 'success' && usageData === null
+  const usageIsError = usageStatus === 'error'
+  const usageIsLoading = usageStatus === 'pending'
+  const usageIsSuccess = usageStatus === 'success' && usageData !== null
+
   return (
     <div className="flex flex-col items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
-      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
+      {usageIsError && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
+      {usageHasNoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <LoadingSpinner />}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
+      {usageIsLoading && <LoadingSpinner />}
+      {usageIsSuccess &&
         <div className="flex flex-col items-start w-full">
-          <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
+          <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months} initialSelected={effectiveMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
           <div className='w-full h-[36rem]'>
             <ResponsivePie
-              data={selectedMonthUsage!}
+              data={selectedMonthUsage}
               theme={chartTheme}
               animate
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -382,14 +290,14 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           <div className="py-4" />
 
           {/* Error states */}
-          {fetchBillingInfoApiStatus === FetchBillingInfoApiStatus.Error && <p className="font-body text-sm">Error fetching billing data, please check if Team ID is valid or refresh page to try again</p>}
+          {billingInfoStatus === 'error' && <p className="font-body text-sm">Error fetching billing data, please check if Team ID is valid or refresh page to try again</p>}
 
           {/* Main UI */}
-          {fetchBillingInfoApiStatus === FetchBillingInfoApiStatus.Loading && <LoadingSpinner />}
-          {fetchBillingInfoApiStatus === FetchBillingInfoApiStatus.Success &&
+          {billingInfoStatus === 'pending' && <LoadingSpinner />}
+          {billingInfoStatus === 'success' &&
             <div className="flex flex-col items-start w-full">
               {/* Progress indicator for Free plan */}
-              {billingInfo?.plan === 'free' && (
+              {effectiveBillingInfo?.plan === 'free' && (
                 <div className='w-full max-w-6xl'>
                   <div className='flex items-center justify-between mb-2'>
                     <p className='font-body'>Free plan usage: <span className='font-semibold'>{freeUsagePercent}%</span></p>
@@ -402,7 +310,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               {/* Plan Cards */}
               <div className='flex flex-col md:flex-row gap-8 w-full mt-12'>
                 {/* Free Plan Card - only show when on free plan */}
-                {billingInfo?.plan === 'free' && (
+                {effectiveBillingInfo?.plan === 'free' && (
                   <Card className='w-full md:w-1/2 relative'>
                     {showCurrentPlanBadge()}
                     <div className="p-4 md:p-8 flex flex-col items-center">
@@ -418,19 +326,19 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                 )}
 
                 {/* Pro Plan Card */}
-                <Card className={`${billingInfo?.plan === 'pro' ? 'w-full' : 'w-full md:w-1/2'} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}>
-                  {billingInfo?.plan === 'pro' && showCurrentPlanBadge()}
+                <Card className={`${effectiveBillingInfo?.plan === 'pro' ? 'w-full' : 'w-full md:w-1/2'} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}>
+                  {effectiveBillingInfo?.plan === 'pro' && showCurrentPlanBadge()}
                   <div className="p-4 md:p-8 flex flex-col items-center">
                     <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
                     <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
-                    {billingInfo?.plan !== 'pro' && (
+                    {effectiveBillingInfo?.plan !== 'pro' && (
                       <ul className='list-disc space-y-2 mt-6'>
                         <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_GB} GB per month included</li>
                         <li className='font-body text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
                         <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
                       </ul>
                     )}
-                    {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Loading && (
+                    {effectiveBillingInfo?.plan === 'pro' && currentUserCanChangePlan && subscriptionInfoStatus === 'pending' && (
                       <div className='mt-4 w-full max-w-md space-y-3'>
                         <Skeleton className='h-4 w-full' />
                         <Skeleton className='h-4 w-full' />
@@ -439,7 +347,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                         <Skeleton className='h-4 w-full' />
                       </div>
                     )}
-                    {billingInfo?.plan === 'pro' && currentUserCanChangePlan && fetchSubscriptionInfoApiStatus === FetchSubscriptionInfoApiStatus.Success && subscriptionInfo && (
+                    {effectiveBillingInfo?.plan === 'pro' && currentUserCanChangePlan && subscriptionInfoStatus === 'success' && subscriptionInfo && (
                       <div className='mt-4 font-body text-start space-y-1'>
                         <ul className='list-disc list-inside'>
                           <li className='text-green-900 dark:text-foreground'>
@@ -474,21 +382,21 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       </div>
                     )}
                     <div className='pt-12'>
-                      {billingInfo?.plan === 'free' && (
+                      {effectiveBillingInfo?.plan === 'free' && (
                         <Button
                           className={buttonVariants({ variant: "default" })}
-                          onClick={handleUpgrade}
+                          onClick={onUpgrade}
                           disabled={!currentUserCanChangePlan || isUpgrading}
                         >
                           {isUpgrading ? 'Redirecting...' : 'Upgrade to Pro'}
                         </Button>
                       )}
-                      {billingInfo?.plan === 'pro' && (
+                      {effectiveBillingInfo?.plan === 'pro' && (
                         <div className='flex flex-col gap-3 items-center'>
                           <Button
                             className="w-56"
                             variant={"default"}
-                            onClick={handleManageBilling}
+                            onClick={onManageBilling}
                             disabled={!currentUserCanChangePlan || isLoadingPortal || isDowngrading}
                           >
                             {isLoadingPortal ? 'Redirecting...' : 'Manage Billing'}
@@ -507,7 +415,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                   </div>
                 </Card>
               </div>
-              {billingInfo?.plan === 'pro' && (
+              {effectiveBillingInfo?.plan === 'pro' && (
                 <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
                   Have large data volumes?{" "}
                   <Link
@@ -537,7 +445,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setDowngradeConfirmationDialogOpen(false)
-          handleDowngrade()
+          onDowngrade()
         }}
         onCancelAction={() => setDowngradeConfirmationDialogOpen(false)}
       />

@@ -1,14 +1,15 @@
 "use client"
 
+import { useJourneyQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveSankey } from '@nivo/sankey'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
-import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import React, { useState } from 'react'
+import { JourneyType, emptyJourney } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 import { Button } from './button'
-import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
 
 const demoJourney: InputJourneyData = {
@@ -167,17 +168,11 @@ interface JourneyProps {
   bidirectional: boolean,
   journeyType: JourneyType,
   exceptionsGroupId: string | null,
-  filters: Filters,
   searchText?: string
   demo?: boolean
 }
 
-export enum JourneyType {
-  Paths,
-  Exceptions,
-  CrashDetails,
-  AnrDetails
-}
+export { JourneyType } from "../api/api_calls"
 
 type Link = {
   source: string
@@ -348,56 +343,34 @@ function transformData(journeyType: JourneyType, input: InputJourneyData): Journ
   }
 }
 
-const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '', demo = false }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional: bidirectionalProp, journeyType: journeyTypeProp, exceptionsGroupId: exceptionsGroupIdProp, searchText = '', demo = false }) => {
   const { theme } = useTheme()
-  const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
-  const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
+  const filters = useFiltersStore(state => state.filters)
+  const journeyQuery = useJourneyQuery(journeyTypeProp, exceptionsGroupIdProp, bidirectionalProp)
 
-  const [selectedNode, setSelectedNode] = useState<JourneyNode>()
-  const [showPanel, setShowPanel] = useState(false)
+  const [selectedNode, setSelectedNode] = useState<JourneyNode | undefined>(undefined)
+  const showPanel = selectedNode !== undefined
 
-  const getJourney = async () => {
+  const journeyType = journeyTypeProp
+  const rawJourney = journeyQuery.data ?? emptyJourney
+  const transformedJourney = demo
+    ? transformData(journeyType, demoJourney)
+    : (journeyQuery.status === 'success' ? transformData(journeyType, rawJourney) : transformData(journeyType, emptyJourney))
+  const journey = transformedJourney
+
+  // Derive effective API status: if query says success but transformed data has no nodes, treat as no data
+  const effectiveStatus = (() => {
     if (demo) {
-      const journey = transformData(journeyType, demoJourney)
-      setJourney(journey)
-      setJourneyApiStatus(JourneyApiStatus.Success)
-      return
+      return 'success' as const
     }
-
-    setJourneyApiStatus(JourneyApiStatus.Loading)
-
-    const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters)
-
-    switch (result.status) {
-      case JourneyApiStatus.Error:
-        setJourneyApiStatus(JourneyApiStatus.Error)
-        break
-      case JourneyApiStatus.Success:
-        setJourneyApiStatus(JourneyApiStatus.Success)
-
-        let journey = transformData(journeyType, result.data)
-
-        if (journey.nodes.length === 0) {
-          setJourneyApiStatus(JourneyApiStatus.NoData)
-          break
-        }
-
-        setJourney(journey)
-        break
+    if (journeyQuery.status === 'success' && journeyQuery.data === null) {
+      return 'nodata' as const
     }
-  }
-
-  useEffect(() => {
-    getJourney()
-  }, [teamId, bidirectional, journeyType, exceptionsGroupId, filters])
-
-  useEffect(() => {
-    if (journeyType === JourneyType.Exceptions && selectedNode !== undefined && (selectedNode.issues?.crashes?.length! > 0 || selectedNode.issues?.anrs?.length! > 0)) {
-      setShowPanel(true)
-    } else {
-      setShowPanel(false)
+    if (journeyQuery.status === 'success' && transformedJourney.nodes.length === 0) {
+      return 'nodata' as const
     }
-  }, [selectedNode])
+    return journeyQuery.status
+  })()
 
   const getSearchFilteredJourney = () => {
     if (!searchText.trim()) return journey
@@ -431,10 +404,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   return (
     <div className="flex flex-col items-center justify-center font-body text-sm w-full h-full overflow-hidden">
       <div className="flex-1 flex items-center justify-center w-full h-full">
-        {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
-        {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-        {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
-        {journeyApiStatus === JourneyApiStatus.Success &&
+        {effectiveStatus === 'pending' && <LoadingSpinner />}
+        {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
+        {effectiveStatus === 'nodata' && <p className="text-lg font-display text-center p-4">No journey data</p>}
+        {effectiveStatus === 'success' &&
           <div className='relative w-full h-full'>
             <ResponsiveSankey
               data={getSearchFilteredJourney()}

@@ -1,15 +1,14 @@
 "use client"
 
-import { NetworkTrendsApiStatus, fetchNetworkTrendsFromServer } from '@/app/api/api_calls'
-import { defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
-import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import { TrendsTab, useNetworkTrendsQuery } from '@/app/query/hooks'
 import { numberToKMB } from '@/app/utils/number_utils'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
+import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 interface TrendsEndpoint {
     domain: string
@@ -23,14 +22,6 @@ interface NetworkTrendsData {
     trends_latency: TrendsEndpoint[]
     trends_error_rate: TrendsEndpoint[]
     trends_frequency: TrendsEndpoint[]
-}
-
-const trendsLimit = 15
-
-enum TrendsTab {
-    Latency = "Slowest",
-    ErrorRate = "Highest Error %",
-    Frequency = "Most Frequent",
 }
 
 const emptyTrends: NetworkTrendsData = {
@@ -77,81 +68,34 @@ function generateDemoTrends(): NetworkTrendsData {
 const demoTrends = generateDemoTrends()
 
 interface NetworkTrendsProps {
-    filters?: typeof defaultFilters
     teamId?: string
     demo?: boolean
     active?: boolean
 }
 
-interface ComponentState {
-    status: NetworkTrendsApiStatus
-    trends: NetworkTrendsData
-    dataKey: string | null
-    selectedTab: TrendsTab
-}
-
-export default function NetworkTrends({ filters, teamId, demo = false, active = true }: NetworkTrendsProps) {
+export default function NetworkTrends({ teamId, demo = false, active = true }: NetworkTrendsProps) {
     const router = useRouter()
+    const trendsQuery = useNetworkTrendsQuery(active)
 
-    const [state, setState] = useState<ComponentState>(() => {
+    const [selectedTab, setSelectedTab] = useState<TrendsTab>(TrendsTab.Latency)
+
+    const trends = demo ? demoTrends : (trendsQuery.data ?? emptyTrends)
+    const effectiveStatus = (() => {
         if (demo) {
-            return {
-                status: NetworkTrendsApiStatus.Success,
-                trends: demoTrends,
-                dataKey: null,
-                selectedTab: TrendsTab.Latency,
-            }
+            return 'success' as const
         }
-        return {
-            status: NetworkTrendsApiStatus.Loading,
-            trends: emptyTrends,
-            dataKey: null,
-            selectedTab: TrendsTab.Latency,
+        if (trendsQuery.status === 'success' && trendsQuery.data === null) {
+            return 'nodata' as const
         }
-    })
-
-    const updateState = (newState: Partial<ComponentState>) => {
-        setState(prev => ({ ...prev, ...newState }))
-    }
-
-    const currentDataKey = filters?.serialisedFilters ?? null
-    const pendingKeyRef = useRef<string | null>(null)
-
-    useEffect(() => {
-        if (demo || !active) return
-        if (!filters?.ready || !filters?.app) return
-        if (state.dataKey === currentDataKey || pendingKeyRef.current === currentDataKey) return
-
-        pendingKeyRef.current = currentDataKey
-        updateState({ status: NetworkTrendsApiStatus.Loading })
-
-        fetchNetworkTrendsFromServer(filters, trendsLimit).then(result => {
-            if (pendingKeyRef.current !== currentDataKey) return
-            pendingKeyRef.current = null
-            switch (result.status) {
-                case NetworkTrendsApiStatus.Success:
-                    updateState({
-                        status: NetworkTrendsApiStatus.Success,
-                        trends: result.data as NetworkTrendsData,
-                        dataKey: currentDataKey,
-                    })
-                    break
-                case NetworkTrendsApiStatus.NoData:
-                    updateState({ status: NetworkTrendsApiStatus.NoData, trends: emptyTrends, dataKey: null })
-                    break
-                default:
-                    updateState({ status: NetworkTrendsApiStatus.Error, trends: emptyTrends, dataKey: null })
-                    break
-            }
-        })
-    }, [active, filters])
+        return trendsQuery.status
+    })()
 
     const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
         if (demo || !teamId) return
         router.push(`/${teamId}/network/details?domain=${encodeURIComponent(endpoint.domain)}&path=${encodeURIComponent(endpoint.path_pattern)}`)
     }
 
-    const activeTabData = getActiveTabData(state.trends, state.selectedTab)
+    const activeTabData = getActiveTabData(trends, selectedTab)
 
     const tabButtons = (
         <div className="flex gap-1">
@@ -159,11 +103,11 @@ export default function NetworkTrends({ filters, teamId, demo = false, active = 
                 <button
                     key={tab}
                     type="button"
-                    className={`px-3 py-1.5 text-sm font-display rounded-md cursor-pointer transition-colors ${state.selectedTab === tab
+                    className={`px-3 py-1.5 text-sm font-display rounded-md cursor-pointer transition-colors ${selectedTab === tab
                         ? 'bg-accent text-accent-foreground'
                         : 'bg-background text-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
-                    onClick={() => updateState({ selectedTab: tab })}
+                    onClick={() => setSelectedTab(tab)}
                 >
                     {tab}
                 </button>
@@ -178,15 +122,15 @@ export default function NetworkTrends({ filters, teamId, demo = false, active = 
                     <p className="font-display text-xl">Top Endpoints</p>
                     {!demo && <p className="mt-2 font-body text-xs text-muted-foreground"><Link href="/docs/features/feature-network-monitoring#how-are-endpoint-patterns-generated" className={underlineLinkStyle}>Learn more</Link> about how endpoint patterns are generated</p>}
                 </div>
-                {state.status === NetworkTrendsApiStatus.Success && activeTabData.length > 0 && tabButtons}
+                {effectiveStatus === 'success' && activeTabData.length > 0 && tabButtons}
             </div>
-            {state.status === NetworkTrendsApiStatus.Loading &&
+            {effectiveStatus === 'pending' &&
                 <div className="w-full" style={{ minHeight: 480 }}>
                     <LoadingBar />
                 </div>
             }
 
-            {state.status === NetworkTrendsApiStatus.Success && activeTabData.length > 0 &&
+            {effectiveStatus === 'success' && activeTabData.length > 0 &&
                 <>
                     <div className="py-6" />
                     <Table>
@@ -220,12 +164,12 @@ export default function NetworkTrends({ filters, teamId, demo = false, active = 
                 </>
             }
 
-            {(state.status === NetworkTrendsApiStatus.NoData ||
-                (state.status === NetworkTrendsApiStatus.Success && activeTabData.length === 0)) &&
+            {(effectiveStatus === 'nodata' ||
+                (effectiveStatus === 'success' && activeTabData.length === 0)) &&
                 <p className="font-body text-sm mt-4">No data available for the selected filters</p>
             }
 
-            {state.status === NetworkTrendsApiStatus.Error &&
+            {effectiveStatus === 'error' &&
                 <p className="font-body text-sm">Error fetching overview, please change filters & try again</p>
             }
         </div>

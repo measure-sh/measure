@@ -1,23 +1,9 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import NetworkDetails from '@/app/components/network_details'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 
-const mockFetchLatency = jest.fn()
-const mockFetchStatusCodes = jest.fn()
-const mockFetchTimeline = jest.fn()
 const mockRouterReplace = jest.fn()
-
-jest.mock('@/app/api/api_calls', () => ({
-    __esModule: true,
-    FilterSource: { Events: 0 },
-    NetworkEndpointLatencyPlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    NetworkEndpointStatusCodesPlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    NetworkEndpointTimelinePlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    fetchNetworkEndpointLatencyPlotFromServer: (...args: any[]) => mockFetchLatency(...args),
-    fetchNetworkEndpointStatusCodesPlotFromServer: (...args: any[]) => mockFetchStatusCodes(...args),
-    fetchNetworkEndpointTimelinePlotFromServer: (...args: any[]) => mockFetchTimeline(...args),
-}))
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockRouterReplace }),
@@ -29,17 +15,48 @@ jest.mock('next/link', () => ({
     default: ({ href, children, className }: any) => <a href={href} className={className}>{children}</a>,
 }))
 
+jest.mock('@/app/api/api_calls', () => ({
+    __esModule: true,
+    FilterSource: { Events: 0 },
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseNetworkEndpointLatencyQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseNetworkEndpointStatusCodesQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseNetworkEndpointTimelineQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useNetworkEndpointLatencyQuery: () => mockUseNetworkEndpointLatencyQuery(),
+    useNetworkEndpointStatusCodesQuery: () => mockUseNetworkEndpointStatusCodesQuery(),
+    useNetworkEndpointTimelineQuery: () => mockUseNetworkEndpointTimelineQuery(),
+}))
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: ({ onFiltersChanged }: any) => (
-        <div data-testid="filters-mock">
-            <button data-testid="set-filters-ready" onClick={() =>
-                onFiltersChanged({ ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' })
-            }>Ready</button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { All: 1 },
-    defaultFilters: { ready: false, serialisedFilters: null, startDate: '', endDate: '' },
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
 
 jest.mock('@/app/components/loading_spinner', () => ({
@@ -70,13 +87,18 @@ jest.mock('@/app/utils/shared_styles', () => ({
     underlineLinkStyle: 'underline',
 }))
 
-import NetworkDetails from '@/app/components/network_details'
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 describe('NetworkDetails', () => {
     beforeEach(() => {
-        mockFetchLatency.mockReset()
-        mockFetchStatusCodes.mockReset()
-        mockFetchTimeline.mockReset()
+        mockRouterReplace.mockReset()
+        mockUseNetworkEndpointLatencyQuery.mockReset()
+        mockUseNetworkEndpointStatusCodesQuery.mockReset()
+        mockUseNetworkEndpointTimelineQuery.mockReset()
+        mockUseNetworkEndpointLatencyQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        mockUseNetworkEndpointStatusCodesQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        mockUseNetworkEndpointTimelineQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     describe('Rendering', () => {
@@ -91,13 +113,9 @@ describe('NetworkDetails', () => {
         })
 
         it('shows domain+path after filters ready', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByText('api.example.com/v1/users')).toBeInTheDocument()
@@ -107,13 +125,10 @@ describe('NetworkDetails', () => {
 
     describe('Latency section', () => {
         it('shows error message on latency API failure', async () => {
-            mockFetchLatency.mockResolvedValue({ status: 2 })
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkEndpointLatencyQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByText(/Error fetching latency/)).toBeInTheDocument()
@@ -121,13 +136,10 @@ describe('NetworkDetails', () => {
         })
 
         it('shows no data message when latency has no data', async () => {
-            mockFetchLatency.mockResolvedValue({ status: 3 })
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkEndpointLatencyQuery.mockReturnValue({ data: null, status: 'success', error: null })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getAllByText(/No data available/).length).toBeGreaterThan(0)
@@ -137,13 +149,10 @@ describe('NetworkDetails', () => {
 
     describe('Status distribution section', () => {
         it('shows error message on status codes API failure', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockResolvedValue({ status: 2 })
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkEndpointStatusCodesQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByText(/Error fetching status distribution/)).toBeInTheDocument()
@@ -153,13 +162,10 @@ describe('NetworkDetails', () => {
 
     describe('Timeline section', () => {
         it('shows error message on timeline API failure', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockResolvedValue({ status: 2 })
-
+            mockUseNetworkEndpointTimelineQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByText(/Error fetching timeline/)).toBeInTheDocument()
@@ -167,13 +173,10 @@ describe('NetworkDetails', () => {
         })
 
         it('hides timeline section when NoData', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockResolvedValue({ status: 3 })
-
+            mockUseNetworkEndpointTimelineQuery.mockReturnValue({ data: null, status: 'success', error: null })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 // Timeline section title should not appear when NoData
@@ -185,13 +188,14 @@ describe('NetworkDetails', () => {
 
     describe('Success rendering', () => {
         it('renders latency plot on success', async () => {
-            mockFetchLatency.mockResolvedValue({ status: 1, data: [{ datetime: '2024-01-01', p50: 100, p90: 200, p95: 300, p99: 400, count: 10 }] })
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkEndpointLatencyQuery.mockReturnValue({
+                data: [{ datetime: '2024-01-01', p50: 100, p90: 200, p95: 300, p99: 400, count: 10 }],
+                status: 'success',
+                error: null as Error | null,
+            })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByTestId('latency-plot')).toBeInTheDocument()
@@ -199,13 +203,14 @@ describe('NetworkDetails', () => {
         })
 
         it('renders status codes plot on success', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockResolvedValue({ status: 1, data: { status_codes: [200, 404], data_points: [{ datetime: '2024-01-01', total_count: 100 }] } })
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkEndpointStatusCodesQuery.mockReturnValue({
+                data: { status_codes: [200, 404], data_points: [{ datetime: '2024-01-01', total_count: 100 }] },
+                status: 'success',
+                error: null as Error | null,
+            })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByTestId('status-codes-plot')).toBeInTheDocument()
@@ -213,40 +218,18 @@ describe('NetworkDetails', () => {
         })
 
         it('renders timeline plot on success', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockResolvedValue({ status: 1, data: { interval: 5, points: [{ elapsed: 1, domain: 'a', path_pattern: '/b', count: 1 }] } })
-
+            mockUseNetworkEndpointTimelineQuery.mockReturnValue({
+                data: { interval: 5, points: [{ elapsed: 1, domain: 'a', path_pattern: '/b', count: 1 }] },
+                status: 'success',
+                error: null as Error | null,
+            })
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
             await waitFor(() => {
                 expect(screen.getByTestId('timeline-plot')).toBeInTheDocument()
             })
-        })
-    })
-
-    describe('API calls', () => {
-        it('does not fetch before filters are ready', () => {
-            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
-            expect(mockFetchLatency).not.toHaveBeenCalled()
-            expect(mockFetchStatusCodes).not.toHaveBeenCalled()
-            expect(mockFetchTimeline).not.toHaveBeenCalled()
-        })
-
-        it('fetches all 3 APIs when filters become ready', async () => {
-            mockFetchLatency.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusCodes.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
-            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
-            await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
-            })
-            expect(mockFetchLatency).toHaveBeenCalled()
-            expect(mockFetchStatusCodes).toHaveBeenCalled()
-            expect(mockFetchTimeline).toHaveBeenCalled()
         })
     })
 })

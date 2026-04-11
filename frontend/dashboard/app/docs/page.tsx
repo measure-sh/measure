@@ -1,11 +1,11 @@
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
-import { getDocIndex, extractTocEntries } from "@/app/docs/docs";
-import { createMarkdownComponents } from "./components/md_components";
-import DocsToc from "./components/docs_toc";
-import DocsNavLinks from "./components/docs_nav_links";
+import { extractTocEntries, getDocIndex } from "@/app/docs/docs";
 import { notFound } from "next/navigation";
+import Markdown from "react-markdown";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+import DocsNavLinks from "./components/docs_nav_links";
+import DocsToc from "./components/docs_toc";
+import { createMarkdownComponents } from "./components/md_components";
 
 export default function DocsIndexPage() {
   const doc = getDocIndex();

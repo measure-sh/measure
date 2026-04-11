@@ -1,8 +1,8 @@
+import DocsNavLinks from '@/app/docs/components/docs_nav_links'
 import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import '@testing-library/jest-dom/jest-globals'
 import { render, screen } from '@testing-library/react'
-import DocsNavLinks from '@/app/docs/components/docs_nav_links'
 
 jest.mock('next/link', () => ({
   __esModule: true,

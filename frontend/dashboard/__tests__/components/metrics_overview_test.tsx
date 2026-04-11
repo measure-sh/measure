@@ -1,15 +1,10 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import MetricsOverview from '@/app/components/metrics_overview'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
-
-const mockFetchMetrics = jest.fn()
-const mockFetchThresholdPrefs = jest.fn()
 
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
-    MetricsApiStatus: { Loading: 0, Success: 1, Error: 2 },
-    FetchAppThresholdPrefsApiStatus: { Success: 0, Error: 1, Cancelled: 2 },
     emptyMetrics: {
         adoption: { all_versions: 0, selected_version: 0, adoption: 0, nan: true },
         crash_free_sessions: { crash_free_sessions: 0, delta: 0, nan: true },
@@ -22,8 +17,6 @@ jest.mock('@/app/api/api_calls', () => ({
         sizes: null,
     },
     defaultAppThresholdPrefs: { error_good_threshold: 99, error_caution_threshold: 95 },
-    fetchMetricsFromServer: (...args: any[]) => mockFetchMetrics(...args),
-    fetchAppThresholdPrefsFromServer: (...args: any[]) => mockFetchThresholdPrefs(...args),
 }))
 
 jest.mock('@/app/components/filters', () => ({
@@ -39,7 +32,33 @@ jest.mock('@/app/components/metrics_card', () => ({
     ),
 }))
 
-import MetricsOverview from '@/app/components/metrics_overview'
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '', versions: { selected: [], all: false } },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseMetricsQuery = jest.fn(() => ({
+    data: undefined as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseAppThresholdPrefsQuery = jest.fn(() => ({
+    data: undefined as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useMetricsQuery: () => mockUseMetricsQuery(),
+    useAppThresholdPrefsQuery: () => mockUseAppThresholdPrefsQuery(),
+}))
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 function readyFilters(overrides: Record<string, any> = {}) {
     return {
@@ -64,49 +83,77 @@ function mockMetricsData() {
     }
 }
 
+const emptyMetrics = {
+    adoption: { all_versions: 0, selected_version: 0, adoption: 0, nan: true },
+    crash_free_sessions: { crash_free_sessions: 0, delta: 0, nan: true },
+    perceived_crash_free_sessions: { perceived_crash_free_sessions: 0, delta: 0, nan: true },
+    anr_free_sessions: null,
+    perceived_anr_free_sessions: null,
+    cold_launch: { p95: 0, delta: 0, nan: true, delta_nan: true },
+    warm_launch: { p95: 0, delta: 0, nan: true, delta_nan: true },
+    hot_launch: { p95: 0, delta: 0, nan: true, delta_nan: true },
+    sizes: null,
+}
+
 describe('MetricsOverview', () => {
     describe('API integration', () => {
         beforeEach(() => {
-            mockFetchMetrics.mockReset()
-            mockFetchThresholdPrefs.mockReset()
+            useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '', versions: { selected: [], all: false } } })
+            mockUseMetricsQuery.mockReset()
+            mockUseAppThresholdPrefsQuery.mockReset()
+            mockUseMetricsQuery.mockReturnValue({ data: undefined, status: 'pending' as string, error: null })
+            mockUseAppThresholdPrefsQuery.mockReturnValue({ data: undefined, status: 'pending' as string, error: null })
         })
 
-        it('does not fetch metrics when filters are not ready', async () => {
-            mockFetchMetrics.mockResolvedValue({ status: 1, data: mockMetricsData() })
+        it('renders metrics cards with pending status when filters are not ready', async () => {
+            useFiltersStore.setState({ filters: { ready: false, versions: { selected: [], all: false } } })
             await act(async () => {
-                render(<MetricsOverview filters={{ ready: false } as any} />)
+                render(<MetricsOverview />)
             })
-            expect(mockFetchMetrics).not.toHaveBeenCalled()
+            // The component renders with emptyMetrics defaults when data is undefined
+            expect(screen.getByTestId('metrics-card-app_adoption')).toBeInTheDocument()
         })
 
-        it('fetches metrics when filters are ready', async () => {
-            mockFetchMetrics.mockResolvedValue({ status: 1, data: mockMetricsData() })
-            mockFetchThresholdPrefs.mockResolvedValue({ status: 0, data: { error_good_threshold: 99, error_caution_threshold: 95 } })
-            await act(async () => {
-                render(<MetricsOverview filters={readyFilters() as any} />)
+        it('renders metrics cards with data when filters are ready and query succeeds', async () => {
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseMetricsQuery.mockReturnValue({
+                data: mockMetricsData(),
+                status: 'success',
+                error: null as Error | null,
             })
-            expect(mockFetchMetrics).toHaveBeenCalled()
-        })
-
-        it('fetches threshold prefs with app id', async () => {
-            mockFetchMetrics.mockResolvedValue({ status: 1, data: mockMetricsData() })
-            mockFetchThresholdPrefs.mockResolvedValue({ status: 0, data: { error_good_threshold: 99, error_caution_threshold: 95 } })
-            await act(async () => {
-                render(<MetricsOverview filters={readyFilters() as any} />)
+            mockUseAppThresholdPrefsQuery.mockReturnValue({
+                data: { error_good_threshold: 99, error_caution_threshold: 95 },
+                status: 'success',
+                error: null as Error | null,
             })
-            expect(mockFetchThresholdPrefs).toHaveBeenCalledWith('app-1')
+            await act(async () => {
+                render(<MetricsOverview />)
+            })
+            expect(screen.getByTestId('metrics-card-app_adoption')).toBeInTheDocument()
+            expect(screen.getByTestId('metrics-card-crash_free_sessions')).toBeInTheDocument()
         })
     })
 
     describe('Success state', () => {
         beforeEach(() => {
-            mockFetchMetrics.mockResolvedValue({ status: 1, data: mockMetricsData() })
-            mockFetchThresholdPrefs.mockResolvedValue({ status: 0, data: { error_good_threshold: 99, error_caution_threshold: 95 } })
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseMetricsQuery.mockReset()
+            mockUseAppThresholdPrefsQuery.mockReset()
+            mockUseMetricsQuery.mockReturnValue({
+                data: mockMetricsData(),
+                status: 'success',
+                error: null as Error | null,
+            })
+            mockUseAppThresholdPrefsQuery.mockReturnValue({
+                data: { error_good_threshold: 99, error_caution_threshold: 95 },
+                status: 'success',
+                error: null as Error | null,
+            })
         })
 
         it('renders all metrics cards', async () => {
             await act(async () => {
-                render(<MetricsOverview filters={readyFilters() as any} />)
+                render(<MetricsOverview />)
             })
             await waitFor(() => {
                 expect(screen.getByTestId('metrics-card-app_adoption')).toBeInTheDocument()
@@ -123,23 +170,17 @@ describe('MetricsOverview', () => {
     })
 
     describe('Demo mode', () => {
-        it('does not call fetchMetricsFromServer in demo mode', async () => {
-            await act(async () => {
-                render(<MetricsOverview filters={{ ready: false, versions: { selected: [], all: false } } as any} demo={true} />)
-            })
-            expect(mockFetchMetrics).not.toHaveBeenCalled()
-        })
-
-        it('does not call fetchAppThresholdPrefsFromServer in demo mode', async () => {
-            await act(async () => {
-                render(<MetricsOverview filters={{ ready: false, versions: { selected: [], all: false } } as any} demo={true} />)
-            })
-            expect(mockFetchThresholdPrefs).not.toHaveBeenCalled()
+        beforeEach(() => {
+            useFiltersStore.setState({ filters: { ready: false, versions: { selected: [], all: false } } })
+            mockUseMetricsQuery.mockReset()
+            mockUseAppThresholdPrefsQuery.mockReset()
+            mockUseMetricsQuery.mockReturnValue({ data: undefined, status: 'pending' as string, error: null })
+            mockUseAppThresholdPrefsQuery.mockReturnValue({ data: undefined, status: 'pending' as string, error: null })
         })
 
         it('renders metrics cards in demo mode', async () => {
             await act(async () => {
-                render(<MetricsOverview filters={{ ready: false, versions: { selected: [], all: false } } as any} demo={true} />)
+                render(<MetricsOverview demo={true} />)
             })
             expect(screen.getByTestId('metrics-card-app_adoption')).toBeInTheDocument()
             expect(screen.getByTestId('metrics-card-crash_free_sessions')).toBeInTheDocument()
@@ -147,14 +188,24 @@ describe('MetricsOverview', () => {
     })
 
     describe('Conditional rendering', () => {
+        beforeEach(() => {
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseMetricsQuery.mockReset()
+            mockUseAppThresholdPrefsQuery.mockReset()
+            mockUseAppThresholdPrefsQuery.mockReturnValue({
+                data: { error_good_threshold: 99, error_caution_threshold: 95 },
+                status: 'success',
+                error: null as Error | null,
+            })
+        })
+
         it('does not render ANR card when anr_free_sessions is null', async () => {
             const data = mockMetricsData()
             data.anr_free_sessions = null as any
             data.perceived_anr_free_sessions = null as any
-            mockFetchMetrics.mockResolvedValue({ status: 1, data })
-            mockFetchThresholdPrefs.mockResolvedValue({ status: 0, data: { error_good_threshold: 99, error_caution_threshold: 95 } })
+            mockUseMetricsQuery.mockReturnValue({ data, status: 'success', error: null })
             await act(async () => {
-                render(<MetricsOverview filters={readyFilters() as any} />)
+                render(<MetricsOverview />)
             })
             await waitFor(() => {
                 expect(screen.queryByTestId('metrics-card-anr_free_sessions')).not.toBeInTheDocument()
@@ -165,10 +216,9 @@ describe('MetricsOverview', () => {
         it('does not render app size card when sizes is null', async () => {
             const data = mockMetricsData()
             data.sizes = null as any
-            mockFetchMetrics.mockResolvedValue({ status: 1, data })
-            mockFetchThresholdPrefs.mockResolvedValue({ status: 0, data: { error_good_threshold: 99, error_caution_threshold: 95 } })
+            mockUseMetricsQuery.mockReturnValue({ data, status: 'success', error: null })
             await act(async () => {
-                render(<MetricsOverview filters={readyFilters() as any} />)
+                render(<MetricsOverview />)
             })
             await waitFor(() => {
                 expect(screen.queryByTestId('metrics-card-app_size')).not.toBeInTheDocument()

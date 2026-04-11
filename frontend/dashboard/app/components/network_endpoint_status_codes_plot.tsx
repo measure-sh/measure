@@ -9,7 +9,7 @@ import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig, PlotTimeGroup } from
 
 interface Props {
   statusCodes: number[]
-  data: { datetime: string; total_count: number; [key: string]: any }[]
+  data: { datetime: string; total_count: number;[key: string]: any }[]
   plotTimeGroup: PlotTimeGroup
 }
 

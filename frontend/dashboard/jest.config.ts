@@ -171,10 +171,15 @@ const config: Config = {
   //   "**/?(*.)+(spec|test).[tj]s?(x)"
   // ],
 
-  // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-  // testPathIgnorePatterns: [
-  //   "/node_modules/"
-  // ],
+  // Integration tests have their own config (jest.integration.config.ts)
+  // because MSW's ESM deps need different transformIgnorePatterns.
+  // The __tests__/msw/ directory contains MSW helpers only used by
+  // integration tests and can't resolve under the main config.
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "__tests__/integration/",
+    "__tests__/msw/",
+  ],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
   // testRegex: [],

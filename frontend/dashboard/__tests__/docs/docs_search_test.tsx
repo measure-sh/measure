@@ -1,9 +1,8 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import DocsSearch, { getMatchSnippet, highlightTerms } from '@/app/docs/components/docs_search'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import '@testing-library/jest-dom/jest-globals'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
-import { getMatchSnippet, highlightTerms } from '@/app/docs/components/docs_search'
-import DocsSearch from '@/app/docs/components/docs_search'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // cmdk uses ResizeObserver internally
 global.ResizeObserver = class {
@@ -215,7 +214,7 @@ describe('DocsSearch component', () => {
   it('renders search input when open', async () => {
     mockFetchWith(mockEntries)
     render(<DocsSearch open={true} onOpenChange={jest.fn()} />)
-    await act(async () => {})
+    await act(async () => { })
 
     expect(screen.getByPlaceholderText('Search documentation...')).toBeInTheDocument()
   })
@@ -232,7 +231,7 @@ describe('DocsSearch component', () => {
   it('fetches search index on first open', async () => {
     mockFetchWith(mockEntries)
     render(<DocsSearch open={true} onOpenChange={jest.fn()} />)
-    await act(async () => {})
+    await act(async () => { })
 
     expect(global.fetch).toHaveBeenCalledWith('/docs/search-index.json')
   })
@@ -415,7 +414,7 @@ describe('DocsSearch component', () => {
     mockFetchWith(mockEntries)
     const onOpenChange = jest.fn()
     const { container } = render(<DocsSearch open={true} onOpenChange={onOpenChange} />)
-    await act(async () => {})
+    await act(async () => { })
 
     const backdrop = container.querySelector('.fixed.inset-0')!
     fireEvent.click(backdrop)
@@ -427,7 +426,7 @@ describe('DocsSearch component', () => {
     mockFetchWith(mockEntries)
     const onOpenChange = jest.fn()
     render(<DocsSearch open={true} onOpenChange={onOpenChange} />)
-    await act(async () => {})
+    await act(async () => { })
 
     const input = screen.getByPlaceholderText('Search documentation...')
     fireEvent.click(input)
@@ -460,7 +459,7 @@ describe('DocsSearch component', () => {
     mockFetchWith([])
     const onOpenChange = jest.fn()
     render(<DocsSearch open={true} onOpenChange={onOpenChange} />)
-    await act(async () => {})
+    await act(async () => { })
 
     fireEvent.keyDown(document, { key: 'Escape' })
 
@@ -470,7 +469,7 @@ describe('DocsSearch component', () => {
   it('shows esc keyboard hint', async () => {
     mockFetchWith([])
     render(<DocsSearch open={true} onOpenChange={jest.fn()} />)
-    await act(async () => {})
+    await act(async () => { })
 
     expect(screen.getByText('esc')).toBeInTheDocument()
   })

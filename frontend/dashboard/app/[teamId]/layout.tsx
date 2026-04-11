@@ -16,15 +16,16 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/app/components/sidebar"
+import { useTeamsQuery } from "@/app/query/hooks"
 import { usePathname, useRouter } from "next/navigation"
-import React, { useEffect, useState } from "react"
-import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
-import { measureAuth } from "../auth/measure_auth"
+import React, { useEffect, useMemo, useState } from "react"
+import { Team } from "../api/api_calls"
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
 import { ThemeToggle } from "../components/theme_toggle"
-import UserAvatar from "../components/user_avatar"
-import { isCloud } from "../utils/env_utils"
 import UsageThresholdBanner from "../components/usage_threshold_banner"
+import UserAvatar from "../components/user_avatar"
+import { useMeasureStoreRegistry } from "../stores/provider"
+import { isCloud } from "../utils/env_utils"
 
 const initNavData = {
   navMain: [
@@ -140,40 +141,23 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
-  const [teams, setTeams] = useState<Team[] | null>(null)
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
+  const registry = useMeasureStoreRegistry()
+  const { data: teams, status: teamsStatus } = useTeamsQuery()
   const [navData, setNavData] = useState(initNavData)
 
   const pathName = usePathname()
   const router = useRouter()
 
-  const getTeams = async () => {
-    setTeamsApiStatus(TeamsApiStatus.Loading)
-
-    const result = await fetchTeamsFromServer()
-
-    switch (result.status) {
-      case TeamsApiStatus.Error:
-        setTeamsApiStatus(TeamsApiStatus.Error)
-        break
-      case TeamsApiStatus.Success:
-        setTeamsApiStatus(TeamsApiStatus.Success)
-        setTeams(result.data!)
-        const teamInPath = result.data!.find(
-          (e: { id: string; name: string }) => pathName.includes(e.id),
-        )
-        setSelectedTeam(teamInPath ? teamInPath : result.data![0])
-        break
+  const selectedTeam = useMemo(() => {
+    if (!teams) {
+      return null
     }
-  }
+    const teamId = pathName.split("/")[1]
+    return teams.find((e) => e.id === teamId) ?? teams[0] ?? null
+  }, [teams, pathName])
 
   useEffect(() => {
-    measureAuth.init(router)
-  }, [])
-
-  useEffect(() => {
-    getTeams()
+    registry.sessionStore.getState().init(router)
   }, [])
 
   useEffect(() => {
@@ -187,20 +171,18 @@ export default function DashboardLayout({
   }, [pathName])
 
   const logoutUser = async () => {
-    await measureAuth.signout()
+    await registry.sessionStore.getState().signOut()
   }
 
   const onTeamChanged = (item: Team) => {
-    const selectedTeam = teams!.find((e) => e.id === item.id)!
-    const newPath = `/${selectedTeam.id}/overview`
+    const newPath = `/${item.id}/overview`
     router.push(newPath)
   }
 
-  const teamsApiStatusToTeamsSwitcherStatus = {
-    [TeamsApiStatus.Loading]: TeamsSwitcherStatus.Loading,
-    [TeamsApiStatus.Success]: TeamsSwitcherStatus.Success,
-    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error,
-    [TeamsApiStatus.Cancelled]: TeamsSwitcherStatus.Loading,
+  const teamsStatusToTeamsSwitcherStatus: Record<string, TeamsSwitcherStatus> = {
+    pending: TeamsSwitcherStatus.Loading,
+    success: TeamsSwitcherStatus.Success,
+    error: TeamsSwitcherStatus.Error,
   }
 
   const handleNavClick = (url: string) => {
@@ -220,12 +202,12 @@ export default function DashboardLayout({
           <SidebarMenu>
             <SidebarMenuItem>
               <TeamSwitcher
-                items={teams}
+                items={teams ?? null}
                 initialItemIndex={teams?.findIndex(
-                  (e) => e.id === selectedTeam!.id,
+                  (e) => e.id === selectedTeam?.id,
                 )}
                 teamsSwitcherStatus={
-                  teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]
+                  teamsStatusToTeamsSwitcherStatus[teamsStatus]
                 }
                 onChangeSelectedItem={(item) => onTeamChanged(item)}
               />
@@ -235,15 +217,15 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu className="gap-2">
-              {teamsApiStatus === TeamsApiStatus.Loading && (
+              {teamsStatus === 'pending' && (
                 <span className="ml-2 text-xs font-body">Loading...</span>
               )}
-              {teamsApiStatus === TeamsApiStatus.Error && (
+              {teamsStatus === 'error' && (
                 <span className="ml-2 text-xs font-body">
                   Error fetching teams. Please refresh page to try again.
                 </span>
               )}
-              {teamsApiStatus === TeamsApiStatus.Success &&
+              {teamsStatus === 'success' &&
                 navData.navMain.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <p className="text-lg font-display">{item.title}</p>

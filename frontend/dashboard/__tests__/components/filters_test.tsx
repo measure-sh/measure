@@ -57,9 +57,22 @@ jest.mock('@/app/api/api_calls', () => ({
         }
     },
     UserDefAttr: {},
+    UdAttrMatcher: {},
+    defaultFilters: {
+        ready: false, app: null, rootSpanName: '', startDate: '', endDate: '',
+        versions: { selected: [], all: false }, sessionTypes: { selected: [], all: false },
+        spanStatuses: { selected: [], all: false }, bugReportStatuses: { selected: [], all: false },
+        httpMethods: { selected: [], all: false }, osVersions: { selected: [], all: false },
+        countries: { selected: [], all: false }, networkProviders: { selected: [], all: false },
+        networkTypes: { selected: [], all: false }, networkGenerations: { selected: [], all: false },
+        locales: { selected: [], all: false }, deviceManufacturers: { selected: [], all: false },
+        deviceNames: { selected: [], all: false }, udAttrMatchers: [], freeText: '', serialisedFilters: null,
+    },
     fetchAppsFromServer: (...args: any[]) => mockFetchApps(...args),
     fetchFiltersFromServer: (...args: any[]) => mockFetchFilters(...args),
     fetchRootSpanNamesFromServer: (...args: any[]) => mockFetchRootSpanNames(...args),
+    saveListFiltersToServer: jest.fn(() => Promise.resolve(null)),
+    buildShortFiltersPostBody: jest.fn(() => null),
 }))
 
 // --- Sub-component mocks ---
@@ -127,19 +140,34 @@ jest.mock('@/app/components/input', () => ({
     Input: (props: any) => <input {...props} data-testid={`input-${props.type}`} />,
 }))
 
+jest.mock('@/app/stores/provider', () => {
+    const { useStore } = jest.requireActual('zustand')
+    const { createFiltersStore } = jest.requireActual('@/app/stores/filters_store')
+    const vanillaStore = createFiltersStore()
+    // Create a hook that delegates to the vanilla store
+    function useFiltersStore(selector?: any) {
+        return useStore(vanillaStore, selector ?? ((s: any) => s))
+    }
+    // Expose vanilla store methods on the hook for test-side usage
+    useFiltersStore.getState = () => vanillaStore.getState()
+    useFiltersStore.setState = (partial: any) => vanillaStore.setState(partial)
+    useFiltersStore.subscribe = (listener: any) => vanillaStore.subscribe(listener)
+    return { __esModule: true, useFiltersStore }
+})
+
 // --- Imports (must be after jest.mock) ---
 
-import Filters, {
-    AppVersionsInitialSelectionType,
-    defaultFilters,
-    Filters as FiltersType,
-} from '@/app/components/filters'
 import {
     AppsApiStatus,
-    FilterSource,
     FiltersApiStatus,
+    FilterSource,
     RootSpanNamesApiStatus,
 } from '@/app/api/api_calls'
+import Filters, {
+    AppVersionsInitialSelectionType,
+    Filters as FiltersType
+} from '@/app/components/filters'
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 // --- Mock factories ---
 
@@ -240,7 +268,6 @@ function defaultProps(overrides: Record<string, any> = {}) {
         showHttpMethods: false,
         showUdAttrs: false,
         showFreeText: false,
-        onFiltersChanged: jest.fn(),
         ...overrides,
     }
 }
@@ -254,9 +281,8 @@ async function renderFilters(props: Record<string, any> = {}) {
     return { ...result!, props: mergedProps }
 }
 
-function lastFiltersCall(onFiltersChanged: jest.Mock): FiltersType {
-    const calls = onFiltersChanged.mock.calls
-    return calls[calls.length - 1][0]
+function getFilters(): FiltersType {
+    return useFiltersStore.getState().filters
 }
 
 // --- Session storage mock ---
@@ -264,6 +290,7 @@ function lastFiltersCall(onFiltersChanged: jest.Mock): FiltersType {
 let sessionStorageData: Record<string, string> = {}
 
 beforeEach(() => {
+    useFiltersStore.getState().reset(true)
     mockSearchParams = new URLSearchParams()
     mockPathname = '/team-1/overview'
     sessionStorageData = {}
@@ -421,17 +448,14 @@ describe('Filters', () => {
 
         it('clears all filters to defaults when filters API returns error', async () => {
             mockFetchFilters.mockReturnValue(mockFiltersError())
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 showNoData: false,
                 showNotOnboarded: false,
                 showCountries: true,
                 showFreeText: true,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.selected).toEqual([])
                 expect(filters.countries.selected).toEqual([])
                 expect(filters.osVersions.selected).toEqual([])
@@ -442,11 +466,9 @@ describe('Filters', () => {
 
         it('clears all filters to defaults when filters API returns NoData', async () => {
             mockFetchFilters.mockReturnValue(mockFiltersNoData())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showNoData: false, showNotOnboarded: false, onFiltersChanged })
+            await renderFilters({ showNoData: false, showNotOnboarded: false })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.selected).toEqual([])
                 expect(filters.countries.selected).toEqual([])
                 expect(filters.spanStatuses.selected).toEqual([])
@@ -511,67 +533,48 @@ describe('Filters', () => {
         it('selects app from URL filters when appId is in URL', async () => {
             mockSearchParams = new URLSearchParams('a=app-2')
             mockFetchApps.mockReturnValue(mockAppsSuccess(apps))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-2')
             })
         })
 
         it('selects app from appId prop when no URL param', async () => {
             mockFetchApps.mockReturnValue(mockAppsSuccess(apps))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ appId: 'app-2', onFiltersChanged })
+            await renderFilters({ appId: 'app-2' })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-2')
             })
         })
 
-        it('selects app from session storage when no URL or prop', async () => {
-            sessionStorageData['sessionPersistedFilters'] = JSON.stringify({
-                app: app2,
-                dateRange: 'Last 6 Hours',
-                startDate: '2024-01-01T00:00:00.000Z',
-                endDate: '2024-01-01T06:00:00.000Z',
-            })
+        it('preserves the previously selected app from the store across re-mounts', async () => {
+            // Seed the store as if app-2 was selected on a previous page.
+            useFiltersStore.setState({ selectedApp: app2 } as any)
             mockFetchApps.mockReturnValue(mockAppsSuccess(apps))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-2')
             })
         })
 
-        it('falls back to first app when session storage app no longer exists', async () => {
-            sessionStorageData['sessionPersistedFilters'] = JSON.stringify({
-                app: { id: 'deleted-app' },
-                dateRange: 'Last 6 Hours',
-                startDate: '2024-01-01T00:00:00.000Z',
-                endDate: '2024-01-01T06:00:00.000Z',
-            })
+        it('falls back to first app when previously selected app no longer exists', async () => {
+            useFiltersStore.setState({ selectedApp: { id: 'deleted-app' } as any })
             mockFetchApps.mockReturnValue(mockAppsSuccess(apps))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-1')
             })
         })
 
         it('falls back to first app when no other source available', async () => {
             mockFetchApps.mockReturnValue(mockAppsSuccess(apps))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-1')
             })
         })
@@ -587,33 +590,27 @@ describe('Filters', () => {
         describe('when showNoData=true and showNotOnboarded=true', () => {
             it('sets ready=true when filtersApiStatus is Success', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: true, showNotOnboarded: true, onFiltersChanged })
+                await renderFilters({ showNoData: true, showNotOnboarded: true })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
 
             it('sets ready=false when filtersApiStatus is NoData', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNoData())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: true, showNotOnboarded: true, onFiltersChanged })
+                await renderFilters({ showNoData: true, showNotOnboarded: true })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(false)
                 })
             })
 
             it('sets ready=false when filtersApiStatus is NotOnboarded', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNotOnboarded())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: true, showNotOnboarded: true, onFiltersChanged })
+                await renderFilters({ showNoData: true, showNotOnboarded: true })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(false)
                 })
             })
@@ -622,11 +619,9 @@ describe('Filters', () => {
         describe('when only showNoData is true', () => {
             it('sets ready=true when filtersApiStatus is NotOnboarded', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNotOnboarded())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: true, showNotOnboarded: false, onFiltersChanged })
+                await renderFilters({ showNoData: true, showNotOnboarded: false })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
@@ -635,11 +630,9 @@ describe('Filters', () => {
         describe('when only showNotOnboarded is true', () => {
             it('sets ready=true when filtersApiStatus is NoData', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNoData())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: false, showNotOnboarded: true, onFiltersChanged })
+                await renderFilters({ showNoData: false, showNotOnboarded: true })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
@@ -648,22 +641,18 @@ describe('Filters', () => {
         describe('when neither showNoData nor showNotOnboarded', () => {
             it('sets ready=true when filtersApiStatus is NoData', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNoData())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: false, showNotOnboarded: false, onFiltersChanged })
+                await renderFilters({ showNoData: false, showNotOnboarded: false })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
 
             it('sets ready=true when filtersApiStatus is NotOnboarded', async () => {
                 mockFetchFilters.mockReturnValue(mockFiltersNotOnboarded())
-                const onFiltersChanged = jest.fn()
-                await renderFilters({ showNoData: false, showNotOnboarded: false, onFiltersChanged })
+                await renderFilters({ showNoData: false, showNotOnboarded: false })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
@@ -673,16 +662,13 @@ describe('Filters', () => {
             it('sets ready=false when filterSource is Spans and rootSpanNames is not Success', async () => {
                 mockFetchRootSpanNames.mockReturnValue(mockRootSpanNamesNoData())
                 mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-                const onFiltersChanged = jest.fn()
                 await renderFilters({
                     filterSource: FilterSource.Spans,
                     showNoData: true,
                     showNotOnboarded: true,
-                    onFiltersChanged,
                 })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(false)
                 })
             })
@@ -690,16 +676,13 @@ describe('Filters', () => {
             it('sets ready=true when filterSource is Spans and both filters and rootSpanNames succeed', async () => {
                 mockFetchRootSpanNames.mockReturnValue(mockRootSpanNamesSuccess())
                 mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-                const onFiltersChanged = jest.fn()
                 await renderFilters({
                     filterSource: FilterSource.Spans,
                     showNoData: true,
                     showNotOnboarded: true,
-                    onFiltersChanged,
                 })
                 await waitFor(() => {
-                    expect(onFiltersChanged).toHaveBeenCalled()
-                    const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                    const filters = getFilters()
                     expect(filters.ready).toBe(true)
                 })
             })
@@ -996,14 +979,11 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }, { name: '3.0', code: '3' }],
             }))
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.selected).toHaveLength(1)
                 expect(filters.versions.selected[0].name).toBe('1.0')
                 expect(filters.versions.all).toBe(false)
@@ -1014,14 +994,11 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }],
             }))
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 appVersionsInitialSelectionType: AppVersionsInitialSelectionType.All,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.selected).toHaveLength(2)
                 expect(filters.versions.all).toBe(true)
             })
@@ -1037,11 +1014,9 @@ describe('Filters', () => {
         })
 
         it('selects all session types except Background by default', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showSessionTypes: true, onFiltersChanged })
+            await renderFilters({ showSessionTypes: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.sessionTypes.selected).toContain('Crash Sessions')
                 expect(filters.sessionTypes.selected).toContain('ANR Sessions')
                 expect(filters.sessionTypes.selected).toContain('Bug Report Sessions')
@@ -1052,22 +1027,18 @@ describe('Filters', () => {
         })
 
         it('selects only Open bug report status by default', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showBugReportStatus: true, onFiltersChanged })
+            await renderFilters({ showBugReportStatus: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.bugReportStatuses.selected).toEqual(['Open'])
                 expect(filters.bugReportStatuses.all).toBe(false)
             })
         })
 
         it('selects all HTTP methods by default', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showHttpMethods: true, onFiltersChanged })
+            await renderFilters({ showHttpMethods: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.httpMethods.selected).toEqual(['get', 'post', 'put', 'patch', 'delete'])
                 expect(filters.httpMethods.all).toBe(true)
             })
@@ -1075,63 +1046,53 @@ describe('Filters', () => {
 
         it('selects all span statuses when filterSource is Spans', async () => {
             mockFetchRootSpanNames.mockReturnValue(mockRootSpanNamesSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ filterSource: FilterSource.Spans, onFiltersChanged })
+            await renderFilters({ filterSource: FilterSource.Spans })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.spanStatuses.selected).toEqual(['Unset', 'Ok', 'Error'])
                 expect(filters.spanStatuses.all).toBe(true)
             })
         })
 
         it('selects no span statuses when filterSource is not Spans', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ filterSource: FilterSource.Events, onFiltersChanged })
+            await renderFilters({ filterSource: FilterSource.Events })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.spanStatuses.selected).toEqual([])
             })
         })
 
         it('selects all OS versions by default', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showOsVersions: true, onFiltersChanged })
+            await renderFilters({ showOsVersions: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.osVersions.selected).toHaveLength(1)
                 expect(filters.osVersions.all).toBe(true)
             })
         })
     })
 
-    // --- onFiltersChanged callback ---
+    // --- Filters store updates ---
 
-    describe('onFiltersChanged callback', () => {
+    describe('Filters store updates', () => {
         beforeEach(() => {
             mockFetchApps.mockReturnValue(mockAppsSuccess())
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
         })
 
-        it('calls onFiltersChanged with the selected app', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+        it('writes the selected app to the store', async () => {
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app).not.toBeNull()
                 expect(filters.app?.id).toBe('app-1')
             })
         })
 
         it('sets all=true when all items of a filter are selected', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showCountries: true, onFiltersChanged })
+            await renderFilters({ showCountries: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 // By default, all countries are selected
                 expect(filters.countries.all).toBe(true)
                 expect(filters.countries.selected).toEqual(['US', 'IN'])
@@ -1142,24 +1103,19 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }],
             }))
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.all).toBe(false)
             })
         })
 
         it('includes non-null serialisedFilters', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.serialisedFilters).not.toBeNull()
                 expect(typeof filters.serialisedFilters).toBe('string')
                 expect(filters.serialisedFilters!.length).toBeGreaterThan(0)
@@ -1176,22 +1132,18 @@ describe('Filters', () => {
         })
 
         it('uses minified key "a" for app id', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showAppSelector: true, onFiltersChanged })
+            await renderFilters({ showAppSelector: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.get('a')).toBe('app-1')
             })
         })
 
         it('uses minified key "d" for date range', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showDates: true, onFiltersChanged })
+            await renderFilters({ showDates: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.has('d')).toBe(true)
             })
@@ -1205,14 +1157,11 @@ describe('Filters', () => {
                     { name: '3.0', code: '3' },
                 ],
             }))
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 appVersionsInitialSelectionType: AppVersionsInitialSelectionType.All,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 // 3 consecutive versions (indices 0,1,2) should be compressed to "0-2"
                 expect(params.get('v')).toBe('0-2')
@@ -1229,11 +1178,9 @@ describe('Filters', () => {
                     { name: '3.0', code: '3' },
                 ],
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 // Non-consecutive indices 0,2 should stay as "0,2" (not a range)
                 expect(params.get('v')).toBe('0,2')
@@ -1241,11 +1188,9 @@ describe('Filters', () => {
         })
 
         it('omits rootSpanName and spanStatuses from serialisation when filterSource is not Spans', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ filterSource: FilterSource.Events, onFiltersChanged })
+            await renderFilters({ filterSource: FilterSource.Events })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.has('r')).toBe(false)   // rootSpanName
                 expect(params.has('ss')).toBe(false)  // spanStatuses
@@ -1253,16 +1198,13 @@ describe('Filters', () => {
         })
 
         it('omits keys for filters whose show* flag is false', async () => {
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 showCountries: false,
                 showLocales: false,
                 showFreeText: false,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.has('c')).toBe(false)  // countries
                 expect(params.has('l')).toBe(false)  // locales
@@ -1280,11 +1222,9 @@ describe('Filters', () => {
                     operator_types: { string: ['eq', 'neq'] },
                 },
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showUdAttrs: true, onFiltersChanged })
+            await renderFilters({ showUdAttrs: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 const udParam = params.get('ud')
                 expect(udParam).toBeTruthy()
@@ -1297,11 +1237,9 @@ describe('Filters', () => {
         })
 
         it('serialises session types with minified key "st"', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showSessionTypes: true, onFiltersChanged })
+            await renderFilters({ showSessionTypes: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.has('st')).toBe(true)
                 expect(params.get('st')).toContain('Crash Sessions')
@@ -1313,11 +1251,9 @@ describe('Filters', () => {
                 countries: null,
                 network_providers: null,
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showCountries: true, showNetworkProviders: true, onFiltersChanged })
+            await renderFilters({ showCountries: true, showNetworkProviders: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const params = new URLSearchParams(filters.serialisedFilters!)
                 expect(params.has('c')).toBe(false)
                 expect(params.has('np')).toBe(false)
@@ -1337,11 +1273,9 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }, { name: '3.0', code: '3' }],
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.versions.selected).toHaveLength(2)
                 expect(filters.versions.selected[0].name).toBe('1.0')
                 expect(filters.versions.selected[1].name).toBe('2.0')
@@ -1353,11 +1287,9 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }],
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 // Only indices 0 and 1 are valid
                 expect(filters.versions.selected).toHaveLength(2)
             })
@@ -1368,11 +1300,9 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 countries: ['US', 'IN', 'GB'],
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showCountries: true, onFiltersChanged })
+            await renderFilters({ showCountries: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.countries.selected).toEqual(['US'])
                 expect(filters.countries.all).toBe(false)
             })
@@ -1381,11 +1311,9 @@ describe('Filters', () => {
         it('restores freeText from URL', async () => {
             mockSearchParams = new URLSearchParams('a=app-1&ft=hello+world')
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showFreeText: true, onFiltersChanged })
+            await renderFilters({ showFreeText: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.freeText).toBe('hello world')
             })
         })
@@ -1393,11 +1321,9 @@ describe('Filters', () => {
         it('restores sessionTypes from URL, ignoring invalid values', async () => {
             mockSearchParams = new URLSearchParams('a=app-1&st=Crash Sessions,InvalidType,ANR Sessions')
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showSessionTypes: true, onFiltersChanged })
+            await renderFilters({ showSessionTypes: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.sessionTypes.selected).toEqual(['Crash Sessions', 'ANR Sessions'])
             })
         })
@@ -1406,11 +1332,9 @@ describe('Filters', () => {
             mockSearchParams = new URLSearchParams('a=app-1&ss=Ok,Error')
             mockFetchRootSpanNames.mockReturnValue(mockRootSpanNamesSuccess())
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ filterSource: FilterSource.Spans, onFiltersChanged })
+            await renderFilters({ filterSource: FilterSource.Spans })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.spanStatuses.selected).toEqual(['Ok', 'Error'])
             })
         })
@@ -1418,11 +1342,9 @@ describe('Filters', () => {
         it('restores bugReportStatuses from URL', async () => {
             mockSearchParams = new URLSearchParams('a=app-1&bs=Closed')
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showBugReportStatus: true, onFiltersChanged })
+            await renderFilters({ showBugReportStatus: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.bugReportStatuses.selected).toEqual(['Closed'])
             })
         })
@@ -1430,11 +1352,9 @@ describe('Filters', () => {
         it('restores httpMethods from URL', async () => {
             mockSearchParams = new URLSearchParams('a=app-1&hm=get,post')
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showHttpMethods: true, onFiltersChanged })
+            await renderFilters({ showHttpMethods: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.httpMethods.selected).toEqual(['get', 'post'])
             })
         })
@@ -1443,11 +1363,9 @@ describe('Filters', () => {
             mockSearchParams = new URLSearchParams('a=app-1&r=my-custom-trace')
             mockFetchRootSpanNames.mockReturnValue(mockRootSpanNamesSuccess(['my-custom-trace', 'other-trace']))
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ filterSource: FilterSource.Spans, onFiltersChanged })
+            await renderFilters({ filterSource: FilterSource.Spans })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.rootSpanName).toBe('my-custom-trace')
             })
         })
@@ -1462,11 +1380,9 @@ describe('Filters', () => {
                     operator_types: { string: ['eq', 'neq', 'contains'] },
                 },
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showUdAttrs: true, onFiltersChanged })
+            await renderFilters({ showUdAttrs: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.udAttrMatchers).toHaveLength(1)
                 expect(filters.udAttrMatchers[0].key).toBe('user_id')
                 expect(filters.udAttrMatchers[0].op).toBe('eq')
@@ -1485,11 +1401,9 @@ describe('Filters', () => {
                     operator_types: { string: ['eq', 'neq'] },
                 },
             }))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showUdAttrs: true, onFiltersChanged })
+            await renderFilters({ showUdAttrs: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 // Only the valid matcher should remain
                 expect(filters.udAttrMatchers).toHaveLength(1)
                 expect(filters.udAttrMatchers[0].op).toBe('eq')
@@ -1506,14 +1420,11 @@ describe('Filters', () => {
             mockFetchFilters.mockReturnValue(mockFiltersSuccess({
                 versions: [{ name: '1.0', code: '1' }, { name: '2.0', code: '2' }, { name: '3.0', code: '3' }],
             }))
-            const onFiltersChanged = jest.fn()
             await renderFilters({
                 appVersionsInitialSelectionType: AppVersionsInitialSelectionType.All,
-                onFiltersChanged,
             })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 // App-2 is selected from URL, and since URL appId matches, v=0 applies:
                 // only version at index 0 is selected
                 expect(filters.app?.id).toBe('app-2')
@@ -1532,11 +1443,9 @@ describe('Filters', () => {
         })
 
         it('defaults to Last6Hours when no URL or session date range', async () => {
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showDates: true, onFiltersChanged })
+            await renderFilters({ showDates: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 // Start date should be approximately 6 hours before end date
                 const start = new Date(filters.startDate).getTime()
                 const end = new Date(filters.endDate).getTime()
@@ -1546,19 +1455,16 @@ describe('Filters', () => {
             })
         })
 
-        it('uses URL date range over session storage', async () => {
+        it('uses URL date range over the existing store date range', async () => {
+            useFiltersStore.setState({
+                selectedDateRange: 'Last 24 Hours',
+                selectedStartDate: '2024-01-01T00:00:00.000Z',
+                selectedEndDate: '2024-01-02T00:00:00.000Z',
+            } as any)
             mockSearchParams = new URLSearchParams('d=Last Week')
-            sessionStorageData['sessionPersistedFilters'] = JSON.stringify({
-                app: mockApp(),
-                dateRange: 'Last 24 Hours',
-                startDate: '2024-01-01T00:00:00.000Z',
-                endDate: '2024-01-01T06:00:00.000Z',
-            })
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showDates: true, onFiltersChanged })
+            await renderFilters({ showDates: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 const start = new Date(filters.startDate).getTime()
                 const end = new Date(filters.endDate).getTime()
                 const diffDays = (end - start) / (1000 * 60 * 60 * 24)
@@ -1568,31 +1474,25 @@ describe('Filters', () => {
             })
         })
 
-        it('uses session storage date range when no URL date range', async () => {
-            sessionStorageData['sessionPersistedFilters'] = JSON.stringify({
-                app: mockApp(),
-                dateRange: 'Last 24 Hours',
-                startDate: '2024-01-01T00:00:00.000Z',
-                endDate: '2024-01-01T06:00:00.000Z',
-            })
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showDates: true, onFiltersChanged })
+        it('preserves the existing store date range when URL has none (cross-page nav)', async () => {
+            // Simulate the user having selected Last 24 Hours on a previous page;
+            // the store survives, the new page mounts without URL date params.
+            useFiltersStore.setState({
+                selectedDateRange: 'Last 24 Hours',
+                selectedStartDate: '2024-01-01T00:00:00.000Z',
+                selectedEndDate: '2024-01-02T00:00:00.000Z',
+            } as any)
+            await renderFilters({ showDates: true })
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
-                const start = new Date(filters.startDate).getTime()
-                const end = new Date(filters.endDate).getTime()
-                const diffHours = (end - start) / (1000 * 60 * 60)
-                // Last 24 Hours
-                expect(diffHours).toBeGreaterThan(23.9)
-                expect(diffHours).toBeLessThan(24.1)
+                const filters = getFilters()
+                expect(filters.startDate).toBe('2024-01-01T00:00:00.000Z')
+                expect(filters.endDate).toBe('2024-01-02T00:00:00.000Z')
             })
         })
 
         it('renders datetime-local inputs for Custom range', async () => {
             mockSearchParams = new URLSearchParams('d=Custom+Range&sd=2024-01-01T00:00:00.000Z&ed=2024-01-02T00:00:00.000Z')
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ showDates: true, onFiltersChanged })
+            await renderFilters({ showDates: true })
             await waitFor(() => {
                 const dateInputs = screen.getAllByTestId('input-datetime-local')
                 expect(dateInputs.length).toBe(2)
@@ -1600,40 +1500,30 @@ describe('Filters', () => {
         })
     })
 
-    // --- Session storage persistence ---
+    // --- Store survives across re-mounts ---
 
-    describe('Session storage persistence', () => {
+    describe('Store survives across re-mounts', () => {
         beforeEach(() => {
             mockFetchApps.mockReturnValue(mockAppsSuccess())
             mockFetchFilters.mockReturnValue(mockFiltersSuccess())
         })
 
-        it('writes to sessionStorage on filter change', async () => {
+        it('does not touch sessionStorage', async () => {
             await renderFilters()
             await waitFor(() => {
-                expect(sessionStorageData['sessionPersistedFilters']).toBeDefined()
-                const persisted = JSON.parse(sessionStorageData['sessionPersistedFilters'])
-                expect(persisted.app.id).toBe('app-1')
-                expect(persisted.dateRange).toBeDefined()
-                expect(persisted.startDate).toBeDefined()
-                expect(persisted.endDate).toBeDefined()
+                const filters = getFilters()
+                expect(filters.app?.id).toBe('app-1')
             })
+            expect(sessionStorageData['sessionPersistedFilters']).toBeUndefined()
         })
 
-        it('reads persisted filters from sessionStorage on mount', async () => {
+        it('reuses the previously selected app from the store on re-mount', async () => {
             const app2 = mockApp({ id: 'app-2', name: 'Second App' })
-            sessionStorageData['sessionPersistedFilters'] = JSON.stringify({
-                app: app2,
-                dateRange: 'Last 3 Hours',
-                startDate: '2024-06-01T00:00:00.000Z',
-                endDate: '2024-06-01T03:00:00.000Z',
-            })
             mockFetchApps.mockReturnValue(mockAppsSuccess([mockApp(), app2]))
-            const onFiltersChanged = jest.fn()
-            await renderFilters({ onFiltersChanged })
+            useFiltersStore.setState({ selectedApp: app2 } as any)
+            await renderFilters()
             await waitFor(() => {
-                expect(onFiltersChanged).toHaveBeenCalled()
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-2')
             })
         })
@@ -1670,20 +1560,19 @@ describe('Filters', () => {
             mockFetchApps.mockReturnValue(mockAppsSuccess([app1, app2]))
 
             const ref = React.createRef<{ refresh: (appId?: string) => void }>()
-            const onFiltersChanged = jest.fn()
-            const props = defaultProps({ onFiltersChanged })
+            const props = defaultProps()
             await act(async () => {
                 render(<Filters {...props as any} ref={ref} />)
             })
             await waitFor(() => {
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-1')
             })
             await act(async () => {
                 ref.current?.refresh('app-2')
             })
             await waitFor(() => {
-                const filters = lastFiltersCall(onFiltersChanged as jest.Mock)
+                const filters = getFilters()
                 expect(filters.app?.id).toBe('app-2')
             })
         })

@@ -1,22 +1,23 @@
 "use client"
 
-import { FilterSource, NetworkDomainsApiStatus, NetworkPathsApiStatus, NetworkTimelinePlotApiStatus, NetworkOverviewStatusCodesPlotApiStatus, fetchNetworkDomainsFromServer, fetchNetworkPathsFromServer, fetchNetworkTimelinePlotFromServer, fetchNetworkOverviewStatusCodesPlotFromServer } from '@/app/api/api_calls'
+import { FilterSource } from '@/app/api/api_calls'
 
-const timelineLimit = 20
-import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import BetaBadge from '@/app/components/beta_badge'
 import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import { Input } from '@/app/components/input'
 import LoadingSpinner from '@/app/components/loading_spinner'
-import NetworkTimelinePlot, { NetworkTimelineData, NetworkTimelineDataPoint } from '@/app/components/network_timeline_plot'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
+import NetworkTimelinePlot, { NetworkTimelineData, NetworkTimelineDataPoint } from '@/app/components/network_timeline_plot'
 import NetworkTrends from '@/app/components/network_trends'
-import { addRecentSearch, removeRecentSearch, getRecentSearchesForDomain } from '@/app/utils/network_recent_searches'
+import { useNetworkDomainsQuery, useNetworkPathsQuery, useNetworkStatusPlotQuery, useNetworkTimelineQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
+import { addRecentSearch, getRecentSearchesForDomain, removeRecentSearch } from '@/app/utils/network_recent_searches'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
-import { DateTime } from 'luxon'
+import { getPlotTimeGroupForRange } from '@/app/utils/time_utils'
 import { History } from 'lucide-react'
+import { DateTime } from 'luxon'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -85,242 +86,72 @@ function generateDemoTimelineData(): NetworkTimelineData {
 const demoStatusData = generateDemoStatusData()
 const demoTimelineData = generateDemoTimelineData()
 
-interface PageState {
-    filters: typeof defaultFilters
-    domainsStatus: NetworkDomainsApiStatus
-    domains: string[]
-    pathsStatus: NetworkPathsApiStatus
-    paths: string[]
-    statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus
-    statusPlotData: any[]
-    statusPlotDataKey: string | null
-    timelinePlotStatus: NetworkTimelinePlotApiStatus
-    timelinePlotData: NetworkTimelineData | null
-    timelineDataPlotKey: string | null
-}
-
-interface SearchState {
-    domain: string
-    pathPattern: string
-}
-
 export default function NetworkOverview({ params, demo = false, hideDemoTitle = false }: NetworkOverviewProps) {
     const router = useRouter()
+    const filters = useFiltersStore(state => state.filters)
 
-    const [pageState, setPageState] = useState<PageState>(() => {
-        if (demo) {
-            return {
-                filters: defaultFilters,
-                domainsStatus: NetworkDomainsApiStatus.Success,
-                domains: ["payments.demo-provider.com", "api.demo-provider.com", "cdn.demo-provider.com"],
-                pathsStatus: NetworkPathsApiStatus.Success,
-                paths: [],
-                statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.Success,
-                statusPlotData: demoStatusData,
-                statusPlotDataKey: "demo",
-                timelinePlotStatus: NetworkTimelinePlotApiStatus.Success,
-                timelinePlotData: demoTimelineData,
-                timelineDataPlotKey: "demo",
-            }
-        }
-        return {
-            filters: defaultFilters,
-            domainsStatus: NetworkDomainsApiStatus.Loading,
-            domains: [],
-            pathsStatus: NetworkPathsApiStatus.Loading,
-            paths: [],
-            statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.Loading,
-            statusPlotData: [],
-            statusPlotDataKey: null,
-            timelinePlotStatus: NetworkTimelinePlotApiStatus.Loading,
-            timelinePlotData: null,
-            timelineDataPlotKey: null,
-        }
-    })
+    const domainsQuery = useNetworkDomainsQuery()
 
-    const [searchState, setSearchState] = useState<SearchState>({
-        domain: "",
-        pathPattern: "",
-    })
+    const [searchDomain, setSearchDomain] = useState("")
+    const [searchPathPattern, setSearchPathPattern] = useState("")
+
+    const pathsQuery = useNetworkPathsQuery(searchDomain, searchPathPattern)
+    const statusPlotQuery = useNetworkStatusPlotQuery()
+    const timelineQuery = useNetworkTimelineQuery()
+
+    // In demo mode, use static data instead of store data
+    const domainsStatus = demo ? 'success' as const : domainsQuery.status === 'success' && domainsQuery.data === null ? 'nodata' as const : domainsQuery.status
+    const domains = demo ? ["payments.demo-provider.com", "api.demo-provider.com", "cdn.demo-provider.com"] : (domainsQuery.data ?? [])
+    const statusPlotStatus = demo ? 'success' as const : statusPlotQuery.status === 'success' && statusPlotQuery.data === null ? 'nodata' as const : statusPlotQuery.status
+    const statusPlotData = demo ? demoStatusData : (statusPlotQuery.data ?? [])
+    const timelinePlotStatus = demo ? 'success' as const : timelineQuery.status === 'success' && timelineQuery.data === null ? 'nodata' as const : timelineQuery.status
+    const timelinePlotData = demo ? demoTimelineData : (timelineQuery.data ?? null)
+    const paths = pathsQuery.data ?? []
 
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [recentPaths, setRecentPaths] = useState<string[]>([])
 
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prev => ({ ...prev, ...newState }))
-    }
+    const plotTimeGroup = demo ? "days" : getPlotTimeGroupForRange(filters.startDate, filters.endDate)
+    const shouldRenderStatusPlot = demo
+        ? true
+        : statusPlotStatus === 'success' && statusPlotData.length > 0
+    const shouldRenderTimeline = demo
+        ? true
+        : timelinePlotStatus === 'success' && timelinePlotData !== null && timelinePlotData.points.length > 0
 
-    const updateSearchState = (newState: Partial<SearchState>) => {
-        setSearchState(prev => ({ ...prev, ...newState }))
-    }
-
-    const plotTimeGroup = demo ? "days" : getPlotTimeGroupForRange(pageState.filters.startDate, pageState.filters.endDate)
-    const currentStatusPlotKey = demo ? "demo" : `${pageState.filters.serialisedFilters}|${plotTimeGroup}`
-    const shouldRenderStatusPlot = pageState.statusPlotStatus === NetworkOverviewStatusCodesPlotApiStatus.Success && pageState.statusPlotData.length > 0 && pageState.statusPlotDataKey === currentStatusPlotKey
-
-    const currentTimelineKey = demo ? "demo" : pageState.filters.serialisedFilters
-    const shouldRenderTimeline = pageState.timelinePlotStatus === NetworkTimelinePlotApiStatus.Success && pageState.timelinePlotData !== null && pageState.timelinePlotData.points.length > 0 && pageState.timelineDataPlotKey === currentTimelineKey
+    // Auto-select first domain when domains load
+    useEffect(() => {
+        if (!demo && domainsQuery.status === 'success' && domainsQuery.data && domainsQuery.data.length > 0 && searchDomain === "") {
+            setSearchDomain(domainsQuery.data[0])
+            setSearchPathPattern("")
+        }
+    }, [domainsQuery.status, domainsQuery.data])
 
     const handleSearch = () => {
         if (demo) return
-        if (searchState.pathPattern.trim() === "") return
-        const path = searchState.pathPattern.startsWith('/') ? searchState.pathPattern : '/' + searchState.pathPattern
-        const domain = searchState.domain.endsWith('/') ? searchState.domain.slice(0, -1) : searchState.domain
+        if (searchPathPattern.trim() === "") return
+        const path = searchPathPattern.startsWith('/') ? searchPathPattern : '/' + searchPathPattern
+        const domain = searchDomain.endsWith('/') ? searchDomain.slice(0, -1) : searchDomain
         addRecentSearch(params!.teamId, domain, path)
         router.push(`/${params!.teamId}/network/details?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(path)}`)
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({ filters: updatedFilters })
-        }
     }
 
     // Sync filters to URL
     useEffect(() => {
         if (demo) return
-        if (!pageState.filters.ready) return
-        router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
-    }, [pageState.filters])
-
-    // Fetch domains when filters change
-    useEffect(() => {
-        if (demo) return
-        if (!pageState.filters.ready || !pageState.filters.app) return
-
-        let stale = false
-        updatePageState({ domainsStatus: NetworkDomainsApiStatus.Loading })
-
-        fetchNetworkDomainsFromServer(pageState.filters.app, pageState.filters).then(result => {
-            if (stale) return
-            switch (result.status) {
-                case NetworkDomainsApiStatus.Success:
-                    const domains = result.data.results as string[]
-                    updatePageState({
-                        domainsStatus: NetworkDomainsApiStatus.Success,
-                        domains,
-                    })
-                    updateSearchState({ domain: domains[0] })
-                    break
-                case NetworkDomainsApiStatus.NoData:
-                    updatePageState({ domainsStatus: NetworkDomainsApiStatus.NoData, domains: [] })
-                    updateSearchState({ domain: "" })
-                    break
-                default:
-                    updatePageState({ domainsStatus: NetworkDomainsApiStatus.Error, domains: [] })
-                    updateSearchState({ domain: "" })
-                    break
-            }
-        })
-
-        return () => { stale = true }
-    }, [pageState.filters])
-
-    // Fetch status plot when filters change
-    useEffect(() => {
-        if (demo) return
-        if (!pageState.filters.ready || !pageState.filters.app) return
-        if (pageState.statusPlotDataKey === currentStatusPlotKey) return
-
-        let stale = false
-        updatePageState({
-            statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.Loading,
-            statusPlotData: [],
-        })
-
-        fetchNetworkOverviewStatusCodesPlotFromServer(pageState.filters).then(result => {
-            if (stale) return
-            switch (result.status) {
-                case NetworkOverviewStatusCodesPlotApiStatus.Success:
-                    updatePageState({
-                        statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.Success,
-                        statusPlotData: result.data,
-                        statusPlotDataKey: currentStatusPlotKey,
-                    })
-                    break
-                case NetworkOverviewStatusCodesPlotApiStatus.NoData:
-                    updatePageState({ statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.NoData, statusPlotData: [], statusPlotDataKey: null })
-                    break
-                default:
-                    updatePageState({ statusPlotStatus: NetworkOverviewStatusCodesPlotApiStatus.Error, statusPlotData: [], statusPlotDataKey: null })
-                    break
-            }
-        })
-
-        return () => { stale = true }
-    }, [pageState.filters])
-
-    // Fetch request timeline data when filters change
-    useEffect(() => {
-        if (demo) return
-        if (!pageState.filters.ready || !pageState.filters.app) return
-        if (pageState.timelineDataPlotKey === currentTimelineKey) return
-
-        let stale = false
-        updatePageState({
-            timelinePlotStatus: NetworkTimelinePlotApiStatus.Loading,
-            timelinePlotData: null,
-        })
-
-        fetchNetworkTimelinePlotFromServer(pageState.filters, timelineLimit).then(result => {
-            if (stale) return
-            switch (result.status) {
-                case NetworkTimelinePlotApiStatus.Success:
-                    updatePageState({
-                        timelinePlotStatus: NetworkTimelinePlotApiStatus.Success,
-                        timelinePlotData: result.data,
-                        timelineDataPlotKey: currentTimelineKey,
-                    })
-                    break
-                case NetworkTimelinePlotApiStatus.NoData:
-                    updatePageState({ timelinePlotStatus: NetworkTimelinePlotApiStatus.NoData, timelinePlotData: null, timelineDataPlotKey: null })
-                    break
-                default:
-                    updatePageState({ timelinePlotStatus: NetworkTimelinePlotApiStatus.Error, timelinePlotData: null, timelineDataPlotKey: null })
-                    break
-            }
-        })
-
-        return () => { stale = true }
-    }, [pageState.filters])
-
-    // Fetch path suggestions with debounce
-    useEffect(() => {
-        if (demo) return
-        if (!pageState.filters.ready || !pageState.filters.app || searchState.domain === "") return
-
-        const timer = setTimeout(() => {
-            updatePageState({ pathsStatus: NetworkPathsApiStatus.Loading, paths: [] })
-            fetchNetworkPathsFromServer(pageState.filters.app!, searchState.domain, searchState.pathPattern, pageState.filters).then(result => {
-                switch (result.status) {
-                    case NetworkPathsApiStatus.Success:
-                        updatePageState({
-                            pathsStatus: NetworkPathsApiStatus.Success,
-                            paths: result.data.results as string[],
-                        })
-                        break
-                    case NetworkPathsApiStatus.NoData:
-                        updatePageState({ pathsStatus: NetworkPathsApiStatus.NoData, paths: [] })
-                        break
-                    default:
-                        updatePageState({ pathsStatus: NetworkPathsApiStatus.Error, paths: [] })
-                        break
-                }
-            })
-        }, 300)
-
-        return () => clearTimeout(timer)
-    }, [searchState.domain, searchState.pathPattern, pageState.filters.app])
+        if (!filters.ready) return
+        router.replace(`?${filters.serialisedFilters!}`, { scroll: false })
+    }, [filters.ready, filters.serialisedFilters])
 
     // Update recent paths when domain or pattern changes
     useEffect(() => {
         if (demo) return
-        if (searchState.domain) {
-            setRecentPaths(getRecentSearchesForDomain(params!.teamId, searchState.domain, searchState.pathPattern))
+        if (searchDomain) {
+            setRecentPaths(getRecentSearchesForDomain(params!.teamId, searchDomain, searchPathPattern))
         } else {
             setRecentPaths([])
         }
-    }, [searchState.domain, searchState.pathPattern])
+    }, [searchDomain, searchPathPattern])
 
     return (
         <div className="flex flex-col items-start">
@@ -357,17 +188,17 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     showHttpMethods={false}
                     showUdAttrs={false}
                     showFreeText={false}
-                    onFiltersChanged={handleFiltersChanged} />
+                />
             )}
 
-            {!demo && pageState.filters.ready && pageState.domainsStatus === NetworkDomainsApiStatus.Loading &&
+            {!demo && filters.ready && domainsStatus === 'pending' &&
                 <div className="flex font-body items-center justify-center w-full h-[36rem]">
                     <LoadingSpinner />
                 </div>
             }
 
-            {(demo || (pageState.filters.ready &&
-                pageState.domainsStatus === NetworkDomainsApiStatus.Success)) &&
+            {(demo || (filters.ready &&
+                domainsStatus === 'success')) &&
                 <>
                     {/* Search endpoint - hidden in demo mode */}
                     {!demo && (
@@ -387,10 +218,13 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                 <DropdownSelect
                                     type={DropdownSelectType.SingleString}
                                     title="Domain"
-                                    items={pageState.domains}
-                                    initialSelected={pageState.domainsStatus === NetworkDomainsApiStatus.Loading ? "Loading..." : searchState.domain}
-                                    onChangeSelected={(item) => updateSearchState({ domain: item as string })}
-                                    disabled={pageState.domainsStatus !== NetworkDomainsApiStatus.Success}
+                                    items={domains}
+                                    initialSelected={domainsStatus === 'pending' ? "Loading..." : searchDomain}
+                                    onChangeSelected={(item) => {
+                                        setSearchDomain(item as string)
+                                        setSearchPathPattern("")
+                                    }}
+                                    disabled={domainsStatus !== 'success'}
                                 />
                                 <div className="px-2" />
                                 <div className="relative flex-1">
@@ -398,9 +232,9 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                         type="text"
                                         placeholder="Enter a path like /v1/users/*/profile"
                                         className="w-full font-body"
-                                        value={searchState.pathPattern}
+                                        value={searchPathPattern}
                                         onChange={(e) => {
-                                            updateSearchState({ pathPattern: e.target.value.replace(/\s/g, '') })
+                                            setSearchPathPattern(e.target.value.replace(/\s/g, ''))
                                             setShowSuggestions(true)
                                         }}
                                         onFocus={() => setShowSuggestions(true)}
@@ -414,7 +248,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                             }
                                         }}
                                     />
-                                    {showSuggestions && (recentPaths.length > 0 || pageState.paths.length > 0) && (
+                                    {showSuggestions && (recentPaths.length > 0 || paths.length > 0) && (
                                         <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-lg p-1">
                                             {recentPaths.length > 0 && (
                                                 <>
@@ -429,7 +263,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                                                 className="flex-1 text-left text-sm font-display translate-y-0.5 group-hover:text-accent-foreground cursor-pointer"
                                                                 onMouseDown={(e) => {
                                                                     e.preventDefault()
-                                                                    updateSearchState({ pathPattern: path })
+                                                                    setSearchPathPattern(path)
                                                                     setShowSuggestions(false)
                                                                 }}
                                                             >
@@ -440,7 +274,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                                                 className="px-2 py-0.5 text-xs text-muted-foreground group-hover:text-accent-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
                                                                 onMouseDown={(e) => {
                                                                     e.preventDefault()
-                                                                    removeRecentSearch(params!.teamId, searchState.domain, path)
+                                                                    removeRecentSearch(params!.teamId, searchDomain, path)
                                                                     setRecentPaths(prev => prev.filter(p => p !== path))
                                                                 }}
                                                             >
@@ -450,16 +284,16 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                                     ))}
                                                 </>
                                             )}
-                                            {pageState.paths.length > 0 && (
+                                            {paths.length > 0 && (
                                                 <div className={recentPaths.length > 0 ? "mt-4" : ""}>
-                                                    {pageState.paths.map((path) => (
+                                                    {paths.map((path) => (
                                                         <button
                                                             key={`suggestion-${path}`}
                                                             type="button"
                                                             className="w-full px-2 py-1.5 text-left text-sm font-display rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
                                                             onMouseDown={(e) => {
                                                                 e.preventDefault()
-                                                                updateSearchState({ pathPattern: path })
+                                                                setSearchPathPattern(path)
                                                                 setShowSuggestions(false)
                                                             }}
                                                         >
@@ -474,7 +308,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                                 <Button
                                     variant="outline"
                                     className="m-4"
-                                    disabled={searchState.pathPattern.trim() === "" || pageState.domainsStatus !== NetworkDomainsApiStatus.Success}
+                                    disabled={searchPathPattern.trim() === "" || domainsStatus !== 'success'}
                                     onClick={handleSearch}>
                                     Search
                                 </Button>
@@ -489,14 +323,14 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                         <p className="mt-2 font-body text-xs text-muted-foreground">HTTP status code distribution over time for all requests made by the app</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                            {(pageState.statusPlotStatus === NetworkOverviewStatusCodesPlotApiStatus.Loading || (pageState.statusPlotStatus === NetworkOverviewStatusCodesPlotApiStatus.Success && !shouldRenderStatusPlot)) && <LoadingSpinner />}
+                            {(statusPlotStatus === 'pending' || (statusPlotStatus === 'success' && !shouldRenderStatusPlot)) && <LoadingSpinner />}
                             {shouldRenderStatusPlot &&
-                                <NetworkStatusDistributionPlot data={pageState.statusPlotData} plotTimeGroup={plotTimeGroup} />
+                                <NetworkStatusDistributionPlot data={statusPlotData} plotTimeGroup={plotTimeGroup} />
                             }
-                            {pageState.statusPlotStatus === NetworkOverviewStatusCodesPlotApiStatus.NoData &&
+                            {statusPlotStatus === 'nodata' &&
                                 <p className="font-body text-sm">No data available for the selected filters</p>
                             }
-                            {pageState.statusPlotStatus === NetworkOverviewStatusCodesPlotApiStatus.Error &&
+                            {statusPlotStatus === 'error' &&
                                 <p className="font-body text-sm">Error fetching status overview, please change filters & try again</p>
                             }
                         </div>
@@ -507,7 +341,6 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                     {/* Top Endpoints Section */}
                     <div className="w-full">
                         <NetworkTrends
-                            filters={pageState.filters}
                             teamId={params?.teamId}
                             active
                             demo={demo}
@@ -521,24 +354,24 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                         <p className="font-display text-xl">Timeline</p>
                         <p className="mt-2 font-body text-xs text-muted-foreground">Distribution of when endpoint patterns are typically called in a session.{!demo && <>{' '}<Link href="/docs/features/feature-network-monitoring#request-timeline" className={underlineLinkStyle}>Learn more</Link> about how the timeline is generated</>}</p>
                         {shouldRenderTimeline && <div className="py-8">
-                            <NetworkTimelinePlot data={pageState.timelinePlotData!} />
+                            <NetworkTimelinePlot data={timelinePlotData!} />
                         </div>}
                         {!shouldRenderTimeline && <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                            {pageState.timelinePlotStatus === NetworkTimelinePlotApiStatus.Loading && <LoadingSpinner />}
-                            {(pageState.timelinePlotStatus === NetworkTimelinePlotApiStatus.NoData || (pageState.timelinePlotStatus === NetworkTimelinePlotApiStatus.Success)) &&
+                            {timelinePlotStatus === 'pending' && <LoadingSpinner />}
+                            {(timelinePlotStatus === 'nodata' || (timelinePlotStatus === 'success')) &&
                                 <p className="font-body text-sm">No data available for the selected filters</p>
                             }
-                            {pageState.timelinePlotStatus === NetworkTimelinePlotApiStatus.Error &&
+                            {timelinePlotStatus === 'error' &&
                                 <p className="font-body text-sm">Error fetching requests timeline, please change filters & try again</p>
                             }
                         </div>}
                     </div>
                 </>
             }
-            {!demo && pageState.domainsStatus === NetworkDomainsApiStatus.Error &&
+            {!demo && domainsStatus === 'error' &&
                 <p className="pt-8 font-body text-sm">Error fetching domains, please change filters & try again</p>
             }
-            {!demo && pageState.domainsStatus === NetworkDomainsApiStatus.NoData &&
+            {!demo && domainsStatus === 'nodata' &&
                 <p className="pt-8 font-body text-sm">No data available for the selected app</p>
             }
         </div>

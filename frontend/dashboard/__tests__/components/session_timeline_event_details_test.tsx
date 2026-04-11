@@ -1,7 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
-import React from 'react'
 
 jest.mock('@/app/utils/time_utils', () => ({
     formatDateToHumanReadableDateTime: (ts: string) => `formatted:${ts}`,

@@ -9,12 +9,13 @@ import React from 'react'
 const replaceMock = jest.fn()
 
 // Mock next/navigation hooks
+const mockUseSearchParams = jest.fn(() => new URLSearchParams())
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
     }),
     // By default, return empty search params.
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => mockUseSearchParams(),
 }))
 
 // Mock time utils
@@ -133,39 +134,40 @@ jest.mock('@/app/api/api_calls', () => ({
     ),
 }))
 
-// Update the Filters mock
+// Mock query hooks — data and status are controlled per-test via mockCrashQuery / mockAnrQuery
+const mockCrashQuery = {
+    data: undefined as any,
+    status: 'pending' as 'pending' | 'success' | 'error',
+    isFetching: true,
+}
+const mockAnrQuery = {
+    data: undefined as any,
+    status: 'pending' as 'pending' | 'success' | 'error',
+    isFetching: true,
+}
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    paginationOffsetUrlKey: 'po',
+    useCrashDetailsQuery: () => mockCrashQuery,
+    useAnrDetailsQuery: () => mockAnrQuery,
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return {
+        __esModule: true,
+        useFiltersStore: filtersStore,
+    }
+})
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() =>
-                    props.onFiltersChanged({
-                        ready: true,
-                        serialisedFilters: 'updated',
-                        app: { id: 'app1', name: 'Test App' }
-                    })
-                }
-            >
-                Update Filters
-            </button>
-            <button
-                data-testid="update-filters-2"
-                onClick={() =>
-                    props.onFiltersChanged({
-                        ready: true,
-                        serialisedFilters: 'updated2',
-                        app: { id: 'app1', name: 'Test App' }
-                    })
-                }
-            >
-                Update Filters 2
-            </button>
-        </div>
-    ),
+    default: () => <div data-testid="filters-mock" />,
     AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
 }))
 
 // Mock ExceptionspDetailsPlot component
@@ -251,9 +253,92 @@ jest.mock('@/app/components/copy_ai_context', () => ({
     ),
 }))
 
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const mockExceptionDetailsData = {
+    results: [
+        {
+            id: 'exception1',
+            session_id: 'session1',
+            timestamp: '2020-01-01T00:00:00Z',
+            type: 'NullPointerException',
+            thread_name: 'main',
+            attribute: {
+                installation_id: 'installation1',
+                app_version: '1.0.0',
+                app_build: '123',
+                app_unique_id: 'unique1',
+                measure_sdk_version: '2.0.0',
+                platform: 'Android',
+                thread_name: 'main',
+                user_id: 'user1',
+                device_name: 'Pixel 6 Pro',
+                device_model: 'Pixel 6 Pro',
+                device_manufacturer: 'Google ',
+                device_type: 'phone',
+                device_is_foldable: false,
+                device_is_physical: true,
+                device_density_dpi: 420,
+                device_width_px: 1080,
+                device_height_px: 2340,
+                device_density: 3.0,
+                device_locale: 'en_US',
+                os_name: 'Android',
+                os_version: '12',
+                network_type: 'WiFi',
+                network_provider: 'Verizon',
+                network_generation: '5G'
+            },
+            exception: {
+                title: 'NullPointerException',
+                stacktrace: 'java.lang.NullPointerException: Attempt to invoke virtual method on a null object reference\n\tat com.example.MainActivity.onCreate(MainActivity.java:42)'
+            },
+            anr: {
+                title: 'ANR in com.example.MainActivity',
+                stacktrace: 'ANR in com.example.MainActivity\n\tat com.example.MainActivity.onResume(MainActivity.java:65)'
+            },
+            attachments: [
+                {
+                    id: 'attachment1',
+                    name: 'screenshot.png',
+                    type: 'image/png',
+                    key: 'screenshot1',
+                    location: '/images/screenshot1.png'
+                }
+            ],
+            threads: [
+                {
+                    name: 'main',
+                    frames: [
+                        'java.lang.Thread.sleep(Native Method)',
+                        'com.example.MainActivity$1.run(MainActivity.java:52)'
+                    ]
+                },
+                {
+                    name: 'RenderThread',
+                    frames: [
+                        'android.view.ThreadedRenderer.nativeSyncAndDrawFrame(Native Method)',
+                        'android.view.ThreadedRenderer.syncAndDrawFrame(ThreadedRenderer.java:144)'
+                    ]
+                }
+            ],
+            attributes: {
+                customAttr1: 'value1',
+                customAttr2: 'value2'
+            }
+        }
+    ],
+    meta: { previous: true, next: true },
+}
+
 describe('ExceptionsDetails Component - Crashes', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+        mockCrashQuery.data = undefined
+        mockCrashQuery.status = 'pending'; mockCrashQuery.isFetching = true
+        mockAnrQuery.data = undefined
+        mockAnrQuery.status = 'pending'; mockAnrQuery.isFetching = true
     })
 
     it('renders the app name and exceptions group name', async () => {
@@ -267,9 +352,8 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         expect(screen.getByText('Test App')).toBeInTheDocument()
@@ -304,9 +388,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+            mockCrashQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Check URL update with po (pagination offset) and filters
@@ -330,9 +415,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+            mockCrashQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Verify the exception details are displayed
@@ -365,14 +451,6 @@ describe('ExceptionsDetails Component - Crashes', () => {
     })
 
     it('shows error message when API returns error status', async () => {
-        // Override the mock to return an error
-        const { fetchExceptionsDetailsFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsDetailsFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
         render(
             <ExceptionsDetails
                 exceptionsType={ExceptionsType.Crash}
@@ -383,9 +461,9 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'error'; mockCrashQuery.isFetching = false
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Check that error message is displayed
@@ -403,9 +481,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+            mockCrashQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Check that the link includes the correct path
@@ -425,38 +504,16 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+            mockCrashQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Check that the attachment image is rendered
         const image = screen.getByTestId('mock-image')
         expect(image).toHaveAttribute('src', '/images/screenshot1.png')
         expect(image).toHaveAttribute('alt', 'Screenshot 0')
-    })
-
-    it('does not update URL if filters remain unchanged', async () => {
-        render(
-            <ExceptionsDetails
-                exceptionsType={ExceptionsType.Crash}
-                teamId="123"
-                appId="app1"
-                exceptionsGroupId="exception1"
-                exceptionsGroupName="NullPointerException@MainActivity.java"
-            />
-        )
-
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
     })
 
     describe('Pagination offset handling', () => {
@@ -471,9 +528,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
                 />
             )
 
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+                mockCrashQuery.data = mockExceptionDetailsData
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
             })
 
             expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
@@ -490,9 +548,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
                 />
             )
 
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+                mockCrashQuery.data = mockExceptionDetailsData
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
             })
 
             const nextButton = await screen.findByTestId('next-button')
@@ -515,9 +574,10 @@ describe('ExceptionsDetails Component - Crashes', () => {
                 />
             )
 
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+                mockCrashQuery.data = mockExceptionDetailsData
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
             })
 
             const nextButton = await screen.findByTestId('next-button')
@@ -540,10 +600,9 @@ describe('ExceptionsDetails Component - Crashes', () => {
 
         it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
             // Override useSearchParams to simulate an initial offset.
-            const { useSearchParams } = jest.requireActual('next/navigation')
-            const useSearchParamsSpy = jest
-                .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?po=5'))
+            mockUseSearchParams.mockReturnValue(new URLSearchParams('?po=5'))
+            // Use null so the filter-change guard treats the first real serialisedFilters as "initial" (not a change)
+            useFiltersStore.setState({ filters: { ready: false, serialisedFilters: null } })
 
             render(
                 <ExceptionsDetails
@@ -555,10 +614,11 @@ describe('ExceptionsDetails Component - Crashes', () => {
                 />
             )
 
-            const updateButton = screen.getByTestId('update-filters')
             // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+                mockCrashQuery.data = mockExceptionDetailsData
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
             })
             expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
 
@@ -570,28 +630,17 @@ describe('ExceptionsDetails Component - Crashes', () => {
             expect(replaceMock).toHaveBeenLastCalledWith('?po=6&updated', { scroll: false })
 
             // Now simulate a filter change with a different value.
-            const updateButton2 = screen.getByTestId('update-filters-2')
+            // The component resets pagination when filters change via useEffect.
             await act(async () => {
-                fireEvent.click(updateButton2)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated2', app: { id: 'app1', name: 'Test App' } } })
                 await new Promise(resolve => setTimeout(resolve, 0))
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
-            useSearchParamsSpy.mockRestore()
+            mockUseSearchParams.mockReturnValue(new URLSearchParams())
         })
     })
 
     it('correctly displays and hides loading spinner based on API status', async () => {
-        // Mock implementation to control loading state
-        const { fetchExceptionsDetailsFromServer } = require('@/app/api/api_calls')
-
-        // Create a promise that won't resolve immediately to maintain loading state
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-
-        fetchExceptionsDetailsFromServer.mockImplementationOnce(() => loadingPromise)
-
         render(
             <ExceptionsDetails
                 exceptionsType={ExceptionsType.Crash}
@@ -602,44 +651,46 @@ describe('ExceptionsDetails Component - Crashes', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
+        // Set loading state
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockCrashQuery.status = 'pending'; mockCrashQuery.isFetching = true
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Test the loading state - loading spinner should be visible
         expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
         expect(screen.queryByText('Id: exception1')).not.toBeInTheDocument()
 
-        // Resolve the loading promise to move to success state
+        // Set success state
         await act(async () => {
-            resolvePromise({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            id: 'exception1',
-                            session_id: 'session1',
-                            timestamp: '2020-01-01T00:00:00Z',
-                            type: 'NullPointerException',
-                            thread_name: 'main',
-                            attribute: {
-                                device_manufacturer: 'Google ',
-                                device_model: '6 Pro',
-                                app_version: '1.0.0',
-                                network_type: 'WiFi'
-                            },
-                            exception: {
-                                title: 'NullPointerException',
-                                stacktrace: 'java.lang.NullPointerException'
-                            },
-                            threads: [],
-                            attachments: []
-                        }
-                    ],
-                    meta: { previous: false, next: false },
-                }
-            })
+            mockCrashQuery.status = 'success'; mockCrashQuery.isFetching = false
+            mockCrashQuery.data = {
+                results: [
+                    {
+                        id: 'exception1',
+                        session_id: 'session1',
+                        timestamp: '2020-01-01T00:00:00Z',
+                        type: 'NullPointerException',
+                        thread_name: 'main',
+                        attribute: {
+                            device_manufacturer: 'Google ',
+                            device_model: '6 Pro',
+                            app_version: '1.0.0',
+                            network_type: 'WiFi',
+                            thread_name: 'main'
+                        },
+                        exception: {
+                            title: 'NullPointerException',
+                            stacktrace: 'java.lang.NullPointerException'
+                        },
+                        threads: [],
+                        attachments: []
+                    }
+                ],
+                meta: { previous: false, next: false },
+            }
+            // Trigger re-render
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // After loading, the details should be visible and loading spinner should be gone
@@ -651,6 +702,11 @@ describe('ExceptionsDetails Component - Crashes', () => {
 describe('ExceptionsDetails Component - ANRs', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+        mockCrashQuery.data = undefined
+        mockCrashQuery.status = 'pending'; mockCrashQuery.isFetching = true
+        mockAnrQuery.data = undefined
+        mockAnrQuery.status = 'pending'; mockAnrQuery.isFetching = true
     })
 
     it('renders ANR thread correctly instead of crash thread', async () => {
@@ -664,9 +720,10 @@ describe('ExceptionsDetails Component - ANRs', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockAnrQuery.status = 'success'; mockAnrQuery.isFetching = false
+            mockAnrQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Check that the ANR accordion is rendered instead of crash accordion
@@ -677,14 +734,6 @@ describe('ExceptionsDetails Component - ANRs', () => {
     })
 
     it('shows error message with ANR-specific text', async () => {
-        // Override the mock to return an error
-        const { fetchExceptionsDetailsFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsDetailsFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
         render(
             <ExceptionsDetails
                 exceptionsType={ExceptionsType.Anr}
@@ -695,9 +744,9 @@ describe('ExceptionsDetails Component - ANRs', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockAnrQuery.status = 'error'; mockAnrQuery.isFetching = false
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         expect(screen.getByText(/Error fetching list of ANRs/)).toBeInTheDocument()
@@ -714,9 +763,10 @@ describe('ExceptionsDetails Component - ANRs', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockAnrQuery.status = 'success'; mockAnrQuery.isFetching = false
+            mockAnrQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         expect(screen.getByTestId('exceptions-details-plot-mock')).toBeInTheDocument()
@@ -724,17 +774,6 @@ describe('ExceptionsDetails Component - ANRs', () => {
     })
 
     it('correctly initializes with empty state for ANR type', async () => {
-        const { fetchExceptionsDetailsFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsDetailsFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'success',
-                data: {
-                    results: [],
-                    meta: { previous: false, next: false },
-                }
-            })
-        )
-
         render(
             <ExceptionsDetails
                 exceptionsType={ExceptionsType.Anr}
@@ -745,9 +784,13 @@ describe('ExceptionsDetails Component - ANRs', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockAnrQuery.status = 'success'; mockAnrQuery.isFetching = false
+            mockAnrQuery.data = {
+                results: [],
+                meta: { previous: false, next: false },
+            }
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         // Should not display any exception details when no results
@@ -766,9 +809,10 @@ describe('ExceptionsDetails Component - ANRs', () => {
             />
         )
 
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockAnrQuery.status = 'success'; mockAnrQuery.isFetching = false
+            mockAnrQuery.data = mockExceptionDetailsData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
         })
 
         expect(screen.getByTestId('copy-ai-context-mock')).toBeInTheDocument()

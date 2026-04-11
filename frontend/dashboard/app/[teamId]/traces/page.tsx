@@ -1,92 +1,54 @@
 "use client"
+import { useFiltersStore } from '@/app/stores/provider'
 
-import { FilterSource, SpansApiStatus, emptySpansResponse, fetchSpansFromServer } from '@/app/api/api_calls'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import { FilterSource, emptySpansResponse } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SpanMetricsPlot from '@/app/components/span_metrics_plot'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { paginationOffsetUrlKey, useSpansQuery } from '@/app/query/hooks'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-interface PageState {
-    spansApiStatus: SpansApiStatus
-    filters: typeof defaultFilters
-    spans: typeof emptySpansResponse
-    paginationOffset: number
-}
-
-const paginationLimit = 5
-const paginationOffsetUrlKey = "po"
+const PAGINATION_LIMIT = 5
 
 export default function TracesOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-    const initialState: PageState = {
-        spansApiStatus: SpansApiStatus.Loading,
-        filters: defaultFilters,
-        spans: emptySpansResponse,
-        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
-    }
+    const filters = useFiltersStore(state => state.filters)
 
-    const [pageState, setPageState] = useState<PageState>(initialState)
+    // Pagination is component-local state, initialized from URL
+    const [paginationOffset, setPaginationOffset] = useState(() => {
+        const po = searchParams.get(paginationOffsetUrlKey)
+        return po ? parseInt(po) : 0
+    })
 
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
-    }
-
-    const getSpanInstances = async () => {
-        updatePageState({ spansApiStatus: SpansApiStatus.Loading })
-
-        const result = await fetchSpansFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
-
-        switch (result.status) {
-            case SpansApiStatus.Error:
-                updatePageState({ spansApiStatus: SpansApiStatus.Error })
-                break
-            case SpansApiStatus.Success:
-                updatePageState({
-                    spansApiStatus: SpansApiStatus.Success,
-                    spans: result.data
-                })
-                break
-        }
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        // update filters only if they have changed
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters,
-                // Reset pagination on filters change if previous filters were not default filters
-                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
-            })
-        }
-    }
-
-    const handleNextPage = () => {
-        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
-    }
-
-    const handlePrevPage = () => {
-        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
-    }
-
+    // Reset pagination when filters change (skip pre-ready transitions)
+    const prevFiltersRef = useRef<string | null>(null)
     useEffect(() => {
-        if (!pageState.filters.ready) {
+        if (!filters.ready) return
+        if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
+            setPaginationOffset(0)
+        }
+        prevFiltersRef.current = filters.serialisedFilters
+    }, [filters.ready, filters.serialisedFilters])
+
+    // URL sync
+    useEffect(() => {
+        if (!filters.ready) {
             return
         }
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
+    }, [paginationOffset, filters.ready, filters.serialisedFilters])
 
-        // update url
-        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
+    const { data: spans = emptySpansResponse, status, isFetching } = useSpansQuery(paginationOffset)
 
-        getSpanInstances()
-    }, [pageState.paginationOffset, pageState.filters])
+    const nextPage = () => setPaginationOffset(o => o + PAGINATION_LIMIT)
+    const prevPage = () => setPaginationOffset(o => Math.max(0, o - PAGINATION_LIMIT))
 
     return (
         <div className="flex flex-col items-start">
@@ -114,32 +76,30 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showBugReportStatus={false}
                 showHttpMethods={false}
                 showUdAttrs={true}
-                showFreeText={false}
-                onFiltersChanged={handleFiltersChanged} />
+                showFreeText={false} />
             <div className="py-4" />
 
             {/* Error state for sessions fetch */}
-            {pageState.filters.ready
-                && pageState.spansApiStatus === SpansApiStatus.Error
+            {filters.ready
+                && status === 'error'
                 && <p className="text-lg font-display">Error fetching list of traces, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main root spans list UI */}
-            {pageState.filters.ready
-                && (pageState.spansApiStatus === SpansApiStatus.Success || pageState.spansApiStatus === SpansApiStatus.Loading) &&
+            {filters.ready
+                && (status === 'success' || status === 'pending') &&
                 <div className="flex flex-col items-center w-full">
-                    <SpanMetricsPlot
-                        filters={pageState.filters} />
+                    <SpanMetricsPlot />
                     <div className='self-end'>
                         <Paginator
-                            prevEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.previous}
-                            nextEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.next}
+                            prevEnabled={isFetching ? false : spans.meta.previous}
+                            nextEnabled={isFetching ? false : spans.meta.next}
                             displayText=''
-                            onNext={handleNextPage}
-                            onPrev={handlePrevPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
                         />
                     </div>
 
-                    <div className={`py-1 w-full ${pageState.spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${isFetching ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
                     <div className='py-4' />
@@ -153,7 +113,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             </TableRow>
                         </TableHeader>
                         <TableBody className="font-body">
-                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => {
+                            {spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }: any, idx: number) => {
                                 const traceHref = `/${params.teamId}/traces/${app_id}/${trace_id}`
                                 return (
                                     <TableRow
@@ -168,7 +128,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                         }}
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -184,7 +144,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -198,7 +158,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[10%] text-center truncate select-none relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -210,7 +170,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600 dark:text-green-400" : status === 2 ? "text-red-600 dark:text-red-400" : ""}`}>
-                                            <a
+                                            <Link
                                                 href={traceHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}

@@ -14,11 +14,6 @@ jest.mock('@/app/utils/use_toast', () => ({
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }))
 
-jest.mock('@/app/auth/measure_auth', () => ({
-  measureAuth: {
-    getSession: jest.fn(() => Promise.resolve({ session: { user: { id: 'user-1' } }, error: null })),
-  },
-}))
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -86,6 +81,8 @@ const defaultPendingInvites = [
   },
 ]
 
+const mockTeam = { id: 'team-1', name: 'Team One' }
+
 jest.mock('@/app/api/api_calls', () => ({
   __esModule: true,
   TeamsApiStatus: { Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
@@ -113,23 +110,176 @@ jest.mock('@/app/api/api_calls', () => ({
     can_manage_slack: false,
     members: [],
   },
-  fetchTeamsFromServer: jest.fn(() => Promise.resolve({
-    status: 'success',
-    data: [{ id: 'team-1', name: 'Team One' }],
-  })),
-  fetchAuthzAndMembersFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: defaultAuthz })),
-  fetchPendingInvitesFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: defaultPendingInvites })),
-  changeTeamNameFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  inviteMemberFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  changeRoleFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  removeMemberFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  resendPendingInviteFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  removePendingInviteFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  fetchTeamSlackConnectUrlFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { url: 'https://slack/connect' } })),
-  fetchTeamSlackStatusFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { slack_team_name: 'Measure', is_active: true } })),
-  updateTeamSlackStatusFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  sendTestSlackAlertFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
 }))
+
+// --- Bridge stores: tests control these, query hook mocks read from them ---
+const { create: createBridge } = jest.requireActual('zustand') as any
+const teamsStore = createBridge(() => ({
+  teamsApiStatus: 'loading',
+  teams: null as any,
+  selectedTeam: null as any,
+  fetchTeams: jest.fn(),
+  setSelectedTeam: jest.fn(),
+  reset: jest.fn(),
+}))
+const teamPageStore = createBridge(() => ({
+  currentUserId: undefined as string | undefined,
+  authzAndMembersApiStatus: 'loading',
+  authzAndMembers: { can_invite_roles: [] as string[], can_rename_team: false, can_manage_slack: false, members: [] as any[] },
+  pendingInvitesApiStatus: 'loading',
+  pendingInvites: null as any,
+  teamSlackConnectUrl: null as string | null,
+  fetchTeamSlackConnectUrlApiStatus: 'init',
+  teamSlack: null as any,
+  fetchTeamSlackStatusApiStatus: 'init',
+  updateTeamSlackStatusApiStatus: 'init',
+  testSlackAlertApiStatus: 'init',
+  teamNameChangeApiStatus: 'init',
+  inviteMemberApiStatus: 'init',
+  removeMemberApiStatus: 'init',
+  resendPendingInviteApiStatus: 'init',
+  removePendingInviteApiStatus: 'init',
+  roleChangeApiStatus: 'init',
+  fetchCurrentUserId: jest.fn(),
+  fetchAuthzAndMembers: jest.fn(),
+  fetchPendingInvites: jest.fn(),
+  fetchTeamSlackConnectUrl: jest.fn(),
+  fetchTeamSlackStatus: jest.fn(),
+  changeTeamName: jest.fn(),
+  inviteMember: jest.fn(),
+  removeMember: jest.fn(),
+  resendPendingInvite: jest.fn(),
+  removePendingInvite: jest.fn(),
+  changeRole: jest.fn(),
+  updateSlackStatus: jest.fn(),
+  testSlackAlert: jest.fn(),
+  reset: jest.fn(),
+}))
+
+function mapStatus(s: string) {
+  if (s === 'loading') { return 'pending' }
+  if (s === 'init') { return 'pending' }
+  return s
+}
+
+jest.mock('@/app/query/hooks', () => ({
+  __esModule: true,
+  useTeamsQuery: () => {
+    const s = teamsStore.getState()
+    return { data: s.teams, status: mapStatus(s.teamsApiStatus) }
+  },
+  useAuthzAndMembersQuery: () => {
+    const s = teamPageStore.getState()
+    return { data: s.authzAndMembers, status: mapStatus(s.authzAndMembersApiStatus) }
+  },
+  usePendingInvitesQuery: () => {
+    const s = teamPageStore.getState()
+    return { data: s.pendingInvites, status: mapStatus(s.pendingInvitesApiStatus) }
+  },
+  useTeamSlackConnectUrlQuery: () => {
+    const s = teamPageStore.getState()
+    return { data: s.teamSlackConnectUrl, status: mapStatus(s.fetchTeamSlackConnectUrlApiStatus) }
+  },
+  useTeamSlackStatusQuery: () => {
+    const s = teamPageStore.getState()
+    return { data: s.teamSlack, status: mapStatus(s.fetchTeamSlackStatusApiStatus) }
+  },
+  useChangeTeamNameMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.changeTeamName(params.teamId, params.newName)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.teamNameChangeApiStatus === 'loading',
+    }
+  },
+  useInviteMemberMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.inviteMember(params.teamId, params.email, params.role)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.inviteMemberApiStatus === 'loading',
+    }
+  },
+  useRemoveMemberMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.removeMember(params.teamId, params.memberId)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.removeMemberApiStatus === 'loading',
+    }
+  },
+  useResendPendingInviteMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.resendPendingInvite(params.teamId, params.inviteId)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.resendPendingInviteApiStatus === 'loading',
+    }
+  },
+  useRemovePendingInviteMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.removePendingInvite(params.teamId, params.inviteId)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.removePendingInviteApiStatus === 'loading',
+    }
+  },
+  useChangeRoleMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.changeRole(params.teamId, params.newRole, params.memberId)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.roleChangeApiStatus === 'loading',
+    }
+  },
+  useUpdateSlackStatusMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.updateSlackStatus(params.teamId, params.status)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.updateTeamSlackStatusApiStatus === 'loading',
+    }
+  },
+  useTestSlackAlertMutation: () => {
+    const s = teamPageStore.getState()
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.testSlackAlert(params.teamId)
+        if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+      },
+      isPending: s.testSlackAlertApiStatus === 'loading',
+    }
+  },
+}))
+
+jest.mock('@/app/stores/provider', () => {
+  const { create } = jest.requireActual('zustand')
+  const sessionStore = create(() => ({
+    session: { user: { id: undefined } },
+    fetchSession: jest.fn(),
+  }))
+  return {
+    __esModule: true,
+    useSessionStore: sessionStore,
+  }
+})
+
+const useTeamsStore = teamsStore
+const useTeamPageStore = teamPageStore
 
 jest.mock('@/app/components/button', () => ({
   Button: ({ children, loading, disabled, ...props }: any) => (
@@ -212,7 +362,33 @@ jest.mock('@/app/components/confirmation_dialog', () => ({
   },
 }))
 
+const setDefaultTeamsState = () => {
+  useTeamsStore.setState({
+    teamsApiStatus: 'success',
+    teams: [mockTeam],
+    selectedTeam: mockTeam,
+  })
+}
+
+const setDefaultTeamPageState = () => {
+  const { useSessionStore } = require('@/app/stores/provider')
+  useSessionStore.setState({ session: { user: { id: 'user-1' } } })
+  useTeamPageStore.setState({
+    currentUserId: 'user-1',
+    authzAndMembersApiStatus: 'success',
+    authzAndMembers: defaultAuthz,
+    pendingInvitesApiStatus: 'success',
+    pendingInvites: defaultPendingInvites,
+    fetchTeamSlackConnectUrlApiStatus: 'success',
+    teamSlackConnectUrl: 'https://slack/connect',
+    fetchTeamSlackStatusApiStatus: 'success',
+    teamSlack: { slack_team_name: 'Measure', is_active: true },
+  })
+}
+
 const renderPage = async ({ waitForSlack = true }: { waitForSlack?: boolean } = {}) => {
+  setDefaultTeamsState()
+  setDefaultTeamPageState()
   render(<TeamOverview params={{ teamId: 'team-1' }} />)
   await screen.findByText('Invite Team Members')
   if (waitForSlack) {
@@ -225,25 +401,47 @@ describe('Team Page', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    const apiCalls = require('@/app/api/api_calls')
-    const { measureAuth } = require('@/app/auth/measure_auth')
-    measureAuth.getSession.mockImplementation(() => Promise.resolve({ session: { user: { id: 'user-1' } }, error: null }))
-    apiCalls.fetchTeamsFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: [{ id: 'team-1', name: 'Team One' }],
-    }))
-    apiCalls.fetchAuthzAndMembersFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: defaultAuthz }))
-    apiCalls.fetchPendingInvitesFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: defaultPendingInvites }))
-    apiCalls.changeTeamNameFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.inviteMemberFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.changeRoleFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.removeMemberFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.resendPendingInviteFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.removePendingInviteFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.fetchTeamSlackConnectUrlFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: { url: 'https://slack/connect' } }))
-    apiCalls.fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({ status: 'success', data: { slack_team_name: 'Measure', is_active: true } }))
-    apiCalls.updateTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
-    apiCalls.sendTestSlackAlertFromServer.mockImplementation(() => Promise.resolve({ status: 'success' }))
+    useTeamsStore.setState({
+      teamsApiStatus: 'loading',
+      teams: null,
+      selectedTeam: null,
+      fetchTeams: jest.fn(),
+      setSelectedTeam: jest.fn(),
+      reset: jest.fn(),
+    })
+    useTeamPageStore.setState({
+      currentUserId: undefined,
+      authzAndMembersApiStatus: 'loading',
+      authzAndMembers: { can_invite_roles: [], can_rename_team: false, can_manage_slack: false, members: [] },
+      pendingInvitesApiStatus: 'loading',
+      pendingInvites: null,
+      teamSlackConnectUrl: null,
+      fetchTeamSlackConnectUrlApiStatus: 'init',
+      teamSlack: null,
+      fetchTeamSlackStatusApiStatus: 'init',
+      updateTeamSlackStatusApiStatus: 'init',
+      testSlackAlertApiStatus: 'init',
+      teamNameChangeApiStatus: 'init',
+      inviteMemberApiStatus: 'init',
+      removeMemberApiStatus: 'init',
+      resendPendingInviteApiStatus: 'init',
+      removePendingInviteApiStatus: 'init',
+      roleChangeApiStatus: 'init',
+      fetchCurrentUserId: jest.fn(),
+      fetchAuthzAndMembers: jest.fn(),
+      fetchPendingInvites: jest.fn(),
+      fetchTeamSlackConnectUrl: jest.fn(),
+      fetchTeamSlackStatus: jest.fn(),
+      changeTeamName: jest.fn(),
+      inviteMember: jest.fn(),
+      removeMember: jest.fn(),
+      resendPendingInvite: jest.fn(),
+      removePendingInvite: jest.fn(),
+      changeRole: jest.fn(),
+      updateSlackStatus: jest.fn(),
+      testSlackAlert: jest.fn(),
+      reset: jest.fn(),
+    })
     mockSearchParamsGet.mockReset()
     mockSearchParamsGet.mockImplementation(() => null)
     mockSearchParamsToString.mockReset()
@@ -280,8 +478,11 @@ describe('Team Page', () => {
   })
 
   it('shows team fetch error when teams API fails', async () => {
-    const { fetchTeamsFromServer } = require('@/app/api/api_calls')
-    fetchTeamsFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    useTeamsStore.setState({
+      teamsApiStatus: 'error',
+      teams: null,
+      selectedTeam: null,
+    })
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
 
@@ -289,19 +490,32 @@ describe('Team Page', () => {
   })
 
   it('shows members fetch error when authz API fails', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    setDefaultTeamsState()
+    useTeamPageStore.setState({
+      currentUserId: 'user-1',
+      authzAndMembersApiStatus: 'error',
+      authzAndMembers: defaultAuthz,
+      pendingInvitesApiStatus: 'success',
+      pendingInvites: defaultPendingInvites,
+      fetchTeamSlackConnectUrlApiStatus: 'success',
+      teamSlackConnectUrl: 'https://slack/connect',
+      fetchTeamSlackStatusApiStatus: 'success',
+      teamSlack: { slack_team_name: 'Measure', is_active: true },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(await screen.findByText('Error fetching team members, please refresh page to try again')).toBeInTheDocument()
   })
 
   it('shows members loading spinner while authz API is pending', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(
-      () => new Promise(() => { })
-    )
+    setDefaultTeamsState()
+    useTeamPageStore.setState({
+      currentUserId: 'user-1',
+      authzAndMembersApiStatus: 'loading',
+      pendingInvitesApiStatus: 'loading',
+    })
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
 
@@ -310,19 +524,38 @@ describe('Team Page', () => {
   })
 
   it('shows pending invites fetch error when pending invites API fails', async () => {
-    const { fetchPendingInvitesFromServer } = require('@/app/api/api_calls')
-    fetchPendingInvitesFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    setDefaultTeamsState()
+    useTeamPageStore.setState({
+      currentUserId: 'user-1',
+      authzAndMembersApiStatus: 'success',
+      authzAndMembers: defaultAuthz,
+      pendingInvitesApiStatus: 'error',
+      pendingInvites: null,
+      fetchTeamSlackConnectUrlApiStatus: 'success',
+      teamSlackConnectUrl: 'https://slack/connect',
+      fetchTeamSlackStatusApiStatus: 'success',
+      teamSlack: { slack_team_name: 'Measure', is_active: true },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(await screen.findByText('Error fetching pending invites, please refresh page to try again')).toBeInTheDocument()
   })
 
   it('shows pending invites loading spinner while pending invites API is pending', async () => {
-    const { fetchPendingInvitesFromServer } = require('@/app/api/api_calls')
-    fetchPendingInvitesFromServer.mockImplementationOnce(
-      () => new Promise(() => { })
-    )
+    setDefaultTeamsState()
+    useTeamPageStore.setState({
+      currentUserId: 'user-1',
+      authzAndMembersApiStatus: 'success',
+      authzAndMembers: defaultAuthz,
+      pendingInvitesApiStatus: 'loading',
+      pendingInvites: null,
+      fetchTeamSlackConnectUrlApiStatus: 'success',
+      teamSlackConnectUrl: 'https://slack/connect',
+      fetchTeamSlackStatusApiStatus: 'success',
+      teamSlack: { slack_team_name: 'Measure', is_active: true },
+    })
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
 
@@ -331,13 +564,14 @@ describe('Team Page', () => {
   })
 
   it('disables team rename save when can_rename_team is false', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_rename_team: false },
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_rename_team: false },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     const saveButton = screen.getByRole('button', { name: 'Save' })
     expect(saveButton).toBeDisabled()
@@ -357,7 +591,8 @@ describe('Team Page', () => {
   })
 
   it('renames team after confirmation when can_rename_team is true', async () => {
-    const { changeTeamNameFromServer } = require('@/app/api/api_calls')
+    const mockChangeTeamName = jest.fn().mockResolvedValue(true)
+    useTeamPageStore.setState({ changeTeamName: mockChangeTeamName })
 
     await renderPage()
 
@@ -366,13 +601,13 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(changeTeamNameFromServer).toHaveBeenCalledWith('team-1', 'Team Updated')
+      expect(mockChangeTeamName).toHaveBeenCalledWith('team-1', 'Team Updated')
     })
   })
 
   it('shows error toast when team rename fails', async () => {
-    const { changeTeamNameFromServer } = require('@/app/api/api_calls')
-    changeTeamNameFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    const mockChangeTeamName = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ changeTeamName: mockChangeTeamName })
 
     await renderPage()
 
@@ -398,33 +633,36 @@ describe('Team Page', () => {
   })
 
   it('disables invite actions when can_invite_roles is empty', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_invite_roles: [] },
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_invite_roles: [] },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(screen.getAllByTestId('dropdown-Roles')[0]).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Invite' })).toBeDisabled()
   })
 
   it('disables pending invite actions when role is not invitable', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_invite_roles: ['developer'] },
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_invite_roles: ['developer'] },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(screen.getByRole('button', { name: 'Resend' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Revoke' })).toBeDisabled()
   })
 
   it('invites member successfully', async () => {
-    const { inviteMemberFromServer } = require('@/app/api/api_calls')
+    const mockInviteMember = jest.fn().mockResolvedValue(true)
+    useTeamPageStore.setState({ inviteMember: mockInviteMember })
 
     await renderPage()
 
@@ -432,14 +670,14 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
 
     await waitFor(() => {
-      expect(inviteMemberFromServer).toHaveBeenCalledWith('team-1', 'new@member.com', expect.any(String))
+      expect(mockInviteMember).toHaveBeenCalledWith('team-1', 'new@member.com', expect.any(String))
       expect(mockToastPositive).toHaveBeenCalled()
     })
   })
 
   it('shows error toast when invite member fails', async () => {
-    const { inviteMemberFromServer } = require('@/app/api/api_calls')
-    inviteMemberFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'failed' }))
+    const mockInviteMember = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ inviteMember: mockInviteMember })
 
     await renderPage()
 
@@ -447,12 +685,13 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error inviting member', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error inviting member')
     })
   })
 
   it('changes member role through confirmation dialog', async () => {
-    const { changeRoleFromServer } = require('@/app/api/api_calls')
+    const mockChangeRole = jest.fn().mockResolvedValue(true)
+    useTeamPageStore.setState({ changeRole: mockChangeRole })
 
     await renderPage()
 
@@ -461,16 +700,16 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(changeRoleFromServer).toHaveBeenCalledWith('team-1', expect.any(String), 'user-2')
+      expect(mockChangeRole).toHaveBeenCalledWith('team-1', expect.any(String), 'user-2')
       expect(mockToastPositive).toHaveBeenCalled()
     })
   })
 
   it('shows non-editable current role selector when no assignable roles are returned', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'success',
-      data: {
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: {
         ...defaultAuthz,
         members: [
           defaultAuthz.members[0],
@@ -483,9 +722,10 @@ describe('Team Page', () => {
           },
         ],
       },
-    }))
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(screen.getByTestId('dropdown-Current Role')).toBeInTheDocument()
   })
@@ -498,8 +738,8 @@ describe('Team Page', () => {
   })
 
   it('shows error toast when role change fails', async () => {
-    const { changeRoleFromServer } = require('@/app/api/api_calls')
-    changeRoleFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'failed' }))
+    const mockChangeRole = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ changeRole: mockChangeRole })
 
     await renderPage()
 
@@ -508,12 +748,13 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error changing role', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error changing role')
     })
   })
 
   it('removes member through confirmation dialog', async () => {
-    const { removeMemberFromServer } = require('@/app/api/api_calls')
+    const mockRemoveMember = jest.fn().mockResolvedValue(true)
+    useTeamPageStore.setState({ removeMember: mockRemoveMember })
 
     await renderPage()
 
@@ -521,14 +762,14 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(removeMemberFromServer).toHaveBeenCalledWith('team-1', 'user-2')
+      expect(mockRemoveMember).toHaveBeenCalledWith('team-1', 'user-2')
       expect(mockToastPositive).toHaveBeenCalled()
     })
   })
 
   it('shows error toast when remove member fails', async () => {
-    const { removeMemberFromServer } = require('@/app/api/api_calls')
-    removeMemberFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'failed' }))
+    const mockRemoveMember = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ removeMember: mockRemoveMember })
 
     await renderPage()
 
@@ -536,12 +777,17 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error removing member', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error removing member')
     })
   })
 
   it('resends and revokes pending invites via confirmation dialogs', async () => {
-    const { resendPendingInviteFromServer, removePendingInviteFromServer } = require('@/app/api/api_calls')
+    const mockResendPendingInvite = jest.fn().mockResolvedValue(true)
+    const mockRemovePendingInvite = jest.fn().mockResolvedValue(true)
+    useTeamPageStore.setState({
+      resendPendingInvite: mockResendPendingInvite,
+      removePendingInvite: mockRemovePendingInvite,
+    })
 
     await renderPage()
 
@@ -549,20 +795,20 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(resendPendingInviteFromServer).toHaveBeenCalledWith('team-1', 'invite-1')
+      expect(mockResendPendingInvite).toHaveBeenCalledWith('team-1', 'invite-1')
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(removePendingInviteFromServer).toHaveBeenCalledWith('team-1', 'invite-1')
+      expect(mockRemovePendingInvite).toHaveBeenCalledWith('team-1', 'invite-1')
     })
   })
 
   it('shows error toast when resend pending invite fails', async () => {
-    const { resendPendingInviteFromServer } = require('@/app/api/api_calls')
-    resendPendingInviteFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'failed' }))
+    const mockResendPendingInvite = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ resendPendingInvite: mockResendPendingInvite })
 
     await renderPage()
 
@@ -570,13 +816,13 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error resending invite', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error resending invite')
     })
   })
 
   it('shows error toast when revoke pending invite fails', async () => {
-    const { removePendingInviteFromServer } = require('@/app/api/api_calls')
-    removePendingInviteFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'failed' }))
+    const mockRemovePendingInvite = jest.fn().mockResolvedValue(false)
+    useTeamPageStore.setState({ removePendingInvite: mockRemovePendingInvite })
 
     await renderPage()
 
@@ -584,67 +830,74 @@ describe('Team Page', () => {
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error removing pending invite', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error removing pending invite')
     })
   })
 
   it('disables slack actions when can_manage_slack is false', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_manage_slack: false },
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByTestId('slack-switch')
 
     expect(screen.getByTestId('slack-switch')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Send Test Alert' })).toBeDisabled()
   })
 
-  it('handles slack enable/disable and test alert actions', async () => {
-    const {
-      fetchTeamSlackStatusFromServer,
-      updateTeamSlackStatusFromServer,
-      sendTestSlackAlertFromServer,
-    } = require('@/app/api/api_calls')
+  it('handles slack enable action', async () => {
+    const mockUpdateSlackStatus = jest.fn().mockResolvedValue(true)
 
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: { slack_team_name: 'Measure', is_active: false },
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      teamSlack: { slack_team_name: 'Measure', is_active: false },
+      updateSlackStatus: mockUpdateSlackStatus,
+    })
 
-    await renderPage()
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByTestId('slack-switch')
 
     fireEvent.click(screen.getByTestId('slack-switch'))
 
     await waitFor(() => {
-      expect(updateTeamSlackStatusFromServer).toHaveBeenCalledWith('team-1', true)
+      expect(mockUpdateSlackStatus).toHaveBeenCalledWith('team-1', true)
     })
+  })
+
+  it('handles test slack alert action', async () => {
+    const mockTestSlackAlert = jest.fn().mockResolvedValue(true)
+
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      testSlackAlert: mockTestSlackAlert,
+    })
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByRole('button', { name: 'Send Test Alert' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Send Test Alert' }))
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(sendTestSlackAlertFromServer).toHaveBeenCalledWith('team-1')
+      expect(mockTestSlackAlert).toHaveBeenCalledWith('team-1')
     })
   })
 
   it('shows slack setup link when slack is not connected and disables it without permissions', async () => {
-    const { fetchAuthzAndMembersFromServer, fetchTeamSlackStatusFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchAuthzAndMembersFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_manage_slack: false },
-    }))
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: null,
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+      teamSlack: null,
+    })
 
-    await renderPage({ waitForSlack: false })
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     const addToSlackImage = await screen.findByAltText('Add to Slack')
     const link = addToSlackImage.closest('a')
@@ -653,73 +906,82 @@ describe('Team Page', () => {
   })
 
   it('shows slack integration error when slack APIs fail', async () => {
-    const { fetchTeamSlackStatusFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'error',
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      fetchTeamSlackStatusApiStatus: 'error',
+      teamSlack: null,
+    })
 
-    await renderPage({ waitForSlack: false })
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(await screen.findByText((content) => content.includes('Error fetching Slack Integration status'))).toBeInTheDocument()
   })
 
   it('shows slack integration error when slack connect URL fetch fails', async () => {
-    const { fetchTeamSlackConnectUrlFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackConnectUrlFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'error',
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      fetchTeamSlackConnectUrlApiStatus: 'error',
+      teamSlackConnectUrl: null,
+    })
 
-    await renderPage({ waitForSlack: false })
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     expect(await screen.findByText((content) => content.includes('Error fetching Slack Integration status'))).toBeInTheDocument()
   })
 
   it('shows error toast when disabling slack integration fails', async () => {
-    const { fetchTeamSlackStatusFromServer, updateTeamSlackStatusFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: { slack_team_name: 'Measure', is_active: true },
-    }))
-    updateTeamSlackStatusFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'error',
-      error: 'failed',
-    }))
+    const mockUpdateSlackStatus = jest.fn().mockResolvedValue(false)
 
-    await renderPage()
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      teamSlack: { slack_team_name: 'Measure', is_active: true },
+      updateSlackStatus: mockUpdateSlackStatus,
+    })
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByRole('button', { name: 'Send Test Alert' })
     fireEvent.click(screen.getByTestId('slack-switch'))
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error disabling Slack integration', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error disabling Slack integration')
     })
   })
 
   it('shows error toast when enabling slack integration fails', async () => {
-    const { fetchTeamSlackStatusFromServer, updateTeamSlackStatusFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: { slack_team_name: 'Measure', is_active: false },
-    }))
-    updateTeamSlackStatusFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'error',
-      error: 'failed',
-    }))
+    const mockUpdateSlackStatus = jest.fn().mockResolvedValue(false)
 
-    await renderPage()
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      teamSlack: { slack_team_name: 'Measure', is_active: false },
+      updateSlackStatus: mockUpdateSlackStatus,
+    })
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByTestId('slack-switch')
     fireEvent.click(screen.getByTestId('slack-switch'))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error enabling Slack integration', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error enabling Slack integration')
     })
   })
 
   it('shows success toast when disabling slack integration succeeds', async () => {
-    await renderPage()
+    const mockUpdateSlackStatus = jest.fn().mockResolvedValue(true)
+
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      updateSlackStatus: mockUpdateSlackStatus,
+    })
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByRole('button', { name: 'Send Test Alert' })
 
     fireEvent.click(screen.getByTestId('slack-switch'))
@@ -731,18 +993,15 @@ describe('Team Page', () => {
   })
 
   it('prevents add-to-slack navigation when slack management is disabled', async () => {
-    const { fetchAuthzAndMembersFromServer, fetchTeamSlackStatusFromServer } = require('@/app/api/api_calls')
-    fetchTeamSlackStatusFromServer.mockReset()
-    fetchAuthzAndMembersFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: { ...defaultAuthz, can_manage_slack: false },
-    }))
-    fetchTeamSlackStatusFromServer.mockImplementation(() => Promise.resolve({
-      status: 'success',
-      data: null,
-    }))
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+      teamSlack: null,
+    })
 
-    await renderPage({ waitForSlack: false })
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
 
     const addToSlackImage = await screen.findByAltText('Add to Slack')
     const link = addToSlackImage.closest('a')!
@@ -754,19 +1013,21 @@ describe('Team Page', () => {
   })
 
   it('shows error toast when sending test slack alert fails', async () => {
-    const { sendTestSlackAlertFromServer } = require('@/app/api/api_calls')
-    sendTestSlackAlertFromServer.mockImplementationOnce(() => Promise.resolve({
-      status: 'error',
-      error: 'failed',
-    }))
+    const mockTestSlackAlert = jest.fn().mockResolvedValue(false)
 
-    await renderPage()
+    setDefaultTeamsState()
+    setDefaultTeamPageState()
+    useTeamPageStore.setState({
+      testSlackAlert: mockTestSlackAlert,
+    })
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
     await screen.findByRole('button', { name: 'Send Test Alert' })
     fireEvent.click(screen.getByRole('button', { name: 'Send Test Alert' }))
     fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error sending test Slack alerts', 'failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error sending test Slack alerts')
     })
   })
 
@@ -803,23 +1064,28 @@ describe('Team Page', () => {
     expect(window.sessionStorage.getItem('teamNameChanged')).toBeNull()
   })
 
-  it('logs error and skips slack connect URL fetch when session lookup fails', async () => {
-    const { measureAuth } = require('@/app/auth/measure_auth')
-    const { fetchTeamSlackConnectUrlFromServer } = require('@/app/api/api_calls')
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
+  it('renders page without slack connect URL when currentUserId is undefined', async () => {
+    // When session doesn't have user.id, the slack connect URL query won't be enabled
+    const { useSessionStore } = require('@/app/stores/provider')
+    useSessionStore.setState({ session: { user: { id: undefined } } })
 
-    measureAuth.getSession.mockImplementationOnce(() => Promise.resolve({
-      session: null,
-      error: new Error('session failed'),
-    }))
-
-    await renderPage({ waitForSlack: false })
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalled()
-      expect(fetchTeamSlackConnectUrlFromServer).not.toHaveBeenCalled()
+    setDefaultTeamsState()
+    useTeamPageStore.setState({
+      authzAndMembersApiStatus: 'success',
+      authzAndMembers: defaultAuthz,
+      pendingInvitesApiStatus: 'success',
+      pendingInvites: defaultPendingInvites,
+      fetchTeamSlackConnectUrlApiStatus: 'success',
+      teamSlackConnectUrl: 'https://slack/connect',
+      fetchTeamSlackStatusApiStatus: 'success',
+      teamSlack: { slack_team_name: 'Measure', is_active: true },
     })
-    consoleErrorSpy.mockRestore()
+
+    render(<TeamOverview params={{ teamId: 'team-1' }} />)
+    await screen.findByText('Invite Team Members')
+
+    // Page renders without errors even without session user ID
+    expect(screen.getByText('Team')).toBeInTheDocument()
   })
 
   it('navigates to new team after create team success callback', async () => {

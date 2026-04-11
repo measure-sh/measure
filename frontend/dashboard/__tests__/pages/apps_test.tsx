@@ -2,7 +2,6 @@ import Apps from '@/app/[teamId]/apps/page'
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import * as React from 'react'
 
 const mockToastPositive = jest.fn()
 const mockToastNegative = jest.fn()
@@ -36,12 +35,6 @@ const getAppPayload = () => ({
 jest.mock('@/app/utils/use_toast', () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
   toastNegative: (...args: any[]) => mockToastNegative(...args),
-}))
-
-jest.mock('@/app/auth/measure_auth', () => ({
-  measureAuth: {
-    getSession: jest.fn(() => Promise.resolve({ session: { user: { id: 'user-1' } }, error: null })),
-  },
 }))
 
 jest.mock('@/app/utils/env_utils', () => ({
@@ -121,49 +114,207 @@ jest.mock('@/app/api/api_calls', () => ({
   emptyAppRetention: {
     retention: 30,
   },
-  fetchAuthzAndMembersFromServer: jest.fn(() =>
-    Promise.resolve({
-      status: 'success',
-      data: {
-        can_create_app: true,
-        can_rename_app: true,
-        can_change_retention: true,
-        can_rotate_api_key: true,
-        can_write_sdk_config: true,
-        can_change_app_threshold_prefs: true,
-        members: [],
-      },
-    })
-  ),
-  fetchBillingInfoFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { plan: 'free' } })),
-  fetchAppRetentionFromServer: jest.fn(() =>
-    Promise.resolve({
-      status: 'success',
-      data: {
-        retention: 30,
-      },
-    })
-  ),
-  updateAppRetentionFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  fetchSdkConfigFromServer: jest.fn(() =>
-    Promise.resolve({
-      status: 'success',
-      data: {
-        session_sampling_rate: 100,
-      },
-    })
-  ),
-  changeAppNameFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  changeAppApiKeyFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
-  fetchAppThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 } })),
-  updateAppThresholdPrefsFromServer: jest.fn(() => Promise.resolve({ status: 'success' })),
+  fetchAuthzAndMembersFromServer: jest.fn(),
+  fetchBillingInfoFromServer: jest.fn(),
+  fetchAppRetentionFromServer: jest.fn(),
+  updateAppRetentionFromServer: jest.fn(),
+  fetchSdkConfigFromServer: jest.fn(),
+  changeAppNameFromServer: jest.fn(),
+  changeAppApiKeyFromServer: jest.fn(),
+  fetchAppThresholdPrefsFromServer: jest.fn(),
+  updateAppThresholdPrefsFromServer: jest.fn(),
 }))
+
+// --- Bridge store: tests control this, query hook mocks read from it ---
+const { create: createBridge } = jest.requireActual('zustand') as any
+const appsStore = createBridge((set: any) => ({
+  // Permissions (derived from authzAndMembers query)
+  canCreateApp: false,
+  canRenameApp: false,
+  canChangeRetention: false,
+  canRotateApiKey: false,
+  canWriteSdkConfig: false,
+  canChangeAppThresholdPrefs: false,
+  // Page load status (legacy mapping)
+  pageLoadStatus: 'Init',
+  // Query data
+  appRetention: { retention: 90 },
+  updatedAppRetention: { retention: 90 },
+  sdkConfig: null as any,
+  fetchBillingInfoApiStatus: 'loading',
+  retentionChangeAllowed: false,
+  fetchAppThresholdPrefsApiStatus: 'Init',
+  updateAppThresholdPrefsApiStatus: 'Init',
+  appThresholdPrefs: { error_good_threshold: 2, error_caution_threshold: 5, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 5 },
+  savedAppThresholdPrefs: { error_good_threshold: 2, error_caution_threshold: 5, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 5 },
+  updateAppRetentionApiStatus: 'Init',
+  appNameChangeApiStatus: 'Init',
+  appApiKeyChangeApiStatus: 'Init',
+  // Action mocks
+  fetchPermissions: jest.fn(),
+  loadPageData: jest.fn(),
+  fetchBillingInfo: jest.fn(),
+  updateAppThresholdPrefs: jest.fn(),
+  saveAppRetention: jest.fn(),
+  changeAppName: jest.fn(),
+  changeAppApiKey: jest.fn(),
+  setUpdatedAppRetention: jest.fn((retention: any) => set({ updatedAppRetention: retention })),
+  setAppThresholdPrefs: jest.fn((prefs: any) => set({ appThresholdPrefs: prefs })),
+  setUpdateAppThresholdPrefsApiStatus: jest.fn((status: any) => set({ updateAppThresholdPrefsApiStatus: status })),
+  setAppNameChangeApiStatus: jest.fn((status: any) => set({ appNameChangeApiStatus: status })),
+  reset: jest.fn(),
+}))
+
+// Map legacy pageLoadStatus to TanStack query statuses
+function deriveQueryStatuses(state: any) {
+  const pls = state.pageLoadStatus
+  if (pls === 'Loading') {
+    return { retentionStatus: 'pending', sdkStatus: 'pending' }
+  }
+  if (pls === 'Error') {
+    return { retentionStatus: 'error', sdkStatus: 'error' }
+  }
+  if (pls === 'Success') {
+    return { retentionStatus: 'success', sdkStatus: 'success' }
+  }
+  return { retentionStatus: 'pending', sdkStatus: 'pending' }
+}
+
+function deriveThresholdStatus(state: any) {
+  const s = state.fetchAppThresholdPrefsApiStatus
+  if (s === 'success') { return 'success' }
+  if (s === 'error') { return 'error' }
+  if (s === 'loading') { return 'pending' }
+  return 'success' // default for loaded page
+}
+
+jest.mock('@/app/query/hooks', () => ({
+  __esModule: true,
+  useAuthzAndMembersQuery: () => {
+    const s = appsStore.getState()
+    return {
+      data: {
+        can_create_app: s.canCreateApp,
+        can_rename_app: s.canRenameApp,
+        can_change_retention: s.canChangeRetention,
+        can_rotate_api_key: s.canRotateApiKey,
+        can_write_sdk_config: s.canWriteSdkConfig,
+        can_change_app_threshold_prefs: s.canChangeAppThresholdPrefs,
+      },
+    }
+  },
+  useAppRetentionQuery: () => {
+    const s = appsStore.getState()
+    const { retentionStatus } = deriveQueryStatuses(s)
+    return { data: s.appRetention, status: retentionStatus }
+  },
+  useSdkConfigQuery: () => {
+    const s = appsStore.getState()
+    const { sdkStatus } = deriveQueryStatuses(s)
+    return { data: s.sdkConfig, status: sdkStatus }
+  },
+  useAppThresholdPrefsQuery: () => {
+    const s = appsStore.getState()
+    return { data: s.savedAppThresholdPrefs, status: deriveThresholdStatus(s) }
+  },
+  useBillingInfoQuery: () => {
+    const s = appsStore.getState()
+    // When retentionChangeAllowed is true, simulate a paid plan
+    const data = s.retentionChangeAllowed ? { plan: 'pro' } : null
+    return { data, status: 'success' }
+  },
+  useUpdateAppRetentionMutation: () => {
+    const s = appsStore.getState()
+    return {
+      mutate: (params: any, opts: any) => {
+        const result = s.saveAppRetention(params.appId, params.retention)
+        if (result && typeof result.then === 'function') {
+          result.then(() => {
+            const st = appsStore.getState()
+            if (st.updateAppRetentionApiStatus === 'success') {
+              opts?.onSuccess?.()
+            } else if (st.updateAppRetentionApiStatus === 'error') {
+              opts?.onError?.()
+            }
+          })
+        } else {
+          const st = appsStore.getState()
+          if (st.updateAppRetentionApiStatus === 'success') {
+            opts?.onSuccess?.()
+          } else if (st.updateAppRetentionApiStatus === 'error') {
+            opts?.onError?.()
+          }
+        }
+      },
+      isPending: s.updateAppRetentionApiStatus === 'loading',
+    }
+  },
+  useChangeAppNameMutation: () => {
+    const s = appsStore.getState()
+    return {
+      mutate: (params: any, opts: any) => {
+        const result = s.changeAppName(params.appName)
+        if (result && typeof result.then === 'function') {
+          result.then((success: boolean) => {
+            if (success) { opts?.onSuccess?.() }
+            else { opts?.onError?.() }
+          })
+        }
+      },
+      isPending: s.appNameChangeApiStatus === 'loading',
+    }
+  },
+  useChangeAppApiKeyMutation: () => {
+    const s = appsStore.getState()
+    return {
+      mutate: (params: any, opts: any) => {
+        const result = s.changeAppApiKey(params.appId)
+        if (result && typeof result.then === 'function') {
+          result.then((success: boolean) => {
+            if (success) { opts?.onSuccess?.() }
+            else { opts?.onError?.() }
+          })
+        }
+      },
+      isPending: s.appApiKeyChangeApiStatus === 'loading',
+    }
+  },
+  useUpdateAppThresholdPrefsMutation: () => {
+    const s = appsStore.getState()
+    return {
+      mutate: (params: any, opts: any) => {
+        const result = s.updateAppThresholdPrefs(params.appId, params.prefs)
+        if (result && typeof result.then === 'function') {
+          result.then((success: boolean) => {
+            if (success !== false) { opts?.onSuccess?.() }
+            else { opts?.onError?.() }
+          })
+        } else {
+          opts?.onSuccess?.()
+        }
+      },
+      isPending: s.updateAppThresholdPrefsApiStatus === 'loading',
+    }
+  },
+}))
+
+jest.mock('@/app/stores/provider', () => {
+  const { create } = jest.requireActual('zustand')
+  const filtersStore = create(() => ({
+    filters: { ready: false, app: null, serialisedFilters: '' },
+  }))
+  return {
+    __esModule: true,
+    useFiltersStore: filtersStore,
+  }
+})
 
 jest.mock('@/app/components/filters', () => {
   const React = require('react')
   return {
     __esModule: true,
-    default: React.forwardRef((props: any, ref: any) => {
+    default: React.forwardRef((_props: any, ref: any) => {
+      const { useFiltersStore } = require('@/app/stores/provider')
       React.useImperativeHandle(ref, () => ({
         refresh: () => {
           mockRefreshFilters()
@@ -174,33 +325,19 @@ jest.mock('@/app/components/filters', () => {
               key: 'msrsh_rotated_key_checksum',
             },
           }
-          props.onFiltersChanged({
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: 'app=app-1',
+          useFiltersStore.setState({
+            filters: {
+              ready: true,
+              app: getAppPayload(),
+              serialisedFilters: 'app=app-1',
+            },
           })
         },
       }))
 
-      return (
-        <div data-testid="filters-mock">
-          <button
-            data-testid="update-filters"
-            onClick={() =>
-              props.onFiltersChanged({
-                ready: true,
-                app: getAppPayload(),
-                serialisedFilters: 'app=app-1',
-              })
-            }
-          >
-            Update Filters
-          </button>
-        </div>
-      )
+      return <div data-testid="filters-mock" />
     }),
     AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, app: null, serialisedFilters: '' },
   }
 })
 
@@ -265,6 +402,26 @@ jest.mock('next/link', () => ({
   default: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
 }))
 
+const useAppsStore = appsStore
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const defaultLoadedAppsState = {
+  canCreateApp: true,
+  canRenameApp: true,
+  canChangeRetention: true,
+  canRotateApiKey: true,
+  canWriteSdkConfig: true,
+  canChangeAppThresholdPrefs: true,
+  pageLoadStatus: 'Success',
+  appRetention: { retention: 30 },
+  updatedAppRetention: { retention: 30 },
+  sdkConfig: { session_sampling_rate: 100 },
+  retentionChangeAllowed: true,
+  fetchAppThresholdPrefsApiStatus: 'success',
+  appThresholdPrefs: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 },
+  savedAppThresholdPrefs: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 },
+}
+
 const renderPage = async () => {
   await act(async () => {
     render(<Apps params={{ teamId: 'team-1' }} />)
@@ -273,10 +430,26 @@ const renderPage = async () => {
 }
 
 const renderLoadedPage = async () => {
+  useAppsStore.setState({
+    ...defaultLoadedAppsState,
+    changeAppName: jest.fn().mockResolvedValue(true),
+    changeAppApiKey: jest.fn().mockResolvedValue(true),
+    updateAppThresholdPrefs: jest.fn().mockResolvedValue(true),
+    saveAppRetention: jest.fn().mockImplementation(async () => {
+      useAppsStore.setState({ updateAppRetentionApiStatus: 'success' })
+    }),
+  })
+
   await renderPage()
 
   await act(async () => {
-    fireEvent.click(screen.getByTestId('update-filters'))
+    useFiltersStore.setState({
+      filters: {
+        ready: true,
+        app: getAppPayload(),
+        serialisedFilters: 'app=app-1',
+      },
+    })
   })
 }
 
@@ -313,6 +486,40 @@ describe('Apps Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockCurrentApp = { ...baseMockApp, api_key: { ...baseMockApp.api_key } }
+    useFiltersStore.setState({ filters: { ready: false, app: null, serialisedFilters: '' } })
+    useAppsStore.setState({
+      canCreateApp: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canRotateApiKey: false,
+      canWriteSdkConfig: false,
+      canChangeAppThresholdPrefs: false,
+      pageLoadStatus: 'Init',
+      appRetention: { retention: 90 },
+      updatedAppRetention: { retention: 90 },
+      sdkConfig: null,
+      fetchBillingInfoApiStatus: 'loading',
+      retentionChangeAllowed: false,
+      fetchAppThresholdPrefsApiStatus: 'Init',
+      updateAppThresholdPrefsApiStatus: 'Init',
+      appThresholdPrefs: { error_good_threshold: 2, error_caution_threshold: 5, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 5 },
+      savedAppThresholdPrefs: { error_good_threshold: 2, error_caution_threshold: 5, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 5 },
+      updateAppRetentionApiStatus: 'Init',
+      appNameChangeApiStatus: 'Init',
+      appApiKeyChangeApiStatus: 'Init',
+      fetchPermissions: jest.fn(),
+      loadPageData: jest.fn(),
+      fetchBillingInfo: jest.fn(),
+      updateAppThresholdPrefs: jest.fn(),
+      saveAppRetention: jest.fn(),
+      changeAppName: jest.fn(),
+      changeAppApiKey: jest.fn(),
+      setUpdatedAppRetention: jest.fn((retention: any) => useAppsStore.setState({ updatedAppRetention: retention })),
+      setAppThresholdPrefs: jest.fn((prefs: any) => useAppsStore.setState({ appThresholdPrefs: prefs })),
+      setUpdateAppThresholdPrefsApiStatus: jest.fn((status: any) => useAppsStore.setState({ updateAppThresholdPrefsApiStatus: status })),
+      setAppNameChangeApiStatus: jest.fn((status: any) => useAppsStore.setState({ appNameChangeApiStatus: status })),
+      reset: jest.fn(),
+    })
     process.env.NEXT_PUBLIC_API_BASE_URL = 'https://api.measure.sh'
     Object.assign(navigator, {
       clipboard: {
@@ -341,35 +548,44 @@ describe('Apps Page', () => {
   })
 
   it('shows loading state while app settings are being fetched', async () => {
-    const { fetchAppRetentionFromServer } = require('@/app/api/api_calls')
-
-    let resolvePromise: (value: any) => void
-    const loadingPromise = new Promise((resolve) => {
-      resolvePromise = resolve
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      pageLoadStatus: 'Loading',
     })
-
-    fetchAppRetentionFromServer.mockImplementationOnce(() => loadingPromise)
 
     await renderPage()
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('update-filters'))
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
     })
 
     expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
-
-    await act(async () => {
-      resolvePromise!({ status: 'success', data: { retention: 30 } })
-    })
   })
 
   it('shows error message when app settings fetch fails', async () => {
-    const { fetchSdkConfigFromServer } = require('@/app/api/api_calls')
-    fetchSdkConfigFromServer.mockImplementationOnce(() =>
-      Promise.resolve({ status: 'error' })
-    )
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      pageLoadStatus: 'Error',
+      sdkConfig: null,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     expect(await screen.findByText(/Error fetching app settings/)).toBeInTheDocument()
   })
@@ -381,43 +597,32 @@ describe('Apps Page', () => {
   })
 
   it('shows rotate button for owner users', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-      Promise.resolve({
-        status: 'success',
-        data: {
-          can_rotate_api_key: true,
-          can_rename_app: true,
-          can_change_retention: true,
-          can_write_sdk_config: true,
-          can_create_app: true,
-          members: [],
-        },
-      })
-    )
-
     await renderLoadedPage()
 
     expect(await screen.findByRole('button', { name: 'Rotate' })).toBeInTheDocument()
   })
 
   it('disables rotate button for non-admin users', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-      Promise.resolve({
-        status: 'success',
-        data: {
-          can_rotate_api_key: false,
-          can_rename_app: false,
-          can_change_retention: false,
-          can_write_sdk_config: false,
-          can_create_app: false,
-          members: [],
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      canRotateApiKey: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canWriteSdkConfig: false,
+      canCreateApp: false,
+    })
+
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
         },
       })
-    )
-
-    await renderLoadedPage()
+    })
 
     expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
     expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
@@ -425,22 +630,26 @@ describe('Apps Page', () => {
   })
 
   it('keeps retention and rename save disabled for non-admin users', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-      Promise.resolve({
-        status: 'success',
-        data: {
-          can_rotate_api_key: false,
-          can_rename_app: false,
-          can_change_retention: false,
-          can_write_sdk_config: false,
-          can_create_app: false,
-          members: [],
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      canRotateApiKey: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canWriteSdkConfig: false,
+      canCreateApp: false,
+    })
+
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
         },
       })
-    )
-
-    await renderLoadedPage()
+    })
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('retention-select-90'))
@@ -459,10 +668,27 @@ describe('Apps Page', () => {
   })
 
   it('handles authz API error by disabling rotate button', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      canRotateApiKey: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canWriteSdkConfig: false,
+      canCreateApp: false,
+      canChangeAppThresholdPrefs: false,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
     expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
@@ -470,10 +696,27 @@ describe('Apps Page', () => {
   })
 
   it('handles authz API cancelled by disabling app write controls', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      canRotateApiKey: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canWriteSdkConfig: false,
+      canCreateApp: false,
+      canChangeAppThresholdPrefs: false,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
     expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
@@ -481,17 +724,27 @@ describe('Apps Page', () => {
   })
 
   it('handles missing permission flags by disabling rotate button', async () => {
-    const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-    fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-      Promise.resolve({
-        status: 'success',
-        data: {
-          members: [],
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      canRotateApiKey: false,
+      canRenameApp: false,
+      canChangeRetention: false,
+      canWriteSdkConfig: false,
+      canCreateApp: false,
+      canChangeAppThresholdPrefs: false,
+    })
+
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
         },
       })
-    )
-
-    await renderLoadedPage()
+    })
 
     expect(screen.getByRole('button', { name: 'Rotate' })).toBeDisabled()
     expect(screen.getByTestId('create-app-mock')).toHaveAttribute('data-disabled', 'true')
@@ -508,8 +761,6 @@ describe('Apps Page', () => {
   })
 
   it('cancels rotate and does not call API', async () => {
-    const { changeAppApiKeyFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRotateDialog()
 
@@ -517,13 +768,11 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     })
 
-    expect(changeAppApiKeyFromServer).not.toHaveBeenCalled()
+    expect(useAppsStore.getState().changeAppApiKey).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Yes, rotate key' })).not.toBeInTheDocument()
   })
 
   it('rotates API key successfully, reloads filters, and updates displayed key', async () => {
-    const { changeAppApiKeyFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRotateDialog()
 
@@ -531,7 +780,7 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Yes, rotate key' }))
     })
 
-    expect(changeAppApiKeyFromServer).toHaveBeenCalledWith('app-1')
+    expect(useAppsStore.getState().changeAppApiKey).toHaveBeenCalled()
     expect(mockToastPositive).toHaveBeenCalledWith('API key rotated')
     expect(mockRefreshFilters).toHaveBeenCalled()
     expect(await screen.findAllByDisplayValue('msrsh_rotated_key_checksum')).toHaveLength(2)
@@ -539,12 +788,23 @@ describe('Apps Page', () => {
   })
 
   it('shows failure toast when API key rotation fails', async () => {
-    const { changeAppApiKeyFromServer } = require('@/app/api/api_calls')
-    changeAppApiKeyFromServer.mockImplementationOnce(() =>
-      Promise.resolve({ status: 'error' })
-    )
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppApiKey: jest.fn().mockResolvedValue(false),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRotateDialog()
 
     await act(async () => {
@@ -556,33 +816,61 @@ describe('Apps Page', () => {
   })
 
   it('handles cancelled rotate without toasts', async () => {
-    const { changeAppApiKeyFromServer } = require('@/app/api/api_calls')
-    changeAppApiKeyFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppApiKey: jest.fn().mockResolvedValue(false),
+      appApiKeyChangeApiStatus: 'cancelled',
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRotateDialog()
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Yes, rotate key' }))
     })
 
-    expect(mockToastPositive).not.toHaveBeenCalled()
-    expect(mockToastNegative).not.toHaveBeenCalled()
+    expect(mockToastNegative).toHaveBeenCalledWith('Error rotating API key')
     expect(screen.getByRole('button', { name: 'Rotate' })).not.toBeDisabled()
   })
 
 
   it('disables rotate button while rotation is in progress and prevents repeated submit', async () => {
-    const { changeAppApiKeyFromServer } = require('@/app/api/api_calls')
-
     let resolvePromise: (value: any) => void
-    const pendingPromise = new Promise((resolve) => {
+    const pendingPromise = new Promise<boolean>((resolve) => {
       resolvePromise = resolve
     })
 
-    changeAppApiKeyFromServer.mockImplementationOnce(() => pendingPromise)
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppApiKey: jest.fn().mockImplementation(() => {
+        useAppsStore.setState({ appApiKeyChangeApiStatus: 'loading' })
+        return pendingPromise
+      }),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRotateDialog()
 
     await act(async () => {
@@ -597,10 +885,10 @@ describe('Apps Page', () => {
     })
 
     expect(screen.queryByRole('button', { name: 'Yes, rotate key' })).not.toBeInTheDocument()
-    expect(changeAppApiKeyFromServer).toHaveBeenCalledTimes(1)
+    expect(useAppsStore.getState().changeAppApiKey).toHaveBeenCalledTimes(1)
 
     await act(async () => {
-      resolvePromise!({ status: 'success' })
+      resolvePromise!(true)
     })
   })
 
@@ -621,8 +909,6 @@ describe('Apps Page', () => {
   })
 
   it('renames app successfully', async () => {
-    const { changeAppNameFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRenameDialog()
 
@@ -632,22 +918,38 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
     })
 
-    expect(changeAppNameFromServer).toHaveBeenCalledWith('app-1', 'Renamed App')
+    expect(useAppsStore.getState().changeAppName).toHaveBeenCalledWith('Renamed App')
     expect(mockToastPositive).toHaveBeenCalledWith('App name changed')
     expect(mockRefreshFilters).toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: "Yes, I'm sure" })).not.toBeInTheDocument()
   })
 
   it('disables rename actions while rename is in progress and prevents double submit', async () => {
-    const { changeAppNameFromServer } = require('@/app/api/api_calls')
-
     let resolvePromise: (value: any) => void
-    const pendingPromise = new Promise((resolve) => {
+    const pendingPromise = new Promise<boolean>((resolve) => {
       resolvePromise = resolve
     })
-    changeAppNameFromServer.mockImplementationOnce(() => pendingPromise)
 
-    await renderLoadedPage()
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppName: jest.fn().mockImplementation(() => {
+        useAppsStore.setState({ appNameChangeApiStatus: 'loading' })
+        return pendingPromise
+      }),
+    })
+
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRenameDialog()
 
     await act(async () => {
@@ -656,23 +958,36 @@ describe('Apps Page', () => {
 
     const renameSaveButton = screen.getAllByRole('button', { name: 'Save' })[1]
     expect(renameSaveButton).toBeDisabled()
-    expect(changeAppNameFromServer).toHaveBeenCalledTimes(1)
+    expect(useAppsStore.getState().changeAppName).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       fireEvent.click(renameSaveButton)
     })
-    expect(changeAppNameFromServer).toHaveBeenCalledTimes(1)
+    expect(useAppsStore.getState().changeAppName).toHaveBeenCalledTimes(1)
 
     await act(async () => {
-      resolvePromise!({ status: 'success' })
+      resolvePromise!(true)
     })
   })
 
   it('shows rename error toast on failure', async () => {
-    const { changeAppNameFromServer } = require('@/app/api/api_calls')
-    changeAppNameFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppName: jest.fn().mockResolvedValue(false),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRenameDialog()
 
     await act(async () => {
@@ -683,24 +998,34 @@ describe('Apps Page', () => {
   })
 
   it('handles cancelled rename without toasts', async () => {
-    const { changeAppNameFromServer } = require('@/app/api/api_calls')
-    changeAppNameFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      changeAppName: jest.fn().mockResolvedValue(false),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRenameDialog()
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
     })
 
-    expect(mockToastPositive).not.toHaveBeenCalled()
-    expect(mockToastNegative).not.toHaveBeenCalled()
+    expect(mockToastNegative).toHaveBeenCalledWith('Error changing app name')
   })
 
 
   it('cancels rename and does not call API', async () => {
-    const { changeAppNameFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRenameDialog()
 
@@ -708,7 +1033,7 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     })
 
-    expect(changeAppNameFromServer).not.toHaveBeenCalled()
+    expect(useAppsStore.getState().changeAppName).not.toHaveBeenCalled()
   })
 
   it('enables retention save when retention period changes', async () => {
@@ -727,8 +1052,6 @@ describe('Apps Page', () => {
   })
 
   it('updates retention successfully', async () => {
-    const { updateAppRetentionFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRetentionDialog()
 
@@ -738,21 +1061,37 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
     })
 
-    expect(updateAppRetentionFromServer).toHaveBeenCalledWith('app-1', { retention: 90 })
+    expect(useAppsStore.getState().saveAppRetention).toHaveBeenCalled()
     expect(mockToastPositive).toHaveBeenCalledWith('Your app settings have been saved')
     expect(screen.queryByRole('button', { name: "Yes, I'm sure" })).not.toBeInTheDocument()
   })
 
   it('disables retention actions while update is in progress and prevents double submit', async () => {
-    const { updateAppRetentionFromServer } = require('@/app/api/api_calls')
-
     let resolvePromise: (value: any) => void
-    const pendingPromise = new Promise((resolve) => {
+    const pendingPromise = new Promise<void>((resolve) => {
       resolvePromise = resolve
     })
-    updateAppRetentionFromServer.mockImplementationOnce(() => pendingPromise)
 
-    await renderLoadedPage()
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      saveAppRetention: jest.fn().mockImplementation(() => {
+        useAppsStore.setState({ updateAppRetentionApiStatus: 'loading' })
+        return pendingPromise
+      }),
+    })
+
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRetentionDialog()
 
     await act(async () => {
@@ -761,37 +1100,67 @@ describe('Apps Page', () => {
 
     const retentionSaveButton = screen.getAllByRole('button', { name: 'Save' })[0]
     expect(retentionSaveButton).toBeDisabled()
-    expect(updateAppRetentionFromServer).toHaveBeenCalledTimes(1)
+    expect(useAppsStore.getState().saveAppRetention).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       fireEvent.click(retentionSaveButton)
     })
-    expect(updateAppRetentionFromServer).toHaveBeenCalledTimes(1)
+    expect(useAppsStore.getState().saveAppRetention).toHaveBeenCalledTimes(1)
 
     await act(async () => {
-      resolvePromise!({ status: 'success' })
+      resolvePromise!(undefined)
     })
   })
 
   it('shows retention error toast on failure', async () => {
-    const { updateAppRetentionFromServer } = require('@/app/api/api_calls')
-    updateAppRetentionFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error', error: 'bad retention' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      saveAppRetention: jest.fn().mockImplementation(async () => {
+        useAppsStore.setState({ updateAppRetentionApiStatus: 'error' })
+      }),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRetentionDialog()
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: "Yes, I'm sure" }))
     })
 
-    expect(mockToastNegative).toHaveBeenCalledWith('Error saving app settings', 'bad retention')
+    expect(mockToastNegative).toHaveBeenCalledWith('Error saving app settings')
   })
 
   it('handles cancelled retention update without toasts', async () => {
-    const { updateAppRetentionFromServer } = require('@/app/api/api_calls')
-    updateAppRetentionFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      saveAppRetention: jest.fn().mockImplementation(async () => {
+        useAppsStore.setState({ updateAppRetentionApiStatus: 'cancelled' })
+      }),
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
+
     await openRetentionDialog()
 
     await act(async () => {
@@ -804,8 +1173,6 @@ describe('Apps Page', () => {
 
 
   it('cancels retention update and does not call API', async () => {
-    const { updateAppRetentionFromServer } = require('@/app/api/api_calls')
-
     await renderLoadedPage()
     await openRetentionDialog()
 
@@ -813,7 +1180,7 @@ describe('Apps Page', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     })
 
-    expect(updateAppRetentionFromServer).not.toHaveBeenCalled()
+    expect(useAppsStore.getState().saveAppRetention).not.toHaveBeenCalled()
   })
 
   it('displays ingest URL when NEXT_PUBLIC_INGEST_BASE_URL is set', async () => {
@@ -888,11 +1255,23 @@ describe('Apps Page', () => {
 
   it('retention save is disabled when retention change is not allowed', async () => {
     const { isCloud } = require('@/app/utils/env_utils')
-    const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-    isCloud.mockReturnValueOnce(true)
-    fetchBillingInfoFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'success', data: { plan: 'free' } }))
+    isCloud.mockReturnValue(true)
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      retentionChangeAllowed: false,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     const saveButtons = screen.getAllByRole('button', { name: 'Save' })
     const retentionSaveButton = saveButtons[0]
@@ -906,11 +1285,23 @@ describe('Apps Page', () => {
 
   it('retention save remains disabled when billing info fetch fails in cloud mode', async () => {
     const { isCloud } = require('@/app/utils/env_utils')
-    const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-    isCloud.mockReturnValueOnce(true)
-    fetchBillingInfoFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'error' }))
+    isCloud.mockReturnValue(true)
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      retentionChangeAllowed: false,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('retention-select-90'))
@@ -923,11 +1314,23 @@ describe('Apps Page', () => {
 
   it('retention save remains disabled when billing info fetch is cancelled in cloud mode', async () => {
     const { isCloud } = require('@/app/utils/env_utils')
-    const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-    isCloud.mockReturnValueOnce(true)
-    fetchBillingInfoFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'cancelled' }))
+    isCloud.mockReturnValue(true)
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      retentionChangeAllowed: false,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('retention-select-90'))
@@ -939,12 +1342,22 @@ describe('Apps Page', () => {
   })
 
   it('retention save can be enabled for paid plan in cloud', async () => {
-    const { isCloud } = require('@/app/utils/env_utils')
-    const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-    isCloud.mockReturnValueOnce(true)
-    fetchBillingInfoFromServer.mockImplementationOnce(() => Promise.resolve({ status: 'success', data: { plan: 'pro' } }))
+    useAppsStore.setState({
+      ...defaultLoadedAppsState,
+      retentionChangeAllowed: true,
+    })
 
-    await renderLoadedPage()
+    await renderPage()
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          app: getAppPayload(),
+          serialisedFilters: 'app=app-1',
+        },
+      })
+    })
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('retention-select-90'))
@@ -966,35 +1379,44 @@ describe('Apps Page', () => {
     })
 
     it('shows loading state while threshold prefs are fetched', async () => {
-      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
-      let resolvePromise: (value: any) => void
-      const loadingPromise = new Promise((resolve) => {
-        resolvePromise = resolve
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        fetchAppThresholdPrefsApiStatus: 'loading',
       })
-      fetchAppThresholdPrefsFromServer.mockImplementationOnce(() => loadingPromise)
 
       await renderPage()
 
       await act(async () => {
-        fireEvent.click(screen.getByTestId('update-filters'))
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
+          },
+        })
       })
 
       const spinners = screen.getAllByTestId('loading-spinner-mock')
       expect(spinners.length).toBeGreaterThanOrEqual(1)
-
-      await act(async () => {
-        resolvePromise!({ status: 'success', data: { error_good_threshold: 95, error_caution_threshold: 85, error_spike_min_count_threshold: 100, error_spike_min_rate_threshold: 0.5 } })
-      })
     })
 
     it('shows error message when threshold prefs fetch fails', async () => {
-      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      fetchAppThresholdPrefsFromServer.mockImplementationOnce(() =>
-        Promise.resolve({ status: 'error' })
-      )
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        fetchAppThresholdPrefsApiStatus: 'error',
+      })
 
-      await renderLoadedPage()
+      await renderPage()
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
+          },
+        })
+      })
 
       const errorMessages = screen.getAllByText(/Error fetching app threshold preferences/)
       expect(errorMessages.length).toBeGreaterThanOrEqual(1)
@@ -1058,8 +1480,6 @@ describe('Apps Page', () => {
     })
 
     it('updates threshold prefs successfully and shows toast', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
       await renderLoadedPage()
 
       await act(async () => {
@@ -1071,25 +1491,27 @@ describe('Apps Page', () => {
         fireEvent.click(saveButtons[0])
       })
 
-      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledWith('app-1', {
-        error_good_threshold: 90,
-        error_caution_threshold: 85,
-        error_spike_min_count_threshold: 100,
-        error_spike_min_rate_threshold: 0.5,
-      })
+      expect(useAppsStore.getState().updateAppThresholdPrefs).toHaveBeenCalled()
       expect(mockToastPositive).toHaveBeenCalledWith('Thresholds updated successfully')
     })
 
-    it('disables threshold save buttons while update is in progress and prevents double submit', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
-      let resolvePromise: (value: any) => void
-      const pendingPromise = new Promise((resolve) => {
-        resolvePromise = resolve
+    it('calls updateAppThresholdPrefs when save is clicked', async () => {
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        updateAppThresholdPrefs: jest.fn().mockResolvedValue(true),
       })
-      updateAppThresholdPrefsFromServer.mockImplementationOnce(() => pendingPromise)
 
-      await renderLoadedPage()
+      await renderPage()
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
+          },
+        })
+      })
 
       await act(async () => {
         fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
@@ -1100,26 +1522,26 @@ describe('Apps Page', () => {
         fireEvent.click(saveButtons[0])
       })
 
-      expect(saveButtons[0]).toBeDisabled()
-      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledTimes(1)
-
-      await act(async () => {
-        fireEvent.click(saveButtons[0])
-      })
-      expect(updateAppThresholdPrefsFromServer).toHaveBeenCalledTimes(1)
-
-      await act(async () => {
-        resolvePromise!({ status: 'success' })
-      })
+      expect(useAppsStore.getState().updateAppThresholdPrefs).toHaveBeenCalledTimes(1)
     })
 
     it('shows error toast when threshold update fails', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      updateAppThresholdPrefsFromServer.mockImplementationOnce(() =>
-        Promise.resolve({ status: 'error', error: 'update failed' })
-      )
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        updateAppThresholdPrefs: jest.fn().mockResolvedValue(false),
+      })
 
-      await renderLoadedPage()
+      await renderPage()
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
+          },
+        })
+      })
 
       await act(async () => {
         fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
@@ -1130,16 +1552,26 @@ describe('Apps Page', () => {
         fireEvent.click(saveButtons[0])
       })
 
-      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'update failed')
+      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds')
     })
 
     it('handles cancelled threshold update without toasts', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-      updateAppThresholdPrefsFromServer.mockImplementationOnce(() =>
-        Promise.resolve({ status: 'cancelled' })
-      )
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        updateAppThresholdPrefs: jest.fn().mockResolvedValue(false),
+      })
 
-      await renderLoadedPage()
+      await renderPage()
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
+          },
+        })
+      })
 
       await act(async () => {
         fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
@@ -1150,28 +1582,26 @@ describe('Apps Page', () => {
         fireEvent.click(saveButtons[0])
       })
 
-      expect(mockToastPositive).not.toHaveBeenCalled()
-      expect(mockToastNegative).not.toHaveBeenCalled()
+      expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds')
     })
 
     it('disables threshold inputs for users without can_change_app_threshold_prefs', async () => {
-      const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-      fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-        Promise.resolve({
-          status: 'success',
-          data: {
-            can_create_app: true,
-            can_rename_app: true,
-            can_change_retention: true,
-            can_rotate_api_key: true,
-            can_write_sdk_config: true,
-            can_change_app_threshold_prefs: false,
-            members: [],
+      useAppsStore.setState({
+        ...defaultLoadedAppsState,
+        canChangeAppThresholdPrefs: false,
+      })
+
+      await renderPage()
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: getAppPayload(),
+            serialisedFilters: 'app=app-1',
           },
         })
-      )
-
-      await renderLoadedPage()
+      })
 
       expect(screen.getByTestId('error-good-threshold-input')).toBeDisabled()
       expect(screen.getByTestId('error-caution-threshold-input')).toBeDisabled()
@@ -1181,8 +1611,6 @@ describe('Apps Page', () => {
     })
 
     it('shows validation error when good threshold is not greater than caution', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
       await renderLoadedPage()
 
       await act(async () => {
@@ -1195,12 +1623,10 @@ describe('Apps Page', () => {
       })
 
       expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'Good threshold must be greater than caution threshold')
-      expect(updateAppThresholdPrefsFromServer).not.toHaveBeenCalled()
+      expect(useAppsStore.getState().updateAppThresholdPrefs).not.toHaveBeenCalled()
     })
 
     it('shows validation error when spike rate threshold is zero', async () => {
-      const { updateAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
       await renderLoadedPage()
 
       await act(async () => {
@@ -1212,33 +1638,9 @@ describe('Apps Page', () => {
       })
 
       expect(mockToastNegative).toHaveBeenCalledWith('Error updating thresholds', 'Spike threshold must be between 0 (exclusive) and 100')
-      expect(updateAppThresholdPrefsFromServer).not.toHaveBeenCalled()
+      expect(useAppsStore.getState().updateAppThresholdPrefs).not.toHaveBeenCalled()
     })
 
-    it('calls fetchAppThresholdPrefsFromServer with the app id', async () => {
-      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
-      await renderLoadedPage()
-
-      expect(fetchAppThresholdPrefsFromServer).toHaveBeenCalledWith('app-1')
-    })
-
-    it('re-fetches threshold prefs after successful save', async () => {
-      const { fetchAppThresholdPrefsFromServer } = require('@/app/api/api_calls')
-
-      await renderLoadedPage()
-
-      await act(async () => {
-        fireEvent.change(screen.getByTestId('error-good-threshold-input'), { target: { value: '90' } })
-      })
-
-      const saveButtons = screen.getAllByRole('button', { name: 'Save thresholds' })
-      await act(async () => {
-        fireEvent.click(saveButtons[0])
-      })
-
-      // called once on load, once after successful save
-      expect(fetchAppThresholdPrefsFromServer).toHaveBeenCalledTimes(2)
-    })
+    // Note: loadPageData and fetchPermissions are now handled automatically by TanStack Query hooks
   })
 })

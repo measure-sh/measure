@@ -1,88 +1,29 @@
 "use client"
 
+import { useBugReportsOverviewPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { BugReportsOverviewPlotApiStatus, fetchBugReportsOverviewPlotFromServer } from '../api/api_calls'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import React from 'react'
 import { chartTheme } from '../utils/shared_styles'
-import { getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
+import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
 import LoadingSpinner from './loading_spinner'
 
-interface BugReportsOverviewPlotProps {
-  filters: Filters
-}
-
-type BugReportsOverviewPlot = {
-  id: string
-  data: {
-    id: string
-    x: string
-    y: number
-  }[]
-}[]
-
-const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters }) => {
-  const [bugReportsOverviewPlotApiStatus, setBugReportsOverviewPlotApiStatus] = useState(BugReportsOverviewPlotApiStatus.Loading)
-  const [plot, setPlot] = useState<BugReportsOverviewPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const BugReportsOverviewPlot: React.FC = () => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: plot, status } = useBugReportsOverviewPlotQuery()
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
-  const shouldRenderPlot = bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
-
-  const getBugReportsOverviewPlot = async () => {
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Loading)
-
-    const result = await fetchBugReportsOverviewPlotFromServer(filters)
-
-    switch (result.status) {
-      case BugReportsOverviewPlotApiStatus.Error:
-        setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case BugReportsOverviewPlotApiStatus.NoData:
-        setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.NoData)
-        setPlotDataKey(null)
-        break
-      case BugReportsOverviewPlotApiStatus.Success:
-        setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Success)
-
-        // map result data to chart format
-        let newPlot = result.data.map((item: any) => ({
-          id: item.id,
-          data: item.data.map((data: any, index: number) => ({
-            id: item.id + '.' + index,
-            x: data.datetime,
-            y: data.instances
-          }))
-        }))
-
-        setPlot(newPlot)
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getBugReportsOverviewPlot()
-  }, [filters])
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {(bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Loading || (bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {bugReportsOverviewPlotApiStatus === BugReportsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {status === 'pending' && <LoadingSpinner />}
+      {status === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {status === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {status === 'success' && plot !== null && plot !== undefined &&
         <ResponsiveLine
-          data={plot!}
+          data={plot}
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}

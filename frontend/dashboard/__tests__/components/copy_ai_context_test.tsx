@@ -1,7 +1,6 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
 
 const mockToastPositive = jest.fn()
 const mockWriteText = jest.fn()

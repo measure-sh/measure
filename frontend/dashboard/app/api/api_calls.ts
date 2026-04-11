@@ -1,11 +1,16 @@
-import { measureAuth } from "../auth/measure_auth"
-import { Filters } from "../components/filters"
-import { JourneyType } from "../components/journey"
 import {
   formatUserInputDateToServerFormat,
   getPlotTimeGroupForRange,
   getTimeZoneForServer,
 } from "../utils/time_utils"
+import { apiClient } from "./api_client"
+
+export enum JourneyType {
+  Paths,
+  Exceptions,
+  CrashDetails,
+  AnrDetails
+}
 
 export enum ValidateInviteApiStatus {
   Init,
@@ -1252,7 +1257,77 @@ export type UserDefAttr = {
   type: string
 }
 
-export const saveListFiltersToServer = async (filters: Filters) => {
+export type UdAttrMatcher = {
+  key: string
+  type: string
+  op: string
+  value: string | number | boolean
+}
+
+export type Filters = {
+  ready: boolean
+  app: App | null
+  rootSpanName: string
+  startDate: string
+  endDate: string
+  versions: { selected: AppVersion[], all: boolean }
+  sessionTypes: { selected: SessionType[], all: boolean }
+  spanStatuses: { selected: SpanStatus[], all: boolean }
+  bugReportStatuses: { selected: BugReportStatus[], all: boolean }
+  httpMethods: { selected: HttpMethod[], all: boolean }
+  osVersions: { selected: OsVersion[], all: boolean }
+  countries: { selected: string[], all: boolean }
+  networkProviders: { selected: string[], all: boolean }
+  networkTypes: { selected: string[], all: boolean }
+  networkGenerations: { selected: string[], all: boolean }
+  locales: { selected: string[], all: boolean }
+  deviceManufacturers: { selected: string[], all: boolean }
+  deviceNames: { selected: string[], all: boolean }
+  udAttrMatchers: UdAttrMatcher[]
+  freeText: string
+  serialisedFilters: string | null
+  // Resolves to the server-side filter_short_code for this filter combination.
+  // Set by the filters store when filters change. URL builders await this
+  // instead of POSTing /shortFilters themselves, so there is exactly one POST
+  // per filter change regardless of how many parallel data fetchers run.
+  filterShortCodePromise: Promise<string | null>
+}
+
+export const defaultFilters: Filters = {
+  ready: false,
+  app: null,
+  rootSpanName: "",
+  startDate: "",
+  endDate: "",
+  versions: { selected: [], all: false },
+  sessionTypes: { selected: [], all: false },
+  spanStatuses: { selected: [], all: false },
+  bugReportStatuses: { selected: [], all: false },
+  httpMethods: { selected: [], all: false },
+  osVersions: { selected: [], all: false },
+  countries: { selected: [], all: false },
+  networkProviders: { selected: [], all: false },
+  networkTypes: { selected: [], all: false },
+  networkGenerations: { selected: [], all: false },
+  locales: { selected: [], all: false },
+  deviceManufacturers: { selected: [], all: false },
+  deviceNames: { selected: [], all: false },
+  udAttrMatchers: [],
+  freeText: "",
+  serialisedFilters: null,
+  filterShortCodePromise: Promise.resolve(null),
+}
+
+/**
+ * Builds the body that `saveListFiltersToServer` would POST to /shortFilters,
+ * or returns `null` when there is nothing to register with the server.
+ *
+ * This is the single source of truth for what makes a filter "different"
+ * from the server's point of view. The filters store imports it and hashes
+ * the result to decide when to kick off a fresh POST — so any change to
+ * this function's output must equivalently change that hash.
+ */
+export const buildShortFiltersPostBody = (filters: Filters): { filters: any } | null => {
   if (
     filters.versions.selected.length === 0 &&
     filters.osVersions.selected.length === 0 &&
@@ -1266,19 +1341,6 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     filters.udAttrMatchers.length === 0
   ) {
     return null
-  }
-
-  let url = `/api/apps/${filters.app!.id}/shortFilters`
-
-  const udExpression = {
-    and: filters.udAttrMatchers.map((matcher) => ({
-      cmp: {
-        key: matcher.key,
-        type: matcher.type,
-        op: matcher.op,
-        value: String(matcher.value),
-      },
-    })),
   }
 
   // we always include app versions regardless of whether all are selected for more efficient filtering on backend
@@ -1297,18 +1359,40 @@ export const saveListFiltersToServer = async (filters: Filters) => {
   }
 
   if (filters.udAttrMatchers.length > 0) {
-    bodyFilters.ud_expression = JSON.stringify(udExpression)
+    bodyFilters.ud_expression = JSON.stringify({
+      and: filters.udAttrMatchers.map((matcher) => ({
+        cmp: {
+          key: matcher.key,
+          type: matcher.type,
+          op: matcher.op,
+          value: String(matcher.value),
+        },
+      })),
+    })
   }
 
-  const opts = {
-    method: "POST",
-    body: JSON.stringify({
-      filters: bodyFilters,
-    }),
+  return { filters: bodyFilters }
+}
+
+/**
+ * POSTs the current filter combination to the server and returns the
+ * server-issued short code. Called exactly once per real filter change by
+ * the filters store; URL builders read the resulting promise via
+ * `filters.filterShortCodePromise` rather than calling this directly.
+ */
+export const saveListFiltersToServer = async (filters: Filters): Promise<string | null> => {
+  const body = buildShortFiltersPostBody(filters)
+  if (body === null) {
+    return null
   }
+
+  const url = `/api/apps/${filters.app!.id}/shortFilters`
 
   try {
-    const res = await measureAuth.fetchMeasure(url, opts)
+    const res = await apiClient.fetch(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
 
     if (!res.ok) {
       return null
@@ -1342,7 +1426,10 @@ async function applyGenericFiltersToUrl(
   searchParams.append("to", serverFormattedEndDate)
   searchParams.append("timezone", timezone)
 
-  const filterShortCode = await saveListFiltersToServer(filters)
+  // The filters store has already kicked off the /shortFilters POST when
+  // filters changed and stored the promise on the filters object — just await
+  // it here. No POST happens in this function.
+  const filterShortCode = await filters.filterShortCodePromise
 
   if (filterShortCode !== null) {
     searchParams.append("filter_short_code", filterShortCode)
@@ -1503,7 +1590,7 @@ function appendHttpMethodsToUrl(url: string, filters: Filters): string {
 
 export const validateInvitesFromServer = async (inviteId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/auth/validateInvite`, {
+    const res = await apiClient.fetch(`/api/auth/validateInvite`, {
       method: "POST",
       body: JSON.stringify({ invite_id: inviteId }),
     })
@@ -1523,7 +1610,7 @@ export const validateInvitesFromServer = async (inviteId: string) => {
 
 export const fetchTeamsFromServer = async () => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams`)
+    const res = await apiClient.fetch(`/api/teams`)
 
     if (!res.ok) {
       return { status: TeamsApiStatus.Error, data: null }
@@ -1539,7 +1626,7 @@ export const fetchTeamsFromServer = async () => {
 
 export const fetchAppsFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/apps`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`)
 
     if (!res.ok && res.status == 404) {
       return { status: AppsApiStatus.NoApps, data: null }
@@ -1558,7 +1645,7 @@ export const fetchAppsFromServer = async (teamId: string) => {
 
 export const fetchRootSpanNamesFromServer = async (selectedApp: App) => {
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/spans/roots/names`,
     )
 
@@ -1589,7 +1676,7 @@ export const fetchSpansFromServer = async (
   url = appendSpanFiltersToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: SpansApiStatus.Error, data: null }
@@ -1611,7 +1698,7 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: SpanMetricsPlotApiStatus.Error, data: null }
@@ -1631,7 +1718,7 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
 
 export const fetchTraceFromServer = async (appId: string, traceId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/traces/${traceId}`,
     )
     if (!res.ok) {
@@ -1665,7 +1752,7 @@ export const fetchFiltersFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: FiltersApiStatus.Error, data: null }
@@ -1811,7 +1898,7 @@ export const fetchJourneyFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: JourneyApiStatus.Error, data: null }
@@ -1831,7 +1918,7 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
   url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: MetricsApiStatus.Error, data: null }
@@ -1861,7 +1948,7 @@ export const fetchSessionTimelinesOverviewFromServer = async (
   url = appendSessionTypesToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: SessionTimelinesOverviewApiStatus.Error, data: null }
@@ -1883,7 +1970,7 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filte
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: SessionTimelinesOverviewPlotApiStatus.Error, data: null }
@@ -1917,7 +2004,7 @@ export const fetchExceptionsOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: ExceptionsOverviewApiStatus.Error, data: null }
@@ -1953,7 +2040,7 @@ export const fetchExceptionsDetailsFromServer = async (
   )
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: ExceptionsDetailsApiStatus.Error, data: null }
@@ -1980,7 +2067,7 @@ export const fetchExceptionGroupCommonPathFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
     console.log("Fetching exception group common path from:", url)
 
     if (!res.ok) {
@@ -2010,7 +2097,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
@@ -2044,7 +2131,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
@@ -2077,7 +2164,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
@@ -2108,7 +2195,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/authz`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/authz`)
     if (!res.ok) {
       return { status: AuthzAndMembersApiStatus.Error, data: null }
     }
@@ -2126,7 +2213,7 @@ export const fetchSessionTimelineFromServer = async (
   sessionId: string,
 ) => {
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/sessions/${sessionId}`,
     )
     if (!res.ok) {
@@ -2151,7 +2238,7 @@ export const changeTeamNameFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/rename`,
       opts,
     )
@@ -2172,7 +2259,7 @@ export const createTeamFromServer = async (teamName: string) => {
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams`, opts)
+    const res = await apiClient.fetch(`/api/teams`, opts)
     const data = await res.json()
 
     if (!res.ok) {
@@ -2192,7 +2279,7 @@ export const createAppFromServer = async (teamId: string, appName: string) => {
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/apps`,
       opts,
     )
@@ -2219,7 +2306,7 @@ export const changeRoleFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/members/${memberId}/role`,
       opts,
     )
@@ -2237,7 +2324,7 @@ export const changeRoleFromServer = async (
 
 export const fetchPendingInvitesFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/invites`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/invites`)
     const data = await res.json()
 
     if (!res.ok) {
@@ -2259,7 +2346,7 @@ export const resendPendingInviteFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/invite/${inviteId}`,
       opts,
     )
@@ -2284,7 +2371,7 @@ export const removePendingInviteFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/invite/${inviteId}`,
       opts,
     )
@@ -2315,7 +2402,7 @@ export const inviteMemberFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/invite`,
       opts,
     )
@@ -2340,7 +2427,7 @@ export const removeMemberFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/members/${memberId}`,
       opts,
     )
@@ -2358,7 +2445,7 @@ export const removeMemberFromServer = async (
 
 export const fetchTeamSlackConnectUrlFromServer = async (userId: string, teamId: string, redirectUrl: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/auth/slack/url`, {
+    const res = await apiClient.fetch(`/auth/slack/url`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2379,7 +2466,7 @@ export const fetchTeamSlackConnectUrlFromServer = async (userId: string, teamId:
 
 export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/slack`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`)
     const data = await res.json()
 
     if (!res.ok) {
@@ -2394,7 +2481,7 @@ export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
 
 export const fetchAppThresholdPrefsFromServer = async (appId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/thresholdPrefs`)
+    const res = await apiClient.fetch(`/api/apps/${appId}/thresholdPrefs`)
     const data = await res.json()
 
     if (!res.ok) {
@@ -2417,7 +2504,7 @@ export const updateAppThresholdPrefsFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/thresholdPrefs`,
       opts,
     )
@@ -2443,7 +2530,7 @@ export const updateTeamSlackStatusFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/slack/status`,
       opts,
     )
@@ -2467,7 +2554,7 @@ export const sendTestSlackAlertFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/teams/${teamId}/slack/test`,
       opts,
     )
@@ -2485,7 +2572,7 @@ export const sendTestSlackAlertFromServer = async (
 
 export const fetchNotifPrefsFromServer = async () => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/prefs/notifPrefs`)
+    const res = await apiClient.fetch(`/api/prefs/notifPrefs`)
 
     if (!res.ok) {
       return { status: FetchNotifPrefsApiStatus.Error, data: null }
@@ -2508,7 +2595,7 @@ export const updateNotifPrefsFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/prefs/notifPrefs`,
       opts,
     )
@@ -2526,7 +2613,7 @@ export const updateNotifPrefsFromServer = async (
 
 export const fetchAppRetentionFromServer = async (appId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/retention`)
+    const res = await apiClient.fetch(`/api/apps/${appId}/retention`)
 
     if (!res.ok) {
       return { status: FetchAppRetentionApiStatus.Error, data: null }
@@ -2550,7 +2637,7 @@ export const updateAppRetentionFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appdId}/retention`,
       opts,
     )
@@ -2576,7 +2663,7 @@ export const changeAppNameFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/rename`,
       opts,
     )
@@ -2596,7 +2683,7 @@ export const changeAppApiKeyFromServer = async (appId: string) => {
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(`/api/apps/${appId}/apiKey`, opts)
+    const res = await apiClient.fetch(`/api/apps/${appId}/apiKey`, opts)
     if (!res.ok) {
       return { status: AppApiKeyChangeApiStatus.Error }
     }
@@ -2609,7 +2696,7 @@ export const changeAppApiKeyFromServer = async (appId: string) => {
 
 export const fetchBillingInfoFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/info`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/info`)
 
     if (!res.ok) {
       return { status: FetchBillingInfoApiStatus.Error, data: null }
@@ -2625,7 +2712,7 @@ export const fetchBillingInfoFromServer = async (teamId: string) => {
 
 export const fetchSubscriptionInfoFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/subscriptionInfo`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/subscriptionInfo`)
 
     if (!res.ok) {
       return { status: FetchSubscriptionInfoApiStatus.Error, data: null }
@@ -2640,7 +2727,7 @@ export const fetchSubscriptionInfoFromServer = async (teamId: string) => {
 
 export const fetchBillingUsageThresholdFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/usageThreshold`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/usageThreshold`)
 
     if (!res.ok) {
       return { status: FetchBillingUsageThresholdApiStatus.Error, data: null }
@@ -2656,7 +2743,7 @@ export const fetchBillingUsageThresholdFromServer = async (teamId: string) => {
 
 export const fetchUsageFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/usage`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/usage`)
 
     if (!res.ok && res.status == 404) {
       return { status: FetchUsageApiStatus.NoApps, data: null }
@@ -2680,7 +2767,7 @@ export const fetchStripeCheckoutSessionFromServer = async (
   cancelUrl: string
 ) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/checkout`, {
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/checkout`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -2705,7 +2792,7 @@ export const fetchStripeCheckoutSessionFromServer = async (
 
 export const downgradeToFreeFromServer = async (teamId: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/downgrade`, {
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/downgrade`, {
       method: 'PATCH',
     })
 
@@ -2723,7 +2810,7 @@ export const downgradeToFreeFromServer = async (teamId: string) => {
 
 export const fetchCustomerPortalUrlFromServer = async (teamId: string, returnUrl: string) => {
   try {
-    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/billing/portal`, {
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/portal`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2756,7 +2843,7 @@ export const fetchBugReportsOverviewFromServer = async (
   url = appendBugReportStatusesToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: BugReportsOverviewApiStatus.Error, data: null }
@@ -2780,7 +2867,7 @@ export const fetchBugReportsOverviewPlotFromServer = async (
   url = appendPlotTimeGroupToUrl(url, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: BugReportsOverviewPlotApiStatus.Error, data: null }
@@ -2803,7 +2890,7 @@ export const fetchBugReportFromServer = async (
   bugReportId: string,
 ) => {
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/bugReports/${bugReportId}`,
     )
     if (!res.ok) {
@@ -2829,7 +2916,7 @@ export const updateBugReportStatusFromServer = async (
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${appId}/bugReports/${bugReportId}`,
       opts,
     )
@@ -2858,7 +2945,7 @@ export const fetchAlertsOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset)
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
 
     if (!res.ok) {
       return { status: AlertsOverviewApiStatus.Error, data: null }
@@ -2876,7 +2963,7 @@ export const fetchSdkConfigFromServer = async (appId: String) => {
   const url = `/api/apps/${appId}/config`
 
   try {
-    const res = await measureAuth.fetchMeasure(url)
+    const res = await apiClient.fetch(url)
     if (!res.ok) {
       return { status: SdkConfigApiStatus.Error, data: null }
     }
@@ -2896,7 +2983,7 @@ export const updateSdkConfigFromServer = async (appId: string, config: Partial<S
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(url, opts)
+    const res = await apiClient.fetch(url, opts)
     const data = await res.json()
 
     if (!res.ok) {
@@ -2924,7 +3011,7 @@ export const fetchNetworkDomainsFromServer = async (selectedApp: App, filters: F
     const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
 
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/networkRequests/domains?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`,
     )
 
@@ -2949,7 +3036,7 @@ export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: stri
     const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
 
-    const res = await measureAuth.fetchMeasure(
+    const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}&from=${encodeURIComponent(serverFormattedStartDate)}&to=${encodeURIComponent(serverFormattedEndDate)}`,
     )
 
@@ -2982,7 +3069,7 @@ export const fetchNetworkEndpointLatencyPlotFromServer = async (filters: Filters
   apiUrl = u.toString()
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl)
+    const res = await apiClient.fetch(apiUrl)
 
     if (!res.ok) {
       return { status: NetworkEndpointLatencyPlotApiStatus.Error, data: null }
@@ -3013,7 +3100,7 @@ export const fetchNetworkEndpointStatusCodesPlotFromServer = async (filters: Fil
   apiUrl = u.toString()
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl)
+    const res = await apiClient.fetch(apiUrl)
 
     if (!res.ok) {
       return { status: NetworkEndpointStatusCodesPlotApiStatus.Error, data: null }
@@ -3043,7 +3130,7 @@ export const fetchNetworkEndpointTimelinePlotFromServer = async (filters: Filter
   apiUrl = u.toString()
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl)
+    const res = await apiClient.fetch(apiUrl)
 
     if (!res.ok) {
       return { status: NetworkEndpointTimelinePlotApiStatus.Error, data: null }
@@ -3071,7 +3158,7 @@ export const fetchNetworkTrendsFromServer = async (
   apiUrl += `&trends_limit=${trendsLimit}`;
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl);
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
       return { status: NetworkTrendsApiStatus.Error, data: null };
@@ -3096,7 +3183,7 @@ export const fetchNetworkTimelinePlotFromServer = async (filters: Filters, timel
   apiUrl += `&timeline_limit=${timelineLimit}`
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl)
+    const res = await apiClient.fetch(apiUrl)
 
     if (!res.ok) {
       return { status: NetworkTimelinePlotApiStatus.Error, data: null }
@@ -3121,7 +3208,7 @@ export const fetchNetworkOverviewStatusCodesPlotFromServer = async (filters: Fil
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
 
   try {
-    const res = await measureAuth.fetchMeasure(apiUrl)
+    const res = await apiClient.fetch(apiUrl)
 
     if (!res.ok) {
       return { status: NetworkOverviewStatusCodesPlotApiStatus.Error, data: null }

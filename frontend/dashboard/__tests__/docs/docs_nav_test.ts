@@ -1,5 +1,5 @@
-import { describe, expect, it } from '@jest/globals'
 import { docsNav, getFlatNavSlugs, type NavItem } from '@/app/docs/docs_nav'
+import { describe, expect, it } from '@jest/globals'
 
 describe('docsNav', () => {
   it('is a non-empty array', () => {

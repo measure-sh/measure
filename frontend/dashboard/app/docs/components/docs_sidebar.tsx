@@ -15,8 +15,8 @@ import {
   SidebarMenuSubItem,
 } from "@/app/components/sidebar";
 import { ThemeToggle } from "@/app/components/theme_toggle";
-import { cn } from "@/app/utils/shadcn_utils";
 import { docsNav, type NavItem } from "@/app/docs/docs_nav";
+import { cn } from "@/app/utils/shadcn_utils";
 import { ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
