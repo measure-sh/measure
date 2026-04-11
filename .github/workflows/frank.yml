@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'cross-platform-sample-app'
     paths:
       - 'samples/frank/**'
       - 'android/**'
@@ -62,7 +63,7 @@ jobs:
       - name: Assemble release
         run: ./gradlew :android:app:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace
       - name: Publish debug APK to Firebase App Distribution
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ env.FIREBASE_ANDROID_APP_ID_DEBUG }}
@@ -70,7 +71,7 @@ jobs:
           file: samples/frank/android/app/build/outputs/apk/debug/app-debug.apk
           groups: measure-devs
       - name: Publish release APK to Firebase App Distribution
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ env.FIREBASE_ANDROID_APP_ID_RELEASE }}
@@ -165,7 +166,7 @@ jobs:
             -exportOptionsPlist samples/frank/ios/ExportOptions-Release.plist \
             -exportPath $RUNNER_TEMP/frank-release-ipa
       - name: Publish debug IPA to Firebase App Distribution
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ env.FIREBASE_IOS_APP_ID_DEBUG }}
@@ -173,7 +174,7 @@ jobs:
           file: ${{ runner.temp }}/frank-debug-ipa/FrankensteinApp.ipa
           groups: measure-devs
       - name: Publish release IPA to Firebase App Distribution
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ env.FIREBASE_IOS_APP_ID_RELEASE }}
