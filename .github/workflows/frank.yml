@@ -63,6 +63,12 @@ jobs:
         run: corepack enable
       - name: Prepare Yarn
         run: corepack prepare yarn@3.6.1 --activate
+      - name: Build Measure React Native SDK
+        run: |
+          corepack prepare yarn@3.6.1 --activate
+          yarn install
+          yarn prepare
+        working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
         working-directory: samples/frank/react_native
@@ -106,8 +112,6 @@ jobs:
             certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_DEBUG
             certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_DEBUG
             provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_DEBUG
-            code-sign-identity: Apple Development
-            provisioning-profile-name: Frankenstein Debug Development
           - build-type: release
             configuration: Release
             export-options-plist: samples/frank/ios/ExportOptions-Release.plist
@@ -115,8 +119,6 @@ jobs:
             certificate-p12-secret: FRANK_APP_IOS_CERTIFICATE_P12_RELEASE
             certificate-password-secret: FRANK_APP_IOS_CERTIFICATE_PASSWORD_RELEASE
             provisioning-profile-secret: FRANK_APP_IOS_PROVISIONING_PROFILE_RELEASE
-            code-sign-identity: Apple Distribution
-            provisioning-profile-name: Frank Release Ad Hoc
     steps:
       - uses: actions/checkout@v4
       - name: Switch to Xcode 16.4
@@ -132,6 +134,12 @@ jobs:
         run: corepack enable
       - name: Prepare Yarn
         run: corepack prepare yarn@3.6.1 --activate
+      - name: Build Measure React Native SDK
+        run: |
+          corepack prepare yarn@3.6.1 --activate
+          yarn install
+          yarn prepare
+        working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
         working-directory: samples/frank/react_native
@@ -166,7 +174,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets[matrix.provisioning-profile-secret] }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/frank-${{ matrix.build-type }}.mobileprovision
+          echo "${{ secrets[matrix.provisioning-profile-secret] }}" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
+          cp $RUNNER_TEMP/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
       - name: Archive ${{ matrix.build-type }}
         run: |
@@ -176,10 +186,7 @@ jobs:
             -configuration ${{ matrix.configuration }} \
             -archivePath $RUNNER_TEMP/FrankensteinApp-${{ matrix.configuration }}.xcarchive \
             -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="${{ matrix.code-sign-identity }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ matrix.provisioning-profile-name }}" \
-            DEVELOPMENT_TEAM=FZ7UUKUP84
+            CODE_SIGNING_ALLOWED=NO
       - name: Export ${{ matrix.build-type }} IPA
         run: |
           xcodebuild -exportArchive \

@@ -6,6 +6,13 @@
 	<string>ad-hoc</string>
 	<key>teamID</key>
 	<string>FZ7UUKUP84</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>sh.frankenstein.ios</key>
+		<string>Frank Release Ad Hoc</string>
+	</dict>
 	<key>compileBitcode</key>
 	<false/>
 	<key>stripSwiftSymbols</key>

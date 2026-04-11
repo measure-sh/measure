@@ -6,6 +6,13 @@
 	<string>development</string>
 	<key>teamID</key>
 	<string>FZ7UUKUP84</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>sh.frankenstein.ios.debug</key>
+		<string>Frankenstein Debug Development</string>
+	</dict>
 	<key>compileBitcode</key>
 	<false/>
 	<key>stripSwiftSymbols</key>
