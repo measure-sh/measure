@@ -36,8 +36,8 @@ function makeRequest(params: string) {
 }
 
 // Silence console.log/error from the route handler during tests
-jest.spyOn(console, 'log').mockImplementation(() => {})
-jest.spyOn(console, 'error').mockImplementation(() => {})
+jest.spyOn(console, 'log').mockImplementation(() => { })
+jest.spyOn(console, 'error').mockImplementation(() => { })
 
 describe('GitHub Callback Route', () => {
     beforeEach(() => {

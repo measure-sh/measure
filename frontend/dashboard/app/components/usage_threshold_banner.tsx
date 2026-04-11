@@ -1,34 +1,17 @@
 "use client"
 
-import { FetchBillingUsageThresholdApiStatus, fetchBillingUsageThresholdFromServer } from '@/app/api/api_calls'
+import { useUsageThresholdQuery } from '@/app/query/hooks'
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 
 type UsageThresholdBannerProps = {
   teamId: string
 }
 
 export default function UsageThresholdBanner({ teamId }: UsageThresholdBannerProps) {
-  const [threshold, setThreshold] = useState<number>(0)
+  const { data: threshold } = useUsageThresholdQuery(isBillingEnabled() ? teamId : undefined)
 
-  useEffect(() => {
-    if (!isBillingEnabled()) {
-      return
-    }
-
-    const fetchData = async () => {
-      const result = await fetchBillingUsageThresholdFromServer(teamId)
-      if (result.status !== FetchBillingUsageThresholdApiStatus.Success) {
-        return
-      }
-      setThreshold(result.data?.threshold ?? 0)
-    }
-
-    fetchData()
-  }, [teamId])
-
-  if (threshold === 0) {
+  if (!threshold || threshold === 0) {
     return null
   }
 

@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react'
 import React, { FormEventHandler, useState } from 'react'
-import { CreateTeamApiStatus, createTeamFromServer } from '../api/api_calls'
+import { useCreateTeamMutation } from '../query/hooks'
 import { toastNegative, toastPositive } from '../utils/use_toast'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
@@ -13,31 +13,26 @@ interface CreateTeamProps {
 }
 
 const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
-    const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init)
+    const createTeam = useCreateTeamMutation()
+
     const [teamName, setTeamName] = useState("")
     const [dialogOpen, setDialogOpen] = useState(false)
 
-    const createTeam: FormEventHandler = async (event) => {
+    const handleCreateTeam: FormEventHandler = async (event) => {
         event.preventDefault()
         if (teamName === "") {
             return
         }
-        setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
-        const result = await createTeamFromServer(teamName)
-        switch (result.status) {
-            case CreateTeamApiStatus.Error:
-                setCreateTeamApiStatus(CreateTeamApiStatus.Error)
-                toastNegative(`Error creating team: ${result.error}`)
-                break
-            case CreateTeamApiStatus.Success:
-                setCreateTeamApiStatus(CreateTeamApiStatus.Success)
-                setDialogOpen(false)
-                toastPositive(`Team ${teamName} has been created`)
-                setTeamName("")
-                if (onSuccess) {
-                    onSuccess(result.data.id)
-                }
-                break
+        try {
+            const result = await createTeam.mutateAsync({ teamName })
+            setDialogOpen(false)
+            toastPositive(`Team ${teamName} has been created`)
+            setTeamName("")
+            if (onSuccess && result?.id) {
+                onSuccess(result.id)
+            }
+        } catch (error) {
+            toastNegative(`Error creating team: ${error instanceof Error ? error.message : "Unknown error"}`)
         }
     }
 
@@ -55,7 +50,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
                         <DialogTitle className="font-display">Add new team</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col w-5/6">
-                        <form onSubmit={createTeam} className="flex flex-col">
+                        <form onSubmit={handleCreateTeam} className="flex flex-col">
                             <Input id="team-name" type="string" placeholder="Enter team name" className="w-96 font-body" onChange={(event) => setTeamName(event.target.value)} value={teamName} />
                             <div className="py-2" />
                             <div className='flex flex-row gap-2'>
@@ -63,8 +58,8 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
                                     variant="outline"
                                     type="submit"
                                     className="w-fit"
-                                    loading={createTeamApiStatus === CreateTeamApiStatus.Loading}
-                                    disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || teamName.length === 0}
+                                    loading={createTeam.isPending}
+                                    disabled={createTeam.isPending || teamName.length === 0}
                                 >Create Team
                                 </Button>
                                 <Button

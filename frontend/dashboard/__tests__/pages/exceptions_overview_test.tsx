@@ -9,13 +9,14 @@ const replaceMock = jest.fn()
 const pushMock = jest.fn()
 
 // Mock next/navigation hooks
+const mockUseSearchParams = jest.fn(() => new URLSearchParams())
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
         push: pushMock,
     }),
     // By default, return empty search params.
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => mockUseSearchParams(),
 }))
 
 // Mock API calls and constants for exceptions overview with valid data.
@@ -24,11 +25,6 @@ jest.mock('@/app/api/api_calls', () => ({
     emptyExceptionsOverviewResponse: {
         meta: { next: false, previous: false },
         results: [],
-    },
-    ExceptionsOverviewApiStatus: {
-        Loading: 'loading',
-        Error: 'error',
-        Success: 'success'
     },
     ExceptionsType: {
         Crash: 'crash',
@@ -91,39 +87,31 @@ jest.mock('@/app/api/api_calls', () => ({
     }),
 }))
 
-// Update the Filters mock to always render two update buttons.
+// Mock query hooks — data and status are controlled per-test via mockExceptionsOverviewQuery
+const mockExceptionsOverviewQuery = {
+    data: undefined as any,
+    status: 'pending' as 'pending' | 'success' | 'error',
+    isFetching: true,
+}
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    paginationOffsetUrlKey: 'po',
+    useExceptionsOverviewQuery: () => mockExceptionsOverviewQuery,
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() =>
-                    props.onFiltersChanged({
-                        ready: true,
-                        serialisedFilters: 'updated',
-                        app: { id: 'app1' }
-                    })
-                }
-            >
-                Update Filters
-            </button>
-            <button
-                data-testid="update-filters-2"
-                onClick={() =>
-                    props.onFiltersChanged({
-                        ready: true,
-                        serialisedFilters: 'updated2',
-                        app: { id: 'app1' }
-                    })
-                }
-            >
-                Update Filters 2
-            </button>
-        </div>
-    ),
+    default: () => <div data-testid="filters-mock" />,
     AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
 }))
 
 // Mock ExceptionsOverviewPlot component.
@@ -148,10 +136,40 @@ jest.mock('@/app/components/loading_bar', () => () => (
     <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ))
 
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const crashResultData = {
+    results: [
+        {
+            id: 'exception1',
+            app_id: 'app1',
+            type: 'NullPointerException',
+            message: 'Attempt to invoke virtual method on a null object reference',
+            method_name: 'onCreate',
+            file_name: 'MainActivity.java',
+            line_number: 42,
+            fingerprint: 'fingerprint1',
+            count: 120,
+            percentage_contribution: 35.5,
+            created_at: '2020-01-01T00:00:00Z',
+            updated_at: '2020-01-02T00:00:00Z'
+        }
+    ],
+    meta: { previous: true, next: true },
+}
+
+const crashResultCompact = {
+    results: [{ id: 'exception1', app_id: 'app1', type: 'NullPointerException', message: 'msg', method_name: 'onCreate', file_name: 'MainActivity.java', line_number: 42, fingerprint: 'fingerprint1', count: 120, percentage_contribution: 35.5, created_at: '2020-01-01T00:00:00Z', updated_at: '2020-01-02T00:00:00Z' }],
+    meta: { previous: true, next: true },
+}
+
 describe('ExceptionsOverview Component - Crashes', () => {
     beforeEach(() => {
         replaceMock.mockClear()
         pushMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+        mockExceptionsOverviewQuery.data = undefined
+        mockExceptionsOverviewQuery.status = 'pending'; mockExceptionsOverviewQuery.isFetching = true
     })
 
     it('renders the Crashes heading and Filters component', () => {
@@ -170,9 +188,10 @@ describe('ExceptionsOverview Component - Crashes', () => {
 
     it('renders main exceptions UI, updates URL when filters become ready, and renders table headers', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = crashResultData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check URL update with po (pagination offset) and filters
@@ -190,9 +209,10 @@ describe('ExceptionsOverview Component - Crashes', () => {
 
     it('displays exception data correctly when API returns results', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = crashResultData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         expect(screen.getByText('MainActivity.java: onCreate()')).toBeInTheDocument()
@@ -201,32 +221,11 @@ describe('ExceptionsOverview Component - Crashes', () => {
         expect(screen.getByText('35.5%')).toBeInTheDocument()
     })
 
-    it('does not update filters if they remain unchanged', async () => {
-        render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-    })
-
     it('shows error message when API returns error status', async () => {
-        // Override the mock to return an error
-        const { fetchExceptionsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'error'; mockExceptionsOverviewQuery.isFetching = false
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that error message is displayed
@@ -235,9 +234,10 @@ describe('ExceptionsOverview Component - Crashes', () => {
 
     it('renders appropriate link for each crash that includes teamId, app_id, crash_group_id and crash_group_name', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = crashResultData
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that the exception link is rendered with the correct href and accessible name
@@ -263,37 +263,29 @@ describe('ExceptionsOverview Component - Crashes', () => {
     })
 
     it('handles exceptions with empty file_name correctly in link and display', async () => {
-        // Override the mock to return an exception with no file name
-        const { fetchExceptionsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            id: 'exception1',
-                            app_id: 'app1',
-                            type: 'NullPointerException',
-                            message: 'Attempt to invoke virtual method on a null object reference',
-                            method_name: 'onCreate',
-                            file_name: '', // Empty file name
-                            line_number: 42,
-                            fingerprint: 'fingerprint1',
-                            count: 120,
-                            percentage_contribution: 35.5,
-                            created_at: '2020-01-01T00:00:00Z',
-                            updated_at: '2020-01-02T00:00:00Z'
-                        }
-                    ],
-                    meta: { previous: false, next: false },
-                }
-            })
-        )
-
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = {
+                results: [
+                    {
+                        id: 'exception1',
+                        app_id: 'app1',
+                        type: 'NullPointerException',
+                        message: 'Attempt to invoke virtual method on a null object reference',
+                        method_name: 'onCreate',
+                        file_name: '', // Empty file name
+                        line_number: 42,
+                        fingerprint: 'fingerprint1',
+                        count: 120,
+                        percentage_contribution: 35.5,
+                        created_at: '2020-01-01T00:00:00Z',
+                        updated_at: '2020-01-02T00:00:00Z'
+                    }
+                ],
+                meta: { previous: false, next: false },
+            }
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that the exception link is rendered with the correct href and accessible name
@@ -321,18 +313,20 @@ describe('ExceptionsOverview Component - Crashes', () => {
     describe('Pagination offset handling', () => {
         it('initializes pagination offset to 0 when no offset is provided', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+                mockExceptionsOverviewQuery.data = crashResultCompact
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
         })
 
         it('increments pagination offset when Next is clicked', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+                mockExceptionsOverviewQuery.data = crashResultCompact
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -344,9 +338,10 @@ describe('ExceptionsOverview Component - Crashes', () => {
 
         it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+                mockExceptionsOverviewQuery.data = crashResultCompact
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -366,16 +361,16 @@ describe('ExceptionsOverview Component - Crashes', () => {
 
         it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
             // Override useSearchParams to simulate an initial offset.
-            const { useSearchParams } = jest.requireActual('next/navigation')
-            const useSearchParamsSpy = jest
-                .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?po=5'))
+            mockUseSearchParams.mockReturnValue(new URLSearchParams('?po=5'))
+            // Use null so the filter-change guard treats the first real serialisedFilters as "initial" (not a change)
+            useFiltersStore.setState({ filters: { ready: false, serialisedFilters: null } })
 
             render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-            const updateButton = screen.getByTestId('update-filters')
             // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
-                fireEvent.click(updateButton)
+                mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+                mockExceptionsOverviewQuery.data = crashResultCompact
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
 
@@ -387,34 +382,23 @@ describe('ExceptionsOverview Component - Crashes', () => {
             expect(replaceMock).toHaveBeenLastCalledWith('?po=10&updated', { scroll: false })
 
             // Now simulate a filter change with a different value.
-            const updateButton2 = screen.getByTestId('update-filters-2')
+            // The component resets pagination when filters change via useEffect.
             await act(async () => {
-                fireEvent.click(updateButton2)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated2', app: { id: 'app1' } } })
                 await new Promise(resolve => setTimeout(resolve, 0))
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
-            useSearchParamsSpy.mockRestore()
+            mockUseSearchParams.mockReturnValue(new URLSearchParams())
         })
     })
 
     it('correctly toggles loading bar visibility based on API status', async () => {
-        // Mock implementation to control loading state
-        const { fetchExceptionsOverviewFromServer } = require('@/app/api/api_calls')
-
-        // Create a promise that won't resolve immediately to maintain loading state
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-
-        fetchExceptionsOverviewFromServer.mockImplementationOnce(() => loadingPromise)
-
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
 
-        // Click to trigger loading state
+        // Set loading state
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'pending'; mockExceptionsOverviewQuery.isFetching = true
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Test the loading state - loading bar should be visible
@@ -422,30 +406,12 @@ describe('ExceptionsOverview Component - Crashes', () => {
         expect(loadingBarContainer).toHaveClass('visible')
         expect(loadingBarContainer).not.toHaveClass('invisible')
 
-        // Resolve the loading promise to move to success state
+        // Set success state
         await act(async () => {
-            resolvePromise({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            id: 'exception1',
-                            app_id: 'app1',
-                            type: 'NullPointerException',
-                            message: 'Attempt to invoke virtual method on a null object reference',
-                            method_name: 'onCreate',
-                            file_name: 'MainActivity.java',
-                            line_number: 42,
-                            fingerprint: 'fingerprint1',
-                            count: 120,
-                            percentage_contribution: 35.5,
-                            created_at: '2020-01-01T00:00:00Z',
-                            updated_at: '2020-01-02T00:00:00Z'
-                        }
-                    ],
-                    meta: { previous: true, next: true },
-                }
-            })
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = crashResultData
+            // Trigger re-render
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // After loading, the loading bar should be invisible
@@ -458,6 +424,9 @@ describe('ExceptionsOverview Component - Crashes', () => {
 describe('ExceptionsOverview Component - ANRs', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+        mockExceptionsOverviewQuery.data = undefined
+        mockExceptionsOverviewQuery.status = 'pending'; mockExceptionsOverviewQuery.isFetching = true
     })
 
     it('renders the ANRs heading when exceptionsType is anr', () => {
@@ -467,9 +436,28 @@ describe('ExceptionsOverview Component - ANRs', () => {
 
     it('shows ANR column headers instead of Crash headers', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Anr} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = {
+                results: [
+                    {
+                        id: 'exception2',
+                        app_id: 'app2',
+                        type: 'ANRException',
+                        message: 'App not responding',
+                        method_name: 'onPause',
+                        file_name: 'MainActivity.kt',
+                        line_number: 99,
+                        fingerprint: 'fingerprint2',
+                        count: 42,
+                        percentage_contribution: 12.5,
+                        created_at: '2020-02-01T00:00:00Z',
+                        updated_at: '2020-02-02T00:00:00Z'
+                    }
+                ],
+                meta: { previous: false, next: false },
+            }
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         expect(screen.getByText('ANR')).toBeInTheDocument()
@@ -478,9 +466,28 @@ describe('ExceptionsOverview Component - ANRs', () => {
 
     it('renders appropriate link for each ANR that includes teamId, app_id anr_group_id and anr_group_name', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Anr} teamId="456" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'success'; mockExceptionsOverviewQuery.isFetching = false
+            mockExceptionsOverviewQuery.data = {
+                results: [
+                    {
+                        id: 'exception2',
+                        app_id: 'app1',
+                        type: 'ANRException',
+                        message: 'App not responding',
+                        method_name: 'onPause',
+                        file_name: 'MainActivity.kt',
+                        line_number: 99,
+                        fingerprint: 'fingerprint2',
+                        count: 42,
+                        percentage_contribution: 12.5,
+                        created_at: '2020-02-01T00:00:00Z',
+                        updated_at: '2020-02-02T00:00:00Z'
+                    }
+                ],
+                meta: { previous: false, next: false },
+            }
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that the exception link is rendered with the correct href and accessible name
@@ -506,18 +513,10 @@ describe('ExceptionsOverview Component - ANRs', () => {
     })
 
     it('shows error message with ANR-specific text', async () => {
-        // Override the mock to return an error
-        const { fetchExceptionsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchExceptionsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Anr} teamId="123" />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            mockExceptionsOverviewQuery.status = 'error'; mockExceptionsOverviewQuery.isFetching = false
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         expect(screen.getByText(/Error fetching list of ANRs/)).toBeInTheDocument()

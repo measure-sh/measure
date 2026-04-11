@@ -1,15 +1,9 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
-import {
-  FetchAppThresholdPrefsApiStatus,
-  MetricsApiStatus,
-  defaultAppThresholdPrefs,
-  emptyMetrics,
-  fetchAppThresholdPrefsFromServer,
-  fetchMetricsFromServer
-} from '../api/api_calls'
-import { Filters } from './filters'
+import { useAppThresholdPrefsQuery, useMetricsQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
+import React from 'react'
+import { defaultAppThresholdPrefs, emptyMetrics } from '../api/api_calls'
 import MetricsCard from './metrics_card'
 
 const demoMetrics = {
@@ -25,77 +19,23 @@ const demoMetrics = {
 }
 
 interface MetricsOverviewProps {
-  filters: Filters
   demo?: boolean
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false }) => {
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
+  const filters = useFiltersStore(state => state.filters)
+  const metricsQuery = useMetricsQuery()
+  const thresholdPrefsQuery = useAppThresholdPrefsQuery(filters.app?.id)
 
-  const [metrics, setMetrics] = useState(emptyMetrics)
-  const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading)
-  const [appThresholdPrefs, setAppThresholdPrefs] = useState(defaultAppThresholdPrefs)
-
-  const getMetrics = async () => {
-    if (demo) {
-      setMetricsApiStatus(MetricsApiStatus.Success)
-      setMetrics(demoMetrics)
-      return
-    }
-
-    // Don't try to fetch metrics if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setMetricsApiStatus(MetricsApiStatus.Loading)
-
-    const result = await fetchMetricsFromServer(filters)
-
-    switch (result.status) {
-      case MetricsApiStatus.Error:
-        setMetricsApiStatus(MetricsApiStatus.Error)
-        break
-      case MetricsApiStatus.Success:
-        setMetricsApiStatus(MetricsApiStatus.Success)
-        setMetrics(result.data)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getMetrics()
-  }, [filters])
-
-  useEffect(() => {
-    const getAppThresholdPrefs = async () => {
-      if (demo) {
-        return
-      }
-      if (!filters.ready || !filters.app) {
-        return
-      }
-
-      const result = await fetchAppThresholdPrefsFromServer(filters.app.id)
-      switch (result.status) {
-        case FetchAppThresholdPrefsApiStatus.Success:
-          setAppThresholdPrefs(result.data)
-          break
-        case FetchAppThresholdPrefsApiStatus.Error:
-        case FetchAppThresholdPrefsApiStatus.Cancelled:
-          // On API failure, fall back to defaults.
-          setAppThresholdPrefs(defaultAppThresholdPrefs)
-          break
-      }
-    }
-
-    getAppThresholdPrefs()
-  }, [demo, filters])
+  const metricsStatus = demo ? 'success' : metricsQuery.status
+  const metrics = demo ? demoMetrics : (metricsQuery.data ?? emptyMetrics)
+  const appThresholdPrefs = thresholdPrefsQuery.data ?? defaultAppThresholdPrefs
 
   return (
     <div className={`flex flex-wrap ${demo ? 'gap-x-12 gap-y-16' : 'gap-16'} w-full justify-center`}>
       <MetricsCard
         type="app_adoption"
-        status={metricsApiStatus}
+        status={metricsStatus}
         noData={metrics.adoption.nan}
         value={metrics.adoption.adoption}
         sessions={metrics.adoption.selected_version}
@@ -104,7 +44,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
       <MetricsCard
         type="crash_free_sessions"
-        status={metricsApiStatus}
+        status={metricsStatus}
         noData={metrics.crash_free_sessions.nan}
         value={metrics.crash_free_sessions.crash_free_sessions}
         delta={metrics.crash_free_sessions.delta}
@@ -114,7 +54,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
       <MetricsCard
         type="perceived_crash_free_sessions"
-        status={metricsApiStatus}
+        status={metricsStatus}
         noData={metrics.perceived_crash_free_sessions.nan}
         value={metrics.perceived_crash_free_sessions.perceived_crash_free_sessions}
         delta={metrics.perceived_crash_free_sessions.delta}
@@ -125,7 +65,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
       {metrics.anr_free_sessions && (
         <MetricsCard
           type="anr_free_sessions"
-          status={metricsApiStatus}
+          status={metricsStatus}
           noData={metrics.anr_free_sessions.nan}
           value={metrics.anr_free_sessions.anr_free_sessions}
           delta={metrics.anr_free_sessions.delta}
@@ -137,7 +77,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
       {metrics.perceived_anr_free_sessions && (
         <MetricsCard
           type="perceived_anr_free_sessions"
-          status={metricsApiStatus}
+          status={metricsStatus}
           noData={metrics.perceived_anr_free_sessions.nan}
           value={metrics.perceived_anr_free_sessions.perceived_anr_free_sessions}
           delta={metrics.perceived_anr_free_sessions.delta}
@@ -148,7 +88,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
       <MetricsCard
         type="app_start_time"
-        status={metricsApiStatus}
+        status={metricsStatus}
         launchType="Cold"
         noData={metrics.cold_launch.nan}
         noDelta={metrics.cold_launch.delta_nan}
@@ -158,7 +98,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
       <MetricsCard
         type="app_start_time"
-        status={metricsApiStatus}
+        status={metricsStatus}
         launchType="Warm"
         noData={metrics.warm_launch.nan}
         noDelta={metrics.warm_launch.delta_nan}
@@ -168,7 +108,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
 
       <MetricsCard
         type="app_start_time"
-        status={metricsApiStatus}
+        status={metricsStatus}
         launchType="Hot"
         noData={metrics.hot_launch.nan}
         noDelta={metrics.hot_launch.delta_nan}
@@ -180,7 +120,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters, demo = false
       {metrics.sizes !== null && (
         <MetricsCard
           type="app_size"
-          status={metricsApiStatus}
+          status={metricsStatus}
           multiVersion={filters.versions.selected.length > 1}
           noData={metrics.sizes.nan}
           valueInBytes={metrics.sizes.selected_app_size}

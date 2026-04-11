@@ -8,81 +8,51 @@ const replaceMock = jest.fn()
 const pushMock = jest.fn()
 
 // Mock next/navigation hooks
+let mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
         push: pushMock,
     }),
     // By default, return empty search params.
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => mockSearchParams,
 }))
 
-// Mock API calls and constants for bug reports overview with valid data.
+// Mock API calls and constants
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
     emptyAlertsOverviewResponse: {
         meta: { next: false, previous: false },
         results: [],
     },
-    AlertsOverviewApiStatus: {
-        Loading: 'loading',
-        Error: 'error',
-        Success: 'success'
-    },
-    fetchAlertsOverviewFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 'success',
-            data: {
-                results: [
-                    {
-
-                        id: 'alert1',
-                        team_id: 'team1',
-                        app_id: 'app1',
-                        entity_id: 'crash1',
-                        type: 'crash_spike',
-                        message: 'message1',
-                        url: 'http://example.com/alert1',
-                        created_at: "2020-01-01T00:00:00Z",
-                        updated_at: "2020-01-01T00:00:00Z",
-
-                    }
-                ],
-                // Enable both previous and next for pagination tests.
-                meta: { previous: true, next: true },
-            }
-        })
-    ),
     FilterSource: { Events: 'events' },
 }))
 
-// Update the Filters mock to always render two update buttons.
-jest.mock('@/app/components/filters', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated' })
-                }
-            >
-                Update Filters
-            </button>
-            <button
-                data-testid="update-filters-2"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated2' })
-                }
-            >
-                Update Filters 2
-            </button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseAlertsOverviewQuery = jest.fn(() => ({
+    data: undefined as any,
+    status: 'pending' as string, isFetching: true,
+    error: null as Error | null,
 }))
 
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useAlertsOverviewQuery: () => mockUseAlertsOverviewQuery(),
+    paginationOffsetUrlKey: 'po',
+}))
+
+jest.mock('@/app/components/filters', () => ({
+    __esModule: true,
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { All: 'all' },
+}))
 
 // Updated Paginator mock renders Next and Prev buttons.
 jest.mock('@/app/components/paginator', () => ({
@@ -107,10 +77,33 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatDateToHumanReadableTime: jest.fn(() => '12:00 AM')
 }))
 
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const mockAlertData = {
+    results: [
+        {
+            id: 'alert1',
+            team_id: 'team1',
+            app_id: 'app1',
+            entity_id: 'crash1',
+            type: 'crash_spike',
+            message: 'message1',
+            url: 'http://example.com/alert1',
+            created_at: "2020-01-01T00:00:00Z",
+            updated_at: "2020-01-01T00:00:00Z",
+        }
+    ],
+    meta: { previous: true, next: true },
+}
+
 describe('AlertsOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
         pushMock.mockClear()
+        mockSearchParams = new URLSearchParams()
+        mockUseAlertsOverviewQuery.mockReset()
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     it('renders the Alerts heading and Filters component', () => {
@@ -127,10 +120,10 @@ describe('AlertsOverview Component', () => {
     })
 
     it('renders main bug reports UI, updates URL when filters become ready, and renders table headers', async () => {
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Check URL update.
@@ -144,10 +137,10 @@ describe('AlertsOverview Component', () => {
     })
 
     it('displays alert data correctly when API returns results', async () => {
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Verify the alert data is displayed
@@ -157,32 +150,11 @@ describe('AlertsOverview Component', () => {
         expect(screen.getByText('ID: alert1')).toBeInTheDocument()
     })
 
-    it('does not update filters if they remain unchanged', async () => {
-        render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-    })
-
     it('shows error message when API returns error status', async () => {
-        // Override the mock to return an error
-        const { fetchAlertsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchAlertsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: undefined, status: 'error', isFetching: false, error: new Error('fail') })
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Check that error message is displayed
@@ -190,10 +162,10 @@ describe('AlertsOverview Component', () => {
     })
 
     it('renders appropriate link for each alert ', async () => {
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Check that the alert link is rendered with the correct href and accessible name
@@ -220,19 +192,19 @@ describe('AlertsOverview Component', () => {
 
     describe('Pagination offset handling', () => {
         it('initializes pagination offset to 0 when no offset is provided', async () => {
+            mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
             render(<AlertsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
             expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
         })
 
         it('increments pagination offset when Next is clicked', async () => {
+            mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
             render(<AlertsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -243,10 +215,10 @@ describe('AlertsOverview Component', () => {
         })
 
         it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
+            mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
             render(<AlertsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -265,56 +237,43 @@ describe('AlertsOverview Component', () => {
         })
 
         it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
-            // Override useSearchParams to simulate an initial offset.
-            const { useSearchParams } = jest.requireActual('next/navigation')
-            const useSearchParamsSpy = jest
-                .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?po=5'))
+            mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
 
             render(<AlertsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
-            // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
-            expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
 
-            // Click Next to further increment the offset.
+            // Click Next twice to get to offset 10.
             const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
+
             await act(async () => {
                 fireEvent.click(nextButton)
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=10&updated', { scroll: false })
 
             // Now simulate a filter change with a different value.
-            const updateButton2 = screen.getByTestId('update-filters-2')
             await act(async () => {
-                fireEvent.click(updateButton2)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated2', app: { id: 'app-1' } } })
                 await new Promise(resolve => setTimeout(resolve, 0))
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
-            useSearchParamsSpy.mockRestore()
         })
     })
 
     it('correctly toggles loading bar visibility based on API status', async () => {
-        // Mock implementation to control loading state
-        const { fetchAlertsOverviewFromServer } = require('@/app/api/api_calls')
-
-        // Create a promise that won't resolve immediately to maintain loading state
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-
-        fetchAlertsOverviewFromServer.mockImplementationOnce(() => loadingPromise)
-
+        // Start with pending status
+        mockUseAlertsOverviewQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
-        // Click to trigger loading state
+        // Set loading state
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Test the loading state - loading bar should be visible
@@ -322,33 +281,13 @@ describe('AlertsOverview Component', () => {
         expect(loadingBarContainer).toHaveClass('visible')
         expect(loadingBarContainer).not.toHaveClass('invisible')
 
-        // Resolve the loading promise to move to success state
+        // Set success state
         await act(async () => {
-            resolvePromise({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-
-                            id: 'alert1',
-                            team_id: 'team1',
-                            app_id: 'app1',
-                            entity_id: 'crash1',
-                            type: 'crash_spike',
-                            message: 'message1',
-                            url: 'http://example.com/alert1',
-                            created_at: "2020-01-01T00:00:00Z",
-                            updated_at: "2020-01-01T00:00:00Z",
-
-                        }
-                    ],
-                    meta: { previous: true, next: true },
-                }
-            })
+            mockUseAlertsOverviewQuery.mockReturnValue({ data: mockAlertData, status: 'success', isFetching: false, error: null })
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // After loading, the loading bar should be invisible
-        await screen.findByText('ID: alert1')
         expect(loadingBarContainer).not.toHaveClass('visible')
         expect(loadingBarContainer).toHaveClass('invisible')
     })

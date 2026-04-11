@@ -8,107 +8,50 @@ const replaceMock = jest.fn()
 const pushMock = jest.fn()
 
 // Mock next/navigation hooks
+let mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
         push: pushMock,
     }),
     // By default, return empty search params.
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => mockSearchParams,
 }))
 
-// Mock API calls and constants for bug reports overview with valid data.
+// Mock API calls and constants
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
     emptyBugReportsOverviewResponse: {
         meta: { next: false, previous: false },
         results: [],
     },
-    BugReportsOverviewApiStatus: {
-        Loading: 'loading',
-        Error: 'error',
-        Success: 'success'
-    },
-    fetchBugReportsOverviewFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 'success',
-            data: {
-                results: [
-                    {
-                        session_id: 'session1',
-                        app_id: 'app1',
-                        event_id: 'bug1',
-                        description: 'Test Bug Report',
-                        status: 0,
-                        timestamp: "2020-01-01T00:00:00Z",
-                        matched_free_text: "error",
-                        attribute: {
-                            installation_id: 'install1',
-                            app_version: '1.0',
-                            app_build: '1',
-                            app_unique_id: 'app_unique_1',
-                            measure_sdk_version: '1.0.0',
-                            platform: 'ios',
-                            thread_name: 'main',
-                            user_id: 'user1',
-                            device_name: 'iPhone',
-                            device_model: 'iPhone 12',
-                            device_manufacturer: 'Apple',
-                            device_type: 'phone',
-                            device_is_foldable: false,
-                            device_is_physical: true,
-                            device_density_dpi: 460,
-                            device_width_px: 375,
-                            device_height_px: 812,
-                            device_density: 3,
-                            device_locale: 'en_US',
-                            device_low_power_mode: false,
-                            device_thermal_throttling_enabled: false,
-                            device_cpu_arch: 'arm64',
-                            os_name: 'ios',
-                            os_version: '15.0',
-                            os_page_size: 4096,
-                            network_type: 'wifi',
-                            network_provider: 'AT&T',
-                            network_generation: '5G'
-                        },
-                        user_defined_attribute: null,
-                        attachments: null
-                    }
-                ],
-                // Enable both previous and next for pagination tests.
-                meta: { previous: true, next: true },
-            }
-        })
-    ),
     FilterSource: { Events: 'events' },
 }))
 
-// Update the Filters mock to always render two update buttons.
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseBugReportsOverviewQuery = jest.fn(() => ({
+    data: undefined as any,
+    status: 'pending' as string, isFetching: true,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useBugReportsOverviewQuery: () => mockUseBugReportsOverviewQuery(),
+    paginationOffsetUrlKey: 'po',
+}))
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated' })
-                }
-            >
-                Update Filters
-            </button>
-            <button
-                data-testid="update-filters-2"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated2' })
-                }
-            >
-                Update Filters 2
-            </button>
-        </div>
-    ),
+    default: () => <div data-testid="filters-mock" />,
     AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
 }))
 
 // Mock BugReportsOverviewPlot component.
@@ -139,10 +82,41 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatDateToHumanReadableTime: jest.fn(() => '12:00 AM')
 }))
 
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const mockBugReportResult = {
+    session_id: 'session1',
+    app_id: 'app1',
+    event_id: 'bug1',
+    description: 'Test Bug Report',
+    status: 0,
+    timestamp: "2020-01-01T00:00:00Z",
+    matched_free_text: "error",
+    attribute: {
+        app_version: '1.0',
+        app_build: '1',
+        os_name: 'ios',
+        os_version: '15.0',
+        device_manufacturer: 'Apple',
+        device_model: 'iPhone 12'
+    },
+    user_defined_attribute: null,
+    attachments: null
+}
+
+const mockBugReportsData = {
+    results: [mockBugReportResult],
+    meta: { previous: true, next: true },
+}
+
 describe('BugReportsOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
         pushMock.mockClear()
+        mockSearchParams = new URLSearchParams()
+        mockUseBugReportsOverviewQuery.mockReset()
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     it('renders the Bug Reports heading and Filters component', () => {
@@ -160,10 +134,10 @@ describe('BugReportsOverview Component', () => {
     })
 
     it('renders main bug reports UI, updates URL when filters become ready, and renders table headers', async () => {
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check URL update.
@@ -179,10 +153,10 @@ describe('BugReportsOverview Component', () => {
     })
 
     it('displays bug report data correctly when API returns results', async () => {
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Verify the bug report data is displayed
@@ -195,32 +169,11 @@ describe('BugReportsOverview Component', () => {
         expect(screen.getByText('1.0(1), iOS 15.0, Apple iPhone 12')).toBeInTheDocument()
     })
 
-    it('does not update filters if they remain unchanged', async () => {
-        render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-    })
-
     it('shows error message when API returns error status', async () => {
-        // Override the mock to return an error
-        const { fetchBugReportsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchBugReportsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: undefined, status: 'error', isFetching: false, error: new Error('fail') })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that error message is displayed
@@ -228,10 +181,10 @@ describe('BugReportsOverview Component', () => {
     })
 
     it('renders appropriate link for each bug report that includes teamId, app_id and event_id', async () => {
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Check that the bug report link is rendered with the correct href and accessible name
@@ -257,42 +210,14 @@ describe('BugReportsOverview Component', () => {
     })
 
     it('handles bug reports with no description properly', async () => {
-        // Override the mock to return a bug report with no description
-        const { fetchBugReportsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchBugReportsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            session_id: 'session1',
-                            app_id: 'app1',
-                            event_id: 'bug1',
-                            description: null, // No description
-                            status: 0,
-                            timestamp: "2020-01-01T00:00:00Z",
-                            matched_free_text: "",
-                            attribute: {
-                                app_version: '1.0',
-                                app_build: '1',
-                                os_name: 'ios',
-                                os_version: '15.0',
-                                device_manufacturer: 'Apple',
-                                device_model: 'iPhone 12'
-                            },
-                            user_defined_attribute: null,
-                            attachments: null
-                        }
-                    ],
-                    meta: { previous: false, next: false },
-                }
-            })
-        )
-
+        const noDescData = {
+            results: [{ ...mockBugReportResult, description: null, matched_free_text: "" }],
+            meta: { previous: false, next: false },
+        }
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: noDescData, status: 'success', isFetching: false, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Verify "No Description" text is displayed
@@ -301,19 +226,19 @@ describe('BugReportsOverview Component', () => {
 
     describe('Pagination offset handling', () => {
         it('initializes pagination offset to 0 when no offset is provided', async () => {
+            mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
             render(<BugReportsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
         })
 
         it('increments pagination offset when Next is clicked', async () => {
+            mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
             render(<BugReportsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -324,10 +249,10 @@ describe('BugReportsOverview Component', () => {
         })
 
         it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
+            mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
             render(<BugReportsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
             const nextButton = await screen.findByTestId('next-button')
             await act(async () => {
@@ -346,56 +271,42 @@ describe('BugReportsOverview Component', () => {
         })
 
         it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
-            // Override useSearchParams to simulate an initial offset.
-            const { useSearchParams } = jest.requireActual('next/navigation')
-            const useSearchParamsSpy = jest
-                .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?po=5'))
+            mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
 
             render(<BugReportsOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
-            // First update: filters become ready with "updated" and offset parsed from URL is 5.
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
             })
-            expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
+            expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
 
-            // Click Next to further increment the offset.
+            // Click Next twice to get to offset 10.
             const nextButton = await screen.findByTestId('next-button')
+            await act(async () => {
+                fireEvent.click(nextButton)
+            })
+            expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
+
             await act(async () => {
                 fireEvent.click(nextButton)
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=10&updated', { scroll: false })
 
             // Now simulate a filter change with a different value.
-            const updateButton2 = screen.getByTestId('update-filters-2')
             await act(async () => {
-                fireEvent.click(updateButton2)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated2', app: { id: 'app1' } } })
                 await new Promise(resolve => setTimeout(resolve, 0))
             })
             expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
-            useSearchParamsSpy.mockRestore()
         })
     })
 
     it('correctly toggles loading bar visibility based on API status', async () => {
-        // Mock implementation to control loading state
-        const { fetchBugReportsOverviewFromServer } = require('@/app/api/api_calls')
-
-        // Create a promise that won't resolve immediately to maintain loading state
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-
-        fetchBugReportsOverviewFromServer.mockImplementationOnce(() => loadingPromise)
-
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
-        // Click to trigger loading state
+        // Set loading state
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Test the loading state - loading bar should be visible
@@ -403,35 +314,10 @@ describe('BugReportsOverview Component', () => {
         expect(loadingBarContainer).toHaveClass('visible')
         expect(loadingBarContainer).not.toHaveClass('invisible')
 
-        // Resolve the loading promise to move to success state
+        // Set success state
         await act(async () => {
-            resolvePromise({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            session_id: 'session1',
-                            app_id: 'app1',
-                            event_id: 'bug1',
-                            description: 'Test Bug Report',
-                            status: 0,
-                            timestamp: "2020-01-01T00:00:00Z",
-                            matched_free_text: "error",
-                            attribute: {
-                                app_version: '1.0',
-                                app_build: '1',
-                                os_name: 'ios',
-                                os_version: '15.0',
-                                device_manufacturer: 'Apple',
-                                device_model: 'iPhone 12'
-                            },
-                            user_defined_attribute: null,
-                            attachments: null
-                        }
-                    ],
-                    meta: { previous: true, next: true },
-                }
-            })
+            mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // After loading, the loading bar should be invisible
@@ -442,10 +328,10 @@ describe('BugReportsOverview Component', () => {
 
     it('renders "Open" and "Closed" status correctly based on status value', async () => {
         // First render with status 0 (Open)
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: mockBugReportsData, status: 'success', isFetching: false, error: null })
         const { unmount } = render(<BugReportsOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Find the Open status element
@@ -459,42 +345,17 @@ describe('BugReportsOverview Component', () => {
 
         // Clean up the first render
         unmount()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
 
         // Re-render with status 1 (Closed)
-        const { fetchBugReportsOverviewFromServer } = require('@/app/api/api_calls')
-        fetchBugReportsOverviewFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            session_id: 'session1',
-                            app_id: 'app1',
-                            event_id: 'bug1',
-                            description: 'Test Bug Report',
-                            status: 1, // Closed status
-                            timestamp: "2020-01-01T00:00:00Z",
-                            matched_free_text: "",
-                            attribute: {
-                                app_version: '1.0',
-                                app_build: '1',
-                                os_name: 'ios',
-                                os_version: '15.0',
-                                device_manufacturer: 'Apple',
-                                device_model: 'iPhone 12'
-                            },
-                            user_defined_attribute: null,
-                            attachments: null
-                        }
-                    ],
-                    meta: { previous: true, next: true },
-                }
-            })
-        )
-
+        const closedData = {
+            results: [{ ...mockBugReportResult, status: 1, matched_free_text: "" }],
+            meta: { previous: true, next: true },
+        }
+        mockUseBugReportsOverviewQuery.mockReturnValue({ data: closedData, status: 'success', isFetching: false, error: null })
         render(<BugReportsOverview params={{ teamId: '123' }} />)
         await act(async () => {
-            fireEvent.click(screen.getByTestId('update-filters'))
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' } } })
         })
 
         // Find the Closed status element

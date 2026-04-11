@@ -1,12 +1,14 @@
 "use client"
 
-import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsDetailsApiStatus, ExceptionsType, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
+import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType, FilterSource } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
+import { paginationOffsetUrlKey, useAnrDetailsQuery, useCrashDetailsQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { DateTime } from 'luxon'
 import Image from 'next/image'
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
@@ -15,7 +17,7 @@ import CopyAiContext from './copy_ai_context'
 import ExceptionGroupCommonPath from './exception_group_common_path'
 import ExceptionsDetailsPlot from './exceptions_details_plot'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import Filters, { AppVersionsInitialSelectionType } from './filters'
 import LoadingSpinner from './loading_spinner'
 
 const demoExceptionDetails = {
@@ -147,16 +149,6 @@ const demoExceptionDetails = {
   ]
 } as any
 
-interface PageState {
-  exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
-  filters: typeof defaultFilters
-  exceptionsDetails: typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
-  paginationOffset: number
-}
-
-const paginationLimit = 1
-const paginationOffsetUrlKey = "po"
-
 interface ExceptionsDetailsProps {
   exceptionsType?: ExceptionsType,
   teamId?: string,
@@ -180,76 +172,60 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const initialState: PageState = {
-    exceptionsDetailsApiStatus: demo ? ExceptionsDetailsApiStatus.Success : ExceptionsDetailsApiStatus.Loading,
-    filters: defaultFilters,
-    exceptionsDetails: demo ? demoExceptionDetails : (exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse),
-    paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
-  }
+  const filters = useFiltersStore(state => state.filters)
 
-  const [pageState, setPageState] = useState<PageState>(initialState)
+  // Pagination is component-local state, initialized from URL
+  const [paginationOffset, setPaginationOffset] = useState(() => {
+    const po = searchParams.get(paginationOffsetUrlKey)
+    return po ? parseInt(po) : 0
+  })
+
+  // Reset pagination when filters change (skip pre-ready transitions)
+  const prevFiltersRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!filters.ready) return
+    if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
+      setPaginationOffset(0)
+    }
+    prevFiltersRef.current = filters.serialisedFilters
+  }, [filters.ready, filters.serialisedFilters])
+
+  // URL sync
+  useEffect(() => {
+    if (demo) {
+      return
+    }
+
+    if (!filters.ready) {
+      return
+    }
+
+    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
+  }, [paginationOffset, filters.ready, filters.serialisedFilters])
+
+  // Both hooks must be called unconditionally (rules of hooks)
+  const crashQuery = useCrashDetailsQuery(exceptionsGroupId!, paginationOffset)
+  const anrQuery = useAnrDetailsQuery(exceptionsGroupId!, paginationOffset)
+  const { data: queryData, status, isFetching } = exceptionsType === ExceptionsType.Crash ? crashQuery : anrQuery
+
+  const emptyDefault = exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse
+  const exceptionsDetails = (demo ? demoExceptionDetails : (queryData ?? emptyDefault)) as typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
+  const effectiveStatus = demo ? 'success' as const : status
+  const effectiveFetching = demo ? false : isFetching
+
+  const nextPage = () => setPaginationOffset(o => o + 1)
+  const prevPage = () => setPaginationOffset(o => Math.max(0, o - 1))
+
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
-
-  const updatePageState = (newState: Partial<PageState>) => {
-    setPageState(prevState => ({ ...prevState, ...newState }))
-  }
 
   const handleImageError = (key: string) => {
     setImageErrors(prev => new Set(prev).add(key))
   }
 
-  const getExceptionsDetails = async () => {
-    updatePageState({ exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Loading })
-
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, pageState.filters, paginationLimit, pageState.paginationOffset)
-
-    switch (result.status) {
-      case ExceptionsDetailsApiStatus.Error:
-        updatePageState({ exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Error })
-        break
-      case ExceptionsDetailsApiStatus.Success:
-        updatePageState({
-          exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Success,
-          exceptionsDetails: result.data
-        })
-        break
-    }
-  }
-
-  const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-    // update filters only if they have changed
-    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-      updatePageState({
-        filters: updatedFilters,
-        // Reset pagination on filters change if previous filters were not default filters
-        paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
-      })
-    }
-  }
-
-  const handleNextPage = () => {
-    updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
-  }
-
-  const handlePrevPage = () => {
-    updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
-  }
-
-  useEffect(() => {
-    if (!pageState.filters.ready) {
-      return
-    }
-
-    // update url
-    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
-
-    getExceptionsDetails()
-  }, [pageState.paginationOffset, pageState.filters])
-
   return (
     <div className="flex flex-col items-start">
       {demo && !hideDemoTitle && <p className="font-display font-normal text-4xl max-w-6xl text-center">Crash Details</p>}
-      {!demo && pageState.filters.ready && <p className="font-display font-normal text-4xl max-w-6xl text-center">{pageState.filters.app!.name}</p>}
+      {!demo && filters.ready && <p className="font-display font-normal text-4xl max-w-6xl text-center">{filters.app!.name}</p>}
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>
       <div className="py-4" />
@@ -277,23 +253,20 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           showBugReportStatus={false}
           showHttpMethods={false}
           showUdAttrs={true}
-          showFreeText={false}
-          onFiltersChanged={handleFiltersChanged} />}
+          showFreeText={false} />}
 
       <div className="py-4" />
 
-      {(demo || pageState.filters.ready) &&
+      {(demo || filters.ready) &&
         <div className='w-full'>
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionsDetailsPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              filters={pageState.filters}
               demo={demo} />
             <ExceptionsDistributionPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              filters={pageState.filters}
               demo={demo} />
           </div>
 
@@ -301,41 +274,41 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           <ExceptionGroupCommonPath
             type={exceptionsType}
             groupId={exceptionsGroupId}
-            appId={demo ? 'demo-app-id' : pageState.filters.app!.id}
+            appId={demo ? 'demo-app-id' : filters.app!.id}
             demo={demo}
           />
           <div className="py-12" />
 
-          {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error &&
+          {effectiveStatus === 'error' &&
             <p className="font-body text-sm">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
-          {(pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
+          {(effectiveStatus === 'success' || effectiveStatus === 'pending') &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-body text-3xl"> Stack traces</p>
                 <div className="grow" />
                 <Paginator
-                  prevEnabled={pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : pageState.exceptionsDetails.meta.previous}
-                  nextEnabled={pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : pageState.exceptionsDetails.meta.next}
+                  prevEnabled={effectiveFetching ? false : exceptionsDetails.meta.previous}
+                  nextEnabled={effectiveFetching ? false : exceptionsDetails.meta.next}
                   displayText=""
-                  onNext={handleNextPage}
-                  onPrev={handlePrevPage} />
+                  onNext={nextPage}
+                  onPrev={prevPage} />
               </div>
 
               <div className="py-2" />
 
-              {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading && <LoadingSpinner />}
+              {effectiveFetching && <LoadingSpinner />}
 
-              {pageState.exceptionsDetails.results?.length > 0 &&
-                <div className={`${pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
-                  <p className="font-display text-xl"> Id: {pageState.exceptionsDetails.results[0].id}</p>
-                  <p className="font-body"> Date & time: {formatDateToHumanReadableDateTime(pageState.exceptionsDetails.results[0].timestamp)}</p>
-                  <p className="font-body"> Device: {pageState.exceptionsDetails.results[0].attribute.device_manufacturer + pageState.exceptionsDetails.results[0].attribute.device_model}</p>
-                  <p className="font-body"> App version: {pageState.exceptionsDetails.results[0].attribute.app_version}</p>
-                  <p className="font-body"> Network type: {pageState.exceptionsDetails.results[0].attribute.network_type}</p>
-                  {pageState.exceptionsDetails.results[0].attachments?.length > 0 &&
+              {exceptionsDetails.results?.length > 0 &&
+                <div className={`${effectiveFetching ? 'invisible' : 'visible'}`}>
+                  <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
+                  <p className="font-body"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
+                  <p className="font-body"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
+                  <p className="font-body"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
+                  <p className="font-body"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
+                  {exceptionsDetails.results[0].attachments?.length > 0 &&
                     <div className='flex mt-8 flex-wrap gap-8 items-center'>
-                      {pageState.exceptionsDetails.results[0].attachments
+                      {exceptionsDetails.results[0].attachments
                         .filter(attachment => !imageErrors.has(attachment.key))
                         .map((attachment, index) => (
                           <Image
@@ -356,8 +329,8 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                       <div className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>View Session Timeline</div>
                     ) : (
                       <Link
-                        key={pageState.exceptionsDetails.results[0].id}
-                        href={`/${teamId}/session_timelines/${appId}/${pageState.exceptionsDetails.results[0].session_id}`}
+                        key={exceptionsDetails.results[0].id}
+                        href={`/${teamId}/session_timelines/${appId}/${exceptionsDetails.results[0].session_id}`}
                         className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>
                         View Session Timeline
                       </Link>
@@ -365,35 +338,35 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     <div className='px-2' />
                     {!demo &&
                       <CopyAiContext
-                        appName={pageState.filters.app!.name}
+                        appName={filters.app!.name}
                         exceptionsType={exceptionsType}
-                        exceptionsDetails={pageState.exceptionsDetails} />}
+                        exceptionsDetails={exceptionsDetails} />}
                   </div>
                   <div className="py-4" />
                   <Accordion type="single" collapsible defaultValue={
                     exceptionsType === ExceptionsType.Crash
-                      ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                      ? 'Thread: ' + exceptionsDetails.results[0].attribute.thread_name
                       : exceptionsType === ExceptionsType.Anr
-                        ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                        ? 'Thread: ' + exceptionsDetails.results[0].attribute.thread_name
                         : undefined
                   }>
                     {exceptionsType === ExceptionsType.Crash &&
-                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
-                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                      <AccordionItem value={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
                         <AccordionContent className={stackTraceAccordionContentStyle}>
-                          {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
+                          {(exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
                         </AccordionContent>
                       </AccordionItem>
                     }
                     {exceptionsType === ExceptionsType.Anr &&
-                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
-                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                      <AccordionItem value={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
                         <AccordionContent className={stackTraceAccordionContentStyle}>
-                          {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
+                          {(exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
                         </AccordionContent>
                       </AccordionItem>
                     }
-                    {pageState.exceptionsDetails.results[0].threads?.map((e, index) => (
+                    {exceptionsDetails.results[0].threads?.map((e, index) => (
                       <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
                         <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
                         <AccordionContent className={stackTraceAccordionContentStyle}>

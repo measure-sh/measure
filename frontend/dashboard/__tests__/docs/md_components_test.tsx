@@ -1,8 +1,8 @@
+import { createMarkdownComponents, rewriteHref, rewriteImgSrc } from '@/app/docs/components/md_components'
 import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import '@testing-library/jest-dom/jest-globals'
 import { render, screen } from '@testing-library/react'
-import { rewriteHref, rewriteImgSrc, createMarkdownComponents } from '@/app/docs/components/md_components'
 
 jest.mock('next/link', () => ({
   __esModule: true,

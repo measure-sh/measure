@@ -1,7 +1,7 @@
-import { describe, expect, it } from '@jest/globals'
+import UserJourneys from '@/app/components/user_journeys'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
 
 const mockRouterReplace = jest.fn()
 
@@ -20,15 +20,25 @@ jest.mock('@/app/api/api_calls', () => ({
     FilterSource: { Events: 0 },
 }))
 
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    const userJourneysStore = create((set: any) => ({
+        plotType: 'Paths',
+        searchText: '',
+        setPlotType: (type: string) => set({ plotType: type }),
+        setSearchText: (text: string) => set({ searchText: text }),
+        reset: jest.fn(),
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore, useUserJourneysStore: userJourneysStore }
+})
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: ({ onFiltersChanged }: any) => (
-        <div data-testid="filters-mock">
-            <button data-testid="set-filters-ready" onClick={() => onFiltersChanged({ ready: true, serialisedFilters: 'a=app-1' })}>Ready</button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { Latest: 0 },
-    defaultFilters: { ready: false, serialisedFilters: null },
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
 
 jest.mock('@/app/components/journey', () => ({
@@ -60,9 +70,13 @@ jest.mock('@/app/utils/shared_styles', () => ({
     underlineLinkStyle: 'underline',
 }))
 
-import UserJourneys from '@/app/components/user_journeys'
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 describe('UserJourneys', () => {
+    beforeEach(() => {
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+    })
+
     describe('Rendering', () => {
         it('renders title', () => {
             render(<UserJourneys />)
@@ -128,7 +142,7 @@ describe('UserJourneys', () => {
 
             // Simulate filters becoming ready
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'a=app-1' } })
             })
             expect(screen.getByTestId('tab-select')).toBeInTheDocument()
             expect(screen.getByTestId('journey-Paths')).toBeInTheDocument()
@@ -137,7 +151,7 @@ describe('UserJourneys', () => {
         it('renders search input after filters ready', async () => {
             render(<UserJourneys params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'a=app-1' } })
             })
             expect(screen.getByTestId('debounce-input-free-text')).toBeInTheDocument()
         })

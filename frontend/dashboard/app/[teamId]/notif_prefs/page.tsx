@@ -1,69 +1,44 @@
 "use client"
 
-import { FetchNotifPrefsApiStatus, UpdateNotifPrefsApiStatus, emptyNotifPrefs, fetchNotifPrefsFromServer, updateNotifPrefsFromServer } from '@/app/api/api_calls'
+import { emptyNotifPrefs } from '@/app/api/api_calls'
 import { Button } from '@/app/components/button'
 import { Checkbox } from '@/app/components/checkbox'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { useNotifPrefsQuery, useSaveNotifPrefsMutation } from '@/app/query/hooks'
 import { toastNegative, toastPositive } from '@/app/utils/use_toast'
 import React, { useEffect, useState } from 'react'
 
+type NotifPrefs = typeof emptyNotifPrefs
+
 export default function Notifications() {
-  const [fetchNotifPrefsApiStatus, setFetchNotifPrefsApiStatus] = useState(FetchNotifPrefsApiStatus.Loading)
-  const [updateNotifPrefsApiStatus, setUpdateNotifPrefsApiStatus] = useState(UpdateNotifPrefsApiStatus.Init)
+  const notifPrefsQuery = useNotifPrefsQuery()
+  const saveNotifPrefsMutation = useSaveNotifPrefsMutation()
 
-  const [notifPrefs, setNotifPrefs] = useState(emptyNotifPrefs)
-  const [updatedNotifPrefs, setUpdatedNotifPrefs] = useState(emptyNotifPrefs)
-
-  const handleToggle = (key: keyof typeof emptyNotifPrefs) => {
-    setUpdatedNotifPrefs((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }))
-  }
-
-  const areNotifPrefsSame = (a: typeof emptyNotifPrefs, b: typeof emptyNotifPrefs) => {
-    return a.error_spike === b.error_spike
-      && a.app_hang_spike === b.app_hang_spike
-      && a.bug_report === b.bug_report
-      && a.daily_summary === b.daily_summary
-  }
-
-  const getNotifPrefs = async () => {
-    setFetchNotifPrefsApiStatus(FetchNotifPrefsApiStatus.Loading)
-
-    const result = await fetchNotifPrefsFromServer()
-
-    switch (result.status) {
-      case FetchNotifPrefsApiStatus.Error:
-        setFetchNotifPrefsApiStatus(FetchNotifPrefsApiStatus.Error)
-        break
-      case FetchNotifPrefsApiStatus.Success:
-        setFetchNotifPrefsApiStatus(FetchNotifPrefsApiStatus.Success)
-        setNotifPrefs(result.data)
-        setUpdatedNotifPrefs(result.data)
-        break
-    }
-  }
+  const notifPrefs = notifPrefsQuery.data ?? emptyNotifPrefs
+  const [updatedNotifPrefs, setUpdatedNotifPrefs] = useState<NotifPrefs>(emptyNotifPrefs)
 
   useEffect(() => {
-    getNotifPrefs()
-  }, [])
+    if (notifPrefsQuery.data) {
+      setUpdatedNotifPrefs(notifPrefsQuery.data)
+    }
+  }, [notifPrefsQuery.data])
 
-  const saveNotifPrefs = async () => {
-    setUpdateNotifPrefsApiStatus(UpdateNotifPrefsApiStatus.Loading)
+  const togglePref = (key: keyof NotifPrefs) => {
+    setUpdatedNotifPrefs(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
-    const result = await updateNotifPrefsFromServer(updatedNotifPrefs)
+  const areNotifPrefsSame =
+    notifPrefs.error_spike === updatedNotifPrefs.error_spike &&
+    notifPrefs.app_hang_spike === updatedNotifPrefs.app_hang_spike &&
+    notifPrefs.bug_report === updatedNotifPrefs.bug_report &&
+    notifPrefs.daily_summary === updatedNotifPrefs.daily_summary
 
-    switch (result.status) {
-      case UpdateNotifPrefsApiStatus.Error:
-        setUpdateNotifPrefsApiStatus(UpdateNotifPrefsApiStatus.Error)
-        toastNegative("Error saving notification preferences", result.error)
-        break
-      case UpdateNotifPrefsApiStatus.Success:
-        setUpdateNotifPrefsApiStatus(UpdateNotifPrefsApiStatus.Success)
-        toastPositive("Notification preferences saved")
-        setNotifPrefs(updatedNotifPrefs)
-        break
+  const handleSave = async () => {
+    try {
+      await saveNotifPrefsMutation.mutateAsync({ notifPrefs: updatedNotifPrefs })
+      toastPositive("Notification preferences saved")
+    } catch (error) {
+      toastNegative("Error saving notification preferences", error instanceof Error ? error.message : undefined)
     }
   }
 
@@ -92,10 +67,10 @@ export default function Notifications() {
       <p className="font-display text-4xl max-w-6xl text-center">Notifications</p>
       <div className="py-4" />
 
-      {fetchNotifPrefsApiStatus === FetchNotifPrefsApiStatus.Loading && <LoadingSpinner />}
-      {fetchNotifPrefsApiStatus === FetchNotifPrefsApiStatus.Error && <p className='font-body text-sm'>Failed to fetch notification preferences. Please refresh page to try again.</p>}
+      {notifPrefsQuery.isLoading && <LoadingSpinner />}
+      {notifPrefsQuery.isError && <p className='font-body text-sm'>Failed to fetch notification preferences. Please refresh page to try again.</p>}
 
-      {fetchNotifPrefsApiStatus === FetchNotifPrefsApiStatus.Success &&
+      {notifPrefsQuery.isSuccess &&
         <div>
           <p className="font-body text-sm text-muted-foreground">
             Choose which email notifications you want to receive. This setting applies only to your personal preferences and does not affect your team.
@@ -111,30 +86,30 @@ export default function Notifications() {
             <NotifRow
               rowTitle="Crash Spike email"
               checked={updatedNotifPrefs.error_spike}
-              handleChange={() => handleToggle('error_spike')}
+              handleChange={() => togglePref('error_spike')}
             />
             <NotifRow
               rowTitle="ANR spike email"
               checked={updatedNotifPrefs.app_hang_spike}
-              handleChange={() => handleToggle('app_hang_spike')}
+              handleChange={() => togglePref('app_hang_spike')}
             />
             <NotifRow
               rowTitle="Bug Reports"
               checked={updatedNotifPrefs.bug_report}
-              handleChange={() => handleToggle('bug_report')}
+              handleChange={() => togglePref('bug_report')}
             />
             <NotifRow
               rowTitle="Daily Summary"
               checked={updatedNotifPrefs.daily_summary}
-              handleChange={() => handleToggle('daily_summary')}
+              handleChange={() => togglePref('daily_summary')}
             />
           </div>
           <div className="py-4" />
           <Button
             variant="outline"
-            disabled={areNotifPrefsSame(notifPrefs, updatedNotifPrefs) || updateNotifPrefsApiStatus === UpdateNotifPrefsApiStatus.Loading}
+            disabled={areNotifPrefsSame || saveNotifPrefsMutation.isPending}
             className="flex justify-center font-display border border-black select-none"
-            onClick={saveNotifPrefs}>
+            onClick={handleSave}>
             Save
           </Button>
         </div>}

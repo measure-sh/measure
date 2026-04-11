@@ -1,6 +1,6 @@
-import { describe, expect, it, beforeEach, afterEach } from '@jest/globals'
-import path from 'path'
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
+import path from 'path'
 
 const {
   walk,

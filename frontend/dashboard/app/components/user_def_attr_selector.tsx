@@ -2,7 +2,7 @@
 
 import { ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
 import React, { useEffect, useState } from 'react'
-import { UserDefAttr } from '../api/api_calls'
+import { UdAttrMatcher, UserDefAttr } from '../api/api_calls'
 import { cn } from '../utils/shadcn_utils'
 import { Button } from './button'
 import {
@@ -14,12 +14,7 @@ import {
 } from './command'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
-export type UdAttrMatcher = {
-  key: string
-  type: string
-  op: string
-  value: string | number | boolean
-}
+export type { UdAttrMatcher } from "../api/api_calls"
 
 interface UserDefAttrSelectorProps {
   attrs: UserDefAttr[]

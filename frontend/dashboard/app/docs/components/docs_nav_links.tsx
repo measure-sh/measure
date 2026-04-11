@@ -1,6 +1,6 @@
-import Link from "next/link";
+import { docsNav, getFlatNavSlugs, type NavItem } from "@/app/docs/docs_nav";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getFlatNavSlugs, docsNav, type NavItem } from "@/app/docs/docs_nav";
+import Link from "next/link";
 
 function findTitle(slug: string): string {
   if (slug === "/docs") {

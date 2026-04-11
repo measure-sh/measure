@@ -1,30 +1,32 @@
 "use client"
 
-import { measureAuth } from "@/app/auth/measure_auth";
 import { Button } from "@/app/components/button";
+import { useMeasureStoreRegistry } from "@/app/stores/provider";
 import Image from "next/image";
 
-async function doGitHubLogin() {
-  const { origin } = new URL(window.location.href)
-  const { url, error } = await measureAuth.oAuthSignin({
-    clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
-    options: {
-      redirectTo: `${origin}/auth/callback/github`,
-      next: "",
-    },
-  })
-
-  if (error) {
-    console.error(`failed to login using GitHub`, error)
-    return
-  }
-
-  if (url) {
-    window.location.assign(url)
-  }
-}
-
 export default function GitHubSignIn({ mcpAuthorizeUrl }: { mcpAuthorizeUrl?: string }) {
+  const registry = useMeasureStoreRegistry()
+
+  const doGitHubLogin = async () => {
+    const { origin } = new URL(window.location.href)
+    const { url, error } = await registry.sessionStore.getState().signInWithOAuth({
+      clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
+      options: {
+        redirectTo: `${origin}/auth/callback/github`,
+        next: "",
+      },
+    })
+
+    if (error) {
+      console.error(`failed to login using GitHub`, error)
+      return
+    }
+
+    if (url) {
+      window.location.assign(url)
+    }
+  }
+
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
       window.location.assign(mcpAuthorizeUrl)

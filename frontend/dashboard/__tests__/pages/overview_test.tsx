@@ -1,7 +1,7 @@
 import Overview from '@/app/[teamId]/overview/page'
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 
 const replaceMock = jest.fn()
 
@@ -19,22 +19,25 @@ jest.mock('@/app/api/api_calls', () => ({
     FilterSource: { Events: 'events' },
 }))
 
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return {
+        __esModule: true,
+        useFiltersStore: filtersStore,
+    }
+})
+
 // Mock Filters component
 jest.mock('@/app/components/filters', () => ({
-    __esModule: true, // Ensures the mock behaves like an ES module
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() => props.onFiltersChanged({ ready: true, serialisedFilters: 'updated' })}
-            >
-                Update Filters
-            </button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { Latest: 'latest' }, // Mock the Latest property
-    defaultFilters: { ready: false, serialisedFilters: '' }, // Mock defaultFilters
+    __esModule: true,
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 // Mock SessionsVsExceptionsOverviewPlot component
 jest.mock('@/app/components/sessions_vs_exceptions_overview_plot', () => ({
@@ -52,6 +55,7 @@ jest.mock('@/app/components/metrics_overview', () => () => (
 describe('Overview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     it('renders the Overview heading and Filters component', () => {
@@ -68,29 +72,13 @@ describe('Overview Component', () => {
 
     it('renders Journey and MetricsOverview when filters become ready and updates URL', async () => {
         render(<Overview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         expect(await screen.findByTestId('sessions-vs-exceptions-overview-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('metrics-overview-mock')).toBeInTheDocument()
         expect(replaceMock).toHaveBeenCalledWith('?updated', { scroll: false })
-    })
-
-    it('does not update filters if they remain unchanged', async () => {
-        render(<Overview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
     })
 })

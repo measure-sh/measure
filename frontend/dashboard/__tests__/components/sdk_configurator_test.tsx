@@ -13,7 +13,25 @@ jest.mock('@/app/api/api_calls', () => ({
         Success: 'success',
         Cancelled: 'cancelled'
     },
-    updateSdkConfigFromServer: jest.fn(),
+}))
+
+// The component calls saveSdkConfigMutation.mutate({ appId, config }, { onSuccess, onError })
+// We capture these calls and invoke the callbacks ourselves.
+const mockMutate = jest.fn()
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useSaveSdkConfigMutation: () => ({
+        mutate: mockMutate,
+        mutateAsync: jest.fn(),
+        isPending: false,
+        isSuccess: false,
+        isError: false,
+        status: 'idle' as string,
+        error: null as Error | null,
+        data: undefined as any,
+        reset: jest.fn(),
+    }),
 }))
 
 // Mock toast utilities
@@ -74,6 +92,24 @@ const mockInitialConfig = {
     http_track_response_for_urls: [],
     http_blocked_headers: [],
     screenshot_mask_level: 'sensitive_fields_only',
+}
+
+// Helper: simulate the mutation.mutate call succeeding
+function simulateMutateSuccess() {
+    mockMutate.mockImplementation((_params: any, options: any) => {
+        if (options?.onSuccess) {
+            options.onSuccess()
+        }
+    })
+}
+
+// Helper: simulate the mutation.mutate call failing
+function simulateMutateError() {
+    mockMutate.mockImplementation((_params: any, options: any) => {
+        if (options?.onError) {
+            options.onError(new Error('Failed'))
+        }
+    })
 }
 
 describe('SdkConfigurator Component', () => {
@@ -203,13 +239,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves crashes config with correct payload, shows loading state, and displays success toast', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        // Mock API to return success
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -249,14 +280,17 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    crash_take_screenshot: false,
-                    crash_timeline_duration: 50
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        crash_take_screenshot: false,
+                        crash_timeline_duration: 50
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -265,12 +299,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves ANR config with correct payload on successful save', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -310,14 +340,17 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    anr_take_screenshot: false,
-                    anr_timeline_duration: 75
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        anr_take_screenshot: false,
+                        anr_timeline_duration: 75
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -325,12 +358,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves bug reports config with correct payload on successful save', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -365,13 +394,16 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    bug_report_timeline_duration: 60
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        bug_report_timeline_duration: 60
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -379,12 +411,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves traces config with correct payload on successful save', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -419,13 +447,16 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    trace_sampling_rate: 0.5
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        trace_sampling_rate: 0.5
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -433,12 +464,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves HTTP config with correct payload including all URL and header fields', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -501,17 +528,20 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    http_sampling_rate: 0.5,
-                    http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
-                    http_track_request_for_urls: ['https://api.example.com/*'],
-                    http_track_response_for_urls: ['https://api.example.com/users/*'],
-                    http_blocked_headers: ['Authorization', 'X-API-Key']
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        http_sampling_rate: 0.5,
+                        http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
+                        http_track_request_for_urls: ['https://api.example.com/*'],
+                        http_track_response_for_urls: ['https://api.example.com/users/*'],
+                        http_blocked_headers: ['Authorization', 'X-API-Key']
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -519,12 +549,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves masking config with correct payload on successful save', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -558,13 +584,16 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Verify API was called with correct payload
+        // Verify mutate was called with correct payload
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    screenshot_mask_level: 'all_text'
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        screenshot_mask_level: 'all_text'
+                    })
+                },
+                expect.any(Object)
             )
         })
 
@@ -572,14 +601,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('displays error toast when save fails and keeps save button enabled', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastNegative } = require('@/app/utils/use_toast')
-
-        // Mock API to return error
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'error',
-            error: 'Failed to update configuration'
-        })
+        simulateMutateError()
 
         render(
             <SdkConfigurator
@@ -613,7 +636,7 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(affirmativeButton)
         })
 
-        // Wait for API call and error toast
+        // Wait for error toast
         await waitFor(() => {
             expect(toastNegative).toHaveBeenCalled()
         })
@@ -623,12 +646,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('disables save button on successful save', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
         const { toastPositive } = require('@/app/utils/use_toast')
-
-        updateSdkConfigFromServer.mockResolvedValue({
-            status: 'success'
-        })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -685,6 +704,8 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('renders http urls in text area trimming whitespace and filtering empty lines', async () => {
+        simulateMutateSuccess()
+
         render(
             <SdkConfigurator
                 appId="test-app-id"
@@ -715,10 +736,6 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(saveButton)
         })
 
-        // Mock the API call to verify payload
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
-
         // Click affirmative on confirmation dialog
         await waitFor(() => {
             expect(screen.getByTestId('danger-confirmation-dialog')).toBeInTheDocument()
@@ -731,11 +748,14 @@ describe('SdkConfigurator Component', () => {
 
         // Verify whitespace is trimmed and empty lines are filtered
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
-                expect.objectContaining({
-                    http_disable_event_for_urls: ['https://api.example.com/*', 'https://another.com/*']
-                })
+            expect(mockMutate).toHaveBeenCalledWith(
+                {
+                    appId: 'test-app-id',
+                    config: expect.objectContaining({
+                        http_disable_event_for_urls: ['https://api.example.com/*', 'https://another.com/*']
+                    })
+                },
+                expect.any(Object)
             )
         })
     })
@@ -759,8 +779,7 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('saves crash config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -800,19 +819,21 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    crash_take_screenshot: false,
-                    crash_timeline_duration: 75
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        crash_take_screenshot: false,
+                        crash_timeline_duration: 75
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves ANR config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -852,19 +873,21 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    anr_take_screenshot: false,
-                    anr_timeline_duration: 50
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        anr_take_screenshot: false,
+                        anr_timeline_duration: 50
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves bug reports config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -899,18 +922,20 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    bug_report_timeline_duration: 120
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        bug_report_timeline_duration: 120
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves traces config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -945,18 +970,20 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    trace_sampling_rate: 0.5
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        trace_sampling_rate: 0.5
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves launch config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -991,18 +1018,20 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    launch_sampling_rate: 1
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        launch_sampling_rate: 1
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves journey config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -1037,18 +1066,20 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    journey_sampling_rate: 0.25
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        journey_sampling_rate: 0.25
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves HTTP config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -1111,22 +1142,24 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    http_sampling_rate: 0.5,
-                    http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
-                    http_track_request_for_urls: ['https://api.example.com/*'],
-                    http_track_response_for_urls: ['https://api.example.com/users/*'],
-                    http_blocked_headers: ['Authorization', 'X-API-Key']
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        http_sampling_rate: 0.5,
+                        http_disable_event_for_urls: ['https://example.com/*', 'https://test.com/*'],
+                        http_track_request_for_urls: ['https://api.example.com/*'],
+                        http_track_response_for_urls: ['https://api.example.com/users/*'],
+                        http_blocked_headers: ['Authorization', 'X-API-Key']
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
 
     it('saves masking config on confirmation', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-        updateSdkConfigFromServer.mockResolvedValue({ status: 'success' })
+        simulateMutateSuccess()
 
         render(
             <SdkConfigurator
@@ -1160,11 +1193,14 @@ describe('SdkConfigurator Component', () => {
         })
 
         await waitFor(() => {
-            expect(updateSdkConfigFromServer).toHaveBeenCalledWith(
-                'test-app-id',
+            expect(mockMutate).toHaveBeenCalledWith(
                 {
-                    screenshot_mask_level: 'all_text'
-                }
+                    appId: 'test-app-id',
+                    config: {
+                        screenshot_mask_level: 'all_text'
+                    }
+                },
+                expect.any(Object)
             )
         })
     })
@@ -1288,8 +1324,6 @@ describe('SdkConfigurator Component', () => {
     })
 
     it('cancels save when dialog is dismissed', async () => {
-        const { updateSdkConfigFromServer } = require('@/app/api/api_calls')
-
         render(
             <SdkConfigurator
                 appId="test-app-id"
@@ -1323,11 +1357,11 @@ describe('SdkConfigurator Component', () => {
             fireEvent.click(cancelButton)
         })
 
-        // Verify dialog is closed and API was not called
+        // Verify dialog is closed and save action was not called
         await waitFor(() => {
             expect(screen.queryByTestId('danger-confirmation-dialog')).not.toBeInTheDocument()
         })
-        expect(updateSdkConfigFromServer).not.toHaveBeenCalled()
+        expect(mockMutate).not.toHaveBeenCalled()
 
         // Verify save button is still enabled
         expect(saveButton).not.toBeDisabled()

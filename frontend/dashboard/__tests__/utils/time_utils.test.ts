@@ -1,6 +1,6 @@
 import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatPlotTooltipDate, formatTimestampToChartFormat, formatUserInputDateToServerFormat, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig, getTimeZoneForServer, isValidTimestamp } from '@/app/utils/time_utils'
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
-import { DateTime, Settings } from "luxon"
+import { Settings } from "luxon"
 
 describe('getTimeZoneForServer', () => {
     it('should return a valid timezone string', () => {

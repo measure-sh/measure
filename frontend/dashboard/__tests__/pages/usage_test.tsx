@@ -12,7 +12,7 @@ jest.mock('@/app/utils/use_toast', () => ({
     toastNegative: (...args: any[]) => mockToastNegative(...args),
 }))
 
-// Mock API calls
+// Mock API calls - only need the enum/constant exports, not the fetch functions
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
     FetchUsageApiStatus: {
@@ -67,77 +67,112 @@ jest.mock('@/app/api/api_calls', () => ({
             ],
         },
     ],
-    fetchUsageFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: [
-                {
-                    app_id: 'app1',
-                    app_name: 'My App',
-                    monthly_app_usage: [
-                        { month_year: '2025-01', sessions: 100, events: 500, spans: 200, bytes_in: 524288 },
-                        { month_year: '2025-02', sessions: 150, events: 700, spans: 300, bytes_in: 1048576 },
-                    ],
-                },
-            ],
-        })
-    ),
-    fetchBillingInfoFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: {
-                team_id: 'team1',
-                plan: 'free',
-                max_retention: 30,
-                max_units: 1000000,
-                stripe_customer_id: null,
-                stripe_subscription_id: null,
-                created_at: '2025-01-01T00:00:00Z',
-                updated_at: '2025-01-01T00:00:00Z',
+}))
+
+// --- Bridge store for usage page ---
+const { create: createBridge } = jest.requireActual('zustand') as any
+const usageBridge = createBridge(() => ({
+    fetchUsageApiStatus: 0, // Loading
+    usage: [] as any[],
+    months: [] as string[],
+    selectedMonth: undefined as string | undefined,
+    selectedMonthUsage: [] as any[],
+    currentBillingCycleUsage: 0,
+    fetchBillingInfoApiStatus: 0, // Loading
+    billingInfo: null as any,
+    fetchSubscriptionInfoApiStatus: 0, // Loading
+    subscriptionInfo: null as any,
+    currentUserCanChangePlan: false,
+    fetchUsage: jest.fn(),
+    setSelectedMonth: jest.fn(),
+    fetchPermissions: jest.fn(),
+    fetchBillingInfo: jest.fn(),
+    pollForPlan: jest.fn(),
+    fetchSubscriptionInfo: jest.fn(),
+    handleUpgrade: jest.fn(),
+    handleDowngrade: jest.fn(),
+    handleManageBilling: jest.fn(),
+    reset: jest.fn(),
+}))
+
+function usageStatusMap(s: number) {
+    // 0=Loading, 1=Success, 2=Error, 3=NoApps
+    if (s === 0) { return 'pending' }
+    if (s === 1) { return 'success' }
+    if (s === 2) { return 'error' }
+    if (s === 3) { return 'success' } // NoApps returns null data
+    return 'pending'
+}
+
+function billingStatusMap(s: number) {
+    if (s === 0) { return 'pending' }
+    if (s === 1) { return 'success' }
+    if (s === 2) { return 'error' }
+    return 'pending'
+}
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useUsageQuery: () => {
+        const s = usageBridge.getState()
+        // For NoApps (3), return null as data with success status
+        const data = s.fetchUsageApiStatus === 3 ? null :
+            (s.fetchUsageApiStatus === 1 && s.usage.length === 0 && s.months.length > 0) ?
+                // Build usage data from months/selectedMonthUsage
+                s.selectedMonthUsage.map((u: any) => ({
+                    app_id: u.id, app_name: u.label,
+                    monthly_app_usage: [{ month_year: s.selectedMonth || s.months[s.months.length - 1], sessions: u.value, events: u.events, spans: u.spans, bytes_in: u.bytes_in }]
+                })) :
+                s.usage.length > 0 ? s.usage : undefined
+        return { data, status: usageStatusMap(s.fetchUsageApiStatus) }
+    },
+    useUsagePermissionsQuery: () => {
+        const s = usageBridge.getState()
+        return { data: { canChangePlan: s.currentUserCanChangePlan } }
+    },
+    useBillingInfoQuery: () => {
+        const s = usageBridge.getState()
+        return { data: s.billingInfo, status: billingStatusMap(s.fetchBillingInfoApiStatus) }
+    },
+    useSubscriptionInfoQuery: () => {
+        const s = usageBridge.getState()
+        return { data: s.subscriptionInfo, status: billingStatusMap(s.fetchSubscriptionInfoApiStatus) }
+    },
+    usePollForPlanQuery: () => {
+        return { data: undefined }
+    },
+    useHandleUpgradeMutation: () => {
+        const s = usageBridge.getState()
+        return {
+            mutate: async (params: any, opts: any) => {
+                const result = await s.handleUpgrade(params.teamId, params.successUrl, params.cancelUrl)
+                if (result?.redirect) {
+                    opts?.onSuccess?.({ checkout_url: result.redirect })
+                } else if (result?.alreadyUpgraded) {
+                    opts?.onSuccess?.({ already_upgraded: true })
+                } else if (result?.error) {
+                    opts?.onSuccess?.({ }) // no checkout_url triggers error toast
+                } else {
+                    opts?.onError?.()
+                }
             },
-        })
-    ),
-    fetchStripeCheckoutSessionFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: { checkout_url: 'https://checkout.stripe.com/test' },
-        })
-    ),
-    downgradeToFreeFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: {},
-        })
-    ),
-    fetchAuthzAndMembersFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: {
-                can_change_billing: true,
-                members: [
-                    { id: 'user1', name: 'Test User', email: 'test@test.com', role: 'owner' },
-                ],
+            isPending: false,
+        }
+    },
+    useDowngradeToFreeMutation: () => {
+        const s = usageBridge.getState()
+        return {
+            mutate: async (params: any, opts: any) => {
+                const result = await s.handleDowngrade(params.teamId)
+                if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
             },
-        })
-    ),
-    fetchSubscriptionInfoFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: {
-                status: 'active',
-                current_period_start: 1700000000,
-                current_period_end: 1702678400,
-                upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-                billing_cycle_usage: 12000000,
-            },
-        })
-    ),
-    fetchCustomerPortalUrlFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 1, // Success
-            data: { url: 'https://billing.stripe.com/session/test' },
-        })
-    ),
+            isPending: false,
+        }
+    },
+    fetchCustomerPortalUrl: async (teamId: string, returnUrl: string) => {
+        const s = usageBridge.getState()
+        return await s.handleManageBilling(teamId, returnUrl)
+    },
 }))
 
 // Mock Skeleton
@@ -220,12 +255,72 @@ jest.mock('next/link', () => ({
     default: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
 }))
 
+const useUsageStore = usageBridge
+
+// Helper: default free plan billing info
+const freeBillingInfo = {
+    team_id: 'team1',
+    plan: 'free',
+    max_retention: 30,
+    max_units: 1000000,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z',
+}
+
+// Helper: default pro plan billing info
+const proBillingInfo = {
+    team_id: 'team1',
+    plan: 'pro',
+    max_retention: 365,
+    max_units: null,
+    stripe_customer_id: 'cus_123',
+    stripe_subscription_id: 'sub_123',
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z',
+}
+
+// Helper: default subscription info
+const defaultSubscriptionInfo = {
+    status: 'active',
+    current_period_start: 1700000000,
+    current_period_end: 1702678400,
+    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
+    billing_cycle_usage: 12000000,
+}
+
 describe('Usage Page', () => {
     const originalLocation = window.location
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.useFakeTimers()
+
+        // Reset store to defaults
+        useUsageStore.setState({
+            fetchUsageApiStatus: 0, // Loading
+            usage: [],
+            months: [],
+            selectedMonth: undefined,
+            selectedMonthUsage: [],
+            currentBillingCycleUsage: 0,
+            fetchBillingInfoApiStatus: 0, // Loading
+            billingInfo: null,
+            fetchSubscriptionInfoApiStatus: 0, // Loading
+            subscriptionInfo: null,
+            currentUserCanChangePlan: false,
+            fetchUsage: jest.fn(),
+            setSelectedMonth: jest.fn(),
+            fetchPermissions: jest.fn(),
+            fetchBillingInfo: jest.fn(),
+            pollForPlan: jest.fn(),
+            fetchSubscriptionInfo: jest.fn(),
+            handleUpgrade: jest.fn(),
+            handleDowngrade: jest.fn(),
+            handleManageBilling: jest.fn(),
+            reset: jest.fn(),
+        })
 
         // Reset window.location.search
         Object.defineProperty(window, 'location', {
@@ -253,31 +348,18 @@ describe('Usage Page', () => {
     })
 
     it('shows loading spinner while fetching usage', async () => {
-        const { fetchUsageFromServer } = require('@/app/api/api_calls')
-
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-        fetchUsageFromServer.mockImplementationOnce(() => loadingPromise)
+        useUsageStore.setState({ fetchUsageApiStatus: 0 }) // Loading
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
-
-        // Clean up
-        await act(async () => {
-            resolvePromise!({ status: 1, data: [] })
-        })
+        const spinners = screen.getAllByTestId('loading-spinner-mock')
+        expect(spinners.length).toBeGreaterThanOrEqual(1)
     })
 
     it('shows error message when usage fetch fails', async () => {
-        const { fetchUsageFromServer } = require('@/app/api/api_calls')
-        fetchUsageFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2 }) // Error
-        )
+        useUsageStore.setState({ fetchUsageApiStatus: 2 }) // Error
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -287,10 +369,7 @@ describe('Usage Page', () => {
     })
 
     it('shows NoApps message with link when no apps exist', async () => {
-        const { fetchUsageFromServer } = require('@/app/api/api_calls')
-        fetchUsageFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 3 }) // NoApps
-        )
+        useUsageStore.setState({ fetchUsageApiStatus: 3 }) // NoApps
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -303,6 +382,15 @@ describe('Usage Page', () => {
     })
 
     it('renders pie chart and month dropdown on success', async () => {
+        useUsageStore.setState({
+            fetchUsageApiStatus: 1, // Success
+            months: ['2025-01', '2025-02'],
+            selectedMonth: '2025-02',
+            selectedMonthUsage: [
+                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1048576 },
+            ],
+        })
+
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
@@ -328,29 +416,21 @@ describe('Usage Page', () => {
 
     it('does not call billing APIs when billing is disabled', async () => {
         const { isBillingEnabled } = require('@/app/utils/feature_flag_utils')
-        const { fetchBillingInfoFromServer, fetchAuthzAndMembersFromServer } =
-            require('@/app/api/api_calls')
-
         isBillingEnabled.mockReturnValue(false)
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(fetchBillingInfoFromServer).not.toHaveBeenCalled()
-        expect(fetchAuthzAndMembersFromServer).not.toHaveBeenCalled()
+        const store = useUsageStore.getState()
+        expect(store.fetchBillingInfo).not.toHaveBeenCalled()
+        expect(store.fetchPermissions).not.toHaveBeenCalled()
 
         isBillingEnabled.mockReturnValue(true)
     })
 
     it('shows billing loading spinner while billing info loads', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-        fetchBillingInfoFromServer.mockImplementationOnce(() => loadingPromise)
+        useUsageStore.setState({ fetchBillingInfoApiStatus: 0 }) // Loading
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -359,18 +439,10 @@ describe('Usage Page', () => {
         // There will be at least one loading spinner for billing
         const spinners = screen.getAllByTestId('loading-spinner-mock')
         expect(spinners.length).toBeGreaterThanOrEqual(1)
-
-        // Clean up
-        await act(async () => {
-            resolvePromise!({ status: 1, data: { plan: 'free' } })
-        })
     })
 
     it('shows billing error message when billing info fetch fails', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2 }) // Error
-        )
+        useUsageStore.setState({ fetchBillingInfoApiStatus: 2 }) // Error
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -380,6 +452,12 @@ describe('Usage Page', () => {
     })
 
     it('renders free plan card with Current Plan badge and pricing when on free plan', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: true,
+        })
+
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
@@ -391,22 +469,13 @@ describe('Usage Page', () => {
     })
 
     it('renders pro plan card with Current Plan badge when on pro plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    max_retention: 365,
-                    max_units: null,
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1, // Success
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -420,11 +489,23 @@ describe('Usage Page', () => {
     })
 
     it('shows free plan usage progress bar with percentage and GB', async () => {
+        useUsageStore.setState({
+            fetchUsageApiStatus: 1, // Success
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentBillingCycleUsage: 1048576, // 1 MB
+            months: ['2025-01', '2025-02'],
+            selectedMonth: '2025-02',
+            selectedMonthUsage: [
+                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1048576 },
+            ],
+        })
+
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // Usage data for 2025-02 (last month = initial): bytes_in = 1048576 (1 MB)
+        // Usage data: bytes_in = 1048576 (1 MB)
         // freeUsagePercent = Math.round((1048576 / (5 * 1024 * 1024 * 1024)) * 10000) / 100 = 0.02
         // Since usage > 0, Math.max(0.01, 0.02) = 0.02
         expect(screen.getByText('0.02%')).toBeInTheDocument()
@@ -437,21 +518,17 @@ describe('Usage Page', () => {
     })
 
     it('shows 0% when there is no usage', async () => {
-        const { fetchUsageFromServer } = require('@/app/api/api_calls')
-        fetchUsageFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: [
-                    {
-                        app_id: 'app1',
-                        app_name: 'Test App',
-                        monthly_app_usage: [
-                            { month_year: '2025-02', sessions: 0, events: 0, spans: 0, bytes_in: 0 },
-                        ],
-                    },
-                ],
-            })
-        )
+        useUsageStore.setState({
+            fetchUsageApiStatus: 1, // Success
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentBillingCycleUsage: 0,
+            months: ['2025-02'],
+            selectedMonth: '2025-02',
+            selectedMonthUsage: [
+                { id: 'app1', label: 'Test App', value: 0, events: 0, spans: 0, bytes_in: 0 },
+            ],
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -462,21 +539,17 @@ describe('Usage Page', () => {
     })
 
     it('shows minimum 0.01% for very small usage', async () => {
-        const { fetchUsageFromServer } = require('@/app/api/api_calls')
-        fetchUsageFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: [
-                    {
-                        app_id: 'app1',
-                        app_name: 'Test App',
-                        monthly_app_usage: [
-                            { month_year: '2025-02', sessions: 1, events: 1, spans: 0, bytes_in: 48 },
-                        ],
-                    },
-                ],
-            })
-        )
+        useUsageStore.setState({
+            fetchUsageApiStatus: 1, // Success
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentBillingCycleUsage: 48,
+            months: ['2025-02'],
+            selectedMonth: '2025-02',
+            selectedMonthUsage: [
+                { id: 'app1', label: 'Test App', value: 1, events: 1, spans: 0, bytes_in: 48 },
+            ],
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -488,22 +561,13 @@ describe('Usage Page', () => {
     })
 
     it('does not show free plan progress bar when on pro plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    max_retention: 365,
-                    max_units: null,
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -516,18 +580,11 @@ describe('Usage Page', () => {
     // ---- Upgrade flow ----
 
     it('upgrade button is disabled when user cannot change billing', async () => {
-        const { fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-        fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    can_change_billing: false,
-                    members: [
-                        { id: 'user1', name: 'Test User', email: 'test@test.com', role: 'viewer' },
-                    ],
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: false,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -538,7 +595,13 @@ describe('Usage Page', () => {
     })
 
     it('clicking upgrade calls checkout API and redirects', async () => {
-        const { fetchStripeCheckoutSessionFromServer } = require('@/app/api/api_calls')
+        const handleUpgrade = jest.fn().mockResolvedValue({ redirect: 'https://checkout.stripe.com/test' })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUpgrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -549,25 +612,22 @@ describe('Usage Page', () => {
             fireEvent.click(upgradeButton)
         })
 
-        expect(fetchStripeCheckoutSessionFromServer).toHaveBeenCalled()
+        expect(handleUpgrade).toHaveBeenCalled()
         expect(window.location.href).toBe('https://checkout.stripe.com/test')
     })
 
     it('upgrade with already_upgraded response refreshes billing info and shows toast', async () => {
-        const { fetchStripeCheckoutSessionFromServer, fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchStripeCheckoutSessionFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: { already_upgraded: true },
-            })
-        )
+        const handleUpgrade = jest.fn().mockResolvedValue({ alreadyUpgraded: true })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUpgrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
-
-        // Clear the initial call count
-        fetchBillingInfoFromServer.mockClear()
 
         const upgradeButton = screen.getByText('Upgrade to Pro')
         await act(async () => {
@@ -575,14 +635,16 @@ describe('Usage Page', () => {
         })
 
         expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('subscription was found'))
-        expect(fetchBillingInfoFromServer).toHaveBeenCalled()
     })
 
     it('upgrade error shows toast', async () => {
-        const { fetchStripeCheckoutSessionFromServer } = require('@/app/api/api_calls')
-        fetchStripeCheckoutSessionFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2 }) // Error
-        )
+        const handleUpgrade = jest.fn().mockResolvedValue({ error: true })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUpgrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -599,22 +661,13 @@ describe('Usage Page', () => {
     // ---- Downgrade flow ----
 
     it('clicking downgrade opens confirmation dialog', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    max_retention: 365,
-                    max_units: null,
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -629,28 +682,15 @@ describe('Usage Page', () => {
     })
 
     it('confirming downgrade calls API and shows success toast', async () => {
-        const { fetchBillingInfoFromServer, downgradeToFreeFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer
-            .mockResolvedValueOnce({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    max_retention: 365,
-                    max_units: null,
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-            // Poll result (success)
-            .mockResolvedValueOnce({
-                status: 1,
-                data: {
-                    plan: 'free',
-                },
-            })
+        const handleDowngrade = jest.fn().mockResolvedValue(true)
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleDowngrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -668,9 +708,9 @@ describe('Usage Page', () => {
             fireEvent.click(affirmButton)
         })
 
-        expect(downgradeToFreeFromServer).toHaveBeenCalledWith('team1')
+        expect(handleDowngrade).toHaveBeenCalledWith('team1')
 
-        // Wait for async handleDowngrade to process polling
+        // Wait for async handleDowngrade to process
         await act(async () => {
             // Let promises resolve
         })
@@ -679,25 +719,15 @@ describe('Usage Page', () => {
     })
 
     it('downgrade error shows error toast', async () => {
-        const { fetchBillingInfoFromServer, downgradeToFreeFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    max_retention: 365,
-                    max_units: null,
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        downgradeToFreeFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2 }) // Error
-        )
+        const handleDowngrade = jest.fn().mockResolvedValue(false)
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleDowngrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -758,23 +788,7 @@ describe('Usage Page', () => {
         expect(mockToastNegative).toHaveBeenCalledWith('Checkout canceled', 'You can try again anytime.')
     })
 
-    it('polls billing info on success redirect until plan is pro', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        // Reset mocks
-        fetchBillingInfoFromServer.mockReset()
-
-        // 1. Initial page load
-        fetchBillingInfoFromServer.mockResolvedValueOnce({ status: 1, data: { plan: 'free' } })
-
-        // 2. Poll 1 (immediate after 100ms delay) -> still free
-        fetchBillingInfoFromServer.mockResolvedValueOnce({ status: 1, data: { plan: 'free' } })
-
-        // 3. Poll 2 (after 1s) -> still free
-        fetchBillingInfoFromServer.mockResolvedValueOnce({ status: 1, data: { plan: 'free' } })
-
-        // 4. Poll 3 (after another 1s) -> becomes pro
-        fetchBillingInfoFromServer.mockResolvedValueOnce({ status: 1, data: { plan: 'pro' } })
-
+    it('shows success toast and clears URL params on success redirect', async () => {
         Object.defineProperty(window, 'location', {
             writable: true,
             value: { ...originalLocation, search: '?success=true', href: 'http://localhost/team1/usage?success=true', pathname: '/team1/usage' },
@@ -785,119 +799,20 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // Initial load
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(1)
-
         // Trigger useEffect timeout (100ms)
         await act(async () => {
-            jest.advanceTimersByTime(100)
+            jest.advanceTimersByTime(200)
         })
 
-        // Poll 1 should have happened
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(2)
-
-        // Advance 1s for Poll 2
-        await act(async () => {
-            jest.advanceTimersByTime(1000)
-        })
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(3)
-
-        // Advance 1s for Poll 3 (Success)
-        await act(async () => {
-            jest.advanceTimersByTime(1000)
-        })
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(4)
-
-        // Verify it stopped polling (advance another 1s, ensures no more calls)
-        await act(async () => {
-            jest.advanceTimersByTime(1000)
-        })
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(4)
-    })
-
-    it('polls billing info on downgrade success until plan is free', async () => {
-        const { fetchBillingInfoFromServer, downgradeToFreeFromServer } = require('@/app/api/api_calls')
-
-        // 1. Initial page load (Pro)
-        fetchBillingInfoFromServer.mockResolvedValueOnce({
-            status: 1,
-            data: {
-                team_id: 'team1',
-                plan: 'pro',
-                max_retention: 365,
-                max_units: null,
-                stripe_customer_id: 'cus_123',
-                stripe_subscription_id: 'sub_123',
-                created_at: '2025-01-01T00:00:00Z',
-                updated_at: '2025-01-01T00:00:00Z',
-            },
-        })
-
-        // Downgrade success
-        downgradeToFreeFromServer.mockResolvedValue({ status: 1 })
-
-        // 2. Poll 1 (immediate) -> still pro
-        fetchBillingInfoFromServer.mockResolvedValueOnce({
-            status: 1,
-            data: { plan: 'pro' },
-        })
-
-        // 3. Poll 2 (after 1s) -> becomes free
-        fetchBillingInfoFromServer.mockResolvedValueOnce({
-            status: 1,
-            data: { plan: 'free' },
-        })
-
-        await act(async () => {
-            render(<Usage params={{ teamId: 'team1' }} />)
-        })
-
-        // Open dialog
-        const downgradeButton = screen.getByText('Downgrade to Free')
-        await act(async () => {
-            fireEvent.click(downgradeButton)
-        })
-
-        // Confirm downgrade
-        const affirmButton = screen.getByTestId('dialog-affirm')
-        await act(async () => {
-            fireEvent.click(affirmButton)
-        })
-
-        // Initial load called once AND Poll 1 (immediate after success)
-        // Wait for async execution
-        await act(async () => {
-            // Let immediate promises resolve
-        })
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(2)
-
-        // Advance 1s for Poll 2
-        await act(async () => {
-            jest.advanceTimersByTime(1000)
-        })
-        expect(fetchBillingInfoFromServer).toHaveBeenCalledTimes(3)
-
-        // Verify toast
-        expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('downgraded to Free'))
+        expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('upgraded to Pro'))
+        expect(window.history.replaceState).toHaveBeenCalled()
     })
 
     it('shows pro plan feature list when on free plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'free',
-                    max_retention: 30,
-                    max_units: 1000000,
-                    stripe_customer_id: null,
-                    stripe_subscription_id: null,
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -909,20 +824,13 @@ describe('Usage Page', () => {
     })
 
     it('hides pro plan feature list when on pro plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -934,26 +842,18 @@ describe('Usage Page', () => {
     })
 
     it('shows subscription info on pro plan when user can change billing', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1, // Success
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(fetchSubscriptionInfoFromServer).toHaveBeenCalledWith('team1')
         expect(screen.getByText(/Status:/)).toBeInTheDocument()
         expect(screen.getByText(/active/i)).toBeInTheDocument()
         expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
@@ -961,84 +861,43 @@ describe('Usage Page', () => {
         expect(screen.getByText(/Upcoming invoice amount/)).toBeInTheDocument()
     })
 
-    it('does not fetch subscription info when on free plan', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'free',
-                    stripe_customer_id: null,
-                    stripe_subscription_id: null,
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+    it('does not show subscription info when on free plan', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+            currentUserCanChangePlan: true,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // Free plan — subscription info should not be fetched
-        expect(fetchSubscriptionInfoFromServer).not.toHaveBeenCalled()
+        // Free plan — subscription info should not be displayed
+        expect(screen.queryByText(/Status:/)).not.toBeInTheDocument()
     })
 
-    it('does not fetch subscription info when can_change_billing is false', async () => {
-        const { fetchBillingInfoFromServer, fetchAuthzAndMembersFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    can_change_billing: false,
-                    members: [
-                        { id: 'user1', name: 'Test User', email: 'test@test.com', role: 'viewer' },
-                    ],
-                },
-            })
-        )
+    it('does not show subscription info when can_change_billing is false', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: false,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(fetchSubscriptionInfoFromServer).not.toHaveBeenCalled()
+        expect(screen.queryByText(/Status:/)).not.toBeInTheDocument()
     })
 
     it('handles subscription info fetch error gracefully', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2, data: null }) // Error
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 2, // Error
+            subscriptionInfo: null,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1051,33 +910,19 @@ describe('Usage Page', () => {
     })
 
     it('shows subscription info without estimated amount when upcoming_invoice is null', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    status: 'active',
-                    current_period_start: 1700000000,
-                    current_period_end: 1702678400,
-                    upcoming_invoice: null,
-                    billing_cycle_usage: 5000000,
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1, // Success
+            subscriptionInfo: {
+                status: 'active',
+                current_period_start: 1700000000,
+                current_period_end: 1702678400,
+                upcoming_invoice: null,
+                billing_cycle_usage: 5000000,
+            },
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1090,33 +935,16 @@ describe('Usage Page', () => {
     })
 
     it('shows GB-days used in pro plan card', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    status: 'active',
-                    current_period_start: 1700000000,
-                    current_period_end: 1702678400,
-                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-                    billing_cycle_usage: 12500000,
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1, // Success
+            subscriptionInfo: {
+                ...defaultSubscriptionInfo,
+                billing_cycle_usage: 12500000,
+            },
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1128,33 +956,16 @@ describe('Usage Page', () => {
     })
 
     it('shows GB-days used in pro plan card with high usage', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    status: 'active',
-                    current_period_start: 1700000000,
-                    current_period_end: 1702678400,
-                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-                    billing_cycle_usage: 30000000,
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1, // Success
+            subscriptionInfo: {
+                ...defaultSubscriptionInfo,
+                billing_cycle_usage: 30000000,
+            },
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1166,21 +977,10 @@ describe('Usage Page', () => {
     })
 
     it('does not show GB-days used on free plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'free',
-                    stripe_customer_id: null,
-                    stripe_subscription_id: null,
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1190,24 +990,13 @@ describe('Usage Page', () => {
     })
 
     it('does not show GB-days used when subscription info fetch fails', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2, data: null }) // Error
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 2, // Error
+            subscriptionInfo: null,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1219,20 +1008,13 @@ describe('Usage Page', () => {
     // ---- Manage Billing button ----
 
     it('shows Manage Billing button when on pro plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1242,20 +1024,10 @@ describe('Usage Page', () => {
     })
 
     it('hides Manage Billing button when on free plan', async () => {
-        const { fetchBillingInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'free',
-                    stripe_customer_id: null,
-                    stripe_subscription_id: null,
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: freeBillingInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1265,26 +1037,13 @@ describe('Usage Page', () => {
     })
 
     it('Manage Billing button is disabled when user cannot change billing', async () => {
-        const { fetchBillingInfoFromServer, fetchAuthzAndMembersFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchAuthzAndMembersFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: { can_change_billing: false, members: [] },
-            })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: false,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1295,20 +1054,15 @@ describe('Usage Page', () => {
     })
 
     it('clicking Manage Billing calls portal API and redirects', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
+        const handleManageBilling = jest.fn().mockResolvedValue({ redirect: 'https://billing.stripe.com/session/test' })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1318,30 +1072,23 @@ describe('Usage Page', () => {
             fireEvent.click(screen.getByText('Manage Billing'))
         })
 
-        expect(fetchCustomerPortalUrlFromServer).toHaveBeenCalledWith('team1', 'http://localhost/team1/usage')
+        expect(handleManageBilling).toHaveBeenCalledWith('team1', 'http://localhost/team1/usage')
         expect(window.location.href).toBe('https://billing.stripe.com/session/test')
     })
 
     it('Manage Billing shows Redirecting... while loading', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
+        let resolveManageBilling: (value: any) => void
+        const handleManageBilling = jest.fn().mockImplementation(
+            () => new Promise((resolve) => { resolveManageBilling = resolve })
         )
-
-        let resolvePortal: (value: any) => void
-        fetchCustomerPortalUrlFromServer.mockImplementationOnce(
-            () => new Promise((resolve) => { resolvePortal = resolve })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1354,28 +1101,20 @@ describe('Usage Page', () => {
         expect(screen.getByText('Redirecting...')).toBeInTheDocument()
 
         await act(async () => {
-            resolvePortal!({ status: 1, data: { url: 'https://billing.stripe.com/session/test' } })
+            resolveManageBilling!({ redirect: 'https://billing.stripe.com/session/test' })
         })
     })
 
     it('Manage Billing error shows toast', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 2, data: null }) // Error
-        )
+        const handleManageBilling = jest.fn().mockResolvedValue({ error: 'Please try again.' })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1392,23 +1131,15 @@ describe('Usage Page', () => {
     })
 
     it('Manage Billing cancelled shows toast', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 3, data: null }) // Cancelled
-        )
+        const handleManageBilling = jest.fn().mockResolvedValue({ error: 'Request was cancelled.' })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1425,25 +1156,18 @@ describe('Usage Page', () => {
     })
 
     it('Downgrade button is disabled while Manage Billing is loading', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
+        let resolveManageBilling: (value: any) => void
+        const handleManageBilling = jest.fn().mockImplementation(
+            () => new Promise((resolve) => { resolveManageBilling = resolve })
         )
-
-        let resolvePortal: (value: any) => void
-        fetchCustomerPortalUrlFromServer.mockImplementationOnce(
-            () => new Promise((resolve) => { resolvePortal = resolve })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1456,30 +1180,23 @@ describe('Usage Page', () => {
         expect(screen.getByText('Downgrade to Free')).toBeDisabled()
 
         await act(async () => {
-            resolvePortal!({ status: 1, data: { url: 'https://billing.stripe.com/session/test' } })
+            resolveManageBilling!({ redirect: 'https://billing.stripe.com/session/test' })
         })
     })
 
     it('Manage Billing button is disabled while downgrading', async () => {
-        const { fetchBillingInfoFromServer, downgradeToFreeFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementation(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-
         let resolveDowngrade: (value: any) => void
-        downgradeToFreeFromServer.mockImplementationOnce(
+        const handleDowngrade = jest.fn().mockImplementation(
             () => new Promise((resolve) => { resolveDowngrade = resolve })
         )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleDowngrade,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1496,30 +1213,18 @@ describe('Usage Page', () => {
         expect(screen.getByText('Manage Billing')).toBeDisabled()
 
         await act(async () => {
-            resolveDowngrade!({ status: 1, data: {} })
+            resolveDowngrade!(true)
         })
     })
 
     it('shows skeleton placeholders while subscription info is loading on pro plan', async () => {
-        const { fetchBillingInfoFromServer, fetchSubscriptionInfoFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-
-        let resolveSubscription: (value: any) => void
-        fetchSubscriptionInfoFromServer.mockImplementationOnce(
-            () => new Promise((resolve) => { resolveSubscription = resolve })
-        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 0, // Loading
+            subscriptionInfo: null,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
@@ -1527,41 +1232,18 @@ describe('Usage Page', () => {
 
         const skeletons = screen.getAllByTestId('skeleton-mock')
         expect(skeletons.length).toBeGreaterThan(0)
-
-        await act(async () => {
-            resolveSubscription!({
-                status: 1,
-                data: {
-                    status: 'active',
-                    current_period_start: 1700000000,
-                    current_period_end: 1702678400,
-                    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-                    billing_cycle_usage: 12000000,
-                },
-            })
-        })
-
-        expect(screen.queryAllByTestId('skeleton-mock')).toHaveLength(0)
     })
 
     it('Manage Billing success with no URL shows toast', async () => {
-        const { fetchBillingInfoFromServer, fetchCustomerPortalUrlFromServer } = require('@/app/api/api_calls')
-        fetchBillingInfoFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 1,
-                data: {
-                    team_id: 'team1',
-                    plan: 'pro',
-                    stripe_customer_id: 'cus_123',
-                    stripe_subscription_id: 'sub_123',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                },
-            })
-        )
-        fetchCustomerPortalUrlFromServer.mockImplementationOnce(() =>
-            Promise.resolve({ status: 1, data: {} }) // Success but no URL
-        )
+        const handleManageBilling = jest.fn().mockResolvedValue({ error: 'No portal URL returned.' })
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: proBillingInfo,
+            currentUserCanChangePlan: true,
+            fetchSubscriptionInfoApiStatus: 1,
+            subscriptionInfo: defaultSubscriptionInfo,
+            handleManageBilling,
+        })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)

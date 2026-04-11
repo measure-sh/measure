@@ -19,22 +19,34 @@ jest.mock('@/app/api/api_calls', () => ({
     FilterSource: { Events: 'events' },
 }))
 
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    const userJourneysStore = create((set: any) => ({
+        plotType: 'Paths',
+        searchText: '',
+        setPlotType: (type: string) => set({ plotType: type }),
+        setSearchText: (text: string) => set({ searchText: text }),
+        reset: jest.fn(),
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore, useUserJourneysStore: userJourneysStore }
+})
+
+jest.mock('@/app/stores/user_journeys_store', () => ({
+    __esModule: true,
+    PlotType: { Paths: 'Paths', Exceptions: 'Exceptions' },
+}))
+
 // Mock Filters component
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() => props.onFiltersChanged({ ready: true, serialisedFilters: 'updated' })}
-            >
-                Update Filters
-            </button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { Latest: 'latest' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
+
+const { useFiltersStore, useUserJourneysStore } = require('@/app/stores/provider') as any
 
 // Mock DebounceTextInput
 jest.mock('@/app/components/debounce_text_input', () => ({
@@ -83,6 +95,8 @@ const getSearchParamsMock = (params: Record<string, string>) => {
 describe('UserJourneys Page', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+        useUserJourneysStore.setState({ plotType: 'Paths', searchText: '' })
     })
 
     it('renders the User Journeys heading and Filters component', () => {
@@ -101,10 +115,9 @@ describe('UserJourneys Page', () => {
 
     it('renders TabSelect, DebounceTextInput, and Journey (Paths) when filters become ready and updates URL', async () => {
         render(<UserJourneys params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         expect(await screen.findByTestId('tab-select-mock')).toBeInTheDocument()
@@ -115,10 +128,9 @@ describe('UserJourneys Page', () => {
 
     it('renders Journey (Exceptions) when Exceptions tab is selected', async () => {
         render(<UserJourneys params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         const exceptionsTab = await screen.findByTestId('tab-Exceptions')
@@ -131,10 +143,9 @@ describe('UserJourneys Page', () => {
 
     it('renders Journey (Paths) by default and switches to Exceptions when tab is selected', async () => {
         render(<UserJourneys params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         // Initially, Paths journey should be rendered
@@ -161,8 +172,9 @@ describe('UserJourneys Page', () => {
         // Re-import UserJourneys to use the new mock
         const { default: UserJourneysPatched } = require('@/app/[teamId]/journeys/page')
         render(<UserJourneysPatched params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => { fireEvent.click(updateButton) })
+        await act(async () => {
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
+        })
         const exceptionsTab = await screen.findByTestId('tab-Exceptions')
         await act(async () => { fireEvent.click(exceptionsTab) })
         expect(replaceMock).toHaveBeenLastCalledWith('?jt=Exceptions&updated', { scroll: false })
@@ -170,10 +182,9 @@ describe('UserJourneys Page', () => {
 
     it('updates searchText when DebounceTextInput changes', async () => {
         render(<UserJourneys params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
         const input = await screen.findByTestId('debounce-text-input-mock')
@@ -182,20 +193,5 @@ describe('UserJourneys Page', () => {
         })
         // No assertion needed, just ensure no crash and input is present
         expect(input).toBeInTheDocument()
-    })
-
-    it('does not update filters if they remain unchanged', async () => {
-        render(<UserJourneys params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
     })
 })

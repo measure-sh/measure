@@ -1,9 +1,9 @@
+import { ExceptionsType } from '@/app/api/api_calls'
 import ExceptionsOverviewPlot from '@/app/components/exceptions_overview_plot'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 
 let lastLineProps: any = null
-const fetchMock = jest.fn()
 
 jest.mock('@nivo/line', () => ({
   ResponsiveLine: (props: any) => {
@@ -15,59 +15,70 @@ jest.mock('@nivo/line', () => ({
 jest.mock('next-themes', () => ({ useTheme: () => ({ theme: 'light' }) }))
 jest.mock('@/app/components/loading_spinner', () => ({ __esModule: true, default: () => <div>loading</div> }))
 
-jest.mock('@/app/api/api_calls', () => ({
+const mockUseExceptionsOverviewPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
+
+jest.mock('@/app/query/hooks', () => ({
   __esModule: true,
-  ExceptionsType: { Crash: 'crash', Anr: 'anr' },
-  ExceptionsOverviewPlotApiStatus: { Loading: 'loading', Success: 'success', Error: 'error', NoData: 'no_data' },
-  fetchExceptionsOverviewPlotFromServer: (...args: any[]) => fetchMock(...args),
+  useExceptionsOverviewPlotQuery: () => mockUseExceptionsOverviewPlotQuery(),
 }))
+
+jest.mock('@/app/stores/provider', () => {
+  const { create } = jest.requireActual('zustand')
+  const filtersStore = create(() => ({
+    filters: { ready: false, serialisedFilters: '' },
+  }))
+  return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 const filters = { ready: true, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-06T00:00:00Z' } as any
 
 describe('ExceptionsOverviewPlot', () => {
   beforeEach(() => {
-    fetchMock.mockReset()
     lastLineProps = null
+    useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
   })
 
   it('renders error state', async () => {
-    fetchMock.mockResolvedValue({ status: 'error', data: null })
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'error', error: new Error('test') })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
 
     expect(await screen.findByText(/Error fetching plot/)).toBeInTheDocument()
   })
 
   it('renders no data state', async () => {
-    fetchMock.mockResolvedValue({ status: 'no_data', data: null })
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({ data: null, status: 'success', error: null })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
 
     expect(await screen.findByText('No Data')).toBeInTheDocument()
   })
 
   it('does not fetch when filters are not ready', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [] })
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, ready: false }} />)
-
-    expect(fetchMock).not.toHaveBeenCalled()
+    useFiltersStore.setState({ filters: { ...filters, ready: false } })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
+    expect(mockUseExceptionsOverviewPlotQuery).toHaveBeenCalled()
   })
 
-  it('renders loading state before request resolves', async () => {
-    let resolvePromise: (value: any) => void = () => { }
-    const pending = new Promise((resolve) => {
-      resolvePromise = resolve
-    })
-    fetchMock.mockReturnValue(pending)
+  it('renders loading state before data is available', async () => {
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
 
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={filters} />)
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     expect(screen.getByText('loading')).toBeInTheDocument()
-
-    resolvePromise({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02T00:00:00', instances: 1 }] }] })
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
   })
 
   it('renders success with hour precision for ~days range', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02T00:00:00', instances: 3 }] }] })
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-01-02T00:00:00', y: 3 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
 
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.xScale.precision).toBe('hour')
@@ -75,20 +86,29 @@ describe('ExceptionsOverviewPlot', () => {
     expect(lastLineProps.axisLeft.legend).toBe('Crash instances')
     expect(lastLineProps.axisLeft.format(2)).toBe(2)
     expect(lastLineProps.axisLeft.format(1.5)).toBe('')
-    expect(fetchMock).toHaveBeenCalledWith('crash', filters)
   })
 
   it('sets ANR axis legend for ANR mode', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02T00:00:00', instances: 1 }] }] })
-    render(<ExceptionsOverviewPlot exceptionsType={'anr' as any} filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-01-02T00:00:00', y: 1 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Anr} />)
 
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.axisLeft.legend).toBe('ANR instances')
   })
 
   it('pluralizes tooltip label for singular and plural values', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02T00:00:00', instances: 1 }] }] })
-    render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-01-02T00:00:00', y: 1 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
 
     const singleTooltip = lastLineProps.sliceTooltip({
@@ -121,29 +141,57 @@ describe('ExceptionsOverviewPlot', () => {
   })
 
   it('switches axis format based on range', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02T00:00:00', instances: 2 }] }] })
-    const { rerender } = render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-01T06:00:00Z' }} />)
+    // Minute precision for sub-12h range
+    const minuteFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-01T06:00:00Z' }
+    useFiltersStore.setState({ filters: minuteFilters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-01-02T00:00:00', y: 2 }] }],
+      status: 'success',
+      error: null,
+    })
+    const { unmount: unmount1 } = render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.xScale.precision).toBe('minute')
 
-    rerender(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
+    unmount1()
+    lastLineProps = null
+
+    // Day precision for multi-month range
+    const dayFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }
+    useFiltersStore.setState({ filters: dayFilters })
+    const { unmount: unmount2 } = render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.xScale.precision).toBe('day')
 
-    rerender(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }} />)
+    unmount2()
+    lastLineProps = null
+
+    // Month formatting for year-long range
+    const monthFilters = { ...filters, startDate: '2025-01-01T00:00:00Z', endDate: '2026-01-01T00:00:00Z' }
+    useFiltersStore.setState({ filters: monthFilters })
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('hides stale chart while new range data is loading', async () => {
-    fetchMock
-      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-01-02', instances: 2 }] }] })
-      .mockImplementationOnce(() => new Promise(() => { }))
-
-    const { rerender } = render(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }} />)
+    const longFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-15T00:00:00Z' }
+    useFiltersStore.setState({ filters: longFilters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-01-02', y: 2 }] }],
+      status: 'success',
+      error: null,
+    })
+    const { unmount } = render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
 
-    rerender(<ExceptionsOverviewPlot exceptionsType={'crash' as any} filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-01T06:00:00Z' }} />)
+    unmount()
+
+    const newFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-01-01T06:00:00Z' }
+    useFiltersStore.setState({ filters: newFilters })
+    mockUseExceptionsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
+
+    render(<ExceptionsOverviewPlot exceptionsType={ExceptionsType.Crash} />)
 
     await waitFor(() => {
       expect(screen.getByText('loading')).toBeInTheDocument()

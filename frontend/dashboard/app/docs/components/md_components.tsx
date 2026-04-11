@@ -1,7 +1,7 @@
-import Link from "next/link";
-import type { Components } from "react-markdown";
 import { cn } from "@/app/utils/shadcn_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
+import Link from "next/link";
+import type { Components } from "react-markdown";
 
 /**
  * Rewrite relative markdown links to /docs/... routes.

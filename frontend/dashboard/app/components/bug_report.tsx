@@ -1,15 +1,16 @@
 "use client"
 
-import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
+import { UpdateBugReportStatusApiStatus } from "@/app/api/api_calls"
 import { Button, buttonVariants } from "@/app/components/button"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import { useBugReportQuery, useToggleBugReportStatusMutation } from "@/app/query/hooks"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import { DateTime } from 'luxon'
 import Image from 'next/image'
 import Link from "next/link"
-import { FormEventHandler, useEffect, useState } from "react"
+import { FormEventHandler, useState } from "react"
 import Pill from "./pill"
 
 const demoBugReport = {
@@ -68,66 +69,41 @@ interface BugReportProps {
 }
 
 export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'demo-app-id', bugReportId: 'demo-bug-report-id' }, demo = false, hideDemoTitle = false }: BugReportProps) {
-    const [bugReport, setBugReport] = useState(emptyBugReport)
-    const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading)
-    const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init)
+    const bugReportQuery = useBugReportQuery(demo ? '' : params.appId, demo ? '' : params.bugReportId)
+    const toggleStatusMutation = useToggleBugReportStatusMutation()
+
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+    const [demoStatusToggled, setDemoStatusToggled] = useState(false)
+    const [demoUpdateStatus, setDemoUpdateStatus] = useState(UpdateBugReportStatusApiStatus.Init)
 
-    const getBugReport = async () => {
-        setBugReportApiStatus(BugReportApiStatus.Loading)
-
-        if (demo) {
-            setBugReport(demoBugReport)
-            setBugReportApiStatus(BugReportApiStatus.Success)
-            return
-        }
-
-        const result = await fetchBugReportFromServer(params.appId, params.bugReportId)
-
-        switch (result.status) {
-            case BugReportApiStatus.Error:
-                setBugReportApiStatus(BugReportApiStatus.Error)
-                break
-            case BugReportApiStatus.Success:
-                setBugReportApiStatus(BugReportApiStatus.Success)
-                setBugReport(result.data)
-                break
-        }
-    }
-
-    useEffect(() => {
-        getBugReport()
-    }, [])
+    const displayBugReport = demo
+        ? { ...demoBugReport, status: demoStatusToggled ? (demoBugReport.status === 0 ? 1 : 0) : demoBugReport.status }
+        : bugReportQuery.data
+    const displayBugReportApiStatus = demo ? 'success' : bugReportQuery.isSuccess ? 'success' : bugReportQuery.isError ? 'error' : 'loading'
+    const displayUpdateStatus = demo ? demoUpdateStatus : toggleStatusMutation.isPending ? UpdateBugReportStatusApiStatus.Loading : UpdateBugReportStatusApiStatus.Init
 
     const handleImageError = (key: string) => {
         setImageErrors(prev => new Set(prev).add(key))
     }
 
-    const updateBugReportStatus: FormEventHandler = async (event) => {
+    const handleToggleStatus: FormEventHandler = async (event) => {
         event.preventDefault()
         if (demo) {
-            setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Loading)
+            setDemoUpdateStatus(UpdateBugReportStatusApiStatus.Loading)
             setTimeout(() => {
-                setBugReport({ ...bugReport, status: bugReport.status === 0 ? 1 : 0 })
-                setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Success)
+                setDemoStatusToggled(prev => !prev)
+                setDemoUpdateStatus(UpdateBugReportStatusApiStatus.Success)
             }, 100)
             return
         }
 
-        setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Loading)
-
-        const result = await updateBugReportStatusFromServer(params.appId, params.bugReportId, bugReport.status === 0 ? 1 : 0)
-
-        switch (result.status) {
-            case UpdateBugReportStatusApiStatus.Error:
-                setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Error)
-                toastNegative("Error updating bug report status. Please try again.")
-                break
-            case UpdateBugReportStatusApiStatus.Success:
-                setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Success)
-                setBugReport({ ...bugReport, status: bugReport.status === 0 ? 1 : 0 }) // Toggle status
-                toastPositive(bugReport.status === 0 ? "Bug report closed" : "Bug report re-opened")
-                break
+        const previousStatus = bugReportQuery.data?.status ?? 0
+        const newStatus = previousStatus === 0 ? 1 : 0
+        try {
+            await toggleStatusMutation.mutateAsync({ appId: params.appId, bugReportId: params.bugReportId, newStatus })
+            toastPositive(previousStatus === 0 ? "Bug report closed" : "Bug report re-opened")
+        } catch {
+            toastNegative("Error updating bug report status. Please try again.")
         }
     }
 
@@ -136,49 +112,49 @@ export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'd
             <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Bug Reports' : `Bug Report: ${params.bugReportId}`}</p>
             <div className="py-2" />
 
-            {bugReportApiStatus === BugReportApiStatus.Loading && <LoadingSpinner />}
+            {displayBugReportApiStatus === 'loading' && <LoadingSpinner />}
 
-            {bugReportApiStatus === BugReportApiStatus.Error && <p className="font-body text-sm">Error fetching bug report, please refresh page to try again</p>}
+            {displayBugReportApiStatus === 'error' && <p className="font-body text-sm">Error fetching bug report, please refresh page to try again</p>}
 
-            {bugReportApiStatus === BugReportApiStatus.Success &&
+            {displayBugReportApiStatus === 'success' && displayBugReport &&
                 <div>
                     <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
-                        <p className={`w-fit px-2 py-1 rounded-full border text-xs font-body ${bugReport.status === 0 ? 'border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background' : 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
-                        <Pill title={`User ID: ${bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}`} />
-                        <Pill title={`Time: ${formatDateToHumanReadableDateTime(bugReport.timestamp)}`} />
-                        <Pill title={`Device: ${bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}`} />
-                        <Pill title={`App version: ${bugReport.attribute.app_version} (${bugReport.attribute.app_build})`} />
-                        <Pill title={`Network type: ${bugReport.attribute.network_type}`} />
-                        {bugReport.user_defined_attribute !== undefined && bugReport.user_defined_attribute !== null && (
+                        <p className={`w-fit px-2 py-1 rounded-full border text-xs font-body ${displayBugReport.status === 0 ? 'border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background' : 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background'}`}>{displayBugReport.status === 0 ? 'Open' : 'Closed'}</p>
+                        <Pill title={`User ID: ${displayBugReport.attribute.user_id !== "" ? displayBugReport.attribute.user_id : "N/A"}`} />
+                        <Pill title={`Time: ${formatDateToHumanReadableDateTime(displayBugReport.timestamp)}`} />
+                        <Pill title={`Device: ${displayBugReport.attribute.device_manufacturer + displayBugReport.attribute.device_model}`} />
+                        <Pill title={`App version: ${displayBugReport.attribute.app_version} (${displayBugReport.attribute.app_build})`} />
+                        <Pill title={`Network type: ${displayBugReport.attribute.network_type}`} />
+                        {displayBugReport.user_defined_attribute !== undefined && displayBugReport.user_defined_attribute !== null && (
                             <>
-                                {Object.entries(bugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
+                                {Object.entries(displayBugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
                                     <Pill key={`${attrKey}-${attrValue?.toString()}}`} title={`${attrKey}: ${attrValue?.toString()}`} />
                                 ))}
                             </>
                         )}
                     </div>
-                    {bugReport.description && <p className="font-body text-lg">{bugReport.description}</p>}
+                    {displayBugReport.description && <p className="font-body text-lg">{displayBugReport.description}</p>}
                     <div className="py-8" />
                     <div className="flex flex-row">
                         {demo ? (
                             <div className={cn(buttonVariants({ variant: "outline" }))}>View Session Timeline</div>
                         ) : (
-                            <Link href={`/${params.teamId}/session_timelines/${params.appId}/${bugReport.session_id}`} className={cn(buttonVariants({ variant: "outline" }))}>View Session Timeline</Link>
+                            <Link href={`/${params.teamId}/session_timelines/${params.appId}/${displayBugReport.session_id}`} className={cn(buttonVariants({ variant: "outline" }))}>View Session Timeline</Link>
                         )}
                         <div className="px-2" />
                         <Button
                             variant="outline"
                             className="w-fit"
-                            disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading}
-                            onClick={updateBugReportStatus}>
-                            {bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}
+                            disabled={displayUpdateStatus === UpdateBugReportStatusApiStatus.Loading}
+                            onClick={handleToggleStatus}>
+                            {displayBugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}
                         </Button>
                     </div>
 
                     <div className="py-4" />
-                    {bugReport.attachments !== undefined && bugReport.attachments !== null && bugReport.attachments.length > 0 &&
+                    {displayBugReport.attachments !== undefined && displayBugReport.attachments !== null && displayBugReport.attachments.length > 0 &&
                         <div className='flex flex-wrap gap-8 items-center'>
-                            {bugReport.attachments.map((attachment, index) => (
+                            {displayBugReport.attachments.map((attachment: typeof displayBugReport.attachments[number], index: number) => (
                                 !imageErrors.has(attachment.key) && (
                                     <div key={attachment.key} className="relative">
                                         <Image

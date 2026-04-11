@@ -15,10 +15,10 @@ export function usePostHogLoaded() {
 const createNoopPostHog = () =>
   ({
     get_explicit_consent_status: () => "denied",
-    opt_in_capturing: () => {},
-    opt_out_capturing: () => {},
-    init: () => {},
-    capture: () => {},
+    opt_in_capturing: () => { },
+    opt_out_capturing: () => { },
+    init: () => { },
+    capture: () => { },
   }) as unknown as typeof posthog;
 
 export function PostHogProvider({

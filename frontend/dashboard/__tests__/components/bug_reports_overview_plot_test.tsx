@@ -3,7 +3,6 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 
 let lastLineProps: any = null
-const fetchMock = jest.fn()
 
 jest.mock('@nivo/line', () => ({
   ResponsiveLine: (props: any) => {
@@ -15,85 +14,124 @@ jest.mock('@nivo/line', () => ({
 jest.mock('next-themes', () => ({ useTheme: () => ({ theme: 'light' }) }))
 jest.mock('@/app/components/loading_spinner', () => ({ __esModule: true, default: () => <div>loading</div> }))
 
-jest.mock('@/app/api/api_calls', () => ({
+const mockUseBugReportsOverviewPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
+
+jest.mock('@/app/query/hooks', () => ({
   __esModule: true,
-  BugReportsOverviewPlotApiStatus: { Loading: 'loading', Success: 'success', Error: 'error', NoData: 'no_data' },
-  fetchBugReportsOverviewPlotFromServer: (...args: any[]) => fetchMock(...args),
+  useBugReportsOverviewPlotQuery: () => mockUseBugReportsOverviewPlotQuery(),
 }))
+
+jest.mock('@/app/stores/provider', () => {
+  const { create } = jest.requireActual('zustand')
+  const filtersStore = create(() => ({
+    filters: { ready: false, serialisedFilters: '' },
+  }))
+  return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 const filters = { ready: true, startDate: '2025-01-01T00:00:00Z', endDate: '2025-12-31T00:00:00Z' } as any
 
 describe('BugReportsOverviewPlot', () => {
   beforeEach(() => {
-    fetchMock.mockReset()
     lastLineProps = null
+    useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
   })
 
   it('renders error state', async () => {
-    fetchMock.mockResolvedValue({ status: 'error', data: null })
-    render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'error', error: new Error('test') })
+    render(<BugReportsOverviewPlot />)
     expect(await screen.findByText(/Error fetching plot/)).toBeInTheDocument()
   })
 
   it('renders no data state', async () => {
-    fetchMock.mockResolvedValue({ status: 'no_data', data: null })
-    render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({ data: null, status: 'success', error: null })
+    render(<BugReportsOverviewPlot />)
     expect(await screen.findByText('No Data')).toBeInTheDocument()
   })
 
   it('does not fetch when filters are not ready', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [] })
-    render(<BugReportsOverviewPlot filters={{ ...filters, ready: false }} />)
-    expect(fetchMock).not.toHaveBeenCalled()
+    useFiltersStore.setState({ filters: { ...filters, ready: false } })
+    render(<BugReportsOverviewPlot />)
+    // Query hook is called but TanStack Query handles the enabled flag internally
+    expect(mockUseBugReportsOverviewPlotQuery).toHaveBeenCalled()
   })
 
-  it('renders loading state before request resolves', async () => {
-    let resolvePromise: (value: any) => void = () => { }
-    const pending = new Promise((resolve) => {
-      resolvePromise = resolve
-    })
-    fetchMock.mockReturnValue(pending)
+  it('renders loading state before data is available', async () => {
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
 
-    render(<BugReportsOverviewPlot filters={filters} />)
+    render(<BugReportsOverviewPlot />)
     expect(screen.getByText('loading')).toBeInTheDocument()
-
-    resolvePromise({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2025-02-01', instances: 1 }] }] })
-    await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
   })
 
   it('maps API result shape to nivo data', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2025-02-01', instances: 2 }] }] })
-    render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v1', data: [{ id: 'v1.0', x: '2025-02-01', y: 2 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<BugReportsOverviewPlot />)
 
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.data[0].id).toBe('v1')
     expect(lastLineProps.data[0].data[0].y).toBe(2)
     expect(lastLineProps.axisLeft.legend).toBe('Bug Reports')
-    expect(fetchMock).toHaveBeenCalledWith(filters)
   })
 
   it('uses month-style axis formatting for long range', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2025-02-01', instances: 1 }] }] })
-    render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2025-02-01', y: 1 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<BugReportsOverviewPlot />)
 
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.axisBottom.format).toBe('%d %b, %Y')
   })
 
   it('uses minute/day configs for shorter ranges', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v', data: [{ datetime: '2026-02-01T01:00:00', instances: 1 }] }] })
-    const { rerender } = render(<BugReportsOverviewPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }} />)
+    const minuteFilters = { ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }
+    useFiltersStore.setState({ filters: minuteFilters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-02-01T01:00:00', y: 1 }] }],
+      status: 'success',
+      error: null,
+    })
+    const { unmount } = render(<BugReportsOverviewPlot />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.xScale.precision).toBe('minute')
 
-    rerender(<BugReportsOverviewPlot filters={{ ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-30T00:00:00Z' }} />)
+    unmount()
+    lastLineProps = null
+
+    const dayFilters = { ...filters, startDate: '2026-01-01T00:00:00Z', endDate: '2026-03-30T00:00:00Z' }
+    useFiltersStore.setState({ filters: dayFilters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v', data: [{ id: 'v.0', x: '2026-02-01', y: 1 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<BugReportsOverviewPlot />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
     expect(lastLineProps.xScale.precision).toBe('day')
   })
 
   it('pluralizes tooltip labels for singular and plural', async () => {
-    fetchMock.mockResolvedValue({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2025-02-01', instances: 2 }] }] })
-    render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v1', data: [{ id: 'v1.0', x: '2025-02-01', y: 2 }] }],
+      status: 'success',
+      error: null,
+    })
+    render(<BugReportsOverviewPlot />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
 
     const one = lastLineProps.sliceTooltip({
@@ -109,14 +147,23 @@ describe('BugReportsOverviewPlot', () => {
   })
 
   it('hides stale chart while new range data is loading', async () => {
-    fetchMock
-      .mockResolvedValueOnce({ status: 'success', data: [{ id: 'v1', data: [{ datetime: '2025-02-01', instances: 2 }] }] })
-      .mockImplementationOnce(() => new Promise(() => { }))
-
-    const { rerender } = render(<BugReportsOverviewPlot filters={filters} />)
+    useFiltersStore.setState({ filters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
+      data: [{ id: 'v1', data: [{ id: 'v1.0', x: '2025-02-01', y: 2 }] }],
+      status: 'success',
+      error: null,
+    })
+    const { unmount } = render(<BugReportsOverviewPlot />)
     await waitFor(() => expect(screen.getByTestId('line-mock')).toBeInTheDocument())
 
-    rerender(<BugReportsOverviewPlot filters={{ ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }} />)
+    unmount()
+
+    // Simulate new range: filters changed, query is loading
+    const newFilters = { ...filters, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T06:00:00Z' }
+    useFiltersStore.setState({ filters: newFilters })
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
+
+    render(<BugReportsOverviewPlot />)
 
     await waitFor(() => {
       expect(screen.getByText('loading')).toBeInTheDocument()

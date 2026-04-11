@@ -1,20 +1,34 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
 
-const mockFetchTrace = jest.fn()
+const emptyTrace = {
+    app_id: '', trace_id: '', session_id: '', user_id: '',
+    start_time: '', end_time: '', duration: 0, app_version: '',
+    os_version: '', device_manufacturer: '', device_model: '',
+    network_type: '', spans: [],
+}
+
+// Mock query hook
+let mockTraceData: any = undefined
+let mockTraceStatus: string = 'pending'
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useTraceQuery: () => ({
+        data: mockTraceData,
+        status: mockTraceStatus,
+    }),
+}))
 
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
-    TraceApiStatus: { Loading: 0, Success: 1, Error: 2 },
     emptyTrace: {
         app_id: '', trace_id: '', session_id: '', user_id: '',
         start_time: '', end_time: '', duration: 0, app_version: '',
         os_version: '', device_manufacturer: '', device_model: '',
         network_type: '', spans: [],
     },
-    fetchTraceFromServer: (...args: any[]) => mockFetchTrace(...args),
 }))
 
 jest.mock('@/app/utils/time_utils', () => ({
@@ -64,7 +78,7 @@ jest.mock('luxon', () => ({
 
 import TraceDetails from '@/app/components/trace_details'
 
-function mockTraceData() {
+function mockTraceDataObj() {
     return {
         app_id: 'app-1', trace_id: 'trace-abc', session_id: 'session-xyz',
         user_id: 'user-1', start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-01T00:01:00Z',
@@ -75,9 +89,15 @@ function mockTraceData() {
 }
 
 describe('TraceDetails', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockTraceData = undefined
+        mockTraceStatus = 'pending'
+    })
+
     describe('Loading state', () => {
         it('shows loading spinner initially', async () => {
-            mockFetchTrace.mockReturnValue(new Promise(() => { }))
+            mockTraceStatus = 'pending'
             await act(async () => {
                 render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)
             })
@@ -87,7 +107,7 @@ describe('TraceDetails', () => {
 
     describe('Error state', () => {
         it('shows error message on API failure', async () => {
-            mockFetchTrace.mockResolvedValue({ status: 2 })
+            mockTraceStatus = 'error'
             await act(async () => {
                 render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)
             })
@@ -99,7 +119,8 @@ describe('TraceDetails', () => {
 
     describe('Success state', () => {
         beforeEach(() => {
-            mockFetchTrace.mockResolvedValue({ status: 1, data: mockTraceData() })
+            mockTraceData = mockTraceDataObj()
+            mockTraceStatus = 'success'
         })
 
         it('renders trace ID in title', async () => {
@@ -126,7 +147,7 @@ describe('TraceDetails', () => {
         })
 
         it('shows N/A for empty user ID', async () => {
-            mockFetchTrace.mockResolvedValue({ status: 1, data: { ...mockTraceData(), user_id: '' } })
+            mockTraceData = { ...mockTraceDataObj(), user_id: '' }
             await act(async () => {
                 render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)
             })
@@ -155,13 +176,6 @@ describe('TraceDetails', () => {
                 expect(link.closest('a')).toHaveAttribute('href', '/team-1/session_timelines/app-1/session-xyz')
             })
         })
-
-        it('calls fetchTraceFromServer with correct args', async () => {
-            await act(async () => {
-                render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)
-            })
-            expect(mockFetchTrace).toHaveBeenCalledWith('app-1', 'trace-abc')
-        })
     })
 
     describe('Demo mode', () => {
@@ -177,13 +191,6 @@ describe('TraceDetails', () => {
                 render(<TraceDetails demo={true} hideDemoTitle={true} />)
             })
             expect(screen.queryByText('Performance Traces')).not.toBeInTheDocument()
-        })
-
-        it('does not call fetchTraceFromServer in demo mode', async () => {
-            await act(async () => {
-                render(<TraceDetails demo={true} />)
-            })
-            expect(mockFetchTrace).not.toHaveBeenCalled()
         })
 
         it('renders non-clickable session timeline button in demo mode', async () => {

@@ -1,6 +1,5 @@
 import { AlertTriangle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-react'
 import React from 'react'
-import { MetricsApiStatus } from '../api/api_calls'
 import { numberToKMB, toKiloBytes, toMegaBytes } from '../utils/number_utils'
 import { Card, CardContent, CardFooter } from './card'
 import LoadingSpinner from './loading_spinner'
@@ -45,8 +44,10 @@ const STYLES = {
 
 export type MetricType = 'crash_free_sessions' | 'perceived_crash_free_sessions' | 'anr_free_sessions' | 'perceived_anr_free_sessions' | 'app_start_time' | 'app_size' | 'app_adoption'
 
+export type MetricsCardStatus = 'pending' | 'success' | 'error'
+
 export interface BaseMetricsCardProps {
-    status: MetricsApiStatus
+    status: MetricsCardStatus
     noData: boolean
     type: MetricType
 }
@@ -273,11 +274,11 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     const { status, noData, type } = props
     const title = getMetricTitle(type, 'launchType' in props ? props.launchType : undefined)
     const renderCardContent = () => {
-        if (status === MetricsApiStatus.Loading) {
+        if (status === 'pending') {
             return <LoadingSpinner />
         }
 
-        if (status === MetricsApiStatus.Error) {
+        if (status === 'error') {
             return <p className={STYLES.text.error}>Error</p>
         }
 
@@ -454,7 +455,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     }
 
     const showStatusIcon = () => {
-        return ['crash_free_sessions', 'perceived_crash_free_sessions', 'anr_free_sessions', 'perceived_anr_free_sessions', 'app_start_time', 'app_size'].includes(type) && status === MetricsApiStatus.Success && !noData
+        return ['crash_free_sessions', 'perceived_crash_free_sessions', 'anr_free_sessions', 'perceived_anr_free_sessions', 'app_start_time', 'app_size'].includes(type) && status === 'success' && !noData
     }
 
     const getStatusIconForType = () => {

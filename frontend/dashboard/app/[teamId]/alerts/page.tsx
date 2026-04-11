@@ -1,92 +1,53 @@
 "use client"
+import { useFiltersStore } from '@/app/stores/provider'
 
-import { AlertsOverviewApiStatus, emptyAlertsOverviewResponse, fetchAlertsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import { FilterSource, emptyAlertsOverviewResponse } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
-
+import { paginationOffsetUrlKey, useAlertsOverviewQuery } from '@/app/query/hooks'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-interface PageState {
-    alertsOverviewApiStatus: AlertsOverviewApiStatus
-    filters: typeof defaultFilters
-    alertsOverview: typeof emptyAlertsOverviewResponse
-    paginationOffset: number
-}
-
-const paginationLimit = 5
-const paginationOffsetUrlKey = "po"
+const PAGINATION_LIMIT = 5
 
 export default function AlertsOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-    const initialState: PageState = {
-        alertsOverviewApiStatus: AlertsOverviewApiStatus.Loading,
-        filters: defaultFilters,
-        alertsOverview: emptyAlertsOverviewResponse,
-        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
-    }
+    const filters = useFiltersStore(state => state.filters)
 
-    const [pageState, setPageState] = useState<PageState>(initialState)
+    // Pagination is component-local state, initialized from URL
+    const [paginationOffset, setPaginationOffset] = useState(() => {
+        const po = searchParams.get(paginationOffsetUrlKey)
+        return po ? parseInt(po) : 0
+    })
 
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
-    }
-
-    const getAlertsOverview = async () => {
-        updatePageState({ alertsOverviewApiStatus: AlertsOverviewApiStatus.Loading })
-
-        const result = await fetchAlertsOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
-
-        switch (result.status) {
-            case AlertsOverviewApiStatus.Error:
-                updatePageState({ alertsOverviewApiStatus: AlertsOverviewApiStatus.Error })
-                break
-            case AlertsOverviewApiStatus.Success:
-                updatePageState({
-                    alertsOverviewApiStatus: AlertsOverviewApiStatus.Success,
-                    alertsOverview: result.data
-                })
-                break
-        }
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        // update filters only if they have changed
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters,
-                // Reset pagination on filters change if previous filters were not default filters
-                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
-            })
-        }
-    }
-
-    const handleNextPage = () => {
-        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
-    }
-
-    const handlePrevPage = () => {
-        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
-    }
-
+    // Reset pagination when filters change (skip pre-ready transitions)
+    const prevFiltersRef = useRef<string | null>(null)
     useEffect(() => {
-        if (!pageState.filters.ready) {
+        if (!filters.ready) return
+        if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
+            setPaginationOffset(0)
+        }
+        prevFiltersRef.current = filters.serialisedFilters
+    }, [filters.ready, filters.serialisedFilters])
+
+    // URL sync
+    useEffect(() => {
+        if (!filters.ready) {
             return
         }
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
+    }, [paginationOffset, filters.ready, filters.serialisedFilters])
 
-        // update url
-        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
+    const { data: alertsOverview = emptyAlertsOverviewResponse, status, isFetching } = useAlertsOverviewQuery(paginationOffset)
 
-        getAlertsOverview()
-    }, [pageState.paginationOffset, pageState.filters])
+    const nextPage = () => setPaginationOffset(o => o + PAGINATION_LIMIT)
+    const prevPage = () => setPaginationOffset(o => Math.max(0, o - PAGINATION_LIMIT))
 
     return (
         <div className="flex flex-col items-start">
@@ -115,29 +76,28 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                 showHttpMethods={false}
                 showUdAttrs={false}
                 showFreeText={false}
-                freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'
-                onFiltersChanged={handleFiltersChanged} />
+                freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..' />
             <div className="py-4" />
 
             {/* Error state for alerts fetch */}
-            {pageState.filters.ready
-                && pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Error
+            {filters.ready
+                && status === 'error'
                 && <p className="text-lg font-display">Error fetching list of alerts, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main alerts list UI */}
-            {pageState.filters.ready
-                && (pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Success || pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading) &&
+            {filters.ready
+                && (status === 'success' || status === 'pending') &&
                 <div className="flex flex-col items-center w-full">
                     <div className='self-end'>
                         <Paginator
-                            prevEnabled={pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? false : pageState.alertsOverview.meta.previous}
-                            nextEnabled={pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? false : pageState.alertsOverview.meta.next}
+                            prevEnabled={isFetching ? false : alertsOverview.meta.previous}
+                            nextEnabled={isFetching ? false : alertsOverview.meta.next}
                             displayText=''
-                            onNext={handleNextPage}
-                            onPrev={handlePrevPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
                         />
                     </div>
-                    <div className={`py-1 w-full ${pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${isFetching ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
                     <div className="py-4" />
@@ -149,7 +109,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.alertsOverview.results?.map(({ id, team_id, app_id, entity_id, type, message, url, created_at, updated_at }, idx) => {
+                            {alertsOverview.results?.map(({ id, team_id, app_id, entity_id, type, message, url, created_at, updated_at }: any, idx: number) => {
                                 return (
                                     <TableRow
                                         key={`${idx}-${id}`}
@@ -163,7 +123,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                                         }}
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={url}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -177,7 +137,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={url}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}

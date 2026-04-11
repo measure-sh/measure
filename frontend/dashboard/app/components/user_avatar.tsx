@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
-import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
+import { useSessionStore } from '../stores/provider'
 import { Button } from './button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown_menu'
 
@@ -11,17 +11,12 @@ interface UserAvatarProps {
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
-  const [session, setSession] = useState<MeasureAuthSession | null>(null)
-  const [sessionError, setSessionError] = useState<Error | null>(null)
+  const session = useSessionStore(state => state.session)
+  const sessionError = useSessionStore(state => state.error)
+  const fetchSession = useSessionStore(state => state.fetchSession)
   const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
-    const fetchSession = async () => {
-      const { session, error } = await measureAuth.getSession()
-      setSession(session)
-      setSessionError(error)
-    }
-
     fetchSession()
   }, [])
 
