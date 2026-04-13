@@ -25,6 +25,7 @@ protocol LaunchTracker {
     func applicationWillEnterForeground()
     func applicationDidBecomeActive()
     func applicationWillResignActive()
+    func setOnAppLaunchCallback(_ callback: @escaping () -> Void)
 }
 
 final class BaseLaunchTracker: LaunchTracker {
@@ -36,6 +37,7 @@ final class BaseLaunchTracker: LaunchTracker {
     private let currentAppVersion: String
     private var state: LaunchState
     private var willEnterForegroundTimestamp: UnsignedNumber?
+    private var onAppLaunchCallback: (() -> Void)?
 
     init(launchCallbacks: LaunchCallbacks,
          timeProvider: TimeProvider,
@@ -84,6 +86,10 @@ final class BaseLaunchTracker: LaunchTracker {
         if state != .launching {
             state = .foregrounded
         }
+    }
+
+    func setOnAppLaunchCallback(_ callback: @escaping () -> Void) {
+        self.onAppLaunchCallback = callback
     }
 
     private func processAppLaunchData() {
@@ -138,6 +144,7 @@ final class BaseLaunchTracker: LaunchTracker {
                                             hasSavedState: false,
                                             intentData: nil)
         launchCallbacks.onColdLaunch(data: coldLaunchData)
+        onAppLaunchCallback?()
     }
 
     private func generateWarmLaunchData(appVisibleUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber) {
@@ -147,6 +154,7 @@ final class BaseLaunchTracker: LaunchTracker {
                                             hasSavedState: false,
                                             intentData: nil)
         launchCallbacks.onWarmLaunch(data: warmLaunchData)
+        onAppLaunchCallback?()
     }
 
     private func removeObserver() {

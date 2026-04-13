@@ -13,6 +13,7 @@ protocol LifecycleCollector {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
+    func applicationDidLaunch()
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController)
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String)
     func enable()
@@ -29,6 +30,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
     private var activeSpans: [String: Span] = [:]
     private let sessionManager: SessionManager
     private let signalSampler: SignalSampler
+    private var isAppLaunchForegroundTriggered = false
 
     init(signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
@@ -65,7 +67,14 @@ final class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func applicationWillEnterForeground() {
+        guard isAppLaunchForegroundTriggered else { return }
         trackEvent(ApplicationLifecycleData(type: .foreground), type: .lifecycleApp)
+    }
+
+    func applicationDidLaunch() {
+        guard !isAppLaunchForegroundTriggered else { return }
+        trackEvent(ApplicationLifecycleData(type: .foreground), type: .lifecycleApp)
+        isAppLaunchForegroundTriggered = true
     }
 
     func applicationWillTerminate() {
