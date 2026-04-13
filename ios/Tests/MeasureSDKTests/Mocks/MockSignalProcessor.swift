@@ -19,6 +19,7 @@ final class MockSignalProcessor: SignalProcessor {
     var spanData: SpanData?
     var needsReporting: Bool?
     var trackSpanCallCount = 0
+    var trackEventCallCount = 0
     var synchronous: Bool?
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
@@ -40,6 +41,7 @@ final class MockSignalProcessor: SignalProcessor {
         self.userDefinedAttributes = userDefinedAttributes
         self.needsReporting = needsReporting
         self.synchronous = synchronous
+        trackEventCallCount += 1
     }
 
     func trackUserTriggered<T>(data: T,  // swiftlint:disable:this function_parameter_count
