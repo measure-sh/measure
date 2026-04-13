@@ -39,7 +39,6 @@ type ServerConfig struct {
 	SymbolsAccessKey       string
 	SymbolsSecretAccessKey string
 	AWSEndpoint            string
-	APIOrigin              string
 	OtelServiceName        string
 	CloudEnv               bool
 }
@@ -80,12 +79,6 @@ func NewConfig() *ServerConfig {
 		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
-	apiOrigin := os.Getenv("API_ORIGIN")
-	if apiOrigin == "" {
-		// log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
-		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
-	}
-
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
 		// log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
@@ -108,7 +101,6 @@ func NewConfig() *ServerConfig {
 		SymbolsAccessKey:       symbolsAccessKey,
 		SymbolsSecretAccessKey: symbolsSecretAccessKey,
 		AWSEndpoint:            endpoint,
-		APIOrigin:              apiOrigin,
 		OtelServiceName:        otelServiceName,
 		CloudEnv:               cloudEnv,
 	}
