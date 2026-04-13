@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unused file (#3465) by @detj in #3465
+- (**backend**): Upgrade symbolicator to newer working version (#3436) by @detj in #3436
 - (**backend**): Remove auth gatekeeping (#3437) by @detj in #3437
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
