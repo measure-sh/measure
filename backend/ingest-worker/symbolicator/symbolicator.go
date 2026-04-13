@@ -3,7 +3,6 @@ package symbolicator
 import (
 	"backend/api/event"
 	"backend/api/span"
-	"backend/libs/cache"
 	"backend/libs/opsys"
 	"backend/libs/symbol"
 	"context"
@@ -33,15 +32,6 @@ const logRequest = false
 const logResponse = false
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
-
-// lru is a least-recently-used cache
-// to cache mapping files fetched from
-// database.
-//
-// Helps to reduce latency for repeatedly
-// fetching the same mapping file again
-// and again.
-var lru = cache.NewLRUCache(1000)
 
 // lineNoEntry represents a JVM stacktrace's
 // frame line number(s).
@@ -219,28 +209,16 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// find the mapping keys and mapping types
 		name := ev.Attribute.AppVersion
 		code := ev.Attribute.AppBuild
-		cacheKey := fmt.Sprintf("%s/%s/%s", appId.String(), name, code)
-		value, ok := lru.Get(cacheKey)
-		if !ok {
-			keyMap, keyErr := symbol.GetMappings(ctx, conn, appId, name, code)
-			if keyErr != nil {
-				fmt.Printf("Error fetching mapping keys for appId %s, version %s, build %s: %v\n", appId, name, code, keyErr)
-				continue
-			}
-
-			if len(keyMap) < 1 {
-				// Mapping keys can be absent if the app has
-				// not uploaded the mapping files or does not
-				// have a need to symbolicate.
-				continue
-			}
-			value = keyMap
-			lru.Put(cacheKey, value)
+		mappings, keyErr := symbol.GetMappings(ctx, conn, appId, name, code)
+		if keyErr != nil {
+			fmt.Printf("Error fetching mapping keys for appId %s, version %s, build %s: %v\n", appId, name, code, keyErr)
+			continue
 		}
 
-		mappings, ok := value.(map[string]symbol.MappingType)
-		if !ok {
-			fmt.Printf("Invalid mapping keys for appId %s, version %s, build %s\n", appId, name, code)
+		if len(mappings) < 1 {
+			// Mapping keys can be absent if the app has
+			// not uploaded the mapping files or does not
+			// have a need to symbolicate.
 			continue
 		}
 
