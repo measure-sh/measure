@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unused env var from symboloader (#3466) by @detj in #3466
 - (**backend**): Remove unused file (#3465) by @detj in #3465
 - (**backend**): Upgrade symbolicator to newer working version (#3436) by @detj in #3436
 - (**backend**): Remove auth gatekeeping (#3437) by @detj in #3437
