@@ -1032,6 +1032,41 @@ func TestInitiateUpgrade_SelfHeal(t *testing.T) {
 	}
 }
 
+func TestInitiateUpgrade_SelfHeal_TrialingSub(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "FreeTeam", false)
+	seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
+	seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
+
+	origFind := FindActiveSubscriptionFn
+	FindActiveSubscriptionFn = func(customerID string) (*stripe.Subscription, error) {
+		return &stripe.Subscription{ID: "sub_trialing", Status: stripe.SubscriptionStatusTrialing}, nil
+	}
+	t.Cleanup(func() { FindActiveSubscriptionFn = origFind })
+
+	result, err := InitiateUpgrade(ctx, th.PgPool, teamID, testCheckoutUserEmail, "price_123", "https://ok", "https://cancel")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.AlreadyUpgraded {
+		t.Error("expected AlreadyUpgraded=true for trialing subscription")
+	}
+
+	cfg, err := GetTeamBilling(ctx, th.PgPool, teamID)
+	if err != nil {
+		t.Fatalf("GetTeamBilling: %v", err)
+	}
+	if cfg.Plan != "pro" {
+		t.Errorf("plan = %q, want %q", cfg.Plan, "pro")
+	}
+	if cfg.StripeSubscriptionID == nil || *cfg.StripeSubscriptionID != "sub_trialing" {
+		t.Errorf("stripe_subscription_id = %v, want %q", cfg.StripeSubscriptionID, "sub_trialing")
+	}
+}
+
 func TestInitiateUpgrade_CustomerCreationFails(t *testing.T) {
 	ctx := context.Background()
 	t.Cleanup(func() { cleanupAll(ctx, t) })
