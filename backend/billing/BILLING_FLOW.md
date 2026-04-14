@@ -52,7 +52,7 @@ flowchart TD
             (billing.go)"]
         CreateCheckout --> EnsureCustomer["Get or create Stripe customer"]
         EnsureCustomer --> SelfHeal{Existing active
-            subscription?}
+            or trialing subscription?}
         SelfHeal -- "Yes (self-heal)" --> ReconcileUpgrade["ProcessUpgrade
             (skip checkout)"]
         SelfHeal -- No --> StripeCheckout[Create Stripe checkout session]
@@ -92,7 +92,7 @@ flowchart TD
         SubIDCheck -- Yes --> FetchSub[Fetch subscription from Stripe]
         FetchSub --> SubStatus{Subscription status?}
 
-        SubStatus -- "active / past_due" --> ProAllowIngest[allow_ingest = true]
+        SubStatus -- "active / past_due / trialing" --> ProAllowIngest[allow_ingest = true]
         SubStatus -- "Stripe API error" --> ProBlockTemp["allow_ingest = false
             reason: subscription_error
             (no downgrade — may be transient)"]

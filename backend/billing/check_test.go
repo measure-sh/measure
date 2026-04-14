@@ -128,6 +128,35 @@ func TestRunHourlyBillingCheck_ProPlanUnblocked(t *testing.T) {
 	}
 }
 
+func TestRunHourlyBillingCheck_ProPlanTrialingAllowed(t *testing.T) {
+	ctx := context.Background()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+
+	deps := testDeps()
+	deps.GetSubscription = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+		return &stripe.Subscription{Status: stripe.SubscriptionStatusTrialing}, nil
+	}
+
+	teamID := uuid.New().String()
+	seedTeamWithBilling(ctx, t, teamID, "ProTeam", "pro", true)
+	_, err := th.PgPool.Exec(ctx,
+		"UPDATE team_billing SET stripe_subscription_id = $1 WHERE team_id = $2",
+		"sub_trialing_789", teamID)
+	if err != nil {
+		t.Fatalf("update team_billing: %v", err)
+	}
+
+	RunHourlyBillingCheck(ctx, deps)
+
+	allow, reason := getTeamIngestStatus(ctx, t, teamID)
+	if !allow {
+		t.Error("expected allow_ingest=true for trialing pro subscription")
+	}
+	if reason != nil {
+		t.Errorf("expected reason=nil, got %q", *reason)
+	}
+}
+
 func TestRunHourlyBillingCheck_FreePlanUnblockedNewMonth(t *testing.T) {
 	ctx := context.Background()
 	t.Cleanup(func() { cleanupAll(ctx, t) })
@@ -563,6 +592,31 @@ func TestCheckProPlan_PastDueSubscription(t *testing.T) {
 	}
 }
 
+func TestCheckProPlan_TrialingSubscription(t *testing.T) {
+	ctx := context.Background()
+
+	deps := testDeps()
+	deps.GetSubscription = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
+		return &stripe.Subscription{Status: stripe.SubscriptionStatusTrialing}, nil
+	}
+
+	subID := "sub_trialing"
+	team := TeamBillingInfo{
+		TeamID:               uuid.New().String(),
+		TeamName:             "ProTeam",
+		Plan:                 "pro",
+		StripeSubscriptionID: &subID,
+	}
+
+	allow, reason := checkProPlan(ctx, deps, team)
+	if !allow {
+		t.Error("expected allow=true for trialing subscription")
+	}
+	if reason != nil {
+		t.Errorf("expected reason=nil, got %v", *reason)
+	}
+}
+
 func TestCheckProPlan_CanceledSubscription(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -858,6 +912,7 @@ func TestCheckSubscriptionStatus(t *testing.T) {
 	}{
 		{"active", stripe.SubscriptionStatusActive, true, nil},
 		{"past_due", stripe.SubscriptionStatusPastDue, true, nil},
+		{"trialing", stripe.SubscriptionStatusTrialing, true, nil},
 		{"canceled", stripe.SubscriptionStatusCanceled, false, strPtr(string(stripe.SubscriptionStatusCanceled))},
 		{"unpaid", stripe.SubscriptionStatusUnpaid, false, strPtr(string(stripe.SubscriptionStatusUnpaid))},
 		{"incomplete", stripe.SubscriptionStatusIncomplete, false, strPtr(string(stripe.SubscriptionStatusIncomplete))},

@@ -1007,3 +1007,98 @@ func TestBillingCycle_ProSuccess_TwoMonthsProcessed(t *testing.T) {
 		t.Fatalf("allow_ingest=%v reason=%v, want true,nil", allow, safeDeref(reason))
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Trialing subscription
+// ---------------------------------------------------------------------------
+
+func TestBillingCycle_ProTrialing_AllowedDuringTrial(t *testing.T) {
+	ctx := context.Background()
+
+	stripeKey, meterName, priceID := requireStripeBillingCycleEnv(t)
+	origKey := stripe.Key
+	stripe.Key = stripeKey
+	t.Cleanup(func() { stripe.Key = origKey })
+
+	deps := integrationDeps(meterName)
+
+	clockStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock, err := testclock.New(&stripe.TestHelpersTestClockParams{
+		FrozenTime: stripe.Int64(clockStart.Unix()),
+		Name:       stripe.String("billing-cycle-pro-trialing"),
+	})
+	if err != nil {
+		t.Fatalf("create test clock: %v", err)
+	}
+	t.Cleanup(func() { testclock.Del(clock.ID, nil) })
+
+	cust, err := customer.New(&stripe.CustomerParams{
+		TestClock:     stripe.String(clock.ID),
+		Name:          stripe.String("Trial Test Customer"),
+		Email:         stripe.String("trial-test@example.com"),
+		PaymentMethod: stripe.String("pm_card_visa"),
+		InvoiceSettings: &stripe.CustomerInvoiceSettingsParams{
+			DefaultPaymentMethod: stripe.String("pm_card_visa"),
+		},
+	})
+	if err != nil {
+		t.Fatalf("create customer: %v", err)
+	}
+
+	trialEnd := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	sub, err := subscription.New(&stripe.SubscriptionParams{
+		Customer: stripe.String(cust.ID),
+		Items: []*stripe.SubscriptionItemsParams{{
+			Price: stripe.String(priceID),
+		}},
+		TrialEnd: stripe.Int64(trialEnd.Unix()),
+	})
+	if err != nil {
+		t.Fatalf("create subscription with trial: %v", err)
+	}
+
+	if sub.Status != stripe.SubscriptionStatusTrialing {
+		t.Fatalf("expected subscription status trialing, got %s", sub.Status)
+	}
+
+	teamID := uuid.New().String()
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+	th.SeedTeam(ctx, t, teamID, "ProTrialingTeam", true)
+	th.SeedTeamBilling(ctx, t, teamID, "pro", strPtr(cust.ID), strPtr(sub.ID))
+
+	// Seed usage well over free plan limit
+	seedCurrentMonthIngestionUsage(ctx, t, teamID, uint64(FreePlanMaxBytes)+1000)
+
+	// Hourly check mid-trial — should stay allowed
+	advanceClock(t, clock.ID, time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC))
+	RunHourlyBillingCheck(ctx, deps)
+
+	allow, reason := getTeamIngestStatus(ctx, t, teamID)
+	if !allow {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil during trial", allow, safeDeref(reason))
+	}
+	if reason != nil {
+		t.Fatalf("reason=%v, want nil", safeDeref(reason))
+	}
+
+	// Advance past trial end — subscription transitions to active
+	advanceClock(t, clock.ID, time.Date(2026, 2, 5, 0, 0, 0, 0, time.UTC))
+
+	updatedSub, err := subscription.Get(sub.ID, nil)
+	if err != nil {
+		t.Fatalf("get subscription: %v", err)
+	}
+	if updatedSub.Status != stripe.SubscriptionStatusActive {
+		t.Fatalf("expected subscription status active after trial, got %s", updatedSub.Status)
+	}
+
+	RunHourlyBillingCheck(ctx, deps)
+
+	allow, reason = getTeamIngestStatus(ctx, t, teamID)
+	if !allow {
+		t.Fatalf("allow_ingest=%v reason=%v, want true,nil after trial ends", allow, safeDeref(reason))
+	}
+	if reason != nil {
+		t.Fatalf("reason=%v, want nil", safeDeref(reason))
+	}
+}

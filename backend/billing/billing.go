@@ -519,20 +519,22 @@ func GetTeamBySubscriptionID(ctx context.Context, pool *pgxpool.Pool, subscripti
 }
 
 // FindActiveSubscription lists Stripe subscriptions for a customer and returns
-// the first active one, or nil if none exists.
+// the first active or trialing one, or nil if none exists.
 func FindActiveSubscription(customerID string) (*stripe.Subscription, error) {
-	listParams := &stripe.SubscriptionListParams{
-		Customer: stripe.String(customerID),
-	}
-	listParams.Filters.AddFilter("status", "", "active")
-	listParams.Filters.AddFilter("limit", "", "1")
+	for _, status := range []string{"active", "trialing"} {
+		listParams := &stripe.SubscriptionListParams{
+			Customer: stripe.String(customerID),
+		}
+		listParams.Filters.AddFilter("status", "", status)
+		listParams.Filters.AddFilter("limit", "", "1")
 
-	iter := subscription.List(listParams)
-	if iter.Next() {
-		return iter.Subscription(), nil
-	}
-	if err := iter.Err(); err != nil {
-		return nil, err
+		iter := subscription.List(listParams)
+		if iter.Next() {
+			return iter.Subscription(), nil
+		}
+		if err := iter.Err(); err != nil {
+			return nil, err
+		}
 	}
 	return nil, nil
 }
