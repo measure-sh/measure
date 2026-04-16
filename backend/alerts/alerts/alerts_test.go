@@ -2296,6 +2296,34 @@ func TestCreateDailySummary(t *testing.T) {
 			t.Fatalf("expected slack payload to include error status icon for custom thresholds")
 		}
 	})
+
+	t.Run("team with blocked ingestion produces no summary notifications", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Blocked Team", false)
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Blocked App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0BLOCKED"})
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 0 {
+			t.Errorf("want 0 emails for blocked team, got %d", got)
+		}
+		if got := countPendingByChannel(ctx, t, "slack"); got != 0 {
+			t.Errorf("want 0 slack messages for blocked team, got %d", got)
+		}
+	})
 }
 
 // --------------------------------------------------------------------------
