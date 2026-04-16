@@ -1,0 +1,20 @@
+[source]
+readme_url = "https://raw.githubusercontent.com/CXTretar/iOS-System-Symbols-Supplement/main/README.md"
+
+[auth]
+credentials_file = "/path/to/credentials.json"
+
+[storage]
+bucket = "test-bucket"
+region = "us-east-1"
+endpoint = "http://127.0.0.1:9119"
+access_key = "minio"
+secret_key = "minio123"
+
+[sync]
+versions = ["26.0", "18.x"]
+concurrency = 2
+
+[cloning]
+destination_folder = "test-symbols"
+destination_folder_id = ""

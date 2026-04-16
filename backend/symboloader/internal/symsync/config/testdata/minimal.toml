@@ -1,0 +1,5 @@
+[auth]
+drive_api_key = "test-api-key"
+
+[storage]
+bucket = "test-bucket"

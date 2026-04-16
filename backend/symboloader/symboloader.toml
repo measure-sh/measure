@@ -1,0 +1,24 @@
+[source]
+readme_url = "https://raw.githubusercontent.com/CXTretar/iOS-System-Symbols-Supplement/main/README.md"
+
+[auth]
+credentials_file = ""
+
+[storage]
+bucket = "symbols"
+region = "us-east-1"
+endpoint = "http://localhost:9000"
+access_key = "minioadmin"
+secret_key = "minioadmin"
+
+[sync]
+versions = ["17.6.1"]
+concurrency = 2
+
+[cloning]
+destination_folder = "symboloader-dev"
+# Optional: Set destination_folder_id to use a folder shared with the service account
+# instead of creating one in the service account's Drive root
+# Example: destination_folder_id = "1ABC123xyz..."
+# The folder should be shared with Editor permissions to the service account
+destination_folder_id = "1o8XrDAkhdjIfXC9NhqGzx6dphM7vyj_j"

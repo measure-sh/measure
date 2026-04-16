@@ -13,15 +13,20 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
   if [ "$TARGETTYPE" = "debug" ]; then \
   CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-  go build -o /go/bin/app -v .; \
+  go build -o /go/bin/app -v . && \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -o /go/bin/symboloader-cli -v ./cmd/symboloader/; \
   else \
   CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-  go build -ldflags="-s -w" -o /go/bin/app -v .; \
+  go build -ldflags="-s -w" -o /go/bin/app -v . && \
+  CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  go build -ldflags="-s -w" -o /go/bin/symboloader-cli -v ./cmd/symboloader/; \
   fi
 
 # final stage
 FROM public.ecr.aws/docker/library/alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
+COPY --from=builder /go/bin/symboloader-cli /usr/local/bin/symboloader
 ENTRYPOINT ["/app"]
 EXPOSE 8083
