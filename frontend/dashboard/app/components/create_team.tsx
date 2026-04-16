@@ -5,7 +5,7 @@ import React, { FormEventHandler, useState } from 'react'
 import { useCreateTeamMutation } from '../query/hooks'
 import { toastNegative, toastPositive } from '../utils/use_toast'
 import { Button } from './button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 import { Input } from './input'
 
 interface CreateTeamProps {
@@ -48,6 +48,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
                 <DialogContent className='bg-background text-foreground'>
                     <DialogHeader>
                         <DialogTitle className="font-display">Add new team</DialogTitle>
+                        <DialogDescription>Create a new team.</DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col w-5/6">
                         <form onSubmit={handleCreateTeam} className="flex flex-col">

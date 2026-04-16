@@ -144,6 +144,7 @@ describe('Team Page (MSW integration)', () => {
         it('renders "Create Team" button', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Create Team')).toBeTruthy()
+            expect(screen.getByText('Create Team').closest('button')).toBeTruthy()
         })
 
         it('renders "Invite Team Members" section', async () => {
@@ -1439,5 +1440,177 @@ describe('Team — auth failure', () => {
         await waitFor(() => {
             expect(refreshAttempted).toBe(true)
         }, { timeout: 5000 })
+    })
+})
+
+// ====================================================================
+// CREATE TEAM DIALOG
+// ====================================================================
+describe('Team Page — create team dialog', () => {
+    async function renderAndWaitForData() {
+        renderWithProviders(<TeamOverview params={{ teamId: 'team-001' }} />)
+        await waitFor(() => {
+            expect(screen.getByText('Team')).toBeTruthy()
+            expect(screen.getByText('Invite Team Members')).toBeTruthy()
+        }, { timeout: 10000 })
+    }
+
+    it('clicking "Create Team" opens dialog with input and buttons', async () => {
+        await renderAndWaitForData()
+
+        const createTeamBtn = screen.getByText('Create Team').closest('button')!
+        await act(async () => {
+            fireEvent.click(createTeamBtn)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Add new team')).toBeTruthy()
+            expect(screen.getByText('Create a new team.')).toBeTruthy()
+            expect(screen.getByPlaceholderText('Enter team name')).toBeTruthy()
+        })
+    })
+
+    it('submit is disabled when team name is empty', async () => {
+        await renderAndWaitForData()
+
+        const createTeamBtn = screen.getByText('Create Team').closest('button')!
+        await act(async () => {
+            fireEvent.click(createTeamBtn)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText('Enter team name')).toBeTruthy()
+        })
+
+        // Find the submit button inside the dialog (type="submit")
+        const allCreateTeamButtons = screen.getAllByText('Create Team')
+        const dialogSubmitBtn = allCreateTeamButtons
+            .map(el => el.closest('button'))
+            .find(btn => btn && btn.getAttribute('type') === 'submit')
+        expect(dialogSubmitBtn).toBeTruthy()
+        expect(dialogSubmitBtn!.disabled).toBe(true)
+    })
+
+    it('submitting creates team and calls router.push', async () => {
+        let capturedBody: any = null
+        server.use(
+            http.post('*/api/teams', async ({ request }) => {
+                capturedBody = await request.json()
+                return HttpResponse.json({ id: 'team-new', name: 'My New Team' })
+            }),
+        )
+
+        await renderAndWaitForData()
+
+        // Open dialog
+        const createTeamBtn = screen.getByText('Create Team').closest('button')!
+        await act(async () => {
+            fireEvent.click(createTeamBtn)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText('Enter team name')).toBeTruthy()
+        })
+
+        // Type team name
+        const input = screen.getByPlaceholderText('Enter team name')
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'My New Team' } })
+        })
+
+        // Click submit
+        const allCreateTeamButtons = screen.getAllByText('Create Team')
+        const dialogSubmitBtn = allCreateTeamButtons
+            .map(el => el.closest('button'))
+            .find(btn => btn && btn.getAttribute('type') === 'submit')
+
+        await act(async () => {
+            fireEvent.click(dialogSubmitBtn!)
+        })
+
+        await waitFor(() => {
+            expect(capturedBody).toEqual({ name: 'My New Team' })
+            expect(mockRouterPush).toHaveBeenCalledWith('/team-new/team')
+        }, { timeout: 5000 })
+    })
+
+    it('shows error toast on API failure', async () => {
+        server.use(
+            http.post('*/api/teams', () => {
+                return HttpResponse.json({ error: 'Team name taken' }, { status: 409 })
+            }),
+        )
+
+        await renderAndWaitForData()
+
+        // Open dialog
+        const createTeamBtn = screen.getByText('Create Team').closest('button')!
+        await act(async () => {
+            fireEvent.click(createTeamBtn)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText('Enter team name')).toBeTruthy()
+        })
+
+        // Type and submit
+        const input = screen.getByPlaceholderText('Enter team name')
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'Duplicate Team' } })
+        })
+
+        const allCreateTeamButtons = screen.getAllByText('Create Team')
+        const dialogSubmitBtn = allCreateTeamButtons
+            .map(el => el.closest('button'))
+            .find(btn => btn && btn.getAttribute('type') === 'submit')
+
+        await act(async () => {
+            fireEvent.click(dialogSubmitBtn!)
+        })
+
+        // Should NOT navigate on error
+        await waitFor(() => {
+            expect(mockRouterPush).not.toHaveBeenCalledWith(expect.stringContaining('/team'))
+        })
+    })
+
+    it('clicking Cancel closes dialog without API call', async () => {
+        let apiCalled = false
+        server.use(
+            http.post('*/api/teams', () => {
+                apiCalled = true
+                return HttpResponse.json({ id: 'team-new' })
+            }),
+        )
+
+        await renderAndWaitForData()
+
+        // Open dialog
+        const createTeamBtn = screen.getByText('Create Team').closest('button')!
+        await act(async () => {
+            fireEvent.click(createTeamBtn)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText('Enter team name')).toBeTruthy()
+        })
+
+        // Type something then cancel
+        const input = screen.getByPlaceholderText('Enter team name')
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'Some Team' } })
+        })
+
+        const cancelBtn = screen.getByText('Cancel').closest('button')!
+        await act(async () => {
+            fireEvent.click(cancelBtn)
+        })
+
+        // Dialog should close (input no longer visible)
+        await waitFor(() => {
+            expect(screen.queryByPlaceholderText('Enter team name')).toBeNull()
+        })
+
+        expect(apiCalled).toBe(false)
     })
 })
