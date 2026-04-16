@@ -210,7 +210,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   }
 
   return (
-    <div className="flex flex-col w-full max-h-[600px] relative font-body text-foreground rounded-md overflow-hidden">
+    <div className="flex flex-col w-full min-h-[400px] max-h-[600px] relative font-body text-foreground rounded-md overflow-hidden">
 
       {/* Panel */}
       <div
