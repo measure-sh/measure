@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="measure_primary">#2E7D32</color>
+    <color name="measure_on_primary">#FFFFFF</color>
+    <color name="measure_primary_container">#B8F5B0</color>
+    <color name="measure_on_primary_container">#002204</color>
+    <color name="measure_background">#FAFAFA</color>
+    <color name="measure_on_background">#1C1B1F</color>
+    <color name="measure_surface">#FFFFFF</color>
+    <color name="measure_on_surface">#1C1B1F</color>
+    <color name="measure_surface_variant">#F0F0F0</color>
+    <color name="measure_on_surface_variant">#49454F</color>
+</resources>

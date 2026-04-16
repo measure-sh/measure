@@ -41,15 +41,18 @@ class MeasurePlugin : Plugin<Project> {
         val measure = project.extensions.create("measure", MeasurePluginExtension::class.java)
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
         val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
-        val httpClientProvider = project.gradle.sharedServices.registerIfAbsent(
-            SHARED_SERVICE_HTTP_CLIENT,
-            MeasureHttpClient::class.java,
-        ) { spec ->
-            spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
-        }
+        val httpClientProvider =
+            project.gradle.sharedServices.registerIfAbsent(
+                SHARED_SERVICE_HTTP_CLIENT,
+                MeasureHttpClient::class.java,
+            ) { spec ->
+                spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
+            }
         val bytecodeTransformer: BytecodeTransformer =
-            BytecodeTransformationPipelineBuilder().addTransformer(OkHttpTransformer())
-                .addTransformer(NavigationTransformer()).build()
+            BytecodeTransformationPipelineBuilder()
+                .addTransformer(OkHttpTransformer())
+                .addTransformer(NavigationTransformer())
+                .build()
 
         androidComponents.onVariants { variant ->
             val variantFilter = VariantFilterImpl(variant.name)
@@ -69,54 +72,62 @@ class MeasurePlugin : Plugin<Project> {
         httpClientProvider: Provider<MeasureHttpClient>,
         sdkDirectory: Provider<Directory>,
     ) {
-        val extractManifestDataProvider = project.tasks.register(
-            extractManifestDataTaskName(variant),
-            ExtractManifestDataTask::class.java,
-        ) {
-            it.manifestInputProperty.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
-            it.manifestOutputProperty.set(manifestDataFileProvider(project, variant))
-        }
-
-        val apkSizeProvider = project.tasks.register(
-            extractApkSizeTaskName(variant),
-            ApkSizeTask::class.java,
-        ) {
-            it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
-            it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
-        }
-
-        val aabSizeProvider = project.tasks.register(
-            extractAabSizeTaskName(variant),
-            AabSizeTask::class.java,
-        ) {
-            it.androidSdkDir.set(sdkDirectory)
-            it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
-            it.apksOutputDir.set(apksDirProvider(project, variant))
-            it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
-        }
-
-        val uploadBuildProvider = project.tasks.register(
-            buildUploadTaskName(variant),
-            BuildUploadTask::class.java,
-        ) {
-            it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
-            it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-            it.flutterSymbolsDirProperty.set(getFlutterSymbolsDirPath(project))
-            it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
-            it.retriesProperty.set(DEFAULT_RETRIES)
-            it.usesService(httpClientProvider)
-            it.httpClientProvider.set(httpClientProvider)
-        }.dependsOn(extractManifestDataProvider).apply {
-            configure {
-                val manifestDataFileProvider = manifestDataFileProvider(project, variant)
-                it.onlyIf {
-                    manifestDataFileProvider.get().asFile.exists()
-                }
-                // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
-                // end up running and overwriting each other's output.
-                it.mustRunAfter(apkSizeProvider, aabSizeProvider)
+        val extractManifestDataProvider =
+            project.tasks.register(
+                extractManifestDataTaskName(variant),
+                ExtractManifestDataTask::class.java,
+            ) {
+                it.manifestInputProperty.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
+                it.manifestOutputProperty.set(manifestDataFileProvider(project, variant))
             }
-        }
+
+        val apkSizeProvider =
+            project.tasks.register(
+                extractApkSizeTaskName(variant),
+                ApkSizeTask::class.java,
+            ) {
+                it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
+                it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
+            }
+
+        val aabSizeProvider =
+            project.tasks.register(
+                extractAabSizeTaskName(variant),
+                AabSizeTask::class.java,
+            ) {
+                it.androidSdkDir.set(sdkDirectory)
+                it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
+                it.apksOutputDir.set(apksDirProvider(project, variant))
+                it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
+            }
+
+        val uploadBuildProvider =
+            project.tasks
+                .register(
+                    buildUploadTaskName(variant),
+                    BuildUploadTask::class.java,
+                ) {
+                    it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
+                    it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+                    getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
+                        it.flutterSymbolsDirProperty.set(path)
+                    }
+                    it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
+                    it.retriesProperty.set(DEFAULT_RETRIES)
+                    it.usesService(httpClientProvider)
+                    it.httpClientProvider.set(httpClientProvider)
+                }.dependsOn(extractManifestDataProvider)
+                .apply {
+                    configure {
+                        val manifestDataFileProvider = manifestDataFileProvider(project, variant)
+                        it.onlyIf {
+                            manifestDataFileProvider.get().asFile.exists()
+                        }
+                        // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
+                        // end up running and overwriting each other's output.
+                        it.mustRunAfter(apkSizeProvider, aabSizeProvider)
+                    }
+                }
 
         // hook up the upload task to run after any assemble<variant> or bundle<variant>
         // apkSizeProvider should only run for assemble tasks, while aabSizeProvider should only
@@ -133,60 +144,59 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun getFlutterExtension(project: Project): Any? = project.extensions.findByName("flutter")
 
-    private fun appSizeFileProvider(project: Project, variant: Variant): Provider<RegularFile> {
-        return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/appSize.txt")
-    }
+    private fun appSizeFileProvider(
+        project: Project,
+        variant: Variant,
+    ): Provider<RegularFile> = project.layout.buildDirectory.file("intermediates/measure/${variant.name}/appSize.txt")
 
-    private fun apksDirProvider(project: Project, variant: Variant): Provider<RegularFile> {
-        return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/bundle.apks")
-    }
+    private fun apksDirProvider(
+        project: Project,
+        variant: Variant,
+    ): Provider<RegularFile> = project.layout.buildDirectory.file("intermediates/measure/${variant.name}/bundle.apks")
 
-    private fun extractApkSizeTaskName(variant: Variant) =
-        "calculateApkSize${variant.name.capitalize()}"
+    private fun extractApkSizeTaskName(variant: Variant) = "calculateApkSize${variant.name.capitalize()}"
 
-    private fun extractAabSizeTaskName(variant: Variant) =
-        "calculateAabSize${variant.name.capitalize()}"
+    private fun extractAabSizeTaskName(variant: Variant) = "calculateAabSize${variant.name.capitalize()}"
 
     private fun manifestDataFileProvider(
         project: Project,
         variant: Variant,
-    ): Provider<RegularFile> {
-        return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
-    }
+    ): Provider<RegularFile> = project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
 
-    private fun buildUploadTaskName(variant: Variant) =
-        "upload${variant.name.capitalize()}BuildToMeasure"
+    private fun buildUploadTaskName(variant: Variant) = "upload${variant.name.capitalize()}BuildToMeasure"
 
-    private fun extractManifestDataTaskName(variant: Variant) =
-        "extract${variant.name.capitalize()}ManifestData"
+    private fun extractManifestDataTaskName(variant: Variant) = "extract${variant.name.capitalize()}ManifestData"
 
     // Returns the path to the flutter symbols directory if it exists.
     // This function uses the flutter extension to get the source directory and then uses the
     // split-debug-info gradle property to get the symbols directory.
+    //
+    // In add-to-app setups, the flutter extension lives on a separate subproject (e.g. :flutter),
+    // so we search all projects in the build. Multiple projects may have the flutter extension
+    // (e.g. Flutter plugins), so we find the one whose source directory contains a pubspec.yaml,
+    // which identifies it as the actual Flutter module.
     private fun getFlutterSymbolsDirPath(project: Project): File? {
-        val hasFlutterExtension = project.extensions.findByName("flutter") != null
-        if (hasFlutterExtension) {
-            val splitDebugInfoPath = project.providers.gradleProperty("split-debug-info").orNull
-            if (splitDebugInfoPath != null) {
-                try {
-                    val flutterExtension = project.extensions.findByName("flutter")
-                    val flutterSourceDir = flutterExtension?.let {
-                        val source = it::class.java.getMethod("getSource").invoke(it)
-                        if (source != null) {
-                            project.file(source)
-                        } else {
-                            null
-                        }
-                    }
-                    if (flutterSourceDir != null) {
-                        val symbolsRootPath = File(flutterSourceDir, splitDebugInfoPath)
-                        return symbolsRootPath
-                    } else {
-                        project.logger.lifecycle("Flutter source directory not set")
-                    }
-                } catch (e: Exception) {
-                    project.logger.error("Error accessing Flutter source directory: ${e.message}")
-                }
+        val splitDebugInfoPath =
+            project.providers.gradleProperty("split-debug-info").orNull
+                ?: return null
+
+        val flutterProjects =
+            project.rootProject.allprojects.filter {
+                it.extensions.findByName("flutter") != null
+            }
+        if (flutterProjects.isEmpty()) return null
+
+        for (flutterProject in flutterProjects) {
+            try {
+                val flutterExtension = flutterProject.extensions.findByName("flutter") ?: continue
+                val source =
+                    flutterExtension::class.java.getMethod("getSource").invoke(flutterExtension)
+                        ?: continue
+                val flutterSourceDir = flutterProject.file(source)
+                if (!File(flutterSourceDir, "pubspec.yaml").exists()) continue
+                return File(flutterSourceDir, splitDebugInfoPath)
+            } catch (e: Exception) {
+                project.logger.error("measure: Error accessing Flutter source directory: ${e.message}")
             }
         }
         return null
