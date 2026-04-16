@@ -50,11 +50,12 @@ jest.mock('posthog-js', () => ({
 
 const mockRouterReplace = jest.fn()
 const mockRouterPush = jest.fn()
+const mockUsePathname = jest.fn().mockReturnValue('/team-001/overview')
 jest.mock('next/navigation', () => ({
     __esModule: true,
     useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
     useSearchParams: () => new URLSearchParams(),
-    usePathname: () => '/team-001/overview',
+    usePathname: () => mockUsePathname(),
 }))
 
 jest.mock('next/link', () => ({
@@ -84,6 +85,7 @@ afterEach(() => {
     server.resetHandlers()
     mockRouterReplace.mockClear()
     mockRouterPush.mockClear()
+    mockUsePathname.mockReturnValue('/team-001/overview')
 })
 afterAll(() => server.close())
 
@@ -135,14 +137,18 @@ beforeEach(() => {
     })
 })
 
-function renderLayout() {
-    return render(
+function layoutJsx() {
+    return (
         <QueryClientProvider client={testQueryClient}>
             <DashboardLayout>
                 <div data-testid="page-content">Page Content</div>
             </DashboardLayout>
         </QueryClientProvider>
     )
+}
+
+function renderLayout() {
+    return render(layoutJsx())
 }
 
 // ====================================================================
@@ -349,6 +355,110 @@ describe('Dashboard Layout — team switcher', () => {
         )
         renderLayout()
         // The TeamSwitcher button should be disabled during loading
+    })
+})
+
+// ====================================================================
+// LAYOUT — TEAM SWITCHING
+// ====================================================================
+describe('Dashboard Layout — team switching', () => {
+    it('after team switch, nav links point to the new team', async () => {
+        const { rerender } = renderLayout()
+        await waitFor(() => {
+            expect(screen.getByText('Test Team')).toBeTruthy()
+        })
+
+        // Verify initial nav links use team-001
+        const overviewLinkBefore = screen.getByText('Overview').closest('a')
+        expect(overviewLinkBefore?.getAttribute('href')).toBe('/team-001/overview')
+
+        // Simulate team switch navigation completing (pathname changes)
+        mockUsePathname.mockReturnValue('/team-002/overview')
+        await act(async () => {
+            rerender(layoutJsx())
+        })
+
+        // Nav links should now point to team-002
+        await waitFor(() => {
+            const overviewLink = screen.getByText('Overview').closest('a')
+            expect(overviewLink?.getAttribute('href')).toBe('/team-002/overview')
+
+            const crashesLink = screen.getByText('Crashes').closest('a')
+            expect(crashesLink?.getAttribute('href')).toBe('/team-002/crashes')
+
+            const tracesLink = screen.getByText('Traces').closest('a')
+            expect(tracesLink?.getAttribute('href')).toBe('/team-002/traces')
+        })
+    })
+
+    it('after team switch, clicking a nav item navigates within the new team', async () => {
+        const { rerender } = renderLayout()
+        await waitFor(() => {
+            expect(screen.getByText('Test Team')).toBeTruthy()
+        })
+
+        // Simulate team switch navigation completing
+        mockUsePathname.mockReturnValue('/team-002/overview')
+        await act(async () => {
+            rerender(layoutJsx())
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
+        })
+
+        // Click Crashes nav item
+        await act(async () => {
+            fireEvent.click(screen.getByText('Crashes'))
+        })
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/team-002/crashes')
+    })
+
+    it('team switcher shows the new team name after switching', async () => {
+        const { rerender } = renderLayout()
+        await waitFor(() => {
+            expect(screen.getByText('Test Team')).toBeTruthy()
+        })
+
+        // Simulate team switch navigation completing
+        mockUsePathname.mockReturnValue('/team-002/overview')
+        await act(async () => {
+            rerender(layoutJsx())
+        })
+
+        // Team switcher should now show "Other Team"
+        await waitFor(() => {
+            expect(screen.getByText('Other Team')).toBeTruthy()
+        })
+    })
+
+    it('switching back to original team updates nav links again', async () => {
+        const { rerender } = renderLayout()
+        await waitFor(() => {
+            expect(screen.getByText('Test Team')).toBeTruthy()
+        })
+
+        // Switch to team-002
+        mockUsePathname.mockReturnValue('/team-002/overview')
+        await act(async () => {
+            rerender(layoutJsx())
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
+        })
+
+        // Switch back to team-001
+        mockUsePathname.mockReturnValue('/team-001/overview')
+        await act(async () => {
+            rerender(layoutJsx())
+        })
+
+        await waitFor(() => {
+            const overviewLink = screen.getByText('Overview').closest('a')
+            expect(overviewLink?.getAttribute('href')).toBe('/team-001/overview')
+        })
     })
 })
 

@@ -568,6 +568,167 @@ describe('useFiltersStore', () => {
 
             expect(store.getState().selectedApp?.id).toBe('app-a')
         })
+
+        // =================================================================
+        // Team change behaviour
+        // =================================================================
+        it('team change: resets store and fetches new apps when teamId changes', async () => {
+            const teamAApp = makeApp({ id: 'app-a', team_id: 'team-1', name: 'Team A App' })
+            const teamBApp = makeApp({ id: 'app-b', team_id: 'team-2', name: 'Team B App' })
+
+            // First team load
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [teamAApp],
+            })
+            mockFetchFiltersFromServer.mockResolvedValueOnce({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            expect(store.getState().selectedApp?.id).toBe('app-a')
+            expect(store.getState().apps).toEqual([teamAApp])
+            expect(store.getState().currentTeamId).toBe('team-1')
+
+            // Switch to team-2
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [teamBApp],
+            })
+            mockFetchFiltersFromServer.mockResolvedValueOnce({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-2', makeInitConfig())
+
+            expect(store.getState().currentTeamId).toBe('team-2')
+            expect(store.getState().apps).toEqual([teamBApp])
+            expect(store.getState().selectedApp?.id).toBe('app-b')
+            expect(mockFetchAppsFromServer).toHaveBeenCalledWith('team-2')
+        })
+
+        it('team change: does not reuse cached apps from previous team', async () => {
+            const teamAApp = makeApp({ id: 'app-a', team_id: 'team-1' })
+
+            // Load team-1
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [teamAApp],
+            })
+            mockFetchFiltersFromServer.mockResolvedValueOnce({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+            expect(store.getState().apps.length).toBe(1)
+
+            // Switch to team-2 — must call fetchAppsFromServer even though apps.length > 0
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [],
+            })
+
+            await store.getState().fetchApps('team-2', makeInitConfig())
+
+            // Server was called for the new team
+            expect(mockFetchAppsFromServer).toHaveBeenCalledTimes(2)
+            expect(mockFetchAppsFromServer).toHaveBeenLastCalledWith('team-2')
+        })
+
+        it('team change: clears filter caches from previous team', async () => {
+            const app = makeApp({ id: 'app-a', team_id: 'team-1' })
+
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [app],
+            })
+            mockFetchFiltersFromServer.mockResolvedValueOnce({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            // Cache should be populated from team-1
+            expect(store.getState().filterOptionsCache.size).toBe(1)
+
+            // Switch team
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.NoApps,
+                data: null,
+            })
+
+            await store.getState().fetchApps('team-2', makeInitConfig())
+
+            // Caches cleared on team switch
+            expect(store.getState().filterOptionsCache.size).toBe(0)
+            expect(store.getState().rootSpanNamesCache.size).toBe(0)
+        })
+
+        it('team change: resets selections from previous team', async () => {
+            const app = makeApp({ id: 'app-a', team_id: 'team-1' })
+
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [app],
+            })
+            mockFetchFiltersFromServer.mockResolvedValueOnce({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            // User makes some selections
+            store.getState().setSelectedCountries(['US', 'IN'])
+            store.getState().setSelectedFreeText('search term')
+            expect(store.getState().selectedCountries).toEqual(['US', 'IN'])
+
+            // Switch team
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.NoApps,
+                data: null,
+            })
+
+            await store.getState().fetchApps('team-2', makeInitConfig())
+
+            // Selections from team-1 should be cleared
+            expect(store.getState().selectedCountries).toEqual([])
+            expect(store.getState().selectedFreeText).toBe('')
+            expect(store.getState().selectedApp).toBeNull()
+        })
+
+        it('same team: still uses cached apps on repeated fetchApps calls', async () => {
+            const app = makeApp({ id: 'app-a', team_id: 'team-1' })
+
+            mockFetchAppsFromServer.mockResolvedValueOnce({
+                status: AppsApiStatus.Success,
+                data: [app],
+            })
+            mockFetchFiltersFromServer.mockResolvedValue({
+                status: FiltersApiStatus.Success,
+                data: makeFiltersData(),
+            })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            // Same team again (simulating page navigation within same team)
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            // fetchAppsFromServer called only once — cache used for second call
+            expect(mockFetchAppsFromServer).toHaveBeenCalledTimes(1)
+            expect(store.getState().selectedApp?.id).toBe('app-a')
+        })
     })
 
     // =====================================================================

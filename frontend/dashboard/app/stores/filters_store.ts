@@ -309,6 +309,9 @@ interface FiltersStoreState {
   selectedUdAttrMatchers: UdAttrMatcher[]
   selectedFreeText: string
 
+  // Team tracking
+  currentTeamId: string
+
   // Cache
   filterOptionsCache: Map<string, FilterOptionsData>
   rootSpanNamesCache: Map<string, string[]>
@@ -385,7 +388,7 @@ const initialState: FiltersStoreState = {
   selectedDeviceNames: [],
   selectedUdAttrMatchers: [],
   selectedFreeText: "",
-
+  currentTeamId: "",
   filterOptionsCache: new Map(),
   rootSpanNamesCache: new Map(),
 }
@@ -1004,7 +1007,18 @@ export function createFiltersStore() {
       },
 
       fetchApps: (teamId: string, initConfig: InitConfig) => fetchAppsTracker(teamId, async () => {
-        if (get().apps.length > 0) {
+        const teamChanged = get().currentTeamId !== "" && get().currentTeamId !== teamId
+
+        if (teamChanged) {
+          fetchAppsTracker.clear()
+          selectAppTracker.clear()
+          set({
+            ...initialState,
+            currentTeamId: teamId,
+          })
+        }
+
+        if (!teamChanged && get().apps.length > 0) {
           const app = pickApp(get().apps, initConfig, get().selectedApp)
           if (app) {
             await get().selectApp(app, initConfig)
@@ -1012,7 +1026,7 @@ export function createFiltersStore() {
           return
         }
 
-        set({ appsApiStatus: AppsApiStatus.Loading })
+        set({ appsApiStatus: AppsApiStatus.Loading, currentTeamId: teamId })
 
         const result = await fetchAppsFromServer(teamId)
 

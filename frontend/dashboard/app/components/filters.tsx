@@ -324,7 +324,7 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
       }
 
       store.fetchApps(teamId, initConfig)
-    }, [])
+    }, [teamId])
 
     // --- Imperative handle for refresh ---
     useImperativeHandle(ref, () => ({
