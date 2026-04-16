@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
 
 ### :hammer: Misc
 
+- (**backend**): Support stripe trails by @anupcowkur in #3471
 - (**backend**): Remove unused env var from symboloader (#3466) by @detj in #3466
 - (**backend**): Remove unused file (#3465) by @detj in #3465
 - (**backend**): Upgrade symbolicator to newer working version (#3436) by @detj in #3436
