@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Skip all alerts for ingestion blocked teams by @anupcowkur in #3477
 - (**backend**): Support stripe trails by @anupcowkur in #3471
 - (**backend**): Remove unused env var from symboloader (#3466) by @detj in #3466
 - (**backend**): Remove unused file (#3465) by @detj in #3465
