@@ -6,7 +6,7 @@ import { App } from '../api/api_calls'
 import { useCreateAppMutation } from '../query/hooks'
 import { toastNegative, toastPositive } from '../utils/use_toast'
 import { Button } from './button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 import { Input } from './input'
 
 interface CreateAppProps {
@@ -54,10 +54,11 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess, disabled = fal
         <DialogContent className='bg-background text-foreground'>
           <DialogHeader>
             <DialogTitle className="font-display">Add new app</DialogTitle>
+            <DialogDescription>Create a new app for this team.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col w-5/6">
             <form onSubmit={handleCreateApp} className="flex flex-col">
-              <Input id="app-name" type="string" placeholder="Enter app name" className="w-96 font-body" onChange={(event) => setAppName(event.target.value)} />
+              <Input id="app-name" type="string" placeholder="Enter app name" className="w-96 font-body" value={appName} onChange={(event) => setAppName(event.target.value)} />
               <div className="py-2" />
               <div className='flex flex-row gap-2'>
                 <Button
@@ -70,7 +71,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess, disabled = fal
                 </Button>
                 <Button
                   variant="outline"
-                  type="submit"
+                  type="button"
                   className="w-fit"
                   onClick={() => setDialogOpen(false)}
                 >Cancel

@@ -40,6 +40,7 @@ jest.mock('@/app/components/dialog', () => ({
     DialogContent: ({ children }: any) => <div>{children}</div>,
     DialogHeader: ({ children }: any) => <div>{children}</div>,
     DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+    DialogDescription: ({ children }: any) => <p>{children}</p>,
 }))
 
 jest.mock('@/app/components/input', () => ({
