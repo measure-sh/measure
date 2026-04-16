@@ -14,6 +14,7 @@ final class MockSystemCrashReporter: SystemCrashReporter {
     var enableShouldThrow = false
     var clearCrashDataCalled = false
     var reportToReturn: [String: Any]? = nil
+    var allReportsToReturn: [[String: Any]] = []
     var loadCrashReportCalled = false
 
     func enable() throws {
@@ -34,5 +35,9 @@ final class MockSystemCrashReporter: SystemCrashReporter {
             throw NSError(domain: "MockSystemCrashReporter", code: -2, userInfo: [NSLocalizedDescriptionKey: "No report available"])
         }
         return report
+    }
+
+    func loadAllCrashReports() -> [[String: Any]] {
+        return allReportsToReturn
     }
 }
