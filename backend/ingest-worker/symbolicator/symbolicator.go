@@ -514,7 +514,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 							frames = append(frames, frame)
 						}
 						exceptions[j].Frames = frames
-					} else {
+					} else if k < len(stacktraces[n].Frames) {
 						// no inline frames apparently, just rewrite original frame
 						// object parameters with output frame object parameters.
 						exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
@@ -547,7 +547,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 						frames = append(frames, frame)
 					}
 					threads[l].Frames = frames
-				} else {
+				} else if m < len(stacktraces[n].Frames) {
 					threads[l].Frames[m].MethodName = stacktraces[n].Frames[m].Function
 					threads[l].Frames[m].FileName = stacktraces[n].Frames[m].Filename
 					className := stacktraces[n].Frames[m].Module
