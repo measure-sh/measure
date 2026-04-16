@@ -92,7 +92,7 @@ type AppThresholdPrefs struct {
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
 	fmt.Println("Checking for Crash and ANR alerts...")
-	teams, err := getTeams(ctx)
+	teams, err := getActiveTeams(ctx)
 	if err != nil {
 		fmt.Printf("Error fetching teams: %v\n", err)
 		return
@@ -153,7 +153,7 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 
 func CreateBugReportAlerts(ctx context.Context) {
 	fmt.Println("Checking for new Bug Report alerts...")
-	teams, err := getTeams(ctx)
+	teams, err := getActiveTeams(ctx)
 	if err != nil {
 		fmt.Printf("Error fetching teams: %v\n", err)
 		return
@@ -270,7 +270,7 @@ func CreateDailySummary(ctx context.Context) {
 	// Daily summary runs at 06:00 UTC and reports the previous UTC calendar day.
 	date := time.Now().UTC().AddDate(0, 0, -1)
 
-	teams, err := getTeams(ctx)
+	teams, err := getActiveTeams(ctx)
 	if err != nil {
 		fmt.Printf("Error fetching teams: %v\n", err)
 		return
@@ -304,11 +304,12 @@ func CreateDailySummary(ctx context.Context) {
 	}
 }
 
-func getTeams(ctx context.Context) ([]Team, error) {
+func getActiveTeams(ctx context.Context) ([]Team, error) {
 	teams := []Team{}
 	stmt := sqlf.PostgreSQL.
 		Select("id").
-		From("teams")
+		From("teams").
+		Where("allow_ingest = true")
 
 	defer stmt.Close()
 
