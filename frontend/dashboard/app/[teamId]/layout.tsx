@@ -175,6 +175,11 @@ export default function DashboardLayout({
   }
 
   const onTeamChanged = (item: Team) => {
+    // Reset the filters store before navigating so the new page doesn't
+    // mount with stale filters.ready=true from the previous team. Without
+    // this, Zustand's useSyncExternalStore triggers re-renders during the
+    // React transition, aborting the in-flight RSC fetch and crashing.
+    registry.filtersStore.getState().reset(true)
     const newPath = `/${item.id}/overview`
     router.push(newPath)
   }

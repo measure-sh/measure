@@ -89,7 +89,6 @@ const demoTimelineData = generateDemoTimelineData()
 export default function NetworkOverview({ params, demo = false, hideDemoTitle = false }: NetworkOverviewProps) {
     const router = useRouter()
     const filters = useFiltersStore(state => state.filters)
-    const currentTeamId = useFiltersStore(state => state.currentTeamId)
 
     const domainsQuery = useNetworkDomainsQuery()
 
@@ -141,9 +140,8 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
     useEffect(() => {
         if (demo) return
         if (!filters.ready) return
-        if (currentTeamId !== params?.teamId) return
         router.replace(`?${filters.serialisedFilters!}`, { scroll: false })
-    }, [filters.ready, filters.serialisedFilters, currentTeamId, params?.teamId])
+    }, [filters.ready, filters.serialisedFilters])
 
     // Update recent paths when domain or pattern changes
     useEffect(() => {
