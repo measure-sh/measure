@@ -93,12 +93,12 @@ Ingests a batch of events, which can be of different types and can range across 
     - `status`
     - `start_time`
     - `end_time`
-    - `attribute.installation_id`
-    - `attribute.measure_sdk_version`
-    - `attribute.platform`
-    - `attribute.app_version`
-    - `attribute.os_version`
-    - `attribute.app_unique_id`
+    - `attributes.installation_id`
+    - `attributes.measure_sdk_version`
+    - `attributes.platform`
+    - `attributes.app_version`
+    - `attributes.os_version`
+    - `attributes.app_unique_id`
 
 - At least 1 event must be present in the `events` array field or 1 span must be present in the `spans` array field. Both arrays must
 not be empty.
@@ -1092,7 +1092,7 @@ example of a `app_startup` span:
      "timestamp": "2023-08-24T14:51:38.000000634Z"
    }
  ],
- "attribute": {
+ "attributes": {
    // snip attributes fields
  }
 }
