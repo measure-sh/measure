@@ -23,7 +23,6 @@ jest.mock('@/app/stores/provider', () => {
     const { create } = jest.requireActual('zustand')
     const filtersStore = create(() => ({
         filters: { ready: false, serialisedFilters: '' },
-        currentTeamId: '123',
     }))
     return {
         __esModule: true,
