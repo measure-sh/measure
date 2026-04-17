@@ -261,27 +261,27 @@ func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if s.Attributes.InstallationID == uuid.Nil {
-		return fmt.Errorf(`%q must be a valid UUID`, `attribute.installation_id`)
+		return fmt.Errorf(`%q must be a valid UUID`, `attributes.installation_id`)
 	}
 
 	if s.Attributes.MeasureSDKVersion == "" {
-		return fmt.Errorf(`%q must not be empty`, `attribute.measure_sdk_version`)
+		return fmt.Errorf(`%q must not be empty`, `attributes.measure_sdk_version`)
 	}
 
 	if s.Attributes.AppVersion == "" {
-		return fmt.Errorf(`%q must not be empty`, `attribute.app_version`)
+		return fmt.Errorf(`%q must not be empty`, `attributes.app_version`)
 	}
 
 	if s.Attributes.AppBuild == "" {
-		return fmt.Errorf(`%q must not be empty`, `attribute.app_build`)
+		return fmt.Errorf(`%q must not be empty`, `attributes.app_build`)
 	}
 
 	if s.Attributes.AppUniqueID == "" {
-		return fmt.Errorf(`%q must not be empty`, `attribute.app_unique_id`)
+		return fmt.Errorf(`%q must not be empty`, `attributes.app_unique_id`)
 	}
 
 	if len(s.Attributes.AppUniqueID) > maxAppUniqueIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.app_unique_id`, maxAppUniqueIDChars)
 	}
 
 	if len(s.Attributes.UserID) > maxUserIDChars {
@@ -319,7 +319,7 @@ func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
 	switch opsys.ToFamily(s.Attributes.OSName) {
 	case opsys.Android, opsys.AppleFamily:
 	default:
-		return fmt.Errorf(`%q does not contain a valid OS value`, `attribute.os_name`)
+		return fmt.Errorf(`%q does not contain a valid OS value`, `attributes.os_name`)
 	}
 
 	if len(s.Attributes.ThreadName) > maxThreadNameChars {
