@@ -18,15 +18,19 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
     const router = useRouter()
     const teamId = params?.teamId ?? "demo-team"
     const filters = useFiltersStore(state => state.filters)
+    const currentTeamId = useFiltersStore(state => state.currentTeamId)
 
     useEffect(() => {
         if (!filters.ready) {
             return
         }
+        if (currentTeamId !== teamId) {
+            return
+        }
 
         // update url
         router.replace(`?${filters.serialisedFilters!}`, { scroll: false })
-    }, [filters.ready, filters.serialisedFilters])
+    }, [filters.ready, filters.serialisedFilters, currentTeamId, teamId])
 
     return (
         <div className="flex flex-col items-start">

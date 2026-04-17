@@ -19,6 +19,7 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
     const searchParams = useSearchParams()
 
     const filters = useFiltersStore(state => state.filters)
+    const currentTeamId = useFiltersStore(state => state.currentTeamId)
 
     // Pagination is component-local state, initialized from URL
     const [paginationOffset, setPaginationOffset] = useState(() => {
@@ -41,8 +42,11 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
         if (!filters.ready) {
             return
         }
+        if (currentTeamId !== params.teamId) {
+            return
+        }
         router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
-    }, [paginationOffset, filters.ready, filters.serialisedFilters])
+    }, [paginationOffset, filters.ready, filters.serialisedFilters, currentTeamId, params.teamId])
 
     const { data: alertsOverview = emptyAlertsOverviewResponse, status, isFetching } = useAlertsOverviewQuery(paginationOffset)
 

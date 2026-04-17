@@ -156,6 +156,7 @@ jest.mock('@/app/query/hooks', () => ({
 jest.mock('@/app/stores/provider', () => {
     const { create } = jest.requireActual('zustand')
     const filtersStore = create(() => ({
+        currentTeamId: '123',
         filters: { ready: false, serialisedFilters: '' },
     }))
     return {

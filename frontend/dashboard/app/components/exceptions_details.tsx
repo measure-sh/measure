@@ -173,6 +173,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const searchParams = useSearchParams()
 
   const filters = useFiltersStore(state => state.filters)
+  const currentTeamId = useFiltersStore(state => state.currentTeamId)
 
   // Pagination is component-local state, initialized from URL
   const [paginationOffset, setPaginationOffset] = useState(() => {
@@ -200,8 +201,12 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       return
     }
 
+    if (currentTeamId !== teamId) {
+      return
+    }
+
     router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
-  }, [paginationOffset, filters.ready, filters.serialisedFilters])
+  }, [paginationOffset, filters.ready, filters.serialisedFilters, currentTeamId, teamId])
 
   // Both hooks must be called unconditionally (rules of hooks)
   const crashQuery = useCrashDetailsQuery(exceptionsGroupId!, paginationOffset)
