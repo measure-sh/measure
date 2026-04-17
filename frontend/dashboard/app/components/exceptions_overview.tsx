@@ -24,6 +24,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   const searchParams = useSearchParams()
 
   const filters = useFiltersStore(state => state.filters)
+  const currentTeamId = useFiltersStore(state => state.currentTeamId)
 
   // Pagination is component-local state, initialized from URL
   const [paginationOffset, setPaginationOffset] = useState(() => {
@@ -46,8 +47,11 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     if (!filters.ready) {
       return
     }
+    if (currentTeamId !== teamId) {
+      return
+    }
     router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
-  }, [paginationOffset, filters.ready, filters.serialisedFilters])
+  }, [paginationOffset, filters.ready, filters.serialisedFilters, currentTeamId, teamId])
 
   const { data: exceptionsOverview = emptyExceptionsOverviewResponse, status, isFetching } = useExceptionsOverviewQuery(exceptionsType, paginationOffset)
 

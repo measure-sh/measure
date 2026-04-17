@@ -25,18 +25,20 @@ export default function Error({
           <div className="py-2" />
           <Link target='_blank' className={underlineLinkStyle} href='https://github.com/measure-sh/measure/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title='>Report issue</Link>
           <div className="py-8" />
-          <div className="w-fit">
-            <p className="">Error message: </p>
-            <div className="py-1" />
-            <p className="w-fit bg-red-200 border border-black selection:bg-yellow-200/50 grid text-left text-sm font-body whitespace-pre-wrap rounded-md p-4">{error.message}</p>
-            <div className="py-2" />
-            <Button
-              variant="outline"
-              className="font-display border border-black select-none"
-              onClick={() => navigator.clipboard.writeText(error.message)}
-            >Copy
-            </Button>
-          </div>
+          {error.message && (
+            <div className="w-fit">
+              <p className="">Error message: </p>
+              <div className="py-1" />
+              <p className="w-fit bg-red-200 border border-black selection:bg-yellow-200/50 grid text-left text-sm font-body whitespace-pre-wrap rounded-md p-4">{error.message}</p>
+              <div className="py-2" />
+              <Button
+                variant="outline"
+                className="font-display border border-black select-none"
+                onClick={() => navigator.clipboard.writeText(error.message)}
+              >Copy
+              </Button>
+            </div>
+          )}
         </div>
       </body>
     </html>
