@@ -138,64 +138,6 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        {/* <div className='flex flex-col items-center md:items-start gap-4'>
-          <p className="font-display text-2xl md:px-2">Alternatives</p>
-          <Link
-            href="/comparison/firebase-crashlytics"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Firebase Crashlytics
-          </Link>
-          <Link
-            href="/comparison/sentry"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Sentry
-          </Link>
-          <Link
-            href="/comparison/embrace"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Embrace
-          </Link>
-          <Link
-            href="/comparison/bugsnag"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Bugsnag
-          </Link>
-          <Link
-            href="/comparison/datadog"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Datadog
-          </Link>
-          <Link
-            href="/comparison/new-relic"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            New Relic
-          </Link>
-        </div> */}
-
         <div className='flex flex-col items-center md:items-start gap-4'>
           <p className="font-display text-2xl md:px-2">Resources</p>
           <Link
@@ -208,14 +150,13 @@ export default function LandingFooter() {
             Why Measure?
           </Link>
           <Link
-            href="https://github.com/measure-sh/measure"
-            target='_blank'
+            href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "font-display select-none w-full md:w-fit",
             )}
           >
-            GitHub
+            Pricing
           </Link>
           <Link
             href="/docs"
@@ -227,13 +168,23 @@ export default function LandingFooter() {
             Docs
           </Link>
           <Link
-            href="/pricing"
+            href="https://blog.measure.sh/"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "font-display select-none w-full md:w-fit",
             )}
           >
-            Pricing
+            Blog
+          </Link>
+          <Link
+            href="https://github.com/measure-sh/measure"
+            target='_blank'
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            GitHub
           </Link>
         </div>
 
