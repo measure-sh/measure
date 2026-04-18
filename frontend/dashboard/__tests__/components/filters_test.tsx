@@ -108,9 +108,8 @@ jest.mock('@/app/components/pill', () => ({
     default: ({ title }: any) => <span data-testid="pill">{title}</span>,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 jest.mock('@/app/components/debounce_text_input', () => ({
@@ -321,7 +320,7 @@ describe('Filters', () => {
             await act(async () => {
                 render(<Filters {...defaultProps() as any} />)
             })
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
         })
 
         it('shows error message when apps API returns error', async () => {
@@ -384,7 +383,7 @@ describe('Filters', () => {
             await renderFilters()
             await waitFor(() => {
                 expect(screen.getByTestId('dropdown-App Name')).toBeInTheDocument()
-                expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+                expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
             })
         })
 
@@ -489,7 +488,7 @@ describe('Filters', () => {
             mockFetchRootSpanNames.mockReturnValue(new Promise(() => { }))
             await renderFilters({ filterSource: FilterSource.Spans })
             await waitFor(() => {
-                expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+                expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
             })
         })
 

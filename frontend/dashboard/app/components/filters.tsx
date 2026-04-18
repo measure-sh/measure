@@ -37,8 +37,8 @@ import {
 import DebounceTextInput from "./debounce_text_input"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
 import { Input } from "./input"
-import LoadingSpinner from "./loading_spinner"
 import Pill from "./pill"
+import { Skeleton } from "./skeleton"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
 
 export { AppVersionsInitialSelectionType }
@@ -333,9 +333,85 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
       },
     }))
 
+    const skeletonDropdownCount = [
+      showAppSelector,
+      showDates,
+      showAppVersions,
+      showSessionTypes,
+      filterSource === FilterSource.Spans,
+      filterSource === FilterSource.Spans,
+      showBugReportStatus,
+      showHttpMethods,
+      showOsVersions,
+      showCountries,
+      showNetworkProviders,
+      showNetworkTypes,
+      showNetworkGenerations,
+      showLocales,
+      showDeviceManufacturers,
+      showDeviceNames,
+    ].filter(Boolean).length
+
+    const skeletonPillCount = [
+      showDates,
+      showAppVersions,
+      showSessionTypes,
+      filterSource === FilterSource.Spans,
+      filterSource === FilterSource.Spans,
+      showBugReportStatus,
+      showHttpMethods,
+      showOsVersions,
+      showCountries,
+      showNetworkProviders,
+      showNetworkTypes,
+      showNetworkGenerations,
+      showLocales,
+      showDeviceManufacturers,
+      showDeviceNames,
+    ].filter(Boolean).length
+
+    const filtersSkeleton = (skeletonCount: number, leadingContent?: React.ReactNode) => (
+      <>
+        <div className="flex flex-wrap gap-8 items-center">
+          {leadingContent}
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-[150px]" />
+          ))}
+        </div>
+        {showFreeText &&
+          <>
+            <div className="py-4" />
+            <Skeleton className="h-9 w-full" />
+          </>
+        }
+        {skeletonPillCount > 0 &&
+          <>
+            <div className="py-4" />
+            <div className="flex flex-wrap gap-2 items-center">
+              {Array.from({ length: skeletonPillCount }).map((_, i) => (
+                <Skeleton key={i} className="h-6 w-[120px] rounded-full" />
+              ))}
+            </div>
+          </>
+        }
+      </>
+    )
+
+    const appSelectorDropdown = (
+      <DropdownSelect
+        title="App Name"
+        type={DropdownSelectType.SingleString}
+        items={store.apps.map((e) => e.name)}
+        initialSelected={store.selectedApp?.name ?? ""}
+        onChangeSelected={(item) =>
+          store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
+        }
+      />
+    )
+
     return (
       <div>
-        {store.appsApiStatus === AppsApiStatus.Loading && <LoadingSpinner />}
+        {store.appsApiStatus === AppsApiStatus.Loading && filtersSkeleton(skeletonDropdownCount)}
 
         {/* Error states for apps fetch */}
         {store.appsApiStatus === AppsApiStatus.Error && (
@@ -364,20 +440,12 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
         {store.appsApiStatus === AppsApiStatus.Success &&
           store.filtersApiStatus !== FiltersApiStatus.Success && (
             <div className="flex flex-col">
-              {showAppSelector && (
+              {showAppSelector && store.filtersApiStatus === FiltersApiStatus.Loading &&
+                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)
+              }
+              {showAppSelector && store.filtersApiStatus !== FiltersApiStatus.Loading && (
                 <div className="flex flex-wrap gap-8 items-center">
-                  <DropdownSelect
-                    title="App Name"
-                    type={DropdownSelectType.SingleString}
-                    items={store.apps.map((e) => e.name)}
-                    initialSelected={store.selectedApp!.name}
-                    onChangeSelected={(item) =>
-                      store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
-                    }
-                  />
-                  {store.filtersApiStatus === FiltersApiStatus.Loading && (
-                    <LoadingSpinner />
-                  )}
+                  {appSelectorDropdown}
                 </div>
               )}
               <div className="py-4" />
@@ -420,19 +488,12 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
           filterSource === FilterSource.Spans &&
           store.rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success && (
             <div className="flex flex-col">
-              {showAppSelector && (
+              {showAppSelector && store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Loading &&
+                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)
+              }
+              {showAppSelector && store.rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Loading && (
                 <div className="flex flex-wrap gap-8 items-center">
-                  <DropdownSelect
-                    title="App Name"
-                    type={DropdownSelectType.SingleString}
-                    items={store.apps.map((e) => e.name)}
-                    initialSelected={store.selectedApp!.name}
-                    onChangeSelected={(item) =>
-                      store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
-                    }
-                  />
-                  {store.rootSpanNamesApiStatus ===
-                    RootSpanNamesApiStatus.Loading && <LoadingSpinner />}
+                  {appSelectorDropdown}
                 </div>
               )}
               <div className="py-4" />

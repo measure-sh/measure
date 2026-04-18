@@ -16,9 +16,8 @@ jest.mock('@/app/components/button', () => ({
     ),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 jest.mock('@/app/components/dropdown_menu', () => ({
@@ -51,7 +50,7 @@ describe('TeamSwitcher', () => {
     describe('Loading state', () => {
         it('shows loading spinner', () => {
             render(<TeamSwitcher items={null} teamsSwitcherStatus={TeamsSwitcherStatus.Loading} />)
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
         })
 
         it('disables the trigger button', () => {

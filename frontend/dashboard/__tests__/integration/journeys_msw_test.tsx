@@ -214,7 +214,7 @@ describe('Journeys page — page load', () => {
 
         renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
         await waitFor(() => {
-            expect(screen.getByText('Loading...')).toBeTruthy()
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
         })
     })
 })
@@ -410,6 +410,19 @@ describe('Journeys page — exceptions panel', () => {
             expect(crashLink?.getAttribute('href')).toContain('/test-team/crashes/')
             expect(crashLink?.getAttribute('href')).toContain('/crash-001/')
         })
+    })
+
+    it('clicking a node in Paths mode does not open the panel', async () => {
+        renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        // Stay on Paths tab (the default) and click a node
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-ProductListActivity'))
+        })
+
+        // Panel should not open — no Close button visible
+        expect(screen.queryByText('Close')).toBeNull()
     })
 })
 

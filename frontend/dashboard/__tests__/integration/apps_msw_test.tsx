@@ -1267,3 +1267,16 @@ describe('Apps — auth failure', () => {
         }, { timeout: 5000 })
     })
 })
+
+describe('Apps page — loading states', () => {
+    it('shows skeleton loading before data arrives', async () => {
+        server.use(
+            http.get('*/api/apps', async () => {
+                await new Promise(r => setTimeout(r, 200))
+                return HttpResponse.json([])
+            }),
+        )
+        renderWithProviders(<Apps params={{ teamId: 'test-team' }} />)
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
+    })
+})

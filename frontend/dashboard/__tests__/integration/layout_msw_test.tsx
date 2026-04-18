@@ -247,7 +247,7 @@ describe('Dashboard Layout — navigation', () => {
         expect(screen.getByText('Page Content')).toBeTruthy()
     })
 
-    it('shows loading when teams are loading', async () => {
+    it('shows skeleton loading when teams are loading', async () => {
         // Delay the teams API response to simulate loading state
         server.use(
             http.get('*/api/teams', async () => {
@@ -256,7 +256,8 @@ describe('Dashboard Layout — navigation', () => {
             }),
         )
         renderLayout()
-        // Nav items should NOT render during loading
+        // Skeleton should be visible, nav items should NOT render during loading
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
         expect(screen.queryByText('Overview')).toBeNull()
     })
 })
@@ -492,13 +493,17 @@ describe('Dashboard Layout — user avatar', () => {
     it('shows "Updating..." when session is loading', async () => {
         sessionStore.setState({ session: null, loaded: false, error: null })
         renderLayout()
-        expect(screen.getByText('Updating...')).toBeTruthy()
+        await waitFor(() => {
+            expect(screen.getByText('Updating...')).toBeTruthy()
+        })
     })
 
     it('shows "Error" when session fetch fails', async () => {
         sessionStore.setState({ session: null, loaded: true, error: new Error('fail') })
         renderLayout()
-        expect(screen.getByText('Error')).toBeTruthy()
+        await waitFor(() => {
+            expect(screen.getByText('Error')).toBeTruthy()
+        })
     })
 
     it('getInitials returns correct initials for two-word name', async () => {

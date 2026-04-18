@@ -5,6 +5,7 @@ import { FilterSource, emptyAlertsOverviewResponse } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
+import { SkeletonListPage } from '@/app/components/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { paginationOffsetUrlKey, useAlertsOverviewQuery } from '@/app/query/hooks'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
@@ -78,6 +79,8 @@ export default function AlertsOverview({ params }: { params: { teamId: string } 
                 showFreeText={false}
                 freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..' />
             <div className="py-4" />
+
+            {filters.loading && <SkeletonListPage showPlot={false} tableColumns={2} />}
 
             {/* Error state for alerts fetch */}
             {filters.ready

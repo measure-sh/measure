@@ -8,7 +8,7 @@ import React from 'react'
 import { ExceptionsType } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
 import { chartTheme } from '../utils/shared_styles'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 
 const demoDistribution: any = {
   "app_version": {
@@ -115,7 +115,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
 
   return (
     <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
-      {effectiveStatus === 'pending' && <LoadingSpinner />}
+      {effectiveStatus === 'pending' && <SkeletonPlot />}
       {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {effectiveStatus === 'success' && queryData === null && !demo && <p className="text-lg font-display text-center p-4">No Data</p>}
       {effectiveStatus === 'success' && plot !== undefined && plotKeys !== undefined &&

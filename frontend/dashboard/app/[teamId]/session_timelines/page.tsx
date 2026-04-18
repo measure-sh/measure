@@ -6,6 +6,7 @@ import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filte
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SessionTimelinesOverviewPlot from '@/app/components/session_timelines_overview_plot'
+import { SkeletonListPage } from '@/app/components/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { paginationOffsetUrlKey, useSessionTimelinesOverviewQuery } from '@/app/query/hooks'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
@@ -80,6 +81,8 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                 showFreeText={true}
                 freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...' />
             <div className="py-4" />
+
+            {filters.loading && <SkeletonListPage />}
 
             {/* Error state for sessions fetch */}
             {filters.ready

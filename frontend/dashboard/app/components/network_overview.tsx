@@ -7,10 +7,10 @@ import { Button } from '@/app/components/button'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import { Input } from '@/app/components/input'
-import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkStatusDistributionPlot from '@/app/components/network_status_distribution_plot'
 import NetworkTimelinePlot, { NetworkTimelineData, NetworkTimelineDataPoint } from '@/app/components/network_timeline_plot'
 import NetworkTrends from '@/app/components/network_trends'
+import { Skeleton, SkeletonPlot, SkeletonTable } from '@/app/components/skeleton'
 import { useNetworkDomainsQuery, useNetworkPathsQuery, useNetworkStatusPlotQuery, useNetworkTimelineQuery } from '@/app/query/hooks'
 import { useFiltersStore } from '@/app/stores/provider'
 import { addRecentSearch, getRecentSearchesForDomain, removeRecentSearch } from '@/app/utils/network_recent_searches'
@@ -191,9 +191,41 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                 />
             )}
 
-            {!demo && filters.ready && domainsStatus === 'pending' &&
-                <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                    <LoadingSpinner />
+            {!demo && (filters.loading || (filters.ready && domainsStatus === 'pending')) &&
+                <div className="flex flex-col w-full">
+                    {/* Explore endpoint */}
+                    <div className="py-8" />
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-3 w-96 mt-2" />
+                    <div className="py-2" />
+                    <div className="flex flex-row items-center w-full gap-2">
+                        <Skeleton className="h-9 w-[150px]" />
+                        <Skeleton className="h-9 flex-1" />
+                        <Skeleton className="h-9 w-20" />
+                    </div>
+
+                    {/* Status Distribution */}
+                    <div className="py-8" />
+                    <Skeleton className="h-6 w-44" />
+                    <Skeleton className="h-3 w-80 mt-2" />
+                    <div className="py-4" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        <SkeletonPlot />
+                    </div>
+
+                    {/* Top Endpoints */}
+                    <div className="py-8" />
+                    <Skeleton className="h-6 w-36" />
+                    <Skeleton className="h-3 w-64 mt-2" />
+                    <SkeletonTable rows={5} columns={5} />
+
+                    {/* Timeline */}
+                    <div className="py-10" />
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-3 w-72 mt-2" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        <SkeletonPlot />
+                    </div>
                 </div>
             }
 
@@ -323,7 +355,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                         <p className="mt-2 font-body text-xs text-muted-foreground">HTTP status code distribution over time for all requests made by the app</p>
                         <div className="py-4" />
                         <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                            {(statusPlotStatus === 'pending' || (statusPlotStatus === 'success' && !shouldRenderStatusPlot)) && <LoadingSpinner />}
+                            {(statusPlotStatus === 'pending' || (statusPlotStatus === 'success' && !shouldRenderStatusPlot)) && <SkeletonPlot />}
                             {shouldRenderStatusPlot &&
                                 <NetworkStatusDistributionPlot data={statusPlotData} plotTimeGroup={plotTimeGroup} />
                             }
@@ -357,7 +389,7 @@ export default function NetworkOverview({ params, demo = false, hideDemoTitle = 
                             <NetworkTimelinePlot data={timelinePlotData!} />
                         </div>}
                         {!shouldRenderTimeline && <div className="flex font-body items-center justify-center w-full h-[36rem]">
-                            {timelinePlotStatus === 'pending' && <LoadingSpinner />}
+                            {timelinePlotStatus === 'pending' && <SkeletonPlot />}
                             {(timelinePlotStatus === 'nodata' || (timelinePlotStatus === 'success')) &&
                                 <p className="font-body text-sm">No data available for the selected filters</p>
                             }

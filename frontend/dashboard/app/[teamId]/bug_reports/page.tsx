@@ -6,6 +6,7 @@ import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
+import { SkeletonListPage } from '@/app/components/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { paginationOffsetUrlKey, useBugReportsOverviewQuery } from '@/app/query/hooks'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
@@ -79,6 +80,8 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 showFreeText={true}
                 freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..' />
             <div className="py-4" />
+
+            {filters.loading && <SkeletonListPage />}
 
             {/* Error state for bug reports fetch */}
             {filters.ready

@@ -77,8 +77,8 @@ afterAll(() => server.close())
 
 // --- Store/component imports ---
 import TeamOverview from '@/app/[teamId]/team/page'
-import { createSessionStore } from '@/app/stores/session_store'
 import { queryClient } from '@/app/query/query_client'
+import { createSessionStore } from '@/app/stores/session_store'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 let sessionStore = createSessionStore()
@@ -1612,5 +1612,18 @@ describe('Team Page — create team dialog', () => {
         })
 
         expect(apiCalled).toBe(false)
+    })
+})
+
+describe('Team page — loading states', () => {
+    it('shows skeleton loading before data arrives', async () => {
+        server.use(
+            http.get('*/api/teams', async () => {
+                await new Promise(r => setTimeout(r, 200))
+                return HttpResponse.json(makeTeamsFixture())
+            }),
+        )
+        renderWithProviders(<TeamOverview params={{ teamId: 'test-team' }} />)
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
     })
 })

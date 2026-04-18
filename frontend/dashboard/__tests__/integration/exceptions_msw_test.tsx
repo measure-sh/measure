@@ -100,8 +100,8 @@ afterAll(() => server.close())
 import { ExceptionsType } from '@/app/api/api_calls'
 import { ExceptionsDetails } from '@/app/components/exceptions_details'
 import { ExceptionsOverview } from '@/app/components/exceptions_overview'
-import { createFiltersStore } from '@/app/stores/filters_store'
 import { queryClient } from '@/app/query/query_client'
+import { createFiltersStore } from '@/app/stores/filters_store'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 let filtersStore = createFiltersStore()
@@ -1098,5 +1098,18 @@ describe('Exceptions — team switch to no-apps team', () => {
         await waitFor(() => {
             expect(screen.getByText(/don.t have any apps/i)).toBeTruthy()
         }, { timeout: 5000 })
+    })
+})
+
+describe('Exceptions page — loading states', () => {
+    it('shows skeleton loading before data arrives', async () => {
+        server.use(
+            http.get('*/api/apps', async () => {
+                await new Promise(r => setTimeout(r, 200))
+                return HttpResponse.json([])
+            }),
+        )
+        renderWithProviders(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="test-team" />)
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
     })
 })

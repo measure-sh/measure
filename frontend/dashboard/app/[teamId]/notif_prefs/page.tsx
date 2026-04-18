@@ -3,7 +3,7 @@
 import { emptyNotifPrefs } from '@/app/api/api_calls'
 import { Button } from '@/app/components/button'
 import { Checkbox } from '@/app/components/checkbox'
-import LoadingSpinner from '@/app/components/loading_spinner'
+import { Skeleton } from '@/app/components/skeleton'
 import { useNotifPrefsQuery, useSaveNotifPrefsMutation } from '@/app/query/hooks'
 import { toastNegative, toastPositive } from '@/app/utils/use_toast'
 import React, { useEffect, useState } from 'react'
@@ -67,7 +67,27 @@ export default function Notifications() {
       <p className="font-display text-4xl max-w-6xl text-center">Notifications</p>
       <div className="py-4" />
 
-      {notifPrefsQuery.isLoading && <LoadingSpinner />}
+      {notifPrefsQuery.isLoading &&
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          <Skeleton className="h-4 w-64" />
+          <div className="flex items-center gap-8">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+          <div className="flex items-center gap-8">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+          <div className="flex items-center gap-8">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+          <div className="flex items-center gap-8">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+        </div>
+      }
       {notifPrefsQuery.isError && <p className='font-body text-sm'>Failed to fetch notification preferences. Please refresh page to try again.</p>}
 
       {notifPrefsQuery.isSuccess &&

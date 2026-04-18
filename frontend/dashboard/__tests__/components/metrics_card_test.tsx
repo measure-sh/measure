@@ -54,11 +54,9 @@ jest.mock('@/app/components/tooltip', () => ({
     ),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => {
-    return function LoadingSpinner() {
-        return <div data-testid="loading-spinner">Loading...</div>
-    }
-})
+jest.mock('@/app/components/skeleton', () => ({
+    SkeletonMetricsCard: () => <div data-testid="skeleton-mock">Loading...</div>,
+}))
 
 jest.mock('lucide-react', () => ({
     TrendingDown: ({ className }: { className?: string }) => (
@@ -158,7 +156,7 @@ describe('MetricsCard', () => {
             const props = createCrashFreeSessionsProps({ status: 'pending' as const })
             render(<MetricsCard {...props} />)
 
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
             expect(screen.getByText('Crash free sessions')).toBeInTheDocument()
         })
     })

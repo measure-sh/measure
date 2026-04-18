@@ -1,7 +1,7 @@
 "use client"
 
 import { buttonVariants } from "@/app/components/button"
-import LoadingSpinner from "@/app/components/loading_spinner"
+import { Skeleton } from "@/app/components/skeleton"
 import TraceViz from "@/app/components/trace_viz"
 import { useTraceQuery } from "@/app/query/hooks"
 import { cn } from "@/app/utils/shadcn_utils"
@@ -100,7 +100,24 @@ export default function TraceDetails({ params = { teamId: 'demo-team-id', appId:
             <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Performance Traces' : `Trace: ${params.traceId}`}</p>
             <div className="py-2" />
 
-            {displayStatus === 'pending' && <LoadingSpinner />}
+            {displayStatus === 'pending' &&
+                <div className="flex flex-col w-full py-4">
+                    {/* Pills */}
+                    <div className="flex flex-wrap gap-2 py-2 pb-8">
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-28 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                    </div>
+                    {/* Trace visualization */}
+                    <Skeleton className="h-[300px] w-full rounded-lg" />
+                    {/* Button */}
+                    <div className="py-4" />
+                    <Skeleton className="h-9 w-44" />
+                </div>
+            }
 
             {displayStatus === 'error' && <p className="font-body text-sm">Error fetching trace, please refresh page to try again</p>}
 

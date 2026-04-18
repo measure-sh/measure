@@ -2,7 +2,7 @@
 
 import { UpdateBugReportStatusApiStatus } from "@/app/api/api_calls"
 import { Button, buttonVariants } from "@/app/components/button"
-import LoadingSpinner from "@/app/components/loading_spinner"
+import { Skeleton } from "@/app/components/skeleton"
 import { useBugReportQuery, useToggleBugReportStatusMutation } from "@/app/query/hooks"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
@@ -112,7 +112,35 @@ export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'd
             <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Bug Reports' : `Bug Report: ${params.bugReportId}`}</p>
             <div className="py-2" />
 
-            {displayBugReportApiStatus === 'loading' && <LoadingSpinner />}
+            {displayBugReportApiStatus === 'loading' &&
+                <div className="flex flex-col w-full py-4">
+                    {/* Pills */}
+                    <div className="flex flex-wrap gap-2 py-2 pb-12">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-40 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                    </div>
+                    {/* Description */}
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4 mt-2" />
+                    <Skeleton className="h-4 w-1/2 mt-2" />
+                    {/* Buttons */}
+                    <div className="py-8" />
+                    <div className="flex flex-row gap-2">
+                        <Skeleton className="h-9 w-44" />
+                        <Skeleton className="h-9 w-40" />
+                    </div>
+                    {/* Attachments */}
+                    <div className="py-4" />
+                    <div className="flex flex-wrap gap-8">
+                        <Skeleton className="h-[200px] w-[200px]" />
+                        <Skeleton className="h-[200px] w-[200px]" />
+                    </div>
+                </div>
+            }
 
             {displayBugReportApiStatus === 'error' && <p className="font-body text-sm">Error fetching bug report, please refresh page to try again</p>}
 

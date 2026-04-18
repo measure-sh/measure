@@ -72,9 +72,10 @@ jest.mock('@/app/utils/time_utils', () => ({
 }))
 
 // Mock child components
-jest.mock('@/app/components/loading_spinner', () => () => (
-    <div data-testid="loading-spinner-mock">LoadingSpinner</div>
-))
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+    SkeletonPlot: () => <div data-testid="skeleton-mock">Loading...</div>,
+}))
 
 jest.mock('@/app/components/network_latency_plot', () => ({
     __esModule: true,

@@ -4,6 +4,7 @@ import { FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import MetricsOverview from '@/app/components/metrics_overview'
 import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
+import { Skeleton, SkeletonPlot } from '@/app/components/skeleton'
 import { useFiltersStore } from '@/app/stores/provider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -59,6 +60,20 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
                 />}
 
             <div className="py-2" />
+
+            {!demo && filters.loading && (
+                <>
+                    <div className="flex font-body items-center justify-center w-full h-[24rem]">
+                        <SkeletonPlot />
+                    </div>
+                    <div className="py-8" />
+                    <div className="flex flex-wrap gap-16 w-full justify-center">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                            <Skeleton key={i} className="w-full md:w-[300px] h-[160px]" />
+                        ))}
+                    </div>
+                </>
+            )}
 
             {(demo || filters.ready) && (
                 <>

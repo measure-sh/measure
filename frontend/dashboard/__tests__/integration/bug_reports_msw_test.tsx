@@ -85,8 +85,8 @@ afterAll(() => server.close())
 // --- Store/component imports ---
 import BugReportsOverview from '@/app/[teamId]/bug_reports/page'
 import BugReport from '@/app/components/bug_report'
-import { createFiltersStore } from '@/app/stores/filters_store'
 import { queryClient } from '@/app/query/query_client'
+import { createFiltersStore } from '@/app/stores/filters_store'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 let filtersStore = createFiltersStore()
@@ -1514,7 +1514,7 @@ describe('Bug Report Detail (MSW integration)', () => {
             }, { timeout: 5000 })
         })
 
-        it('shows loading spinner initially', async () => {
+        it('shows skeleton loading initially', async () => {
             // Delay the response to observe loading state
             server.use(
                 http.get('*/api/apps/:appId/bugReports/:bugReportId', async () => {
@@ -1524,7 +1524,8 @@ describe('Bug Report Detail (MSW integration)', () => {
             )
 
             renderWithProviders(<BugReport params={defaultParams} />)
-            // The component should show loading state before data arrives
+            // Skeleton should be visible, data should not
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
             expect(screen.queryByText('App crashes when tapping checkout button')).toBeNull()
         })
     })

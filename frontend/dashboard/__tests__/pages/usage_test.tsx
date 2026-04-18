@@ -151,7 +151,7 @@ jest.mock('@/app/query/hooks', () => ({
                 } else if (result?.alreadyUpgraded) {
                     opts?.onSuccess?.({ already_upgraded: true })
                 } else if (result?.error) {
-                    opts?.onSuccess?.({ }) // no checkout_url triggers error toast
+                    opts?.onSuccess?.({}) // no checkout_url triggers error toast
                 } else {
                     opts?.onError?.()
                 }
@@ -208,10 +208,6 @@ jest.mock('@/app/components/dropdown_select', () => ({
     DropdownSelectType: { SingleString: 0 },
 }))
 
-// Mock LoadingSpinner
-jest.mock('@/app/components/loading_spinner', () => () => (
-    <div data-testid="loading-spinner-mock" />
-))
 
 // Mock DangerConfirmationDialog
 jest.mock('@/app/components/danger_confirmation_dialog', () => ({
@@ -354,7 +350,7 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        const spinners = screen.getAllByTestId('loading-spinner-mock')
+        const spinners = screen.getAllByTestId('skeleton-mock')
         expect(spinners.length).toBeGreaterThanOrEqual(1)
     })
 
@@ -437,7 +433,7 @@ describe('Usage Page', () => {
         })
 
         // There will be at least one loading spinner for billing
-        const spinners = screen.getAllByTestId('loading-spinner-mock')
+        const spinners = screen.getAllByTestId('skeleton-mock')
         expect(spinners.length).toBeGreaterThanOrEqual(1)
     })
 

@@ -59,9 +59,9 @@ jest.mock('@/app/components/filters', () => ({
     AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+    SkeletonPlot: () => <div data-testid="skeleton-mock">Loading...</div>,
 }))
 
 jest.mock('@/app/components/network_latency_plot', () => ({

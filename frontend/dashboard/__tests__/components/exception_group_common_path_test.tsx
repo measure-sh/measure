@@ -66,10 +66,8 @@ jest.mock('@/app/components/beta_badge', () => ({
     default: () => <span data-testid="badge-mock">Beta</span>
 }))
 
-// Mock LoadingSpinner component
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner-mock">Loading...</div>
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 // Mock Slider component
@@ -123,7 +121,7 @@ describe('ExceptionGroupCommonPath Component', () => {
             render(<ExceptionGroupCommonPath {...defaultProps} />)
 
             // Loading spinner should be visible while in pending state
-            expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
+            expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
 
             // Transition to success state
             await act(async () => {
