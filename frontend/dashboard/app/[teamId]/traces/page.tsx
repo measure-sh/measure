@@ -5,6 +5,7 @@ import { FilterSource, emptySpansResponse } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
+import { SkeletonListPage } from '@/app/components/skeleton'
 import SpanMetricsPlot from '@/app/components/span_metrics_plot'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { paginationOffsetUrlKey, useSpansQuery } from '@/app/query/hooks'
@@ -78,6 +79,8 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showUdAttrs={true}
                 showFreeText={false} />
             <div className="py-4" />
+
+            {filters.loading && <SkeletonListPage />}
 
             {/* Error state for sessions fetch */}
             {filters.ready

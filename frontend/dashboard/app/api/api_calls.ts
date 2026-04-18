@@ -1266,6 +1266,7 @@ export type UdAttrMatcher = {
 
 export type Filters = {
   ready: boolean
+  loading: boolean
   app: App | null
   rootSpanName: string
   startDate: string
@@ -1295,6 +1296,7 @@ export type Filters = {
 
 export const defaultFilters: Filters = {
   ready: false,
+  loading: true,
   app: null,
   rootSpanName: "",
   startDate: "",

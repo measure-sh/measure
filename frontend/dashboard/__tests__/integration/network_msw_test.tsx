@@ -1058,3 +1058,16 @@ describe('Network — team switch to no-apps team', () => {
         }, { timeout: 5000 })
     })
 })
+
+describe('Network page — loading states', () => {
+    it('shows skeleton loading before data arrives', async () => {
+        server.use(
+            http.get('*/api/apps', async () => {
+                await new Promise(r => setTimeout(r, 200))
+                return HttpResponse.json([])
+            }),
+        )
+        renderWithProviders(<NetworkOverview params={{ teamId: 'test-team' }} />)
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
+    })
+})

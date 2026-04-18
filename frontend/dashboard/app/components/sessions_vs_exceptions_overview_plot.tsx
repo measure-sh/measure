@@ -9,7 +9,7 @@ import React from 'react'
 import { numberToKMB } from '../utils/number_utils'
 import { chartTheme } from '../utils/shared_styles'
 import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 
 const demoDataDate = DateTime.now()
 const demoPlot = [
@@ -83,7 +83,7 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ dem
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[24rem]">
-      {effectiveStatus === 'pending' && <LoadingSpinner />}
+      {effectiveStatus === 'pending' && <SkeletonPlot />}
       {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {effectiveStatus === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
       {effectiveStatus === 'success' && plot !== null && plot !== undefined &&

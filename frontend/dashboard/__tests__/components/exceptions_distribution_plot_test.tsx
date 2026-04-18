@@ -34,9 +34,8 @@ jest.mock('@/app/components/filters', () => ({
     __esModule: true,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    SkeletonPlot: () => <div data-testid="skeleton-mock">Loading...</div>,
 }))
 
 const mockUseExceptionsDistributionPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
@@ -85,7 +84,7 @@ describe('ExceptionsDistributionPlot', () => {
             await act(async () => {
                 render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
         })
 
         it('shows error message on error', async () => {

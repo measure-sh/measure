@@ -18,7 +18,7 @@ import ExceptionGroupCommonPath from './exception_group_common_path'
 import ExceptionsDetailsPlot from './exceptions_details_plot'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
 import Filters, { AppVersionsInitialSelectionType } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { Skeleton, SkeletonPlot } from './skeleton'
 
 const demoExceptionDetails = {
   meta: { next: false, previous: false },
@@ -257,6 +257,37 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
       <div className="py-4" />
 
+      {/* Full page skeleton when filters not ready */}
+      {!demo && filters.loading &&
+        <div className="w-full">
+          <div className="flex flex-col md:flex-row w-full">
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+              <SkeletonPlot />
+            </div>
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+              <SkeletonPlot />
+            </div>
+          </div>
+
+          <div className="py-8" />
+          <Skeleton className="h-8 w-40" />
+          <div className="py-4">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-[24rem] w-full rounded-sm mt-3" />
+          </div>
+
+          <div className="py-12" />
+          <Skeleton className="h-8 w-32" />
+          <div className="flex flex-col gap-3 w-full py-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        </div>
+      }
+
       {(demo || filters.ready) &&
         <div className='w-full'>
           <div className="flex flex-col md:flex-row w-full">
@@ -297,7 +328,15 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
               <div className="py-2" />
 
-              {effectiveFetching && <LoadingSpinner />}
+              {effectiveFetching &&
+                <div className="flex flex-col gap-3 w-full py-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              }
 
               {exceptionsDetails.results?.length > 0 &&
                 <div className={`${effectiveFetching ? 'invisible' : 'visible'}`}>

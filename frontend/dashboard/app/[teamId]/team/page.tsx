@@ -23,7 +23,7 @@ import CreateTeam from "@/app/components/create_team"
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import { Input } from "@/app/components/input"
-import LoadingSpinner from "@/app/components/loading_spinner"
+import { Skeleton, SkeletonTable } from "@/app/components/skeleton"
 import { Switch } from "@/app/components/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/table"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
@@ -250,11 +250,49 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     <div className="flex flex-col items-start">
       <div className="flex flex-row items-center gap-2 justify-between w-full">
         <p className="font-display text-4xl max-w-6xl text-center">Team</p>
-        <CreateTeam onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
+        <CreateTeam disabled={teamsStatus === 'pending'} onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
       </div>
 
-      {/* Loading message for team */}
-      {teamsStatus === 'pending' && <LoadingSpinner />}
+      {/* Loading skeleton for full page */}
+      {teamsStatus === 'pending' &&
+        <div className="flex flex-col items-start w-full">
+          {/* Invite Team Members */}
+          <div className="py-6" />
+          <Skeleton className="h-6 w-48" />
+          <div className="flex flex-row items-center mt-2 gap-2">
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-[150px]" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+
+          {/* Members */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-24" />
+          <div className="py-2" />
+          <SkeletonTable rows={3} columns={2} />
+
+          {/* Pending Invites */}
+          <div className="mt-16 mb-6">
+            <Skeleton className="h-6 w-36" />
+          </div>
+          <SkeletonTable rows={2} columns={6} />
+
+          {/* Slack Integration */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-3 w-80 mt-2" />
+          <div className="py-4" />
+          <Skeleton className="h-10 w-36 rounded-lg" />
+
+          {/* Change Team Name */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-44" />
+          <div className="flex flex-row items-center mt-2 gap-4">
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-16" />
+          </div>
+        </div>
+      }
 
       {/* Error message for team fetch error */}
       {teamsStatus === 'error' && <p className="font-body text-sm">Error fetching team, please refresh page to try again</p>}
@@ -352,7 +390,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           <p className="font-display text-xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
-          {authzAndMembersStatus === 'pending' && <LoadingSpinner />}
+          {authzAndMembersStatus === 'pending' && <SkeletonTable rows={3} columns={2} />}
           {/* Error message for fetch members */}
           {authzAndMembersStatus === 'error' && <p className="font-body text-sm">Error fetching team members, please refresh page to try again</p>}
 
@@ -447,7 +485,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
           {(pendingInvitesStatus !== 'success' || (pendingInvitesStatus === 'success' && pendingInvites && pendingInvites.length > 0)) && <p className="mt-16 mb-6 font-display text-xl max-w-6xl text-center">Pending Invites</p>}
           {/* Loading message for fetch pending invites */}
-          {pendingInvitesStatus === 'pending' && <LoadingSpinner />}
+          {pendingInvitesStatus === 'pending' && <SkeletonTable rows={2} columns={4} />}
           {/* Error message for fetch pending invites */}
           {pendingInvitesStatus === 'error' && <p className="font-body text-sm">Error fetching pending invites, please refresh page to try again</p>}
 
@@ -503,7 +541,12 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           <p className="font-display text-xl max-w-6xl text-center">Slack Integration</p>
           <p className="mt-2 font-body text-xs text-muted-foreground">Receive alert notifications and daily summaries in Slack. <Link className={underlineLinkStyle} href='/docs/features/feature-slack-integration'>Learn more</Link></p>
           <div className="py-4" />
-          {(slackStatusQueryStatus === 'pending' || slackConnectUrlStatus === 'pending') && <LoadingSpinner />}
+          {(slackStatusQueryStatus === 'pending' || slackConnectUrlStatus === 'pending') &&
+            <div className="flex flex-col gap-3 w-full max-w-md">
+              <Skeleton className="h-10 w-48 rounded-lg" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          }
 
           {/* error creating slack url or fetching team slack status */}
           {(slackConnectUrlStatus === 'error' || slackStatusQueryStatus === 'error') &&

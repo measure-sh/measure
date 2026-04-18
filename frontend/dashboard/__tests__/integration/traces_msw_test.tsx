@@ -77,8 +77,8 @@ afterAll(() => server.close())
 // --- Store/component imports ---
 import TracesOverview from '@/app/[teamId]/traces/page'
 import TraceDetails from '@/app/components/trace_details'
-import { createFiltersStore } from '@/app/stores/filters_store'
 import { queryClient } from '@/app/query/query_client'
+import { createFiltersStore } from '@/app/stores/filters_store'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 let filtersStore = createFiltersStore()
@@ -1421,7 +1421,7 @@ describe('Trace Detail (MSW integration)', () => {
             }, { timeout: 5000 })
         })
 
-        it('shows loading state before data arrives', async () => {
+        it('shows skeleton loading before data arrives', async () => {
             server.use(
                 http.get('*/api/apps/:appId/traces/:traceId', async () => {
                     await new Promise(resolve => setTimeout(resolve, 200))
@@ -1429,7 +1429,8 @@ describe('Trace Detail (MSW integration)', () => {
                 }),
             )
             renderWithProviders(<TraceDetails params={defaultParams} />)
-            // Title renders immediately but pills/trace data should not be present yet
+            // Skeleton should be visible, data should not be present yet
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
             expect(screen.queryByText('User ID: user-trace-123')).toBeNull()
         })
     })

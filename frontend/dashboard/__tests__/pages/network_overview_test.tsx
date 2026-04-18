@@ -78,11 +78,11 @@ jest.mock('@/app/utils/time_utils', () => ({
 }))
 
 // Mock child components
-jest.mock('@/app/components/loading_spinner', () => {
-    return function LoadingSpinner() {
-        return <div data-testid="loading-spinner-mock">LoadingSpinner</div>
-    }
-})
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+    SkeletonPlot: () => <div data-testid="skeleton-plot-mock">Loading...</div>,
+    SkeletonTable: () => <div data-testid="skeleton-table-mock" />,
+}))
 
 jest.mock('@/app/components/network_status_distribution_plot', () => ({
     __esModule: true,
@@ -257,7 +257,7 @@ describe('NetworkOverview', () => {
             useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' }, startDate: '2024-01-01', endDate: '2024-01-14' } })
         })
 
-        expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
+        expect(screen.getAllByTestId('skeleton-plot-mock').length).toBeGreaterThan(0)
     })
 
     it('renders main content after domains load successfully and updates URL', async () => {

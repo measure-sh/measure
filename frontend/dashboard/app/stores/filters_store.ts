@@ -397,7 +397,10 @@ const initialState: FiltersStoreState = {
 
 function computeFilters(state: FiltersStoreState): Filters {
   if (!state.config || !state.selectedApp) {
-    return defaultFilters
+    return {
+      ...defaultFilters,
+      loading: state.appsApiStatus === AppsApiStatus.Loading,
+    }
   }
 
   const config = state.config
@@ -464,8 +467,18 @@ function computeFilters(state: FiltersStoreState): Filters {
     freeText: state.selectedFreeText,
   }
 
+  const loading =
+    state.appsApiStatus === AppsApiStatus.Loading ||
+    (state.appsApiStatus === AppsApiStatus.Success &&
+      state.filtersApiStatus === FiltersApiStatus.Loading) ||
+    (state.appsApiStatus === AppsApiStatus.Success &&
+      state.filtersApiStatus === FiltersApiStatus.Success &&
+      config.filterSource === FilterSource.Spans &&
+      state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Loading)
+
   return {
     ready,
+    loading,
     app: state.selectedApp,
     rootSpanName: state.selectedRootSpanName,
     startDate: state.selectedStartDate,

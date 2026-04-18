@@ -373,7 +373,9 @@ jest.mock('@/app/components/create_app', () => ({
   default: ({ disabled }: any) => <div data-testid="create-app-mock" data-disabled={disabled ? 'true' : 'false'} />,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => () => <div data-testid="loading-spinner-mock" />)
+jest.mock('@/app/components/skeleton', () => ({
+  Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+}))
 
 jest.mock('@/app/components/sdk_configurator', () => ({
   __esModule: true,
@@ -565,7 +567,7 @@ describe('Apps Page', () => {
       })
     })
 
-    expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
+    expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
   })
 
   it('shows error message when app settings fetch fails', async () => {
@@ -1396,7 +1398,7 @@ describe('Apps Page', () => {
         })
       })
 
-      const spinners = screen.getAllByTestId('loading-spinner-mock')
+      const spinners = screen.getAllByTestId('skeleton-mock')
       expect(spinners.length).toBeGreaterThanOrEqual(1)
     })
 

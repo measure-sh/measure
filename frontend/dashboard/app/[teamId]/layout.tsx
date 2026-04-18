@@ -20,6 +20,7 @@ import { useTeamsQuery } from "@/app/query/hooks"
 import { usePathname, useRouter } from "next/navigation"
 import React, { useEffect, useMemo, useState } from "react"
 import { Team } from "../api/api_calls"
+import { Skeleton } from "../components/skeleton"
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
 import { ThemeToggle } from "../components/theme_toggle"
 import UsageThresholdBanner from "../components/usage_threshold_banner"
@@ -222,9 +223,22 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu className="gap-2">
-              {teamsStatus === 'pending' && (
-                <span className="ml-2 text-xs font-body">Loading...</span>
-              )}
+              {teamsStatus === 'pending' &&
+                initNavData.navMain.map((section) => (
+                  <SidebarMenuItem key={section.title}>
+                    <Skeleton className="h-7 w-24 mb-2" />
+                    <SidebarMenuSub className="ml-0 border-l-0 px-1.5 gap-3">
+                      {section.items.map((item) => (
+                        <SidebarMenuSubItem key={item.title}>
+                          <SidebarMenuSubButton asChild>
+                            <Skeleton className="h-5 w-full" />
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                ))
+              }
               {teamsStatus === 'error' && (
                 <span className="ml-2 text-xs font-body">
                   Error fetching teams. Please refresh page to try again.
@@ -274,7 +288,17 @@ export default function DashboardLayout({
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <UserAvatar onLogoutClick={() => logoutUser()} />
+              {teamsStatus === 'pending' ? (
+                <div className="flex flex-row items-center w-full p-1 gap-2">
+                  <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+                  <div className="flex flex-col gap-1 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                </div>
+              ) : (
+                <UserAvatar onLogoutClick={() => logoutUser()} />
+              )}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

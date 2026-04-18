@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
 import Filters, { AppVersionsInitialSelectionType } from './filters'
 import LoadingBar from './loading_bar'
+import { SkeletonListPage } from './skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 
 const PAGINATION_LIMIT = 5
@@ -82,6 +83,9 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showUdAttrs={true}
         showFreeText={false} />
       <div className="py-4" />
+
+      {/* Full page skeleton when filters not ready */}
+      {filters.loading && <SkeletonListPage />}
 
       {/* Error state for crash groups fetch */}
       {filters.ready

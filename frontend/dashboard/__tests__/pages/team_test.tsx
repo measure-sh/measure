@@ -313,7 +313,10 @@ jest.mock('@/app/components/create_team', () => ({
   default: ({ onSuccess }: any) => <button onClick={() => onSuccess('team-2')}>Create Team</button>,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => () => <div data-testid="loading-spinner-mock" />)
+jest.mock('@/app/components/skeleton', () => ({
+  Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+  SkeletonTable: () => <div data-testid="skeleton-table-mock" />,
+}))
 
 jest.mock('@/app/components/switch', () => ({
   Switch: ({ checked, disabled, onCheckedChange }: any) => (
@@ -519,7 +522,7 @@ describe('Team Page', () => {
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
 
-    const spinners = await screen.findAllByTestId('loading-spinner-mock')
+    const spinners = await screen.findAllByTestId('skeleton-mock')
     expect(spinners.length).toBeGreaterThan(0)
   })
 
@@ -559,8 +562,8 @@ describe('Team Page', () => {
 
     render(<TeamOverview params={{ teamId: 'team-1' }} />)
 
-    const spinners = await screen.findAllByTestId('loading-spinner-mock')
-    expect(spinners.length).toBeGreaterThan(0)
+    const skeletons = await screen.findAllByTestId('skeleton-table-mock')
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it('disables team rename save when can_rename_team is false', async () => {

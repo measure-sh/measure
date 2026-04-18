@@ -206,10 +206,10 @@ jest.mock('@/app/components/paginator', () => ({
     ),
 }))
 
-// Mock LoadingSpinner component
-jest.mock('@/app/components/loading_spinner', () => () => (
-    <div data-testid="loading-spinner-mock">LoadingSpinner Rendered</div>
-))
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+    SkeletonPlot: () => <div data-testid="skeleton-plot-mock" />,
+}))
 
 // Mock Accordion component
 jest.mock('@/app/components/accordion', () => ({
@@ -658,7 +658,7 @@ describe('ExceptionsDetails Component - Crashes', () => {
         })
 
         // Test the loading state - loading spinner should be visible
-        expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
+        expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
         expect(screen.queryByText('Id: exception1')).not.toBeInTheDocument()
 
         // Set success state
@@ -695,7 +695,7 @@ describe('ExceptionsDetails Component - Crashes', () => {
 
         // After loading, the details should be visible and loading spinner should be gone
         await screen.findByText('Id: exception1')
-        expect(screen.queryByTestId('loading-spinner-mock')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('skeleton-mock')).not.toBeInTheDocument()
     })
 })
 

@@ -655,3 +655,16 @@ describe('Alerts — team switch to no-apps team', () => {
         }, { timeout: 5000 })
     })
 })
+
+describe('Alerts page — loading states', () => {
+    it('shows skeleton loading before data arrives', async () => {
+        server.use(
+            http.get('*/api/apps', async () => {
+                await new Promise(r => setTimeout(r, 5000))
+                return HttpResponse.json([])
+            }),
+        )
+        renderWithProviders(<AlertsOverview params={{ teamId: 'test-team' }} />)
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
+    })
+})

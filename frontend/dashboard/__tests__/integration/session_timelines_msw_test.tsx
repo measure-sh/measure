@@ -79,8 +79,8 @@ afterAll(() => server.close())
 // --- Store imports ---
 import SessionDetail from '@/app/[teamId]/session_timelines/[appId]/[sessionId]/page'
 import SessionTimelinesOverview from '@/app/[teamId]/session_timelines/page'
-import { createFiltersStore } from '@/app/stores/filters_store'
 import { queryClient } from '@/app/query/query_client'
+import { createFiltersStore } from '@/app/stores/filters_store'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 let filtersStore = createFiltersStore()
@@ -705,7 +705,7 @@ describe('Session Timeline Detail (MSW integration)', () => {
 
             renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
             await waitFor(() => {
-                expect(screen.getByText('Loading...')).toBeTruthy()
+                expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
             })
         })
 

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react'
 import { ExceptionsType } from '../api/api_calls'
 import { type ExceptionGroupCommonPath, useExceptionGroupCommonPathQuery } from '../query/hooks'
 import BetaBadge from './beta_badge'
-import LoadingSpinner from './loading_spinner'
+import { Skeleton } from './skeleton'
 import { Slider } from './slider'
 
 const demoExceptionGroupCommonPath: ExceptionGroupCommonPath = {
@@ -52,7 +52,12 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ typ
         Common Path{" "}
         <BetaBadge />
       </p>
-      {commonPathStatus === 'pending' && <div className='py-4'><LoadingSpinner /></div>}
+      {commonPathStatus === 'pending' &&
+        <div className='py-4 flex flex-col gap-3 w-full'>
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-[24rem] w-full rounded-sm" />
+        </div>
+      }
       {commonPathStatus === 'error' && <p className="font-display py-4">Error fetching common path, please refresh page to try again</p>}
       {commonPathStatus === 'success' &&
         <div className="flex flex-col w-full">

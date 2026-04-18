@@ -13,7 +13,7 @@ jest.mock('@nivo/line', () => ({
 }))
 
 jest.mock('next-themes', () => ({ useTheme: () => ({ theme: 'light' }) }))
-jest.mock('@/app/components/loading_spinner', () => ({ __esModule: true, default: () => <div>loading</div> }))
+jest.mock('@/app/components/skeleton', () => ({ SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div> }))
 
 const mockUseExceptionsDetailsPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
 

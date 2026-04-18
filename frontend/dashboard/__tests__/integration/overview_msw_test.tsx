@@ -1395,9 +1395,9 @@ describe('Overview page — loading states', () => {
 
         renderWithProviders(<Overview params={{ teamId: 'test-team' }} />)
 
-        // Initially shows loading
+        // Initially shows skeleton loading
         await waitFor(() => {
-            expect(screen.queryByText('Loading...')).toBeTruthy()
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
         })
 
         // Eventually resolves to data
@@ -1706,9 +1706,9 @@ describe('Overview page — delta values and thresholds', () => {
         renderWithProviders(<Overview params={{ teamId: 'test-team' }} />)
         await waitFor(() => {
             // Wait for actual metrics data to render via TanStack Query
-            // All Loading spinners must be gone and a percentage value must be visible
+            // Card titles must be visible and skeleton loading must be gone
             expect(screen.getByText('Crash free sessions')).toBeTruthy()
-            expect(screen.queryAllByText('Loading...').length).toBe(0)
+            expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBe(0)
         }, { timeout: 8000 })
     }
 

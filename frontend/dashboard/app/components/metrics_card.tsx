@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-rea
 import React from 'react'
 import { numberToKMB, toKiloBytes, toMegaBytes } from '../utils/number_utils'
 import { Card, CardContent, CardFooter } from './card'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonMetricsCard } from './skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
 
 // Style constants
@@ -275,7 +275,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     const title = getMetricTitle(type, 'launchType' in props ? props.launchType : undefined)
     const renderCardContent = () => {
         if (status === 'pending') {
-            return <LoadingSpinner />
+            return <SkeletonMetricsCard />
         }
 
         if (status === 'error') {

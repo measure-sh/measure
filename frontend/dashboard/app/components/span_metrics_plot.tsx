@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import React, { useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
 import { formatMillisToHumanReadable, formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 import TabSelect from './tab_select'
 
 const SpanMetricsPlot: React.FC = () => {
@@ -35,7 +35,7 @@ const SpanMetricsPlot: React.FC = () => {
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {status === 'pending' && <LoadingSpinner />}
+      {status === 'pending' && <SkeletonPlot />}
       {status === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {status === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
       {status === 'success' && plot !== null && plot !== undefined &&

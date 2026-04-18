@@ -59,9 +59,8 @@ jest.mock('@/app/components/checkbox', () => ({
   ),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-  __esModule: true,
-  default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+  Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 jest.mock('next/link', () => ({
@@ -86,7 +85,7 @@ describe('Notifications page', () => {
   it('renders loading state initially', () => {
     mockNotifPrefsStatus = 'pending'
     render(<Notifications />)
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+    expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
   })
 
   it('renders four notification checkboxes with correct labels', () => {

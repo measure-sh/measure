@@ -2911,4 +2911,101 @@ describe('useFiltersStore', () => {
             expect(store.getState().filters).toEqual(defaultFilters)
         })
     })
+
+    // =====================================================================
+    // filters.loading
+    // =====================================================================
+    describe('filters.loading', () => {
+        it('is true in initial state (before config or fetchApps)', () => {
+            expect(store.getState().filters.loading).toBe(true)
+        })
+
+        it('is true while apps are being fetched', async () => {
+            let resolveApps: (value: any) => void
+            mockFetchAppsFromServer.mockReturnValue(new Promise(r => { resolveApps = r }))
+            mockFetchFiltersFromServer.mockResolvedValue({ status: FiltersApiStatus.Success, data: makeFiltersData() })
+
+            store.getState().setConfig(makeFilterConfig())
+            const fetchPromise = store.getState().fetchApps('team-1', makeInitConfig())
+
+            // Still loading — fetch hasn't resolved
+            expect(store.getState().filters.loading).toBe(true)
+
+            resolveApps!({ status: AppsApiStatus.Success, data: [makeApp()] })
+            await fetchPromise
+        })
+
+        it('is false when apps API returns NoApps', async () => {
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.NoApps })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            expect(store.getState().filters.loading).toBe(false)
+            expect(store.getState().filters.ready).toBe(false)
+        })
+
+        it('is false when apps API returns Error', async () => {
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.Error })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+
+            expect(store.getState().filters.loading).toBe(false)
+            expect(store.getState().filters.ready).toBe(false)
+        })
+
+        it('is true while filters are being fetched (apps succeeded)', async () => {
+            let resolveFilters: (value: any) => void
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.Success, data: [makeApp()] })
+            mockFetchFiltersFromServer.mockReturnValue(new Promise(r => { resolveFilters = r }))
+
+            store.getState().setConfig(makeFilterConfig())
+            const fetchPromise = store.getState().fetchApps('team-1', makeInitConfig())
+
+            // Let apps resolve, filters still pending
+            await flushPromises()
+            expect(store.getState().filters.loading).toBe(true)
+
+            resolveFilters!({ status: FiltersApiStatus.Success, data: makeFiltersData() })
+            await fetchPromise
+        })
+
+        it('is false when filters succeed', async () => {
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.Success, data: [makeApp()] })
+            mockFetchFiltersFromServer.mockResolvedValue({ status: FiltersApiStatus.Success, data: makeFiltersData() })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+            await flushPromises()
+
+            expect(store.getState().filters.loading).toBe(false)
+            expect(store.getState().filters.ready).toBe(true)
+        })
+
+        it('is false when filters return NoData', async () => {
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.Success, data: [makeApp()] })
+            mockFetchFiltersFromServer.mockResolvedValue({ status: FiltersApiStatus.NoData })
+
+            store.getState().setConfig(makeFilterConfig({ showNoData: false, showNotOnboarded: true }))
+            await store.getState().fetchApps('team-1', makeInitConfig())
+            await flushPromises()
+
+            expect(store.getState().filters.loading).toBe(false)
+        })
+
+        it('is true after reset', async () => {
+            mockFetchAppsFromServer.mockResolvedValue({ status: AppsApiStatus.Success, data: [makeApp()] })
+            mockFetchFiltersFromServer.mockResolvedValue({ status: FiltersApiStatus.Success, data: makeFiltersData() })
+
+            store.getState().setConfig(makeFilterConfig())
+            await store.getState().fetchApps('team-1', makeInitConfig())
+            await flushPromises()
+
+            expect(store.getState().filters.loading).toBe(false)
+
+            store.getState().reset()
+            expect(store.getState().filters.loading).toBe(true)
+        })
+    })
 })

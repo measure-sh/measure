@@ -139,7 +139,7 @@ describe('Usage Page (MSW integration)', () => {
             expect(screen.getByText(/other app: 2500 sessions, 5000 events, 3500 spans/)).toBeTruthy()
         })
 
-        it('shows loading spinner while fetching', async () => {
+        it('shows skeleton loading while fetching', async () => {
             server.use(
                 http.get('*/api/teams/:teamId/usage', async () => {
                     await new Promise(r => setTimeout(r, 200))
@@ -147,6 +147,7 @@ describe('Usage Page (MSW integration)', () => {
                 }),
             )
             renderWithProviders(<Usage params={{ teamId: 'test-team' }} />)
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
             expect(screen.queryByTestId('nivo-pie-chart')).toBeNull()
         })
 
@@ -336,7 +337,6 @@ describe('Usage — billing enabled', () => {
             Object.defineProperty(window, 'location', {
                 value: {
                     ...originalLocation,
-                    href: 'http://localhost/test-team/usage',
                     search: '',
                     pathname: '/test-team/usage',
                     set href(url: string) {

@@ -10,6 +10,7 @@ import { PlotType } from '@/app/stores/user_journeys_store'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
+import { Skeleton, SkeletonPlot } from '../components/skeleton'
 import { underlineLinkStyle } from '../utils/shared_styles'
 
 interface UserJourneysProps {
@@ -73,6 +74,21 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
                     showFreeText={false}
                     showUdAttrs={false}
                 />}
+
+            {!demo && filters.loading && (
+                <>
+                    <div className="w-full flex justify-end pb-2 pr-2">
+                        <Skeleton className="h-9 w-40" />
+                    </div>
+                    <div className="w-full h-[800px]">
+                        <div className="py-2" />
+                        <Skeleton className="h-9 w-full" />
+                        <Skeleton className="h-3 w-72 mt-4" />
+                        <div className="py-4" />
+                        <SkeletonPlot showAxes={false} />
+                    </div>
+                </>
+            )}
 
             {(demo || filters.ready) && (
                 <>

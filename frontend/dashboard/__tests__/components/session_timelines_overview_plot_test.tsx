@@ -15,9 +15,8 @@ jest.mock('next-themes', () => ({
   useTheme: () => ({ theme: 'light' }),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-  __esModule: true,
-  default: () => <div data-testid="loading-spinner" />,
+jest.mock('@/app/components/skeleton', () => ({
+  SkeletonPlot: () => <div data-testid="skeleton-mock" />,
 }))
 
 const mockUseSessionTimelinesOverviewPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
@@ -77,7 +76,7 @@ describe('SessionTimelinesOverviewPlot', () => {
     mockUseSessionTimelinesOverviewPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
 
     render(<SessionTimelinesOverviewPlot />)
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+    expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
   })
 
   it('maps data and uses minute x-axis for short ranges', async () => {
@@ -182,7 +181,7 @@ describe('SessionTimelinesOverviewPlot', () => {
     render(<SessionTimelinesOverviewPlot />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+      expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
       expect(screen.queryByTestId('line-mock')).not.toBeInTheDocument()
     })
   })

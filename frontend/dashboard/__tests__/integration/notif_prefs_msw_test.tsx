@@ -122,7 +122,7 @@ describe('Notification Preferences (MSW integration)', () => {
             expect(screen.getByText('Daily Summary')).toBeTruthy()
         })
 
-        it('shows loading spinner initially', async () => {
+        it('shows skeleton loading initially', async () => {
             // Delay response to observe loading
             server.use(
                 http.get('*/api/prefs/notifPrefs', async () => {
@@ -131,7 +131,8 @@ describe('Notification Preferences (MSW integration)', () => {
                 }),
             )
             renderWithProviders(<Notifications />)
-            // Before data arrives, the notification rows shouldn't be present
+            // Skeleton should be visible, data should not
+            expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
             expect(screen.queryByText('Crash Spike email')).toBeNull()
         })
 

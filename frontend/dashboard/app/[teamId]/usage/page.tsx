@@ -3,10 +3,8 @@
 import { Button, buttonVariants } from '@/app/components/button'
 import { Card } from '@/app/components/card'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
-import LoadingSpinner from '@/app/components/loading_spinner'
 import { Skeleton } from '@/app/components/skeleton'
 
-import { queryClient } from '@/app/query/query_client'
 import {
   fetchCustomerPortalUrl,
   useBillingInfoQuery,
@@ -17,6 +15,7 @@ import {
   useUsagePermissionsQuery,
   useUsageQuery,
 } from '@/app/query/hooks'
+import { queryClient } from '@/app/query/query_client'
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
 import { formatBytes } from '@/app/utils/number_utils'
 import { FREE_BYTES, FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '@/app/utils/pricing_constants'
@@ -246,7 +245,15 @@ export default function Usage({ params }: { params: { teamId: string } }) {
       {usageHasNoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className={underlineLinkStyle} href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
-      {usageIsLoading && <LoadingSpinner />}
+      {usageIsLoading &&
+        <div className="flex flex-col items-start w-full">
+          <Skeleton className="h-9 w-[150px]" />
+          <div className="py-4" />
+          <div className="w-full h-[36rem] flex items-center justify-center">
+            <Skeleton className="w-72 h-72 rounded-full" />
+          </div>
+        </div>
+      }
       {usageIsSuccess &&
         <div className="flex flex-col items-start w-full">
           <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months} initialSelected={effectiveMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
@@ -293,7 +300,45 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           {billingInfoStatus === 'error' && <p className="font-body text-sm">Error fetching billing data, please check if Team ID is valid or refresh page to try again</p>}
 
           {/* Main UI */}
-          {billingInfoStatus === 'pending' && <LoadingSpinner />}
+          {billingInfoStatus === 'pending' &&
+            <div className="flex flex-col items-start w-full">
+              {/* Progress bar area */}
+              <div className="w-full max-w-6xl">
+                <div className="flex items-center justify-between mb-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <Skeleton className="h-1 w-full" />
+              </div>
+
+              {/* Plan cards */}
+              <div className="flex flex-col md:flex-row gap-8 w-full mt-12">
+                <Card className="w-full md:w-1/2">
+                  <div className="p-4 md:p-8 flex flex-col items-center gap-3">
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-10 w-48" />
+                    <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  </div>
+                </Card>
+                <Card className="w-full md:w-1/2">
+                  <div className="p-4 md:p-8 flex flex-col items-center gap-3">
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-10 w-48" />
+                    <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                    <Skeleton className="h-9 w-40 mt-8" />
+                  </div>
+                </Card>
+              </div>
+            </div>
+          }
           {billingInfoStatus === 'success' &&
             <div className="flex flex-col items-start w-full">
               {/* Progress indicator for Free plan */}

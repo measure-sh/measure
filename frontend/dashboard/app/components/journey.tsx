@@ -10,7 +10,7 @@ import { JourneyType, emptyJourney } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 import { Button } from './button'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 
 const demoJourney: InputJourneyData = {
   links: [
@@ -404,7 +404,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional: bidirectionalP
   return (
     <div className="flex flex-col items-center justify-center font-body text-sm w-full h-full overflow-hidden">
       <div className="flex-1 flex items-center justify-center w-full h-full">
-        {effectiveStatus === 'pending' && <LoadingSpinner />}
+        {effectiveStatus === 'pending' && <SkeletonPlot showAxes={false} />}
         {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
         {effectiveStatus === 'nodata' && <p className="text-lg font-display text-center p-4">No journey data</p>}
         {effectiveStatus === 'success' &&
@@ -437,7 +437,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional: bidirectionalP
                   }
               }
               linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
-              onClick={(nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode)}
+              onClick={journeyType === JourneyType.Exceptions ? (nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode) : undefined}
               linkTooltip={({
                 link
               }) =>

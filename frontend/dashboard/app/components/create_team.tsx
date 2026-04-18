@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from './input'
 
 interface CreateTeamProps {
+    disabled?: boolean
     onSuccess?: (teamId: string) => void
 }
 
-const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
+const CreateTeam: React.FC<CreateTeamProps> = ({ disabled, onSuccess }) => {
     const createTeam = useCreateTeamMutation()
 
     const [teamName, setTeamName] = useState("")
@@ -40,6 +41,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
         <>
             <Button
                 variant="outline"
+                disabled={disabled}
                 onClick={() => setDialogOpen(true)}
             >
                 <Plus /> Create Team

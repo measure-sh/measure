@@ -19,9 +19,9 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType } from "@/app/components/filters"
 import { Input } from "@/app/components/input"
-import LoadingSpinner from "@/app/components/loading_spinner"
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input"
 import SdkConfigurator from "@/app/components/sdk_configurator"
+import { Skeleton } from "@/app/components/skeleton"
 import { isCloud } from "@/app/utils/env_utils"
 import { underlineLinkStyle } from "@/app/utils/shared_styles"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
@@ -58,7 +58,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const retentionChangeAllowed = !isCloud() || (billingInfo?.plan !== undefined && billingInfo.plan !== 'free')
 
   // Derive page load status from query statuses
-  const pageDataLoading = filters.ready && (appRetentionStatus === 'pending' || sdkConfigStatus === 'pending')
+  const pageDataLoading = filters.loading || (filters.ready && (appRetentionStatus === 'pending' || sdkConfigStatus === 'pending'))
   const pageDataError = filters.ready && (appRetentionStatus === 'error' || sdkConfigStatus === 'error')
   const pageDataSuccess = filters.ready && appRetentionStatus === 'success' && sdkConfigStatus === 'success' && sdkConfig
 
@@ -238,8 +238,82 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
       {/* Loading State */}
       {pageDataLoading && (
-        <div className="flex items-center justify-center w-full py-20">
-          <LoadingSpinner />
+        <div className="w-full max-w-6xl font-body mt-8">
+          {/* App Info */}
+          <div className="flex flex-col">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-48 mt-1" />
+            <Skeleton className="h-4 w-36 mt-6" />
+            <Skeleton className="h-4 w-24 mt-1" />
+            <Skeleton className="h-4 w-28 mt-6" />
+            <Skeleton className="h-4 w-44 mt-1" />
+          </div>
+
+          {/* Copy SDK Variables */}
+          <div className="py-10" />
+          <Skeleton className="h-6 w-48" />
+          <div className="flex flex-row items-center mt-2 gap-3">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-16" />
+          </div>
+          <div className="flex flex-row items-center mt-2 gap-3">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-16" />
+          </div>
+
+          {/* SDK Configurator */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-56" />
+          <Skeleton className="h-3 w-96 mt-2" />
+          <div className="flex flex-col gap-3 mt-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-row items-center gap-2">
+                <Skeleton className="h-4 w-80" />
+                <Skeleton className="h-9 w-14" />
+              </div>
+            ))}
+          </div>
+
+          {/* Change Error Thresholds */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-52" />
+          <Skeleton className="h-3 w-full max-w-xl mt-2" />
+          <div className="flex flex-col gap-3 mt-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-row items-center gap-2">
+                <Skeleton className="h-4 w-80" />
+                <Skeleton className="h-9 w-14" />
+              </div>
+            ))}
+            <Skeleton className="h-9 w-16 mt-4" />
+          </div>
+
+          {/* Configure Data Retention */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-52" />
+          <div className="flex flex-row items-center mt-2 gap-4">
+            <Skeleton className="h-9 w-[150px]" />
+            <Skeleton className="h-9 w-16" />
+          </div>
+
+          {/* Change App Name */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-44" />
+          <div className="flex flex-row items-center mt-2 gap-4">
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-16" />
+          </div>
+
+          {/* Rotate API Key */}
+          <div className="py-8" />
+          <Skeleton className="h-6 w-36" />
+          <div className="flex flex-row items-center mt-2 gap-3">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-9 w-96" />
+            <Skeleton className="h-9 w-20" />
+          </div>
         </div>
       )}
 
@@ -333,7 +407,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Change Error Thresholds</p>
             <p className="mt-2 font-body text-xs text-muted-foreground">Error rate thresholds affect dashboard overview error-rate status and daily summary email/Slack status icons. Anything below <span className="text-yellow-600 dark:text-yellow-500 font-bold">Caution</span> level is considered <span className="text-red-600 dark:text-red-500 font-bold">Poor</span>.</p>
-            {thresholdPrefsStatus === 'pending' && <LoadingSpinner />}
+            {thresholdPrefsStatus === 'pending' &&
+              <div className="flex flex-col gap-3 w-full mt-6">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            }
             {thresholdPrefsStatus === 'error' && <p className="font-body text-sm">Error fetching app threshold preferences, please refresh page to try again</p>}
             {thresholdPrefsStatus === 'success' &&
               <div className="flex flex-col items-start mt-6 gap-3 w-full">

@@ -2,10 +2,10 @@
 
 import { FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
-import LoadingSpinner from '@/app/components/loading_spinner'
 import NetworkEndpointStatusCodesPlot from '@/app/components/network_endpoint_status_codes_plot'
 import NetworkLatencyPlot from '@/app/components/network_latency_plot'
 import NetworkTimelinePlot from '@/app/components/network_timeline_plot'
+import { Skeleton, SkeletonPlot } from '@/app/components/skeleton'
 import { useNetworkEndpointLatencyQuery, useNetworkEndpointStatusCodesQuery, useNetworkEndpointTimelineQuery } from '@/app/query/hooks'
 import { useFiltersStore } from '@/app/stores/provider'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
@@ -82,6 +82,32 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
 
             <div className="py-4" />
 
+            {/* Full page skeleton when filters not ready */}
+            {filters.loading &&
+                <div className="flex flex-col w-full">
+                    <div className="py-6" />
+                    <Skeleton className="h-6 w-24" />
+                    <div className="py-2" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        <SkeletonPlot />
+                    </div>
+
+                    <div className="py-6" />
+                    <Skeleton className="h-6 w-44" />
+                    <div className="py-6" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        <SkeletonPlot />
+                    </div>
+
+                    <div className="py-6" />
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-3 w-80 mt-2" />
+                    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+                        <SkeletonPlot />
+                    </div>
+                </div>
+            }
+
             {/* Latency Section */}
             {filters.ready && <div className="flex flex-col w-full">
                 <div className="py-6" />
@@ -89,7 +115,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                 <div className="py-2" />
                 <div className="flex font-body items-center justify-center w-full h-[36rem]">
                     {latencyStatus === 'pending' &&
-                        <LoadingSpinner />
+                        <SkeletonPlot />
                     }
                     {latencyStatus === 'error' &&
                         <p className="font-body text-sm">Error fetching latency data, please change filters & try again</p>
@@ -110,7 +136,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                 <div className="py-6" />
                 <div className="flex font-body items-center justify-center w-full h-[36rem]">
                     {statusDistributionStatus === 'pending' &&
-                        <LoadingSpinner />
+                        <SkeletonPlot />
                     }
                     {statusDistributionStatus === 'error' &&
                         <p className="font-body text-sm">Error fetching status distribution data, please change filters & try again</p>
@@ -134,7 +160,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                 </div>}
                 {!shouldRenderTimelinePlot && <div className="flex font-body items-center justify-center w-full h-[36rem]">
                     {timelineStatus === 'pending' &&
-                        <LoadingSpinner />
+                        <SkeletonPlot />
                     }
                     {timelineStatus === 'error' &&
                         <p className="font-body text-sm">Error fetching timeline data, please change filters & try again</p>
