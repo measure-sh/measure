@@ -51,7 +51,15 @@ jest.mock('@nivo/sankey', () => ({
                 </span>
             ))}
             {data?.links?.map((link: any, i: number) => (
-                <span key={i} data-testid={`sankey-link-${i}`}>
+                <span
+                    key={i}
+                    data-testid={`sankey-link-${i}`}
+                    onClick={() => onClick?.({
+                        ...link,
+                        source: { id: link.source },
+                        target: { id: link.target },
+                    })}
+                >
                     {link.source}→{link.target}: {link.value}
                 </span>
             ))}
@@ -375,7 +383,7 @@ describe('Journeys page — exceptions panel', () => {
         expect(screen.queryByText('Close')).toBeNull()
     })
 
-    it('clicking a node with NO issues opens panel but shows no crash/ANR content', async () => {
+    it('clicking a node with NO issues does NOT open the panel', async () => {
         renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
         await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
 
@@ -387,11 +395,89 @@ describe('Journeys page — exceptions panel', () => {
             fireEvent.click(screen.getByTestId('sankey-node-MainActivity'))
         })
 
-        // Panel opens but has no crash/ANR titles
+        // Panel should not open — no Close button visible
+        expect(screen.queryByText('Close')).toBeNull()
+    })
+
+    it('clicking a link does NOT open the panel', async () => {
+        renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        await act(async () => { fireEvent.click(screen.getByText('Exceptions')) })
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-link-0'))
+        })
+
+        expect(screen.queryByText('Close')).toBeNull()
+    })
+
+    it('open panel closes when clicking a node with no issues', async () => {
+        renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        await act(async () => { fireEvent.click(screen.getByText('Exceptions')) })
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        // Open panel via an exception node
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-ProductListActivity'))
+        })
+        await waitFor(() => expect(screen.getByText('Close')).toBeTruthy(), { timeout: 5000 })
+
+        // Click a node without issues — should close the panel
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-MainActivity'))
+        })
+
+        expect(screen.queryByText('Close')).toBeNull()
+    })
+
+    it('open panel closes when clicking a link', async () => {
+        renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        await act(async () => { fireEvent.click(screen.getByText('Exceptions')) })
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        // Open panel via an exception node
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-CartActivity'))
+        })
+        await waitFor(() => expect(screen.getByText('Close')).toBeTruthy(), { timeout: 5000 })
+
+        // Click a link — should close the panel
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-link-0'))
+        })
+
+        expect(screen.queryByText('Close')).toBeNull()
+    })
+
+    it('open panel stays open when clicking another node with issues (switches to new node)', async () => {
+        renderWithProviders(<UserJourneys params={{ teamId: 'test-team' }} />)
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        await act(async () => { fireEvent.click(screen.getByText('Exceptions')) })
+        await waitFor(() => expect(screen.getByTestId('nivo-sankey')).toBeTruthy(), { timeout: 5000 })
+
+        // Open panel via a node with crashes
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-ProductListActivity'))
+        })
+        await waitFor(() => expect(screen.getByText(/NullPointerException at ProductList/)).toBeTruthy(), { timeout: 5000 })
+
+        // Click another node that also has issues — panel should stay open and switch
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('sankey-node-CartActivity'))
+        })
+
         await waitFor(() => {
-            expect(screen.getByText('Close')).toBeTruthy()
-        }, { timeout: 5000 })
-        expect(screen.queryByText(/NullPointerException/)).toBeNull()
+            expect(screen.getByText(/ANR in CartActivity/)).toBeTruthy()
+        })
+        // Previous node's content should no longer be visible
+        expect(screen.queryByText(/NullPointerException at ProductList/)).toBeNull()
     })
 
     it('crash links point to crash detail page', async () => {

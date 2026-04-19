@@ -876,7 +876,8 @@ describe('Bug Reports Overview (MSW integration)', () => {
         it('renders date for second row as well', async () => {
             await renderAndWaitForData()
             // Second fixture: '2026-04-09T09:15:00Z' → "9 Apr, 2026"
-            expect(screen.getByText(/9 Apr, 2026/)).toBeTruthy()
+            // \b prevents matching "19 Apr, 2026" from the date-range filter.
+            expect(screen.getByText(/\b9 Apr, 2026/)).toBeTruthy()
         })
     })
 

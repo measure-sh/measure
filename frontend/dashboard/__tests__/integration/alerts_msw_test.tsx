@@ -139,7 +139,8 @@ describe('Alerts Overview (MSW integration)', () => {
             // First alert: '2026-04-10T14:30:00Z' → "10 Apr, 2026"
             expect(screen.getByText(/10 Apr, 2026/)).toBeTruthy()
             // Second alert: '2026-04-09T09:15:00Z' → "9 Apr, 2026"
-            expect(screen.getByText(/9 Apr, 2026/)).toBeTruthy()
+            // \b prevents matching "19 Apr, 2026" from the date-range filter.
+            expect(screen.getByText(/\b9 Apr, 2026/)).toBeTruthy()
         })
 
         it('renders formatted time in time column', async () => {

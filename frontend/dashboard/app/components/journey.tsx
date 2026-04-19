@@ -402,144 +402,147 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional: bidirectionalP
   }
 
   return (
-    <div className="flex flex-col items-center justify-center font-body text-sm w-full h-full overflow-hidden">
-      <div className="flex-1 flex items-center justify-center w-full h-full">
-        {effectiveStatus === 'pending' && <SkeletonPlot showAxes={false} />}
-        {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-        {effectiveStatus === 'nodata' && <p className="text-lg font-display text-center p-4">No journey data</p>}
-        {effectiveStatus === 'success' &&
-          <div className='relative w-full h-full'>
-            <ResponsiveSankey
-              data={getSearchFilteredJourney()}
-              align="justify"
-              sort="input"
-              margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
-              linkContract={30}
-              colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : theme === 'dark' ? { scheme: 'tableau10' } : { scheme: 'nivo' }}
-              nodeBorderColor={
-                {
+    <div className="w-full h-full overflow-hidden">
+      {effectiveStatus === 'pending' && <SkeletonPlot showAxes={false} />}
+      {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
+      {effectiveStatus === 'nodata' && <p className="text-lg font-display text-center p-4">No journey data</p>}
+      {effectiveStatus === 'success' &&
+        <div className='relative w-full h-full'>
+          <ResponsiveSankey
+            data={getSearchFilteredJourney()}
+            align="justify"
+            sort="input"
+            margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
+            linkContract={30}
+            colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : theme === 'dark' ? { scheme: 'tableau10' } : { scheme: 'nivo' }}
+            nodeBorderColor={
+              {
+                from: 'color',
+                modifiers: [theme === "dark" ? ['brighter', 0.5] : ['darker', 0.3]]
+              }
+            }
+            nodeBorderRadius={3}
+            enableLinkGradient={true}
+            label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
+            labelPosition="inside"
+            labelOrientation="horizontal"
+            labelPadding={8}
+            labelTextColor={
+              journeyType === JourneyType.Exceptions
+                ? (theme === 'dark' ? exceptionNodeLabelColourDark : exceptionNodeLabelColour)
+                : {
                   from: 'color',
-                  modifiers: [theme === "dark" ? ['brighter', 0.5] : ['darker', 0.3]]
+                  modifiers: [theme === 'dark' ? ['brighter', 0.5] : ['darker', 0.7]]
                 }
-              }
-              nodeBorderRadius={3}
-              enableLinkGradient={true}
-              label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
-              labelPosition="inside"
-              labelOrientation="horizontal"
-              labelPadding={8}
-              labelTextColor={
-                journeyType === JourneyType.Exceptions
-                  ? (theme === 'dark' ? exceptionNodeLabelColourDark : exceptionNodeLabelColour)
-                  : {
-                    from: 'color',
-                    modifiers: [theme === 'dark' ? ['brighter', 0.5] : ['darker', 0.7]]
-                  }
-              }
-              linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
-              onClick={journeyType === JourneyType.Exceptions ? (nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode) : undefined}
-              linkTooltip={({
-                link
-              }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
-                  <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
-                </div>}
-              nodeTooltip={({
-                node
-              }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
-                  <p className='p-2'>{node.id}</p>
+            }
+            linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
+            onClick={journeyType === JourneyType.Exceptions ? (nodeOrLink) => {
+              const maybeNode = nodeOrLink as Partial<JourneyNode>
+              const hasIssues = (maybeNode.issues?.crashes?.length ?? 0) > 0 || (maybeNode.issues?.anrs?.length ?? 0) > 0
+              setSelectedNode(hasIssues ? (nodeOrLink as JourneyNode) : undefined)
+            } : undefined}
+            linkTooltip={({
+              link
+            }) =>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
+                <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
+              </div>}
+            nodeTooltip={({
+              node
+            }) =>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
+                <p className='p-2'>{node.id}</p>
 
-                  {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
-                    <p className='px-2 py-1 text-red-400'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                  }
+                {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
+                  <p className='px-2 py-1 text-red-400'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                }
 
-                  {journeyType === JourneyType.Exceptions && node.issues?.anrs?.length! > 0 &&
-                    <p className='px-2 py-1 text-yellow-400'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                  }
+                {journeyType === JourneyType.Exceptions && node.issues?.anrs?.length! > 0 &&
+                  <p className='px-2 py-1 text-yellow-400'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                }
 
-                  {journeyType === JourneyType.Exceptions && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
-                    <p className='px-2 pt-4 pb-2'>Click for details</p>
-                  }
+                {journeyType === JourneyType.Exceptions && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
+                  <p className='px-2 pt-4 pb-2'>Click for details</p>
+                }
 
-                </div>
-              }
-            />
-            {/* Panel */}
-            <div
-              className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
-                }`}
-            >
-              {selectedNode !== undefined &&
-                <div>
-                  <Button variant="secondary" className="py-2 px-4"
-                    onClick={() => setSelectedNode(undefined)}>Close
-                  </Button>
-                  <p className='mt-6 text-lg'>{selectedNode!.id}</p>
-                  {selectedNode.issues?.crashes?.length! > 0 && (
-                    <div>
-                      <p className="font-body mt-4">Crashes:</p>
-                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                        {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions &&
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
-                                ) : (
-                                  <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            }
-                            {/* Show only title and count if crash or anr journey type */}
-                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                              <span className="font-body text-xs">
-                                {title} - {numberToKMB(count)}
-                              </span>
-                            }
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {selectedNode.issues?.anrs?.length! > 0 && (
-                    <div>
-                      <p className="font-body pt-2">ANRs:</p>
-                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                        {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions &&
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
-                                ) : (
-                                  <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            }
-                            {/* Show only title and count if crash or anr journey type */}
-                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                              <span className="font-body text-xs">
-                                {title} - {numberToKMB(count)}
-                              </span>
-                            }
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              }
-            </div>
-          </div>}
-      </div>
-    </div >
+              </div>
+            }
+          />
+          {/* Panel */}
+          <div
+            className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
+              }`}
+          >
+            {selectedNode !== undefined &&
+              <div>
+                <Button variant="secondary" className="py-2 px-4"
+                  onClick={() => setSelectedNode(undefined)}>
+                  Close
+                </Button>
+                <p className='mt-6 text-lg'>{selectedNode!.id}</p>
+                {selectedNode.issues?.crashes?.length! > 0 && (
+                  <div>
+                    <p className="font-body mt-4">Crashes:</p>
+                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
+                      {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
+                        <li key={title}>
+                          {/* Show clickable link if Exceptions journey type */}
+                          {journeyType === JourneyType.Exceptions &&
+                            <span className="font-body text-xs">
+                              {demo ? (
+                                <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                              ) : (
+                                <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              )}
+                            </span>
+                          }
+                          {/* Show only title and count if crash or anr journey type */}
+                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                            <span className="font-body text-xs">
+                              {title} - {numberToKMB(count)}
+                            </span>
+                          }
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedNode.issues?.anrs?.length! > 0 && (
+                  <div>
+                    <p className="font-body pt-2">ANRs:</p>
+                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
+                      {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
+                        <li key={title}>
+                          {/* Show clickable link if Exceptions journey type */}
+                          {journeyType === JourneyType.Exceptions &&
+                            <span className="font-body text-xs">
+                              {demo ? (
+                                <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                              ) : (
+                                <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              )}
+                            </span>
+                          }
+                          {/* Show only title and count if crash or anr journey type */}
+                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                            <span className="font-body text-xs">
+                              {title} - {numberToKMB(count)}
+                            </span>
+                          }
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            }
+          </div>
+        </div>}
+    </div>
   )
 }
 
