@@ -238,7 +238,8 @@ describe('Traces Overview (MSW integration)', () => {
         it('renders formatted date in start time column', async () => {
             await renderAndWaitForData()
             expect(screen.getByText(/10 Apr, 2026/)).toBeTruthy()
-            expect(screen.getByText(/9 Apr, 2026/)).toBeTruthy()
+            // \b prevents matching "19 Apr, 2026" from the date-range filter.
+            expect(screen.getByText(/\b9 Apr, 2026/)).toBeTruthy()
         })
 
         it('renders formatted time in start time column', async () => {
