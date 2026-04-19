@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Remove overflow-auto from inner main to fix scroll hitch by @anupcowkur in #3488
 - (**frontend**): Make journeys panel open only on nodes with issues by @anupcowkur in #3487
 - (**frontend**): Reset store before navigation instead of per-page guards by @anupcowkur in #3483
 - (**frontend**): Prevent stale router.replace during team switch by @anupcowkur in #3482
