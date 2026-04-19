@@ -304,16 +304,18 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="data-[orientation=vertical]:h-4"
-          />
-          <ThemeToggle />
-        </header>
+        <div className="sticky top-0 z-30 bg-background">
+          <header className="flex h-16 shrink-0 items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="data-[orientation=vertical]:h-4"
+            />
+            <ThemeToggle />
+          </header>
 
-        {selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />}
+          {selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />}
+        </div>
 
         <main className="flex justify-center">
           <div className="w-full max-w-[1100px] px-4 pb-24">{children}</div>
