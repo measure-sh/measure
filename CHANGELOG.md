@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
+
 ### :bug: Bug fixes
 
 - (**backend**): Use correct field names for span attrs by @anupcowkur in #3481
