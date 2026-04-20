@@ -66,3 +66,10 @@ includeBuild("../../android") {
         substitute(module("sh.measure:measure-android")).using(project(":measure"))
     }
 }
+
+includeBuild("../../kmp/measure-kmp") {
+    name = "measure-kmp"
+    dependencySubstitution {
+        substitute(module("sh.measure:measure-kmp")).using(project(":"))
+    }
+}

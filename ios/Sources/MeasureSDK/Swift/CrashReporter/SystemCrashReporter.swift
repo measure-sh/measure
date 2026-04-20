@@ -18,6 +18,7 @@ protocol SystemCrashReporter {
     func enable() throws
     func clearCrashData()
     func loadCrashReport() throws -> [String: Any]
+    func loadAllCrashReports() -> [[String: Any]]
 }
 
 final class BaseSystemCrashReporter: SystemCrashReporter {
@@ -75,6 +76,11 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             throw CrashReporterError.noPendingReport
         }
         return report.value
+    }
+
+    func loadAllCrashReports() -> [[String: Any]] {
+        guard let store = KSCrash.shared.reportStore else { return [] }
+        return store.reportIDs.compactMap { store.report(for: Int64(truncating: $0))?.value }
     }
 }
 
