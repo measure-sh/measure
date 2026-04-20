@@ -1,0 +1,110 @@
+name: KMP Checks
+
+on:
+  pull_request:
+    paths:
+      - 'kmp/**'
+      - '!docs/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'kmp/**'
+      - '!docs/**'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  spotless-check:
+    name: Spotless check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kmp/measure-kmp
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Run Spotless check
+        run: ./gradlew spotlessCheck --no-daemon --no-configuration-cache --stacktrace
+
+  android-host-tests:
+    name: Android host tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kmp/measure-kmp
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Run Android host tests
+        run: ./gradlew testAndroidHostTest --no-daemon --no-configuration-cache --stacktrace
+
+  ios-tests:
+    name: iOS simulator tests
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: kmp/measure-kmp
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build Measure iOS xcframework
+        run: ./kmp/measure-kmp/Scripts/build-xcframework.sh
+
+      - name: Assemble
+        run: ./gradlew assemble --no-daemon --no-parallel --no-configuration-cache --stacktrace
+
+      - name: Run API check
+        run: ./gradlew apiCheck --no-daemon --no-configuration-cache --stacktrace
+
+      - name: Run iOS simulator tests
+        run: ./gradlew iosSimulatorArm64Test --no-daemon --no-configuration-cache --stacktrace

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-android
     permissions:
       contents: write
       pull-requests: write
@@ -53,19 +53,23 @@ jobs:
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
-      - name: Update version in libs.versions.toml
+      - name: Update version in plugin libs.versions.toml
         run: |
-          sed -i "s/measure-android = \".*\"/measure-android = \"${{ inputs.version }}\"/" gradle/libs.versions.toml
+          sed -i "s/measure-android = \".*\"/measure-android = \"${{ inputs.version }}\"/" ../measure-gradle-plugin/gradle/libs.versions.toml
+
+      - name: Update MEASURE_ANDROID_VERSION in KMP gradle.properties
+        run: |
+          sed -i "s/MEASURE_ANDROID_VERSION=.*/MEASURE_ANDROID_VERSION=${{ inputs.version }}/" ../../kmp/measure-kmp/gradle.properties
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         with:
-          config: android/cliff.toml
-          args: --output android/CHANGELOG.md --tag android-v${{ inputs.version }}
+          config: android/measure-android/cliff.toml
+          args: --output android/measure-android/CHANGELOG.md --tag android-v${{ inputs.version }}
 
       - name: Update version in README
         run: |
-          cd ../docs
+          cd ../../docs
           # Update Groovy dependency
           GROOVY_PATTERN="implementation 'sh.measure:measure-android:.*'"
           GROOVY_REPLACEMENT="implementation 'sh.measure:measure-android:${{ inputs.version }}'"
@@ -90,6 +94,7 @@ jobs:
             Changes:
             - Updated version to ${{ inputs.version }} in gradle.properties
             - Updated version to ${{ inputs.version }} in libs.versions.toml
+            - Updated MEASURE_ANDROID_VERSION to ${{ inputs.version }} in kmp/measure-kmp/gradle.properties
             - Generated changelog for version ${{ inputs.version }}
             - Updated version in README.md
 

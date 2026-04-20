@@ -135,12 +135,11 @@ required.
 
 ### Android
 
-`settings.gradle.kts` uses Gradle composite builds to include the Android SDK
-and Gradle plugin from source:
+`settings.gradle.kts` uses a Gradle composite build to include the Android SDK
+from source:
 
 ```kotlin
-includeBuild("../../android/measure-android-gradle")
-includeBuild("../../android") { name = "measure-android" }
+includeBuild("../../android/measure-android")
 ```
 
 The app module then depends on it as a Maven coordinate that Gradle resolves
@@ -183,6 +182,30 @@ On Android, the Flutter module is included as a Gradle subproject via
 Flutter's plugin loader (`settings.gradle.kts`). On iOS, it's integrated
 through CocoaPods via `install_all_flutter_pods` in the Podfile.
 
+### Kotlin Multiplatform
+
+`samples/frank/kmp` consumes `sh.measure:measure-kmp` via the
+`includeBuild("../../kmp/measure-kmp")` composite build in `settings.gradle.kts`.
+The KMP module exposes the Measure SDK to common Kotlin code by linking against
+the native Android SDK on Android and against an iOS xcframework via cinterop
+on iOS.
+
+The iOS xcframework is built by `kmp/measure-kmp/Scripts/build-xcframework.sh`,
+which wraps `xcodebuild archive` + `xcodebuild -create-xcframework`. It is
+invoked automatically by:
+
+* a Run Script build phase ("Build Measure iOS XCFramework") on the
+  `FrankensteinApp` target, before the Gradle phase that compiles the KMP
+  shared module — so local Xcode builds pick up iOS SDK changes transparently.
+* the `kmp-release.yml` CI workflow, before any Gradle invocation that needs
+  the framework.
+
+The script invokes `xcodebuild` in a sanitized environment
+(`env -i PATH=$PATH HOME=$HOME …`) so a nested invocation can never contend
+with the parent Xcode build's `XCBBuildService` daemon. The script also
+short-circuits if the existing `Measure.xcframework` is newer than every file
+under `ios/Sources`, so unchanged builds add no overhead.
+
 ### iOS
 
 The Podfile uses a local path to the `measure-sh` podspec at the repo root:
@@ -202,7 +225,7 @@ CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to
 
 | Secret | Purpose |
 |--------|---------|
-| `FRANK_APP_ENV` | Contents of the `.env` file (Measure keys/URL) |
+| `FRANK_APP_ENV` | Contents of the `.env` file. Frank ships as two separate Measure apps (Android, iOS), so this must contain both `FRANK_MEASURE_ANDROID_*` and `FRANK_MEASURE_IOS_*` key/URL variables — see `.env.example`. |
 | `FRANK_APP_GOOGLE_SERVICES_JSON` | Android `google-services.json` content |
 | `FRANK_APP_GOOGLE_SERVICE_INFO_PLIST_RELEASE` | iOS release `GoogleService-Info.plist` content |
 | `FRANK_APP_FIREBASE_SERVICE_ACCOUNT` | Service account JSON for Firebase App Distribution |
@@ -243,6 +266,21 @@ git config --global http.version HTTP/1.1
 pod install
 git config --global --unset http.version
 ```
+
+### `The Xcode build system has crashed. Build again to continue.`
+
+Symptom: an iOS Frank build fails with this message and exit-65 from a nested
+`xcodebuild` invocation. This happens when something inside Xcode's build
+session shells out to `xcodebuild` with the parent build's env vars
+(`BUILD_DIR`, `OBJROOT`, `BUILT_PRODUCTS_DIR`, …) inherited; the nested
+invocation contends with the parent's `XCBBuildService` and crashes.
+
+The KMP xcframework script
+(`kmp/measure-kmp/Scripts/build-xcframework.sh`) avoids this by wrapping its
+`xcodebuild` calls in `env -i PATH=$PATH HOME=$HOME`. If the symptom recurs,
+verify the script still does this and that the "Build Measure iOS XCFramework"
+Run Script phase is ordered *before* "Build Shared KMP Framework" on the
+`FrankensteinApp` target.
 
 ### `configs.toReversed is not a function` during Android release build
 

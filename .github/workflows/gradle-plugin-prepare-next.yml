@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-gradle-plugin
     permissions:
       contents: write
       pull-requests: write
@@ -50,7 +50,7 @@ jobs:
 
       - name: Update version in gradle.properties
         run: |
-          sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" measure-android-gradle/gradle.properties
+          sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
       - name: Print changes
         run: |

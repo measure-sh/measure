@@ -152,7 +152,7 @@ cd frontend/dashboard && npm run test
 ### Android SDK
 
 ```sh
-cd android/
+cd android/measure-android/
 ./gradlew :measure:testDebugUnitTest
 ```
 
