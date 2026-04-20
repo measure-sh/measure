@@ -122,15 +122,6 @@ describe('TraceDetails', () => {
             mockTraceStatus = 'success'
         })
 
-        it('renders trace ID in title', async () => {
-            await act(async () => {
-                render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)
-            })
-            await waitFor(() => {
-                expect(screen.getByText('Trace: trace-abc')).toBeInTheDocument()
-            })
-        })
-
         it('renders pills with trace metadata', async () => {
             await act(async () => {
                 render(<TraceDetails params={{ teamId: 'team-1', appId: 'app-1', traceId: 'trace-abc' }} />)

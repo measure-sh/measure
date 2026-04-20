@@ -225,9 +225,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   return (
     <div className="flex flex-col items-start">
       {demo && !hideDemoTitle && <p className="font-display font-normal text-4xl max-w-6xl text-center">Crash Details</p>}
-      {!demo && filters.ready && <p className="font-display font-normal text-4xl max-w-6xl text-center">{filters.app!.name}</p>}
-      <div className="py-1" />
-      <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>
       <div className="py-4" />
 
       {!demo &&

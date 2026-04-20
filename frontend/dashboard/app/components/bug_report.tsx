@@ -109,7 +109,7 @@ export default function BugReport({ params = { teamId: 'demo-team-id', appId: 'd
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Bug Reports' : `Bug Report: ${params.bugReportId}`}</p>
+            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Bug Reports' : ''}</p>
             <div className="py-2" />
 
             {displayBugReportApiStatus === 'loading' &&

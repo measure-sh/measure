@@ -111,11 +111,6 @@ describe('Alerts Overview (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Alerts" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Alerts')).toBeTruthy()
-        })
-
         it('renders table headers', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Alert')).toBeTruthy()

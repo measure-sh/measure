@@ -237,7 +237,6 @@ export default function Usage({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="flex flex-col items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
@@ -293,8 +292,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
 
       {isBillingEnabled() &&
         <div className='flex flex-col items-start py-4 w-full'>
-          <p className="font-display text-4xl max-w-6xl text-center">Billing</p>
           <div className="py-4" />
+          <p className="font-display text-3xl max-w-6xl text-center">Billing</p>
+          <div className="py-2" />
 
           {/* Error states */}
           {billingInfoStatus === 'error' && <p className="font-body text-sm">Error fetching billing data, please check if Team ID is valid or refresh page to try again</p>}

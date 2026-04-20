@@ -202,8 +202,32 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="flex flex-col items-start">
-      <div className="flex flex-row items-center gap-2 justify-between w-full">
-        <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
+      <div className="py-4" />
+      <div className="flex flex-row items-start gap-2 justify-between w-full">
+        <Filters
+          ref={filtersRef}
+          teamId={params.teamId}
+          filterSource={FilterSource.Events}
+          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+          showNoData={false}
+          showNotOnboarded={false}
+          showAppSelector={true}
+          showAppVersions={false}
+          showDates={false}
+          showSessionTypes={false}
+          showOsVersions={false}
+          showCountries={false}
+          showNetworkTypes={false}
+          showNetworkProviders={false}
+          showNetworkGenerations={false}
+          showLocales={false}
+          showDeviceManufacturers={false}
+          showDeviceNames={false}
+          showBugReportStatus={false}
+          showHttpMethods={false}
+          showUdAttrs={false}
+          showFreeText={false} />
+
         <CreateApp
           teamId={params.teamId}
           disabled={!canCreateApp}
@@ -211,30 +235,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             filtersRef.current?.refresh(app.id)
           }} />
       </div>
-      <div className="py-4" />
-      <Filters
-        ref={filtersRef}
-        teamId={params.teamId}
-        filterSource={FilterSource.Events}
-        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showNoData={false}
-        showNotOnboarded={false}
-        showAppSelector={true}
-        showAppVersions={false}
-        showDates={false}
-        showSessionTypes={false}
-        showOsVersions={false}
-        showCountries={false}
-        showNetworkTypes={false}
-        showNetworkProviders={false}
-        showNetworkGenerations={false}
-        showLocales={false}
-        showDeviceManufacturers={false}
-        showDeviceNames={false}
-        showBugReportStatus={false}
-        showHttpMethods={false}
-        showUdAttrs={false}
-        showFreeText={false} />
+
 
       {/* Loading State */}
       {pageDataLoading && (

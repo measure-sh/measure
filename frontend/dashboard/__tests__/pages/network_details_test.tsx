@@ -116,9 +116,8 @@ describe('NetworkDetails', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the page title and endpoint path', () => {
+    it('renders the Filters component', () => {
         render(<NetworkDetails params={{ teamId: '123' }} />)
-        expect(screen.getByText('Network Performance')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 
@@ -197,15 +196,6 @@ describe('NetworkDetails', () => {
         )
     })
 
-    it('shows endpoint display when filters are ready', async () => {
-        render(<NetworkDetails params={{ teamId: '123' }} />)
-
-        await act(async () => {
-            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1' }, startDate: '2024-01-01', endDate: '2024-01-14' } })
-        })
-
-        expect(screen.getByText('api.example.com/v1/users')).toBeInTheDocument()
-    })
 
     it('shows latency error message when latency API fails', async () => {
         mockUseNetworkEndpointLatencyQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })

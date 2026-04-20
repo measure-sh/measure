@@ -54,7 +54,6 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Session Timelines</p>
             <div className="py-4" />
 
             <Filters

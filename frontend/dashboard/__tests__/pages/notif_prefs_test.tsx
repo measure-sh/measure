@@ -105,14 +105,6 @@ describe('Notifications page', () => {
     })
   })
 
-  it('renders page title as Notifications', () => {
-    mockNotifPrefsStatus = 'success'
-    mockNotifPrefsData = defaultNotifPrefs
-    render(<Notifications />)
-
-    expect(screen.getByText('Notifications')).toBeInTheDocument()
-  })
-
   it('renders description text', () => {
     mockNotifPrefsStatus = 'success'
     mockNotifPrefsData = defaultNotifPrefs

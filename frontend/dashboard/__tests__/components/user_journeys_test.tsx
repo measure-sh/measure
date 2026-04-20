@@ -78,13 +78,13 @@ describe('UserJourneys', () => {
     })
 
     describe('Rendering', () => {
-        it('renders title', () => {
-            render(<UserJourneys />)
+        it('renders title in demo mode', () => {
+            render(<UserJourneys demo={true} />)
             expect(screen.getByText('User Journeys')).toBeInTheDocument()
         })
 
-        it('hides title when hideDemoTitle is true', () => {
-            render(<UserJourneys hideDemoTitle={true} />)
+        it('hides title in demo mode when hideDemoTitle is true', () => {
+            render(<UserJourneys demo={true} hideDemoTitle={true} />)
             expect(screen.queryByText('User Journeys')).not.toBeInTheDocument()
         })
 

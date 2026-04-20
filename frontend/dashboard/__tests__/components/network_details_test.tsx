@@ -102,24 +102,9 @@ describe('NetworkDetails', () => {
     })
 
     describe('Rendering', () => {
-        it('renders title', () => {
-            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
-            expect(screen.getByText('Network Performance')).toBeInTheDocument()
-        })
-
         it('renders Filters component', () => {
             render(<NetworkDetails params={{ teamId: 'team-1' }} />)
             expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
-        })
-
-        it('shows domain+path after filters ready', async () => {
-            render(<NetworkDetails params={{ teamId: 'team-1' }} />)
-            await act(async () => {
-                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
-            })
-            await waitFor(() => {
-                expect(screen.getByText('api.example.com/v1/users')).toBeInTheDocument()
-            })
         })
     })
 

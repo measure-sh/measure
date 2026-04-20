@@ -52,8 +52,6 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
 
     return (
         <div className="flex flex-col items-start w-full">
-            <p className="font-display text-4xl max-w-6xl text-center">Network Performance</p>
-            {filters.ready && <p className="font-code text-lg max-w-6xl text-center text-muted-foreground">{domain + path}</p>}
             <div className="py-4" />
 
             <Filters

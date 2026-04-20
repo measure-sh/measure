@@ -1,5 +1,6 @@
 "use client"
 
+import AppBreadcrumbs from "@/app/components/app_breadcrumbs"
 import { Separator } from "@/app/components/separator"
 import {
   Sidebar,
@@ -311,7 +312,10 @@ export default function DashboardLayout({
               orientation="vertical"
               className="data-[orientation=vertical]:h-4"
             />
-            <ThemeToggle />
+            <AppBreadcrumbs />
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
           </header>
 
           {selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />}

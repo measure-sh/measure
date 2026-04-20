@@ -47,7 +47,7 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
 
     return (
         <div className="flex flex-col items-start">
-            {!hideDemoTitle && <p className="font-display text-4xl max-w-6xl text-center">User Journeys</p>}
+            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'User Journeys') : ''}</p>
             <div className="py-4" />
 
             {!demo &&

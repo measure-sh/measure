@@ -99,9 +99,8 @@ describe('UserJourneys Page', () => {
         useUserJourneysStore.setState({ plotType: 'Paths', searchText: '' })
     })
 
-    it('renders the User Journeys heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<UserJourneys params={{ teamId: '123' }} />)
-        expect(screen.getByText('User Journeys')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

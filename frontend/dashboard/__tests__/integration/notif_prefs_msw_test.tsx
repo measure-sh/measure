@@ -83,11 +83,6 @@ describe('Notification Preferences (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Notifications" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Notifications')).toBeTruthy()
-        })
-
         it('renders description text', async () => {
             await renderAndWaitForData()
             expect(screen.getByText(/Choose which email notifications/)).toBeTruthy()

@@ -123,11 +123,8 @@ function renderWithProviders(ui: React.ReactElement) {
 
 // ====================================================================
 describe('Overview page (MSW integration)', () => {
-    it('renders heading, filters, chart, and metrics with real stores + MSW', async () => {
+    it('renders filters, chart, and metrics with real stores + MSW', async () => {
         renderWithProviders(<Overview params={{ teamId: 'test-team' }} />)
-
-        // Heading renders immediately
-        expect(screen.getByText('Overview')).toBeTruthy()
 
         // Wait for the full async chain:
         // fetchApps → selectApp → fetchFilters → filters.ready → TanStack Query fetches plots + metrics

@@ -119,9 +119,8 @@ describe('BugReportsOverview Component', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Bug Reports heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<BugReportsOverview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Bug Reports')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

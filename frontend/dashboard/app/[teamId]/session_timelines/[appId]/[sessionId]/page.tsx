@@ -9,7 +9,6 @@ export default function Session({ params }: { params: { teamId: string, appId: s
 
   return (
     <div className="flex flex-col items-start">
-      <p className="font-display text-4xl">Session: {params.sessionId}</p>
       <div className="py-2" />
 
       {status === 'pending' &&

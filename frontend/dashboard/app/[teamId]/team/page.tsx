@@ -248,8 +248,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
   return (
     <div className="flex flex-col items-start">
-      <div className="flex flex-row items-center gap-2 justify-between w-full">
-        <p className="font-display text-4xl max-w-6xl text-center">Team</p>
+      <div className='flex w-full justify-end'>
         <CreateTeam disabled={teamsStatus === 'pending'} onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
       </div>
 

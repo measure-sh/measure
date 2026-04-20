@@ -58,9 +58,8 @@ describe('Overview Component', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Overview heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<Overview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Overview')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

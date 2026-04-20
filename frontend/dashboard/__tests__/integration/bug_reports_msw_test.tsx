@@ -134,11 +134,6 @@ describe('Bug Reports Overview (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Bug Reports" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Bug Reports')).toBeTruthy()
-        })
-
         it('renders table headers', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Bug Report')).toBeTruthy()
@@ -1144,11 +1139,6 @@ describe('Bug Report Detail (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders bug report title with ID', async () => {
-            await renderDetail()
-            expect(screen.getByText('Bug Report: evt-br-001')).toBeTruthy()
-        })
-
         it('renders description', async () => {
             await renderDetail()
             expect(screen.getByText('App crashes when tapping checkout button')).toBeTruthy()
@@ -1585,7 +1575,8 @@ describe('Bug Report Detail (MSW integration)', () => {
             )
             renderWithProviders(<BugReport params={defaultParams} />)
             await waitFor(() => {
-                expect(screen.getByText('Bug Report: evt-br-001')).toBeTruthy()
+                // Wait for bug report to load — "Open" status badge renders on success
+                expect(screen.getByText('Open')).toBeTruthy()
             }, { timeout: 5000 })
             // The description paragraph should not be rendered for empty string
             // (conditional rendering: displayBugReport.description && ...)

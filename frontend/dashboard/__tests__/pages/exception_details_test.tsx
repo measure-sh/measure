@@ -341,25 +341,6 @@ describe('ExceptionsDetails Component - Crashes', () => {
         mockAnrQuery.status = 'pending'; mockAnrQuery.isFetching = true
     })
 
-    it('renders the app name and exceptions group name', async () => {
-        render(
-            <ExceptionsDetails
-                exceptionsType={ExceptionsType.Crash}
-                teamId="123"
-                appId="app1"
-                exceptionsGroupId="exception1"
-                exceptionsGroupName="NullPointerException@MainActivity.java"
-            />
-        )
-
-        await act(async () => {
-            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app1', name: 'Test App' } } })
-        })
-
-        expect(screen.getByText('Test App')).toBeInTheDocument()
-        expect(screen.getByText('NullPointerException@MainActivity.java')).toBeInTheDocument()
-    })
-
     it('does not render main exceptions UI when filters are not ready', () => {
         render(
             <ExceptionsDetails

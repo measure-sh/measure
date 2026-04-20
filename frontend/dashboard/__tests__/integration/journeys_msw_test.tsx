@@ -145,9 +145,8 @@ describe('Journeys page — page load', () => {
         }, { timeout: 5000 })
     }
 
-    it('renders heading, tabs, search, info note, and chart', async () => {
+    it('renders tabs, search, info note, and chart', async () => {
         await renderAndWaitForChart()
-        expect(screen.getByText('User Journeys')).toBeTruthy()
         expect(screen.getByText('Paths')).toBeTruthy()
         expect(screen.getByText('Exceptions')).toBeTruthy()
         expect(screen.getByPlaceholderText('Search nodes...')).toBeTruthy()
