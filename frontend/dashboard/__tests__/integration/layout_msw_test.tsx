@@ -73,6 +73,12 @@ jest.mock('next/image', () => ({
     default: (props: any) => <img {...props} />,
 }))
 
+let mockIsCloud = false
+jest.mock('@/app/utils/env_utils', () => ({
+    __esModule: true,
+    isCloud: () => mockIsCloud,
+}))
+
 // --- MSW ---
 import { makeTeamsFixture } from '../msw/fixtures'
 import { server } from '../msw/server'
@@ -86,6 +92,7 @@ afterEach(() => {
     mockRouterReplace.mockClear()
     mockRouterPush.mockClear()
     mockUsePathname.mockReturnValue('/team-001/overview')
+    mockIsCloud = false
 })
 afterAll(() => server.close())
 
@@ -206,8 +213,21 @@ describe('Dashboard Layout — navigation', () => {
             expect(screen.getByText('Notifications')).toBeTruthy()
             // "Usage" in self-hosted mode (not "Usage & Billing")
             expect(screen.getByText('Usage')).toBeTruthy()
+            expect(screen.queryByText('Usage & Billing')).toBeNull()
             expect(screen.getByText('Support')).toBeTruthy()
         })
+    })
+
+    it('renders Settings nav "Usage" item as "Usage & Billing" in cloud mode', async () => {
+        mockIsCloud = true
+        renderLayout()
+        await waitFor(() => {
+            expect(screen.getByText('Usage & Billing')).toBeTruthy()
+            expect(screen.queryByText('Usage')).toBeNull()
+        })
+        // Link still points to /usage — URL does not change based on env
+        const usageLink = screen.getByText('Usage & Billing').closest('a')
+        expect(usageLink?.getAttribute('href')).toBe('/team-001/usage')
     })
 
     it('nav links point to correct team-scoped URLs', async () => {

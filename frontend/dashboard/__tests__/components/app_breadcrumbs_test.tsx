@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 
 let mockPathname = '/'
 let mockSearchParams = new URLSearchParams()
+let mockIsCloud = false
 
 jest.mock('next/navigation', () => ({
     __esModule: true,
@@ -16,11 +17,17 @@ jest.mock('next/link', () => ({
     default: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
 }))
 
+jest.mock('@/app/utils/env_utils', () => ({
+    __esModule: true,
+    isCloud: () => mockIsCloud,
+}))
+
 import AppBreadcrumbs from '@/app/components/app_breadcrumbs'
 
 afterEach(() => {
     mockPathname = '/'
     mockSearchParams = new URLSearchParams()
+    mockIsCloud = false
 })
 
 describe('AppBreadcrumbs', () => {
@@ -67,6 +74,24 @@ describe('AppBreadcrumbs', () => {
             mockPathname = '/team-123/mystery_section'
             render(<AppBreadcrumbs />)
             expect(screen.getByText('mystery_section')).toBeInTheDocument()
+        })
+
+        it('renders "usage" slug as "Usage & Billing" in cloud mode', () => {
+            mockIsCloud = true
+            mockPathname = '/team-123/usage'
+            render(<AppBreadcrumbs />)
+            const el = screen.getByText('Usage & Billing')
+            expect(el).toBeInTheDocument()
+            expect(el).toHaveAttribute('aria-current', 'page')
+            expect(screen.queryByText('Usage')).toBeNull()
+        })
+
+        it('renders "usage" slug as "Usage" (not "Usage & Billing") in self-hosted mode', () => {
+            mockIsCloud = false
+            mockPathname = '/team-123/usage'
+            render(<AppBreadcrumbs />)
+            expect(screen.getByText('Usage')).toBeInTheDocument()
+            expect(screen.queryByText('Usage & Billing')).toBeNull()
         })
     })
 
