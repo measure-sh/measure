@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/app/components/breadcrumb"
+import { isCloud } from "@/app/utils/env_utils"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 
@@ -27,6 +28,13 @@ const sectionTitles: Record<string, string> = {
   usage: "Usage",
 }
 
+function resolveSectionTitle(slug: string): string {
+  if (slug === "usage" && isCloud()) {
+    return "Usage & Billing"
+  }
+  return sectionTitles[slug] ?? slug
+}
+
 const subrouteTitles: Record<string, string> = {
   details: "Details",
 }
@@ -43,7 +51,7 @@ export default function AppBreadcrumbs() {
     return null
   }
 
-  const sectionTitle = sectionTitles[sectionSlug] ?? sectionSlug
+  const sectionTitle = resolveSectionTitle(sectionSlug)
   const sectionHref = `/${teamId}/${sectionSlug}`
   const isSectionPage = rest.length === 0
 

@@ -29,113 +29,115 @@ import UserAvatar from "../components/user_avatar"
 import { useMeasureStoreRegistry } from "../stores/provider"
 import { isCloud } from "../utils/env_utils"
 
-const initNavData = {
-  navMain: [
-    {
-      title: "Dashboard",
-      items: [
-        {
-          title: "Overview",
-          url: "overview",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Session Timelines",
-          url: "session_timelines",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Journeys",
-          url: "journeys",
-          isActive: false,
-          external: false,
-        },
-      ],
-    },
-    {
-      title: "Issues",
-      items: [
-        {
-          title: "Crashes",
-          url: "crashes",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "ANRs",
-          url: "anrs",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Bug Reports",
-          url: "bug_reports",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Alerts",
-          url: "alerts",
-          isActive: false,
-          external: false,
-        },
-      ],
-    },
-    {
-      title: "Performance",
-      items: [
-        {
-          title: "Traces",
-          url: "traces",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Network",
-          url: "network",
-          isActive: false,
-          external: false,
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      items: [
-        {
-          title: "Apps",
-          url: "apps",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Team",
-          url: "team",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Notifications",
-          url: "notif_prefs",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: isCloud() ? "Usage & Billing" : "Usage",
-          url: "usage",
-          isActive: false,
-          external: false,
-        },
-        {
-          title: "Support",
-          url: "https://discord.gg/f6zGkBCt42",
-          isActive: false,
-          external: true,
-        },
-      ],
-    },
-  ],
+function buildInitNavData() {
+  return {
+    navMain: [
+      {
+        title: "Dashboard",
+        items: [
+          {
+            title: "Overview",
+            url: "overview",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Session Timelines",
+            url: "session_timelines",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Journeys",
+            url: "journeys",
+            isActive: false,
+            external: false,
+          },
+        ],
+      },
+      {
+        title: "Issues",
+        items: [
+          {
+            title: "Crashes",
+            url: "crashes",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "ANRs",
+            url: "anrs",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Bug Reports",
+            url: "bug_reports",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Alerts",
+            url: "alerts",
+            isActive: false,
+            external: false,
+          },
+        ],
+      },
+      {
+        title: "Performance",
+        items: [
+          {
+            title: "Traces",
+            url: "traces",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Network",
+            url: "network",
+            isActive: false,
+            external: false,
+          },
+        ],
+      },
+      {
+        title: "Settings",
+        items: [
+          {
+            title: "Apps",
+            url: "apps",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Team",
+            url: "team",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Notifications",
+            url: "notif_prefs",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: isCloud() ? "Usage & Billing" : "Usage",
+            url: "usage",
+            isActive: false,
+            external: false,
+          },
+          {
+            title: "Support",
+            url: "https://discord.gg/f6zGkBCt42",
+            isActive: false,
+            external: true,
+          },
+        ],
+      },
+    ],
+  }
 }
 
 export default function DashboardLayout({
@@ -145,7 +147,7 @@ export default function DashboardLayout({
 }) {
   const registry = useMeasureStoreRegistry()
   const { data: teams, status: teamsStatus } = useTeamsQuery()
-  const [navData, setNavData] = useState(initNavData)
+  const [navData, setNavData] = useState(buildInitNavData)
 
   const pathName = usePathname()
   const router = useRouter()
@@ -225,7 +227,7 @@ export default function DashboardLayout({
           <SidebarGroup>
             <SidebarMenu className="gap-2">
               {teamsStatus === 'pending' &&
-                initNavData.navMain.map((section) => (
+                navData.navMain.map((section) => (
                   <SidebarMenuItem key={section.title}>
                     <Skeleton className="h-7 w-24 mb-2" />
                     <SidebarMenuSub className="ml-0 border-l-0 px-1.5 gap-3">
