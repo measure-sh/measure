@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**frontend**): Make session timelines first in features by @anupcowkur in #3501
 - (**frontend**): Add Google Tag Manager to website by @anupcowkur in #3500
 - (**frontend**): Use breadcrumbs in place of page headings by @anupcowkur in #3496
 - (**frontend**): Use skeletons instead of loading spinners by @anupcowkur in #3485
