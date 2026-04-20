@@ -66,6 +66,9 @@ If you rely on AndroidX Navigation library for navigation in your Android app, a
 tracked whenever a new destination is navigated to. This works using the instrumentation added by Measure Gradle Plugin
 and no code changes are needed to track these events.
 
+Supported `androidx.navigation:navigation-compose` versions: `2.4.0` to `2.9.7`. Apps using versions outside this
+range will not be auto-instrumented.
+
 ### iOS
 
 #### View Controller Lifecycle
