@@ -9,9 +9,6 @@ var cleanCmd = &cobra.Command{
 	Short: "remove temporary and cloned resources",
 	Long: `Cleans up any temporary files, cloned Google Drive folders, or
 incomplete downloads left by a previous sync run.`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return loadConfig()
-	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.Println("clean: not yet implemented")
 		return nil

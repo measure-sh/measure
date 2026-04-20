@@ -4,10 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"regexp"
 	"strconv"
 	"strings"
 
-	"symboloader/internal/symsync/pipeline"
+	"symboloader/symsync/pipeline"
+
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 )
 
 var ErrEmptyVersion = errors.New("version string is empty")
@@ -132,9 +138,6 @@ func versionLE(a, b string) bool {
 			return false
 		}
 	}
-	// All compared components are equal.
-	// If lengths differ, the shorter version is less.
-	// E.g., "18.6" < "18.6.1"
 	return len(pa) <= len(pb)
 }
 
@@ -153,7 +156,6 @@ func LatestVersions(catalog *pipeline.Catalog, n int) []string {
 		return []string{}
 	}
 
-	// Collect all unique versions from drive folder endpoints.
 	seen := make(map[string]bool)
 	var versions []string
 	for _, folder := range catalog.Folders {
@@ -165,10 +167,8 @@ func LatestVersions(catalog *pipeline.Catalog, n int) []string {
 		}
 	}
 
-	// Sort in descending order (newest first).
 	sortDescending(versions)
 
-	// Return top n.
 	if n > len(versions) {
 		n = len(versions)
 	}
@@ -186,57 +186,53 @@ func sortDescending(versions []string) {
 	}
 }
 
-// ResolveVersions takes version specifiers (validated strings) and resolves them
-// to a list of unique DriveFolder entries from the catalog that match those versions.
-// Handles: specific versions (26.0), wildcards (26.x), ranges (18.x-26.x), "last N versions".
-func ResolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pipeline.DriveFolder, err error) {
-	if catalog == nil || len(versions) == 0 {
-		return []pipeline.DriveFolder{}, nil
-	}
-
-	// Expand all version specifiers to concrete versions
+// resolveTargetVersionSet builds the concrete set of version strings that match
+// the given specs against the catalog. Used for both folder selection and
+// per-archive filtering.
+func resolveTargetVersionSet(catalog *pipeline.Catalog, versions []string) map[string]bool {
 	targetVersions := make(map[string]bool)
-
 	for _, spec := range versions {
 		spec = strings.TrimSpace(spec)
 		if isAll(spec) {
-			// "*" matches all versions in all folders
 			for _, folder := range catalog.Folders {
 				for _, v := range folder.Versions {
 					targetVersions[v] = true
 				}
 			}
 		} else if isLastNVersions(spec) {
-			// "last N versions" → extract N and get latest versions
 			parts := strings.SplitN(spec, " ", 3)
 			n, _ := strconv.Atoi(parts[1])
-			latest := LatestVersions(catalog, n)
-			for _, v := range latest {
+			for _, v := range LatestVersions(catalog, n) {
 				targetVersions[v] = true
 			}
 		} else if isRange(spec) {
-			// Range like "18.x-26.x" → find all versions that fall within it
 			idx := strings.Index(spec, "-")
-			start := spec[:idx]
-			end := spec[idx+1:]
-			addRangeVersions(catalog, start, end, targetVersions)
+			addRangeVersions(catalog, spec[:idx], spec[idx+1:], targetVersions)
 		} else {
-			// Specific version or wildcard pattern like "26.x"
 			addMatchingVersions(catalog, spec, targetVersions)
 		}
 	}
+	return targetVersions
+}
 
-	// Build result: find folders that contain any of the target versions
+// ResolveVersions takes version specifiers (validated strings) and resolves them
+// to a list of unique DriveFolder entries from the catalog that match those versions.
+func ResolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pipeline.DriveFolder, err error) {
+	if catalog == nil || len(versions) == 0 {
+		return []pipeline.DriveFolder{}, nil
+	}
+
+	targetVersions := resolveTargetVersionSet(catalog, versions)
+
 	seen := make(map[string]bool)
 	for _, folder := range catalog.Folders {
-		folderKey := folder.URL // Use URL as unique identifier
-		if seen[folderKey] {
+		if seen[folder.URL] {
 			continue
 		}
 		for _, v := range folder.Versions {
 			if targetVersions[v] {
 				folders = append(folders, folder)
-				seen[folderKey] = true
+				seen[folder.URL] = true
 				break
 			}
 		}
@@ -245,8 +241,6 @@ func ResolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pi
 	return
 }
 
-// addMatchingVersions adds all versions from catalog that match spec to the target set.
-// Handles: specific (26.0) or wildcard (26.x).
 func addMatchingVersions(catalog *pipeline.Catalog, spec string, target map[string]bool) {
 	for _, folder := range catalog.Folders {
 		for _, v := range folder.Versions {
@@ -257,8 +251,6 @@ func addMatchingVersions(catalog *pipeline.Catalog, spec string, target map[stri
 	}
 }
 
-// versionMatches reports whether version v matches pattern spec.
-// Pattern can be: "26.0" (exact), "26.x" (any 26.minor), "26.0.x" (any 26.0.patch).
 func versionMatches(v, spec string) bool {
 	vparts := strings.Split(v, ".")
 	sparts := strings.Split(spec, ".")
@@ -269,7 +261,7 @@ func versionMatches(v, spec string) bool {
 
 	for i, sp := range sparts {
 		if sp == "x" {
-			return true // Rest matches wildcard
+			return true
 		}
 		if vparts[i] != sp {
 			return false
@@ -278,12 +270,7 @@ func versionMatches(v, spec string) bool {
 	return true
 }
 
-// addRangeVersions adds all versions from catalog that fall within [start, end] to target.
-// Handles wildcards in endpoints: "18.x" means [18.0, 18.any].
 func addRangeVersions(catalog *pipeline.Catalog, start, end string, target map[string]bool) {
-	// Normalize range endpoints to remove wildcards for comparison.
-	// "18.x" → compare as "18.0" for lower bound
-	// "26.x" → compare as "26.z" (max patch) for upper bound
 	startBound := normalizeLowerBound(start)
 	endBound := normalizeUpperBound(end)
 
@@ -296,9 +283,6 @@ func addRangeVersions(catalog *pipeline.Catalog, start, end string, target map[s
 	}
 }
 
-// normalizeLowerBound converts a range start (possibly with wildcards) to a concrete lower bound.
-// "18.x" → "18.0" (lowest version in that series)
-// "18.5" → "18.5"
 func normalizeLowerBound(s string) string {
 	parts := strings.Split(s, ".")
 	for i, p := range parts {
@@ -309,9 +293,6 @@ func normalizeLowerBound(s string) string {
 	return strings.Join(parts, ".")
 }
 
-// normalizeUpperBound converts a range end (possibly with wildcards) to a concrete upper bound.
-// "26.x" → "26.9999" (highest version in that series)
-// "26.4.1" → "26.4.1"
 func normalizeUpperBound(s string) string {
 	parts := strings.Split(s, ".")
 	for i, p := range parts {
@@ -322,36 +303,120 @@ func normalizeUpperBound(s string) string {
 	return strings.Join(parts, ".")
 }
 
-// SpotterImpl implements the pipeline.Spotter interface using version validation
-// and resolution logic.
-type SpotterImpl struct{}
+var reFolderID = regexp.MustCompile(`/folders/([a-zA-Z0-9_-]+)`)
 
-// Spot validates user-supplied version targets against the catalog and
-// resolves them to concrete archive folders.
+func extractFolderID(url string) (string, error) {
+	m := reFolderID.FindStringSubmatch(url)
+	if len(m) < 2 {
+		return "", fmt.Errorf("cannot extract folder ID from URL: %s", url)
+	}
+	return m[1], nil
+}
+
+// SpotterImpl implements the pipeline.Spotter interface using version validation,
+// resolution logic, and Google Drive file enumeration.
+type SpotterImpl struct {
+	client *drive.Service
+}
+
+// NewSpotterImpl creates a SpotterImpl with a Drive client for reading source folders.
+// Uses apiKey when provided (sufficient for public folders), otherwise falls back to creds.
+func NewSpotterImpl(creds *google.Credentials, apiKey string) (*SpotterImpl, error) {
+	var svc *drive.Service
+	var err error
+	if apiKey != "" {
+		svc, err = drive.NewService(context.Background(), option.WithAPIKey(apiKey))
+	} else {
+		svc, err = drive.NewService(context.Background(), option.WithCredentials(creds))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("drive service: %w", err)
+	}
+	return &SpotterImpl{client: svc}, nil
+}
+
+// Spot validates user-supplied version specs, resolves them to Drive folders,
+// then enumerates the individual .7z archives within each folder to produce
+// one Target per archive file, filtered to only the requested versions.
 func (s *SpotterImpl) Spot(ctx context.Context, catalog *pipeline.Catalog, versions []string) ([]pipeline.Target, error) {
-	// Validate versions
 	if err := ValidateVersions(versions); err != nil {
 		return nil, err
 	}
 
-	// Resolve versions to folders
 	folders, err := ResolveVersions(catalog, versions)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert folders to targets
+	targetVersions := resolveTargetVersionSet(catalog, versions)
+
 	var targets []pipeline.Target
 	for _, folder := range folders {
-		// For now, create a single target per folder representing the folder itself
-		// In a full implementation, this would enumerate files within the folder
-		targets = append(targets, pipeline.Target{
-			Symbol: pipeline.Symbol{
-				OSVersion: strings.Join(folder.Versions, "-"),
-			},
-			SourceFolder: folder,
-		})
+		folderID, err := extractFolderID(folder.URL)
+		if err != nil {
+			return nil, err
+		}
+		files, err := s.listArchives(ctx, folderID, folder, targetVersions)
+		if err != nil {
+			return nil, fmt.Errorf("list archives in folder %s: %w", folderID, err)
+		}
+		targets = append(targets, files...)
 	}
 
+	slog.Info("spotter: resolved targets",
+		"version_specs", versions,
+		"folders", len(folders),
+		"targets", len(targets),
+	)
+
+	return targets, nil
+}
+
+// listArchives lists .7z files in a Drive folder, filtered to the given version set.
+func (s *SpotterImpl) listArchives(ctx context.Context, folderID string, folder pipeline.DriveFolder, targetVersions map[string]bool) ([]pipeline.Target, error) {
+	var targets []pipeline.Target
+	pageToken := ""
+	for {
+		query := fmt.Sprintf("'%s' in parents and trashed=false", folderID)
+		result, err := s.client.Files.List().Context(ctx).
+			Q(query).
+			Spaces("drive").
+			Fields("files(id, name, size), nextPageToken").
+			PageSize(200).
+			PageToken(pageToken).
+			Do()
+		if err != nil {
+			return nil, fmt.Errorf("list files: %w", err)
+		}
+
+		for _, f := range result.Files {
+			if !strings.HasSuffix(f.Name, ".7z") {
+				continue
+			}
+			info, ok := pipeline.ParseArchiveFilename(f.Name)
+			if !ok {
+				slog.Warn("spotter: skipping unparseable filename", "name", f.Name)
+				continue
+			}
+			if !targetVersions[info.Version] {
+				continue
+			}
+			targets = append(targets, pipeline.Target{
+				Symbol: pipeline.Symbol{
+					OSVersion: fmt.Sprintf("%s (%s)", info.Version, info.Build),
+					Arch:      []string{info.Arch},
+				},
+				FileID:       f.Id,
+				FileName:     f.Name,
+				Size:         f.Size,
+				SourceFolder: folder,
+			})
+		}
+
+		if result.NextPageToken == "" {
+			break
+		}
+		pageToken = result.NextPageToken
+	}
 	return targets, nil
 }

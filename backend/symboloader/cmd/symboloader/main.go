@@ -1,6 +1,6 @@
 package main
 
-import "symboloader/internal/symsync/cmd"
+import "symboloader/symsync/cmd"
 
 func main() {
 	cmd.Execute()

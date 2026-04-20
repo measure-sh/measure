@@ -9,11 +9,14 @@ import (
 	"regexp"
 	"strings"
 
-	"symboloader/internal/symsync/pipeline"
+	"symboloader/symsync/pipeline"
 )
 
 var ErrFetchReadme = errors.New("failed to fetch readme")
 var ErrUnexpectedStatus = errors.New("unexpected http status")
+
+// DefaultReadmeURL is the canonical upstream README that lists all symbol archives.
+const DefaultReadmeURL = "https://raw.githubusercontent.com/CXTretar/iOS-System-Symbols-Supplement/main/README.md"
 
 var driveLinkRe = regexp.MustCompile(`\[iOS system symbol files\(([^)]+)\)\]\((https://drive\.google\.com/drive/folders/[^)]+)\)`)
 

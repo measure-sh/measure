@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"symboloader/internal/symsync/pipeline"
+	"symboloader/symsync/pipeline"
 )
 
 func TestValidateVersionsValid(t *testing.T) {
@@ -466,22 +466,14 @@ func TestResolveVersionsMixed(t *testing.T) {
 	})
 }
 
-func TestSpotterImplValidatesVersions(t *testing.T) {
-	spotter := &SpotterImpl{}
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{URL: "https://drive.google.com/drive/folders/abc123", Versions: []string{"26.0"}},
-		},
-	}
-
-	_, err := spotter.Spot(nil, catalog, []string{"invalid..version"})
+func TestValidateVersionsRejectsInvalid(t *testing.T) {
+	err := ValidateVersions([]string{"invalid..version"})
 	if err == nil {
 		t.Error("expected validation error for invalid version")
 	}
 }
 
-func TestSpotterImplResolvesVersions(t *testing.T) {
-	spotter := &SpotterImpl{}
+func TestResolveVersionsMatchesFolders(t *testing.T) {
 	catalog := &pipeline.Catalog{
 		Folders: []pipeline.DriveFolder{
 			{URL: "https://drive.google.com/drive/folders/folder1", Versions: []string{"26.0"}},
@@ -489,24 +481,24 @@ func TestSpotterImplResolvesVersions(t *testing.T) {
 		},
 	}
 
-	targets, err := spotter.Spot(nil, catalog, []string{"26.0", "18.x"})
+	folders, err := ResolveVersions(catalog, []string{"26.0", "18.x"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(targets) != 2 {
-		t.Errorf("expected 2 targets, got %d", len(targets))
+	if len(folders) != 2 {
+		t.Errorf("expected 2 folders, got %d", len(folders))
 	}
 
 	urls := map[string]bool{}
-	for _, target := range targets {
-		urls[target.SourceFolder.URL] = true
+	for _, f := range folders {
+		urls[f.URL] = true
 	}
 
 	if !urls["https://drive.google.com/drive/folders/folder1"] {
-		t.Error("target should include folder1 for version 26.0")
+		t.Error("expected folder1 for version 26.0")
 	}
 	if !urls["https://drive.google.com/drive/folders/folder2"] {
-		t.Error("target should include folder2 for versions 18.x")
+		t.Error("expected folder2 for versions 18.x")
 	}
 }

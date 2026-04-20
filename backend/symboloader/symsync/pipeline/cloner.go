@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -39,90 +38,51 @@ type Cloner interface {
 // It uses API key for reading public source folders and service account
 // credentials for writing to the destination folder.
 type GoogleDriveCloner struct {
-	sourceClient       *drive.Service // for reading public source folders (API key)
-	destClient         *drive.Service // for writing to destination (service account)
-	destinationName    string
-	destinationFolderID string          // optional: user-provided shared folder ID
-	destinationID      string          // cached after creation/lookup
-	destinationMutex   sync.Mutex
+	sourceClient        *drive.Service // for reading public source folders (API key)
+	destClient          *drive.Service // for writing to destination (service account)
+	destinationName     string
+	destinationFolderID string // optional: user-provided shared folder ID
+	destinationID       string // cached after creation/lookup
+	destinationMutex    sync.Mutex
+	onProgress          func(folderName string, current, total int)
+}
+
+// SetProgressCallback registers a function called before each folder is cloned,
+// with the folder name and (1-based) current/total counts.
+func (gc *GoogleDriveCloner) SetProgressCallback(fn func(folderName string, current, total int)) {
+	gc.onProgress = fn
 }
 
 // NewGoogleDriveCloner creates a new Cloner with:
-// - API key for reading public source folders (read-only)
-// - Service account credentials for writing to destination folder
+// - destCreds: service account credentials for writing to destination (from config)
+// - apiKey: optional API key for reading public source folders (read-only)
 // - Optional: destinationFolderID for a user-shared folder (takes priority over destinationName)
-func NewGoogleDriveCloner(destinationName, destinationFolderID string) (*GoogleDriveCloner, error) {
-	// API key for reading public source folders
-	apiKey, err := readAPIKey()
+func NewGoogleDriveCloner(destCreds *google.Credentials, apiKey, destinationName, destinationFolderID string) (*GoogleDriveCloner, error) {
+	ctx := context.Background()
+
+	destClient, err := drive.NewService(ctx, option.WithCredentials(destCreds))
 	if err != nil {
-		return nil, fmt.Errorf("read api key: %w", err)
+		return nil, fmt.Errorf("destination drive service: %w", err)
 	}
 
-	var sourceClient *drive.Service
+	// Use API key for reading public source folders when available.
+	// Fall back to the service account client — it can read public folders too.
+	sourceClient := destClient
 	if apiKey != "" {
-		sourceClient, err = drive.NewService(context.Background(), option.WithAPIKey(apiKey))
+		sourceClient, err = drive.NewService(ctx, option.WithAPIKey(apiKey))
 		if err != nil {
 			return nil, fmt.Errorf("source drive service (api key): %w", err)
 		}
 	}
 
-	// Service account credentials for writing to destination
-	// Read securely from GOOGLE_APPLICATION_CREDENTIALS env var
-	destClient, err := loadServiceAccountClient()
-	if err != nil {
-		return nil, fmt.Errorf("destination drive service: %w", err)
-	}
-
 	return &GoogleDriveCloner{
-		sourceClient:       sourceClient,
-		destClient:         destClient,
-		destinationName:    destinationName,
+		sourceClient:        sourceClient,
+		destClient:          destClient,
+		destinationName:     destinationName,
 		destinationFolderID: destinationFolderID,
 	}, nil
 }
 
-// loadServiceAccountClient creates a Drive API client using service account credentials
-// from GOOGLE_APPLICATION_CREDENTIALS environment variable (secure approach).
-// Uses FindDefaultCredentials which automatically discovers credentials from the environment.
-func loadServiceAccountClient() (*drive.Service, error) {
-	ctx := context.Background()
-
-	// Use Application Default Credentials (ADC)
-	// This respects GOOGLE_APPLICATION_CREDENTIALS env var and validates credentials safely
-	creds, err := google.FindDefaultCredentials(ctx, drive.DriveScope)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find default credentials (ensure GOOGLE_APPLICATION_CREDENTIALS is set): %w", err)
-	}
-
-	// Create Drive service with the found credentials
-	service, err := drive.NewService(ctx, option.WithCredentials(creds))
-	if err != nil {
-		return nil, fmt.Errorf("create drive service: %w", err)
-	}
-
-	return service, nil
-}
-
-// readAPIKey reads the Drive API key from environment variable or file.
-// Priority: GOOGLE_DRIVE_API_KEY (env var) > DRIVE_API_KEY_FILE (file path)
-func readAPIKey() (string, error) {
-	// First, try environment variable (highest priority)
-	if apiKey := strings.TrimSpace(os.Getenv("GOOGLE_DRIVE_API_KEY")); apiKey != "" {
-		return apiKey, nil
-	}
-
-	// Fall back to reading from file (for Docker secrets)
-	if keyFile := os.Getenv("DRIVE_API_KEY_FILE"); keyFile != "" {
-		data, err := os.ReadFile(keyFile)
-		if err != nil {
-			return "", fmt.Errorf("read DRIVE_API_KEY_FILE: %w", err)
-		}
-		return strings.TrimSpace(string(data)), nil
-	}
-
-	// Neither set
-	return "", nil
-}
 
 // Clone clones the source folders to the destination folder.
 func (gc *GoogleDriveCloner) Clone(ctx context.Context, targets []Target) ([]ClonedFolder, error) {
@@ -155,7 +115,13 @@ func (gc *GoogleDriveCloner) Clone(ctx context.Context, targets []Target) ([]Clo
 
 	// Clone each unique source folder
 	var clonedFolders []ClonedFolder
+	total := len(sourceByID)
+	current := 0
 	for _, srcInfo := range sourceByID {
+		current++
+		if gc.onProgress != nil {
+			gc.onProgress(strings.Join(srcInfo.targets[0].SourceFolder.Versions, " – "), current, total)
+		}
 		clonedID, err := gc.cloneFolder(ctx, srcInfo.originalID, destID)
 		if err != nil {
 			return nil, fmt.Errorf("%w for folder %s: %w", ErrCloningFolder, srcInfo.originalID, err)
@@ -259,9 +225,13 @@ func (gc *GoogleDriveCloner) cloneFolder(ctx context.Context, srcFolderID, destP
 		return "", fmt.Errorf("check for existing folder: %w", err)
 	}
 
-	// If folder already exists, reuse it (idempotent)
+	// If folder already exists, still copy contents to merge from multiple sources
 	if len(existing.Files) > 0 {
-		return existing.Files[0].Id, nil
+		existingID := existing.Files[0].Id
+		if err := gc.copyFolderContents(ctx, srcFolderID, existingID); err != nil {
+			return "", fmt.Errorf("copy contents: %w", err)
+		}
+		return existingID, nil
 	}
 
 	// Create cloned folder in destination (write with service account)
@@ -292,7 +262,7 @@ func (gc *GoogleDriveCloner) copyFolderContents(ctx context.Context, srcFolderID
 		result, err := gc.sourceClient.Files.List().Context(ctx).
 			Q(query).
 			Spaces("drive").
-			Fields("files(id, name, mimeType, size), nextPageToken").
+			Fields("files(id, name, mimeType, md5Checksum), nextPageToken").
 			PageSize(100).
 			PageToken(pageToken).
 			Do()
@@ -309,37 +279,44 @@ func (gc *GoogleDriveCloner) copyFolderContents(ctx context.Context, srcFolderID
 			isFolder := file.MimeType == "application/vnd.google-apps.folder"
 
 			if isFolder {
-				// Create subfolder and recurse
-				subMeta := &drive.File{
-					Name:     file.Name,
-					MimeType: "application/vnd.google-apps.folder",
-					Parents:  []string{destFolderID},
-				}
-				subFolder, err := gc.destClient.Files.Create(subMeta).Context(ctx).Do()
+				// Find or create subfolder in destination (idempotent merge)
+				subFolderID, err := gc.ensureSubfolder(ctx, file.Name, destFolderID)
 				if err != nil {
-					return fmt.Errorf("create subfolder %s: %w", file.Name, err)
+					return fmt.Errorf("ensure subfolder %s: %w", file.Name, err)
 				}
-				if err := gc.copyFolderContents(ctx, file.Id, subFolder.Id); err != nil {
+				if err := gc.copyFolderContents(ctx, file.Id, subFolderID); err != nil {
 					return fmt.Errorf("copy subfolder contents: %w", err)
 				}
 			} else {
-				// Determine the final name for the destination file
 				destFileName := file.Name
 
-				// Check if a file with the same name already exists
 				existingFile, err := gc.findExistingFile(ctx, file.Name, destFolderID)
 				if err != nil {
 					return fmt.Errorf("check for existing file %s: %w", file.Name, err)
 				}
 
-				// If shortcut exists, check if it points to the same source file (idempotency)
-				if existingFile != nil && existingFile.ShortcutDetails != nil {
-					if existingFile.ShortcutDetails.TargetId == file.Id {
-						// Shortcut already points to this exact source file, skip
+				if existingFile != nil {
+					if existingFile.ShortcutDetails != nil && existingFile.ShortcutDetails.TargetId == file.Id {
+						// Exact same Drive file already stored, skip
 						continue
 					}
-					// Different source file with same name, append suffix
-					destFileName = gc.appendSuffix(file.Name, destFolderID, ctx)
+					// Different Drive ID — compare checksums to detect the same file stored
+					// redundantly across multiple source folders (e.g. two "13.x" folders
+					// both containing "13.4_17E255(arm64).7z" with identical bytes).
+					if file.Md5Checksum != "" && existingFile.ShortcutDetails != nil {
+						targetFile, err := gc.sourceClient.Files.Get(existingFile.ShortcutDetails.TargetId).
+							Context(ctx).Fields("md5Checksum").Do()
+						if err == nil && targetFile.Md5Checksum == file.Md5Checksum {
+							// Same content already present, skip
+							continue
+						}
+					}
+					// Genuinely different file with the same name; find or confirm a suffix slot
+					var alreadyExists bool
+					destFileName, alreadyExists = gc.appendSuffix(ctx, file.Name, file.Id, file.Md5Checksum, destFolderID)
+					if alreadyExists {
+						continue
+					}
 				}
 
 				// Copy file by creating a shortcut (efficient) and preserves reference to original
@@ -367,6 +344,34 @@ func (gc *GoogleDriveCloner) copyFolderContents(ctx context.Context, srcFolderID
 	return nil
 }
 
+// ensureSubfolder finds an existing subfolder by name or creates it if absent.
+func (gc *GoogleDriveCloner) ensureSubfolder(ctx context.Context, name, parentID string) (string, error) {
+	query := fmt.Sprintf("name='%s' and parents='%s' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+		escapeDriveQuery(name), parentID)
+	result, err := gc.destClient.Files.List().Context(ctx).
+		Q(query).
+		Spaces("drive").
+		Fields("files(id)").
+		PageSize(1).
+		Do()
+	if err != nil {
+		return "", fmt.Errorf("check for existing subfolder: %w", err)
+	}
+	if len(result.Files) > 0 {
+		return result.Files[0].Id, nil
+	}
+
+	created, err := gc.destClient.Files.Create(&drive.File{
+		Name:     name,
+		MimeType: "application/vnd.google-apps.folder",
+		Parents:  []string{parentID},
+	}).Context(ctx).Do()
+	if err != nil {
+		return "", fmt.Errorf("create subfolder: %w", err)
+	}
+	return created.Id, nil
+}
+
 // findExistingFile looks for a file with the given name in the destination folder.
 // Returns the file if found (nil if not found).
 func (gc *GoogleDriveCloner) findExistingFile(ctx context.Context, fileName string, parentID string) (*drive.File, error) {
@@ -387,10 +392,15 @@ func (gc *GoogleDriveCloner) findExistingFile(ctx context.Context, fileName stri
 	return nil, nil
 }
 
-// appendSuffix generates a new filename with a numeric suffix before the extension.
-// Example: "file.txt" → "file-1.txt", "file-2.txt", etc.
-func (gc *GoogleDriveCloner) appendSuffix(fileName string, parentID string, ctx context.Context) string {
-	// Split filename and extension
+// appendSuffix finds an available suffixed filename for a name collision.
+// It walks "file-1.txt", "file-2.txt", … until it either:
+//   - finds a slot that doesn't exist yet             → returns (name, false)
+//   - finds a slot already pointing to targetID       → returns (name, true)
+//   - finds a slot whose target has the same checksum → returns (name, true)
+//
+// Returns (name, true) when the file is already stored under a suffix name
+// (by ID or content); the caller should skip creating a duplicate.
+func (gc *GoogleDriveCloner) appendSuffix(ctx context.Context, fileName, targetID, targetChecksum, parentID string) (name string, alreadyExists bool) {
 	ext := ""
 	baseName := fileName
 	if lastDot := strings.LastIndex(fileName, "."); lastDot > 0 {
@@ -398,25 +408,30 @@ func (gc *GoogleDriveCloner) appendSuffix(fileName string, parentID string, ctx 
 		ext = fileName[lastDot:]
 	}
 
-	// Find the next available suffix number
 	for n := 1; n <= 1000; n++ {
 		candidateName := fmt.Sprintf("%s-%d%s", baseName, n, ext)
-		query := fmt.Sprintf("name='%s' and parents='%s' and trashed=false",
-			escapeDriveQuery(candidateName), parentID)
-		result, err := gc.destClient.Files.List().Context(ctx).
-			Q(query).
-			Spaces("drive").
-			Fields("files(id)").
-			PageSize(1).
-			Do()
-		if err != nil || len(result.Files) == 0 {
-			// File doesn't exist, use this name
-			return candidateName
+		existing, err := gc.findExistingFile(ctx, candidateName, parentID)
+		if err != nil || existing == nil {
+			return candidateName, false
+		}
+		if existing.ShortcutDetails == nil {
+			continue
+		}
+		if existing.ShortcutDetails.TargetId == targetID {
+			return candidateName, true
+		}
+		// Also match by checksum: same content stored under a different Drive ID
+		if targetChecksum != "" {
+			slotFile, err := gc.sourceClient.Files.Get(existing.ShortcutDetails.TargetId).
+				Context(ctx).Fields("md5Checksum").Do()
+			if err == nil && slotFile.Md5Checksum == targetChecksum {
+				return candidateName, true
+			}
 		}
 	}
 
 	// Fallback (shouldn't reach here in practice)
-	return fmt.Sprintf("%s-%d%s", baseName, 999, ext)
+	return fmt.Sprintf("%s-%d%s", baseName, 999, ext), false
 }
 
 // extractFolderID extracts the folder ID from a Google Drive folder URL.
