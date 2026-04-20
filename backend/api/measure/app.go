@@ -396,7 +396,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		From("groups as g").
 		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.attribute.app_version = g.app_version_scalar and c.attribute.app_build = g.app_build_scalar").
 		Where("c.event_count > 0").
-		OrderBy("event_count desc")
+		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
@@ -1191,7 +1191,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		From("groups as g").
 		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.attribute.app_version = g.app_version_scalar and c.attribute.app_build = g.app_build_scalar").
 		Where("c.event_count > 0").
-		OrderBy("event_count desc")
+		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
