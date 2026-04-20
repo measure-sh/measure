@@ -1,0 +1,3 @@
+language = Objective-C
+modules = Measure
+package = sh.measure.ios.bindings

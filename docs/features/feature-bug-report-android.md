@@ -48,7 +48,7 @@ Measure.launchBugReportActivity(activity, takeScreenshot = false)
 
 ### Theming
 
-You can apply a custom theme by overriding any of the values in the theme: [themes.xml](https://github.com/measure-sh/measure/tree/main/android/measure/src/main/res/values/themes.xml).
+You can apply a custom theme by overriding any of the values in the theme: [themes.xml](https://github.com/measure-sh/measure/tree/main/android/measure-android/measure/src/main/res/values/themes.xml).
 
 For more details on customizing themes, refer to the Android documentation on [theming](https://developer.android.com/develop/ui/views/theming/themes#CustomizeTheme).
 

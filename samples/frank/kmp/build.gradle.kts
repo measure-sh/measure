@@ -30,9 +30,16 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
+            implementation(libs.ktor.client.core)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            implementation("sh.measure:measure-kmp")
+            implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            implementation("sh.measure:measure-kmp")
+            implementation(libs.ktor.client.darwin)
         }
     }
 }

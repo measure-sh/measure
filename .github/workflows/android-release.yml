@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-android
     permissions:
       contents: write
       actions: write
@@ -51,7 +51,7 @@ jobs:
         uses: orhun/git-cliff-action@v4
         id: release-notes
         with:
-          config: android/cliff.toml
+          config: android/measure-android/cliff.toml
           args: --latest --strip header
         env:
           GITHUB_REPO: ${{ github.repository }}

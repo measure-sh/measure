@@ -4,7 +4,9 @@ import Shared
 class CmpScreenViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        let cmpVC = MainViewControllerKt.CmpViewController()
+        let cmpVC = MainViewControllerKt.CmpViewController(onClose: { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        })
         addChild(cmpVC)
         cmpVC.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(cmpVC.view)
@@ -15,5 +17,15 @@ class CmpScreenViewController: UIViewController {
             cmpVC.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor)
         ])
         cmpVC.didMove(toParent: self)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 }

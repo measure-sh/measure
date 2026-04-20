@@ -11,6 +11,7 @@ androidx-navigation-compose = "2.9.0"
 material = "1.12.0"
 viewpager2 = "1.1.0"
 okhttp = "4.12.0"
+ktor = "3.0.3"
 firebase-bom = "34.11.0"
 google-services = "4.4.4"
 crashlytics-gradle = "3.0.6"
@@ -26,6 +27,9 @@ material = { group = "com.google.android.material", name = "material", version.r
 viewpager2 = { group = "androidx.viewpager2", name = "viewpager2", version.ref = "viewpager2" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3" }

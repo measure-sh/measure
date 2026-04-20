@@ -41,6 +41,11 @@ class MainApplication : Application(), ReactApplication {
                 enableDiagnosticMode = true,
             )
         )
+        val savedUrl = CredentialOverrides.getSavedApiUrl(this)
+        val savedKey = CredentialOverrides.getSavedApiKey(this)
+        if (savedUrl != null && savedKey != null) {
+            MeasureConfigurator.swapCredentials(savedUrl, savedKey)
+        }
         SoLoader.init(this, OpenSourceMergedSoMapping)
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
             load()

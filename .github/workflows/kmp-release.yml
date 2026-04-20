@@ -1,0 +1,132 @@
+name: Release KMP SDK
+
+on:
+  push:
+    tags:
+      - 'kmp-v*'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+  SPM_REPO: measure-sh/measure-kmp-spm
+  SPM_CHECKOUT_DIR: kmp/measure-kmp/build/measure-kmp-spm
+
+jobs:
+  publish-kmp:
+    name: Publish KMP SDK
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      actions: write
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Clone SPM distribution repo
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${SPM_REPO}.git ${SPM_CHECKOUT_DIR}
+          git -C ${SPM_CHECKOUT_DIR} config user.name "github-actions[bot]"
+          git -C ${SPM_CHECKOUT_DIR} config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#kmp-v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Clean Gradle build outputs
+        working-directory: kmp/measure-kmp
+        run: ./gradlew clean --no-daemon --no-configuration-cache --stacktrace
+
+      - name: Build Measure iOS xcframework
+        run: ./kmp/measure-kmp/Scripts/build-xcframework.sh
+
+      - name: Publish KMP artifacts to Maven Central
+        working-directory: kmp/measure-kmp
+        run: ./gradlew publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
+
+      - name: Publish iOS xcframework via KMMBridge
+        working-directory: kmp/measure-kmp
+        run: ./gradlew kmmBridgePublish --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ENABLE_PUBLISHING: 'true'
+          GITHUB_PUBLISH_TOKEN: ${{ secrets.SDK_RELEASE }}
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit and tag SPM Package.swift
+        working-directory: ${{ env.SPM_CHECKOUT_DIR }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git add Package.swift
+          if git diff --cached --quiet; then
+            echo "⚠️ No Package.swift changes to commit"
+            exit 1
+          fi
+          git commit -m "Release $VERSION"
+          git tag "$VERSION"
+          git push origin HEAD:main
+          git push origin "$VERSION"
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: kmp/measure-kmp/cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "${{ github.ref_name }}" \
+            --draft \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.release-notes.outputs.content }}" \
+            --verify-tag
+
+      - name: Extract release metadata from PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          BODY=$(gh pr list --state merged --head "$TAG" --json body --jq '.[0].body' || true)
+          NEXT_VERSION=$(echo "$BODY" | grep -oP '(?<=NEXT_VERSION=)\S+' || true)
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Trigger prepare-next workflow
+        if: steps.meta.outputs.next_version != ''
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          gh workflow run "Prepare Next KMP Version" \
+            -f version="${{ steps.meta.outputs.next_version }}"
