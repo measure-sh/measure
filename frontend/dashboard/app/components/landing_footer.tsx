@@ -56,15 +56,6 @@ export default function LandingFooter() {
         <div className='flex flex-col items-center md:items-start gap-4'>
           <p className="font-display text-2xl md:px-2">Product</p>
           <Link
-            href="/product/app-health"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            App Health
-          </Link>
-          <Link
             href="/product/session-timelines"
             className={cn(
               buttonVariants({ variant: "ghost" }),
@@ -72,6 +63,15 @@ export default function LandingFooter() {
             )}
           >
             Session Timelines
+          </Link>
+          <Link
+            href="/product/app-health"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            App Health
           </Link>
           <Link
             href="/product/crashes-and-anrs"

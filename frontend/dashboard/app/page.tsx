@@ -96,12 +96,12 @@ export default function Home() {
 
   const features = [
     {
-      title: "App Health",
-      description: "Monitor important metrics to stay on top of app health 📈. From app adoption to crash rates, launch times to app size, quickly see the most important metrics to make sure you're moving in the right direction."
-    },
-    {
       title: "Session Timelines",
       description: "Debug issues easily with full session timelines 🎥. Get rich, complete context with automatic tracking for clicks, navigations, logs, http calls, memory usage, cpu usage, stacktraces and more."
+    },
+    {
+      title: "App Health",
+      description: "Monitor important metrics to stay on top of app health 📈. From app adoption to crash rates, launch times to app size, quickly see the most important metrics to make sure you're moving in the right direction."
     },
     {
       title: "Crashes and ANRs",
@@ -299,8 +299,8 @@ export default function Home() {
            */}
           <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[500px] md:h-[1000px] mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
             {[
-              <Overview demo={true} hideDemoTitle={false} key={`demo-overview`} />,
               <SessionTimeline demo={true} hideDemoTitle={false} key={`demo-session-timeline`} />,
+              <Overview demo={true} hideDemoTitle={false} key={`demo-overview`} />,
               <ExceptionsDetails demo={true} hideDemoTitle={false} key={`demo-exceptions`} />,
               <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
               <BugReport demo={true} hideDemoTitle={false} key={`demo-bugreport`} />,
