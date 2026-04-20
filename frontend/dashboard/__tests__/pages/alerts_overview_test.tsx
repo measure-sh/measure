@@ -106,9 +106,8 @@ describe('AlertsOverview Component', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Alerts heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<AlertsOverview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Alerts')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

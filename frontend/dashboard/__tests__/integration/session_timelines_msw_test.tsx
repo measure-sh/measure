@@ -128,9 +128,8 @@ describe('Session Timelines Overview (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders heading, table headers, chart, and session rows', async () => {
+        it('renders table headers, chart, and session rows', async () => {
             await renderAndWaitForData()
-            expect(screen.getByText('Session Timelines')).toBeTruthy()
             expect(screen.getByText('Session Timeline')).toBeTruthy()
             expect(screen.getByText('Start Time')).toBeTruthy()
             expect(screen.getByText('Duration')).toBeTruthy()
@@ -671,13 +670,6 @@ describe('Session Timelines Overview (MSW integration)', () => {
 // ====================================================================
 describe('Session Timeline Detail (MSW integration)', () => {
     describe('page load', () => {
-        it('renders heading with session ID', async () => {
-            renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
-            await waitFor(() => {
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
-            }, { timeout: 5000 })
-        })
-
         it('fetches session data for the correct appId and sessionId', async () => {
             const detailRequests: string[] = []
             server.use(
@@ -723,11 +715,16 @@ describe('Session Timeline Detail (MSW integration)', () => {
         })
 
         it('renders session timeline component on success', async () => {
+            server.use(
+                http.get('*/api/apps/:appId/sessions/:sessionId', () => {
+                    return HttpResponse.json(makeSessionTimelineDetailFixture())
+                }),
+            )
             renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
 
             await waitFor(() => {
-                // Session data loaded successfully - the session ID heading should render
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
+                // Session data loaded successfully - user ID pill renders
+                expect(screen.getByText(/User ID:/)).toBeTruthy()
                 // Error message should NOT be present
                 expect(screen.queryByText(/Error fetching session timeline/)).toBeNull()
             }, { timeout: 5000 })
@@ -744,7 +741,7 @@ describe('Session Timeline Detail (MSW integration)', () => {
                 <SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />,
             )
             await waitFor(() => {
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
+                expect(screen.getByText(/User ID:/)).toBeTruthy()
             }, { timeout: 5000 })
 
             unmount()
@@ -752,7 +749,7 @@ describe('Session Timeline Detail (MSW integration)', () => {
                 <SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />,
             )
             // Cached data shows immediately — no loading spinner
-            expect(screen.getByText('Session: sess-001')).toBeTruthy()
+            expect(screen.getByText(/User ID:/)).toBeTruthy()
         })
 
         it('fetches new data for a different sessionId', async () => {
@@ -808,7 +805,7 @@ describe('Session Timeline Detail (MSW integration)', () => {
             renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
             await waitFor(() => {
                 // Data loaded successfully
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
+                expect(screen.getByText(/User ID:/)).toBeTruthy()
                 expect(screen.queryByText(/Error fetching session timeline/)).toBeNull()
             }, { timeout: 5000 })
         })
@@ -827,9 +824,14 @@ describe('Session Timeline Detail (MSW integration)', () => {
         })
 
         it('clicking an event cell selects it and shows its details in the right panel', async () => {
+            server.use(
+                http.get('*/api/apps/:appId/sessions/:sessionId', () => {
+                    return HttpResponse.json(makeSessionTimelineDetailFixture())
+                }),
+            )
             renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
             await waitFor(() => {
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
+                expect(screen.getByText(/User ID:/)).toBeTruthy()
             }, { timeout: 5000 })
 
             // The fixture has a lifecycle_activity event which renders as
@@ -859,9 +861,14 @@ describe('Session Timeline Detail (MSW integration)', () => {
         })
 
         it('clicking a different event cell switches the detail panel', async () => {
+            server.use(
+                http.get('*/api/apps/:appId/sessions/:sessionId', () => {
+                    return HttpResponse.json(makeSessionTimelineDetailFixture())
+                }),
+            )
             renderWithProviders(<SessionDetail params={{ teamId: 'test-team', appId: 'app-1', sessionId: 'sess-001' }} />)
             await waitFor(() => {
-                expect(screen.getByText('Session: sess-001')).toBeTruthy()
+                expect(screen.getByText(/User ID:/)).toBeTruthy()
             }, { timeout: 5000 })
 
             await waitFor(() => {

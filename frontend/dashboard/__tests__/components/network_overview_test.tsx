@@ -192,11 +192,6 @@ describe('NetworkOverview', () => {
             expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
         })
 
-        it('renders beta badge', () => {
-            render(<NetworkOverview params={{ teamId: 'team-1' }} />)
-            expect(screen.getByTestId('beta-badge')).toBeInTheDocument()
-        })
-
         it('shows loading spinner before domains are fetched', async () => {
             mockUseNetworkDomainsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)

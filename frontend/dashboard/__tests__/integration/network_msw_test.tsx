@@ -153,11 +153,6 @@ describe('Network Overview (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Network Performance" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Network Performance')).toBeTruthy()
-        })
-
         it('renders "Explore endpoint" section', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Explore endpoint')).toBeTruthy()
@@ -675,16 +670,6 @@ describe('Network Details (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Network Performance" heading', async () => {
-            await renderAndWaitForDetails()
-            expect(screen.getByText('Network Performance')).toBeTruthy()
-        })
-
-        it('renders domain+path in monospace', async () => {
-            await renderAndWaitForDetails()
-            expect(screen.getByText('api.example.com/v1/users/*/profile')).toBeTruthy()
-        })
-
         it('renders "Latency" section', async () => {
             await renderAndWaitForDetails()
             expect(screen.getByText('Latency')).toBeTruthy()
@@ -721,11 +706,6 @@ describe('Network Details (MSW integration)', () => {
             // (conditional: timelineStatus !== 'nodata')
         })
 
-        it('reads domain and path from URL search params', async () => {
-            await renderAndWaitForDetails('cdn.example.com', '/images/*')
-            // The component shows domain+path in the heading
-            expect(screen.getByText('cdn.example.com/images/*')).toBeTruthy()
-        })
     })
 
     // ================================================================

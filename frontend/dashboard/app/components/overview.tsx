@@ -31,7 +31,7 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'App Health') : 'Overview'}</p>
+            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'App Health') : ''}</p>
             <div className="py-4" />
 
             {!demo &&

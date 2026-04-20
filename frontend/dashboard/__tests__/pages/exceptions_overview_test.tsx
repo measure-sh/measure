@@ -172,9 +172,8 @@ describe('ExceptionsOverview Component - Crashes', () => {
         mockExceptionsOverviewQuery.status = 'pending'; mockExceptionsOverviewQuery.isFetching = true
     })
 
-    it('renders the Crashes heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Crash} teamId="123" />)
-        expect(screen.getByText('Crashes')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 
@@ -427,11 +426,6 @@ describe('ExceptionsOverview Component - ANRs', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
         mockExceptionsOverviewQuery.data = undefined
         mockExceptionsOverviewQuery.status = 'pending'; mockExceptionsOverviewQuery.isFetching = true
-    })
-
-    it('renders the ANRs heading when exceptionsType is anr', () => {
-        render(<ExceptionsOverview exceptionsType={ExceptionsType.Anr} teamId="123" />)
-        expect(screen.getByText('ANRs')).toBeInTheDocument()
     })
 
     it('shows ANR column headers instead of Crash headers', async () => {

@@ -57,7 +57,6 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
       <Filters

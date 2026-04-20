@@ -13,7 +13,7 @@
  * Sign out calls DELETE /auth/logout and redirects to /auth/login.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 
 // --- jsdom polyfills ---
@@ -151,6 +151,12 @@ function renderLayout() {
     return render(layoutJsx())
 }
 
+// Scope queries to the sidebar — the breadcrumb in the header also renders
+// section titles like "Overview", so unscoped getByText finds both.
+function inSidebar() {
+    return within(document.querySelector('[data-sidebar="sidebar"]') as HTMLElement)
+}
+
 // ====================================================================
 // LAYOUT — NAVIGATION
 // ====================================================================
@@ -168,9 +174,9 @@ describe('Dashboard Layout — navigation', () => {
     it('renders Dashboard nav items', async () => {
         renderLayout()
         await waitFor(() => {
-            expect(screen.getByText('Overview')).toBeTruthy()
-            expect(screen.getByText('Session Timelines')).toBeTruthy()
-            expect(screen.getByText('Journeys')).toBeTruthy()
+            expect(inSidebar().getByText('Overview')).toBeTruthy()
+            expect(inSidebar().getByText('Session Timelines')).toBeTruthy()
+            expect(inSidebar().getByText('Journeys')).toBeTruthy()
         })
     })
 
@@ -207,10 +213,10 @@ describe('Dashboard Layout — navigation', () => {
     it('nav links point to correct team-scoped URLs', async () => {
         renderLayout()
         await waitFor(() => {
-            expect(screen.getByText('Overview')).toBeTruthy()
+            expect(inSidebar().getByText('Overview')).toBeTruthy()
         })
 
-        const overviewLink = screen.getByText('Overview').closest('a')
+        const overviewLink = inSidebar().getByText('Overview').closest('a')
         expect(overviewLink?.getAttribute('href')).toBe('/team-001/overview')
 
         const crashesLink = screen.getByText('Crashes').closest('a')
@@ -258,7 +264,7 @@ describe('Dashboard Layout — navigation', () => {
         renderLayout()
         // Skeleton should be visible, nav items should NOT render during loading
         expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
-        expect(screen.queryByText('Overview')).toBeNull()
+        expect(inSidebar().queryByText('Overview')).toBeNull()
     })
 })
 
@@ -269,11 +275,11 @@ describe('Dashboard Layout — active sidebar item', () => {
     it('marks "Overview" as active when pathname is /team-001/overview', async () => {
         renderLayout()
         await waitFor(() => {
-            expect(screen.getByText('Overview')).toBeTruthy()
+            expect(inSidebar().getByText('Overview')).toBeTruthy()
         })
 
         // The <a> wrapping "Overview" is inside a SidebarMenuSubButton with data-active
-        const overviewLink = screen.getByText('Overview').closest('a')
+        const overviewLink = inSidebar().getByText('Overview').closest('a')
         expect(overviewLink?.getAttribute('data-active')).toBe('true')
     })
 
@@ -316,11 +322,11 @@ describe('Dashboard Layout — active sidebar item', () => {
     it('clicking a different nav item deactivates the previous one', async () => {
         renderLayout()
         await waitFor(() => {
-            expect(screen.getByText('Overview')).toBeTruthy()
+            expect(inSidebar().getByText('Overview')).toBeTruthy()
         })
 
         // Overview starts active
-        expect(screen.getByText('Overview').closest('a')?.getAttribute('data-active')).toBe('true')
+        expect(inSidebar().getByText('Overview').closest('a')?.getAttribute('data-active')).toBe('true')
 
         // Click Traces
         await act(async () => {
@@ -330,7 +336,7 @@ describe('Dashboard Layout — active sidebar item', () => {
         // Traces becomes active, Overview deactivated
         await waitFor(() => {
             expect(screen.getByText('Traces').closest('a')?.getAttribute('data-active')).toBe('true')
-            expect(screen.getByText('Overview').closest('a')?.getAttribute('data-active')).not.toBe('true')
+            expect(inSidebar().getByText('Overview').closest('a')?.getAttribute('data-active')).not.toBe('true')
         })
     })
 })
@@ -370,7 +376,7 @@ describe('Dashboard Layout — team switching', () => {
         })
 
         // Verify initial nav links use team-001
-        const overviewLinkBefore = screen.getByText('Overview').closest('a')
+        const overviewLinkBefore = inSidebar().getByText('Overview').closest('a')
         expect(overviewLinkBefore?.getAttribute('href')).toBe('/team-001/overview')
 
         // Simulate team switch navigation completing (pathname changes)
@@ -381,7 +387,7 @@ describe('Dashboard Layout — team switching', () => {
 
         // Nav links should now point to team-002
         await waitFor(() => {
-            const overviewLink = screen.getByText('Overview').closest('a')
+            const overviewLink = inSidebar().getByText('Overview').closest('a')
             expect(overviewLink?.getAttribute('href')).toBe('/team-002/overview')
 
             const crashesLink = screen.getByText('Crashes').closest('a')
@@ -405,7 +411,7 @@ describe('Dashboard Layout — team switching', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
+            expect(inSidebar().getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
         })
 
         // Click Crashes nav item
@@ -447,7 +453,7 @@ describe('Dashboard Layout — team switching', () => {
         })
 
         await waitFor(() => {
-            expect(screen.getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
+            expect(inSidebar().getByText('Overview').closest('a')?.getAttribute('href')).toBe('/team-002/overview')
         })
 
         // Switch back to team-001
@@ -457,7 +463,7 @@ describe('Dashboard Layout — team switching', () => {
         })
 
         await waitFor(() => {
-            const overviewLink = screen.getByText('Overview').closest('a')
+            const overviewLink = inSidebar().getByText('Overview').closest('a')
             expect(overviewLink?.getAttribute('href')).toBe('/team-001/overview')
         })
     })

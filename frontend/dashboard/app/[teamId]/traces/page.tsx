@@ -53,7 +53,6 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Traces</p>
             <div className="py-4" />
 
             <Filters

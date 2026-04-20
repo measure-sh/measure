@@ -125,11 +125,6 @@ describe('Apps Page (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Apps" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Apps')).toBeTruthy()
-        })
-
         it('renders "Copy SDK Variables" section', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Copy SDK Variables')).toBeTruthy()

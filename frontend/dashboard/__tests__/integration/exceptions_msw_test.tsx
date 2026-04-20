@@ -152,11 +152,6 @@ describe.each([
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it(`renders "${label}" heading`, async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText(label)).toBeTruthy()
-        })
-
         it('renders table with exception groups from fixture', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('CheckoutActivity.kt: onClick()')).toBeTruthy()
@@ -502,7 +497,7 @@ describe.each([
 
             renderWithProviders(<ExceptionsOverview exceptionsType={exceptionsType} teamId="test-team" />)
             await waitFor(() => {
-                expect(screen.getByText(label)).toBeTruthy()
+                expect(screen.getByText('Previous')).toBeTruthy()
             }, { timeout: 5000 })
             await act(async () => { await new Promise((r) => setTimeout(r, 300)) })
 
@@ -609,12 +604,6 @@ describe.each([
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders exception group name', async () => {
-            await renderAndWaitForData()
-            // Group name appears as the subtitle heading
-            expect(screen.getByText('NullPointerException@CheckoutActivity.kt')).toBeTruthy()
-        })
-
         it('renders detail plot', async () => {
             await renderAndWaitForData()
             expect(screen.getByTestId('nivo-line-chart')).toBeTruthy()

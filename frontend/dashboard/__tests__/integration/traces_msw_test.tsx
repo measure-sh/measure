@@ -127,11 +127,6 @@ describe('Traces Overview (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Traces" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Traces')).toBeTruthy()
-        })
-
         it('renders table headers', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Trace')).toBeTruthy()
@@ -860,7 +855,6 @@ describe('Trace Detail (MSW integration)', () => {
     async function renderDetail(params = defaultParams) {
         renderWithProviders(<TraceDetails params={params} />)
         await waitFor(() => {
-            expect(screen.getByText(`Trace: ${params.traceId}`)).toBeTruthy()
             // Wait for data to load (pills appear on success)
             expect(screen.getByText(/User ID:/)).toBeTruthy()
         }, { timeout: 5000 })
@@ -870,11 +864,6 @@ describe('Trace Detail (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders trace title with ID', async () => {
-            await renderDetail()
-            expect(screen.getByText('Trace: trace-001')).toBeTruthy()
-        })
-
         it('renders user ID pill', async () => {
             await renderDetail()
             expect(screen.getByText('User ID: user-trace-123')).toBeTruthy()

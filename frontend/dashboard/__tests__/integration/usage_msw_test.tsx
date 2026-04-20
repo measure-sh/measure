@@ -114,11 +114,6 @@ describe('Usage Page (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Usage" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Usage')).toBeTruthy()
-        })
-
         it('renders pie chart', async () => {
             await renderAndWaitForData()
             expect(screen.getByTestId('nivo-pie-chart')).toBeTruthy()

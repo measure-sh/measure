@@ -336,13 +336,6 @@ describe('Usage Page', () => {
 
     // ---- Usage section ----
 
-    it('renders the Usage heading', async () => {
-        await act(async () => {
-            render(<Usage params={{ teamId: 'team1' }} />)
-        })
-        expect(screen.getByText('Usage')).toBeInTheDocument()
-    })
-
     it('shows loading spinner while fetching usage', async () => {
         useUsageStore.setState({ fetchUsageApiStatus: 0 }) // Loading
 

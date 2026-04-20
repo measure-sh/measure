@@ -118,9 +118,8 @@ describe('TracesOverview Component', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Traces heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<TracesOverview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Traces')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

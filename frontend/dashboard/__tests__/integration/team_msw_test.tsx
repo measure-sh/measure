@@ -124,10 +124,8 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('Team Page (MSW integration)', () => {
     async function renderAndWaitForData() {
         const { container } = renderWithProviders(<TeamOverview params={{ teamId: 'team-001' }} />)
-        // First wait for teams to load (teamsStatus === 'success')
+        // Wait for something that only appears after teams + authz data loads
         await waitFor(() => {
-            expect(screen.getByText('Team')).toBeTruthy()
-            // Look for something that only appears after teams + authz data loads
             expect(screen.getByText('Invite Team Members')).toBeTruthy()
         }, { timeout: 10000 })
     }
@@ -136,11 +134,6 @@ describe('Team Page (MSW integration)', () => {
     // PAGE LOAD
     // ================================================================
     describe('page load', () => {
-        it('renders "Team" heading', async () => {
-            await renderAndWaitForData()
-            expect(screen.getByText('Team')).toBeTruthy()
-        })
-
         it('renders "Create Team" button', async () => {
             await renderAndWaitForData()
             expect(screen.getByText('Create Team')).toBeTruthy()
@@ -618,7 +611,6 @@ describe('Team Page — mutations', () => {
     async function renderAndWaitForData() {
         const { container } = renderWithProviders(<TeamOverview params={{ teamId: 'team-001' }} />)
         await waitFor(() => {
-            expect(screen.getByText('Team')).toBeTruthy()
             expect(screen.getByText('Invite Team Members')).toBeTruthy()
         }, { timeout: 10000 })
     }
@@ -1450,7 +1442,6 @@ describe('Team Page — create team dialog', () => {
     async function renderAndWaitForData() {
         renderWithProviders(<TeamOverview params={{ teamId: 'team-001' }} />)
         await waitFor(() => {
-            expect(screen.getByText('Team')).toBeTruthy()
             expect(screen.getByText('Invite Team Members')).toBeTruthy()
         }, { timeout: 10000 })
     }

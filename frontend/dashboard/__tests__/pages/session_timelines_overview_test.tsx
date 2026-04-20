@@ -123,9 +123,8 @@ describe('SessionTimelinesOverview Component', () => {
         useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Session Timelines heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<SessionTimelinesOverview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Session Timelines')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 

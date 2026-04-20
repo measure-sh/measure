@@ -466,7 +466,6 @@ describe('Team Page', () => {
   it('renders core sections on successful load', async () => {
     await renderPage()
 
-    expect(screen.getByText('Team')).toBeInTheDocument()
     expect(screen.getByText('Members')).toBeInTheDocument()
     expect(screen.getByText('Pending Invites')).toBeInTheDocument()
     expect(screen.getByText('Slack Integration')).toBeInTheDocument()
@@ -1088,7 +1087,7 @@ describe('Team Page', () => {
     await screen.findByText('Invite Team Members')
 
     // Page renders without errors even without session user ID
-    expect(screen.getByText('Team')).toBeInTheDocument()
+    expect(screen.getByText('Members')).toBeInTheDocument()
   })
 
   it('navigates to new team after create team success callback', async () => {

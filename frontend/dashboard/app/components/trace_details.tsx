@@ -97,7 +97,7 @@ export default function TraceDetails({ params = { teamId: 'demo-team-id', appId:
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Performance Traces' : `Trace: ${params.traceId}`}</p>
+            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Performance Traces' : ''}</p>
             <div className="py-2" />
 
             {displayStatus === 'pending' &&
