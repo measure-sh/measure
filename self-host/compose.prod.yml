@@ -11,6 +11,7 @@ services:
         - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
         - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST}
         - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
+        - NEXT_PUBLIC_GTM_ID=${GTM_ID}
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
