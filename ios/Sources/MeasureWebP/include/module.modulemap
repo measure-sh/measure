@@ -1,0 +1,5 @@
+module MeasureWebP {
+    umbrella header "MeasureWebP.h"
+    export *
+    module * { export * }
+}

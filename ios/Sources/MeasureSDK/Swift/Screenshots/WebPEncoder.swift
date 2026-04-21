@@ -7,7 +7,7 @@
 
 import UIKit
 #if canImport(MeasureWebP)
-@_implementationOnly import MeasureWebP
+import MeasureWebP
 #endif
 
 struct WebPEncoder {

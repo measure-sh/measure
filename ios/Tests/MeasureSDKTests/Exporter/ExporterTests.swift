@@ -382,28 +382,26 @@ final class BaseExporterTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
-    func testContentTypeForScreenshot() {
-        let attachment = makeAttachment(type: .screenshot)
-        XCTAssertEqual(attachment.contentType, screenshotContentType)
-        XCTAssertNil(attachment.contentEncoding)
+    func testEncodingForScreenshot() {
+        let attachment = makeAttachment(type: .screenshot, filename: "test.webp")
+        XCTAssertEqual(attachment.contentType, screenshotContentTypeWebp)
     }
 
-    func testContentTypeForLayoutSnapshot() {
-        let attachment = makeAttachment(type: .layoutSnapshot)
-        XCTAssertEqual(attachment.contentType, layoutSnapshotContentType)
-        XCTAssertNil(attachment.contentEncoding)
+    func testEncodingForImages() {
+        let attachment = makeAttachment(type: .screenshot, filename: "test.png")
+        XCTAssertEqual(attachment.contentType, screenshotContentTypePng)
     }
 
     func testContentTypeAndEncodingForLayoutSnapshotJson() {
-        let attachment = makeAttachment(type: .layoutSnapshotJson)
+        let attachment = makeAttachment(type: .layoutSnapshotJson, filename: "test")
         XCTAssertEqual(attachment.contentType, layoutSnapshotJsonContentType)
         XCTAssertEqual(attachment.contentEncoding, layoutSnapshotJsonContentEncoding)
     }
 
-    private func makeAttachment(type: AttachmentType) -> MsrUploadAttachment {
+    private func makeAttachment(type: AttachmentType, filename: String) -> MsrUploadAttachment {
         MsrUploadAttachment(
             id: "test",
-            name: "test",
+            name: filename,
             type: type,
             size: 0,
             bytes: nil,
