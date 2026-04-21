@@ -62,23 +62,5 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run Gradle plugin checks
-        run: ./gradlew :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
-
-  # ensures sample app is not broken
-  assemble-sample:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
-    permissions:
-      contents: read
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v3
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: 'gradle'
-      - name: Assemble sample
-        run: ./gradlew clean :sample:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
+        working-directory: android/measure-android-gradle
+        run: ../gradlew test --no-daemon --no-parallel --no-configuration-cache --stacktrace

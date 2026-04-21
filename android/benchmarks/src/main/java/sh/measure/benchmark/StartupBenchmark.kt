@@ -64,7 +64,7 @@ class StartupBenchmark {
     @OptIn(ExperimentalMetricApi::class)
     private fun startup(compilationMode: CompilationMode) {
         benchmarkRule.measureRepeated(
-            packageName = "sh.measure.sample",
+            packageName = "sh.measure.baseline.target",
             metrics = listOf(
                 StartupTimingMetric(),
                 TraceSectionMetric("msr-init")

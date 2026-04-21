@@ -25,7 +25,7 @@ class BaselineProfileGenerator {
     @Test
     fun generateBaselineProfile() {
         rule.collect(
-            packageName = "sh.measure.sample",
+            packageName = "sh.measure.baseline.target",
             includeInStartupProfile = true,
             profileBlock = {
                 // Start the app and wait for it to be ready

@@ -34,7 +34,7 @@ android {
         }
     }
 
-    targetProjectPath = ":sample"
+    targetProjectPath = ":baseline-target"
 
     testOptions.managedDevices.devices {
         create<ManagedVirtualDevice>("pixel6Api31") {
@@ -63,7 +63,7 @@ androidComponents {
         variant.instrumentationRunnerArguments.put(
             "targetAppId",
             variant.testedApks.map { apkDir ->
-                artifactsLoader.load(apkDir)?.applicationId ?: "sh.measure.sample"
+                artifactsLoader.load(apkDir)?.applicationId ?: "sh.measure.baseline.target"
             }
         )
     }
