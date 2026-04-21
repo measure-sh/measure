@@ -18,4 +18,3 @@ rootProject.name = "measure-android"
 include(":measure")
 include(":benchmarks")
 include(":baseline-target")
-includeBuild("measure-android-gradle")

@@ -35,9 +35,9 @@ extensions.configure<ReactSettingsExtension> {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        // mavenLocal()
         google()
         mavenCentral()
+
 
         val storageUrl = System.getenv("FLUTTER_STORAGE_BASE_URL") ?: "https://storage.googleapis.com"
         maven(url = "$storageUrl/download.flutter.io")

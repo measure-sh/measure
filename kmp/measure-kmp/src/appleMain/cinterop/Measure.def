@@ -1,0 +1,3 @@
+language = Objective-C
+modules = Measure
+package = cocoapods.measure_sh
