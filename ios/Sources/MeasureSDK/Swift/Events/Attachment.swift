@@ -62,7 +62,7 @@ struct MsrUploadAttachment {
         case .layoutSnapshotJson:
             return layoutSnapshotJsonContentType
         case .screenshot:
-            return screenshotContentType
+            return name.hasSuffix("webp") ? screenshotContentTypeWebp : screenshotContentTypePng
         }
     }
 
