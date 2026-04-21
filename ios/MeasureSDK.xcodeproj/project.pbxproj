@@ -3016,7 +3016,7 @@
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp/src",
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12;
 				MODULEMAP_FILE = "$(SRCROOT)/Sources/MeasureWebP/include/module.modulemap";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3036,7 +3036,7 @@
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp/src",
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12;
 				MODULEMAP_FILE = "$(SRCROOT)/Sources/MeasureWebP/include/module.modulemap";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3056,7 +3056,7 @@
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp/src",
 					"$(SRCROOT)/Sources/MeasureWebP/libwebp",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12;
 				MODULEMAP_FILE = "$(SRCROOT)/Sources/MeasureWebP/include/module.modulemap";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
