@@ -17,5 +17,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <meta-data android:name="sh.measure.android.API_KEY" android:value="msrsh_api_key" />
+        <meta-data android:name="sh.measure.android.API_URL" android:value="http://localhost:8080" />
     </application>
 </manifest>
