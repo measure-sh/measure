@@ -1,0 +1,431 @@
+{
+    "exception": {
+        "exceptions": [
+            {
+                "type": "java.lang.IllegalStateException",
+                "frames": [
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "run",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 165
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.SerialExecutorImpl$Task",
+                        "method_name": "run",
+                        "file_name": "SerialExecutorImpl.java",
+                        "line_num": 96
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                        "method_name": "runWorker",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 1154
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                        "method_name": "run",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 652
+                    },
+                    {
+                        "class_name": "java.lang.Thread",
+                        "method_name": "run",
+                        "file_name": "Thread.java",
+                        "line_num": 1564
+                    }
+                ]
+            },
+            {
+                "type": "android.database.sqlite.SQLiteCantOpenDatabaseException",
+                "frames": [
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnection",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnection.java",
+                        "line_num": 276
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnection",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnection.java",
+                        "line_num": 219
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "openConnectionLocked",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 528
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 215
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 207
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openInner",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 1087
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "open",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 1067
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openDatabase",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 931
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openDatabase",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 920
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteOpenHelper",
+                        "method_name": "getDatabaseLocked",
+                        "file_name": "SQLiteOpenHelper.java",
+                        "line_num": 373
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteOpenHelper",
+                        "method_name": "getWritableDatabase",
+                        "file_name": "SQLiteOpenHelper.java",
+                        "line_num": 316
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.f",
+                        "method_name": "j",
+                        "file_name": "SourceFile",
+                        "line_num": 140
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.f",
+                        "method_name": "c",
+                        "file_name": "SourceFile",
+                        "line_num": 24
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.g",
+                        "method_name": "d0",
+                        "file_name": "SourceFile",
+                        "line_num": 10
+                    },
+                    {
+                        "class_name": "androidx.room.RoomDatabase",
+                        "method_name": "inTransaction",
+                        "file_name": "RoomDatabase.kt",
+                        "line_num": 632
+                    },
+                    {
+                        "class_name": "androidx.room.RoomDatabase",
+                        "method_name": "assertNotSuspendingTransaction",
+                        "file_name": "RoomDatabase.kt",
+                        "line_num": 451
+                    },
+                    {
+                        "class_name": "androidx.work.impl.model.SystemIdInfoDao_Impl",
+                        "method_name": "getWorkSpecIds",
+                        "file_name": "SystemIdInfoDao_Impl.java",
+                        "line_num": 156
+                    },
+                    {
+                        "class_name": "androidx.work.impl.background.systemjob.SystemJobScheduler",
+                        "method_name": "reconcileJobs",
+                        "file_name": "SystemJobScheduler.java",
+                        "line_num": 313
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "cleanUp",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 291
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "forceStopRunnable",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 254
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "run",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 136
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.SerialExecutorImpl$Task",
+                        "method_name": "run",
+                        "file_name": "SerialExecutorImpl.java",
+                        "line_num": 96
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                        "method_name": "runWorker",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 1154
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                        "method_name": "run",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 652
+                    },
+                    {
+                        "class_name": "java.lang.Thread",
+                        "method_name": "run",
+                        "file_name": "Thread.java",
+                        "line_num": 1564
+                    }
+                ]
+            },
+            {
+                "type": "android.database.sqlite.SQLiteCantOpenDatabaseException",
+                "frames": [
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnection",
+                        "method_name": "nativeOpen",
+                        "file_name": "SQLiteConnection.java",
+                        "line_num": 0
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnection",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnection.java",
+                        "line_num": 238
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnection",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnection.java",
+                        "line_num": 219
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "openConnectionLocked",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 528
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 215
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteConnectionPool",
+                        "method_name": "open",
+                        "file_name": "SQLiteConnectionPool.java",
+                        "line_num": 207
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openInner",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 1087
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "open",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 1067
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openDatabase",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 931
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteDatabase",
+                        "method_name": "openDatabase",
+                        "file_name": "SQLiteDatabase.java",
+                        "line_num": 920
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteOpenHelper",
+                        "method_name": "getDatabaseLocked",
+                        "file_name": "SQLiteOpenHelper.java",
+                        "line_num": 373
+                    },
+                    {
+                        "class_name": "android.database.sqlite.SQLiteOpenHelper",
+                        "method_name": "getWritableDatabase",
+                        "file_name": "SQLiteOpenHelper.java",
+                        "line_num": 316
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.f",
+                        "method_name": "j",
+                        "file_name": "SourceFile",
+                        "line_num": 140
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.f",
+                        "method_name": "c",
+                        "file_name": "SourceFile",
+                        "line_num": 24
+                    },
+                    {
+                        "class_name": "androidx.sqlite.db.framework.g",
+                        "method_name": "d0",
+                        "file_name": "SourceFile",
+                        "line_num": 10
+                    },
+                    {
+                        "class_name": "androidx.room.RoomDatabase",
+                        "method_name": "inTransaction",
+                        "file_name": "RoomDatabase.kt",
+                        "line_num": 632
+                    },
+                    {
+                        "class_name": "androidx.room.RoomDatabase",
+                        "method_name": "assertNotSuspendingTransaction",
+                        "file_name": "RoomDatabase.kt",
+                        "line_num": 451
+                    },
+                    {
+                        "class_name": "androidx.work.impl.model.SystemIdInfoDao_Impl",
+                        "method_name": "getWorkSpecIds",
+                        "file_name": "SystemIdInfoDao_Impl.java",
+                        "line_num": 156
+                    },
+                    {
+                        "class_name": "androidx.work.impl.background.systemjob.SystemJobScheduler",
+                        "method_name": "reconcileJobs",
+                        "file_name": "SystemJobScheduler.java",
+                        "line_num": 313
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "cleanUp",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 291
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "forceStopRunnable",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 254
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.ForceStopRunnable",
+                        "method_name": "run",
+                        "file_name": "ForceStopRunnable.java",
+                        "line_num": 136
+                    },
+                    {
+                        "class_name": "androidx.work.impl.utils.SerialExecutorImpl$Task",
+                        "method_name": "run",
+                        "file_name": "SerialExecutorImpl.java",
+                        "line_num": 96
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                        "method_name": "runWorker",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 1154
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                        "method_name": "run",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 652
+                    },
+                    {
+                        "class_name": "java.lang.Thread",
+                        "method_name": "run",
+                        "file_name": "Thread.java",
+                        "line_num": 1564
+                    }
+                ]
+            }
+        ],
+        "threads": [
+            {
+                "name": "wm_work_pool-thread-1",
+                "frames": [
+                    {
+                        "class_name": "jdk.internal.misc.Unsafe",
+                        "method_name": "park",
+                        "file_name": "Unsafe.java",
+                        "line_num": 0
+                    },
+                    {
+                        "class_name": "java.util.concurrent.locks.LockSupport",
+                        "method_name": "park",
+                        "file_name": "LockSupport.java",
+                        "line_num": 371
+                    },
+                    {
+                        "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode",
+                        "method_name": "block",
+                        "file_name": "AbstractQueuedSynchronizer.java",
+                        "line_num": 519
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ForkJoinPool",
+                        "method_name": "unmanagedBlock",
+                        "file_name": "ForkJoinPool.java",
+                        "line_num": 3797
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ForkJoinPool",
+                        "method_name": "managedBlock",
+                        "file_name": "ForkJoinPool.java",
+                        "line_num": 3738
+                    },
+                    {
+                        "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                        "method_name": "await",
+                        "file_name": "AbstractQueuedSynchronizer.java",
+                        "line_num": 1712
+                    },
+                    {
+                        "class_name": "java.util.concurrent.LinkedBlockingQueue",
+                        "method_name": "take",
+                        "file_name": "LinkedBlockingQueue.java",
+                        "line_num": 435
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                        "method_name": "getTask",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 1080
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                        "method_name": "runWorker",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 1140
+                    },
+                    {
+                        "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                        "method_name": "run",
+                        "file_name": "ThreadPoolExecutor.java",
+                        "line_num": 652
+                    },
+                    {
+                        "class_name": "java.lang.Thread",
+                        "method_name": "run",
+                        "file_name": "Thread.java",
+                        "line_num": 1564
+                    }
+                ]
+            }
+        ],
+        "handled": false
+    }
+}
