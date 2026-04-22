@@ -1,0 +1,65 @@
+[versions]
+kotlin = "1.9.21"
+# Lowest AGP version supported by the Measure Gradle Plugin.
+#noinspection AndroidGradlePluginVersion
+agp802 = "8.0.2"
+# Used by testImplementationAar for static verification of bytecode rewrites.
+androidx-navigation = "2.9.7"
+androidx-compose-runtime = "1.9.4"
+bundletool = "1.18.2"
+# android-tools is used for calculating app size and aab size by the gradle plugin.
+# The version should remain compatible with lower versions of android gradle plugin. New versions
+# are not backwords compatible.
+android-tools = "31.13.0"
+asm-util = "9.6"
+squareup-okhttp = "4.12.0"
+squareup-okio = "3.7.0"
+kotlinx-serialization-json = "1.6.2"
+# Use the latest snapshot (local maven) version of measure-android for
+# gradle plugin functional tests.
+measure-android = "0.18.0-SNAPSHOT"
+semver = "1.1.2"
+junit = "4.13.2"
+junit-jupiter = "5.10.2"
+junit-platform-launcher = "1.10.2"
+nhaarman-mockito-kotlin = "2.2.0"
+gradle-testkit-truth = "1.6.1"
+gradle-testkit-support = "0.15"
+gradle-plugin-publish = "1.2.0"
+autonomousapps-testkit = "0.12"
+diffplug-spotless = "8.0.0"
+mavenPublish = "0.34.0"
+
+[libraries]
+agp802 = { module = "com.android.tools.build:gradle", version.ref = "agp802" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+androidx-navigation-runtime = { module = "androidx.navigation:navigation-runtime", version.ref = "androidx-navigation" }
+androidx-navigation-common = { module = "androidx.navigation:navigation-common", version.ref = "androidx-navigation" }
+androidx-compose-runtime = { module = "androidx.compose.runtime:runtime", version.ref = "androidx-compose-runtime" }
+asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm-util" }
+asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm-util" }
+android-tools-bundletool = { module = "com.android.tools.build:bundletool", version.ref = "bundletool" }
+android-tools-common = { module = "com.android.tools:common", version.ref = "android-tools" }
+android-tools-apkanalyzer = { module = "com.android.tools.apkparser:apkanalyzer", version.ref = "android-tools" }
+android-tools-sdklib = { module = "com.android.tools:sdklib", version.ref = "android-tools" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
+squareup-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "squareup-okhttp" }
+squareup-okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "squareup-okhttp" }
+squareup-okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "squareup-okhttp" }
+squareup-okio = { module = "com.squareup.okio:okio", version.ref = "squareup-okio" }
+measure-android = { module = "sh.measure:measure-android", version.ref = "measure-android" }
+semver = { module = "net.swiftzer.semver:semver", version.ref = "semver" }
+junit = { module = "junit:junit", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform-launcher" }
+mockitokotlin2-mockito-kotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "nhaarman-mockito-kotlin" }
+gradle-testkit-truth = { module = "com.autonomousapps:gradle-testkit-truth", version.ref = "gradle-testkit-truth" }
+gradle-testkit-support = { module = "com.autonomousapps:gradle-testkit-support", version.ref = "gradle-testkit-support" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+gradle-plugin-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-plugin-publish" }
+autonomousapps-testkit = { id = "com.autonomousapps.testkit", version.ref = "autonomousapps-testkit" }
+diffplug-spotless = { id = "com.diffplug.spotless", version.ref = "diffplug-spotless" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

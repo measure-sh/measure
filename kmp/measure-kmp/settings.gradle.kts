@@ -15,8 +15,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "measure-kmp"
 
-includeBuild("../../android") {
-    name = "measure-android"
+includeBuild("../../android/measure-android") {
     dependencySubstitution {
         substitute(module("sh.measure:measure-android")).using(project(":measure"))
     }

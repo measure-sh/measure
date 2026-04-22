@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'android/measure-android-gradle/**'
+      - 'android/measure-gradle-plugin/**'
 
 env:
   JAVA_VERSION: 21
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android/measure-android-gradle
+        working-directory: android/measure-gradle-plugin
     permissions:
       contents: read
     timeout-minutes: 10
@@ -38,7 +38,7 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
         with:
-          gradle-root: android
+          gradle-root: android/measure-gradle-plugin
 
       - name: Check if version is snapshot
         id: check-snapshot
@@ -54,7 +54,7 @@ jobs:
 
       - name: Publish snapshot to Central Portal
         if: steps.check-snapshot.outputs.is_snapshot == 'true'
-        run: ../gradlew clean publishToMavenCentral --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        run: ./gradlew clean publishToMavenCentral --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}

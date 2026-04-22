@@ -7,11 +7,6 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    versionCatalogs {
-        create("libs") {
-            from(files("../gradle/libs.versions.toml"))
-        }
-    }
     repositories {
         google()
         mavenCentral()
@@ -26,4 +21,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "measure-android-gradle"
+rootProject.name = "measure-gradle-plugin"

@@ -60,8 +60,7 @@ val flutterSdkPath: String? = java.util.Properties().let { props ->
 }
 apply(from = "$flutterSdkPath/packages/flutter_tools/gradle/module_plugin_loader.gradle")
 
-includeBuild("../../android") {
-    name = "measure-android"
+includeBuild("../../android/measure-android") {
     dependencySubstitution {
         substitute(module("sh.measure:measure-android")).using(project(":measure"))
     }

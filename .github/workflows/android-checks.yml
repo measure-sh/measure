@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-android
     timeout-minutes: 15
     permissions:
       contents: read
@@ -43,9 +43,6 @@ jobs:
   gradle-plugin-checks:
     name: Gradle Plugin checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: android
     permissions:
       contents: read
     timeout-minutes: 15
@@ -56,11 +53,12 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
-      - name: Publish to maven local
+      - name: Publish SDK to maven local
+        working-directory: android/measure-android
         run: ./gradlew :measure:publishToMavenLocal
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run Gradle plugin checks
-        working-directory: android/measure-android-gradle
-        run: ../gradlew test --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        working-directory: android/measure-gradle-plugin
+        run: ./gradlew test --no-daemon --no-parallel --no-configuration-cache --stacktrace
