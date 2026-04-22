@@ -112,7 +112,8 @@ type frameJVM struct {
 // stacktraceJVM represents a stacktrace
 // for JVM symbolication.
 type stacktraceJVM struct {
-	Frames []frameJVM `json:"frames"`
+	Exception *exceptionJVM `json:"exception,omitempty"`
+	Frames    []frameJVM    `json:"frames"`
 }
 
 // moduleJVM represents a module

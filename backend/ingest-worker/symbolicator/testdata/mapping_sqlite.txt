@@ -1,0 +1,9 @@
+# compiler: R8
+# compiler_version: 8.9.27
+# min_api: 21
+# common_typos_disable
+# {"id":"com.android.tools.r8.mapping","version":"2.2"}
+androidx.work.impl.utils.ForceStopRunnable -> androidx.work.impl.utils.ForceStopRunnable:
+# {"id":"sourceFile","fileName":"ForceStopRunnable.java"}
+    165:165:void run():120:120 -> run
+    136:136:void run():180:180 -> run
