@@ -9,7 +9,7 @@ class BaselineTargetApp : Application() {
         super.onCreate()
         Measure.init(
             this,
-            measureConfig = MeasureConfig(autoStart = true),
+            measureConfig = MeasureConfig(enableFullCollectionMode = true),
         )
     }
 }
