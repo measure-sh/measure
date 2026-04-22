@@ -442,8 +442,10 @@ func (t *Team) changeRole(ctx context.Context, memberId *uuid.UUID, role rank) e
 	return nil
 }
 
-// create inserts a new team into database and establishes
-// user's membership with the team along with a free plan billing config.
+// create inserts a new team into database, establishes the user's membership
+// with the team, and (when billing is enabled) provisions an Autumn customer
+// on the Free plan — all inside the provided transaction. If Autumn is
+// unreachable, the whole transaction is rolled back and team creation fails.
 func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	id := uuid.New()
 	t.ID = &id
@@ -478,16 +480,25 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 		return
 	}
 
-	stmtTeamBilling := sqlf.PostgreSQL.
-		InsertInto("measure.team_billing").
-		Set("team_id", t.ID).
-		Set("plan", "free").
-		Set("created_at", now).
-		Set("updated_at", now)
-
-	defer stmtTeamBilling.Close()
-
-	_, err = (*tx).Exec(ctx, stmtTeamBilling.String(), stmtTeamBilling.Args()...)
+	if server.Server.Config.IsBillingEnabled() {
+		if u.Email == nil {
+			if err = u.getEmail(ctx); err != nil {
+				return fmt.Errorf("fetch owner email: %w", err)
+			}
+		}
+		// An Autumn customer without an email can't receive invoices or
+		// dunning notifications. Refuse rather than silently create one.
+		if u.Email == nil || *u.Email == "" {
+			return fmt.Errorf("owner email is required to provision billing")
+		}
+		teamNameStr := ""
+		if t.Name != nil {
+			teamNameStr = *t.Name
+		}
+		if _, err = ProvisionAutumnCustomer(ctx, *tx, *t.ID, teamNameStr, *u.Email); err != nil {
+			return fmt.Errorf("provision autumn customer: %w", err)
+		}
+	}
 
 	return
 }

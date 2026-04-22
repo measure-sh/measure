@@ -110,7 +110,7 @@ func TestGetAppThresholdPrefs(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		seedUser(ctx, t, userID, "threshold-no-membership@test.com")
-		seedTeam(ctx, t, teamID, "threshold-team", true)
+		seedTeam(ctx, t, teamID, "threshold-team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/thresholdPrefs", nil)
@@ -231,7 +231,7 @@ func TestUpdateAppThresholdPrefs(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		seedUser(ctx, t, userID, "threshold-update-no-membership@test.com")
-		seedTeam(ctx, t, teamID, "threshold-team", true)
+		seedTeam(ctx, t, teamID, "threshold-team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		b, _ := json.Marshal(AppThresholdPrefsPayload{ErrorGoodThreshold: 95, ErrorCautionThreshold: 85, ErrorSpikeMinCountThreshold: 100, ErrorSpikeMinRateThreshold: 0.5})

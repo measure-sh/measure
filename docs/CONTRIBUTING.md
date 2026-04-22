@@ -116,7 +116,7 @@ docker compose --profile migrate up
 
 ### Backend
 
-Backend Go tests are separated into three categories using build tags.
+Backend Go tests are separated into two categories using build tags.
 
 **Unit tests** — pure logic, no containers or external services needed:
 
@@ -128,26 +128,14 @@ cd backend/api && go test ./...
 
 ```sh
 cd backend/api && go test -tags=integration ./...
-cd backend/billing && go test -tags=integration ./...
+cd backend/ingest && go test -tags=integration ./...
 cd backend/email && go test -tags=integration ./...
-```
-
-**Functional tests** — end-to-end Stripe billing cycle tests. These are only relevant for core developers working on billing. They require a Stripe test environment with the following environment variables:
-
-- `TEST_STRIPE_API_KEY` — Stripe API key for the test environment
-- `TEST_STRIPE_METER_NAME` — event name of the billing meter
-- `TEST_STRIPE_PRO_PRICE_ID` — price ID for the pro plan
-
-Note that functional tests take more time than Go's default 10m timeout to run so a custom timeout should be passed in.
-
-```sh
-go test backend/... -tags=functional ./... -timeout 1h -v
 ```
 
 Run all backend tests together without cache:
 
 ```sh
-go test backend/... --tags=integration,functional -timeout 1h -v -count=1
+go test backend/... --tags=integration -v -count=1
 ```
 
 ### Frontend Dashboard

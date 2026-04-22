@@ -6,7 +6,7 @@ target "api" {
   contexts = {
     libs = "backend/libs"
     email = "backend/email"
-    billing = "backend/billing"
+    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -20,6 +20,7 @@ target "ingest-worker" {
   contexts = {
     libs = "backend/libs"
     api = "backend/api"
+    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -34,7 +35,7 @@ target "ingest" {
     libs = "backend/libs"
     api = "backend/api"
     email = "backend/email"
-    billing = "backend/billing"
+    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -48,6 +49,7 @@ target "alerts" {
   contexts = {
     libs = "backend/libs"
     email = "backend/email"
+    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -58,19 +60,6 @@ target "alerts" {
 target "symboloader" {
   inherits = ["docker-metadata-action"]
   context = "backend/symboloader"
-  dockerfile = "dockerfile"
-  cache-from = ["type=gha"]
-  cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64"]
-}
-
-target "metering" {
-  inherits = ["docker-metadata-action"]
-  context = "backend/metering"
-  contexts = {
-    email = "backend/email"
-    billing = "backend/billing"
-  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

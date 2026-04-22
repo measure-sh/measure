@@ -3,125 +3,191 @@
 package measure
 
 import (
-	"backend/ingest/server"
 	"context"
+	"errors"
 	"testing"
+
+	"backend/autumn"
+	autumntest "backend/autumn/testhelpers"
+	"backend/ingest/server"
 
 	"github.com/google/uuid"
 )
 
-// --------------------------------------------------------------------------
-// CheckIngestAllowedForApp
-// --------------------------------------------------------------------------
-
 func TestCheckIngestAllowedForApp(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+	ctx := context.Background()
 
+	t.Run("billing disabled → allowed", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
 		if err := CheckIngestAllowedForApp(ctx, uuid.New()); err != nil {
-			t.Errorf("expected nil, got %v", err)
+			t.Errorf("want nil, got %v", err)
 		}
 	})
 
-	t.Run("ingest allowed", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("team without autumn customer → fail open", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "allowed-team", true)
+		seedTeam(ctx, t, teamID, "test-team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("expected nil, got %v", err)
+			t.Errorf("want nil (fail-open), got %v", err)
 		}
 	})
 
-	t.Run("ingest blocked", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn allowed → nil", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "blocked-team", true)
+		seedTeam(ctx, t, teamID, "test-team")
 		seedApp(ctx, t, appID, teamID, 30)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ok")
 
-		err := CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if got := err.Error(); got != "ingestion blocked: usage exceeded" {
-			t.Errorf("error = %q, want %q", got, "ingestion blocked: usage exceeded")
-		}
-	})
-
-	t.Run("app not found", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		err := CheckIngestAllowedForApp(ctx, uuid.New())
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-	})
-
-	t.Run("serves from cache on second call", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "cache-team", true)
-		seedApp(ctx, t, appID, teamID, 30)
-
-		// First call populates cache.
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Fatalf("first call: %v", err)
-		}
-
-		// Block ingest in DB — cached result should still allow.
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
+		autumntest.MockCheck(t, func(_ context.Context, cid, feat string) (*autumn.CheckResponse, error) {
+			if cid != "cust_ok" || feat != "bytes" {
+				t.Errorf("unexpected args: cid=%q feat=%q", cid, feat)
+			}
+			return &autumn.CheckResponse{Allowed: true}, nil
+		})
 
 		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("cached call should allow, got: %v", err)
+			t.Errorf("want nil, got %v", err)
 		}
 	})
 
-	t.Run("serves blocked from cache", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn denied → error", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "cache-blocked-team", true)
+		seedTeam(ctx, t, teamID, "test-team")
 		seedApp(ctx, t, appID, teamID, 30)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_no")
 
-		// First call populates cache with blocked status.
-		err := CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("first call: expected error, got nil")
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			return &autumn.CheckResponse{Allowed: false}, nil
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err == nil {
+			t.Error("want error, got nil")
+		}
+	})
+
+	t.Run("autumn error → fail open", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team")
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err")
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			return nil, errors.New("autumn timeout")
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
+			t.Errorf("want nil (fail-open on autumn error), got %v", err)
+		}
+	})
+
+	t.Run("app not found → error", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		if err := CheckIngestAllowedForApp(ctx, uuid.New()); err == nil {
+			t.Error("want error for unknown app, got nil")
+		}
+	})
+
+	t.Run("cache hit (allowed) → no autumn.Check call", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team")
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_hit_ok")
+
+		setCachedAutumnCheck(ctx, server.Server.VK, "cust_hit_ok", true)
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			t.Errorf("autumn.Check must not be called on cache hit")
+			return nil, errors.New("unexpected")
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
+			t.Errorf("want nil, got %v", err)
+		}
+	})
+
+	t.Run("cache hit (blocked) → returns blocked, no autumn.Check call", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team")
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_hit_blocked")
+
+		setCachedAutumnCheck(ctx, server.Server.VK, "cust_hit_blocked", false)
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			t.Errorf("autumn.Check must not be called on cache hit")
+			return nil, errors.New("unexpected")
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err == nil {
+			t.Error("want error from cached blocked verdict, got nil")
+		}
+	})
+
+	t.Run("cache miss → calls autumn.Check, populates cache", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team")
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_miss")
+
+		var checkCalls int
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			checkCalls++
+			return &autumn.CheckResponse{Allowed: true}, nil
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
+			t.Fatalf("first call: want nil, got %v", err)
+		}
+		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
+			t.Fatalf("second call: want nil, got %v", err)
+		}
+		if checkCalls != 1 {
+			t.Errorf("autumn.Check called %d times, want 1 (second call should hit cache)", checkCalls)
 		}
 
-		// Unblock in DB — cached result should still block.
-		_, dbErr := server.Server.PgPool.Exec(ctx,
-			"UPDATE teams SET allow_ingest = true, ingest_blocked_reason = NULL WHERE id = $1", teamID)
-		if dbErr != nil {
-			t.Fatalf("unblock team: %v", dbErr)
+		allowed, ok := getCachedAutumnCheck(ctx, server.Server.VK, "cust_miss")
+		if !ok || !allowed {
+			t.Errorf("cache state after miss: ok=%v allowed=%v, want ok=true allowed=true", ok, allowed)
 		}
+	})
 
-		err = CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("cached call should block, got nil")
+	t.Run("autumn error on miss → fail open, cache not populated", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, "test-team")
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err_no_cache")
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			return nil, errors.New("autumn timeout")
+		})
+
+		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
+			t.Errorf("want nil (fail-open), got %v", err)
 		}
-		if got := err.Error(); got != "ingestion blocked: usage exceeded" {
-			t.Errorf("error = %q, want %q", got, "ingestion blocked: usage exceeded")
+		if _, ok := getCachedAutumnCheck(ctx, server.Server.VK, "cust_err_no_cache"); ok {
+			t.Error("cache should be empty after autumn error; got hit")
 		}
 	})
 }

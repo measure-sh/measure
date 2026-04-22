@@ -37,6 +37,8 @@ import {
     defaultFilters,
     DowngradeToFreeApiStatus,
     downgradeToFreeFromServer,
+    UndoDowngradeApiStatus,
+    undoDowngradeFromServer,
     ExceptionGroupCommonPathApiStatus,
     ExceptionsDetailsApiStatus,
     ExceptionsDetailsPlotApiStatus,
@@ -53,11 +55,11 @@ import {
     fetchAuthzAndMembersFromServer,
     FetchBillingInfoApiStatus,
     fetchBillingInfoFromServer,
-    FetchBillingUsageThresholdApiStatus,
-    fetchBillingUsageThresholdFromServer,
     fetchBugReportFromServer,
     fetchBugReportsOverviewFromServer,
     fetchBugReportsOverviewPlotFromServer,
+    FetchCheckoutSessionApiStatus,
+    fetchCheckoutSessionFromServer,
     FetchCustomerPortalUrlApiStatus,
     fetchCustomerPortalUrlFromServer,
     fetchExceptionGroupCommonPathFromServer,
@@ -88,10 +90,6 @@ import {
     fetchSessionTimelinesOverviewPlotFromServer,
     fetchSpanMetricsPlotFromServer,
     fetchSpansFromServer,
-    FetchStripeCheckoutSessionApiStatus,
-    fetchStripeCheckoutSessionFromServer,
-    FetchSubscriptionInfoApiStatus,
-    fetchSubscriptionInfoFromServer,
     fetchTeamsFromServer,
     FetchTeamSlackConnectUrlApiStatus,
     fetchTeamSlackConnectUrlFromServer,
@@ -1054,32 +1052,19 @@ describe('billing endpoints', () => {
         expect(lastFetchUrl()).toContain('/api/teams/t1/billing')
     })
 
-    it('fetchSubscriptionInfoFromServer hits /subscription', async () => {
-        mockApiClientFetch.mockResolvedValueOnce(successResponse({ status: 'active' }))
-        await fetchSubscriptionInfoFromServer('t1')
-        expect(lastFetchUrl()).toContain('/api/teams/t1/billing/subscription')
-    })
-
-    it('fetchBillingUsageThresholdFromServer hits /billing/usageThreshold', async () => {
-        mockApiClientFetch.mockResolvedValueOnce(successResponse({}))
-        await fetchBillingUsageThresholdFromServer('t1')
-        expect(lastFetchUrl()).toContain('/api/teams/t1/billing/usageThreshold')
-    })
-
     it('fetchUsageFromServer hits /usage', async () => {
         mockApiClientFetch.mockResolvedValueOnce(successResponse([]))
         await fetchUsageFromServer('t1')
         expect(lastFetchUrl()).toContain('/api/teams/t1/usage')
     })
 
-    it('fetchStripeCheckoutSessionFromServer PATCHes with URLs', async () => {
+    it('fetchCheckoutSessionFromServer PATCHes with success URL', async () => {
         mockApiClientFetch.mockResolvedValueOnce(successResponse({ checkout_url: 'https://stripe/checkout' }))
-        await fetchStripeCheckoutSessionFromServer('t1', 'https://ok', 'https://cancel')
+        await fetchCheckoutSessionFromServer('t1', 'https://ok')
         expect(lastFetchUrl()).toContain('/api/teams/t1/billing/checkout')
         expect(lastFetchOpts().method).toBe('PATCH')
         const body = JSON.parse(lastFetchOpts().body)
         expect(body.success_url).toBe('https://ok')
-        expect(body.cancel_url).toBe('https://cancel')
     })
 
     it('downgradeToFreeFromServer POSTs', async () => {
@@ -1088,6 +1073,14 @@ describe('billing endpoints', () => {
         expect(lastFetchUrl()).toContain('/api/teams/t1/billing/downgrade')
         expect(lastFetchOpts().method).toBe('PATCH')
         expect(r.status).toBe(DowngradeToFreeApiStatus.Success)
+    })
+
+    it('undoDowngradeFromServer PATCHes the undo-downgrade endpoint', async () => {
+        mockApiClientFetch.mockResolvedValueOnce(successResponse({ status: 'cancellation_reverted' }))
+        const r = await undoDowngradeFromServer('t1')
+        expect(lastFetchUrl()).toContain('/api/teams/t1/billing/undo-downgrade')
+        expect(lastFetchOpts().method).toBe('PATCH')
+        expect(r.status).toBe(UndoDowngradeApiStatus.Success)
     })
 
     it('fetchCustomerPortalUrlFromServer POSTs with return url', async () => {
@@ -1291,18 +1284,12 @@ describe('fetch functions: Error / Cancelled paths', () => {
         ['fetchBillingInfoFromServer',
             () => fetchBillingInfoFromServer('t'),
             FetchBillingInfoApiStatus.Error, FetchBillingInfoApiStatus.Cancelled],
-        ['fetchSubscriptionInfoFromServer',
-            () => fetchSubscriptionInfoFromServer('t'),
-            FetchSubscriptionInfoApiStatus.Error, FetchSubscriptionInfoApiStatus.Cancelled],
-        ['fetchBillingUsageThresholdFromServer',
-            () => fetchBillingUsageThresholdFromServer('t'),
-            FetchBillingUsageThresholdApiStatus.Error, FetchBillingUsageThresholdApiStatus.Cancelled],
         ['fetchUsageFromServer',
             () => fetchUsageFromServer('t'),
             FetchUsageApiStatus.Error, FetchUsageApiStatus.Cancelled],
-        ['fetchStripeCheckoutSessionFromServer',
-            () => fetchStripeCheckoutSessionFromServer('t', 'o', 'c'),
-            FetchStripeCheckoutSessionApiStatus.Error, FetchStripeCheckoutSessionApiStatus.Cancelled],
+        ['fetchCheckoutSessionFromServer',
+            () => fetchCheckoutSessionFromServer('t', 'o'),
+            FetchCheckoutSessionApiStatus.Error, FetchCheckoutSessionApiStatus.Cancelled],
         ['fetchNotifPrefsFromServer',
             () => fetchNotifPrefsFromServer(),
             FetchNotifPrefsApiStatus.Error, FetchNotifPrefsApiStatus.Cancelled],
@@ -1401,6 +1388,9 @@ describe('mutation functions: Error / Cancelled paths', () => {
         ['downgradeToFreeFromServer',
             () => downgradeToFreeFromServer('t'),
             DowngradeToFreeApiStatus.Error, DowngradeToFreeApiStatus.Cancelled],
+        ['undoDowngradeFromServer',
+            () => undoDowngradeFromServer('t'),
+            UndoDowngradeApiStatus.Error, UndoDowngradeApiStatus.Cancelled],
         ['fetchCustomerPortalUrlFromServer',
             () => fetchCustomerPortalUrlFromServer('t', 'url'),
             FetchCustomerPortalUrlApiStatus.Error, FetchCustomerPortalUrlApiStatus.Cancelled],

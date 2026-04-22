@@ -487,6 +487,12 @@ const openRetentionDialog = async () => {
 describe('Apps Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Reset the isCloud mock to its default (false = self-hosted). Individual
+    // tests that need cloud mode call isCloud.mockReturnValue(true) themselves.
+    // Without this reset, the state leaks from one test to the next and
+    // failures become order-dependent.
+    const { isCloud } = require('@/app/utils/env_utils')
+    isCloud.mockReturnValue(false)
     mockCurrentApp = { ...baseMockApp, api_key: { ...baseMockApp.api_key } }
     useFiltersStore.setState({ filters: { ready: false, app: null, serialisedFilters: '' } })
     useAppsStore.setState({
@@ -1255,13 +1261,10 @@ describe('Apps Page', () => {
     expect(mockToastPositive).toHaveBeenCalledWith('API key copied to clipboard')
   })
 
-  it('retention save is disabled when retention change is not allowed', async () => {
+  it('retention section is hidden in cloud mode (plan-driven)', async () => {
     const { isCloud } = require('@/app/utils/env_utils')
     isCloud.mockReturnValue(true)
-    useAppsStore.setState({
-      ...defaultLoadedAppsState,
-      retentionChangeAllowed: false,
-    })
+    useAppsStore.setState({ ...defaultLoadedAppsState })
 
     await renderPage()
 
@@ -1275,23 +1278,14 @@ describe('Apps Page', () => {
       })
     })
 
-    const saveButtons = screen.getAllByRole('button', { name: 'Save' })
-    const retentionSaveButton = saveButtons[0]
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('retention-select-90'))
-    })
-
-    expect(retentionSaveButton).toBeDisabled()
+    expect(screen.queryByText('Configure Data Retention')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('retention-select-90')).not.toBeInTheDocument()
   })
 
-  it('retention save remains disabled when billing info fetch fails in cloud mode', async () => {
+  it('retention section is shown in self-hosted mode', async () => {
     const { isCloud } = require('@/app/utils/env_utils')
-    isCloud.mockReturnValue(true)
-    useAppsStore.setState({
-      ...defaultLoadedAppsState,
-      retentionChangeAllowed: false,
-    })
+    isCloud.mockReturnValue(false)
+    useAppsStore.setState({ ...defaultLoadedAppsState })
 
     await renderPage()
 
@@ -1305,72 +1299,7 @@ describe('Apps Page', () => {
       })
     })
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('retention-select-90'))
-    })
-
-    const saveButtons = screen.getAllByRole('button', { name: 'Save' })
-    const retentionSaveButton = saveButtons[0]
-    expect(retentionSaveButton).toBeDisabled()
-  })
-
-  it('retention save remains disabled when billing info fetch is cancelled in cloud mode', async () => {
-    const { isCloud } = require('@/app/utils/env_utils')
-    isCloud.mockReturnValue(true)
-    useAppsStore.setState({
-      ...defaultLoadedAppsState,
-      retentionChangeAllowed: false,
-    })
-
-    await renderPage()
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: 'app=app-1',
-        },
-      })
-    })
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('retention-select-90'))
-    })
-
-    const saveButtons = screen.getAllByRole('button', { name: 'Save' })
-    const retentionSaveButton = saveButtons[0]
-    expect(retentionSaveButton).toBeDisabled()
-  })
-
-  it('retention save can be enabled for paid plan in cloud', async () => {
-    useAppsStore.setState({
-      ...defaultLoadedAppsState,
-      retentionChangeAllowed: true,
-    })
-
-    await renderPage()
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: 'app=app-1',
-        },
-      })
-    })
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('retention-select-90'))
-    })
-
-    const saveButtons = screen.getAllByRole('button', { name: 'Save' })
-    const retentionSaveButton = saveButtons[0]
-
-    await waitFor(() => {
-      expect(retentionSaveButton).not.toBeDisabled()
-    })
+    expect(await screen.findByText('Configure Data Retention')).toBeInTheDocument()
   })
 
   describe('Threshold Preferences', () => {

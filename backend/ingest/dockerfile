@@ -8,7 +8,7 @@ WORKDIR /go/src
 # Copy dependency modules first for caching
 COPY --from=libs go.mod go.sum ../libs/
 COPY --from=email go.mod go.sum ../email/
-COPY --from=billing go.mod go.sum ../billing/
+COPY --from=autumn go.mod go.sum ../autumn/
 COPY --from=api go.mod go.sum ../api/
 COPY ["go.mod", "go.sum", "./"]
 
@@ -17,7 +17,7 @@ RUN go mod download
 # Copy source
 COPY --from=libs . ../libs/
 COPY --from=email . ../email/
-COPY --from=billing . ../billing/
+COPY --from=autumn . ../autumn/
 COPY --from=api . ../api/
 COPY . .
 

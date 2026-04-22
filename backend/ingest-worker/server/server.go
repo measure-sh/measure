@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/autumn"
 	"backend/libs/bus"
 	"backend/libs/inet"
 	"backend/libs/ingest"
@@ -85,6 +86,7 @@ type ServerConfig struct {
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
+	BillingEnabled             bool
 }
 
 // IsCloud is true if the service is
@@ -95,6 +97,12 @@ func (sc *ServerConfig) IsCloud() bool {
 	}
 
 	return false
+}
+
+// IsBillingEnabled is true if the worker should
+// report usage to Autumn after each successful batch.
+func (sc *ServerConfig) IsBillingEnabled() bool {
+	return sc.BillingEnabled
 }
 
 func NewConfig() *ServerConfig {
@@ -204,6 +212,16 @@ func NewConfig() *ServerConfig {
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
 
+	billingEnabled := false
+	if os.Getenv("BILLING_ENABLED") == "true" {
+		billingEnabled = true
+		autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+		if autumnSecretKey == "" {
+			log.Println("AUTUMN_SECRET_KEY env var is not set, usage tracking will fail-open")
+		}
+		autumn.Init(autumn.Config{SecretKey: autumnSecretKey})
+	}
+
 	iggyAddr := os.Getenv("IGGY_ADDR")
 	if iggyAddr == "" && !cloudEnv {
 		log.Println("IGGY_ADDR env var is not set, Iggy message streaming will not work")
@@ -252,6 +270,7 @@ func NewConfig() *ServerConfig {
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
+		BillingEnabled:             billingEnabled,
 	}
 }
 

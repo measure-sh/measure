@@ -8,6 +8,7 @@ WORKDIR /go/src
 # Copy dependency modules first for caching
 COPY --from=libs go.mod go.sum ../libs/
 COPY --from=api go.mod go.sum ../api/
+COPY --from=autumn go.mod go.sum ../autumn/
 COPY ["go.mod", "go.sum", "./"]
 
 RUN go mod download
@@ -15,6 +16,7 @@ RUN go mod download
 # Copy source
 COPY --from=libs . ../libs/
 COPY --from=api . ../api/
+COPY --from=autumn . ../autumn/
 COPY . .
 
 # Build statically linked binary

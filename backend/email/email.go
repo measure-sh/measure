@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 	"github.com/wneessen/go-mail"
@@ -60,9 +61,10 @@ func SendEmail(client *mail.Client, info EmailInfo) error {
 
 // QueueEmail inserts an email into the pending_alert_messages table
 // for later delivery by the alerts service. Use SendEmail instead
-// for immediate delivery.
-func QueueEmail(ctx context.Context, pool *pgxpool.Pool, teamID, appID any, info EmailInfo) error {
-	if pool == nil {
+// for immediate delivery. Pass a non-nil tx to enroll the insert in a
+// caller-managed transaction; otherwise the pool is used directly.
+func QueueEmail(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamID, appID any, info EmailInfo) error {
+	if tx == nil && pool == nil {
 		return fmt.Errorf("database pool is not initialized")
 	}
 
@@ -86,7 +88,11 @@ func QueueEmail(ctx context.Context, pool *pgxpool.Pool, teamID, appID any, info
 		insertStmt.Set("app_id", appID)
 	}
 
-	_, err = pool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
+	if tx != nil {
+		_, err = tx.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
+	} else {
+		_, err = pool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to insert pending email: %w", err)
 	}
@@ -96,8 +102,10 @@ func QueueEmail(ctx context.Context, pool *pgxpool.Pool, teamID, appID any, info
 
 // QueueEmailForTeam queues the same email payload for each member of a team.
 // The "To" field in info is ignored and replaced with each team member's email.
-func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, teamID, appID any, info EmailInfo) error {
-	if pool == nil {
+// Pass a non-nil tx to enroll all reads and inserts in a caller-managed
+// transaction; otherwise the pool is used directly.
+func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamID, appID any, info EmailInfo) error {
+	if tx == nil && pool == nil {
 		return fmt.Errorf("database pool is not initialized")
 	}
 
@@ -108,7 +116,13 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, teamID, appID an
 		Where("tm.team_id = ?", teamID)
 	defer memberStmt.Close()
 
-	memberRows, err := pool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	var memberRows pgx.Rows
+	var err error
+	if tx != nil {
+		memberRows, err = tx.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	} else {
+		memberRows, err = pool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to fetch team members: %w", err)
 	}
@@ -122,7 +136,7 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, teamID, appID an
 
 		pendingEmail := info
 		pendingEmail.To = to
-		if err := QueueEmail(ctx, pool, teamID, appID, pendingEmail); err != nil {
+		if err := QueueEmail(ctx, pool, tx, teamID, appID, pendingEmail); err != nil {
 			return fmt.Errorf("failed to queue email for team member %s: %w", to, err)
 		}
 	}
@@ -190,9 +204,9 @@ func MessageContent(message string) string {
             </div>`, message)
 }
 
-// UsageLimitContent renders a usage progress bar and message.
+// UsageLimitContent renders a percent-only usage progress bar and message.
 // Used for billing usage threshold notifications.
-func UsageLimitContent(message string, threshold int, usageFormatted, maxBytesFormatted string) string {
+func UsageLimitContent(message string, threshold int) string {
 	usageBarHTML := fmt.Sprintf(`
             <!-- Usage Bar -->
             <div style="margin-bottom: 32px;">
@@ -200,11 +214,24 @@ func UsageLimitContent(message string, threshold int, usageFormatted, maxBytesFo
                     <div style="background-color: %s; height: 100%%; width: %d%%; border-radius: 8px;"></div>
                 </div>
                 <div style="text-align: center; margin-top: 8px; font-size: 14px; color: #718096;">
-                    %s / %s data used
+                    %d%% of plan limit used
                 </div>
-            </div>`, getProgressBarColor(threshold), threshold, usageFormatted, maxBytesFormatted)
+            </div>`, getProgressBarColor(threshold), threshold, threshold)
 
 	return usageBarHTML + MessageContent(message)
+}
+
+func getProgressBarColor(threshold int) string {
+	switch threshold {
+	case 75:
+		return "#facc15"
+	case 90:
+		return "#f43f5e"
+	case 100:
+		return "#e11d48"
+	default:
+		return "#000000"
+	}
 }
 
 // DailySummaryContent renders the date header and metrics grid
@@ -265,17 +292,4 @@ func DailySummaryContent(appName string, date time.Time, metrics []MetricData) s
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
                 %s
             </div>`, formattedDate, formattedDateShort, comparisonDateShort, metricsHTML)
-}
-
-func getProgressBarColor(threshold int) string {
-	switch threshold {
-	case 75:
-		return "#facc15"
-	case 90:
-		return "#f43f5e"
-	case 100:
-		return "#e11d48"
-	default:
-		return "#000000"
-	}
 }

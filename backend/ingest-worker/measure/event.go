@@ -1398,6 +1398,12 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 	}
 
+	// Track usage with Autumn as the very last step. Must come after
+	// eventReq.remember() — a Track without a recorded ingestion would be
+	// re-fired on retry and double-bill the customer. Anything inserted
+	// after this would also re-run on retry, so don't add steps below.
+	trackBatchBytes(eventReq.teamId, eventReq.size)
+
 	ingestBatchAckCount.Add(ctx, 1)
 	return nil
 }

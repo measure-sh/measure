@@ -3,2156 +3,2055 @@
 package measure
 
 import (
-	"backend/billing"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"backend/api/server"
+	"backend/autumn"
+	autumntest "backend/autumn/testhelpers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v84"
+	"github.com/jackc/pgx/v5"
+	svix "github.com/svix/svix-webhooks/go"
 )
 
-const (
-	testNoAuthEmail    = "noauth@test.com"
-	testViewerEmail    = "viewer@test.com"
-	testDeveloperEmail = "dev@test.com"
-	testAdminEmail     = "admin@test.com"
-	testOwnerEmail     = "owner@test.com"
-	testTeamName       = "test-team"
-)
+// withAutumnWebhookSecret sets the webhook secret for the duration of a test.
+func withAutumnWebhookSecret(t *testing.T, secret string) {
+	t.Helper()
+	orig := server.Server.Config.AutumnWebhookSecret
+	server.Server.Config.AutumnWebhookSecret = secret
+	t.Cleanup(func() { server.Server.Config.AutumnWebhookSecret = orig })
+}
+
+// signSvixWebhook signs a payload with the given Svix secret and returns the
+// headers that HandleAutumnWebhook will verify.
+func signSvixWebhook(t *testing.T, secret, msgID string, payload []byte) http.Header {
+	t.Helper()
+	wh, err := svix.NewWebhook(secret)
+	if err != nil {
+		t.Fatalf("svix new webhook: %v", err)
+	}
+	ts := time.Now()
+	sig, err := wh.Sign(msgID, ts, payload)
+	if err != nil {
+		t.Fatalf("svix sign: %v", err)
+	}
+	h := http.Header{}
+	h.Set("svix-id", msgID)
+	h.Set("svix-timestamp", strconv.FormatInt(ts.Unix(), 10))
+	h.Set("svix-signature", sig)
+	return h
+}
 
 // --------------------------------------------------------------------------
-// Handler: GetTeamBilling
+// determinePlan
+// --------------------------------------------------------------------------
+
+func TestDeterminePlan(t *testing.T) {
+	cases := []struct {
+		name string
+		cust autumn.Customer
+		want string
+	}{
+		{
+			name: "active pro subscription → pro",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{{PlanID: autumnPlanPro, Status: "active"}},
+			},
+			want: planPro,
+		},
+		{
+			name: "active free subscription → free",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{{PlanID: autumnPlanFree, Status: "active"}},
+			},
+			want: planFree,
+		},
+		{
+			name: "scheduled pro is ignored, active free wins → free",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{
+					{PlanID: autumnPlanPro, Status: "scheduled"},
+					{PlanID: autumnPlanFree, Status: "active"},
+				},
+			},
+			want: planFree,
+		},
+		{
+			name: "active pro + scheduled free (post-cancel state) → pro",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{
+					{PlanID: autumnPlanPro, Status: "active", CanceledAt: 1700000000000},
+					{PlanID: autumnPlanFree, Status: "scheduled"},
+				},
+			},
+			want: planPro,
+		},
+		{
+			name: "only scheduled subs (no active) → free fallback",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{
+					{PlanID: autumnPlanPro, Status: "scheduled"},
+				},
+			},
+			want: planFree,
+		},
+		{
+			name: "active enterprise plan id → enterprise",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{{PlanID: "plan_ent_acme", Status: "active"}},
+			},
+			want: planEnterprise,
+		},
+		{
+			name: "webhook-style products fallback (no subs) → pro",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+			},
+			want: planPro,
+		},
+		{
+			name: "products with empty status treated as active (back-compat)",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro, Status: ""}},
+			},
+			want: planPro,
+		},
+		{
+			name: "scheduled product is ignored, falls back to free",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree, Status: "scheduled"}},
+			},
+			want: planFree,
+		},
+		{
+			name: "active free + scheduled pro in products → free (skip scheduled)",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{
+					{ID: autumnPlanPro, Status: "scheduled"},
+					{ID: autumnPlanFree, Status: "active"},
+				},
+			},
+			want: planFree,
+		},
+		{
+			name: "empty customer → free",
+			cust: autumn.Customer{},
+			want: planFree,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := determinePlan(&tc.cust); got != tc.want {
+				t.Errorf("determinePlan = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// --------------------------------------------------------------------------
+// proIsStillActive (cancel-scenario disambiguation)
+// --------------------------------------------------------------------------
+
+func TestProIsStillActive(t *testing.T) {
+	cases := []struct {
+		name      string
+		products  []autumn.CustomerProduct
+		productID string
+		want      bool
+	}{
+		{
+			name: "active pro present (end-of-cycle cancel scheduled)",
+			products: []autumn.CustomerProduct{
+				{ID: autumnPlanPro, Status: "active"},
+				{ID: autumnPlanFree, Status: "scheduled"},
+			},
+			productID: autumnPlanPro,
+			want:      true,
+		},
+		{
+			name: "pro absent (immediate cancel — Free took over)",
+			products: []autumn.CustomerProduct{
+				{ID: autumnPlanFree, Status: "active"},
+			},
+			productID: autumnPlanPro,
+			want:      false,
+		},
+		{
+			name: "pro present but status is canceled",
+			products: []autumn.CustomerProduct{
+				{ID: autumnPlanPro, Status: "canceled"},
+			},
+			productID: autumnPlanPro,
+			want:      false,
+		},
+		{
+			name: "pro present but status is scheduled (queued, not active yet)",
+			products: []autumn.CustomerProduct{
+				{ID: autumnPlanPro, Status: "scheduled"},
+			},
+			productID: autumnPlanPro,
+			want:      false,
+		},
+		{
+			name:      "empty products list (e.g. malformed payload)",
+			products:  nil,
+			productID: autumnPlanPro,
+			want:      false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := proIsStillActive(autumn.Customer{Products: tc.products}, tc.productID)
+			if got != tc.want {
+				t.Errorf("proIsStillActive = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// --------------------------------------------------------------------------
+// applyPlanTransition (B2: tx wrap on retention reset + email enqueue)
+// --------------------------------------------------------------------------
+
+func TestApplyPlanTransition(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("notify failure rolls back retention reset", func(t *testing.T) {
+		// If email enqueue fails, retention must NOT have been changed.
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 30) // existing retention
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_tx")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_tx",
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		failingNotify := func(_ context.Context, _ pgx.Tx, _ uuid.UUID) error {
+			return errors.New("simulated email enqueue failure")
+		}
+
+		applyPlanTransition(ctx, teamID, failingNotify)
+
+		// Retention should still be 30 — the tx rolled back.
+		if got := getAppRetention(ctx, t, appID); got != 30 {
+			t.Errorf("retention = %d, want 30 (tx must roll back when notify fails)", got)
+		}
+	})
+
+	t.Run("happy path commits both retention reset and email", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 30)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_tx_ok")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_tx_ok",
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		var notifyCalled bool
+		notify := func(_ context.Context, tx pgx.Tx, _ uuid.UUID) error {
+			notifyCalled = true
+			if tx == nil {
+				t.Error("notify should receive a non-nil tx for atomic commit")
+			}
+			return nil
+		}
+
+		applyPlanTransition(ctx, teamID, notify)
+
+		if !notifyCalled {
+			t.Error("notify should have been called")
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention = %d, want 90 (committed)", got)
+		}
+	})
+}
+
+// --------------------------------------------------------------------------
+// GetPlanRetentionDays
+// --------------------------------------------------------------------------
+
+func TestGetPlanRetentionDays(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("billing disabled → free default", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
+
+		got, err := GetPlanRetentionDays(ctx, uuid.New())
+		if err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+		if got != MIN_RETENTION_DAYS {
+			t.Errorf("want %d, got %d", MIN_RETENTION_DAYS, got)
+		}
+	})
+
+	t.Run("no autumn customer → free default", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+		if got != MIN_RETENTION_DAYS {
+			t.Errorf("want %d, got %d", MIN_RETENTION_DAYS, got)
+		}
+	})
+
+	t.Run("pro plan → reads retention_days feature", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_pro",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err != nil || got != 90 {
+			t.Errorf("want (90, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("enterprise plan → reads its own retention_days value", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_ent",
+				Products: []autumn.CustomerProduct{{ID: "plan_ent_acme"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 180},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err != nil || got != 180 {
+			t.Errorf("want (180, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("plan without retention_days feature → error", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_misconfigured")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_misconfigured",
+				Products: []autumn.CustomerProduct{{ID: "plan_missing_feature"}},
+				// no Balances["retention_days"]
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err == nil {
+			t.Errorf("want error, got (%d, nil)", got)
+		}
+		if got != 0 {
+			t.Errorf("want 0 on error, got %d", got)
+		}
+	})
+
+	t.Run("free plan → reads retention_days feature", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_free",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err != nil || got != 30 {
+			t.Errorf("want (30, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("autumn.GetCustomer fails → 0 + error (no silent default)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, fmt.Errorf("autumn unreachable")
+		})
+
+		got, err := GetPlanRetentionDays(ctx, teamID)
+		if err == nil {
+			t.Fatalf("want error, got nil (got=%d)", got)
+		}
+		if got != 0 {
+			t.Errorf("want 0 on error, got %d", got)
+		}
+	})
+}
+
+// --------------------------------------------------------------------------
+// GetTeamBilling
 // --------------------------------------------------------------------------
 
 func TestGetTeamBilling(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+	ctx := context.Background()
 
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
-		c, w := newTestGinContext("GET", "/teams/test/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+uuid.New().String()+"/billing/info", nil)
 		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
 		GetTeamBilling(c)
-
 		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+			t.Fatalf("status = %d, want 404, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "error", "billing is not enabled")
 	})
 
-	t.Run("no team membership", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("returns free plan when team has no autumn customer", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testNoAuthEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetTeamBilling(c)
-
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
-		}
-		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
-	})
-
-	t.Run("viewer can read", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		GetTeamBilling(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
-
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.Plan != "free" {
-			t.Errorf("plan = %q, want %q", result.Plan, "free")
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["plan"] != "free" {
+			t.Errorf("plan = %v, want free", got["plan"])
 		}
 	})
 
-	t.Run("developer can read", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("returns pro plan when autumn says so", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_abc")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_dev"))
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: "cust_abc", Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
+		})
 
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		GetTeamBilling(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
-
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["plan"] != "pro" {
+			t.Errorf("plan = %v, want pro", got["plan"])
 		}
-		if result.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", result.Plan, "pro")
+		if got["autumn_customer_id"] != "cust_abc" {
+			t.Errorf("autumn_customer_id = %v, want cust_abc", got["autumn_customer_id"])
 		}
 	})
 
-	t.Run("admin can read", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("includes bytes balance and subscription state from autumn", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_full")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
+		// Autumn returns ms timestamps; backend converts to seconds for the frontend.
+		startedAtSec := int64(1700000000)
+		endsAtSec := int64(1702592000)
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_full",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Subscriptions: []autumn.Subscription{{
+					PlanID:             autumnPlanPro,
+					Status:             "active",
+					CurrentPeriodStart: startedAtSec * 1000,
+					CurrentPeriodEnd:   endsAtSec * 1000,
+				}},
+				Balances: map[string]autumn.Balance{
+					"bytes": {FeatureID: "bytes", Granted: 25_000_000_000, Usage: 1_000_000_000},
+				},
+			}, nil
+		})
 
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		GetTeamBilling(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
-
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["bytes_granted"] != float64(25_000_000_000) {
+			t.Errorf("bytes_granted = %v, want 25000000000", got["bytes_granted"])
 		}
-		if result.Plan != "free" {
-			t.Errorf("plan = %q, want %q", result.Plan, "free")
+		if got["bytes_used"] != float64(1_000_000_000) {
+			t.Errorf("bytes_used = %v, want 1000000000", got["bytes_used"])
+		}
+		if got["status"] != "active" {
+			t.Errorf("status = %v, want active", got["status"])
+		}
+		if got["current_period_start"] != float64(startedAtSec) {
+			t.Errorf("current_period_start = %v, want %d (seconds)", got["current_period_start"], startedAtSec)
+		}
+		if got["current_period_end"] != float64(endsAtSec) {
+			t.Errorf("current_period_end = %v, want %d (seconds)", got["current_period_end"], endsAtSec)
+		}
+		// canceled_at should be omitted (zero) when no cancellation is pending.
+		if v, present := got["canceled_at"]; present && v != float64(0) {
+			t.Errorf("canceled_at = %v, want absent or 0", v)
 		}
 	})
 
-	t.Run("owner can read", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("picks the active subscription, not whichever is index 0", func(t *testing.T) {
+		// During a scheduled cancellation, the customer has TWO subscriptions:
+		// the still-active Pro (with canceled_at set) and a scheduled Free
+		// queued for the cycle boundary. Autumn doesn't document an order;
+		// even if Free lands at index 0, we must read the active Pro.
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_two_subs")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_owner"))
+		canceledAtSec := int64(1700100000)
+		startedAtSec := int64(1700000000)
+		endsAtSec := int64(1702592000)
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_two_subs",
+				Subscriptions: []autumn.Subscription{
+					// scheduled Free at index 0 — we should NOT pick this one.
+					{
+						PlanID:    autumnPlanFree,
+						Status:    "scheduled",
+						StartedAt: endsAtSec * 1000,
+					},
+					// active Pro at index 1 with the data we want surfaced.
+					{
+						PlanID:             autumnPlanPro,
+						Status:             "active",
+						CurrentPeriodStart: startedAtSec * 1000,
+						CurrentPeriodEnd:   endsAtSec * 1000,
+						CanceledAt:         canceledAtSec * 1000,
+					},
+				},
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+			}, nil
+		})
 
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		GetTeamBilling(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["status"] != "active" {
+			t.Errorf("status = %v, want active (must skip scheduled sub at index 0)", got["status"])
 		}
-		if result.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", result.Plan, "pro")
+		if got["canceled_at"] != float64(canceledAtSec) {
+			t.Errorf("canceled_at = %v, want %d (from active Pro sub, not scheduled Free)", got["canceled_at"], canceledAtSec)
 		}
-	})
-
-	t.Run("no billing config", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetTeamBilling(c)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+		if got["current_period_start"] != float64(startedAtSec) {
+			t.Errorf("current_period_start = %v, want %d (from active Pro sub)", got["current_period_start"], startedAtSec)
 		}
-		wantJSONContains(t, w, "error", "team billing not found")
-	})
-
-	t.Run("success free plan", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetTeamBilling(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+		if got["current_period_end"] != float64(endsAtSec) {
+			t.Errorf("current_period_end = %v, want %d (from active Pro sub)", got["current_period_end"], endsAtSec)
 		}
-
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.TeamID != teamID {
-			t.Errorf("team_id = %s, want %s", result.TeamID, teamID)
-		}
-		if result.Plan != "free" {
-			t.Errorf("plan = %q, want %q", result.Plan, "free")
+		if got["plan"] != planPro {
+			t.Errorf("plan = %v, want %q", got["plan"], planPro)
 		}
 	})
 
-	t.Run("success pro plan", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("predictable when current_period_end is in the past", func(t *testing.T) {
+		// Defensive: if Autumn briefly reports a stale subscription whose
+		// period has already ended, our handler should still return 200
+		// with the values as-is. The frontend hides the scheduled-for line
+		// based on the date.
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_stale")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_pro"), strPtr("sub_pro"))
+		pastSec := int64(1)
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_stale",
+				Subscriptions: []autumn.Subscription{{
+					PlanID:             autumnPlanPro,
+					Status:             "active",
+					CurrentPeriodStart: 0,
+					CurrentPeriodEnd:   pastSec * 1000,
+					CanceledAt:         pastSec * 1000,
+				}},
+			}, nil
+		})
 
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing", nil)
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		GetTeamBilling(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+			t.Fatalf("status = %d, want 200", w.Code)
 		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["current_period_end"] != float64(pastSec) {
+			t.Errorf("current_period_end = %v, want %d (passed through)", got["current_period_end"], pastSec)
+		}
+		if got["canceled_at"] != float64(pastSec) {
+			t.Errorf("canceled_at = %v, want %d (passed through)", got["canceled_at"], pastSec)
+		}
+	})
 
-		var result TeamBilling
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
+	t.Run("populates canceled_at when subscription has a pending cancellation", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_canceled")
+
+		canceledAtSec := int64(1700100000)
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_canceled",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Subscriptions: []autumn.Subscription{{
+					PlanID:             autumnPlanPro,
+					Status:             "active",
+					CurrentPeriodStart: 1700000000 * 1000,
+					CurrentPeriodEnd:   1702592000 * 1000,
+					CanceledAt:         canceledAtSec * 1000, // ms
+				}},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-		if result.TeamID != teamID {
-			t.Errorf("team_id = %s, want %s", result.TeamID, teamID)
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["canceled_at"] != float64(canceledAtSec) {
+			t.Errorf("canceled_at = %v, want %d (seconds)", got["canceled_at"], canceledAtSec)
 		}
-		if result.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", result.Plan, "pro")
-		}
-		if result.StripeCustomerID == nil || *result.StripeCustomerID != "cus_pro" {
-			t.Errorf("stripe_customer_id = %v, want %q", result.StripeCustomerID, "cus_pro")
-		}
-		if result.StripeSubscriptionID == nil || *result.StripeSubscriptionID != "sub_pro" {
-			t.Errorf("stripe_subscription_id = %v, want %q", result.StripeSubscriptionID, "sub_pro")
+		if got["plan"] != planPro {
+			t.Errorf("plan = %v, want %q (subscription is still active until cycle end)", got["plan"], planPro)
 		}
 	})
 }
 
 // --------------------------------------------------------------------------
-// CheckIngestAllowedForApp
-// --------------------------------------------------------------------------
-
-func TestCheckIngestAllowedForApp(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		orig := server.Server.Config.BillingEnabled
-		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
-
-		if err := CheckIngestAllowedForApp(ctx, uuid.New()); err != nil {
-			t.Errorf("expected nil, got %v", err)
-		}
-	})
-
-	t.Run("ingest allowed", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "allowed-team", true)
-		seedApp(ctx, t, appID, teamID, 30)
-
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("expected nil, got %v", err)
-		}
-	})
-
-	t.Run("ingest blocked", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "blocked-team", true)
-		seedApp(ctx, t, appID, teamID, 30)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
-
-		err := CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if got := err.Error(); got != "ingestion blocked: usage exceeded" {
-			t.Errorf("error = %q, want %q", got, "ingestion blocked: usage exceeded")
-		}
-	})
-
-	t.Run("app not found", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		err := CheckIngestAllowedForApp(ctx, uuid.New())
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-	})
-
-	t.Run("serves from cache on second call", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "cache-team", true)
-		seedApp(ctx, t, appID, teamID, 30)
-
-		// First call populates cache.
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Fatalf("first call: %v", err)
-		}
-
-		// Block ingest in DB — cached result should still allow.
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
-
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("cached call should allow, got: %v", err)
-		}
-	})
-
-	t.Run("serves blocked from cache", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "cache-blocked-team", true)
-		seedApp(ctx, t, appID, teamID, 30)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
-
-		// First call populates cache with blocked status.
-		err := CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("first call: expected error, got nil")
-		}
-
-		// Unblock in DB — cached result should still block.
-		_, dbErr := server.Server.PgPool.Exec(ctx,
-			"UPDATE teams SET allow_ingest = true, ingest_blocked_reason = NULL WHERE id = $1", teamID)
-		if dbErr != nil {
-			t.Fatalf("unblock team: %v", dbErr)
-		}
-
-		err = CheckIngestAllowedForApp(ctx, appID)
-		if err == nil {
-			t.Fatal("cached call should block, got nil")
-		}
-		if got := err.Error(); got != "ingestion blocked: usage exceeded" {
-			t.Errorf("error = %q, want %q", got, "ingestion blocked: usage exceeded")
-		}
-	})
-}
-
-// --------------------------------------------------------------------------
-// CheckRetentionChangeAllowedInPlan
-// --------------------------------------------------------------------------
-
-func TestCheckRetentionChangeAllowedInPlan(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		orig := server.Server.Config.BillingEnabled
-		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
-
-		allowed, err := CheckRetentionChangeAllowedInPlan(ctx, uuid.New())
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !allowed {
-			t.Error("expected allowed=true when billing disabled")
-		}
-	})
-
-	t.Run("pro plan", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "pro-team", true)
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_pro"))
-
-		allowed, err := CheckRetentionChangeAllowedInPlan(ctx, teamID)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !allowed {
-			t.Error("expected allowed=true for pro plan")
-		}
-	})
-
-	t.Run("free plan", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "free-team", true)
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		allowed, err := CheckRetentionChangeAllowedInPlan(ctx, teamID)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if allowed {
-			t.Error("expected allowed=false for free plan")
-		}
-	})
-
-	t.Run("no billing config", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "no-config-team", true)
-
-		_, err := CheckRetentionChangeAllowedInPlan(ctx, teamID)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-	})
-}
-
-// --------------------------------------------------------------------------
-// Handler: CreateCheckoutSession
+// CreateCheckoutSession
 // --------------------------------------------------------------------------
 
 func TestCreateCheckoutSession(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+	ctx := context.Background()
 
+	body := func(success string) *bytes.Buffer {
+		b, _ := json.Marshal(map[string]string{"success_url": success})
+		return bytes.NewBuffer(b)
+	}
+
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
-		c, w := newTestGinContext("POST", "/teams/test/billing/checkout", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+uuid.New().String()+"/billing/checkout", body("https://s"))
 		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
 		CreateCheckoutSession(c)
-
 		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+			t.Fatalf("status = %d, want 404", w.Code)
 		}
-		wantJSON(t, w, "error", "billing is not enabled")
 	})
 
-	t.Run("viewer forbidden", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("missing success_url → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body(""))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCheckoutSession(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
-		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
-	})
-
-	t.Run("developer forbidden", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCheckoutSession(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
-		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
-	})
-
-	t.Run("admin authorized", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-
-		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCheckoutSession(c)
-
-		// 400 (not 403) proves the admin passed authz.
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d (admin should pass authz)", w.Code, http.StatusBadRequest)
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		wantJSON(t, w, "error", "invalid request body")
 	})
 
-	t.Run("owner authorized", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("no autumn customer → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-
-		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCheckoutSession(c)
-
-		// 400 (not 403) proves the owner passed authz.
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d (owner should pass authz)", w.Code, http.StatusBadRequest)
+			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "error", "invalid request body")
 	})
 
-	t.Run("already on pro", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("already on pro → already_upgraded:true", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "pro-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_existing"))
-
-		body, _ := json.Marshal(CreateCheckoutSessionRequest{
-			SuccessURL: "https://example.com/success",
-			CancelURL:  "https://example.com/cancel",
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: "cust_pro", Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
 		})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", bytes.NewReader(body))
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCheckoutSession(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "team is already on pro plan")
-	})
-
-	t.Run("new customer happy path", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-		setStripeConfig(t, "price_test_123", "")
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "free-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		mockCreateStripeCustomer(t, func(params *stripe.CustomerParams) (*stripe.Customer, error) {
-			return &stripe.Customer{ID: "cus_new_123"}, nil
-		})
-		mockFindActiveSubscription(t, func(customerID string) (*stripe.Subscription, error) {
-			return nil, nil
-		})
-		mockCreateCheckoutSession(t, func(params *stripe.CheckoutSessionParams) (*stripe.CheckoutSession, error) {
-			return &stripe.CheckoutSession{URL: "https://checkout.stripe.com/test"}, nil
-		})
-
-		body, _ := json.Marshal(CreateCheckoutSessionRequest{
-			SuccessURL: "https://example.com/success",
-			CancelURL:  "https://example.com/cancel",
-		})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", bytes.NewReader(body))
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCheckoutSession(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "checkout_url", "https://checkout.stripe.com/test")
-
-		// Checkout creates a Stripe customer but does not upgrade the plan
-		// (upgrade happens later via webhook).
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "free" {
-			t.Errorf("plan = %q, want %q (should still be free)", bc.Plan, "free")
-		}
-		if bc.StripeCustomerID == nil || *bc.StripeCustomerID != "cus_new_123" {
-			t.Errorf("stripe_customer_id = %v, want %q", bc.StripeCustomerID, "cus_new_123")
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["already_upgraded"] != true {
+			t.Errorf("already_upgraded = %v, want true", got["already_upgraded"])
 		}
 	})
 
-	t.Run("existing active subscription self-heals", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("happy path returns checkout url", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "free-team", false)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", strPtr("cus_existing"), nil)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
-
-		mockFindActiveSubscription(t, func(customerID string) (*stripe.Subscription, error) {
-			return &stripe.Subscription{ID: "sub_existing_456"}, nil
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: "cust_free", Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
+		})
+		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			if req.PlanID != autumnPlanPro {
+				t.Errorf("plan = %q, want %q", req.PlanID, autumnPlanPro)
+			}
+			if req.SuccessURL != "https://s" {
+				t.Errorf("success_url = %q", req.SuccessURL)
+			}
+			if req.CheckoutSessionParams["billing_address_collection"] != "required" {
+				t.Errorf("billing_address_collection = %v, want %q",
+					req.CheckoutSessionParams["billing_address_collection"], "required")
+			}
+			return &autumn.AttachResponse{CustomerID: req.CustomerID, PaymentURL: "https://checkout.example"}, nil
 		})
 
-		body, _ := json.Marshal(CreateCheckoutSessionRequest{
-			SuccessURL: "https://example.com/success",
-			CancelURL:  "https://example.com/cancel",
-		})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", bytes.NewReader(body))
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCheckoutSession(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "already_upgraded", true)
-
-		// Self-heal performs a full upgrade.
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "pro")
-		}
-		if bc.StripeSubscriptionID == nil || *bc.StripeSubscriptionID != "sub_existing_456" {
-			t.Errorf("stripe_subscription_id = %v, want %q", bc.StripeSubscriptionID, "sub_existing_456")
-		}
-		if !getTeamAllowIngest(ctx, t, teamID) {
-			t.Error("allow_ingest should be true after self-heal")
-		}
-		if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
-			t.Errorf("ingest_blocked_reason = %q, want nil", *reason)
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["checkout_url"] != "https://checkout.example" {
+			t.Errorf("checkout_url = %v", got["checkout_url"])
 		}
 	})
 
-	t.Run("stripe customer creation fails", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn 5xx during pre-check → 503 (no checkout attempted)", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_unreachable")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "free-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		mockCreateStripeCustomer(t, func(params *stripe.CustomerParams) (*stripe.Customer, error) {
-			return nil, errors.New("stripe unavailable")
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 503, Body: "unavailable"}
+		})
+		autumntest.MockAttach(t, func(_ context.Context, _ autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			t.Errorf("autumn.Attach must not be called when GetCustomer pre-check returned 5xx")
+			return nil, errors.New("unexpected")
 		})
 
-		body, _ := json.Marshal(CreateCheckoutSessionRequest{
-			SuccessURL: "https://example.com/success",
-			CancelURL:  "https://example.com/cancel",
-		})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/checkout", bytes.NewReader(body))
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCheckoutSession(c)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+		if w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503", w.Code)
 		}
-		wantJSON(t, w, "error", "failed to create checkout session")
+	})
 
-		// DB should be unchanged after failure.
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "free" {
-			t.Errorf("plan = %q, want %q (unchanged after failure)", bc.Plan, "free")
+	t.Run("autumn 4xx during pre-check → 400 (no Attach attempted)", func(t *testing.T) {
+		// Falling through to Attach on a 4xx pre-check would mask a real
+		// problem (missing customer in Autumn) and risks duplicate Stripe
+		// Checkout sessions. Surface the 4xx as a 400 to the client.
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_4xx")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 404, Body: "customer not found"}
+		})
+		autumntest.MockAttach(t, func(_ context.Context, _ autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			t.Errorf("autumn.Attach must not be called when GetCustomer pre-check returned 4xx")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		CreateCheckoutSession(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		if bc.StripeCustomerID != nil {
-			t.Errorf("stripe_customer_id = %v, want nil (unchanged after failure)", *bc.StripeCustomerID)
+	})
+
+	t.Run("attach returns empty payment url → already_upgraded", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: "cust_free", Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
+		})
+		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			return &autumn.AttachResponse{CustomerID: req.CustomerID, PaymentURL: ""}, nil
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		CreateCheckoutSession(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d", w.Code)
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["already_upgraded"] != true {
+			t.Errorf("already_upgraded = %v, want true", got["already_upgraded"])
 		}
 	})
 }
 
 // --------------------------------------------------------------------------
-// Handler: CancelAndDowngradeToFreePlan
+// CancelAndDowngradeToFreePlan
 // --------------------------------------------------------------------------
 
 func TestCancelAndDowngradeToFreePlan(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+	ctx := context.Background()
 
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
-		c, w := newTestGinContext("POST", "/teams/test/billing/downgrade", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+uuid.New().String()+"/billing/downgrade", nil)
 		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
 		CancelAndDowngradeToFreePlan(c)
-
 		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+			t.Fatalf("status = %d, want 404", w.Code)
 		}
-		wantJSON(t, w, "error", "billing is not enabled")
 	})
 
-	t.Run("viewer forbidden", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("no customer → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CancelAndDowngradeToFreePlan(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
 	})
 
-	t.Run("developer forbidden", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		// Cancelled request context forces pool.QueryRow to error.
+		dead, cancel := context.WithCancel(context.Background())
+		cancel()
+		c.Request = c.Request.WithContext(dead)
 
 		CancelAndDowngradeToFreePlan(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", w.Code)
 		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
 	})
 
-	t.Run("admin authorized", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("happy path schedules cancellation at end of cycle", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CancelAndDowngradeToFreePlan(c)
-
-		// Should return 200 OK as downgrade is idempotent.
-		if w.Code != http.StatusOK {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-		}
-		wantJSON(t, w, "status", "downgraded to free")
-	})
-
-	t.Run("owner authorized", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CancelAndDowngradeToFreePlan(c)
-
-		// Should return 200 OK as downgrade is idempotent.
-		if w.Code != http.StatusOK {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-		}
-		wantJSON(t, w, "status", "downgraded to free")
-	})
-
-	t.Run("already on free", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "free-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CancelAndDowngradeToFreePlan(c)
-
-		// Should return 200 OK as downgrade is idempotent.
-		if w.Code != http.StatusOK {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-		}
-		wantJSON(t, w, "status", "downgraded to free")
-	})
-
-	t.Run("success with subscription", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "pro-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_111"), strPtr("sub_789"))
-		seedApp(ctx, t, appID, teamID, 180)
-
-		mockCancelStripeSubscription(t, func(id string, params *stripe.SubscriptionCancelParams) (*stripe.Subscription, error) {
-			if id != "sub_789" {
-				t.Errorf("cancel called with id = %q, want %q", id, "sub_789")
-			}
-			return &stripe.Subscription{}, nil
+		var gotReq autumn.UpdateRequest
+		autumntest.MockUpdate(t, func(_ context.Context, req autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			gotReq = req
+			return &autumn.UpdateResponse{CustomerID: req.CustomerID}, nil
 		})
 
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CancelAndDowngradeToFreePlan(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "status", "downgraded to free")
-
-		bc := getTeamBilling(ctx, t, teamID)
-		// In async flow, the plan remains "pro" until the webhook processes the cancellation.
-		if bc.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "pro")
+		if gotReq.PlanID != autumnPlanPro {
+			t.Errorf("plan = %q, want %q (we cancel the active Pro subscription)", gotReq.PlanID, autumnPlanPro)
 		}
-		if bc.StripeSubscriptionID == nil || *bc.StripeSubscriptionID != "sub_789" {
-			t.Errorf("stripe_subscription_id = %v, want %q", bc.StripeSubscriptionID, "sub_789")
+		if gotReq.CancelAction != autumn.CancelEndOfCycle {
+			t.Errorf("cancel_action = %q, want %q", gotReq.CancelAction, autumn.CancelEndOfCycle)
 		}
-		// Ingest status remains unchanged until downgrade processing.
-		if getTeamIngestBlockedReason(ctx, t, teamID) != nil {
-			t.Error("ingest blocked reason should be nil")
+		if gotReq.CustomerID != "cust_pro" {
+			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, "cust_pro")
 		}
 	})
 
-	t.Run("stripe cancel fails", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn update failure → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, "pro-team", true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_fail"))
-
-		mockCancelStripeSubscription(t, func(id string, params *stripe.SubscriptionCancelParams) (*stripe.Subscription, error) {
-			return nil, errors.New("stripe unavailable")
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			return nil, errors.New("boom")
 		})
 
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CancelAndDowngradeToFreePlan(c)
 
 		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+			t.Fatalf("status = %d, want 500", w.Code)
 		}
-		wantJSON(t, w, "error", "failed to downgrade to free plan")
+	})
 
-		// DB should be unchanged after Stripe failure.
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "pro" {
-			t.Errorf("plan = %q, want %q (unchanged after failure)", bc.Plan, "pro")
-		}
-		if bc.StripeSubscriptionID == nil || *bc.StripeSubscriptionID != "sub_fail" {
-			t.Errorf("stripe_subscription_id = %v, want %q (unchanged)", bc.StripeSubscriptionID, "sub_fail")
+	t.Run("non-owner → 403", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "viewer")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		CancelAndDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403", w.Code)
 		}
 	})
 }
 
 // --------------------------------------------------------------------------
-// Handler: HandleStripeWebhook
+// UndoDowngradeToFreePlan
 // --------------------------------------------------------------------------
 
-func TestHandleStripeWebhook(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+func TestUndoDowngradeToFreePlan(t *testing.T) {
+	ctx := context.Background()
 
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
-		c, w := newTestGinContext("POST", "/stripe/webhook", bytes.NewReader([]byte(`{}`)))
-
-		HandleStripeWebhook(c)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
-		}
-		wantJSON(t, w, "error", "billing is not enabled")
-	})
-
-	t.Run("checkout.session.completed upgrades team", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-		setStripeConfig(t, "", "whsec_test")
-
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "webhook-team", false)
-		seedTeamIngestBlocked(ctx, t, teamID, "usage exceeded")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		raw, _ := json.Marshal(map[string]any{
-			"client_reference_id": teamID.String(),
-			"subscription":        map[string]any{"id": "sub_checkout_123"},
-		})
-		mockConstructWebhookEvent(t, func([]byte, string, string) (stripe.Event, error) {
-			return stripe.Event{
-				Type: "checkout.session.completed",
-				Data: &stripe.EventData{Raw: raw},
-			}, nil
-		})
-
-		c, w := newTestGinContext("POST", "/stripe/webhook", bytes.NewReader([]byte(`{}`)))
-		c.Request.Header.Set("Stripe-Signature", "test_sig")
-
-		HandleStripeWebhook(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "received", true)
-
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "pro")
-		}
-		if bc.StripeSubscriptionID == nil || *bc.StripeSubscriptionID != "sub_checkout_123" {
-			t.Errorf("stripe_subscription_id = %v, want %q", bc.StripeSubscriptionID, "sub_checkout_123")
-		}
-		if !getTeamAllowIngest(ctx, t, teamID) {
-			t.Error("allow_ingest should be true after checkout")
-		}
-		if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
-			t.Errorf("ingest_blocked_reason = %q, want nil", *reason)
-		}
-	})
-
-	t.Run("customer.subscription.deleted downgrades team", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-		setStripeConfig(t, "", "whsec_test")
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "webhook-team", true)
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_to_delete"))
-		seedApp(ctx, t, appID, teamID, 180)
-
-		raw, _ := json.Marshal(map[string]any{"id": "sub_to_delete"})
-		mockConstructWebhookEvent(t, func([]byte, string, string) (stripe.Event, error) {
-			return stripe.Event{
-				Type: "customer.subscription.deleted",
-				Data: &stripe.EventData{Raw: raw},
-			}, nil
-		})
-
-		c, w := newTestGinContext("POST", "/stripe/webhook", bytes.NewReader([]byte(`{}`)))
-		c.Request.Header.Set("Stripe-Signature", "test_sig")
-
-		HandleStripeWebhook(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "received", true)
-
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "free" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "free")
-		}
-		if bc.StripeSubscriptionID != nil {
-			t.Errorf("stripe_subscription_id = %v, want nil", *bc.StripeSubscriptionID)
-		}
-		if r := getAppRetention(ctx, t, appID); r != FREE_PLAN_MAX_RETENTION_DAYS {
-			t.Errorf("app retention = %d, want %d", r, FREE_PLAN_MAX_RETENTION_DAYS)
-		}
-		// ProcessDowngrade updates ingest status based on usage (0 in test = under limit)
-		if !getTeamAllowIngest(ctx, t, teamID) {
-			t.Error("allow_ingest should be true after downgrade with no usage")
-		}
-		if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
-			t.Errorf("ingest_blocked_reason = %q, want nil", *reason)
-		}
-	})
-
-	t.Run("customer.subscription.updated canceled downgrades team", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-		setStripeConfig(t, "", "whsec_test")
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "webhook-team", true)
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_to_cancel"))
-		seedApp(ctx, t, appID, teamID, 180)
-
-		raw, _ := json.Marshal(map[string]any{"id": "sub_to_cancel", "status": "canceled"})
-		mockConstructWebhookEvent(t, func([]byte, string, string) (stripe.Event, error) {
-			return stripe.Event{
-				Type: "customer.subscription.updated",
-				Data: &stripe.EventData{Raw: raw},
-			}, nil
-		})
-
-		c, w := newTestGinContext("POST", "/stripe/webhook", bytes.NewReader([]byte(`{}`)))
-		c.Request.Header.Set("Stripe-Signature", "test_sig")
-
-		HandleStripeWebhook(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
-		}
-		wantJSON(t, w, "received", true)
-
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "free" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "free")
-		}
-		if bc.StripeSubscriptionID != nil {
-			t.Errorf("stripe_subscription_id = %v, want nil", *bc.StripeSubscriptionID)
-		}
-		if r := getAppRetention(ctx, t, appID); r != FREE_PLAN_MAX_RETENTION_DAYS {
-			t.Errorf("app retention = %d, want %d", r, FREE_PLAN_MAX_RETENTION_DAYS)
-		}
-		// ProcessDowngrade updates ingest status based on usage (0 in test = under limit)
-		if !getTeamAllowIngest(ctx, t, teamID) {
-			t.Error("allow_ingest should be true after downgrade with no usage")
-		}
-		if reason := getTeamIngestBlockedReason(ctx, t, teamID); reason != nil {
-			t.Errorf("ingest_blocked_reason = %q, want nil", *reason)
-		}
-	})
-
-	t.Run("customer.subscription.updated active no change", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-		setStripeConfig(t, "", "whsec_test")
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "webhook-team", true)
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_active"))
-		seedApp(ctx, t, appID, teamID, 180)
-
-		raw, _ := json.Marshal(map[string]any{"id": "sub_active", "status": "active"})
-		mockConstructWebhookEvent(t, func([]byte, string, string) (stripe.Event, error) {
-			return stripe.Event{
-				Type: "customer.subscription.updated",
-				Data: &stripe.EventData{Raw: raw},
-			}, nil
-		})
-
-		c, w := newTestGinContext("POST", "/stripe/webhook", bytes.NewReader([]byte(`{}`)))
-		c.Request.Header.Set("Stripe-Signature", "test_sig")
-
-		HandleStripeWebhook(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
-		}
-		wantJSON(t, w, "received", true)
-
-		// Active subscription should leave everything unchanged.
-		bc := getTeamBilling(ctx, t, teamID)
-		if bc.Plan != "pro" {
-			t.Errorf("plan = %q, want %q", bc.Plan, "pro")
-		}
-		if bc.StripeSubscriptionID == nil || *bc.StripeSubscriptionID != "sub_active" {
-			t.Errorf("stripe_subscription_id = %v, want %q (unchanged)", bc.StripeSubscriptionID, "sub_active")
-		}
-		if r := getAppRetention(ctx, t, appID); r != 180 {
-			t.Errorf("app retention = %d, want %d (unchanged)", r, 180)
-		}
-	})
-}
-
-// --------------------------------------------------------------------------
-// Handler: GetBillingUsageThreshold
-// --------------------------------------------------------------------------
-
-func TestGetBillingUsageThreshold(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		orig := server.Server.Config.BillingEnabled
-		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
-
-		c, w := newTestGinContext("GET", "/teams/test/billing/usageThreshold", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+uuid.New().String()+"/billing/undo-downgrade", nil)
 		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
-		GetBillingUsageThreshold(c)
-
+		UndoDowngradeToFreePlan(c)
 		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+			t.Fatalf("status = %d, want 404", w.Code)
 		}
-		wantJSON(t, w, "error", "billing is not enabled")
 	})
 
-	t.Run("invalid team uuid", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("no customer → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 
-		c, w := newTestGinContext("GET", "/teams/bad-id/billing/usageThreshold", nil)
-		c.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
+		}
+	})
 
-		GetBillingUsageThreshold(c)
+	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		dead, cancel := context.WithCancel(context.Background())
+		cancel()
+		c.Request = c.Request.WithContext(dead)
+
+		UndoDowngradeToFreePlan(c)
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", w.Code)
+		}
+	})
+
+	// mockProWithPendingCancel returns a customer object that satisfies the
+	// uncancel pre-check (active Pro sub with canceled_at set).
+	mockProWithPendingCancel := func() *autumn.Customer {
+		return &autumn.Customer{
+			ID: "cust_pro",
+			Subscriptions: []autumn.Subscription{{
+				PlanID:     autumnPlanPro,
+				Status:     "active",
+				CanceledAt: 1700100000 * 1000,
+			}},
+		}
+	}
+
+	t.Run("happy path uncancels the Pro subscription", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return mockProWithPendingCancel(), nil
+		})
+		var gotReq autumn.UpdateRequest
+		autumntest.MockUpdate(t, func(_ context.Context, req autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			gotReq = req
+			return &autumn.UpdateResponse{CustomerID: req.CustomerID}, nil
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if gotReq.PlanID != autumnPlanPro {
+			t.Errorf("plan = %q, want %q", gotReq.PlanID, autumnPlanPro)
+		}
+		if gotReq.CancelAction != autumn.Uncancel {
+			t.Errorf("cancel_action = %q, want %q", gotReq.CancelAction, autumn.Uncancel)
+		}
+		if gotReq.CustomerID != "cust_pro" {
+			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, "cust_pro")
+		}
+	})
+
+	t.Run("autumn update failure → 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return mockProWithPendingCancel(), nil
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			return nil, errors.New("boom")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", w.Code)
+		}
+	})
+
+	t.Run("no cancellation pending → 400", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		// Active Pro but canceled_at is zero — nothing to undo.
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_pro",
+				Subscriptions: []autumn.Subscription{{
+					PlanID: autumnPlanPro,
+					Status: "active",
+				}},
+			}, nil
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when nothing is scheduled")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
 
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		wantJSONContains(t, w, "error", "team id invalid or missing")
 	})
 
-	t.Run("no team membership", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("on Free plan → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testNoAuthEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_pro",
+				Subscriptions: []autumn.Subscription{{
+					PlanID: autumnPlanFree,
+					Status: "active",
+				}},
+			}, nil
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when on Free")
+			return nil, errors.New("unexpected")
+		})
 
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
-		}
-		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
-	})
-
-	t.Run("viewer can read", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("developer can read", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("admin can read", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("owner can read", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("no billing config", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		// no seedTeamBilling — team_billing row is absent
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
-		}
-		wantJSONContains(t, w, "error", "team billing not found")
-	})
-
-	t.Run("pro plan returns threshold 0", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_pro"))
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 6_442_450_944)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("free plan usage below 75% returns threshold 0", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 3_972_844_748)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(0))
-	})
-
-	t.Run("free plan 75% usage returns threshold 75", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_026_531_840)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(75))
-	})
-
-	t.Run("free plan 90% usage returns threshold 90", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 4_831_838_208)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(90))
-	})
-
-	t.Run("free plan 100% usage returns threshold 100", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-		seedCurrentMonthIngestionUsage(ctx, t, teamID.String(), 5_368_709_120)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/usageThreshold", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetBillingUsageThreshold(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-		wantJSON(t, w, "threshold", float64(100))
-	})
-}
-
-// --------------------------------------------------------------------------
-// Handler: GetSubscriptionInfo
-// --------------------------------------------------------------------------
-
-func TestGetSubscriptionInfo(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		orig := server.Server.Config.BillingEnabled
-		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
-
-		c, w := newTestGinContext("GET", "/teams/test/billing/subscriptionInfo", nil)
-		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
-		}
-		wantJSON(t, w, "error", "billing is not enabled")
-	})
-
-	t.Run("no team membership", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testNoAuthEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
-		}
-		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
-	})
-
-	t.Run("viewer forbidden", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_viewer"), strPtr("sub_viewer"))
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
-		}
-	})
-
-	t.Run("developer forbidden", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_dev"), strPtr("sub_dev"))
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
-		}
-	})
-
-	t.Run("no billing config", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
-		}
-		wantJSONContains(t, w, "error", "team billing not found")
-	})
-
-	t.Run("free plan", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
+		UndoDowngradeToFreePlan(c)
 
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
-		}
-		wantJSONContains(t, w, "error", "not on pro plan")
-	})
-
-	t.Run("admin authorized success", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		origMeterName := server.Server.Config.StripeMeterName
-		server.Server.Config.StripeMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_admin"), strPtr("sub_admin"))
-
-		origSub := billing.GetStripeSubscriptionFn
-		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
-			return &stripe.Subscription{
-				ID:     "sub_admin",
-				Status: stripe.SubscriptionStatusActive,
-				Items: &stripe.SubscriptionItemList{
-					Data: []*stripe.SubscriptionItem{
-						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
-					},
-				},
-			}, nil
-		}
-		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
-
-		origInv := billing.CreateInvoicePreviewFn
-		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
-			return &stripe.Invoice{
-				AmountDue: 5000,
-				Currency:  stripe.CurrencyUSD,
-			}, nil
-		}
-		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
-
-		origMeterID := billing.FindMeterIDFn
-		billing.FindMeterIDFn = func(meterName string) (string, error) {
-			return "mtr_test", nil
-		}
-		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
-
-		origUsage := billing.GetMeterUsageFn
-		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
-			return 12000000, nil
-		}
-		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-
-		var result billing.SubscriptionInfo
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.Status != string(stripe.SubscriptionStatusActive) {
-			t.Errorf("status = %q, want %q", result.Status, stripe.SubscriptionStatusActive)
-		}
-		if result.UpcomingInvoice == nil {
-			t.Fatal("expected UpcomingInvoice to be non-nil")
-		}
-		if result.UpcomingInvoice.AmountDue != 5000 {
-			t.Errorf("amount_due = %d, want 5000", result.UpcomingInvoice.AmountDue)
-		}
-		if result.BillingCycleUsage != 12000000 {
-			t.Errorf("billing_cycle_usage = %f, want 12000000", result.BillingCycleUsage)
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
 	})
 
-	t.Run("owner authorized success", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn unreachable on pre-check → 503", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		origMeterName := server.Server.Config.StripeMeterName
-		server.Server.Config.StripeMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 503, Body: "unavailable"}
+		})
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_owner"), strPtr("sub_owner"))
-
-		origSub := billing.GetStripeSubscriptionFn
-		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
-			return &stripe.Subscription{
-				ID:     "sub_owner",
-				Status: stripe.SubscriptionStatusActive,
-				Items: &stripe.SubscriptionItemList{
-					Data: []*stripe.SubscriptionItem{
-						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
-					},
-				},
-			}, nil
-		}
-		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
-
-		origInv := billing.CreateInvoicePreviewFn
-		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
-			return &stripe.Invoice{
-				AmountDue: 7500,
-				Currency:  stripe.CurrencyUSD,
-			}, nil
-		}
-		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
-
-		origMeterID := billing.FindMeterIDFn
-		billing.FindMeterIDFn = func(meterName string) (string, error) {
-			return "mtr_test", nil
-		}
-		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
-
-		origUsage := billing.GetMeterUsageFn
-		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
-			return 7500000, nil
-		}
-		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
 
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-
-		var result billing.SubscriptionInfo
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.Status != string(stripe.SubscriptionStatusActive) {
-			t.Errorf("status = %q, want %q", result.Status, stripe.SubscriptionStatusActive)
-		}
-		if result.UpcomingInvoice == nil {
-			t.Fatal("expected UpcomingInvoice to be non-nil")
-		}
-		if result.UpcomingInvoice.AmountDue != 7500 {
-			t.Errorf("amount_due = %d, want 7500", result.UpcomingInvoice.AmountDue)
-		}
-		if result.BillingCycleUsage != 7500000 {
-			t.Errorf("billing_cycle_usage = %f, want 7500000", result.BillingCycleUsage)
+		if w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503", w.Code)
 		}
 	})
 
-	t.Run("handler returns zero usage when no meter configured", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn 4xx on pre-check → 400 (no Update attempted)", func(t *testing.T) {
+		// 4xx from GetCustomer means a state mismatch (e.g. customer record
+		// missing in Autumn). Surface it as 400 so the user knows retrying
+		// won't help, instead of masking it as a 503 transient outage.
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		// Clear meter name config
-		origMeterName := server.Server.Config.StripeMeterName
-		server.Server.Config.StripeMeterName = ""
-		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 404, Body: "customer not found"}
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when GetCustomer pre-check returned 4xx")
+			return nil, errors.New("unexpected")
+		})
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
-
-		origSub := billing.GetStripeSubscriptionFn
-		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
-			return &stripe.Subscription{
-				ID:     "sub_test",
-				Status: stripe.SubscriptionStatusActive,
-				Items: &stripe.SubscriptionItemList{
-					Data: []*stripe.SubscriptionItem{
-						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
-					},
-				},
-			}, nil
-		}
-		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
-
-		origInv := billing.CreateInvoicePreviewFn
-		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
-			return &stripe.Invoice{AmountDue: 5000, Currency: stripe.CurrencyUSD}, nil
-		}
-		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
 
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-
-		var result billing.SubscriptionInfo
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.BillingCycleUsage != 0 {
-			t.Errorf("billing_cycle_usage = %f, want 0", result.BillingCycleUsage)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
 	})
 
-	t.Run("handler returns billing_cycle_usage with overage", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("non-owner → 403", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "viewer")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		origMeterName := server.Server.Config.StripeMeterName
-		server.Server.Config.StripeMeterName = "test_meter"
-		t.Cleanup(func() { server.Server.Config.StripeMeterName = origMeterName })
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_over"), strPtr("sub_over"))
-
-		origSub := billing.GetStripeSubscriptionFn
-		billing.GetStripeSubscriptionFn = func(id string, params *stripe.SubscriptionParams) (*stripe.Subscription, error) {
-			return &stripe.Subscription{
-				ID:     "sub_over",
-				Status: stripe.SubscriptionStatusActive,
-				Items: &stripe.SubscriptionItemList{
-					Data: []*stripe.SubscriptionItem{
-						{CurrentPeriodStart: 1700000000, CurrentPeriodEnd: 1702678400},
-					},
-				},
-			}, nil
-		}
-		t.Cleanup(func() { billing.GetStripeSubscriptionFn = origSub })
-
-		origInv := billing.CreateInvoicePreviewFn
-		billing.CreateInvoicePreviewFn = func(params *stripe.InvoiceCreatePreviewParams) (*stripe.Invoice, error) {
-			return &stripe.Invoice{AmountDue: 15000, Currency: stripe.CurrencyUSD}, nil
-		}
-		t.Cleanup(func() { billing.CreateInvoicePreviewFn = origInv })
-
-		origMeterID := billing.FindMeterIDFn
-		billing.FindMeterIDFn = func(meterName string) (string, error) {
-			return "mtr_test", nil
-		}
-		t.Cleanup(func() { billing.FindMeterIDFn = origMeterID })
-
-		// Simulate usage exceeding included units (25M)
-		origUsage := billing.GetMeterUsageFn
-		billing.GetMeterUsageFn = func(meterID, customerID string, start, end int64) (float64, error) {
-			return 30000000, nil
-		}
-		t.Cleanup(func() { billing.GetMeterUsageFn = origUsage })
-
-		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/subscriptionInfo", nil)
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		UndoDowngradeToFreePlan(c)
 
-		GetSubscriptionInfo(c)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
-		}
-
-		var result billing.SubscriptionInfo
-		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if result.BillingCycleUsage != 30000000 {
-			t.Errorf("billing_cycle_usage = %f, want 30000000", result.BillingCycleUsage)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403", w.Code)
 		}
 	})
 }
 
 // --------------------------------------------------------------------------
-// Handler: CreateCustomerPortalSession
+// CreateCustomerPortalSession
 // --------------------------------------------------------------------------
 
 func TestCreateCustomerPortalSession(t *testing.T) {
-	t.Run("billing disabled", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
+	ctx := context.Background()
 
+	body := func(ret string) *bytes.Buffer {
+		b, _ := json.Marshal(map[string]string{"return_url": ret})
+		return bytes.NewBuffer(b)
+	}
+
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
 		orig := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = false
-		defer func() { server.Server.Config.BillingEnabled = orig }()
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
 
-		c, w := newTestGinContext("POST", "/teams/test/billing/portal", nil)
+		c, w := newTestGinContext("POST", "/teams/"+uuid.New().String()+"/billing/portal", body("https://r"))
 		c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-
 		CreateCustomerPortalSession(c)
-
 		if w.Code != http.StatusNotFound {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+			t.Fatalf("status = %d, want 404", w.Code)
 		}
-		wantJSON(t, w, "error", "billing is not enabled")
 	})
 
-	t.Run("invalid team id", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("missing return_url → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		c, w := newTestGinContext("POST", "/teams/bad-id/billing/portal", nil)
-		c.Set("userId", uuid.New().String())
-		c.Params = gin.Params{{Key: "id", Value: "bad-id"}}
-
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body(""))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
 		CreateCustomerPortalSession(c)
-
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		wantJSONContains(t, w, "error", "team id invalid")
 	})
 
-	t.Run("viewer forbidden", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testViewerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "viewer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body("https://r"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		dead, cancel := context.WithCancel(context.Background())
+		cancel()
+		c.Request = c.Request.WithContext(dead)
 
 		CreateCustomerPortalSession(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", w.Code)
 		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
 	})
 
-	t.Run("developer forbidden", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("autumn 5xx on portal open → 503", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testDeveloperEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "developer")
-
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		if w.Code != http.StatusForbidden {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusForbidden)
-		}
-		wantJSONContains(t, w, "error", "you don't have permissions")
-	})
-
-	t.Run("admin authorized", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testAdminEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "admin")
-
-		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		// 400 (not 403) proves the admin passed authz.
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d (admin should pass authz)", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "invalid request body")
-	})
-
-	t.Run("owner authorized", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-
-		// Send nil body — handler gets past authz and fails at ShouldBindJSON.
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", nil)
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		// 400 (not 403) proves the owner passed authz.
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d (owner should pass authz)", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "invalid request body")
-	})
-
-	t.Run("missing return_url", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-
-		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: ""})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "return_url is required")
-	})
-
-	t.Run("team not on pro plan", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "free", nil, nil)
-
-		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "team is not on pro plan")
-	})
-
-	t.Run("no stripe customer", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", nil, strPtr("sub_test"))
-
-		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
-		c.Set("userId", userID)
-		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
-		CreateCustomerPortalSession(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
-		}
-		wantJSON(t, w, "error", "team has no stripe customer")
-	})
-
-	t.Run("stripe portal error", func(t *testing.T) {
-		ctx := context.Background()
-		defer cleanupAll(ctx, t)
-
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_test"), strPtr("sub_test"))
-
-		mockCreateBillingPortalSession(t, func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
-			return nil, errors.New("stripe unavailable")
+		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, _, _ string) (string, error) {
+			return "", &autumn.APIError{StatusCode: 503, Body: "unavailable"}
 		})
 
-		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body("https://r"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		CreateCustomerPortalSession(c)
 
+		if w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503", w.Code)
+		}
+	})
+
+	t.Run("autumn 4xx on portal open → 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+
+		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, _, _ string) (string, error) {
+			return "", &autumn.APIError{StatusCode: 400, Body: "bad request"}
+		})
+
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body("https://r"))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
 		CreateCustomerPortalSession(c)
 
 		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+			t.Fatalf("status = %d, want 500", w.Code)
 		}
-		wantJSON(t, w, "error", "failed to create customer portal session")
 	})
 
-	t.Run("success", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("happy path returns portal url", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
 
-		userID := uuid.New().String()
-		teamID := uuid.New()
-		seedUser(ctx, t, userID, testOwnerEmail)
-		seedTeam(ctx, t, teamID, testTeamName, true)
-		seedTeamMembership(ctx, t, teamID, userID, "owner")
-		seedTeamBilling(ctx, t, teamID, "pro", strPtr("cus_123"), strPtr("sub_123"))
-
-		mockCreateBillingPortalSession(t, func(params *stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error) {
-			if *params.Customer != "cus_123" {
-				t.Errorf("customer = %q, want %q", *params.Customer, "cus_123")
+		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, cid, ret string) (string, error) {
+			if cid != "cust_pro" {
+				t.Errorf("customerID = %q", cid)
 			}
-			if *params.ReturnURL != "https://example.com/usage" {
-				t.Errorf("return_url = %q, want %q", *params.ReturnURL, "https://example.com/usage")
+			if ret != "https://r" {
+				t.Errorf("return = %q", ret)
 			}
-			return &stripe.BillingPortalSession{URL: "https://billing.stripe.com/session/test"}, nil
+			return "https://portal.example", nil
 		})
 
-		body, _ := json.Marshal(CreateCustomerPortalSessionRequest{ReturnURL: "https://example.com/usage"})
-		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", bytes.NewReader(body))
+		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body("https://r"))
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
-
 		CreateCustomerPortalSession(c)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
-		wantJSON(t, w, "url", "https://billing.stripe.com/session/test")
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["url"] != "https://portal.example" {
+			t.Errorf("url = %v", got["url"])
+		}
 	})
+}
+
+// --------------------------------------------------------------------------
+// HandleAutumnWebhook
+// --------------------------------------------------------------------------
+
+func TestHandleAutumnWebhook(t *testing.T) {
+	ctx := context.Background()
+	const secret = "whsec_C2FVsBQIhrscChlQIMV+b5sSYspob7oD"
+
+	webhookReq := func(payload []byte, headers http.Header) (*gin.Context, *httptest.ResponseRecorder) {
+		c, w := newTestGinContext("POST", "/autumn/webhook", bytes.NewBuffer(payload))
+		for k, v := range headers {
+			c.Request.Header[k] = v
+		}
+		return c, w
+	}
+
+	t.Run("billing disabled → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
+
+		c, w := webhookReq([]byte(`{}`), nil)
+		HandleAutumnWebhook(c)
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("status = %d", w.Code)
+		}
+	})
+
+	t.Run("missing secret → 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, "")
+
+		c, w := webhookReq([]byte(`{}`), nil)
+		HandleAutumnWebhook(c)
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d", w.Code)
+		}
+	})
+
+	t.Run("invalid signature → 400", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		h := http.Header{}
+		h.Set("svix-id", "msg_1")
+		h.Set("svix-timestamp", strconv.FormatInt(time.Now().Unix(), 10))
+		h.Set("svix-signature", "v1,invalid")
+
+		c, w := webhookReq([]byte(`{}`), h)
+		HandleAutumnWebhook(c)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d", w.Code)
+		}
+	})
+
+	t.Run("customer.products.updated:upgrade to Pro resets retention to value from retention_days feature", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, MIN_RETENTION_DAYS)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_up")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_up",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_up"},"updated_product":{"id":%q}}}`,
+			autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_upgrade", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after upgrade = %d, want 90", got)
+		}
+	})
+
+	t.Run("customer.products.updated:upgrade to Enterprise reads retention from feature entitlement", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, MIN_RETENTION_DAYS)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_ent",
+				Products: []autumn.CustomerProduct{{ID: "plan_ent_acme"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 240},
+				},
+			}, nil
+		})
+
+		payload := []byte(`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_ent"},"updated_product":{"id":"plan_ent_acme"}}}`)
+		headers := signSvixWebhook(t, secret, "msg_ent_up", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 240 {
+			t.Errorf("retention after Enterprise upgrade = %d, want 240", got)
+		}
+	})
+
+	t.Run("customer.products.updated:upgrade with Autumn unreachable leaves retention unchanged, returns 200", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 180) // value the failed lookup must not clobber
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent_err")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, fmt.Errorf("autumn unreachable")
+		})
+
+		payload := []byte(`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_ent_err"},"updated_product":{"id":"plan_ent_whatever"}}}`)
+		headers := signSvixWebhook(t, secret, "msg_ent_err", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		// Log-and-ack (returning non-2xx would make Svix retry and resend the
+		// upgrade email). Drift is fixed manually if this ever happens.
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 180 {
+			t.Errorf("retention after failed lookup = %d, want 180 (unchanged)", got)
+		}
+	})
+
+	t.Run("customer.products.updated:downgrade to Free resets retention to 30d", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 180)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_down")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_down",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":"cust_down"},"updated_product":{"id":%q}}}`,
+			autumnPlanFree,
+		))
+		headers := signSvixWebhook(t, secret, "msg_down", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+
+		if got := getAppRetention(ctx, t, appID); got != MIN_RETENTION_DAYS {
+			t.Errorf("retention = %d, want %d", got, MIN_RETENTION_DAYS)
+		}
+	})
+
+	t.Run("customer.products.updated:downgrade to Pro resets retention to 90d", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		// Simulate an app that had an Enterprise 365d retention.
+		seedApp(ctx, t, appID, teamID, 365)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent_to_pro")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       "cust_ent_to_pro",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":"cust_ent_to_pro"},"updated_product":{"id":%q}}}`,
+			autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_ent_to_pro", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention = %d, want 90", got)
+		}
+	})
+
+	t.Run("customer.products.updated:new with measure_free is a no-op (auto-attach during team creation)", func(t *testing.T) {
+		// Free is auto-attached for every new cloud team, firing scenario=new.
+		// We must NOT send "Upgraded to Pro" emails on signup, and there are
+		// no apps yet to reset retention on.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_new_free")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			t.Errorf("autumn.GetCustomer must not be called for scenario=new+measure_free")
+			return nil, errors.New("unexpected")
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"new","customer":{"id":"cust_new_free"},"updated_product":{"id":%q}}}`,
+			autumnPlanFree,
+		))
+		headers := signSvixWebhook(t, secret, "msg_new_free", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after new+free = %d, want 90 (unchanged)", got)
+		}
+	})
+
+	t.Run("customer.products.updated:expired (end-of-cycle cancellation took effect) resets retention to Free", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90) // was on Pro
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_exp")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			// After Pro expires, Autumn auto-activates the is_default Free plan.
+			return &autumn.Customer{
+				ID:       "cust_exp",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"expired","customer":{"id":"cust_exp"},"updated_product":{"id":%q}}}`,
+			autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_expired", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != MIN_RETENTION_DAYS {
+			t.Errorf("retention after Pro expired = %d, want %d", got, MIN_RETENTION_DAYS)
+		}
+	})
+
+	t.Run("customer.products.updated:cancel with Pro still active is a no-op (end-of-cycle cancel scheduled)", func(t *testing.T) {
+		// scenario=cancel fires immediately when a user clicks Downgrade and
+		// schedules end-of-cycle cancellation. Pro is still active, no plan
+		// transition has occurred — so we must not reset retention or send
+		// a downgrade email here. The real transition fires expired later.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_cancel")
+
+		// Returning Free retention here would trip the test — if the handler
+		// (mistakenly) called resetAppsRetention, the app would drop to 30d.
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_cancel",
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		// products[] still includes Pro with status=active → cancel is a no-op.
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":"cust_cancel","products":[{"id":%q,"status":"active"},{"id":%q,"status":"scheduled"}]},"updated_product":{"id":%q}}}`,
+			autumnPlanPro, autumnPlanFree, autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_cancel", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after cancel = %d, want 90 (unchanged — Pro still active)", got)
+		}
+	})
+
+	t.Run("customer.products.updated:cancel with Pro NO LONGER active is treated as a real downgrade", func(t *testing.T) {
+		// Defensive: covers the Stripe-portal "Cancel plan" path. If Pro is
+		// gone from the customer state when we receive scenario=cancel, the
+		// cancellation took effect immediately — reset retention + email.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_cancel_now")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			// Customer is now on Free post-cancel.
+			return &autumn.Customer{
+				ID:       "cust_cancel_now",
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree, Status: "active"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		// products[] does NOT include Pro as active anymore.
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":"cust_cancel_now","products":[{"id":%q,"status":"active"}]},"updated_product":{"id":%q}}}`,
+			autumnPlanFree, autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_cancel_now", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != MIN_RETENTION_DAYS {
+			t.Errorf("retention after immediate cancel = %d, want %d", got, MIN_RETENTION_DAYS)
+		}
+	})
+
+	t.Run("customer.products.updated:renew is a no-op (uncancel or routine renewal)", func(t *testing.T) {
+		// scenario=renew fires on uncancel and on routine cycle-boundary
+		// renewal. Plan is unchanged in both cases — no email or retention
+		// reset.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_renew")
+
+		// Wrong-value retention proof: if the handler called
+		// resetAppsRetention, the app would drop to this 30d value.
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: "cust_renew",
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"renew","customer":{"id":"cust_renew"},"updated_product":{"id":%q}}}`,
+			autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_renew", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after renew = %d, want 90 (unchanged)", got)
+		}
+	})
+
+	t.Run("customer.products.updated:past_due is a no-op", func(t *testing.T) {
+		// past_due fires when a renewal payment fails. Ingest gating is
+		// driven by autumn.Check; we don't reset retention or notify here.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pd")
+
+		// Should never be called for past_due.
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			t.Errorf("autumn.GetCustomer must not be called for past_due")
+			return nil, errors.New("unexpected")
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"past_due","customer":{"id":"cust_pd"},"updated_product":{"id":%q}}}`,
+			autumnPlanPro,
+		))
+		headers := signSvixWebhook(t, secret, "msg_pd", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after past_due = %d, want 90 (unchanged)", got)
+		}
+	})
+
+	t.Run("balances.limit_reached → 200", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_limit")
+
+		payload := []byte(`{"type":"balances.limit_reached","data":{"customer_id":"cust_limit","feature_id":"bytes","limit_type":"included"}}`)
+		headers := signSvixWebhook(t, secret, "msg_limit", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("balances.usage_alert_triggered → 200", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, "cust_alert")
+
+		payload := []byte(`{"type":"balances.usage_alert_triggered","data":{"customer_id":"cust_alert","feature_id":"bytes","usage_alert":{"name":"75","threshold":75,"threshold_type":"usage_percentage"}}}`)
+		headers := signSvixWebhook(t, secret, "msg_alert", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("signed but malformed data payload → 200 without crash", func(t *testing.T) {
+		// A well-signed event whose data section doesn't match our expected
+		// shape should be handled gracefully (logged + skipped).
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		payload := []byte(`{"type":"customer.products.updated","data":{"scenario":"garbage","customer":null}}`)
+		headers := signSvixWebhook(t, secret, "msg_malformed", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("signed but unknown event type → 200 (ignored)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		payload := []byte(`{"type":"some.future.event","data":{}}`)
+		headers := signSvixWebhook(t, secret, "msg_unknown", payload)
+		c, w := webhookReq(payload, headers)
+		HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+// --------------------------------------------------------------------------
+// ProvisionAutumnCustomer (team-create path)
+// --------------------------------------------------------------------------
+
+func TestProvisionAutumnCustomer(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("billing disabled → no-op", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		orig := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = false
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = orig })
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+
+		tx, err := server.Server.PgPool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin tx: %v", err)
+		}
+		defer tx.Rollback(ctx)
+
+		id, err := ProvisionAutumnCustomer(ctx, tx, teamID, "name", "email@x.com")
+		if err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+		if id != "" {
+			t.Errorf("want empty id when billing disabled, got %q", id)
+		}
+	})
+
+	t.Run("happy path creates + attaches + persists", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+
+		var gotCreate, gotAttach bool
+		autumntest.MockGetOrCreateCustomer(t, func(_ context.Context, id, email, name string) (*autumn.Customer, error) {
+			gotCreate = true
+			if id != teamID.String() {
+				t.Errorf("customer id = %q, want %s", id, teamID)
+			}
+			return &autumn.Customer{ID: "cust_new"}, nil
+		})
+		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			gotAttach = true
+			if req.CustomerID != "cust_new" || req.PlanID != autumnPlanFree {
+				t.Errorf("attach args unexpected: %+v", req)
+			}
+			return &autumn.AttachResponse{CustomerID: req.CustomerID}, nil
+		})
+
+		tx, err := server.Server.PgPool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin tx: %v", err)
+		}
+
+		id, err := ProvisionAutumnCustomer(ctx, tx, teamID, "test-team", "owner@x.com")
+		if err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+		if id != "cust_new" {
+			t.Errorf("id = %q", id)
+		}
+		if !gotCreate || !gotAttach {
+			t.Errorf("create=%v attach=%v; want both true", gotCreate, gotAttach)
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		if saved := getTeamAutumnCustomerID(ctx, t, teamID); saved == nil || *saved != "cust_new" {
+			t.Errorf("saved = %v, want cust_new", saved)
+		}
+	})
+
+	t.Run("autumn failure rolls back team creation", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+
+		autumntest.MockGetOrCreateCustomer(t, func(_ context.Context, _, _, _ string) (*autumn.Customer, error) {
+			return nil, errors.New("autumn is down")
+		})
+
+		tx, err := server.Server.PgPool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin tx: %v", err)
+		}
+
+		if _, err := ProvisionAutumnCustomer(ctx, tx, teamID, "test-team", "owner@x.com"); err == nil {
+			t.Fatal("expected error, got nil")
+			tx.Rollback(ctx)
+		} else {
+			tx.Rollback(ctx)
+		}
+
+		if saved := getTeamAutumnCustomerID(ctx, t, teamID); saved != nil {
+			t.Errorf("autumn_customer_id should be nil after rollback, got %v", *saved)
+		}
+	})
+}
+
+// --------------------------------------------------------------------------
+// Team.create — billing-related guards
+// --------------------------------------------------------------------------
+
+func TestTeamCreateEmptyOwnerEmail(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("billing enabled + owner has empty email → error, no autumn provisioning", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		userID := uuid.New().String()
+		seedUser(ctx, t, userID, "")
+
+		autumntest.MockGetOrCreateCustomer(t, func(_ context.Context, _, _, _ string) (*autumn.Customer, error) {
+			t.Errorf("autumn.GetOrCreateCustomer must not be called when owner has no email")
+			return nil, errors.New("unexpected")
+		})
+		autumntest.MockAttach(t, func(_ context.Context, _ autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			t.Errorf("autumn.Attach must not be called when owner has no email")
+			return nil, errors.New("unexpected")
+		})
+
+		tx, err := server.Server.PgPool.Begin(ctx)
+		if err != nil {
+			t.Fatalf("begin tx: %v", err)
+		}
+		defer tx.Rollback(ctx)
+
+		teamName := "test-team"
+		team := &Team{Name: &teamName}
+		u := &User{ID: &userID}
+
+		err = team.create(ctx, u, &tx)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errContains(err, "email") {
+			t.Errorf("expected email-related error, got: %v", err)
+		}
+	})
+}
+
+func errContains(err error, s string) bool {
+	return err != nil && strings.Contains(err.Error(), s)
 }

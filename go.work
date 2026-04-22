@@ -3,13 +3,12 @@ go 1.25.7
 use (
 	./backend/alerts
 	./backend/api
-	./backend/billing
+	./backend/autumn
 	./backend/cleanup
 	./backend/email
 	./backend/ingest
 	./backend/ingest-worker
 	./backend/libs
-	./backend/metering
 	./backend/migrator
 	./backend/symboloader
 	./backend/testinfra

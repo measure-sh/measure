@@ -3,7 +3,6 @@ import {
   useAppRetentionQuery,
   useAppThresholdPrefsQuery,
   useAuthzAndMembersQuery,
-  useBillingInfoQuery,
   useChangeAppApiKeyMutation,
   useChangeAppNameMutation,
   useSdkConfigQuery,
@@ -38,7 +37,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const { data: appRetention, status: appRetentionStatus } = useAppRetentionQuery(appId)
   const { data: sdkConfig, status: sdkConfigStatus } = useSdkConfigQuery(appId)
   const { data: thresholdPrefs, status: thresholdPrefsStatus } = useAppThresholdPrefsQuery(appId)
-  const { data: billingInfo } = useBillingInfoQuery(params.teamId)
 
   // TanStack Query: mutations
   const updateRetentionMutation = useUpdateAppRetentionMutation()
@@ -53,9 +51,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const canRotateApiKey = authzAndMembers?.can_rotate_api_key === true
   const canWriteSdkConfig = authzAndMembers?.can_write_sdk_config === true
   const canChangeAppThresholdPrefs = authzAndMembers?.can_change_app_threshold_prefs === true
-
-  // Derive retention change allowed from billing info
-  const retentionChangeAllowed = !isCloud() || (billingInfo?.plan !== undefined && billingInfo.plan !== 'free')
 
   // Derive page load status from query statuses
   const pageDataLoading = filters.loading || (filters.ready && (appRetentionStatus === 'pending' || sdkConfigStatus === 'pending'))
@@ -510,25 +505,29 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 </Button>
               </div>
             }
-            <div className="py-8" />
-            <p className="font-display text-xl max-w-6xl">Configure Data Retention</p>
-            <div className="flex flex-row items-center mt-2">
-              <DropdownSelect
-                disabled={!retentionChangeAllowed || !canChangeRetention}
-                type={DropdownSelectType.SingleString}
-                title="Data Retention Period"
-                items={Array.from(retentionPeriodToDisplayTextMap.values())}
-                initialSelected={retentionPeriodToDisplayTextMap.get((appRetention ?? emptyAppRetention).retention!)!}
-                onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
-              <Button
-                variant="outline"
-                className="m-4"
-                disabled={!retentionChangeAllowed || !canChangeRetention || updateRetentionMutation.isPending || (appRetention ?? emptyAppRetention).retention === currentRetention.retention}
-                loading={updateRetentionMutation.isPending}
-                onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
-                Save
-              </Button>
-            </div>
+            {!isCloud() &&
+              <>
+                <div className="py-8" />
+                <p className="font-display text-xl max-w-6xl">Configure Data Retention</p>
+                <div className="flex flex-row items-center mt-2">
+                  <DropdownSelect
+                    disabled={!canChangeRetention}
+                    type={DropdownSelectType.SingleString}
+                    title="Data Retention Period"
+                    items={Array.from(retentionPeriodToDisplayTextMap.values())}
+                    initialSelected={retentionPeriodToDisplayTextMap.get((appRetention ?? emptyAppRetention).retention!)!}
+                    onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />
+                  <Button
+                    variant="outline"
+                    className="m-4"
+                    disabled={!canChangeRetention || updateRetentionMutation.isPending || (appRetention ?? emptyAppRetention).retention === currentRetention.retention}
+                    loading={updateRetentionMutation.isPending}
+                    onClick={() => setAppRetentionPeriodConfirmationDialogOpen(true)}>
+                    Save
+                  </Button>
+                </div>
+              </>
+            }
             <div className="py-8" />
             <p className="font-display text-xl max-w-6xl">Change App Name</p>
             <div className="flex flex-row items-center mt-2">

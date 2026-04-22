@@ -113,7 +113,7 @@ jobs:
           build-contexts: |
             libs=backend/libs
             email=backend/email
-            billing=backend/billing
+            autumn=backend/autumn
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

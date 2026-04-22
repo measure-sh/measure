@@ -113,7 +113,7 @@ func TestAPIKeyDBOps(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		tx, err := server.Server.PgPool.Begin(ctx)
@@ -147,7 +147,7 @@ func TestAPIKeyDBOps(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		k := "value-last-seen"
@@ -224,7 +224,7 @@ func TestDecodeAPIKey(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		value := "revoked-value"
@@ -255,7 +255,7 @@ func TestDecodeAPIKey(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		value := "active-value"
@@ -294,7 +294,7 @@ func TestRotateAPIKeyMethod(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		app := App{ID: &appID}
@@ -320,7 +320,7 @@ func TestRotateAPIKeyMethod(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		oldValue := "old-active"
@@ -366,7 +366,7 @@ func TestRotateAPIKeyMethod(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		for _, value := range []string{"active-a", "active-b", "active-c"} {
@@ -452,7 +452,7 @@ func TestRotateApiKeyHandler(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		seedUser(ctx, t, userID, "noauth-apikey@test.com")
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		c, w := newTestGinContext(http.MethodPatch, "/apps/"+appID.String()+"/apiKey", nil)
@@ -487,7 +487,7 @@ func TestRotateApiKeyHandler(t *testing.T) {
 				teamID := uuid.New()
 				appID := uuid.New()
 				seedUser(ctx, t, userID, fmt.Sprintf("%s-apikey@test.com", tc.role))
-				seedTeam(ctx, t, teamID, "team", true)
+				seedTeam(ctx, t, teamID, "team")
 				seedTeamMembership(ctx, t, teamID, userID, tc.role)
 				seedApp(ctx, t, appID, teamID, 30)
 
@@ -550,7 +550,7 @@ func TestRotateApiKeyHandler(t *testing.T) {
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 		seedApp(ctx, t, appID, teamID, 30)
 
 		c, w := newTestGinContext(http.MethodPatch, "/apps/"+appID.String()+"/apiKey", nil)

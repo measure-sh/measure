@@ -361,7 +361,7 @@ export enum FetchUsageApiStatus {
   Cancelled,
 }
 
-export enum FetchStripeCheckoutSessionApiStatus {
+export enum FetchCheckoutSessionApiStatus {
   Loading,
   Success,
   Error,
@@ -375,21 +375,14 @@ export enum DowngradeToFreeApiStatus {
   Cancelled,
 }
 
+export enum UndoDowngradeApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum FetchBillingInfoApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchBillingUsageThresholdApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchSubscriptionInfoApiStatus {
   Loading,
   Success,
   Error,
@@ -2712,37 +2705,6 @@ export const fetchBillingInfoFromServer = async (teamId: string) => {
   }
 }
 
-export const fetchSubscriptionInfoFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/subscriptionInfo`)
-
-    if (!res.ok) {
-      return { status: FetchSubscriptionInfoApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
-    return { status: FetchSubscriptionInfoApiStatus.Success, data: data }
-  } catch {
-    return { status: FetchSubscriptionInfoApiStatus.Cancelled, data: null }
-  }
-}
-
-export const fetchBillingUsageThresholdFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/usageThreshold`)
-
-    if (!res.ok) {
-      return { status: FetchBillingUsageThresholdApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
-
-    return { status: FetchBillingUsageThresholdApiStatus.Success, data: data as { threshold: number } }
-  } catch {
-    return { status: FetchBillingUsageThresholdApiStatus.Cancelled, data: null }
-  }
-}
-
 export const fetchUsageFromServer = async (teamId: string) => {
   try {
     const res = await apiClient.fetch(`/api/teams/${teamId}/usage`)
@@ -2763,10 +2725,9 @@ export const fetchUsageFromServer = async (teamId: string) => {
   }
 }
 
-export const fetchStripeCheckoutSessionFromServer = async (
+export const fetchCheckoutSessionFromServer = async (
   teamId: string,
-  successUrl: string,
-  cancelUrl: string
+  successUrl: string
 ) => {
   try {
     const res = await apiClient.fetch(`/api/teams/${teamId}/billing/checkout`, {
@@ -2776,19 +2737,18 @@ export const fetchStripeCheckoutSessionFromServer = async (
       },
       body: JSON.stringify({
         success_url: successUrl,
-        cancel_url: cancelUrl,
       }),
     })
 
     if (!res.ok) {
-      return { status: FetchStripeCheckoutSessionApiStatus.Error, data: null }
+      return { status: FetchCheckoutSessionApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: FetchStripeCheckoutSessionApiStatus.Success, data: data }
+    return { status: FetchCheckoutSessionApiStatus.Success, data: data }
   } catch {
-    return { status: FetchStripeCheckoutSessionApiStatus.Cancelled, data: null }
+    return { status: FetchCheckoutSessionApiStatus.Cancelled, data: null }
   }
 }
 
@@ -2807,6 +2767,24 @@ export const downgradeToFreeFromServer = async (teamId: string) => {
     return { status: DowngradeToFreeApiStatus.Success, data: data }
   } catch {
     return { status: DowngradeToFreeApiStatus.Cancelled, data: null }
+  }
+}
+
+export const undoDowngradeFromServer = async (teamId: string) => {
+  try {
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/undo-downgrade`, {
+      method: 'PATCH',
+    })
+
+    if (!res.ok) {
+      return { status: UndoDowngradeApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: UndoDowngradeApiStatus.Success, data: data }
+  } catch {
+    return { status: UndoDowngradeApiStatus.Cancelled, data: null }
   }
 }
 

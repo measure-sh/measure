@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	backend/autumn v0.0.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.20.0 // indirect
@@ -101,7 +102,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
-	github.com/stripe/stripe-go/v84 v84.4.1 // indirect
+	github.com/svix/svix-webhooks v1.82.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -145,7 +146,7 @@ require (
 
 replace (
 	backend/api => ../../backend/api
-	backend/billing => ../../backend/billing
+	backend/autumn => ../../backend/autumn
 	backend/email => ../../backend/email
 	backend/libs => ../../backend/libs
 )

@@ -341,10 +341,6 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if _, err = pgconn.Exec(ctx, "truncate table billing_metrics_reporting;"); err != nil {
-		return
-	}
-
 	if err = deleteAllObjects(ctx, symbolsBucket, symbolsClient); err != nil {
 		return
 	}

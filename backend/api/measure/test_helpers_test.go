@@ -3,7 +3,7 @@
 package measure
 
 import (
-	"backend/billing"
+	"backend/autumn"
 	"backend/testinfra"
 	"context"
 	"encoding/json"
@@ -19,7 +19,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v84"
 )
 
 // --------------------------------------------------------------------------
@@ -27,6 +26,8 @@ import (
 // --------------------------------------------------------------------------
 
 var th *testinfra.TestHelper
+
+const testTeamName = "test-team"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -40,6 +41,16 @@ func TestMain(m *testing.M) {
 	server.InitForTest(&server.ServerConfig{
 		BillingEnabled: true,
 	}, pgPool, chConn, vk)
+
+	// Default no-op Autumn mocks so tests that incidentally trigger team
+	// creation (e.g. MCP/auth signup flows) don't need their own mocks.
+	// Tests that care about Autumn behavior override these per-test.
+	autumn.GetOrCreateCustomer = func(_ context.Context, id, email, name string) (*autumn.Customer, error) {
+		return &autumn.Customer{ID: "cust_" + id, Email: email, Name: name}, nil
+	}
+	autumn.Attach = func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
+		return &autumn.AttachResponse{CustomerID: req.CustomerID}, nil
+	}
 
 	code := m.Run()
 
@@ -60,8 +71,8 @@ func cleanupAll(ctx context.Context, t *testing.T) {
 	th.CleanupAll(ctx, t)
 }
 
-func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string, allowIngest bool) {
-	th.SeedTeam(ctx, t, teamID.String(), name, allowIngest)
+func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string) {
+	th.SeedTeam(ctx, t, teamID.String(), name)
 }
 
 func seedUser(ctx context.Context, t *testing.T, userID, email string) {
@@ -76,12 +87,8 @@ func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retenti
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), fmt.Sprintf("app-%s", appID.String()[:8]), retention)
 }
 
-func seedTeamBilling(ctx context.Context, t *testing.T, teamID uuid.UUID, plan string, stripeCustomerID, stripeSubscriptionID *string) {
-	th.SeedTeamBilling(ctx, t, teamID.String(), plan, stripeCustomerID, stripeSubscriptionID)
-}
-
-func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, reason string) {
-	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
+func seedTeamAutumnCustomer(ctx context.Context, t *testing.T, teamID uuid.UUID, autumnCustomerID string) {
+	th.SeedTeamAutumnCustomer(ctx, t, teamID.String(), autumnCustomerID)
 }
 
 func seedIngestionUsage(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, events, spans, metrics uint32, bytesIn uint64) {
@@ -178,95 +185,32 @@ func newTestGinContext(method, path string, body io.Reader) (*gin.Context, *http
 }
 
 // --------------------------------------------------------------------------
-// Config helpers
-// --------------------------------------------------------------------------
-
-func setStripeConfig(t *testing.T, priceID, webhookSecret string) {
-	t.Helper()
-	origPrice := server.Server.Config.StripeProPriceID
-	origSecret := server.Server.Config.StripeWebhookSecret
-	server.Server.Config.StripeProPriceID = priceID
-	server.Server.Config.StripeWebhookSecret = webhookSecret
-	t.Cleanup(func() {
-		server.Server.Config.StripeProPriceID = origPrice
-		server.Server.Config.StripeWebhookSecret = origSecret
-	})
-}
-
-// --------------------------------------------------------------------------
-// Stripe mock helpers
-// --------------------------------------------------------------------------
-
-func mockCreateStripeCustomer(t *testing.T, fn func(*stripe.CustomerParams) (*stripe.Customer, error)) {
-	t.Helper()
-	orig := billing.CreateStripeCustomerFn
-	billing.CreateStripeCustomerFn = fn
-	t.Cleanup(func() { billing.CreateStripeCustomerFn = orig })
-}
-
-func mockFindActiveSubscription(t *testing.T, fn func(string) (*stripe.Subscription, error)) {
-	t.Helper()
-	orig := billing.FindActiveSubscriptionFn
-	billing.FindActiveSubscriptionFn = fn
-	t.Cleanup(func() { billing.FindActiveSubscriptionFn = orig })
-}
-
-func mockCreateCheckoutSession(t *testing.T, fn func(*stripe.CheckoutSessionParams) (*stripe.CheckoutSession, error)) {
-	t.Helper()
-	orig := billing.CreateStripeCheckoutSessionFn
-	billing.CreateStripeCheckoutSessionFn = fn
-	t.Cleanup(func() { billing.CreateStripeCheckoutSessionFn = orig })
-}
-
-func mockCancelStripeSubscription(t *testing.T, fn func(string, *stripe.SubscriptionCancelParams) (*stripe.Subscription, error)) {
-	t.Helper()
-	orig := billing.CancelSubscriptionFn
-	billing.CancelSubscriptionFn = fn
-	t.Cleanup(func() { billing.CancelSubscriptionFn = orig })
-}
-
-func mockCreateBillingPortalSession(t *testing.T, fn func(*stripe.BillingPortalSessionParams) (*stripe.BillingPortalSession, error)) {
-	t.Helper()
-	orig := billing.CreateBillingPortalSessionFn
-	billing.CreateBillingPortalSessionFn = fn
-	t.Cleanup(func() { billing.CreateBillingPortalSessionFn = orig })
-}
-
-func mockConstructWebhookEvent(t *testing.T, fn func([]byte, string, string) (stripe.Event, error)) {
-	t.Helper()
-	orig := constructWebhookEventFn
-	constructWebhookEventFn = fn
-	t.Cleanup(func() { constructWebhookEventFn = orig })
-}
-
-// --------------------------------------------------------------------------
 // Read helpers for assertions
 // --------------------------------------------------------------------------
 
-func getTeamBilling(ctx context.Context, t *testing.T, teamID uuid.UUID) TeamBilling {
+func getTeamAutumnCustomerID(ctx context.Context, t *testing.T, teamID uuid.UUID) *string {
 	t.Helper()
 
-	var bc TeamBilling
+	var id *string
 	err := th.PgPool.QueryRow(ctx,
-		`SELECT team_id, plan, stripe_customer_id, stripe_subscription_id, created_at, updated_at
-		 FROM team_billing WHERE team_id = $1`, teamID).
-		Scan(&bc.TeamID, &bc.Plan, &bc.StripeCustomerID, &bc.StripeSubscriptionID, &bc.CreatedAt, &bc.UpdatedAt)
+		`SELECT autumn_customer_id FROM teams WHERE id = $1`, teamID).Scan(&id)
 	if err != nil {
-		t.Fatalf("get team_billing: %v", err)
+		t.Fatalf("get autumn_customer_id: %v", err)
 	}
-	return bc
+	return id
 }
 
-func getTeamAllowIngest(ctx context.Context, t *testing.T, teamID uuid.UUID) bool {
+// getFirstAppID returns the first app for a given team, failing the test
+// if none exists. Used after CreateApp to look up the newly-created app.
+func getFirstAppID(ctx context.Context, t *testing.T, teamID uuid.UUID) uuid.UUID {
 	t.Helper()
-
-	var allow bool
+	var appID uuid.UUID
 	err := th.PgPool.QueryRow(ctx,
-		`SELECT allow_ingest FROM teams WHERE id = $1`, teamID).Scan(&allow)
+		`SELECT id FROM apps WHERE team_id = $1 ORDER BY created_at ASC LIMIT 1`, teamID).Scan(&appID)
 	if err != nil {
-		t.Fatalf("get allow_ingest: %v", err)
+		t.Fatalf("get first app id: %v", err)
 	}
-	return allow
+	return appID
 }
 
 func getAppRetention(ctx context.Context, t *testing.T, appID uuid.UUID) int {
@@ -329,18 +273,6 @@ func getAPIKeyByValue(ctx context.Context, t *testing.T, keyValue string) *apiKe
 		return nil
 	}
 	return &r
-}
-
-func getTeamIngestBlockedReason(ctx context.Context, t *testing.T, teamID uuid.UUID) *string {
-	t.Helper()
-
-	var reason *string
-	err := th.PgPool.QueryRow(ctx,
-		`SELECT ingest_blocked_reason FROM teams WHERE id = $1`, teamID).Scan(&reason)
-	if err != nil {
-		t.Fatalf("get ingest_blocked_reason: %v", err)
-	}
-	return reason
 }
 
 // --------------------------------------------------------------------------

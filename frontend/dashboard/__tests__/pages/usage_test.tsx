@@ -28,7 +28,7 @@ jest.mock('@/app/api/api_calls', () => ({
         Error: 2,
         Cancelled: 3,
     },
-    FetchStripeCheckoutSessionApiStatus: {
+    FetchCheckoutSessionApiStatus: {
         Loading: 0,
         Success: 1,
         Error: 2,
@@ -77,20 +77,16 @@ const usageBridge = createBridge(() => ({
     months: [] as string[],
     selectedMonth: undefined as string | undefined,
     selectedMonthUsage: [] as any[],
-    currentBillingCycleUsage: 0,
     fetchBillingInfoApiStatus: 0, // Loading
     billingInfo: null as any,
-    fetchSubscriptionInfoApiStatus: 0, // Loading
-    subscriptionInfo: null as any,
     currentUserCanChangePlan: false,
     fetchUsage: jest.fn(),
     setSelectedMonth: jest.fn(),
     fetchPermissions: jest.fn(),
     fetchBillingInfo: jest.fn(),
-    pollForPlan: jest.fn(),
-    fetchSubscriptionInfo: jest.fn(),
     handleUpgrade: jest.fn(),
     handleDowngrade: jest.fn(),
+    handleUndoDowngrade: jest.fn(),
     handleManageBilling: jest.fn(),
     reset: jest.fn(),
 }))
@@ -134,18 +130,11 @@ jest.mock('@/app/query/hooks', () => ({
         const s = usageBridge.getState()
         return { data: s.billingInfo, status: billingStatusMap(s.fetchBillingInfoApiStatus) }
     },
-    useSubscriptionInfoQuery: () => {
-        const s = usageBridge.getState()
-        return { data: s.subscriptionInfo, status: billingStatusMap(s.fetchSubscriptionInfoApiStatus) }
-    },
-    usePollForPlanQuery: () => {
-        return { data: undefined }
-    },
     useHandleUpgradeMutation: () => {
         const s = usageBridge.getState()
         return {
             mutate: async (params: any, opts: any) => {
-                const result = await s.handleUpgrade(params.teamId, params.successUrl, params.cancelUrl)
+                const result = await s.handleUpgrade(params.teamId, params.successUrl)
                 if (result?.redirect) {
                     opts?.onSuccess?.({ checkout_url: result.redirect })
                 } else if (result?.alreadyUpgraded) {
@@ -164,6 +153,16 @@ jest.mock('@/app/query/hooks', () => ({
         return {
             mutate: async (params: any, opts: any) => {
                 const result = await s.handleDowngrade(params.teamId)
+                if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
+            },
+            isPending: false,
+        }
+    },
+    useUndoDowngradeMutation: () => {
+        const s = usageBridge.getState()
+        return {
+            mutate: async (params: any, opts: any) => {
+                const result = await s.handleUndoDowngrade(params.teamId)
                 if (result) { opts?.onSuccess?.() } else { opts?.onError?.() }
             },
             isPending: false,
@@ -257,33 +256,21 @@ const useUsageStore = usageBridge
 const freeBillingInfo = {
     team_id: 'team1',
     plan: 'free',
-    max_retention: 30,
-    max_units: 1000000,
-    stripe_customer_id: null,
-    stripe_subscription_id: null,
-    created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-01T00:00:00Z',
+    autumn_customer_id: null,
+    bytes_granted: 5_000_000_000,
+    bytes_used: 0,
 }
 
 // Helper: default pro plan billing info
 const proBillingInfo = {
     team_id: 'team1',
     plan: 'pro',
-    max_retention: 365,
-    max_units: null,
-    stripe_customer_id: 'cus_123',
-    stripe_subscription_id: 'sub_123',
-    created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-01T00:00:00Z',
-}
-
-// Helper: default subscription info
-const defaultSubscriptionInfo = {
+    autumn_customer_id: 'cust_123',
+    bytes_granted: 25_000_000_000,
+    bytes_used: 0,
     status: 'active',
     current_period_start: 1700000000,
     current_period_end: 1702678400,
-    upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-    billing_cycle_usage: 12000000,
 }
 
 describe('Usage Page', () => {
@@ -300,20 +287,16 @@ describe('Usage Page', () => {
             months: [],
             selectedMonth: undefined,
             selectedMonthUsage: [],
-            currentBillingCycleUsage: 0,
             fetchBillingInfoApiStatus: 0, // Loading
             billingInfo: null,
-            fetchSubscriptionInfoApiStatus: 0, // Loading
-            subscriptionInfo: null,
             currentUserCanChangePlan: false,
             fetchUsage: jest.fn(),
             setSelectedMonth: jest.fn(),
             fetchPermissions: jest.fn(),
             fetchBillingInfo: jest.fn(),
-            pollForPlan: jest.fn(),
-            fetchSubscriptionInfo: jest.fn(),
             handleUpgrade: jest.fn(),
             handleDowngrade: jest.fn(),
+            handleUndoDowngrade: jest.fn(),
             handleManageBilling: jest.fn(),
             reset: jest.fn(),
         })
@@ -376,7 +359,7 @@ describe('Usage Page', () => {
             months: ['2025-01', '2025-02'],
             selectedMonth: '2025-02',
             selectedMonthUsage: [
-                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1048576 },
+                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1_000_000 },
             ],
         })
 
@@ -462,8 +445,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1, // Success
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -481,12 +462,11 @@ describe('Usage Page', () => {
         useUsageStore.setState({
             fetchUsageApiStatus: 1, // Success
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: freeBillingInfo,
-            currentBillingCycleUsage: 1048576, // 1 MB
+            billingInfo: { ...freeBillingInfo, bytes_used: 1_000_000 }, // 1 MB
             months: ['2025-01', '2025-02'],
             selectedMonth: '2025-02',
             selectedMonthUsage: [
-                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1048576 },
+                { id: 'app1', label: 'My App', value: 150, events: 700, spans: 300, bytes_in: 1_000_000 },
             ],
         })
 
@@ -494,11 +474,9 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // Usage data: bytes_in = 1048576 (1 MB)
-        // freeUsagePercent = Math.round((1048576 / (5 * 1024 * 1024 * 1024)) * 10000) / 100 = 0.02
-        // Since usage > 0, Math.max(0.01, 0.02) = 0.02
+        // 1_000_000 / 5_000_000_000 = 0.0002 → 0.02% after rounding.
         expect(screen.getByText('0.02%')).toBeInTheDocument()
-        expect(screen.getByText(/1\.0 MB used of 5 GB/)).toBeInTheDocument()
+        expect(screen.getByText(/1\.0 MB used of 5\.00 GB/)).toBeInTheDocument()
 
         const progressbar = screen.getByRole('progressbar')
         expect(progressbar).toHaveAttribute('aria-valuenow', '0.02')
@@ -511,7 +489,6 @@ describe('Usage Page', () => {
             fetchUsageApiStatus: 1, // Success
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: freeBillingInfo,
-            currentBillingCycleUsage: 0,
             months: ['2025-02'],
             selectedMonth: '2025-02',
             selectedMonthUsage: [
@@ -524,15 +501,14 @@ describe('Usage Page', () => {
         })
 
         expect(screen.getByText('0%')).toBeInTheDocument()
-        expect(screen.getByText(/0 B used of 5 GB/)).toBeInTheDocument()
+        expect(screen.getByText(/0 B used of 5\.00 GB/)).toBeInTheDocument()
     })
 
     it('shows minimum 0.01% for very small usage', async () => {
         useUsageStore.setState({
             fetchUsageApiStatus: 1, // Success
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: freeBillingInfo,
-            currentBillingCycleUsage: 48,
+            billingInfo: { ...freeBillingInfo, bytes_used: 48 },
             months: ['2025-02'],
             selectedMonth: '2025-02',
             selectedMonthUsage: [
@@ -544,9 +520,9 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        // 48 bytes / 5 GB = ~0.0000009%, rounds to 0, but Math.max(0.01, 0) = 0.01
+        // 48 bytes / 5 GB rounds to 0 — clamp pulls it up to 0.01% so the bar isn't hidden.
         expect(screen.getByText('0.01%')).toBeInTheDocument()
-        expect(screen.getByText(/48 B used of 5 GB/)).toBeInTheDocument()
+        expect(screen.getByText(/48 B used of 5\.00 GB/)).toBeInTheDocument()
     })
 
     it('does not show free plan progress bar when on pro plan', async () => {
@@ -554,8 +530,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -654,8 +628,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -676,8 +648,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleDowngrade,
         })
 
@@ -704,7 +674,7 @@ describe('Usage Page', () => {
             // Let promises resolve
         })
 
-        expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('downgraded to Free'))
+        expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('Cancellation scheduled'))
     })
 
     it('downgrade error shows error toast', async () => {
@@ -713,8 +683,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleDowngrade,
         })
 
@@ -734,7 +702,229 @@ describe('Usage Page', () => {
             fireEvent.click(affirmButton)
         })
 
-        expect(mockToastNegative).toHaveBeenCalledWith('Failed to downgrade', 'Please try again.')
+        expect(mockToastNegative).toHaveBeenCalledWith('Failed to schedule cancellation', 'Please try again.')
+    })
+
+    // ---- Scheduled cancellation (canceled_at > 0) ----
+
+    // current_period_end must be in the future for the UI to consider the
+    // cancellation still pending. Bump well past 2030 to outlive the test
+    // suite's lifetime.
+    const futureCancelEnd = Math.floor(Date.UTC(2099, 0, 1) / 1000)
+    const scheduledCancelBillingInfo = {
+        ...proBillingInfo,
+        canceled_at: 1700100000,
+        current_period_end: futureCancelEnd,
+    }
+
+    it('shows Undo Cancellation button when cancellation is scheduled', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText('Undo Cancellation')).toBeInTheDocument()
+        expect(screen.queryByText('Downgrade to Free')).not.toBeInTheDocument()
+    })
+
+    it('shows scheduled-for date below Undo Cancellation button', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText(/Cancellation scheduled for/)).toBeInTheDocument()
+    })
+
+    it('clicking Undo Cancellation calls undo API and shows success toast', async () => {
+        const handleUndoDowngrade = jest.fn().mockResolvedValue(true)
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUndoDowngrade,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Undo Cancellation'))
+        })
+
+        expect(handleUndoDowngrade).toHaveBeenCalledWith('team1')
+        expect(mockToastPositive).toHaveBeenCalledWith(expect.stringContaining('Cancellation undone'))
+    })
+
+    it('Undo Cancellation error shows error toast', async () => {
+        const handleUndoDowngrade = jest.fn().mockResolvedValue(false)
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUndoDowngrade,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Undo Cancellation'))
+        })
+
+        expect(mockToastNegative).toHaveBeenCalledWith('Failed to undo cancellation', 'Please try again.')
+    })
+
+    it('hides scheduled-cancellation UI when current_period_end is in the past', async () => {
+        // Defensive: brief race window where Autumn still reports canceled_at
+        // but current_period_end has already passed. Treat as no cancellation
+        // — Autumn's auto-flip to Free will arrive shortly.
+        const pastEnd = Math.floor(Date.UTC(2020, 0, 1) / 1000)
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: {
+                ...proBillingInfo,
+                canceled_at: 1700100000,
+                current_period_end: pastEnd,
+            },
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText('Undo Cancellation')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Cancellation scheduled for/)).not.toBeInTheDocument()
+        expect(screen.getByText('Downgrade to Free')).toBeInTheDocument()
+    })
+
+    it('Undo Cancellation button disabled when user cannot change plan', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: false,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText('Undo Cancellation')).toBeDisabled()
+    })
+
+    it('pro plan with no scheduled cancellation shows Downgrade button and no scheduled-for line', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: { ...proBillingInfo, canceled_at: 0 },
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText('Downgrade to Free')).toBeInTheDocument()
+        expect(screen.queryByText('Undo Cancellation')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Cancellation scheduled for/)).not.toBeInTheDocument()
+    })
+
+    it('Manage Billing button is disabled while undoing cancellation', async () => {
+        let resolveUndo: (value: any) => void
+        const handleUndoDowngrade = jest.fn().mockImplementation(
+            () => new Promise((resolve) => { resolveUndo = resolve })
+        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUndoDowngrade,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Undo Cancellation'))
+        })
+
+        expect(screen.getByText('Manage Billing')).toBeDisabled()
+
+        await act(async () => {
+            resolveUndo!(true)
+        })
+    })
+
+    it('hides "Next invoice" line when cancellation is scheduled', async () => {
+        // current_period_end is the cancellation date, not a future invoice.
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.queryByText(/Next invoice/)).not.toBeInTheDocument()
+        // The other Pro detail rows still render.
+        expect(screen.getByText(/Status:/)).toBeInTheDocument()
+        expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
+    })
+
+    it('shows "Next invoice" line on Pro plan when no cancellation is scheduled', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: { ...proBillingInfo, canceled_at: 0 },
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        expect(screen.getByText(/Next invoice/)).toBeInTheDocument()
+    })
+
+    it('Undo Cancellation button shows pending text while in flight', async () => {
+        let resolveUndo: (value: any) => void
+        const handleUndoDowngrade = jest.fn().mockImplementation(
+            () => new Promise((resolve) => { resolveUndo = resolve })
+        )
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1,
+            billingInfo: scheduledCancelBillingInfo,
+            currentUserCanChangePlan: true,
+            handleUndoDowngrade,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Undo Cancellation'))
+        })
+
+        expect(screen.getByText('Undoing...')).toBeInTheDocument()
+
+        await act(async () => {
+            resolveUndo!(true)
+        })
     })
 
     // ---- Stripe redirect handling ----
@@ -797,7 +987,7 @@ describe('Usage Page', () => {
         expect(window.history.replaceState).toHaveBeenCalled()
     })
 
-    it('shows pro plan feature list when on free plan', async () => {
+    it('shows pro plan feature list and personalised-plans contact prompt when on free plan', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: freeBillingInfo,
@@ -808,8 +998,9 @@ describe('Usage Page', () => {
         })
 
         expect(screen.getByText(/GB per month included/)).toBeInTheDocument()
-        expect(screen.getByText(/Retention up to/)).toBeInTheDocument()
-        expect(screen.getByText(/Extra data & retention charged at/)).toBeInTheDocument()
+        expect(screen.getAllByText(/days retention/).length).toBeGreaterThan(0)
+        expect(screen.getByText(/Extra data charged at/)).toBeInTheDocument()
+        expect(screen.getByText(/personalised plans/)).toBeInTheDocument()
     })
 
     it('hides pro plan feature list when on pro plan', async () => {
@@ -817,8 +1008,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -826,8 +1015,9 @@ describe('Usage Page', () => {
         })
 
         expect(screen.queryByText(/GB per month included/)).not.toBeInTheDocument()
-        expect(screen.queryByText(/Retention up to/)).not.toBeInTheDocument()
-        expect(screen.queryByText(/Extra data & retention charged at/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Extra data charged at/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/personalised plans/)).not.toBeInTheDocument()
+        expect(screen.getByText(/personalised volume discounts/)).toBeInTheDocument()
     })
 
     it('shows subscription info on pro plan when user can change billing', async () => {
@@ -835,8 +1025,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1, // Success
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -847,7 +1035,7 @@ describe('Usage Page', () => {
         expect(screen.getByText(/active/i)).toBeInTheDocument()
         expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
         expect(screen.getByText(/Next invoice:/)).toBeInTheDocument()
-        expect(screen.getByText(/Upcoming invoice amount/)).toBeInTheDocument()
+        expect(screen.getByText(/Data used this cycle:/)).toBeInTheDocument()
     })
 
     it('does not show subscription info when on free plan', async () => {
@@ -879,13 +1067,11 @@ describe('Usage Page', () => {
         expect(screen.queryByText(/Status:/)).not.toBeInTheDocument()
     })
 
-    it('handles subscription info fetch error gracefully', async () => {
+    it('handles missing subscription state gracefully', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: proBillingInfo,
+            billingInfo: { ...proBillingInfo, status: undefined, current_period_start: undefined, current_period_end: undefined },
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 2, // Error
-            subscriptionInfo: null,
         })
 
         await act(async () => {
@@ -898,74 +1084,57 @@ describe('Usage Page', () => {
         expect(screen.getByText('PRO')).toBeInTheDocument()
     })
 
-    it('shows subscription info without estimated amount when upcoming_invoice is null', async () => {
+    it('shows bytes used in pro plan card', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: proBillingInfo,
+            billingInfo: { ...proBillingInfo, bytes_used: 1_000_000_000 }, // 1 GB
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1, // Success
-            subscriptionInfo: {
-                status: 'active',
-                current_period_start: 1700000000,
-                current_period_end: 1702678400,
-                upcoming_invoice: null,
-                billing_cycle_usage: 5000000,
-            },
         })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.getByText(/Status:/)).toBeInTheDocument()
-        expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument()
-        expect(screen.getByText(/Next invoice:/)).toBeInTheDocument()
-        expect(screen.queryByText(/Upcoming invoice amount/)).not.toBeInTheDocument()
-    })
-
-    it('shows GB-days used in pro plan card', async () => {
-        useUsageStore.setState({
-            fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: proBillingInfo,
-            currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1, // Success
-            subscriptionInfo: {
-                ...defaultSubscriptionInfo,
-                billing_cycle_usage: 12500000,
-            },
-        })
-
-        await act(async () => {
-            render(<Usage params={{ teamId: 'team1' }} />)
-        })
-
-        const unitsItem = screen.getByText(/GB-days used/)
+        const unitsItem = screen.getByText(/Data used this cycle/)
         expect(unitsItem).toBeInTheDocument()
-        expect(unitsItem.textContent).toContain('12,500,000')
+        expect(unitsItem.textContent).toMatch(/GB/)
     })
 
-    it('shows GB-days used in pro plan card with high usage', async () => {
+    it('shows bytes used in pro plan card with high usage', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: proBillingInfo,
+            billingInfo: { ...proBillingInfo, bytes_used: 30_000_000_000 }, // 30 GB
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1, // Success
-            subscriptionInfo: {
-                ...defaultSubscriptionInfo,
-                billing_cycle_usage: 30000000,
-            },
         })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        const unitsItem = screen.getByText(/GB-days used/)
+        const unitsItem = screen.getByText(/Data used this cycle/)
         expect(unitsItem).toBeInTheDocument()
-        expect(unitsItem.textContent).toContain('30,000,000')
+        expect(unitsItem.textContent).toMatch(/GB/)
     })
 
-    it('does not show GB-days used on free plan', async () => {
+    it('formats small byte counts with a sub-GB unit', async () => {
+        useUsageStore.setState({
+            fetchBillingInfoApiStatus: 1, // Success
+            billingInfo: { ...proBillingInfo, bytes_used: 5_000_000 }, // 5 MB
+            currentUserCanChangePlan: true,
+        })
+
+        await act(async () => {
+            render(<Usage params={{ teamId: 'team1' }} />)
+        })
+
+        const unitsItem = screen.getByText(/Data used this cycle/)
+        // Must render a human-readable unit — don't assert the exact formatter,
+        // just that it's not a raw byte count or 0 GB.
+        expect(unitsItem.textContent).not.toContain('5000000')
+        expect(unitsItem.textContent).not.toContain('0 GB')
+    })
+
+    it('does not show data used on free plan', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: freeBillingInfo,
@@ -975,23 +1144,21 @@ describe('Usage Page', () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByText(/GB-days used/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Data used this cycle/)).not.toBeInTheDocument()
     })
 
-    it('does not show GB-days used when subscription info fetch fails', async () => {
+    it('does not show subscription details when status is missing on billingInfo', async () => {
         useUsageStore.setState({
             fetchBillingInfoApiStatus: 1, // Success
-            billingInfo: proBillingInfo,
+            billingInfo: { ...proBillingInfo, status: undefined },
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 2, // Error
-            subscriptionInfo: null,
         })
 
         await act(async () => {
             render(<Usage params={{ teamId: 'team1' }} />)
         })
 
-        expect(screen.queryByText(/GB-days used/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Data used this cycle/)).not.toBeInTheDocument()
     })
 
     // ---- Manage Billing button ----
@@ -1001,8 +1168,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -1030,8 +1195,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: false,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
         })
 
         await act(async () => {
@@ -1048,8 +1211,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 
@@ -1074,8 +1235,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 
@@ -1100,8 +1259,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 
@@ -1125,8 +1282,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 
@@ -1153,8 +1308,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 
@@ -1182,8 +1335,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleDowngrade,
         })
 
@@ -1211,8 +1362,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 0, // Loading
-            subscriptionInfo: null,
         })
 
         await act(async () => {
@@ -1229,8 +1378,6 @@ describe('Usage Page', () => {
             fetchBillingInfoApiStatus: 1, // Success
             billingInfo: proBillingInfo,
             currentUserCanChangePlan: true,
-            fetchSubscriptionInfoApiStatus: 1,
-            subscriptionInfo: defaultSubscriptionInfo,
             handleManageBilling,
         })
 

@@ -182,10 +182,9 @@ func main() {
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", measure.SendTestSlackAlert)
 		teams.GET(":id/billing/info", measure.GetTeamBilling)
-		teams.GET(":id/billing/usageThreshold", measure.GetBillingUsageThreshold)
-		teams.GET(":id/billing/subscriptionInfo", measure.GetSubscriptionInfo)
 		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
 		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
+		teams.PATCH(":id/billing/undo-downgrade", measure.UndoDowngradeToFreePlan)
 		teams.POST(":id/billing/portal", measure.CreateCustomerPortalSession)
 	}
 
@@ -202,9 +201,9 @@ func main() {
 		slack.POST("/events", measure.HandleSlackEvents)
 	}
 
-	stripe := r.Group("/stripe")
+	autumn := r.Group("/autumn")
 	{
-		stripe.POST("/webhook", measure.HandleStripeWebhook)
+		autumn.POST("/webhook", measure.HandleAutumnWebhook)
 	}
 
 	// MCP OAuth 2.0 Authorization Server endpoints

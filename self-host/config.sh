@@ -292,10 +292,8 @@ GTM_ID=
 ###########
 
 BILLING_ENABLED=false
-STRIPE_API_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_PRICE_ID=
-STRIPE_METER_NAME=gb_days
+AUTUMN_SECRET_KEY=
+AUTUMN_WEBHOOK_SECRET=
 
 ########
 # OTEL #
@@ -434,10 +432,8 @@ GTM_ID=
 ###########
 
 BILLING_ENABLED=false
-STRIPE_API_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_PRICE_ID=
-STRIPE_METER_NAME=gb_days
+AUTUMN_SECRET_KEY=
+AUTUMN_WEBHOOK_SECRET=
 
 ########
 # OTEL #
@@ -878,20 +874,12 @@ ensure() {
     add_env_variable "BILLING_ENABLED" "false"
   fi
 
-  if ! check_env_variable "STRIPE_API_KEY"; then
-    add_env_variable "STRIPE_API_KEY" "" "BILLING_ENABLED"
+  if ! check_env_variable "AUTUMN_SECRET_KEY"; then
+    add_env_variable "AUTUMN_SECRET_KEY" "" "BILLING_ENABLED"
   fi
 
-  if ! check_env_variable "STRIPE_WEBHOOK_SECRET"; then
-    add_env_variable "STRIPE_WEBHOOK_SECRET" "" "STRIPE_API_KEY"
-  fi
-
-  if ! check_env_variable "STRIPE_METER_NAME"; then
-    add_env_variable "STRIPE_METER_NAME" "gb_days" "STRIPE_WEBHOOK_SECRET"
-  fi
-
-  if ! check_env_variable "STRIPE_PRO_PRICE_ID"; then
-    add_env_variable "STRIPE_PRO_PRICE_ID" "" "STRIPE_METER_NAME"
+  if ! check_env_variable "AUTUMN_WEBHOOK_SECRET"; then
+    add_env_variable "AUTUMN_WEBHOOK_SECRET" "" "AUTUMN_SECRET_KEY"
   fi
 
   if ! check_env_variable "SYSTEM_SYMBOLS_S3_BUCKET"; then

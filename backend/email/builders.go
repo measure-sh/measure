@@ -131,74 +131,47 @@ func DailySummaryEmail(appName string, date time.Time, metrics []MetricData, sit
 }
 
 // UsageLimitEmail builds the usage limit threshold notification email.
-func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int, usage, maxBytes uint64) (subject, body string) {
+// Percentages are safe to include (they're plan-agnostic); absolute byte
+// counts are not, since the dashboard is the source of truth for plan limits.
+func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int) (subject, body string) {
 	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	usageFormatted := FormatBytes(usage)
-	maxBytesFormatted := FormatBytes(maxBytes)
 
 	var title, message, ctaText string
 	switch threshold {
-	case 75:
-		subject = fmt.Sprintf("%s - 75%% of Usage Limit Reached", teamName)
-		title = "75% Usage Limit Reached"
-		message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%s</strong> of <strong>%s</strong> of data this month (75%% of your limit).<br><br>Consider upgrading to Measure Pro for unlimited usage and extended data retention.`, teamName, usageFormatted, maxBytesFormatted)
-		ctaText = "Upgrade to Measure Pro"
-	case 90:
-		subject = fmt.Sprintf("%s - 90%% of Usage Limit Reached", teamName)
-		title = "90% Usage Limit Reached"
-		message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%s</strong> of <strong>%s</strong> of data this month (90%% of your limit).<br><br>You're almost at your limit. Data ingestion will be paused when you reach 100%%. Upgrade to Measure Pro for unlimited usage.`, teamName, usageFormatted, maxBytesFormatted)
-		ctaText = "Upgrade to Measure Pro"
 	case 100:
 		subject = fmt.Sprintf("%s - Usage Limit Reached", teamName)
 		title = "Usage Limit Reached"
-		message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its data limit of <strong>%s</strong> this month.<br><br>Data ingestion has been paused. Upgrade to Measure Pro to resume data collection with unlimited usage.`, teamName, maxBytesFormatted)
+		message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its plan's data limit this month.<br><br>Data ingestion has been paused. Upgrade to Measure Pro to resume.`, teamName)
+		ctaText = "Upgrade to Measure Pro"
+	default:
+		subject = fmt.Sprintf("%s - %d%% of Usage Limit Reached", teamName, threshold)
+		title = fmt.Sprintf("%d%% Usage Limit Reached", threshold)
+		message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit this month.<br><br>Consider upgrading to Measure Pro for unlimited usage!`, teamName, threshold)
 		ctaText = "Upgrade to Measure Pro"
 	}
 
-	contentHTML := UsageLimitContent(message, threshold, usageFormatted, maxBytesFormatted)
-	body = RenderEmailBody(title, contentHTML, ctaText, dashboardURL)
-	return
-}
-
-// SubscriptionFailureEmail builds the subscription cancellation notification email.
-func SubscriptionFailureEmail(teamName, teamId, siteOrigin string) (subject, body string) {
-	subject = fmt.Sprintf("%s - Subscription Canceled", teamName)
-	title := "Subscription Canceled"
-	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	message := fmt.Sprintf(`The subscription for your team <strong>%s</strong> has been canceled due to a payment issue.<br><br>Your team has been downgraded to the free plan. Subscribe again to resume pro features.`, teamName)
-	body = RenderEmailBody(title, MessageContent(message), "Subscribe to Measure Pro", dashboardURL)
+	body = RenderEmailBody(title, UsageLimitContent(message, threshold), ctaText, dashboardURL)
 	return
 }
 
 // UpgradeEmail builds the upgrade notification email.
-func UpgradeEmail(teamName, teamId, siteOrigin string, maxRetentionDays int) (subject, body string) {
+func UpgradeEmail(teamName, teamId, siteOrigin string) (subject, body string) {
 	subject = fmt.Sprintf("%s - Upgraded to Measure Pro", teamName)
 	title := "Upgraded to Measure Pro"
 	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	message := fmt.Sprintf(`Your team <strong>%s</strong> has been upgraded to Measure Pro!<br><br>You now have unlimited usage and up to %d days of data retention.`, teamName, maxRetentionDays)
+	message := fmt.Sprintf(`Your team <strong>%s</strong> has been upgraded to Measure Pro!`, teamName)
 	body = RenderEmailBody(title, MessageContent(message), "Go to Dashboard", dashboardURL)
 	return
 }
 
 // ManualDowngradeEmail builds the manual downgrade notification email.
-func ManualDowngradeEmail(teamName, teamId, siteOrigin string, freePlanMaxBytes uint64, freePlanMaxRetentionDays int) (subject, body string) {
+func ManualDowngradeEmail(teamName, teamId, siteOrigin string) (subject, body string) {
 	subject = fmt.Sprintf("%s - Downgraded to Free Plan", teamName)
 	title := "Downgraded to Free Plan"
 	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	maxBytesFormatted := FormatBytes(freePlanMaxBytes)
-	message := fmt.Sprintf(`Your team <strong>%s</strong> has been downgraded to the free plan.<br><br>Your usage is now limited to <strong>%s</strong> of data per month with <strong>%d</strong> days of data retention.`, teamName, maxBytesFormatted, freePlanMaxRetentionDays)
+	message := fmt.Sprintf(`Your team <strong>%s</strong> has been downgraded to the free plan.<br><br>Check your dashboard for the new usage and retention limits.`, teamName)
 	body = RenderEmailBody(title, MessageContent(message), "Go to Dashboard", dashboardURL)
 	return
-}
-
-// FormatBytes formats a byte count as a human-readable GB string.
-// For example: 5368709120 -> "5 GB", 3758096384 -> "3.5 GB".
-func FormatBytes(n uint64) string {
-	gb := float64(n) / (1024 * 1024 * 1024)
-	if gb == float64(int(gb)) {
-		return fmt.Sprintf("%d GB", int(gb))
-	}
-	return fmt.Sprintf("%.1f GB", gb)
 }
 
 // FormatNumber formats a number into a human-readable abbreviated string.

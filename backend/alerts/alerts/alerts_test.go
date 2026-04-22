@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"backend/alerts/server"
+	"backend/autumn"
+	autumntest "backend/autumn/testhelpers"
 	"backend/email"
 
 	"github.com/google/uuid"
@@ -60,7 +63,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Empty Team", true)
+		th.SeedTeam(ctx, t, teamID, "Empty Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Empty App", 30)
@@ -81,7 +84,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -110,7 +113,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Crash Team", true)
+		th.SeedTeam(ctx, t, teamID, "Crash Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Crash App", 30)
@@ -137,7 +140,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "ANR Team", true)
+		th.SeedTeam(ctx, t, teamID, "ANR Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "ANR App", 30)
@@ -164,7 +167,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Spike Team", true)
+		th.SeedTeam(ctx, t, teamID, "Spike Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Spike App", 30)
@@ -199,7 +202,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Cooldown Team", true)
+		th.SeedTeam(ctx, t, teamID, "Cooldown Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Cooldown App", 30)
@@ -227,7 +230,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "ANR Cooldown Team", true)
+		th.SeedTeam(ctx, t, teamID, "ANR Cooldown Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "ANR Cooldown App", 30)
@@ -255,7 +258,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Slack Crash Team", true)
+		th.SeedTeam(ctx, t, teamID, "Slack Crash Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Slack Crash App", 30)
@@ -282,7 +285,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		app2 := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Multi App Team", true)
+		th.SeedTeam(ctx, t, teamID, "Multi App Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, app1, teamID, "App With Spike", 30)
@@ -308,7 +311,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		app2 := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Multi Prefs Team", true)
+		th.SeedTeam(ctx, t, teamID, "Multi Prefs Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, app1, teamID, "High Threshold App", 30)
@@ -336,7 +339,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "No Apps Team", true)
+		th.SeedTeam(ctx, t, teamID, "No Apps Team")
 
 		CreateCrashAndAnrAlerts(ctx)
 
@@ -354,7 +357,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -383,7 +386,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -412,7 +415,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -443,7 +446,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -473,7 +476,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -501,7 +504,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -535,7 +538,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -562,7 +565,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -592,7 +595,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -617,7 +620,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -640,7 +643,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -665,7 +668,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -695,7 +698,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		userID := uuid.New().String()
 		reportID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -719,7 +722,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		user1 := uuid.New().String()
 		user2 := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, user1, "owner@example.com")
 		th.SeedUser(ctx, t, user2, "member@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, user1, "owner")
@@ -747,7 +750,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Slack Team", true)
+		th.SeedTeam(ctx, t, teamID, "Slack Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Slack App", 30)
@@ -777,7 +780,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		app2 := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Multi App Team", true)
+		th.SeedTeam(ctx, t, teamID, "Multi App Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, app1, teamID, "App One", 30)
@@ -803,7 +806,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "No Apps Team", true)
+		th.SeedTeam(ctx, t, teamID, "No Apps Team")
 
 		CreateBugReportAlerts(ctx)
 
@@ -833,7 +836,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -859,7 +862,7 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -909,7 +912,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		app := makeApp(teamID, appID)
@@ -928,7 +931,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -960,7 +963,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -983,7 +986,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1008,7 +1011,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1033,7 +1036,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1060,7 +1063,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1089,7 +1092,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1120,7 +1123,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1151,7 +1154,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1174,7 +1177,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1202,7 +1205,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1230,7 +1233,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1258,7 +1261,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1287,7 +1290,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1318,7 +1321,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1349,7 +1352,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1377,7 +1380,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1405,7 +1408,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1429,7 +1432,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1457,7 +1460,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Default Prefs Team", true)
+		th.SeedTeam(ctx, t, teamID, "Default Prefs Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "No Prefs App", 30)
@@ -1480,7 +1483,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
@@ -1512,7 +1515,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 		th.SeedAppThresholdPrefs(ctx, t, appID, 98.5, 95.0, 100, 0.5)
 
@@ -1542,7 +1545,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 		th.SeedAppThresholdPrefs(ctx, t, appID, 99.0, 97.0, 100, 0.5)
 
@@ -1572,7 +1575,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 		th.SeedAppThresholdPrefs(ctx, t, appID, 98.0, 95.0, 100, 0.5)
 
@@ -1602,7 +1605,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 		th.SeedAppThresholdPrefs(ctx, t, appID, 98.0, 95.0, 100, 0.5)
 
@@ -1634,7 +1637,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1659,7 +1662,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1690,7 +1693,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1717,7 +1720,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1744,7 +1747,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1771,7 +1774,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1797,7 +1800,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1829,7 +1832,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1871,7 +1874,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1895,7 +1898,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1929,7 +1932,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -1963,7 +1966,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "T", true)
+		th.SeedTeam(ctx, t, teamID, "T")
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
@@ -2005,7 +2008,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2027,7 +2030,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2052,7 +2055,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Slack Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Slack Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Slack Summary App", 30)
@@ -2077,7 +2080,7 @@ func TestCreateDailySummary(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
-		th.SeedTeam(ctx, t, teamID, "No Apps Team", true)
+		th.SeedTeam(ctx, t, teamID, "No Apps Team")
 
 		CreateDailySummary(ctx)
 
@@ -2096,7 +2099,7 @@ func TestCreateDailySummary(t *testing.T) {
 		app2 := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Multi App Team", true)
+		th.SeedTeam(ctx, t, teamID, "Multi App Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, app1, teamID, "App One", 30)
@@ -2122,7 +2125,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2147,7 +2150,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2172,7 +2175,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2239,7 +2242,7 @@ func TestCreateDailySummary(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Summary Team", true)
+		th.SeedTeam(ctx, t, teamID, "Summary Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Summary App", 30)
@@ -2297,20 +2300,33 @@ func TestCreateDailySummary(t *testing.T) {
 		}
 	})
 
-	t.Run("team with blocked ingestion produces no summary notifications", func(t *testing.T) {
+	t.Run("team blocked by autumn produces no summary notifications", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
 
+		origBilling := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = true
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = origBilling })
+
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
 		userID := uuid.New().String()
+		customerID := "cust_blocked"
 
-		th.SeedTeam(ctx, t, teamID, "Blocked Team", false)
+		th.SeedTeam(ctx, t, teamID, "Blocked Team")
+		th.SeedTeamAutumnCustomer(ctx, t, teamID, customerID)
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Blocked App", 30)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0BLOCKED"})
+
+		autumntest.MockCheck(t, func(_ context.Context, cid, feature string) (*autumn.CheckResponse, error) {
+			if cid == customerID && feature == "bytes" {
+				return &autumn.CheckResponse{Allowed: false}, nil
+			}
+			return &autumn.CheckResponse{Allowed: true}, nil
+		})
 
 		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
 		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
@@ -2322,6 +2338,110 @@ func TestCreateDailySummary(t *testing.T) {
 		}
 		if got := countPendingByChannel(ctx, t, "slack"); got != 0 {
 			t.Errorf("want 0 slack messages for blocked team, got %d", got)
+		}
+	})
+
+	t.Run("autumn.Check error → team still receives summary (fail-open)", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		origBilling := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = true
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = origBilling })
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+		customerID := "cust_autumn_err"
+
+		th.SeedTeam(ctx, t, teamID, "Outage Team")
+		th.SeedTeamAutumnCustomer(ctx, t, teamID, customerID)
+		th.SeedUser(ctx, t, userID, "owner-err@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Outage App", 30)
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			return nil, fmt.Errorf("autumn unreachable")
+		})
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got == 0 {
+			t.Errorf("want >=1 email when autumn errors (fail-open), got 0")
+		}
+	})
+
+	t.Run("team without autumn_customer_id passes through filter", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		origBilling := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = true
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = origBilling })
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		// No SeedTeamAutumnCustomer call — autumn_customer_id is NULL.
+		th.SeedTeam(ctx, t, teamID, "Unprovisioned Team")
+		th.SeedUser(ctx, t, userID, "owner-unprov@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Unprovisioned App", 30)
+
+		// autumn.Check should never be called for a team without a customer_id.
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			t.Errorf("autumn.Check should not be called for team without autumn_customer_id")
+			return &autumn.CheckResponse{Allowed: false}, nil
+		})
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got == 0 {
+			t.Errorf("want >=1 email for unprovisioned team, got 0")
+		}
+	})
+
+	t.Run("billing disabled → filter short-circuits (no autumn calls)", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		// Default BillingEnabled is false; assert explicitly.
+		if server.Server.Config.BillingEnabled {
+			t.Fatal("precondition: BillingEnabled should be false by default")
+		}
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Self-hosted Team")
+		th.SeedTeamAutumnCustomer(ctx, t, teamID, "cust_selfhost")
+		th.SeedUser(ctx, t, userID, "owner-self@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Self-hosted App", 30)
+
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			t.Errorf("autumn.Check should not be called when BillingEnabled is false")
+			return &autumn.CheckResponse{Allowed: false}, nil
+		})
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, appID, 5, summaryDate)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got == 0 {
+			t.Errorf("want >=1 email when billing disabled, got 0")
 		}
 	})
 }
@@ -2342,7 +2462,7 @@ func TestScheduleInternalHelpers(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2371,7 +2491,7 @@ func TestScheduleInternalHelpers(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2411,7 +2531,7 @@ func TestScheduleInternalHelpers(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2632,7 +2752,7 @@ func TestDeletePendingMessage(t *testing.T) {
 	defer cleanupAll(ctx, t)
 
 	teamID := uuid.New().String()
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 
 	// Queue a message
 	info := email.EmailInfo{
@@ -2641,7 +2761,7 @@ func TestDeletePendingMessage(t *testing.T) {
 		Subject: "Test",
 		Body:    "<p>test</p>",
 	}
-	if err := email.QueueEmail(ctx, th.PgPool, teamID, nil, info); err != nil {
+	if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, nil, info); err != nil {
 		t.Fatalf("QueueEmail: %v", err)
 	}
 
@@ -2675,7 +2795,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "optout@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2697,7 +2817,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 			Body:        "<p>Crash spike</p>",
 			AlertType:   string(AlertTypeCrashSpike),
 		}
-		if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+		if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, appID, info); err != nil {
 			t.Fatalf("QueueEmail: %v", err)
 		}
 
@@ -2723,7 +2843,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "nodaily@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2744,7 +2864,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 			Body:        "<p>Summary</p>",
 			AlertType:   "daily_summary",
 		}
-		if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+		if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, appID, info); err != nil {
 			t.Fatalf("QueueEmail: %v", err)
 		}
 
@@ -2763,7 +2883,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		teamID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "usage@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 
@@ -2782,7 +2902,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 			ContentType: "text/html",
 			Body:        "<p>Usage limit</p>",
 		}
-		if err := email.QueueEmail(ctx, th.PgPool, teamID, nil, info); err != nil {
+		if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, nil, info); err != nil {
 			t.Fatalf("QueueEmail: %v", err)
 		}
 
@@ -2806,7 +2926,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		userOptedOut := uuid.New().String()
 		userOptedIn := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userOptedOut, "optout@example.com")
 		th.SeedUser(ctx, t, userOptedIn, "optin@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userOptedOut, "owner")
@@ -2839,7 +2959,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 				Body:        "<p>Crash spike</p>",
 				AlertType:   string(AlertTypeCrashSpike),
 			}
-			if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+			if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, appID, info); err != nil {
 				t.Fatalf("QueueEmail for %s: %v", to, err)
 			}
 		}
@@ -2877,7 +2997,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		appID := uuid.New().String()
 		userID := uuid.New().String()
 
-		th.SeedTeam(ctx, t, teamID, "Test Team", true)
+		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "partial@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
@@ -2909,7 +3029,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 				Body:        "<p>Alert</p>",
 				AlertType:   at.alertType,
 			}
-			if err := email.QueueEmail(ctx, th.PgPool, teamID, appID, info); err != nil {
+			if err := email.QueueEmail(ctx, th.PgPool, nil, teamID, appID, info); err != nil {
 				t.Fatalf("QueueEmail for %s: %v", at.alertType, err)
 			}
 		}

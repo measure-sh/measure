@@ -47,7 +47,6 @@ import {
     makeSlackStatusFixture,
     makeSpanMetricsPlotFixture,
     makeSpansOverviewFixture,
-    makeSubscriptionInfoFixture,
     makeTeamsFixture,
     makeThresholdPrefsFixture,
     makeTraceDetailFixture,
@@ -409,12 +408,7 @@ export const handlers = [
         return HttpResponse.json(makeUsageFixture())
     }),
 
-    // 63. GET /api/teams/:teamId/billing/subscriptionInfo
-    http.get('*/api/teams/:teamId/billing/subscriptionInfo', () => {
-        return HttpResponse.json(makeSubscriptionInfoFixture())
-    }),
-
-    // 64. PATCH /api/teams/:teamId/billing/checkout
+    // 63. PATCH /api/teams/:teamId/billing/checkout
     http.patch('*/api/teams/:teamId/billing/checkout', () => {
         return HttpResponse.json({ checkout_url: 'https://checkout.stripe.com/test' })
     }),

@@ -371,7 +371,6 @@ describe('Usage — billing enabled', () => {
             await waitFor(() => {
                 expect(capturedBody).toBeTruthy()
                 expect(capturedBody.success_url).toContain('success=true')
-                expect(capturedBody.cancel_url).toContain('canceled=true')
                 expect(capturedPath).toContain('/teams/test-team/billing/checkout')
             }, { timeout: 5000 })
 
@@ -390,6 +389,10 @@ describe('Usage — billing enabled', () => {
     })
 
     describe('downgrade flow', () => {
+        // Frontend hides the scheduled-cancellation UI when current_period_end
+        // is in the past, so use a date well outside the test suite's lifetime.
+        const futureCancelEnd = Math.floor(Date.UTC(2099, 0, 1) / 1000)
+
         it('renders "Downgrade to Free" button when on pro plan', async () => {
             server.use(
                 http.get('*/api/teams/:teamId/billing/info', () => {
@@ -436,18 +439,101 @@ describe('Usage — billing enabled', () => {
             // Confirmation dialog should appear
             await waitFor(() => {
                 expect(screen.getByText(/Are you sure you want to downgrade/)).toBeTruthy()
-                expect(screen.getByText('Yes, downgrade')).toBeTruthy()
+                expect(screen.getByText('Yes, schedule cancellation')).toBeTruthy()
             })
 
             // Confirm the downgrade
             await act(async () => {
-                fireEvent.click(screen.getByText('Yes, downgrade'))
+                fireEvent.click(screen.getByText('Yes, schedule cancellation'))
             })
 
             // Verify API was called
             await waitFor(() => {
                 expect(downgradeCalled).toBe(true)
                 expect(capturedPath).toContain('/teams/test-team/billing/downgrade')
+            }, { timeout: 5000 })
+        })
+
+        it('renders "Undo Cancellation" button when canceled_at is set on pro plan', async () => {
+            server.use(
+                http.get('*/api/teams/:teamId/billing/info', () => {
+                    return HttpResponse.json(makeBillingInfoFixture({
+                        plan: 'pro',
+                        canceled_at: 1700100000,
+                        current_period_end: futureCancelEnd,
+                    }))
+                }),
+            )
+            renderWithProviders(<Usage params={{ teamId: 'test-team' }} />)
+            await waitFor(() => {
+                expect(screen.getByText('Undo Cancellation')).toBeTruthy()
+                expect(screen.getByText(/Cancellation scheduled for/)).toBeTruthy()
+            }, { timeout: 5000 })
+            expect(screen.queryByText('Downgrade to Free')).toBeNull()
+        })
+
+        it('click Undo Cancellation calls PATCH /teams/:teamId/billing/undo-downgrade', async () => {
+            let undoCalled = false
+            let capturedPath = ''
+            let canceledAt = 1700100000
+
+            server.use(
+                http.get('*/api/teams/:teamId/billing/info', () => {
+                    return HttpResponse.json(makeBillingInfoFixture({
+                        plan: 'pro',
+                        canceled_at: canceledAt,
+                        current_period_end: futureCancelEnd,
+                    }))
+                }),
+                http.patch('*/api/teams/:teamId/billing/undo-downgrade', ({ request }) => {
+                    undoCalled = true
+                    capturedPath = new URL(request.url).pathname
+                    canceledAt = 0
+                    return HttpResponse.json({ ok: true })
+                }),
+            )
+
+            renderWithProviders(<Usage params={{ teamId: 'test-team' }} />)
+            await waitFor(() => {
+                expect(screen.getByText('Undo Cancellation')).toBeTruthy()
+            }, { timeout: 5000 })
+
+            await act(async () => {
+                fireEvent.click(screen.getByText('Undo Cancellation').closest('button')!)
+            })
+
+            await waitFor(() => {
+                expect(undoCalled).toBe(true)
+                expect(capturedPath).toContain('/teams/test-team/billing/undo-downgrade')
+            }, { timeout: 5000 })
+        })
+
+        it('UI flips Pro → Free when refetch returns the new plan', async () => {
+            // Simulates the webhook-driven transition at expiry: server starts
+            // returning Free, invalidate the billingInfo query, refetch lands.
+            // The Pro card (Manage Billing / Downgrade) should give way to the
+            // Free card (Upgrade to Pro).
+            let billingPlan = 'pro'
+            server.use(
+                http.get('*/api/teams/:teamId/billing/info', () => {
+                    return HttpResponse.json(makeBillingInfoFixture({ plan: billingPlan }))
+                }),
+            )
+
+            renderWithProviders(<Usage params={{ teamId: 'test-team' }} />)
+            await waitFor(() => {
+                expect(screen.getByText('Downgrade to Free')).toBeTruthy()
+            }, { timeout: 5000 })
+
+            billingPlan = 'free'
+            await act(async () => {
+                await queryClient.invalidateQueries({ queryKey: ['billingInfo'] })
+            })
+
+            await waitFor(() => {
+                expect(screen.getByText('Upgrade to Pro')).toBeTruthy()
+                expect(screen.queryByText('Downgrade to Free')).toBeNull()
+                expect(screen.queryByText('Manage Billing')).toBeNull()
             }, { timeout: 5000 })
         })
 
@@ -477,7 +563,7 @@ describe('Usage — billing enabled', () => {
 
             // Confirmation dialog should appear
             await waitFor(() => {
-                expect(screen.getByText('Yes, downgrade')).toBeTruthy()
+                expect(screen.getByText('Yes, schedule cancellation')).toBeTruthy()
             })
 
             // Click Cancel instead of confirming

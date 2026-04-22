@@ -355,8 +355,8 @@ func seedApp(ctx context.Context, t *testing.T, appID uuid.UUID) {
 	now := time.Now()
 
 	_, err := pgPool.Exec(ctx,
-		`INSERT INTO teams (id, name, allow_ingest, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
-		teamID, "test-team", true, now, now)
+		`INSERT INTO teams (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)`,
+		teamID, "test-team", now, now)
 	if err != nil {
 		t.Fatalf("seed team: %v", err)
 	}
