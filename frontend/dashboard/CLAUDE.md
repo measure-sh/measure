@@ -32,7 +32,7 @@ corresponding fixture factory.** The mapping is:
 | `backend/api/measure/network.go` | endpoint status codes plot | `makeNetworkEndpointStatusCodesFixture` |
 | `backend/api/measure/network.go` | endpoint timeline plot | `makeNetworkEndpointTimelineFixture` |
 | `backend/api/measure/authz.go` | authz permissions response | `makeAuthzFixture` |
-| `backend/api/measure/billing.go` | billing info response | `makeBillingInfoFixture` |
+| `backend/api/measure/billing.go` | `BillingInfo` response | `makeBillingInfoFixture` |
 | `backend/api/measure/app.go` | app retention response | `makeAppRetentionFixture` |
 | `backend/api/measure/app.go` | SDK config response | `makeSdkConfigFixture` |
 | `backend/api/measure/authz.go` | authz+members response | `makeAuthzAndMembersFixture` |
@@ -42,7 +42,6 @@ corresponding fixture factory.** The mapping is:
 | `backend/api/measure/team.go` | Slack status response | `makeSlackStatusFixture` |
 | `backend/api/measure/prefs.go` | notification prefs response | `makeNotifPrefsFixture` |
 | `backend/api/measure/usage.go` | usage response | `makeUsageFixture` |
-| `backend/api/measure/billing.go` | subscription info response | `makeSubscriptionInfoFixture` |
 
 If you add a new page's integration test, add its fixtures to the same file
 and extend this table.
@@ -132,3 +131,63 @@ See `app/stores/ARCHITECTURE.md` for detailed filters store internals.
 - Do not call `api_calls` functions directly from components — use query hooks
 - Do not add server-data state to Zustand stores — use TanStack Query
 - Do not mock `@/app/query/hooks` in integration tests — let MSW intercept
+
+## Billing system
+
+Billing is owned by Autumn (https://useautumn.com), which sits on top of
+Stripe. The backend is a thin wrapper; the dashboard calls one endpoint
+for everything.
+
+### Plans
+
+Configured in the Autumn dashboard, not in code. Each plan has a `bytes`
+feature (monthly cap) and a `retention_days` feature (data retention).
+
+- **measure_free** — 5 GB / month, 30 days retention. Marked `is_default`
+  in Autumn so it auto-activates after Pro cancellation.
+- **measure_pro** — $50/mo minimum, 25 GB included, $2/GB overage,
+  90 days retention.
+- **enterprise** — bespoke per-customer plans created manually in Autumn.
+
+> Plan IDs (`measure_free`, `measure_pro`) are hardcoded in the backend
+> (`backend/api/measure/billing.go`). Renaming in the Autumn dashboard
+> requires a coordinated code change — otherwise the backend silently
+> mis-classifies the plan as Enterprise via the fallthrough.
+
+### Frontend reads
+
+- `useBillingInfoQuery` → `GET /teams/{id}/billing/info` → `BillingInfo`:
+  `plan`, `bytes_granted`, `bytes_used`, `status`, `current_period_start`,
+  `current_period_end`, `canceled_at`. Backend resolves these from
+  `autumn.GetCustomer` and surfaces only the fields the UI needs.
+- The public `/pricing` page can't reach `BillingInfo` (no auth, no team
+  context). It uses hardcoded values in `app/utils/pricing_constants.ts`
+  which must be hand-synced with the Autumn dashboard.
+- The Pro card's "Undo Cancellation" UI is gated on
+  `plan === 'pro' && canceled_at > 0 && current_period_end * 1000 > Date.now()`.
+  All three are required — past `current_period_end` is treated as no
+  cancellation pending so the page doesn't render stale dates.
+
+### Frontend writes
+
+- `useHandleUpgradeMutation` → `PATCH /billing/checkout` → returns a Stripe
+  Checkout URL or `{already_upgraded: true}`.
+- `useDowngradeToFreeMutation` → `PATCH /billing/downgrade` → schedules an
+  end-of-cycle cancel. Surfaces as `canceled_at > 0` on the next
+  `BillingInfo` fetch.
+- `useUndoDowngradeMutation` → `PATCH /billing/undo-downgrade` → reverses
+  a pending cancel. Only valid when `canceled_at > 0`.
+- `fetchCustomerPortalUrl` → `POST /billing/portal` → Stripe customer
+  portal redirect.
+
+After a Stripe Checkout redirect-back (`?success=true`), the usage page
+sets `awaitingProConfirmation` and the `useBillingInfoQuery` polls every
+1s until `plan === 'pro'`. No timeout — a refresh resets it.
+
+### Plan transitions
+
+The backend listens for `customer.products.updated` webhooks from Autumn
+and resets per-app retention based on the new plan's `retention_days`.
+Email notifications fire on actual transitions (`upgrade`, `downgrade`,
+`expired`); scheduling/uncancelling/renewals are silent on the email
+side because the user already saw a UI confirmation.

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -152,11 +153,8 @@ func (a App) getAppRetention() (int, error) {
 }
 
 func (a App) updateRetention(retention int) error {
-	targetCutoff := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -retention)
-
 	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("retention", retention).
-		SetExpr("data_cutoff_date", "GREATEST(data_cutoff_date, ?)", targetCutoff).
 		Set("updated_at", time.Now()).
 		Where("id = ?", a.ID)
 	defer stmt.Close()
@@ -4448,7 +4446,7 @@ func NewApp(teamId uuid.UUID) *App {
 	return &App{
 		ID:        &id,
 		TeamId:    teamId,
-		Retention: FREE_PLAN_MAX_RETENTION_DAYS,
+		Retention: MIN_RETENTION_DAYS,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -6708,6 +6706,18 @@ func CreateApp(c *gin.Context) {
 		return
 	}
 
+	// In cloud, retention is plan-driven. We fail app creation on Autumn errors
+	//  to avoid silently creating an app with incorrect retention.
+	if server.Server.Config.IsBillingEnabled() {
+		retention, err := GetPlanRetentionDays(c.Request.Context(), teamId)
+		if err != nil {
+			log.Printf("CreateApp: plan retention lookup for team %s failed: %v", teamId, err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "failed to determine plan retention, please try again"})
+			return
+		}
+		app.Retention = retention
+	}
+
 	tx, err := server.Server.PgPool.Begin(context.Background())
 	if err != nil {
 		msg := `failed to start transaction`
@@ -7554,16 +7564,8 @@ func UpdateAppRetention(c *gin.Context) {
 		return
 	}
 
-	ok, err = CheckRetentionChangeAllowedInPlan(c, *team.ID)
-	if err != nil {
-		msg := `error checking retention change allowance`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if !ok {
-		msg := `retention change not allowed in current plan`
-		fmt.Println(msg)
+	if server.Server.Config.IsBillingEnabled() {
+		msg := `retention is determined by your plan and cannot be changed directly`
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
@@ -7581,8 +7583,8 @@ func UpdateAppRetention(c *gin.Context) {
 		return
 	}
 
-	if payload.Retention < FREE_PLAN_MAX_RETENTION_DAYS || payload.Retention > MAX_RETENTION_DAYS {
-		msg := fmt.Sprintf(`retention period must be between %d and %d days`, FREE_PLAN_MAX_RETENTION_DAYS, MAX_RETENTION_DAYS)
+	if payload.Retention < MIN_RETENTION_DAYS || payload.Retention > MAX_RETENTION_DAYS {
+		msg := fmt.Sprintf(`retention period must be between %d and %d days`, MIN_RETENTION_DAYS, MAX_RETENTION_DAYS)
 		fmt.Println(msg)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return

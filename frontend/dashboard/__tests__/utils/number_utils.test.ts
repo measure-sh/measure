@@ -1,4 +1,4 @@
-import { formatBytes, kilobytesToMegabytes, numberToKMB, toKiloBytes, toMegaBytes } from '@/app/utils/number_utils'
+import { formatBytesSI, kilobytesToMegabytes, numberToKMB, toKiloBytes, toMegaBytes } from '@/app/utils/number_utils'
 import { describe, expect, it } from '@jest/globals'
 
 describe('number_utils', () => {
@@ -39,47 +39,47 @@ describe('number_utils', () => {
     })
   })
 
-  describe('formatBytes', () => {
+  describe('formatBytesSI', () => {
     it('should format bytes', () => {
-      expect(formatBytes(0)).toBe('0 B')
-      expect(formatBytes(512)).toBe('512 B')
-      expect(formatBytes(1023)).toBe('1023 B')
+      expect(formatBytesSI(0)).toBe('0 B')
+      expect(formatBytesSI(512)).toBe('512 B')
+      expect(formatBytesSI(999)).toBe('999 B')
     })
 
-    it('should format kilobytes', () => {
-      expect(formatBytes(1024)).toBe('1.0 KB')
-      expect(formatBytes(1536)).toBe('1.5 KB')
-      expect(formatBytes(51200)).toBe('50.0 KB')
+    it('should format kilobytes (decimal: 1 KB = 1000 B)', () => {
+      expect(formatBytesSI(1000)).toBe('1.0 KB')
+      expect(formatBytesSI(1500)).toBe('1.5 KB')
+      expect(formatBytesSI(50_000)).toBe('50.0 KB')
     })
 
-    it('should format megabytes', () => {
-      expect(formatBytes(1024 * 1024)).toBe('1.0 MB')
-      expect(formatBytes(1.5 * 1024 * 1024)).toBe('1.5 MB')
-      expect(formatBytes(500 * 1024 * 1024)).toBe('500.0 MB')
+    it('should format megabytes (decimal: 1 MB = 1_000_000 B)', () => {
+      expect(formatBytesSI(1_000_000)).toBe('1.0 MB')
+      expect(formatBytesSI(1_500_000)).toBe('1.5 MB')
+      expect(formatBytesSI(500_000_000)).toBe('500.0 MB')
     })
 
-    it('should format gigabytes', () => {
-      expect(formatBytes(1024 ** 3)).toBe('1.00 GB')
-      expect(formatBytes(5 * 1024 ** 3)).toBe('5.00 GB')
-      expect(formatBytes(2.5 * 1024 ** 3)).toBe('2.50 GB')
+    it('should format gigabytes (decimal: 1 GB = 1_000_000_000 B)', () => {
+      expect(formatBytesSI(1_000_000_000)).toBe('1.00 GB')
+      expect(formatBytesSI(5_000_000_000)).toBe('5.00 GB')
+      expect(formatBytesSI(2_500_000_000)).toBe('2.50 GB')
     })
 
-    it('should format terabytes', () => {
-      expect(formatBytes(1024 ** 4)).toBe('1.00 TB')
-      expect(formatBytes(3.75 * 1024 ** 4)).toBe('3.75 TB')
+    it('should format terabytes (decimal: 1 TB = 1e12 B)', () => {
+      expect(formatBytesSI(1e12)).toBe('1.00 TB')
+      expect(formatBytesSI(3.75e12)).toBe('3.75 TB')
     })
 
-    it('should format petabytes', () => {
-      expect(formatBytes(1024 ** 5)).toBe('1.00 PB')
-      expect(formatBytes(2 * 1024 ** 5)).toBe('2.00 PB')
+    it('should format petabytes (decimal: 1 PB = 1e15 B)', () => {
+      expect(formatBytesSI(1e15)).toBe('1.00 PB')
+      expect(formatBytesSI(2e15)).toBe('2.00 PB')
     })
 
     it('should handle negative values', () => {
-      expect(formatBytes(-1024)).toBe('-1.0 KB')
-      expect(formatBytes(-(1024 ** 2))).toBe('-1.0 MB')
-      expect(formatBytes(-(1024 ** 3))).toBe('-1.00 GB')
-      expect(formatBytes(-(1024 ** 4))).toBe('-1.00 TB')
-      expect(formatBytes(-(1024 ** 5))).toBe('-1.00 PB')
+      expect(formatBytesSI(-1000)).toBe('-1.0 KB')
+      expect(formatBytesSI(-1_000_000)).toBe('-1.0 MB')
+      expect(formatBytesSI(-1_000_000_000)).toBe('-1.00 GB')
+      expect(formatBytesSI(-1e12)).toBe('-1.00 TB')
+      expect(formatBytesSI(-1e15)).toBe('-1.00 PB')
     })
   })
 

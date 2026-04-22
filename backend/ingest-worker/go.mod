@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	backend/api v0.0.0
+	backend/autumn v0.0.0
 	backend/libs v0.0.0
 	cloud.google.com/go/auth v0.20.0
 	cloud.google.com/go/pubsub/v2 v2.5.1
@@ -137,7 +138,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/stripe/stripe-go/v84 v84.4.1 // indirect
+	github.com/svix/svix-webhooks v1.82.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -169,5 +170,7 @@ require (
 
 replace (
 	backend/api => ../api
+	backend/autumn => ../autumn
+	backend/email => ../email
 	backend/libs => ../libs
 )

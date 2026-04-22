@@ -3,7 +3,7 @@ module backend/api
 go 1.25.7
 
 require (
-	backend/billing v0.0.0
+	backend/autumn v0.0.0
 	backend/email v0.0.0
 	backend/libs v0.0.0
 	cloud.google.com/go/storage v1.62.0
@@ -18,7 +18,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/leporo/sqlf v1.4.0
 	github.com/modelcontextprotocol/go-sdk v1.4.1
-	github.com/stripe/stripe-go/v84 v84.4.1
+	github.com/svix/svix-webhooks v1.82.0
 	github.com/valkey-io/valkey-go v1.0.73
 	github.com/wneessen/go-mail v0.7.2
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
@@ -132,7 +132,7 @@ require (
 )
 
 replace (
-	backend/billing => ../billing
+	backend/autumn => ../autumn
 	backend/email => ../email
 	backend/libs => ../libs
 )

@@ -48,14 +48,14 @@ func cleanupAll(ctx context.Context, t *testing.T) {
 	th.CleanupAll(ctx, t)
 }
 
-func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string, allowIngest bool) {
-	th.SeedTeam(ctx, t, teamID.String(), name, allowIngest)
+func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string) {
+	th.SeedTeam(ctx, t, teamID.String(), name)
 }
 
 func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retention int) {
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), fmt.Sprintf("app-%s", appID.String()[:8]), retention)
 }
 
-func seedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID uuid.UUID, reason string) {
-	th.SeedTeamIngestBlocked(ctx, t, teamID.String(), reason)
+func seedTeamAutumnCustomer(ctx context.Context, t *testing.T, teamID uuid.UUID, autumnCustomerID string) {
+	th.SeedTeamAutumnCustomer(ctx, t, teamID.String(), autumnCustomerID)
 }

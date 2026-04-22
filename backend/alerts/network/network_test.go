@@ -29,7 +29,7 @@ func TestGeneratePatterns_EventsBelowThresholdCreatesNoPatterns(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	now := time.Now().UTC()
@@ -50,7 +50,7 @@ func TestGeneratePatterns_EventsAboveThresholdCreatesPatterns(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	now := time.Now().UTC()
@@ -83,7 +83,7 @@ func TestGeneratePatterns_ExistingPatternIsRetained(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	th.SeedUrlPattern(ctx, t, teamID, appID, "api.example.com", "/api/v1/users")
@@ -111,7 +111,7 @@ func TestGeneratePatterns_PatternWithNoTrafficIsRetained(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	// Seed a pattern with no matching traffic
@@ -151,7 +151,7 @@ func TestGeneratePatterns_CollapsedPatternIsDeleted(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	// Seed 11 patterns under the same path segment to exceed
@@ -194,7 +194,7 @@ func TestGenerateMetrics_NoEventsSucceeds(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	// Should not panic or error
@@ -213,7 +213,7 @@ func TestGenerateMetrics_InsertsAggregatedMetrics(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	now := time.Now().UTC()
@@ -235,7 +235,7 @@ func TestGenerateMetrics_UpdatesMetricsReportedAtTimestamp(t *testing.T) {
 	teamID := uuid.New().String()
 	appID := uuid.New().String()
 
-	th.SeedTeam(ctx, t, teamID, "Test Team", true)
+	th.SeedTeam(ctx, t, teamID, "Test Team")
 	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
 	GenerateMetrics(ctx)

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"backend/alerts/server"
 	"backend/alerts/slack"
+	"backend/autumn"
 	"backend/email"
 
 	"github.com/google/uuid"
@@ -16,7 +18,8 @@ import (
 )
 
 type Team struct {
-	ID uuid.UUID
+	ID               uuid.UUID
+	AutumnCustomerID *string
 }
 
 type App struct {
@@ -308,8 +311,8 @@ func getActiveTeams(ctx context.Context) ([]Team, error) {
 	teams := []Team{}
 	stmt := sqlf.PostgreSQL.
 		Select("id").
-		From("teams").
-		Where("allow_ingest = true")
+		Select("autumn_customer_id").
+		From("teams")
 
 	defer stmt.Close()
 
@@ -320,12 +323,39 @@ func getActiveTeams(ctx context.Context) ([]Team, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var t Team
-		if err := rows.Scan(&t.ID); err != nil {
+		if err := rows.Scan(&t.ID, &t.AutumnCustomerID); err != nil {
 			return nil, err
 		}
 		teams = append(teams, t)
 	}
-	return teams, nil
+
+	if !server.Server.Config.IsBillingEnabled() {
+		return teams, nil
+	}
+
+	// Filter out teams that Autumn has blocked from ingesting. Fail-open on
+	// any Autumn error so a dependency outage doesn't silently drop alerts.
+	filtered := make([]Team, 0, len(teams))
+	for _, t := range teams {
+		if t.AutumnCustomerID == nil || *t.AutumnCustomerID == "" {
+			filtered = append(filtered, t)
+			continue
+		}
+		resp, err := autumn.Check(ctx, *t.AutumnCustomerID, autumn.FeatureBytes)
+		if err != nil {
+			if autumn.IsServerOrNetworkError(err) {
+				log.Printf("alerts: autumn unavailable, keeping team %s (customer=%s): %v", t.ID, *t.AutumnCustomerID, err)
+			} else {
+				log.Printf("ERROR alerts: autumn client error — check config (team=%s, customer=%s): %v", t.ID, *t.AutumnCustomerID, err)
+			}
+			filtered = append(filtered, t)
+			continue
+		}
+		if resp.Allowed {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered, nil
 }
 
 func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
@@ -728,7 +758,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Body:        body,
 		AlertType:   alert.Type,
 	}
-	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, alert.TeamID, alert.AppID, pendingEmail); err != nil {
+	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, nil, alert.TeamID, alert.AppID, pendingEmail); err != nil {
 		fmt.Printf("Error queueing alert emails for team %v: %v\n", alert.TeamID, err)
 	}
 }
@@ -810,7 +840,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		Body:        emailBody,
 		AlertType:   "daily_summary",
 	}
-	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, teamId, appId, pendingEmail); err != nil {
+	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, nil, teamId, appId, pendingEmail); err != nil {
 		fmt.Printf("Error queueing daily summary emails for team %v: %v\n", teamId, err)
 	}
 }

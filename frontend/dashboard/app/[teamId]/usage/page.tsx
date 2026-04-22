@@ -10,15 +10,13 @@ import {
   useBillingInfoQuery,
   useDowngradeToFreeMutation,
   useHandleUpgradeMutation,
-  usePollForPlanQuery,
-  useSubscriptionInfoQuery,
+  useUndoDowngradeMutation,
   useUsagePermissionsQuery,
   useUsageQuery,
 } from '@/app/query/hooks'
-import { queryClient } from '@/app/query/query_client'
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
-import { formatBytes } from '@/app/utils/number_utils'
-import { FREE_BYTES, FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MAX_RETENTION_DAYS, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '@/app/utils/pricing_constants'
+import { formatBytesSI } from '@/app/utils/number_utils'
+import { FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH, PRO_RETENTION_DAYS } from '@/app/utils/pricing_constants'
 import { chartTheme, underlineLinkStyle } from '@/app/utils/shared_styles'
 import { ResponsivePie } from '@nivo/pie'
 
@@ -63,41 +61,44 @@ function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
 export default function Usage({ params }: { params: { teamId: string } }) {
   const { theme } = useTheme()
 
-  // TanStack Query: reads
-  const { data: usageData, status: usageStatus } = useUsageQuery(params.teamId)
-  const { data: permissions } = useUsagePermissionsQuery(isBillingEnabled() ? params.teamId : undefined)
-  const { data: billingInfo, status: billingInfoStatus } = useBillingInfoQuery(isBillingEnabled() ? params.teamId : undefined)
-  const currentUserCanChangePlan = permissions?.canChangePlan === true
-
-  const { data: subscriptionInfo, status: subscriptionInfoStatus } = useSubscriptionInfoQuery(
-    isBillingEnabled() && billingInfo?.plan === 'pro' && currentUserCanChangePlan ? params.teamId : undefined
-  )
-
   // UI-only local state
   const [isUpgrading, setIsUpgrading] = useState(false)
   const [isDowngrading, setIsDowngrading] = useState(false)
+  const [isUndoingDowngrade, setIsUndoingDowngrade] = useState(false)
   const [downgradeConfirmationDialogOpen, setDowngradeConfirmationDialogOpen] = useState(false)
   const [isLoadingPortal, setIsLoadingPortal] = useState(false)
 
   // Month selection state
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined)
 
-  // Polling state for plan changes
-  const [pollingTargetPlan, setPollingTargetPlan] = useState<string | undefined>(undefined)
-  const { data: polledBillingInfo } = usePollForPlanQuery(
-    pollingTargetPlan ? params.teamId : undefined,
-    pollingTargetPlan
+  // After a successful Stripe redirect-back, rapid-poll the billing info
+  // query until Autumn confirms the upgrade. (Downgrade no longer polls — the
+  // /billing/downgrade endpoint returns synchronously and the next refetch
+  // reflects canceled_at.)
+  const [awaitingProConfirmation, setAwaitingProConfirmation] = useState(false)
+
+  // TanStack Query: reads
+  const { data: usageData, status: usageStatus } = useUsageQuery(params.teamId)
+  const { data: permissions } = useUsagePermissionsQuery(isBillingEnabled() ? params.teamId : undefined)
+  const { data: billingInfo, status: billingInfoStatus } = useBillingInfoQuery(
+    isBillingEnabled() ? params.teamId : undefined,
+    {
+      refetchInterval: awaitingProConfirmation
+        ? (q) => q.state.data?.plan === 'pro' ? false : 1000
+        : false,
+    },
   )
+  const currentUserCanChangePlan = permissions?.canChangePlan === true
 
   // TanStack Query: mutations
   const upgradeMutation = useHandleUpgradeMutation()
   const downgradeMutation = useDowngradeToFreeMutation()
+  const undoDowngradeMutation = useUndoDowngradeMutation()
 
   // Derived data from usage
   const months = usageData ? parseMonths(usageData) : []
   const effectiveMonth = selectedMonth ?? (months.length > 0 ? months[months.length - 1] : undefined)
   const selectedMonthUsage = usageData && effectiveMonth ? parseUsageForMonth(usageData, effectiveMonth) : []
-  const currentBillingCycleUsage = selectedMonthUsage.reduce((acc, u) => acc + u.bytes_in, 0)
 
   // Set initial month when usage data loads
   useEffect(() => {
@@ -106,7 +107,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     }
   }, [usageData])
 
-  // Handle success/cancel from Stripe redirect
+  // Handle success/cancel from Autumn-driven checkout redirect
   useEffect(() => {
     const timer = setTimeout(() => {
       const searchParams = new URLSearchParams(window.location.search)
@@ -115,7 +116,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
 
       if (success === 'true') {
         toastPositive("Successfully upgraded to Pro! Your plan is now active.")
-        setPollingTargetPlan('pro')
+        setAwaitingProConfirmation(true)
         window.history.replaceState({}, '', window.location.pathname)
       } else if (canceled === 'true') {
         toastNegative("Checkout canceled", "You can try again anytime.")
@@ -126,22 +127,21 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     return () => clearTimeout(timer)
   }, [])
 
-  // Stop polling when target plan is reached
+  // Stop polling once Autumn confirms Pro.
   useEffect(() => {
-    if (polledBillingInfo?.plan === pollingTargetPlan) {
-      // Plan change confirmed — invalidate the regular billing query so it
-      // picks up the new plan, then stop polling.
-      queryClient.invalidateQueries({ queryKey: ["billingInfo", params.teamId] })
-      setPollingTargetPlan(undefined)
+    if (awaitingProConfirmation && billingInfo?.plan === 'pro') {
+      setAwaitingProConfirmation(false)
     }
-  }, [polledBillingInfo, pollingTargetPlan])
+  }, [billingInfo, awaitingProConfirmation])
 
-  // While polling, use the polled data. Otherwise use the regular query.
-  const effectiveBillingInfo = pollingTargetPlan ? polledBillingInfo ?? billingInfo : billingInfo
-
-  const freeUsagePercent = effectiveBillingInfo?.plan === 'free' && FREE_BYTES > 0
-    ? Math.min(100, currentBillingCycleUsage > 0
-      ? Math.max(0.01, Math.round((currentBillingCycleUsage / FREE_BYTES) * 10000) / 100)
+  const bytesGranted = billingInfo?.bytes_granted ?? 0
+  const bytesUsed = billingInfo?.bytes_used ?? 0
+  const cancellationScheduled = billingInfo?.plan === 'pro'
+    && (billingInfo?.canceled_at ?? 0) > 0
+    && (billingInfo?.current_period_end ?? 0) * 1000 > Date.now()
+  const freeUsagePercent = billingInfo?.plan === 'free' && bytesGranted > 0
+    ? Math.min(100, bytesUsed > 0
+      ? Math.max(0.01, Math.round((bytesUsed / bytesGranted) * 10000) / 100)
       : 0)
     : 0
 
@@ -150,7 +150,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     const currentUrl = window.location.href.split('?')[0]
 
     upgradeMutation.mutate(
-      { teamId: params.teamId, successUrl: `${currentUrl}?success=true`, cancelUrl: `${currentUrl}?canceled=true` },
+      { teamId: params.teamId, successUrl: `${currentUrl}?success=true` },
       {
         onSuccess: (data) => {
           if (data?.already_upgraded) {
@@ -178,13 +178,30 @@ export default function Usage({ params }: { params: { teamId: string } }) {
       { teamId: params.teamId },
       {
         onSuccess: () => {
-          toastPositive("Successfully downgraded to Free plan.")
-          setPollingTargetPlan('free')
+          toastPositive("Cancellation scheduled. Pro stays active until the end of the current billing cycle.")
           setIsDowngrading(false)
         },
         onError: () => {
-          toastNegative("Failed to downgrade", "Please try again.")
+          toastNegative("Failed to schedule cancellation", "Please try again.")
           setIsDowngrading(false)
+        },
+      }
+    )
+  }
+
+  const onUndoDowngrade = async () => {
+    setIsUndoingDowngrade(true)
+
+    undoDowngradeMutation.mutate(
+      { teamId: params.teamId },
+      {
+        onSuccess: () => {
+          toastPositive("Cancellation undone. Your Pro plan continues as normal.")
+          setIsUndoingDowngrade(false)
+        },
+        onError: () => {
+          toastNegative("Failed to undo cancellation", "Please try again.")
+          setIsUndoingDowngrade(false)
         },
       }
     )
@@ -342,11 +359,11 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           {billingInfoStatus === 'success' &&
             <div className="flex flex-col items-start w-full">
               {/* Progress indicator for Free plan */}
-              {effectiveBillingInfo?.plan === 'free' && (
+              {billingInfo?.plan === 'free' && (
                 <div className='w-full max-w-6xl'>
                   <div className='flex items-center justify-between mb-2'>
                     <p className='font-body'>Free plan usage: <span className='font-semibold'>{freeUsagePercent}%</span></p>
-                    <p className='font-body text-muted-foreground'>{formatBytes(currentBillingCycleUsage)} used of {FREE_GB} GB</p>
+                    <p className='font-body text-muted-foreground'>{formatBytesSI(bytesUsed)} used of {formatBytesSI(bytesGranted)}</p>
                   </div>
                   <Progress value={freeUsagePercent} />
                 </div>
@@ -355,14 +372,14 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               {/* Plan Cards */}
               <div className='flex flex-col md:flex-row gap-8 w-full mt-12'>
                 {/* Free Plan Card - only show when on free plan */}
-                {effectiveBillingInfo?.plan === 'free' && (
+                {billingInfo?.plan === 'free' && (
                   <Card className='w-full md:w-1/2 relative'>
                     {showCurrentPlanBadge()}
                     <div className="p-4 md:p-8 flex flex-col items-center">
                       <p className='text-xl font-display'>FREE</p>
                       <p className='text-4xl font-display py-2'>$0 per month</p>
                       <ul className='list-disc space-y-2 mt-6'>
-                        <li className='font-body'>Up to {FREE_GB} GB per month</li>
+                        <li className='font-body'>{FREE_GB} GB per month</li>
                         <li className='font-body'>{FREE_RETENTION_DAYS} days retention</li>
                         <li className='font-body'>No credit card needed</li>
                       </ul>
@@ -371,63 +388,46 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                 )}
 
                 {/* Pro Plan Card */}
-                <Card className={`${effectiveBillingInfo?.plan === 'pro' ? 'w-full' : 'w-full md:w-1/2'} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}>
-                  {effectiveBillingInfo?.plan === 'pro' && showCurrentPlanBadge()}
+                <Card className={`${billingInfo?.plan === 'pro' ? 'w-full' : 'w-full md:w-1/2'} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}>
+                  {billingInfo?.plan === 'pro' && showCurrentPlanBadge()}
                   <div className="p-4 md:p-8 flex flex-col items-center">
                     <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
                     <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
-                    {effectiveBillingInfo?.plan !== 'pro' && (
+                    {billingInfo?.plan !== 'pro' && (
                       <ul className='list-disc space-y-2 mt-6'>
                         <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_GB} GB per month included</li>
-                        <li className='font-body text-green-900 dark:text-foreground'>Retention up to {MAX_RETENTION_DAYS} days</li>
-                        <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>{PRO_RETENTION_DAYS} days retention</li>
+                        <li className='font-body text-green-900 dark:text-foreground'>Extra data charged at ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
                       </ul>
                     )}
-                    {effectiveBillingInfo?.plan === 'pro' && currentUserCanChangePlan && subscriptionInfoStatus === 'pending' && (
-                      <div className='mt-4 w-full max-w-md space-y-3'>
-                        <Skeleton className='h-4 w-full' />
-                        <Skeleton className='h-4 w-full' />
-                        <Skeleton className='h-4 w-full' />
-                        <Skeleton className='h-4 w-full' />
-                        <Skeleton className='h-4 w-full' />
-                      </div>
-                    )}
-                    {effectiveBillingInfo?.plan === 'pro' && currentUserCanChangePlan && subscriptionInfoStatus === 'success' && subscriptionInfo && (
+                    {billingInfo?.plan === 'pro' && currentUserCanChangePlan && billingInfo.status && (
                       <div className='mt-4 font-body text-start space-y-1'>
                         <ul className='list-disc list-inside'>
                           <li className='text-green-900 dark:text-foreground'>
-                            Status: <span className='font-semibold capitalize'>{subscriptionInfo.status}</span>
+                            Status: <span className='font-semibold capitalize'>{billingInfo.status}</span>
                           </li>
                           <li className='text-green-900 dark:text-foreground'>
                             Current billing cycle: <span className='font-semibold'>
-                              {new Date(subscriptionInfo.current_period_start * 1000).toLocaleDateString()} – {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                              {new Date(billingInfo.current_period_start * 1000).toLocaleDateString()} – {new Date(billingInfo.current_period_end * 1000).toLocaleDateString()}
                             </span>
                           </li>
-                          <li className='text-green-900 dark:text-foreground'>
-                            Next invoice: <span className='font-semibold'>
-                              {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
-                            </span>
-                          </li>
-                          <li className='text-green-900 dark:text-foreground'>
-                            GB-days used (data x retention days based on usage so far): <span className='font-semibold'>
-                              {subscriptionInfo.billing_cycle_usage.toLocaleString()}
-                            </span>
-                          </li>
-                          {subscriptionInfo.upcoming_invoice && (
+                          {!cancellationScheduled && (
                             <li className='text-green-900 dark:text-foreground'>
-                              Upcoming invoice amount (based on usage so far): <span className='font-semibold'>
-                                {(subscriptionInfo.upcoming_invoice.amount_due / 100).toLocaleString(undefined, {
-                                  style: 'currency',
-                                  currency: subscriptionInfo.upcoming_invoice.currency.toUpperCase(),
-                                })}
+                              Next invoice: <span className='font-semibold'>
+                                {new Date(billingInfo.current_period_end * 1000).toLocaleDateString()}
                               </span>
                             </li>
                           )}
+                          <li className='text-green-900 dark:text-foreground'>
+                            Data used this cycle: <span className='font-semibold'>
+                              {formatBytesSI(bytesUsed)}
+                            </span>
+                          </li>
                         </ul>
                       </div>
                     )}
                     <div className='pt-12'>
-                      {effectiveBillingInfo?.plan === 'free' && (
+                      {billingInfo?.plan === 'free' && (
                         <Button
                           className={buttonVariants({ variant: "default" })}
                           onClick={onUpgrade}
@@ -436,31 +436,59 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                           {isUpgrading ? 'Redirecting...' : 'Upgrade to Pro'}
                         </Button>
                       )}
-                      {effectiveBillingInfo?.plan === 'pro' && (
+                      {billingInfo?.plan === 'pro' && (
                         <div className='flex flex-col gap-3 items-center'>
                           <Button
                             className="w-56"
                             variant={"default"}
                             onClick={onManageBilling}
-                            disabled={!currentUserCanChangePlan || isLoadingPortal || isDowngrading}
+                            disabled={!currentUserCanChangePlan || isLoadingPortal || isDowngrading || isUndoingDowngrade}
                           >
                             {isLoadingPortal ? 'Redirecting...' : 'Manage Billing'}
                           </Button>
-                          <Button
-                            className="w-56"
-                            variant={"destructive"}
-                            onClick={() => setDowngradeConfirmationDialogOpen(true)}
-                            disabled={!currentUserCanChangePlan || isDowngrading || isLoadingPortal}
-                          >
-                            {isDowngrading ? 'Downgrading...' : 'Downgrade to Free'}
-                          </Button>
+                          {cancellationScheduled ? (
+                            <Button
+                              className="w-56"
+                              variant={"default"}
+                              onClick={onUndoDowngrade}
+                              disabled={!currentUserCanChangePlan || isUndoingDowngrade || isLoadingPortal}
+                            >
+                              {isUndoingDowngrade ? 'Undoing...' : 'Undo Cancellation'}
+                            </Button>
+                          ) : (
+                            <Button
+                              className="w-56"
+                              variant={"destructive"}
+                              onClick={() => setDowngradeConfirmationDialogOpen(true)}
+                              disabled={!currentUserCanChangePlan || isDowngrading || isLoadingPortal}
+                            >
+                              {isDowngrading ? 'Scheduling...' : 'Downgrade to Free'}
+                            </Button>
+                          )}
+                          {cancellationScheduled && billingInfo.current_period_end && (
+                            <p className='font-body text-sm text-center text-muted-foreground pt-2'>
+                              Cancellation scheduled for {new Date(billingInfo.current_period_end * 1000).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
                 </Card>
               </div>
-              {effectiveBillingInfo?.plan === 'pro' && (
+
+              {billingInfo?.plan !== 'pro' && (
+                <p className={`text-sm text-card-foreground font-body mt-8 p-4 w-full text-center`}>
+                  Have large data volumes or need custom retention?{" "}
+                  <Link
+                    href="mailto:hello@measure.sh"
+                    className={underlineLinkStyle}>
+                    Contact us
+                  </Link>
+                  {" "}for personalised plans.
+                </p>)}
+
+              {billingInfo?.plan === 'pro' && (
                 <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
                   Have large data volumes?{" "}
                   <Link
@@ -479,14 +507,16 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           <div className="font-body">
             <p>Are you sure you want to downgrade to the <span className="font-display font-bold">Free</span> plan?</p>
             <ul className="list-disc list-inside pt-2 text-sm">
-              <li>Your subscription will be canceled immediately</li>
-              <li>All app retention will be reset to {FREE_RETENTION_DAYS} days</li>
+              <li>Pro stays active until the end of the current billing cycle</li>
+              <li>At cycle end, you&apos;ll be moved to the Free plan</li>
+              <li>App retention will be reset to {FREE_RETENTION_DAYS} days</li>
               <li>Data will be limited to {FREE_GB} GB per month</li>
+              <li>You can undo this anytime before the cycle ends</li>
             </ul>
           </div>
         }
         open={downgradeConfirmationDialogOpen}
-        affirmativeText="Yes, downgrade"
+        affirmativeText="Yes, schedule cancellation"
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setDowngradeConfirmationDialogOpen(false)

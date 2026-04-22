@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/autumn"
 	"context"
 	"fmt"
 	"log"
@@ -49,6 +50,7 @@ type ServerConfig struct {
 	TxEmailAddress  string
 	OtelServiceName string
 	CloudEnv        bool
+	BillingEnabled  bool
 }
 
 // IsCloud is true if the service is assumed
@@ -59,6 +61,12 @@ func (sc *ServerConfig) IsCloud() bool {
 	}
 
 	return false
+}
+
+// IsBillingEnabled is true if the service has
+// billing enabled.
+func (sc *ServerConfig) IsBillingEnabled() bool {
+	return sc.BillingEnabled
 }
 
 func NewConfig() *ServerConfig {
@@ -123,6 +131,16 @@ func NewConfig() *ServerConfig {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
 	}
 
+	billingEnabled := false
+	if os.Getenv("BILLING_ENABLED") == "true" {
+		billingEnabled = true
+		autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+		if autumnSecretKey == "" {
+			log.Println("AUTUMN_SECRET_KEY env var is not set, billing checks will fail-open")
+		}
+		autumn.Init(autumn.Config{SecretKey: autumnSecretKey})
+	}
+
 	return &ServerConfig{
 		PG: PostgresConfig{
 			DSN: postgresDSN,
@@ -139,6 +157,7 @@ func NewConfig() *ServerConfig {
 		TxEmailAddress:  txEmailAddress,
 		OtelServiceName: otelServiceName,
 		CloudEnv:        cloudEnv,
+		BillingEnabled:  billingEnabled,
 	}
 }
 

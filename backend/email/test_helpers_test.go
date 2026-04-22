@@ -38,9 +38,9 @@ func cleanupAll(ctx context.Context, t *testing.T) {
 	th.CleanupAll(ctx, t)
 }
 
-func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string, allowIngest bool) {
+func seedTeam(ctx context.Context, t *testing.T, teamID uuid.UUID, name string) {
 	t.Helper()
-	th.SeedTeam(ctx, t, teamID.String(), name, allowIngest)
+	th.SeedTeam(ctx, t, teamID.String(), name)
 }
 
 func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retention int) {

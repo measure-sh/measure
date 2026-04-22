@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/autumn"
 	"backend/libs/bus"
 
 	"cloud.google.com/go/pubsub/v2"
@@ -76,6 +77,7 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AWSEndpoint                string
 	APIOrigin                  string
+	AutumnSecretKey            string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
@@ -166,6 +168,15 @@ func NewConfig() *ServerConfig {
 		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
+	autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+	if autumnSecretKey == "" && billingEnabled {
+		log.Println("AUTUMN_SECRET_KEY env var is not set, billing enforcement will fail-open")
+	}
+
+	autumn.Init(autumn.Config{
+		SecretKey: autumnSecretKey,
+	})
+
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
@@ -241,6 +252,7 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AWSEndpoint:                endpoint,
 		APIOrigin:                  apiOrigin,
+		AutumnSecretKey:            autumnSecretKey,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,

@@ -21,11 +21,9 @@ import {
   FetchAppRetentionApiStatus,
   FetchAppThresholdPrefsApiStatus,
   FetchBillingInfoApiStatus,
-  FetchBillingUsageThresholdApiStatus,
+  FetchCheckoutSessionApiStatus,
   FetchCustomerPortalUrlApiStatus,
   FetchNotifPrefsApiStatus,
-  FetchStripeCheckoutSessionApiStatus,
-  FetchSubscriptionInfoApiStatus,
   FetchTeamSlackConnectUrlApiStatus,
   FetchTeamSlackStatusApiStatus,
   FetchUsageApiStatus,
@@ -58,6 +56,7 @@ import {
   TeamsApiStatus,
   TestSlackAlertApiStatus,
   TraceApiStatus,
+  UndoDowngradeApiStatus,
   UpdateAppRetentionApiStatus,
   UpdateAppThresholdPrefsApiStatus,
   UpdateBugReportStatusApiStatus,
@@ -79,10 +78,10 @@ import {
   fetchAppThresholdPrefsFromServer,
   fetchAuthzAndMembersFromServer,
   fetchBillingInfoFromServer,
-  fetchBillingUsageThresholdFromServer,
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
   fetchBugReportsOverviewPlotFromServer,
+  fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
   fetchExceptionGroupCommonPathFromServer,
   fetchExceptionsDetailsFromServer,
@@ -109,8 +108,6 @@ import {
   fetchSessionsVsExceptionsPlotFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
-  fetchStripeCheckoutSessionFromServer,
-  fetchSubscriptionInfoFromServer,
   fetchTeamSlackConnectUrlFromServer,
   fetchTeamSlackStatusFromServer,
   fetchTeamsFromServer,
@@ -121,6 +118,7 @@ import {
   removePendingInviteFromServer,
   resendPendingInviteFromServer,
   sendTestSlackAlertFromServer,
+  undoDowngradeFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
@@ -130,7 +128,7 @@ import {
 } from "@/app/api/api_calls"
 import { queryClient } from "@/app/query/query_client"
 import { useFiltersStore } from "@/app/stores/provider"
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
+import { Query, keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -726,22 +724,6 @@ export function useTeamsQuery() {
   })
 }
 
-// ─── Usage Threshold Banner ─────────────────────────────────────────────
-
-export function useUsageThresholdQuery(teamId: string | undefined) {
-  return useQuery({
-    queryKey: ["usageThreshold", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchBillingUsageThresholdFromServer(teamId!)
-      if (result.status !== FetchBillingUsageThresholdApiStatus.Success) {
-        throw new Error("Failed to fetch usage threshold")
-      }
-      return result.data?.threshold ?? 0
-    },
-    enabled: !!teamId,
-  })
-}
-
 // ─── Trace Details ──────────────────────────────────────────────────────
 
 export function useTraceQuery(appId: string, traceId: string) {
@@ -928,7 +910,14 @@ export function useSdkConfigQuery(appId: string | undefined) {
   })
 }
 
-export function useBillingInfoQuery(teamId: string | undefined) {
+type BillingInfoData = Awaited<ReturnType<typeof fetchBillingInfoFromServer>>["data"]
+
+type RefetchInterval = number | false | ((q: Query<BillingInfoData>) => number | false)
+
+export function useBillingInfoQuery(
+  teamId: string | undefined,
+  opts?: { refetchInterval?: RefetchInterval },
+) {
   return useQuery({
     queryKey: ["billingInfo", teamId] as const,
     queryFn: async () => {
@@ -939,6 +928,7 @@ export function useBillingInfoQuery(teamId: string | undefined) {
       return result.data
     },
     enabled: !!teamId,
+    refetchInterval: opts?.refetchInterval,
   })
 }
 
@@ -1206,54 +1196,19 @@ export function useUsagePermissionsQuery(teamId: string | undefined) {
   })
 }
 
-export function useSubscriptionInfoQuery(teamId: string | undefined) {
-  return useQuery({
-    queryKey: ["subscriptionInfo", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchSubscriptionInfoFromServer(teamId!)
-      if (result.status === FetchSubscriptionInfoApiStatus.Error) {
-        throw new Error("Failed to fetch subscription info")
-      }
-      return result.data
-    },
-    enabled: !!teamId,
-  })
-}
-
-export function usePollForPlanQuery(teamId: string | undefined, targetPlan: string | undefined) {
-  return useQuery({
-    queryKey: ["pollForPlan", teamId, targetPlan] as const,
-    queryFn: async () => {
-      const result = await fetchBillingInfoFromServer(teamId!)
-      if (result.status === FetchBillingInfoApiStatus.Error) {
-        throw new Error("Failed to poll for plan")
-      }
-      return result.data
-    },
-    enabled: !!teamId && !!targetPlan,
-    refetchInterval: (query) => {
-      if (query.state.data?.plan === targetPlan) {
-        return false
-      }
-      return 1000
-    },
-  })
-}
-
 // ─── Usage Store: Mutations ─────────────────────────────────────────────
 
 export function useHandleUpgradeMutation() {
   return useMutation({
-    mutationFn: async (params: { teamId: string; successUrl: string; cancelUrl: string }) => {
-      const result = await fetchStripeCheckoutSessionFromServer(params.teamId, params.successUrl, params.cancelUrl)
-      if (result.status === FetchStripeCheckoutSessionApiStatus.Error) {
+    mutationFn: async (params: { teamId: string; successUrl: string }) => {
+      const result = await fetchCheckoutSessionFromServer(params.teamId, params.successUrl)
+      if (result.status === FetchCheckoutSessionApiStatus.Error) {
         throw new Error("Failed to create checkout session")
       }
       return result.data
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billingInfo", variables.teamId] })
-      queryClient.invalidateQueries({ queryKey: ["subscriptionInfo", variables.teamId] })
     },
   })
 }
@@ -1269,7 +1224,21 @@ export function useDowngradeToFreeMutation() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["billingInfo", variables.teamId] })
-      queryClient.invalidateQueries({ queryKey: ["subscriptionInfo", variables.teamId] })
+    },
+  })
+}
+
+export function useUndoDowngradeMutation() {
+  return useMutation({
+    mutationFn: async (params: { teamId: string }) => {
+      const result = await undoDowngradeFromServer(params.teamId)
+      if (result.status === UndoDowngradeApiStatus.Error) {
+        throw new Error("Failed to undo cancellation")
+      }
+      return result.data
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["billingInfo", variables.teamId] })
     },
   })
 }

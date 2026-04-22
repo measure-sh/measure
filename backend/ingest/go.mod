@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	backend/api v0.0.0
-	backend/billing v0.0.0
+	backend/autumn v0.0.0
 	backend/libs v0.0.0
 	cloud.google.com/go/iam v1.7.0
 	cloud.google.com/go/pubsub/v2 v2.5.1
@@ -32,7 +32,6 @@ require (
 )
 
 require (
-	backend/email v0.0.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.20.0 // indirect
@@ -101,7 +100,7 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
-	github.com/stripe/stripe-go/v84 v84.4.1 // indirect
+	github.com/svix/svix-webhooks v1.82.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -130,7 +129,7 @@ require (
 
 replace (
 	backend/api => ../api
-	backend/billing => ../billing
+	backend/autumn => ../autumn
 	backend/email => ../email
 	backend/libs => ../libs
 )

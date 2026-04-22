@@ -91,15 +91,27 @@ func (h *TestHelper) CleanupAll(ctx context.Context, t *testing.T) {
 // Postgres seed helpers
 // --------------------------------------------------------------------------
 
-func (h *TestHelper) SeedTeam(ctx context.Context, t *testing.T, teamID, name string, allowIngest bool) {
+// SeedTeam inserts a team row.
+func (h *TestHelper) SeedTeam(ctx context.Context, t *testing.T, teamID, name string) {
 	t.Helper()
 	now := time.Now()
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO teams (id, name, allow_ingest, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
-		teamID, name, allowIngest, now, now)
+		`INSERT INTO teams (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)`,
+		teamID, name, now, now)
 	if err != nil {
 		t.Fatalf("seed team: %v", err)
+	}
+}
+
+// SeedTeamAutumnCustomer sets teams.autumn_customer_id for the given team.
+func (h *TestHelper) SeedTeamAutumnCustomer(ctx context.Context, t *testing.T, teamID, autumnCustomerID string) {
+	t.Helper()
+	_, err := h.PgPool.Exec(ctx,
+		`UPDATE teams SET autumn_customer_id = $1, updated_at = now() WHERE id = $2`,
+		autumnCustomerID, teamID)
+	if err != nil {
+		t.Fatalf("seed autumn_customer_id: %v", err)
 	}
 }
 
@@ -138,30 +150,6 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 	}
 }
 
-func (h *TestHelper) SeedTeamBilling(ctx context.Context, t *testing.T, teamID, plan string, stripeCustomerID, stripeSubscriptionID *string) {
-	t.Helper()
-	now := time.Now()
-
-	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO team_billing (team_id, plan, stripe_customer_id, stripe_subscription_id, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		teamID, plan, stripeCustomerID, stripeSubscriptionID, now, now)
-	if err != nil {
-		t.Fatalf("seed team_billing: %v", err)
-	}
-}
-
-func (h *TestHelper) SeedTeamIngestBlocked(ctx context.Context, t *testing.T, teamID string, reason string) {
-	t.Helper()
-
-	_, err := h.PgPool.Exec(ctx,
-		`UPDATE teams SET allow_ingest = false, ingest_blocked_reason = $1 WHERE id = $2`,
-		reason, teamID)
-	if err != nil {
-		t.Fatalf("seed ingest blocked: %v", err)
-	}
-}
-
 func (h *TestHelper) SeedAPIKey(
 	ctx context.Context,
 	t *testing.T,
@@ -178,31 +166,6 @@ func (h *TestHelper) SeedAPIKey(
 		appID, keyPrefix, keyValue, checksum, revoked, lastSeen, createdAt)
 	if err != nil {
 		t.Fatalf("seed api_key: %v", err)
-	}
-}
-
-func (h *TestHelper) SeedBillingMetricsReporting(ctx context.Context, t *testing.T, teamID string, reportDate time.Time, events, spans, metrics, bytesIn uint64, reported bool) {
-	t.Helper()
-	var reportedAt interface{}
-	if reported {
-		reportedAt = time.Now()
-	}
-
-	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO billing_metrics_reporting (team_id, report_date, events, spans, metrics, bytes_in, reported_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		teamID, reportDate, events, spans, metrics, bytesIn, reportedAt)
-	if err != nil {
-		t.Fatalf("seed billing_metrics_reporting: %v", err)
-	}
-}
-
-func (h *TestHelper) SetStripeCustomerID(ctx context.Context, t *testing.T, teamID, customerID string) {
-	t.Helper()
-	_, err := h.PgPool.Exec(ctx,
-		"UPDATE team_billing SET stripe_customer_id = $1 WHERE team_id = $2",
-		customerID, teamID)
-	if err != nil {
-		t.Fatalf("set stripe_customer_id: %v", err)
 	}
 }
 

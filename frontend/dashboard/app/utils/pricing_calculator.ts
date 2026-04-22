@@ -1,4 +1,4 @@
-import { ERROR_EVENT_SIZE_KB, DEFAULT_EVENT_SIZE_KB, FREE_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_DAY } from './pricing_constants'
+import { DEFAULT_EVENT_SIZE_KB, ERROR_EVENT_SIZE_KB, FREE_GB, PRICE_PER_GB_MONTH } from './pricing_constants'
 
 const EVENTS_PER_SESSION_MINUTE = 60
 const SESSION_TIME_PER_ERROR = 5
@@ -13,7 +13,6 @@ export type CalculatorInputs = {
   perfSpanSamplePercent: number // e.g. 0.01 means 0.01%
   perfSpanCount: number
   journeySamplePercent: number  // e.g. 0.01 means 0.01%
-  retentionMonths: number       // 1, 3, 6, or 12
 }
 
 export type EventBreakdown = {
@@ -29,11 +28,8 @@ export type CalculatorResult = {
   events: EventBreakdown
   totalGBPerDay: number
   totalGBPerMonth: number
-  retentionDays: number
-  totalGBDays: number
   isFreeTier: boolean
   rawMonthlyCost: number
-  displayMonthlyCost: number
 }
 
 export function computeEventBreakdown(inputs: CalculatorInputs): EventBreakdown {
@@ -63,35 +59,19 @@ export function computeBytesPerDay(events: EventBreakdown): number {
   return crashBytes + otherBytes
 }
 
-export function computeGBDays(totalGBPerDay: number, retentionDays: number): number {
-  // Full retention window: each day has retentionDays * totalGBPerDay
-  // stored, over a 30-day billing month.
-  return 30 * retentionDays * totalGBPerDay
-}
-
-export function computeMonthlyCost(totalGBDays: number): number {
-  return totalGBDays * PRICE_PER_GB_DAY
-}
-
 export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const events = computeEventBreakdown(inputs)
   const totalBytesPerDay = computeBytesPerDay(events)
-  const totalGBPerDay = totalBytesPerDay / (1024 * 1024 * 1024)
+  const totalGBPerDay = totalBytesPerDay / 1_000_000_000
   const totalGBPerMonth = totalGBPerDay * 30
-  const retentionDays = inputs.retentionMonths * 30
-  const totalGBDays = computeGBDays(totalGBPerDay, retentionDays)
-  const isFreeTier = totalGBPerMonth <= FREE_GB && inputs.retentionMonths === 1
-  const rawMonthlyCost = computeMonthlyCost(totalGBDays)
-  const displayMonthlyCost = isFreeTier ? 0 : Math.max(rawMonthlyCost, MINIMUM_PRICE_AFTER_FREE_TIER)
+  const isFreeTier = totalGBPerMonth <= FREE_GB
+  const rawMonthlyCost = totalGBPerMonth * PRICE_PER_GB_MONTH
 
   return {
     events,
     totalGBPerDay,
     totalGBPerMonth,
-    retentionDays,
-    totalGBDays,
     isFreeTier,
     rawMonthlyCost,
-    displayMonthlyCost,
   }
 }

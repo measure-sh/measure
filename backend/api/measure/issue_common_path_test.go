@@ -126,7 +126,7 @@ func TestGetCrashGroupCommonPathHandler(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "cp-handler-team", true)
+		seedTeam(ctx, t, teamID, "cp-handler-team")
 		ownerID := uuid.New().String()
 		seedUser(ctx, t, ownerID, "cp-owner@test.com")
 		seedTeamMembership(ctx, t, teamID, ownerID, "owner")
@@ -153,7 +153,7 @@ func TestGetCrashGroupCommonPathHandler(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "cp-handler-team2", true)
+		seedTeam(ctx, t, teamID, "cp-handler-team2")
 		userID := uuid.New().String()
 		seedUser(ctx, t, userID, "cp-user2@test.com")
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
@@ -175,7 +175,7 @@ func TestGetCrashGroupCommonPathHandler(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "cp-handler-team3", true)
+		seedTeam(ctx, t, teamID, "cp-handler-team3")
 		userID := uuid.New().String()
 		seedUser(ctx, t, userID, "cp-user3@test.com")
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
@@ -242,7 +242,7 @@ func TestGetANRGroupCommonPathHandler(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "cp-anr-handler-team", true)
+		seedTeam(ctx, t, teamID, "cp-anr-handler-team")
 		userID := uuid.New().String()
 		seedUser(ctx, t, userID, "cp-anr-user@test.com")
 		seedTeamMembership(ctx, t, teamID, userID, "owner")

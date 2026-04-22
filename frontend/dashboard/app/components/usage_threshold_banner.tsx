@@ -1,6 +1,6 @@
 "use client"
 
-import { useUsageThresholdQuery } from '@/app/query/hooks'
+import { useBillingInfoQuery } from '@/app/query/hooks'
 import { isBillingEnabled } from '@/app/utils/feature_flag_utils'
 import Link from 'next/link'
 
@@ -8,10 +8,28 @@ type UsageThresholdBannerProps = {
   teamId: string
 }
 
-export default function UsageThresholdBanner({ teamId }: UsageThresholdBannerProps) {
-  const { data: threshold } = useUsageThresholdQuery(isBillingEnabled() ? teamId : undefined)
+// Banner only fires for Free plan above 75% — Pro/Enterprise self-manage overages.
+function thresholdFor(billingInfo: { plan?: string; bytes_granted?: number; bytes_used?: number } | undefined): number {
+  if (!billingInfo || billingInfo.plan !== 'free') {
+    return 0
+  }
+  const granted = billingInfo.bytes_granted ?? 0
+  const used = billingInfo.bytes_used ?? 0
+  if (granted <= 0) {
+    return 0
+  }
+  const pct = (used / granted) * 100
+  if (pct >= 100) return 100
+  if (pct >= 90) return 90
+  if (pct >= 75) return 75
+  return 0
+}
 
-  if (!threshold || threshold === 0) {
+export default function UsageThresholdBanner({ teamId }: UsageThresholdBannerProps) {
+  const { data: billingInfo } = useBillingInfoQuery(isBillingEnabled() ? teamId : undefined)
+  const threshold = thresholdFor(billingInfo)
+
+  if (threshold === 0) {
     return null
   }
 

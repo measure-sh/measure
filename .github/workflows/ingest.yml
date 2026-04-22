@@ -116,7 +116,7 @@ jobs:
             libs=backend/libs
             api=backend/api
             email=backend/email
-            billing=backend/billing
+            autumn=backend/autumn
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

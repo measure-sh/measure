@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/autumn"
 	"backend/libs/inet"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -17,7 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/stripe/stripe-go/v84"
 	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
@@ -91,10 +91,8 @@ type ServerConfig struct {
 	TxEmailAddress             string
 	SlackClientID              string
 	SlackClientSecret          string
-	StripeAPIKey               string
-	StripeWebhookSecret        string
-	StripeProPriceID   string
-	StripeMeterName    string
+	AutumnSecretKey            string
+	AutumnWebhookSecret        string
 	OtelServiceName            string
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
@@ -309,27 +307,19 @@ func NewConfig() *ServerConfig {
 		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
 	}
 
-	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
-	if stripeAPIKey == "" {
-		log.Println("STRIPE_API_KEY env var is not set, stripe integration will not work")
+	autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+	if autumnSecretKey == "" {
+		log.Println("AUTUMN_SECRET_KEY env var is not set, billing will not work")
 	}
 
-	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
-	if stripeWebhookSecret == "" {
-		log.Println("STRIPE_WEBHOOK_SECRET env var is not set, stripe integration will not work")
+	autumnWebhookSecret := os.Getenv("AUTUMN_WEBHOOK_SECRET")
+	if autumnWebhookSecret == "" {
+		log.Println("AUTUMN_WEBHOOK_SECRET env var is not set, billing webhooks will not work")
 	}
 
-	stripeProPriceID := os.Getenv("STRIPE_PRO_PRICE_ID")
-	if stripeProPriceID == "" {
-		log.Println("STRIPE_PRO_PRICE_ID env var is not set, stripe integration will not work")
-	}
-
-	stripeMeterName := os.Getenv("STRIPE_METER_NAME")
-	if stripeMeterName == "" {
-		log.Println("STRIPE_METER_NAME env var is not set, billing cycle usage will not be available")
-	}
-
-	stripe.Key = stripeAPIKey
+	autumn.Init(autumn.Config{
+		SecretKey: autumnSecretKey,
+	})
 
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
@@ -379,10 +369,8 @@ func NewConfig() *ServerConfig {
 		TxEmailAddress:             txEmailAddress,
 		SlackClientID:              slackClientID,
 		SlackClientSecret:          slackClientSecret,
-		StripeAPIKey:               stripeAPIKey,
-		StripeWebhookSecret:        stripeWebhookSecret,
-		StripeProPriceID:   stripeProPriceID,
-		StripeMeterName:    stripeMeterName,
+		AutumnSecretKey:            autumnSecretKey,
+		AutumnWebhookSecret:        autumnWebhookSecret,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,

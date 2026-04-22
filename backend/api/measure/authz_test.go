@@ -23,7 +23,7 @@ func seedTeamAndMemberWithRole(t *testing.T, ctx context.Context, role string) (
 	userID := uuid.New().String()
 	teamID := uuid.New()
 	seedUser(ctx, t, userID, role+"-authz@test.com")
-	seedTeam(ctx, t, teamID, testTeamName, true)
+	seedTeam(ctx, t, teamID, testTeamName)
 	seedTeamMembership(ctx, t, teamID, userID, role)
 	return userID, teamID
 }
@@ -364,7 +364,7 @@ func TestPerformAuthzErrorPaths(t *testing.T) {
 		userID := uuid.New().String()
 		teamID := uuid.New()
 		seedUser(ctx, t, userID, "no-membership-authz@test.com")
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 
 		allowed, err := PerformAuthz(userID, teamID.String(), *ScopeAppRead)
 		if err == nil {
@@ -382,7 +382,7 @@ func TestPerformAuthzErrorPaths(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "team", true)
+		seedTeam(ctx, t, teamID, "team")
 
 		allowed, err := PerformAuthz("not-a-uuid", teamID.String(), *ScopeAppRead)
 		if err == nil {
@@ -505,7 +505,7 @@ func TestGetAuthzRoles_ErrorPaths(t *testing.T) {
 		userID := uuid.New().String()
 		teamID := uuid.New()
 		seedUser(ctx, t, userID, "authz-missing-membership@test.com")
-		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeam(ctx, t, teamID, testTeamName)
 
 		c, w := newGetAuthzRolesContext(userID, teamID)
 		GetAuthzRoles(c)
@@ -520,7 +520,7 @@ func TestGetAuthzRoles_ErrorPaths(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, testTeamName, true)
+		seedTeam(ctx, t, teamID, testTeamName)
 
 		c, w := newGetAuthzRolesContext("not-a-uuid", teamID)
 		GetAuthzRoles(c)
@@ -542,7 +542,7 @@ func TestGetAuthzRoles_ResponseContract(t *testing.T) {
 
 	seedUser(ctx, t, userID, "owner-authz-contract@test.com")
 	seedUser(ctx, t, otherID, "viewer-authz-contract@test.com")
-	seedTeam(ctx, t, teamID, testTeamName, true)
+	seedTeam(ctx, t, teamID, testTeamName)
 	seedTeamMembership(ctx, t, teamID, userID, "owner")
 	seedTeamMembership(ctx, t, teamID, otherID, "viewer")
 

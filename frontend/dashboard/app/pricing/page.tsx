@@ -10,11 +10,9 @@ import LandingFooter from '../components/landing_footer'
 import LandingHeader from '../components/landing_header'
 import { Slider } from '../components/slider'
 import { calculate } from '../utils/pricing_calculator'
-import { FREE_GB, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH } from '../utils/pricing_constants'
+import { FREE_GB, FREE_RETENTION_DAYS, INCLUDED_PRO_GB, MINIMUM_PRICE_AFTER_FREE_TIER, PRICE_PER_GB_MONTH, PRO_RETENTION_DAYS } from '../utils/pricing_constants'
 import { cn } from '../utils/shadcn_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
-
-const RETENTION_MONTHS = [1, 3, 6, 12] as const
 
 
 export default function Pricing() {
@@ -28,7 +26,6 @@ export default function Pricing() {
   const [perfSpanSamplePercent, setPerfSpanSamplePercent] = useState(0.01) // percent
   const [perfSpanCount, setPerfSpanCount] = useState(10) // number of performance spans in app
   const [journeySamplePercent, setJourneySamplePercent] = useState(0.01) // percent
-  const [retentionMonths, setRetentionMonths] = useState(1) // months (1,3,6,12)
 
   const result = calculate({
     dailyUsers,
@@ -38,7 +35,6 @@ export default function Pricing() {
     perfSpanSamplePercent,
     perfSpanCount,
     journeySamplePercent,
-    retentionMonths,
   })
 
   const {
@@ -94,8 +90,8 @@ export default function Pricing() {
               <p className='text-xl font-display'>FREE</p>
               <p className='text-4xl font-display py-2'>$0 per month</p>
               <ul className='list-disc space-y-2 mt-6'>
-                <li className='font-body'>Up to {FREE_GB} GB per month</li>
-                <li className='font-body'>30 day retention</li>
+                <li className='font-body'>{FREE_GB} GB per month</li>
+                <li className='font-body'>{FREE_RETENTION_DAYS} days retention</li>
                 <li className='font-body'>No credit card needed</li>
               </ul>
             </div>
@@ -103,11 +99,11 @@ export default function Pricing() {
           <Card className='w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-300 dark:border-border'>
             <div className="p-4 md:p-8 flex flex-col items-center">
               <p className='text-xl text-green-900 dark:text-primary font-display'>PRO</p>
-              <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>$50 per month</p>
+              <p className='text-4xl text-green-900 dark:text-primary font-display py-2'>${MINIMUM_PRICE_AFTER_FREE_TIER} per month</p>
               <ul className='list-disc space-y-2 mt-6'>
                 <li className='font-body text-green-900 dark:text-foreground'>{INCLUDED_PRO_GB} GB per month included</li>
-                <li className='font-body text-green-900 dark:text-foreground'>Retention upto 1 year</li>
-                <li className='font-body text-green-900 dark:text-foreground'>Extra data & retention charged at:<br /> ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
+                <li className='font-body text-green-900 dark:text-foreground'>{PRO_RETENTION_DAYS} days retention</li>
+                <li className='font-body text-green-900 dark:text-foreground'>Extra data charged at ${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month</li>
               </ul>
             </div>
           </Card>
@@ -262,31 +258,6 @@ export default function Pricing() {
                     <span>1%</span>
                   </div>
                 </div>
-
-                {/* Data retention */}
-                <div>
-                  <div className="flex justify-between items-center mb-4 gap-2">
-                    <div>
-                      <label className="text-xl font-display">🗄️ Data retention</label>
-                      <p className="text-sm py-2 text-muted-foreground font-body">How long events are retained for query and analytics</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-2">
-                    {RETENTION_MONTHS.map((m) => (
-                      <Button
-                        key={m}
-                        onClick={() => setRetentionMonths(m)}
-                        variant={"outline"}
-                        className={cn(
-                          "border-2",
-                          retentionMonths === m ? "border-primary dark:border-primary" : "",
-                        )}
-                      >
-                        {m === 12 ? '1 year' : `${m} month${m > 1 ? 's' : ''}`}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
               </CollapsibleContent>
             </Collapsible>
 
@@ -342,7 +313,7 @@ export default function Pricing() {
                 <div className="flex justify-between gap-2 items-start md:items-center mb-6 py-8 border-b-2 border-border">
                   <span className="text-4xl font-display text-card-foreground">Estimated monthly cost:</span>
                   <span className={cn("text-4xl font-display text-card-foreground")}>
-                    ${rawMonthlyCost < MINIMUM_PRICE_AFTER_FREE_TIER ? formatNumber(MINIMUM_PRICE_AFTER_FREE_TIER) : formatNumber(rawMonthlyCost)}
+                    ${formatNumber(Math.max(rawMonthlyCost, MINIMUM_PRICE_AFTER_FREE_TIER))}
                   </span>
                 </div>)}
 
@@ -357,13 +328,13 @@ export default function Pricing() {
               </Link>
 
               <p className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}>
-                Have large data volumes?{" "}
+                Have large data volumes or need custom retention?{" "}
                 <Link
                   href="mailto:hello@measure.sh"
                   className={underlineLinkStyle}>
                   Contact us
                 </Link>
-                {" "}for personalised volume discounts.
+                {" "}for personalised plans.
               </p>
 
             </div>

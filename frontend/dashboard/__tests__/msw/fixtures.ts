@@ -931,7 +931,18 @@ export function makeAuthzFixture(overrides: Record<string, any> = {}) {
 // --- Billing Info (GET /teams/:teamId/billing/info) ---
 
 export function makeBillingInfoFixture(overrides: Record<string, any> = {}) {
-    return { plan: 'pro', ...overrides }
+    return {
+        team_id: 'team-001',
+        plan: 'pro',
+        autumn_customer_id: 'cust_test',
+        bytes_granted: 0,
+        bytes_used: 0,
+        status: 'active',
+        current_period_start: 0,
+        current_period_end: 0,
+        canceled_at: 0,
+        ...overrides,
+    }
 }
 
 // --- App Retention (GET /apps/:appId/retention) ---
@@ -1055,33 +1066,21 @@ export function makeUsageFixture() {
             app_id: 'b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f',
             app_name: 'measure demo',
             monthly_app_usage: [
-                { month_year: 'Mar 2026', sessions: 5000, events: 12000, spans: 8000, bytes_in: 1073741824 },
-                { month_year: 'Apr 2026', sessions: 6200, events: 15000, spans: 9500, bytes_in: 1610612736 },
+                { month_year: 'Mar 2026', sessions: 5000, events: 12000, spans: 8000, bytes_in: 1_000_000_000 },
+                { month_year: 'Apr 2026', sessions: 6200, events: 15000, spans: 9500, bytes_in: 1_500_000_000 },
             ],
         },
         {
             app_id: 'c6f4e9b2-7d3e-5a0b-9f8c-2b3c4d5e6f7a',
             app_name: 'other app',
             monthly_app_usage: [
-                { month_year: 'Mar 2026', sessions: 2000, events: 4000, spans: 3000, bytes_in: 536870912 },
-                { month_year: 'Apr 2026', sessions: 2500, events: 5000, spans: 3500, bytes_in: 805306368 },
+                { month_year: 'Mar 2026', sessions: 2000, events: 4000, spans: 3000, bytes_in: 500_000_000 },
+                { month_year: 'Apr 2026', sessions: 2500, events: 5000, spans: 3500, bytes_in: 750_000_000 },
             ],
         },
     ]
 }
 
-// --- Subscription Info (GET /teams/:teamId/billing/subscriptionInfo) ---
-
-export function makeSubscriptionInfoFixture(overrides: Record<string, any> = {}) {
-    return {
-        status: 'active',
-        current_period_start: 1711929600, // 2024-04-01
-        current_period_end: 1714521600, // 2024-05-01
-        upcoming_invoice: { amount_due: 5000, currency: 'usd' },
-        billing_cycle_usage: 150,
-        ...overrides,
-    }
-}
 
 export function makeNotifPrefsFixture(overrides: Record<string, any> = {}) {
     return {

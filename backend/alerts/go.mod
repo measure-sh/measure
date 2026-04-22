@@ -3,6 +3,7 @@ module backend/alerts
 go 1.25.7
 
 require (
+	backend/autumn v0.0.0
 	backend/email v0.0.0
 	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.20.2
@@ -67,6 +68,7 @@ require (
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/svix/svix-webhooks v1.82.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -93,6 +95,7 @@ require (
 )
 
 replace (
+	backend/autumn => ../autumn
 	backend/email => ../email
 	backend/libs => ../libs
 )
