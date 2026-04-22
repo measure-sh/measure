@@ -31,6 +31,9 @@ val archiveMeasureIos = tasks.register<Exec>("archiveMeasureIos") {
         "-archivePath", xcfDir.get().dir("Measure-ios.xcarchive").asFile.absolutePath,
         "SKIP_INSTALL=NO",
         "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
+        "CODE_SIGNING_ALLOWED=NO",
+        "CODE_SIGNING_REQUIRED=NO",
+        "CODE_SIGN_IDENTITY=",
     )
 }
 
@@ -46,6 +49,9 @@ val archiveMeasureIosSimulator = tasks.register<Exec>("archiveMeasureIosSimulato
         "-archivePath", xcfDir.get().dir("Measure-sim.xcarchive").asFile.absolutePath,
         "SKIP_INSTALL=NO",
         "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
+        "CODE_SIGNING_ALLOWED=NO",
+        "CODE_SIGNING_REQUIRED=NO",
+        "CODE_SIGN_IDENTITY=",
     )
 }
 
