@@ -17,10 +17,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strings"
+	"sync"
 	"time"
 
+	"cloud.google.com/go/auth"
+	"cloud.google.com/go/auth/credentials"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1028,6 +1030,28 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
+var gcsCreds struct {
+	sync.Once
+	creds *auth.Credentials
+}
+
+func getGCSCreds() (*auth.Credentials, error) {
+	gcsCreds.Do(func() {
+		creds, err := credentials.DetectDefault(&credentials.DetectOptions{
+			Scopes: []string{"https://www.googleapis.com/auth/devstorage.read_only"},
+		})
+		if err != nil {
+			fmt.Printf("failed to detect GCS credentials: %v\n", err)
+			return
+		}
+		gcsCreds.creds = creds
+	})
+	if gcsCreds.creds == nil {
+		return nil, fmt.Errorf("GCS credentials unavailable")
+	}
+	return gcsCreds.creds, nil
+}
+
 // PushHandler handles incoming Pub/Sub push messages containing
 // ingest batches published by the ingest service.
 func PushHandler(c *gin.Context) {
@@ -1199,9 +1223,14 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 			switch opsys.ToFamily(osName) {
 			case opsys.Android:
 				if config.IsCloud() {
-					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-					sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					creds, err := getGCSCreds()
+					if err != nil {
+						fmt.Printf("failed to obtain credentials for GCS Android source: %v\n", err)
+					} else if tok, err := creds.Token(ingestCtx); err != nil {
+						fmt.Printf("failed to generate token for GCS Android source: %v\n", err)
+					} else {
+						sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, tok.Value))
+					}
 				} else {
 					sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 				}
@@ -1221,9 +1250,14 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 				}
 			case opsys.AppleFamily:
 				if config.IsCloud() {
-					privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
-					clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
-					sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+					creds, err := getGCSCreds()
+					if err != nil {
+						fmt.Printf("failed to obtain credentials for GCS Apple source: %v\n", err)
+					} else if tok, err := creds.Token(ingestCtx); err != nil {
+						fmt.Printf("failed to generate token for GCS Apple source: %v\n", err)
+					} else {
+						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, tok.Value))
+					}
 				} else {
 					sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 				}

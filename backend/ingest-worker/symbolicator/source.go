@@ -38,6 +38,9 @@ type Source struct {
 	// ClientEmail is the Google Cloud Storage email
 	// for authentication.
 	ClientEmail string `json:"client_email,omitempty"`
+	// BearerToken is the authorization token that can be
+	// used instead of `private_key` & `client_email`.
+	BearerToken string `json:"bearer_token,omitempty"`
 	// Filters are a set of filters to reduce the
 	// number of unnecessary hits on a symbol server.
 	Filters struct {
@@ -98,13 +101,12 @@ func NewS3SourceAndroid(id, bucket, region, origin, accessKey, secretKey string)
 
 // NewGCSSourceApple creates a GCS source
 // for Apple platform.
-func NewGCSSourceApple(id, bucket, privateKey, clientEmail string) (source Source) {
+func NewGCSSourceApple(id, bucket, bearerToken string) (source Source) {
 	source.ID = id
 	source.Type = "gcs"
 	source.Bucket = bucket
 	source.Prefix = ""
-	source.PrivateKey = privateKey
-	source.ClientEmail = clientEmail
+	source.BearerToken = bearerToken
 	source.Filters.FileTypes = []string{"mach_debug"}
 	source.Filters.PathPatterns = []string{}
 	source.Layout.Type = "unified"
@@ -115,13 +117,12 @@ func NewGCSSourceApple(id, bucket, privateKey, clientEmail string) (source Sourc
 
 // NewGCSSourceAndroid creates a GCS source for
 // Android platform.
-func NewGCSSourceAndroid(id, bucket, privateKey, clientEmail string) (source Source) {
+func NewGCSSourceAndroid(id, bucket, bearerToken string) (source Source) {
 	source.ID = id
 	source.Type = "gcs"
 	source.Bucket = bucket
 	source.Prefix = ""
-	source.PrivateKey = privateKey
-	source.ClientEmail = clientEmail
+	source.BearerToken = bearerToken
 	source.Filters.FileTypes = []string{"proguard", "elf_debug"}
 	source.Filters.PathPatterns = []string{}
 	source.Layout.Type = "unified"
