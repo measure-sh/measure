@@ -1037,9 +1037,7 @@ var gcsCreds struct {
 
 func getGCSCreds() (*auth.Credentials, error) {
 	gcsCreds.Do(func() {
-		creds, err := credentials.DetectDefault(&credentials.DetectOptions{
-			Scopes: []string{"https://www.googleapis.com/auth/cloud-platform.read_only"},
-		})
+		creds, err := credentials.DetectDefault(&credentials.DetectOptions{})
 		if err != nil {
 			fmt.Printf("failed to detect GCS credentials: %v\n", err)
 			return
