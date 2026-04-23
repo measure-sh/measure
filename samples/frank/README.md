@@ -135,12 +135,11 @@ required.
 
 ### Android
 
-`settings.gradle.kts` uses Gradle composite builds to include the Android SDK
-and Gradle plugin from source:
+`settings.gradle.kts` uses a Gradle composite build to include the Android SDK
+from source:
 
 ```kotlin
-includeBuild("../../android/measure-android-gradle")
-includeBuild("../../android") { name = "measure-android" }
+includeBuild("../../android/measure-android")
 ```
 
 The app module then depends on it as a Maven coordinate that Gradle resolves

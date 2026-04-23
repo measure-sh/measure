@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-android
     permissions:
       contents: write
       pull-requests: write
@@ -48,11 +48,11 @@ jobs:
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
-      - name: Update version in libs.versions.toml
+      - name: Update version in plugin libs.versions.toml
         run: |
           PATTERN="measure-android = \".*\""
           REPLACEMENT="measure-android = \"${{ inputs.version }}\""
-          sed -i "s/$PATTERN/$REPLACEMENT/" gradle/libs.versions.toml
+          sed -i "s/$PATTERN/$REPLACEMENT/" ../measure-gradle-plugin/gradle/libs.versions.toml
 
       - name: Verify changes
         run: |
@@ -80,5 +80,5 @@ jobs:
           labels: android
           assignees: abhaysood
           add-paths: |
-            android/gradle.properties
-            android/gradle/libs.versions.toml
+            android/measure-android/gradle.properties
+            android/measure-gradle-plugin/gradle/libs.versions.toml

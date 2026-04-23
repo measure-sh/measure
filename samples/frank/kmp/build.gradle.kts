@@ -33,6 +33,10 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            implementation("sh.measure:measure-kmp")
+        }
+        iosMain.dependencies {
+            implementation("sh.measure:measure-kmp")
         }
     }
 }

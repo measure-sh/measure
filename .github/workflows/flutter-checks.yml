@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - "flutter/**"
-      - "android/measure/api/**"
+      - "android/measure-android/measure/api/**"
   push:
     branches:
       - "main"

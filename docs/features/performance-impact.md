@@ -13,7 +13,7 @@ See the platform-specific sections below for details on the performance impact o
 ### Benchmarks
 
 We benchmark the SDK's performance impact using a Pixel 4a running Android 13 (API 33). Each test runs 35 times using
-macro-benchmark. For detailed methodology, see [android/benchmarks](../../android/benchmarks/README.md).
+macro-benchmark. For detailed methodology, see [android/measure-android/benchmarks](../../android/measure-android/benchmarks/README.md).
 
 > [!IMPORTANT]
 > Benchmark results are specific to the device and the app. It is recommended to run the benchmarks

@@ -97,7 +97,7 @@ PODS:
     - KSCrash (~> 2.5)
   - measure_flutter (0.3.0):
     - Flutter
-    - measure-sh (= 0.10.0)
+    - measure-sh
   - MeasureReactNative (0.1.0):
     - measure-sh
     - React-Core
@@ -2179,7 +2179,7 @@ SPEC CHECKSUMS:
   image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
   KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
   measure-sh: 0c63eee92abea499f3b682afd63095008db5bd2b
-  measure_flutter: 6cfcf08c539d69e95023be25a188fc0a39ff89ff
+  measure_flutter: 894ae80b6ca5869f9119f6537ef16d944b46dbb1
   MeasureReactNative: eb90f7cc5ce205436664b87a313a82274f4d57d0
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
