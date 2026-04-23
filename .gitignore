@@ -24,3 +24,6 @@ Package.resolved
 
 # email preview output
 backend/email/cmd/preview/output/
+
+# Xcode user-specific data
+xcuserdata/

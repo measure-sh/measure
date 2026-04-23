@@ -24,6 +24,9 @@ PODS:
     - KSCrash/Recording
   - measure-sh (0.10.0):
     - KSCrash (~> 2.5)
+    - measure-sh/WebP (= 0.10.0)
+  - measure-sh/WebP (0.10.0):
+    - KSCrash (~> 2.5)
 
 DEPENDENCIES:
   - measure-sh (from `../../`)
@@ -38,7 +41,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
-  measure-sh: 0c63eee92abea499f3b682afd63095008db5bd2b
+  measure-sh: cb4133b7169721eca11a96d473a1c904c94bf8e2
 
 PODFILE CHECKSUM: 828d9701ce9dd588cdabe7bc1a8cb829d2a17f97
 
