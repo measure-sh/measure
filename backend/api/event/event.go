@@ -1354,6 +1354,10 @@ func (e Exception) GetFramework() (f string) {
 
 	// Apple exception or error or error with exception
 	if e.HasExceptions() {
+		fmt.Println("len", len(e.Exceptions))
+		jsonBytes, _ := json.Marshal(e.Exceptions)
+		fmt.Println("ios exceptions")
+		fmt.Println(string(jsonBytes))
 		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
 			return FrameworkApple
 		}
