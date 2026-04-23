@@ -1345,10 +1345,6 @@ func (e EventField) HasAttachments() bool {
 // GetFramework returns the exception framework
 // in a backwards compatible way.
 func (e Exception) GetFramework() (f string) {
-	fmt.Println("len", len(e.Exceptions))
-	jsonBytes, _ := json.Marshal(e.Exceptions)
-	fmt.Println("ios exceptions")
-	fmt.Println(string(jsonBytes))
 	// if we have the framework, just use it
 	// no need to infer
 	// could be "dart"
