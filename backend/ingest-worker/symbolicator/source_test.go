@@ -36,12 +36,12 @@ func TestNewS3SourceAndroid(t *testing.T) {
 }
 
 func TestNewGCSSourceApple(t *testing.T) {
-	source := NewGCSSourceApple("my-id", "my-bucket", "my-private-key", "my-client-email")
+	source := NewGCSSourceApple("my-id", "my-bucket", "my-bearer-token")
 
 	{
 		bytes, _ := json.Marshal(source)
 
-		expected := `{"id":"my-id","type":"gcs","bucket":"my-bucket","prefix":"","private_key":"my-private-key","client_email":"my-client-email","filters":{"filetypes":["mach_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		expected := `{"id":"my-id","type":"gcs","bucket":"my-bucket","prefix":"","bearer_token":"my-bearer-token","filters":{"filetypes":["mach_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
 		got := string(bytes)
 
 		if expected != got {
