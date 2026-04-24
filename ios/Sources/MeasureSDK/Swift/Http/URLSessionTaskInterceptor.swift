@@ -77,6 +77,7 @@ final class URLSessionTaskInterceptor {
                                        startTime: UInt64?,
                                        endTime: UInt64) {
         guard let url = url,
+              !url.isEmpty,
               let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
               let configProvider = self.configProvider,
               let signalSampler = self.signalSampler else { return }

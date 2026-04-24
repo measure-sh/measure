@@ -100,7 +100,8 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
               let httpInterceptorCallbacks = NetworkInterceptorProtocol.httpInterceptorCallbacks,
               let configProvider = NetworkInterceptorProtocol.configProvider,
               let httpResponse = task.response as? HTTPURLResponse,
-              let urlString = request.url?.absoluteString else { return }
+              let urlString = request.url?.absoluteString,
+              !urlString.isEmpty else { return }
 
         guard configProvider.shouldTrackHttpUrl(url: urlString) else {
             return
