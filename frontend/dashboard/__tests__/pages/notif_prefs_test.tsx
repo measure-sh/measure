@@ -1,12 +1,14 @@
 import Notifications from '@/app/[teamId]/notif_prefs/page'
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
-const mockFetchNotifPrefs = jest.fn()
-const mockUpdateNotifPrefs = jest.fn()
 const mockToastPositive = jest.fn()
 const mockToastNegative = jest.fn()
+const mockMutateAsync = jest.fn()
+
+let mockNotifPrefsData: any = undefined
+let mockNotifPrefsStatus: string = 'pending'
 
 jest.mock('@/app/utils/use_toast', () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
@@ -15,16 +17,28 @@ jest.mock('@/app/utils/use_toast', () => ({
 
 jest.mock('@/app/api/api_calls', () => ({
   __esModule: true,
-  FetchNotifPrefsApiStatus: { Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
-  UpdateNotifPrefsApiStatus: { Init: 'init', Loading: 'loading', Success: 'success', Error: 'error', Cancelled: 'cancelled' },
   emptyNotifPrefs: {
     error_spike: true,
     app_hang_spike: true,
     bug_report: true,
     daily_summary: true,
   },
-  fetchNotifPrefsFromServer: (...args: any[]) => mockFetchNotifPrefs(...args),
-  updateNotifPrefsFromServer: (...args: any[]) => mockUpdateNotifPrefs(...args),
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+  __esModule: true,
+  useNotifPrefsQuery: () => ({
+    data: mockNotifPrefsData,
+    status: mockNotifPrefsStatus,
+    error: null,
+    isLoading: mockNotifPrefsStatus === 'pending',
+    isError: mockNotifPrefsStatus === 'error',
+    isSuccess: mockNotifPrefsStatus === 'success',
+  }),
+  useSaveNotifPrefsMutation: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+  }),
 }))
 
 jest.mock('@/app/components/button', () => ({
@@ -45,9 +59,8 @@ jest.mock('@/app/components/checkbox', () => ({
   ),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-  __esModule: true,
-  default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+  Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 jest.mock('next/link', () => ({
@@ -65,24 +78,25 @@ const defaultNotifPrefs = {
 describe('Notifications page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockNotifPrefsData = undefined
+    mockNotifPrefsStatus = 'pending'
   })
 
   it('renders loading state initially', () => {
-    mockFetchNotifPrefs.mockReturnValue(new Promise(() => { }))
+    mockNotifPrefsStatus = 'pending'
     render(<Notifications />)
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+    expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
   })
 
-  it('renders four notification checkboxes with correct labels', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
+  it('renders four notification checkboxes with correct labels', () => {
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-      expect(screen.getByText('ANR spike email')).toBeInTheDocument()
-      expect(screen.getByText('Bug Reports')).toBeInTheDocument()
-      expect(screen.getByText('Daily Summary')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
+    expect(screen.getByText('ANR spike email')).toBeInTheDocument()
+    expect(screen.getByText('Bug Reports')).toBeInTheDocument()
+    expect(screen.getByText('Daily Summary')).toBeInTheDocument()
 
     const checkboxes = screen.getAllByRole('checkbox')
     expect(checkboxes).toHaveLength(4)
@@ -91,43 +105,31 @@ describe('Notifications page', () => {
     })
   })
 
-  it('renders page title as Notifications', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
+  it('renders description text', () => {
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Notifications')).toBeInTheDocument()
-    })
+    expect(screen.getByText(/Choose which email notifications you want to receive/)).toBeInTheDocument()
   })
 
-  it('renders description text', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
+  it('save button is disabled when no changes', () => {
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText(/Choose which email notifications you want to receive/)).toBeInTheDocument()
-    })
-  })
-
-  it('save button is disabled when no changes', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
-    render(<Notifications />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
 
     const saveButton = screen.getByRole('button', { name: 'Save' })
     expect(saveButton).toBeDisabled()
   })
 
-  it('toggling a checkbox enables save button', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
+  it('toggling a checkbox enables save button', () => {
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
 
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
@@ -137,13 +139,12 @@ describe('Notifications page', () => {
   })
 
   it('saves updated preferences with correct payload', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
-    mockUpdateNotifPrefs.mockResolvedValue({ status: 'success' })
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
+    mockMutateAsync.mockResolvedValue(undefined)
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
 
     // Uncheck first checkbox (error_spike)
     const checkboxes = screen.getAllByRole('checkbox')
@@ -152,67 +153,67 @@ describe('Notifications page', () => {
     const saveButton = screen.getByRole('button', { name: 'Save' })
     fireEvent.click(saveButton)
 
-    await waitFor(() => {
-      expect(mockUpdateNotifPrefs).toHaveBeenCalledWith({
+    // The mutateAsync should be called with the updated prefs
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      notifPrefs: {
         error_spike: false,
         app_hang_spike: true,
         bug_report: true,
         daily_summary: true,
-      })
+      }
     })
   })
 
   it('shows success toast after save', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
-    mockUpdateNotifPrefs.mockResolvedValue({ status: 'success' })
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
+    mockMutateAsync.mockResolvedValue(undefined)
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
 
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() => {
-      expect(mockToastPositive).toHaveBeenCalledWith('Notification preferences saved')
-    })
+    // Wait for the async save to complete
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(mockToastPositive).toHaveBeenCalledWith('Notification preferences saved')
   })
 
   it('shows error toast on save failure', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
-    mockUpdateNotifPrefs.mockResolvedValue({ status: 'error', error: 'something went wrong' })
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
+    mockMutateAsync.mockRejectedValue(new Error('something went wrong'))
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Crash Spike email')).toBeInTheDocument()
 
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith('Error saving notification preferences', 'something went wrong')
-    })
+    // Wait for the async save to complete
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(mockToastNegative).toHaveBeenCalledWith('Error saving notification preferences', 'something went wrong')
   })
 
-  it('renders team-scoped disclaimer', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'success', data: defaultNotifPrefs })
+  it('renders team-scoped disclaimer', () => {
+    mockNotifPrefsStatus = 'success'
+    mockNotifPrefsData = defaultNotifPrefs
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText(/does not affect your team/)).toBeInTheDocument()
-    })
+    expect(screen.getByText(/does not affect your team/)).toBeInTheDocument()
   })
 
-  it('shows error when fetch fails', async () => {
-    mockFetchNotifPrefs.mockResolvedValue({ status: 'error', data: null })
+  it('shows error when fetch fails', () => {
+    mockNotifPrefsStatus = 'error'
     render(<Notifications />)
 
-    await waitFor(() => {
-      expect(screen.getByText(/Failed to fetch notification preferences/)).toBeInTheDocument()
-    })
+    expect(screen.getByText(/Failed to fetch notification preferences/)).toBeInTheDocument()
   })
 })

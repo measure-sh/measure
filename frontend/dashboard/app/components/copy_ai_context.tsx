@@ -23,7 +23,9 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
     formatted = formatted + "Network type: " + exceptionsDetails.results[0].attribute.network_type + "\n"
 
     formatted = formatted + "\nSTACK TRACES:\n"
-    let stacktrace = exceptionsType === ExceptionsType.Crash ? (exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace : (exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace
+    const crashResult = (exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0]
+    const anrResult = (exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0]
+    let stacktrace = exceptionsType === ExceptionsType.Crash ? crashResult.exception?.stacktrace ?? '' : anrResult.anr?.stacktrace ?? ''
     let indentedStackTrace = stacktrace.split("\n").map(line => "    " + line).join("\n")
 
     formatted = formatted + "Thread: " + exceptionsDetails.results[0].attribute.thread_name + "\nStacktrace:\n" + indentedStackTrace + "\n\n"

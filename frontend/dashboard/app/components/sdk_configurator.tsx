@@ -1,12 +1,13 @@
 "use client"
 
-import { SdkConfig, UpdateSdkConfigApiStatus, updateSdkConfigFromServer } from "@/app/api/api_calls"
+import { SdkConfig } from "@/app/api/api_calls"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/accordion"
 import { Button } from "@/app/components/button"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input"
 import { Switch } from "@/app/components/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/tooltip"
+import { useSaveSdkConfigMutation } from "@/app/query/hooks"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import { Info } from "lucide-react"
 import Link from "next/link"
@@ -23,11 +24,29 @@ interface SdkConfiguratorProps {
   osName?: string | null
 }
 
+type SectionSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
 const accordionContentStyle = 'p-4'
 
 export default function SdkConfigurator({ appId, appName, initialConfig, currentUserCanChangeAppSettings, osName }: SdkConfiguratorProps) {
-  const [sdkConfig, setSdkConfig] = useState<SdkConfig>(initialConfig)
-  const [originalSdkConfig, setOriginalSdkConfig] = useState<SdkConfig>(initialConfig)
+  // Local editable state
+  const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(null)
+  const [originalSdkConfig, setOriginalSdkConfig] = useState<SdkConfig | null>(null)
+
+  // Per-section save status tracking
+  const [sectionStatuses, setSectionStatuses] = useState<Record<string, SectionSaveStatus>>({
+    crashes: 'idle',
+    anrs: 'idle',
+    bugReports: 'idle',
+    traces: 'idle',
+    launch: 'idle',
+    journey: 'idle',
+    http: 'idle',
+    masking: 'idle',
+  })
+
+  // TanStack Query mutation
+  const saveSdkConfigMutation = useSaveSdkConfigMutation()
 
   // Track changes per section
   const [crashesChanged, setCrashesChanged] = useState(false)
@@ -39,16 +58,6 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
   const [httpChanged, setHttpChanged] = useState(false)
   const [screenshotMaskingChanged, setScreenshotMaskingChanged] = useState(false)
 
-  // Track save status per section
-  const [crashesSaveStatus, setCrashesSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [anrsSaveStatus, setAnrsSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [bugReportsSaveStatus, setBugReportsSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [tracesSaveStatus, setTracesSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [launchSaveStatus, setLaunchSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [journeySaveStatus, setJourneySaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [httpSaveStatus, setHttpSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-  const [maskingSaveStatus, setMaskingSaveStatus] = useState(UpdateSdkConfigApiStatus.Init)
-
   // Confirmation dialog states
   const [crashesConfirmOpen, setCrashesConfirmOpen] = useState(false)
   const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false)
@@ -59,50 +68,78 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false)
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false)
 
-  // Update local state when initialConfig changes
+  // Sync initialConfig prop into local state on mount / when it changes
   useEffect(() => {
-    setSdkConfig(initialConfig)
+    setSdkConfigState(initialConfig)
     setOriginalSdkConfig(initialConfig)
   }, [initialConfig])
 
+  const updateSdkConfig = (updates: Partial<SdkConfig>) => {
+    if (!sdkConfig) {
+      return
+    }
+    setSdkConfigState({ ...sdkConfig, ...updates })
+  }
+
   // Track changes per section
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setCrashesChanged(
       sdkConfig.crash_take_screenshot !== originalSdkConfig.crash_take_screenshot ||
       sdkConfig.crash_timeline_duration !== originalSdkConfig.crash_timeline_duration
     )
-  }, [sdkConfig.crash_take_screenshot, sdkConfig.crash_timeline_duration,
-  originalSdkConfig.crash_take_screenshot, originalSdkConfig.crash_timeline_duration])
+  }, [sdkConfig?.crash_take_screenshot, sdkConfig?.crash_timeline_duration,
+  originalSdkConfig?.crash_take_screenshot, originalSdkConfig?.crash_timeline_duration])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setAnrsChanged(
       sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot ||
       sdkConfig.anr_timeline_duration !== originalSdkConfig.anr_timeline_duration
     )
-  }, [sdkConfig.anr_take_screenshot, sdkConfig.anr_timeline_duration,
-  originalSdkConfig.anr_take_screenshot, originalSdkConfig.anr_timeline_duration])
+  }, [sdkConfig?.anr_take_screenshot, sdkConfig?.anr_timeline_duration,
+  originalSdkConfig?.anr_take_screenshot, originalSdkConfig?.anr_timeline_duration])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setBugReportsChanged(
       sdkConfig.bug_report_timeline_duration !== originalSdkConfig.bug_report_timeline_duration
     )
-  }, [sdkConfig.bug_report_timeline_duration, originalSdkConfig.bug_report_timeline_duration])
+  }, [sdkConfig?.bug_report_timeline_duration, originalSdkConfig?.bug_report_timeline_duration])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setTracesChanged(sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate)
-  }, [sdkConfig.trace_sampling_rate, originalSdkConfig.trace_sampling_rate])
+  }, [sdkConfig?.trace_sampling_rate, originalSdkConfig?.trace_sampling_rate])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setLaunchMetricsChanged(
       sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate
     )
-  }, [sdkConfig.launch_sampling_rate, originalSdkConfig.launch_sampling_rate])
+  }, [sdkConfig?.launch_sampling_rate, originalSdkConfig?.launch_sampling_rate])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setJourneyChanged(sdkConfig.journey_sampling_rate !== originalSdkConfig.journey_sampling_rate)
-  }, [sdkConfig.journey_sampling_rate, originalSdkConfig.journey_sampling_rate])
+  }, [sdkConfig?.journey_sampling_rate, originalSdkConfig?.journey_sampling_rate])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setHttpChanged(
       sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate ||
       JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
@@ -110,104 +147,91 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
       JSON.stringify(sdkConfig.http_track_response_for_urls) !== JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
       JSON.stringify(sdkConfig.http_blocked_headers) !== JSON.stringify(originalSdkConfig.http_blocked_headers)
     )
-  }, [sdkConfig.http_sampling_rate, sdkConfig.http_disable_event_for_urls, sdkConfig.http_track_request_for_urls,
-  sdkConfig.http_track_response_for_urls, sdkConfig.http_blocked_headers,
-  originalSdkConfig.http_sampling_rate, originalSdkConfig.http_disable_event_for_urls,
-  originalSdkConfig.http_track_request_for_urls, originalSdkConfig.http_track_response_for_urls,
-  originalSdkConfig.http_blocked_headers])
+  }, [sdkConfig?.http_sampling_rate, sdkConfig?.http_disable_event_for_urls, sdkConfig?.http_track_request_for_urls,
+  sdkConfig?.http_track_response_for_urls, sdkConfig?.http_blocked_headers,
+  originalSdkConfig?.http_sampling_rate, originalSdkConfig?.http_disable_event_for_urls,
+  originalSdkConfig?.http_track_request_for_urls, originalSdkConfig?.http_track_response_for_urls,
+  originalSdkConfig?.http_blocked_headers])
 
   useEffect(() => {
+    if (!sdkConfig || !originalSdkConfig) {
+      return
+    }
     setScreenshotMaskingChanged(sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level)
-  }, [sdkConfig.screenshot_mask_level, originalSdkConfig.screenshot_mask_level])
+  }, [sdkConfig?.screenshot_mask_level, originalSdkConfig?.screenshot_mask_level])
 
-  const saveSdkConfigSection = async (
-    section: 'traces' | 'crashes' | 'anrs' | 'bug_reports' | 'launch_metrics' | 'journey' | 'masking' | 'http',
-    setSaveStatus: (status: UpdateSdkConfigApiStatus) => void
-  ) => {
-    setSaveStatus(UpdateSdkConfigApiStatus.Loading)
-
-    // Build the config object with only the fields for this section
-    let configToSave: Partial<SdkConfig> = {}
-
-    switch (section) {
-      case 'crashes':
-        configToSave = {
-          crash_take_screenshot: sdkConfig.crash_take_screenshot,
-          crash_timeline_duration: sdkConfig.crash_timeline_duration
-        }
-        break
-      case 'anrs':
-        configToSave = {
-          anr_take_screenshot: sdkConfig.anr_take_screenshot,
-          anr_timeline_duration: sdkConfig.anr_timeline_duration
-        }
-        break
-      case 'bug_reports':
-        configToSave = {
-          bug_report_timeline_duration: sdkConfig.bug_report_timeline_duration
-        }
-        break
-      case 'traces':
-        configToSave = {
-          trace_sampling_rate: sdkConfig.trace_sampling_rate
-        }
-        break
-      case 'launch_metrics':
-        configToSave = {
-          launch_sampling_rate: sdkConfig.launch_sampling_rate
-        }
-        break
-      case 'journey':
-        configToSave = {
-          journey_sampling_rate: sdkConfig.journey_sampling_rate
-        }
-        break
-      case 'http':
-        configToSave = {
-          http_sampling_rate: sdkConfig.http_sampling_rate,
-          http_disable_event_for_urls: sdkConfig.http_disable_event_for_urls.filter(url => url.trim() !== ""),
-          http_track_request_for_urls: sdkConfig.http_track_request_for_urls.filter(url => url.trim() !== ""),
-          http_track_response_for_urls: sdkConfig.http_track_response_for_urls.filter(url => url.trim() !== ""),
-          http_blocked_headers: sdkConfig.http_blocked_headers.filter(header => header.trim() !== "")
-        }
-        break
-      case 'masking':
-        configToSave = {
-          screenshot_mask_level: sdkConfig.screenshot_mask_level
-        }
-        break
-    }
-
-    const result = await updateSdkConfigFromServer(appId, configToSave as SdkConfig)
-
-    switch (result.status) {
-      case UpdateSdkConfigApiStatus.Error:
-        setSaveStatus(UpdateSdkConfigApiStatus.Error)
-        toastNegative("Error saving configuration", result.error)
-        break
-      case UpdateSdkConfigApiStatus.Success:
-        setSaveStatus(UpdateSdkConfigApiStatus.Success)
-        // Update original config with only the saved values
-        setOriginalSdkConfig(prev => ({
-          ...prev,
-          ...configToSave
-        }))
-        toastPositive("Configuration saved")
-        break
-      case UpdateSdkConfigApiStatus.Cancelled:
-        setSaveStatus(UpdateSdkConfigApiStatus.Init)
-        break
-    }
+  if (!sdkConfig || !originalSdkConfig) {
+    return null
   }
 
-  const saveCrashes = () => saveSdkConfigSection('crashes', setCrashesSaveStatus)
-  const saveAnrs = () => saveSdkConfigSection('anrs', setAnrsSaveStatus)
-  const saveBugReports = () => saveSdkConfigSection('bug_reports', setBugReportsSaveStatus)
-  const saveTraces = () => saveSdkConfigSection('traces', setTracesSaveStatus)
-  const saveLaunch = () => saveSdkConfigSection('launch_metrics', setLaunchSaveStatus)
-  const saveJourney = () => saveSdkConfigSection('journey', setJourneySaveStatus)
-  const saveHttp = () => saveSdkConfigSection('http', setHttpSaveStatus)
-  const saveMasking = () => saveSdkConfigSection('masking', setMaskingSaveStatus)
+  const setSectionStatus = (section: string, status: SectionSaveStatus) => {
+    setSectionStatuses(prev => ({ ...prev, [section]: status }))
+  }
+
+  const saveSection = (sectionKey: string, configToSave: Partial<SdkConfig>) => {
+    setSectionStatus(sectionKey, 'saving')
+    saveSdkConfigMutation.mutate(
+      { appId, config: configToSave },
+      {
+        onSuccess: () => {
+          setSectionStatus(sectionKey, 'saved')
+          setOriginalSdkConfig(prev => prev ? { ...prev, ...configToSave } : prev)
+          toastPositive("Configuration saved")
+        },
+        onError: () => {
+          setSectionStatus(sectionKey, 'error')
+          toastNegative("Error saving configuration")
+        },
+      }
+    )
+  }
+
+  const handleSaveCrashes = () => {
+    saveSection('crashes', {
+      crash_take_screenshot: sdkConfig.crash_take_screenshot,
+      crash_timeline_duration: sdkConfig.crash_timeline_duration,
+    })
+  }
+  const handleSaveAnrs = () => {
+    saveSection('anrs', {
+      anr_take_screenshot: sdkConfig.anr_take_screenshot,
+      anr_timeline_duration: sdkConfig.anr_timeline_duration,
+    })
+  }
+  const handleSaveBugReports = () => {
+    saveSection('bugReports', {
+      bug_report_timeline_duration: sdkConfig.bug_report_timeline_duration,
+    })
+  }
+  const handleSaveTraces = () => {
+    saveSection('traces', {
+      trace_sampling_rate: sdkConfig.trace_sampling_rate,
+    })
+  }
+  const handleSaveLaunch = () => {
+    saveSection('launch', {
+      launch_sampling_rate: sdkConfig.launch_sampling_rate,
+    })
+  }
+  const handleSaveJourney = () => {
+    saveSection('journey', {
+      journey_sampling_rate: sdkConfig.journey_sampling_rate,
+    })
+  }
+  const handleSaveHttp = () => {
+    saveSection('http', {
+      http_sampling_rate: sdkConfig.http_sampling_rate,
+      http_disable_event_for_urls: sdkConfig.http_disable_event_for_urls.filter(url => url.trim() !== ""),
+      http_track_request_for_urls: sdkConfig.http_track_request_for_urls.filter(url => url.trim() !== ""),
+      http_track_response_for_urls: sdkConfig.http_track_response_for_urls.filter(url => url.trim() !== ""),
+      http_blocked_headers: sdkConfig.http_blocked_headers.filter(header => header.trim() !== ""),
+    })
+  }
+  const handleSaveMasking = () => {
+    saveSection('masking', {
+      screenshot_mask_level: sdkConfig.screenshot_mask_level,
+    })
+  }
 
   const arrayToInput = (arr: string[]): string => {
     if (!arr || arr.length === 0) return ''
@@ -409,7 +433,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="crash-screenshot-switch"
                     className="sm:ml-4"
                     checked={sdkConfig.crash_take_screenshot}
-                    onCheckedChange={(checked) => setSdkConfig({ ...sdkConfig, crash_take_screenshot: checked })}
+                    onCheckedChange={(checked) => updateSdkConfig({ crash_take_screenshot: checked })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                 </div>
@@ -420,7 +444,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     value={sdkConfig.crash_timeline_duration}
                     minValue={0}
                     maxValue={3600}
-                    onChange={(val) => setSdkConfig({ ...sdkConfig, crash_timeline_duration: val })}
+                    onChange={(val) => updateSdkConfig({ crash_timeline_duration: val })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">seconds with every crash</span>
@@ -430,7 +454,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="crashes-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !crashesChanged}
-                    loading={crashesSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.crashes === 'saving'}
                     onClick={() => setCrashesConfirmOpen(true)}
                   >
                     Save
@@ -452,7 +476,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       data-testid="anr-screenshot-switch"
                       className="sm:ml-4"
                       checked={sdkConfig.anr_take_screenshot}
-                      onCheckedChange={(checked) => setSdkConfig({ ...sdkConfig, anr_take_screenshot: checked })}
+                      onCheckedChange={(checked) => updateSdkConfig({ anr_take_screenshot: checked })}
                       disabled={!currentUserCanChangeAppSettings}
                     />
                   </div>
@@ -463,7 +487,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       value={sdkConfig.anr_timeline_duration}
                       minValue={0}
                       maxValue={3600}
-                      onChange={(val) => setSdkConfig({ ...sdkConfig, anr_timeline_duration: val })}
+                      onChange={(val) => updateSdkConfig({ anr_timeline_duration: val })}
                       disabled={!currentUserCanChangeAppSettings}
                     />
                     <span className="font-body text-sm">seconds with every ANR</span>
@@ -473,7 +497,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       data-testid="anrs-save-button"
                       variant="outline"
                       disabled={!currentUserCanChangeAppSettings || !anrsChanged}
-                      loading={anrsSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                      loading={sectionStatuses.anrs === 'saving'}
                       onClick={() => setAnrsConfirmOpen(true)}
                     >
                       Save
@@ -496,7 +520,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     value={sdkConfig.bug_report_timeline_duration}
                     minValue={0}
                     maxValue={3600}
-                    onChange={(val) => setSdkConfig({ ...sdkConfig, bug_report_timeline_duration: val })}
+                    onChange={(val) => updateSdkConfig({ bug_report_timeline_duration: val })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">seconds with every Bug Report</span>
@@ -506,7 +530,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="bug-reports-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !bugReportsChanged}
-                    loading={bugReportsSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.bugReports === 'saving'}
                     onClick={() => setBugReportsConfirmOpen(true)}
                   >
                     Save
@@ -530,7 +554,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => setSdkConfig({ ...sdkConfig, trace_sampling_rate: value })}
+                    onChange={(value) => updateSdkConfig({ trace_sampling_rate: value })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -540,7 +564,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="traces-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !tracesChanged}
-                    loading={tracesSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.traces === 'saving'}
                     onClick={() => setTracesConfirmOpen(true)}
                   >
                     Save
@@ -564,7 +588,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => setSdkConfig({ ...sdkConfig, launch_sampling_rate: value })}
+                    onChange={(value) => updateSdkConfig({ launch_sampling_rate: value })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -574,7 +598,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="launch-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !launchMetricsChanged}
-                    loading={launchSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.launch === 'saving'}
                     onClick={() => setLaunchConfirmOpen(true)}
                   >
                     Save
@@ -598,7 +622,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => setSdkConfig({ ...sdkConfig, journey_sampling_rate: value })}
+                    onChange={(value) => updateSdkConfig({ journey_sampling_rate: value })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sessions</span>
@@ -609,7 +633,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     variant="outline"
                     className="border border-black font-display select-none"
                     disabled={!currentUserCanChangeAppSettings || !journeyChanged}
-                    loading={journeySaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.journey === 'saving'}
                     onClick={() => setJourneyConfirmOpen(true)}
                   >
                     Save
@@ -634,7 +658,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => setSdkConfig({ ...sdkConfig, http_sampling_rate: value })}
+                    onChange={(value) => updateSdkConfig({ http_sampling_rate: value })}
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -656,7 +680,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-disable-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_disable_event_for_urls)}
-                    onChange={(e) => setSdkConfig({ ...sdkConfig, http_disable_event_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) => updateSdkConfig({ http_disable_event_for_urls: inputToArray(e.target.value) })}
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -680,7 +704,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-track-request-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_track_request_for_urls)}
-                    onChange={(e) => setSdkConfig({ ...sdkConfig, http_track_request_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) => updateSdkConfig({ http_track_request_for_urls: inputToArray(e.target.value) })}
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -704,7 +728,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-track-response-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_track_response_for_urls)}
-                    onChange={(e) => setSdkConfig({ ...sdkConfig, http_track_response_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) => updateSdkConfig({ http_track_response_for_urls: inputToArray(e.target.value) })}
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -728,7 +752,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-blocked-headers-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_blocked_headers)}
-                    onChange={(e) => setSdkConfig({ ...sdkConfig, http_blocked_headers: inputToArray(e.target.value) })}
+                    onChange={(e) => updateSdkConfig({ http_blocked_headers: inputToArray(e.target.value) })}
                     onKeyDown={preventSpaceKey}
                     placeholder={getHeaderPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -740,7 +764,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !httpChanged}
-                    loading={httpSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.http === 'saving'}
                     onClick={() => setHttpConfirmOpen(true)}
                   >
                     Save
@@ -764,7 +788,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       title=""
                       items={['All text and media', 'All text', 'All text except clickable', 'Sensitive fields only']}
                       initialSelected={maskLevelToDisplay(sdkConfig.screenshot_mask_level)}
-                      onChangeSelected={(item) => setSdkConfig({ ...sdkConfig, screenshot_mask_level: displayToMaskLevel(item as string) })}
+                      onChangeSelected={(item) => updateSdkConfig({ screenshot_mask_level: displayToMaskLevel(item as string) })}
                     />
                   </div>
                 </div>
@@ -773,7 +797,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="masking-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !screenshotMaskingChanged}
-                    loading={maskingSaveStatus === UpdateSdkConfigApiStatus.Loading}
+                    loading={sectionStatuses.masking === 'saving'}
                     onClick={() => setMaskingConfirmOpen(true)}
                   >
                     Save
@@ -793,7 +817,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setCrashesConfirmOpen(false)
-          saveCrashes()
+          handleSaveCrashes()
         }}
         onCancelAction={() => setCrashesConfirmOpen(false)}
       />
@@ -806,7 +830,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
           cancelText="Cancel"
           onAffirmativeAction={() => {
             setAnrsConfirmOpen(false)
-            saveAnrs()
+            handleSaveAnrs()
           }}
           onCancelAction={() => setAnrsConfirmOpen(false)}
         />
@@ -819,7 +843,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setBugReportsConfirmOpen(false)
-          saveBugReports()
+          handleSaveBugReports()
         }}
         onCancelAction={() => setBugReportsConfirmOpen(false)}
       />
@@ -831,7 +855,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setTracesConfirmOpen(false)
-          saveTraces()
+          handleSaveTraces()
         }}
         onCancelAction={() => setTracesConfirmOpen(false)}
       />
@@ -843,7 +867,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setLaunchConfirmOpen(false)
-          saveLaunch()
+          handleSaveLaunch()
         }}
         onCancelAction={() => setLaunchConfirmOpen(false)}
       />
@@ -855,7 +879,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setJourneyConfirmOpen(false)
-          saveJourney()
+          handleSaveJourney()
         }}
         onCancelAction={() => setJourneyConfirmOpen(false)}
       />
@@ -867,7 +891,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setHttpConfirmOpen(false)
-          saveHttp()
+          handleSaveHttp()
         }}
         onCancelAction={() => setHttpConfirmOpen(false)}
       />
@@ -879,7 +903,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         cancelText="Cancel"
         onAffirmativeAction={() => {
           setMaskingConfirmOpen(false)
-          saveMasking()
+          handleSaveMasking()
         }}
         onCancelAction={() => setMaskingConfirmOpen(false)}
       />

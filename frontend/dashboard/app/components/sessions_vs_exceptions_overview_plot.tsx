@@ -1,16 +1,15 @@
 "use client"
 
+import { useSessionsVsExceptionsPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { DateTime } from 'luxon'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { SessionsVsExceptionsPlotApiStatus, fetchSessionsVsExceptionsPlotFromServer } from '../api/api_calls'
+import React from 'react'
 import { numberToKMB } from '../utils/number_utils'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import { SkeletonPlot } from './skeleton'
 
 const demoDataDate = DateTime.now()
 const demoPlot = [
@@ -53,28 +52,18 @@ const demoPlot = [
 ]
 
 interface SessionsVsExceptionsPlotProps {
-  filters: Filters
   demo?: boolean
 }
 
-type SessionsVsExceptionsPlot = {
-  id: string
-  data: {
-    id: string
-    x: string
-    y: number
-  }[]
-}[]
-
-const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ filters, demo = false }) => {
-  const [sessionsVsExceptionsPlotApiStatus, setSessionsVsExceptionsPlotApiStatus] = useState(SessionsVsExceptionsPlotApiStatus.Loading)
-  const [plot, setPlot] = useState<SessionsVsExceptionsPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ demo = false }) => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: queryPlot, status } = useSessionsVsExceptionsPlotQuery()
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}|${demo ? "demo" : "live"}`
-  const shouldRenderPlot = sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
+
+  const effectiveStatus = demo ? 'success' : status
+  const plot = demo ? demoPlot : queryPlot
 
   const colorMap = theme === 'dark' ? {
     Sessions: 'oklch(0.6042 0.1238 244.6)',
@@ -92,53 +81,14 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
     ANRs: 'ANRs'
   } as const;
 
-  const getSessionsVsExceptionsPlot = async () => {
-    if (demo) {
-      setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Success)
-      setPlot(demoPlot)
-      setPlotDataKey(currentPlotKey)
-      return
-    }
-
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Loading)
-
-    const result = await fetchSessionsVsExceptionsPlotFromServer(filters)
-
-    switch (result.status) {
-      case SessionsVsExceptionsPlotApiStatus.Error:
-        setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case SessionsVsExceptionsPlotApiStatus.NoData:
-        setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.NoData)
-        setPlot(undefined)
-        setPlotDataKey(null)
-        break
-      case SessionsVsExceptionsPlotApiStatus.Success:
-        setSessionsVsExceptionsPlotApiStatus(SessionsVsExceptionsPlotApiStatus.Success)
-        setPlot(result.data ?? undefined)
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getSessionsVsExceptionsPlot()
-  }, [filters])
-
   return (
     <div className="flex font-body items-center justify-center w-full h-[24rem]">
-      {(sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Loading || (sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {sessionsVsExceptionsPlotApiStatus === SessionsVsExceptionsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {effectiveStatus === 'pending' && <SkeletonPlot />}
+      {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {effectiveStatus === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {effectiveStatus === 'success' && plot !== null && plot !== undefined &&
         <ResponsiveLine
-          data={plot!}
+          data={plot}
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}

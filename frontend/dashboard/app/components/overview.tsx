@@ -1,15 +1,13 @@
 "use client"
 
 import { FilterSource } from '@/app/api/api_calls'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import MetricsOverview from '@/app/components/metrics_overview'
 import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
+import { Skeleton, SkeletonPlot } from '@/app/components/skeleton'
+import { useFiltersStore } from '@/app/stores/provider'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-
-interface PageState {
-    filters: typeof defaultFilters
-}
+import { useEffect } from 'react'
 
 interface OverviewProps {
     params?: { teamId: string }
@@ -20,41 +18,20 @@ interface OverviewProps {
 export default function Overview({ params = { teamId: 'demo-team-id' }, demo = false, hideDemoTitle = false }: OverviewProps) {
     const router = useRouter()
     const teamId = params?.teamId ?? "demo-team"
-
-    const initialState: PageState = {
-        filters: defaultFilters,
-    }
-
-    const [pageState, setPageState] = useState<PageState>(initialState)
-
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        // update filters only if they have changed
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters
-            })
-        }
-    }
+    const filters = useFiltersStore(state => state.filters)
 
     useEffect(() => {
-        if (!pageState.filters.ready) {
+        if (!filters.ready) {
             return
         }
 
         // update url
-        router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
-    }, [pageState.filters])
+        router.replace(`?${filters.serialisedFilters!}`, { scroll: false })
+    }, [filters.ready, filters.serialisedFilters])
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'App Health') : 'Overview'}</p>
+            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'App Health') : ''}</p>
             <div className="py-4" />
 
             {!demo &&
@@ -80,16 +57,29 @@ export default function Overview({ params = { teamId: 'demo-team-id' }, demo = f
                     showHttpMethods={false}
                     showFreeText={false}
                     showUdAttrs={false}
-                    onFiltersChanged={handleFiltersChanged} />}
+                />}
 
             <div className="py-2" />
 
-            {(demo || pageState.filters.ready) && (
+            {!demo && filters.loading && (
                 <>
-                    <SessionsVsExceptionsPlot filters={pageState.filters} demo={demo} />
+                    <div className="flex font-body items-center justify-center w-full h-[24rem]">
+                        <SkeletonPlot />
+                    </div>
                     <div className="py-8" />
-                    <MetricsOverview
-                        filters={pageState.filters} demo={demo} />
+                    <div className="flex flex-wrap gap-16 w-full justify-center">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                            <Skeleton key={i} className="w-full md:w-[300px] h-[160px]" />
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {(demo || filters.ready) && (
+                <>
+                    <SessionsVsExceptionsPlot demo={demo} />
+                    <div className="py-8" />
+                    <MetricsOverview demo={demo} />
                 </>
             )}
         </div>

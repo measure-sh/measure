@@ -1,4 +1,3 @@
-import { MetricsApiStatus } from '@/app/api/api_calls'
 import MetricsCard, {
     AnrFreeSessionsProps,
     AppAdoptionProps,
@@ -55,11 +54,9 @@ jest.mock('@/app/components/tooltip', () => ({
     ),
 }))
 
-jest.mock('@/app/components/loading_spinner', () => {
-    return function LoadingSpinner() {
-        return <div data-testid="loading-spinner">Loading...</div>
-    }
-})
+jest.mock('@/app/components/skeleton', () => ({
+    SkeletonMetricsCard: () => <div data-testid="skeleton-mock">Loading...</div>,
+}))
 
 jest.mock('lucide-react', () => ({
     TrendingDown: ({ className }: { className?: string }) => (
@@ -76,19 +73,12 @@ jest.mock('lucide-react', () => ({
     ),
 }))
 
-jest.mock('@/app/api/api_calls', () => ({
-    __esModule: true,
-    MetricsApiStatus: {
-        Loading: 'Loading',
-        Success: 'Success',
-        Error: 'Error',
-    },
-}))
+// MetricsCard now uses string union type 'pending' | 'success' | 'error' instead of MetricsApiStatus enum
 
 describe('MetricsCard', () => {
     const createCrashFreeSessionsProps = (overrides = {}): CrashFreeSessionsProps => ({
         type: 'crash_free_sessions',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         value: 96.5,
         delta: 1.2,
@@ -99,7 +89,7 @@ describe('MetricsCard', () => {
 
     const createPerceivedCrashFreeSessionsProps = (overrides = {}): PerceivedCrashFreeSessionsProps => ({
         type: 'perceived_crash_free_sessions',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         value: 97.8,
         delta: 0.8,
@@ -110,7 +100,7 @@ describe('MetricsCard', () => {
 
     const createAnrFreeSessionsProps = (overrides = {}): AnrFreeSessionsProps => ({
         type: 'anr_free_sessions',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         value: 94.2,
         delta: 1.1,
@@ -121,7 +111,7 @@ describe('MetricsCard', () => {
 
     const createPerceivedAnrFreeSessionsProps = (overrides = {}): PerceivedAnrFreeSessionsProps => ({
         type: 'perceived_anr_free_sessions',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         value: 95.5,
         delta: 0.9,
@@ -132,7 +122,7 @@ describe('MetricsCard', () => {
 
     const createAppStartTimeProps = (overrides = {}): AppStartTimeProps => ({
         type: 'app_start_time',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         noDelta: false,
         value: 1200,
@@ -143,7 +133,7 @@ describe('MetricsCard', () => {
 
     const createAppSizeProps = (overrides = {}): AppSizeProps => ({
         type: 'app_size',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         multiVersion: false,
         valueInBytes: 52428800, // 50MB
@@ -153,7 +143,7 @@ describe('MetricsCard', () => {
 
     const createAppAdoptionProps = (overrides = {}): AppAdoptionProps => ({
         type: 'app_adoption',
-        status: MetricsApiStatus.Success,
+        status: 'success' as const,
         noData: false,
         value: 25.5,
         sessions: 1250000,
@@ -163,17 +153,17 @@ describe('MetricsCard', () => {
 
     describe('Loading State', () => {
         it('should render loading spinner when status is Loading', () => {
-            const props = createCrashFreeSessionsProps({ status: MetricsApiStatus.Loading })
+            const props = createCrashFreeSessionsProps({ status: 'pending' as const })
             render(<MetricsCard {...props} />)
 
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
             expect(screen.getByText('Crash free sessions')).toBeInTheDocument()
         })
     })
 
     describe('Error State', () => {
         it('should render error message when status is Error', () => {
-            const props = createCrashFreeSessionsProps({ status: MetricsApiStatus.Error })
+            const props = createCrashFreeSessionsProps({ status: 'error' as const })
             render(<MetricsCard {...props} />)
 
             expect(screen.getByText('Error')).toBeInTheDocument()
@@ -646,7 +636,7 @@ describe('MetricsCard', () => {
             // Using type assertion to test edge case with unknown type
             const props = {
                 type: 'unknown_metric' as any,
-                status: MetricsApiStatus.Success,
+                status: 'success' as const,
                 noData: false
             } as any // <-- add 'as any' to suppress type error
             render(<MetricsCard {...props} />)
@@ -737,13 +727,13 @@ describe('MetricsCard', () => {
             const baseProps = createCrashFreeSessionsProps()
 
             // Test loading
-            const { rerender } = render(<MetricsCard {...baseProps} status={MetricsApiStatus.Loading} />)
+            const { rerender } = render(<MetricsCard {...baseProps} status={'pending' as const} />)
             let cardContent = screen.getByTestId('card-content')
             let statusIcons = cardContent.querySelectorAll('[data-testid*="circle-icon"], [data-testid*="triangle-icon"]')
             expect(statusIcons).toHaveLength(0)
 
             // Test error
-            rerender(<MetricsCard {...baseProps} status={MetricsApiStatus.Error} />)
+            rerender(<MetricsCard {...baseProps} status={'error' as const} />)
             cardContent = screen.getByTestId('card-content')
             statusIcons = cardContent.querySelectorAll('[data-testid*="circle-icon"], [data-testid*="triangle-icon"]')
             expect(statusIcons).toHaveLength(0)

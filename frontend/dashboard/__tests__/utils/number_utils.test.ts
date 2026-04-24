@@ -1,4 +1,4 @@
-import { formatBytes, kilobytesToMegabytes, toKiloBytes, toMegaBytes, numberToKMB } from '@/app/utils/number_utils'
+import { formatBytes, kilobytesToMegabytes, numberToKMB, toKiloBytes, toMegaBytes } from '@/app/utils/number_utils'
 import { describe, expect, it } from '@jest/globals'
 
 describe('number_utils', () => {

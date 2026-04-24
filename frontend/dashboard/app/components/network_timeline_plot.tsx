@@ -1,10 +1,10 @@
 "use client"
 
+import { Slider } from '@/app/components/slider'
+import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import { ResponsiveHeatMapCanvas } from '@nivo/heatmap'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Slider } from '@/app/components/slider'
-import { formatMillisToHumanReadable } from '@/app/utils/time_utils'
 
 export interface NetworkTimelineDataPoint {
   elapsed: number

@@ -1,15 +1,16 @@
 "use client"
 
+import { useJourneyQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveSankey } from '@nivo/sankey'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
-import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import React, { useState } from 'react'
+import { JourneyType, emptyJourney } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
 import { underlineLinkStyle } from '../utils/shared_styles'
 import { Button } from './button'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 
 const demoJourney: InputJourneyData = {
   links: [
@@ -167,17 +168,11 @@ interface JourneyProps {
   bidirectional: boolean,
   journeyType: JourneyType,
   exceptionsGroupId: string | null,
-  filters: Filters,
   searchText?: string
   demo?: boolean
 }
 
-export enum JourneyType {
-  Paths,
-  Exceptions,
-  CrashDetails,
-  AnrDetails
-}
+export { JourneyType } from "../api/api_calls"
 
 type Link = {
   source: string
@@ -348,56 +343,34 @@ function transformData(journeyType: JourneyType, input: InputJourneyData): Journ
   }
 }
 
-const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '', demo = false }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional: bidirectionalProp, journeyType: journeyTypeProp, exceptionsGroupId: exceptionsGroupIdProp, searchText = '', demo = false }) => {
   const { theme } = useTheme()
-  const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
-  const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
+  const filters = useFiltersStore(state => state.filters)
+  const journeyQuery = useJourneyQuery(journeyTypeProp, exceptionsGroupIdProp, bidirectionalProp)
 
-  const [selectedNode, setSelectedNode] = useState<JourneyNode>()
-  const [showPanel, setShowPanel] = useState(false)
+  const [selectedNode, setSelectedNode] = useState<JourneyNode | undefined>(undefined)
+  const showPanel = selectedNode !== undefined
 
-  const getJourney = async () => {
+  const journeyType = journeyTypeProp
+  const rawJourney = journeyQuery.data ?? emptyJourney
+  const transformedJourney = demo
+    ? transformData(journeyType, demoJourney)
+    : (journeyQuery.status === 'success' ? transformData(journeyType, rawJourney) : transformData(journeyType, emptyJourney))
+  const journey = transformedJourney
+
+  // Derive effective API status: if query says success but transformed data has no nodes, treat as no data
+  const effectiveStatus = (() => {
     if (demo) {
-      const journey = transformData(journeyType, demoJourney)
-      setJourney(journey)
-      setJourneyApiStatus(JourneyApiStatus.Success)
-      return
+      return 'success' as const
     }
-
-    setJourneyApiStatus(JourneyApiStatus.Loading)
-
-    const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters)
-
-    switch (result.status) {
-      case JourneyApiStatus.Error:
-        setJourneyApiStatus(JourneyApiStatus.Error)
-        break
-      case JourneyApiStatus.Success:
-        setJourneyApiStatus(JourneyApiStatus.Success)
-
-        let journey = transformData(journeyType, result.data)
-
-        if (journey.nodes.length === 0) {
-          setJourneyApiStatus(JourneyApiStatus.NoData)
-          break
-        }
-
-        setJourney(journey)
-        break
+    if (journeyQuery.status === 'success' && journeyQuery.data === null) {
+      return 'nodata' as const
     }
-  }
-
-  useEffect(() => {
-    getJourney()
-  }, [teamId, bidirectional, journeyType, exceptionsGroupId, filters])
-
-  useEffect(() => {
-    if (journeyType === JourneyType.Exceptions && selectedNode !== undefined && (selectedNode.issues?.crashes?.length! > 0 || selectedNode.issues?.anrs?.length! > 0)) {
-      setShowPanel(true)
-    } else {
-      setShowPanel(false)
+    if (journeyQuery.status === 'success' && transformedJourney.nodes.length === 0) {
+      return 'nodata' as const
     }
-  }, [selectedNode])
+    return journeyQuery.status
+  })()
 
   const getSearchFilteredJourney = () => {
     if (!searchText.trim()) return journey
@@ -429,144 +402,147 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }
 
   return (
-    <div className="flex flex-col items-center justify-center font-body text-sm w-full h-full overflow-hidden">
-      <div className="flex-1 flex items-center justify-center w-full h-full">
-        {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
-        {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-        {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
-        {journeyApiStatus === JourneyApiStatus.Success &&
-          <div className='relative w-full h-full'>
-            <ResponsiveSankey
-              data={getSearchFilteredJourney()}
-              align="justify"
-              sort="input"
-              margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
-              linkContract={30}
-              colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : theme === 'dark' ? { scheme: 'tableau10' } : { scheme: 'nivo' }}
-              nodeBorderColor={
-                {
+    <div className="w-full h-full overflow-hidden">
+      {effectiveStatus === 'pending' && <SkeletonPlot showAxes={false} />}
+      {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
+      {effectiveStatus === 'nodata' && <p className="text-lg font-display text-center p-4">No journey data</p>}
+      {effectiveStatus === 'success' &&
+        <div className='relative w-full h-full'>
+          <ResponsiveSankey
+            data={getSearchFilteredJourney()}
+            align="justify"
+            sort="input"
+            margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
+            linkContract={30}
+            colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : theme === 'dark' ? { scheme: 'tableau10' } : { scheme: 'nivo' }}
+            nodeBorderColor={
+              {
+                from: 'color',
+                modifiers: [theme === "dark" ? ['brighter', 0.5] : ['darker', 0.3]]
+              }
+            }
+            nodeBorderRadius={3}
+            enableLinkGradient={true}
+            label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
+            labelPosition="inside"
+            labelOrientation="horizontal"
+            labelPadding={8}
+            labelTextColor={
+              journeyType === JourneyType.Exceptions
+                ? (theme === 'dark' ? exceptionNodeLabelColourDark : exceptionNodeLabelColour)
+                : {
                   from: 'color',
-                  modifiers: [theme === "dark" ? ['brighter', 0.5] : ['darker', 0.3]]
+                  modifiers: [theme === 'dark' ? ['brighter', 0.5] : ['darker', 0.7]]
                 }
-              }
-              nodeBorderRadius={3}
-              enableLinkGradient={true}
-              label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
-              labelPosition="inside"
-              labelOrientation="horizontal"
-              labelPadding={8}
-              labelTextColor={
-                journeyType === JourneyType.Exceptions
-                  ? (theme === 'dark' ? exceptionNodeLabelColourDark : exceptionNodeLabelColour)
-                  : {
-                    from: 'color',
-                    modifiers: [theme === 'dark' ? ['brighter', 0.5] : ['darker', 0.7]]
-                  }
-              }
-              linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
-              onClick={(nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode)}
-              linkTooltip={({
-                link
-              }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
-                  <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
-                </div>}
-              nodeTooltip={({
-                node
-              }) =>
-                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
-                  <p className='p-2'>{node.id}</p>
+            }
+            linkBlendMode={theme === 'dark' ? 'lighten' : 'multiply'}
+            onClick={journeyType === JourneyType.Exceptions ? (nodeOrLink) => {
+              const maybeNode = nodeOrLink as Partial<JourneyNode>
+              const hasIssues = (maybeNode.issues?.crashes?.length ?? 0) > 0 || (maybeNode.issues?.anrs?.length ?? 0) > 0
+              setSelectedNode(hasIssues ? (nodeOrLink as JourneyNode) : undefined)
+            } : undefined}
+            linkTooltip={({
+              link
+            }) =>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
+                <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
+              </div>}
+            nodeTooltip={({
+              node
+            }) =>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}>
+                <p className='p-2'>{node.id}</p>
 
-                  {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
-                    <p className='px-2 py-1 text-red-400'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                  }
+                {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
+                  <p className='px-2 py-1 text-red-400'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                }
 
-                  {journeyType === JourneyType.Exceptions && node.issues?.anrs?.length! > 0 &&
-                    <p className='px-2 py-1 text-yellow-400'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                  }
+                {journeyType === JourneyType.Exceptions && node.issues?.anrs?.length! > 0 &&
+                  <p className='px-2 py-1 text-yellow-400'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                }
 
-                  {journeyType === JourneyType.Exceptions && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
-                    <p className='px-2 pt-4 pb-2'>Click for details</p>
-                  }
+                {journeyType === JourneyType.Exceptions && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
+                  <p className='px-2 pt-4 pb-2'>Click for details</p>
+                }
 
-                </div>
-              }
-            />
-            {/* Panel */}
-            <div
-              className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
-                }`}
-            >
-              {selectedNode !== undefined &&
-                <div>
-                  <Button variant="secondary" className="py-2 px-4"
-                    onClick={() => setSelectedNode(undefined)}>Close
-                  </Button>
-                  <p className='mt-6 text-lg'>{selectedNode!.id}</p>
-                  {selectedNode.issues?.crashes?.length! > 0 && (
-                    <div>
-                      <p className="font-body mt-4">Crashes:</p>
-                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                        {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions &&
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
-                                ) : (
-                                  <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            }
-                            {/* Show only title and count if crash or anr journey type */}
-                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                              <span className="font-body text-xs">
-                                {title} - {numberToKMB(count)}
-                              </span>
-                            }
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {selectedNode.issues?.anrs?.length! > 0 && (
-                    <div>
-                      <p className="font-body pt-2">ANRs:</p>
-                      <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                        {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions &&
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
-                                ) : (
-                                  <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            }
-                            {/* Show only title and count if crash or anr journey type */}
-                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                              <span className="font-body text-xs">
-                                {title} - {numberToKMB(count)}
-                              </span>
-                            }
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              }
-            </div>
-          </div>}
-      </div>
-    </div >
+              </div>
+            }
+          />
+          {/* Panel */}
+          <div
+            className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
+              }`}
+          >
+            {selectedNode !== undefined &&
+              <div>
+                <Button variant="secondary" className="py-2 px-4"
+                  onClick={() => setSelectedNode(undefined)}>
+                  Close
+                </Button>
+                <p className='mt-6 text-lg'>{selectedNode!.id}</p>
+                {selectedNode.issues?.crashes?.length! > 0 && (
+                  <div>
+                    <p className="font-body mt-4">Crashes:</p>
+                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
+                      {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
+                        <li key={title}>
+                          {/* Show clickable link if Exceptions journey type */}
+                          {journeyType === JourneyType.Exceptions &&
+                            <span className="font-body text-xs">
+                              {demo ? (
+                                <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                              ) : (
+                                <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              )}
+                            </span>
+                          }
+                          {/* Show only title and count if crash or anr journey type */}
+                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                            <span className="font-body text-xs">
+                              {title} - {numberToKMB(count)}
+                            </span>
+                          }
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedNode.issues?.anrs?.length! > 0 && (
+                  <div>
+                    <p className="font-body pt-2">ANRs:</p>
+                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
+                      {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
+                        <li key={title}>
+                          {/* Show clickable link if Exceptions journey type */}
+                          {journeyType === JourneyType.Exceptions &&
+                            <span className="font-body text-xs">
+                              {demo ? (
+                                <div className={underlineLinkStyle}>{title} - {numberToKMB(count)}</div>
+                              ) : (
+                                <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className={underlineLinkStyle}>
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              )}
+                            </span>
+                          }
+                          {/* Show only title and count if crash or anr journey type */}
+                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                            <span className="font-body text-xs">
+                              {title} - {numberToKMB(count)}
+                            </span>
+                          }
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            }
+          </div>
+        </div>}
+    </div>
   )
 }
 

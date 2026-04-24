@@ -7,13 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
+
 ### :bug: Bug fixes
 
+- (**backend**): Type & exception field were not being set correctly (#3507) by @detj in #3507
+- (**backend**): Use deterministic order in crash & anr list (#3498) by @detj in #3498
+- (**backend**): Use correct field names for span attrs by @anupcowkur in #3481
+- (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Block framing to prevent clickjacking by @anupcowkur in #3499
+- (**frontend**): Remove overflow-auto from inner main to fix scroll hitch by @anupcowkur in #3488
+- (**frontend**): Make journeys panel open only on nodes with issues by @anupcowkur in #3487
+- (**frontend**): Reset store before navigation instead of per-page guards by @anupcowkur in #3483
+- (**frontend**): Prevent stale router.replace during team switch by @anupcowkur in #3482
+- (**frontend**): Fix create app and team dialog issues by @anupcowkur in #3480
+- (**frontend**): Update trace viz panel height by @anupcowkur in #3476
 
 ### :hammer: Misc
 
+- (**backend**): Skip all alerts for ingestion blocked teams by @anupcowkur in #3477
+- (**backend**): Support stripe trails by @anupcowkur in #3471
 - (**backend**): Remove unused env var from symboloader (#3466) by @detj in #3466
 - (**backend**): Remove unused file (#3465) by @detj in #3465
 - (**backend**): Upgrade symbolicator to newer working version (#3436) by @detj in #3436
@@ -21,6 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**frontend**): Use @next/third-parties GTM component by @anupcowkur in #3508
+- (**frontend**): Show "Usage & Billing" label on cloud by @anupcowkur in #3502
+- (**frontend**): Make session timelines first in features by @anupcowkur in #3501
+- (**frontend**): Add Google Tag Manager to website by @anupcowkur in #3500
+- (**frontend**): Use breadcrumbs in place of page headings by @anupcowkur in #3496
+- (**frontend**): Use skeletons instead of loading spinners by @anupcowkur in #3485
+- (**frontend**): Link blog in website header & footer by @anupcowkur in #3484
+- (**frontend**): React to team change in filters by @anupcowkur in #3479
+- (**frontend**): Use zustand for state management by @anupcowkur in #3470
 - (**frontend**): Fix lint error in login page test file by @anupcowkur in #3453
 - (**frontend**): Add frontend tests by @anupcowkur in #3447
 - (**frontend**): Add docs sidebar tests (#3445) by @anupcowkur in #3445

@@ -1,7 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
 
 // --- Mocks ---
 
@@ -67,8 +66,8 @@ jest.mock('@/app/components/command', () => ({
 
 // --- Import ---
 
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { AppVersion, OsVersion } from '@/app/api/api_calls'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 
 // --- Helpers ---
 

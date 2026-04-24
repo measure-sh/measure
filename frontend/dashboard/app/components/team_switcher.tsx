@@ -6,7 +6,7 @@ import React, { useState } from 'react'
 import { Team } from '../api/api_calls'
 import { Button } from './button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './dropdown_menu'
-import LoadingSpinner from './loading_spinner'
+import { Skeleton } from './skeleton'
 
 export enum TeamsSwitcherStatus {
   Loading,
@@ -39,7 +39,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
           className="flex justify-between w-full"
           disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
         >
-          {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <LoadingSpinner />}
+          {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <Skeleton className="h-4 w-24" />}
           {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p>Teams Fetch Error</p>}
           {teamsSwitcherStatus == TeamsSwitcherStatus.Success && <span className="truncate">{selectedItem ? selectedItem.name : items![initialItemIndex].name}</span>}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

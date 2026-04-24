@@ -1,89 +1,34 @@
 "use client"
 
+import { useExceptionsOverviewPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import React from 'react'
+import { ExceptionsType } from '../api/api_calls'
 import { chartTheme } from '../utils/shared_styles'
-import { getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import { SkeletonPlot } from './skeleton'
 
 interface ExceptionsOverviewPlotProps {
-  exceptionsType: ExceptionsType,
-  filters: Filters
+  exceptionsType: ExceptionsType
 }
 
-type ExceptionsOverviewPlot = {
-  id: string
-  data: {
-    id: string
-    x: string
-    y: number
-  }[]
-}[]
-
-const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ exceptionsType, filters }) => {
-  const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading)
-  const [plot, setPlot] = useState<ExceptionsOverviewPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ exceptionsType }) => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: plot, status } = useExceptionsOverviewPlotQuery(exceptionsType)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${exceptionsType}|${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
-  const shouldRenderPlot = exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
-
-  const getExceptionsOverviewPlot = async () => {
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Loading)
-
-    const result = await fetchExceptionsOverviewPlotFromServer(exceptionsType, filters)
-
-    switch (result.status) {
-      case ExceptionsOverviewPlotApiStatus.Error:
-        setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case ExceptionsOverviewPlotApiStatus.NoData:
-        setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.NoData)
-        setPlotDataKey(null)
-        break
-      case ExceptionsOverviewPlotApiStatus.Success:
-        setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Success)
-
-        // map result data to chart format
-        let newPlot = result.data.map((item: any) => ({
-          id: item.id,
-          data: item.data.map((data: any, index: number) => ({
-            id: item.id + '.' + index,
-            x: data.datetime,
-            y: data.instances
-          }))
-        }))
-
-        setPlot(newPlot)
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getExceptionsOverviewPlot()
-  }, [exceptionsType, filters])
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {(exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Loading || (exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {status === 'pending' && <SkeletonPlot />}
+      {status === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {status === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {status === 'success' && plot !== null && plot !== undefined &&
         <ResponsiveLine
-          data={plot!}
+          data={plot}
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}

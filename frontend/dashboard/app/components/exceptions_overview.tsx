@@ -1,23 +1,19 @@
 "use client"
 
-import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls'
+import { ExceptionsType, FilterSource, emptyExceptionsOverviewResponse } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
+import { paginationOffsetUrlKey, useExceptionsOverviewQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import Filters, { AppVersionsInitialSelectionType } from './filters'
 import LoadingBar from './loading_bar'
+import { SkeletonListPage } from './skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 
-interface PageState {
-  exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
-  filters: typeof defaultFilters
-  exceptionsOverview: typeof emptyExceptionsOverviewResponse
-  paginationOffset: number
-}
-
-const paginationLimit = 5
-const paginationOffsetUrlKey = "po"
+const PAGINATION_LIMIT = 5
 
 interface ExceptionsOverviewProps {
   exceptionsType: ExceptionsType,
@@ -28,72 +24,39 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const initialState: PageState = {
-    exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading,
-    filters: defaultFilters,
-    exceptionsOverview: emptyExceptionsOverviewResponse,
-    paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
-  }
+  const filters = useFiltersStore(state => state.filters)
 
-  const [pageState, setPageState] = useState<PageState>(initialState)
+  // Pagination is component-local state, initialized from URL
+  const [paginationOffset, setPaginationOffset] = useState(() => {
+    const po = searchParams.get(paginationOffsetUrlKey)
+    return po ? parseInt(po) : 0
+  })
 
-  // Helper function to update page state
-  const updatePageState = (newState: Partial<PageState>) => {
-    setPageState(prevState => {
-      const updatedState = { ...prevState, ...newState }
-      return updatedState
-    })
-  }
-
-
-  const getExceptionsOverview = async () => {
-    updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading })
-
-    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, paginationLimit, pageState.paginationOffset)
-
-    switch (result.status) {
-      case ExceptionsOverviewApiStatus.Error:
-        updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Error })
-        break
-      case ExceptionsOverviewApiStatus.Success:
-        updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Success, exceptionsOverview: result.data })
-        break
-    }
-  }
-
-  const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-    // update filters only if they have changed
-    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-      updatePageState({
-        filters: updatedFilters,
-        // Reset pagination on filters change if previous filters were not default filters
-        paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
-      })
-    }
-  }
-
-  const handleNextPage = () => {
-    updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
-  }
-
-  const handlePrevPage = () => {
-    updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
-  }
-
+  // Reset pagination when filters change (skip pre-ready transitions)
+  const prevFiltersRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!pageState.filters.ready) {
+    if (!filters.ready) return
+    if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
+      setPaginationOffset(0)
+    }
+    prevFiltersRef.current = filters.serialisedFilters
+  }, [filters.ready, filters.serialisedFilters])
+
+  // URL sync
+  useEffect(() => {
+    if (!filters.ready) {
       return
     }
+    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
+  }, [paginationOffset, filters.ready, filters.serialisedFilters])
 
-    // update url
-    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
+  const { data: exceptionsOverview = emptyExceptionsOverviewResponse, status, isFetching } = useExceptionsOverviewQuery(exceptionsType, paginationOffset)
 
-    getExceptionsOverview()
-  }, [pageState.paginationOffset, pageState.filters])
+  const nextPage = () => setPaginationOffset(o => o + PAGINATION_LIMIT)
+  const prevPage = () => setPaginationOffset(o => Math.max(0, o - PAGINATION_LIMIT))
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
       <Filters
@@ -117,33 +80,34 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showBugReportStatus={false}
         showHttpMethods={false}
         showUdAttrs={true}
-        showFreeText={false}
-        onFiltersChanged={handleFiltersChanged} />
+        showFreeText={false} />
       <div className="py-4" />
 
+      {/* Full page skeleton when filters not ready */}
+      {filters.loading && <SkeletonListPage />}
+
       {/* Error state for crash groups fetch */}
-      {pageState.filters.ready
-        && pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Error
+      {filters.ready
+        && status === 'error'
         && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
       {/* Main crash groups list UI */}
-      {pageState.filters.ready
-        && (pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
+      {filters.ready
+        && (status === 'success' || status === 'pending') &&
         <div className="flex flex-col items-center w-full">
           <ExceptionsOverviewPlot
             exceptionsType={exceptionsType}
-            filters={pageState.filters}
           />
           <div className="self-end">
             <Paginator
-              prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous}
-              nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next}
+              prevEnabled={isFetching ? false : exceptionsOverview.meta.previous}
+              nextEnabled={isFetching ? false : exceptionsOverview.meta.next}
               displayText=""
-              onNext={handleNextPage}
-              onPrev={handlePrevPage}
+              onNext={nextPage}
+              onPrev={prevPage}
             />
           </div>
-          <div className={`py-1 w-full ${pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+          <div className={`py-1 w-full ${isFetching ? 'visible' : 'invisible'}`}>
             <LoadingBar />
           </div>
           <div className='py-4' />
@@ -156,7 +120,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageState.exceptionsOverview.results?.map(
+              {exceptionsOverview.results?.map(
                 ({
                   id,
                   type,
@@ -165,7 +129,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   file_name,
                   count,
                   percentage_contribution
-                }, idx) => {
+                }: any, idx: number) => {
                   // Get date range, start date and end date from searchParams
                   const d = searchParams.get('d')
                   const sd = searchParams.get('sd')
@@ -173,7 +137,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   // Build query string for timestamps if present
                   const timestampQuery = [sd ? `sd=${encodeURIComponent(sd)}` : null, ed ? `ed=${encodeURIComponent(ed)}` : null, d ? `d=${encodeURIComponent(d)}` : null].filter(Boolean).join('&')
                   // Build base path
-                  const basePath = `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
+                  const basePath = `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
                   // Final href with query params if any
                   const href = timestampQuery ? `${basePath}?${timestampQuery}` : basePath
                   return (
@@ -189,7 +153,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                       }}
                     >
                       <TableCell className="w-[60%] relative p-0">
-                        <a
+                        <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"
                           tabIndex={-1}
@@ -207,7 +171,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                         </div>
                       </TableCell>
                       <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                        <a
+                        <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"
                           tabIndex={-1}
@@ -219,7 +183,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                         </div>
                       </TableCell>
                       <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                        <a
+                        <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"
                           tabIndex={-1}

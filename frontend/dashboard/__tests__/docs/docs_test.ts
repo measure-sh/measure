@@ -1,5 +1,5 @@
+import { cleanContent, extractTitle, extractTocEntries } from '@/app/docs/docs'
 import { describe, expect, it } from '@jest/globals'
-import { extractTocEntries, cleanContent, extractTitle } from '@/app/docs/docs'
 
 describe('extractTocEntries', () => {
   it('skips the first h1 as the page title', () => {

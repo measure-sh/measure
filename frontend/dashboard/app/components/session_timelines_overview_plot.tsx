@@ -1,88 +1,29 @@
 "use client"
 
+import { useSessionTimelinesOverviewPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { SessionTimelinesOverviewPlotApiStatus, fetchSessionTimelinesOverviewPlotFromServer } from '../api/api_calls'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import React from 'react'
 import { chartTheme } from '../utils/shared_styles'
-import { getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import { SkeletonPlot } from './skeleton'
 
-interface SessionTimelinesOverviewPlotProps {
-  filters: Filters
-}
-
-type SessionTimelinesOverviewPlot = {
-  id: string
-  data: {
-    id: string
-    x: string
-    y: number
-  }[]
-}[]
-
-const SessionTimelinesOverviewPlot: React.FC<SessionTimelinesOverviewPlotProps> = ({ filters }) => {
-  const [sessionTimelinesOverviewPlotApiStatus, setSessionTimelinesOverviewPlotApiStatus] = useState(SessionTimelinesOverviewPlotApiStatus.Loading)
-  const [plot, setPlot] = useState<SessionTimelinesOverviewPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const SessionTimelinesOverviewPlot: React.FC = () => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: plot, status } = useSessionTimelinesOverviewPlotQuery()
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
-  const shouldRenderPlot = sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
-
-  const getSessionTimelinesOverviewPlot = async () => {
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.Loading)
-
-    const result = await fetchSessionTimelinesOverviewPlotFromServer(filters)
-
-    switch (result.status) {
-      case SessionTimelinesOverviewPlotApiStatus.Error:
-        setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case SessionTimelinesOverviewPlotApiStatus.NoData:
-        setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.NoData)
-        setPlotDataKey(null)
-        break
-      case SessionTimelinesOverviewPlotApiStatus.Success:
-        setSessionTimelinesOverviewPlotApiStatus(SessionTimelinesOverviewPlotApiStatus.Success)
-
-        // map result data to chart format
-        let newPlot = result.data.map((item: any) => ({
-          id: item.id,
-          data: item.data.map((data: any, index: number) => ({
-            id: item.id + '.' + index,
-            x: data.datetime,
-            y: data.instances
-          }))
-        }))
-
-        setPlot(newPlot)
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getSessionTimelinesOverviewPlot()
-  }, [filters])
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {(sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Loading || (sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {sessionTimelinesOverviewPlotApiStatus === SessionTimelinesOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {status === 'pending' && <SkeletonPlot />}
+      {status === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {status === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {status === 'success' && plot !== null && plot !== undefined &&
         <ResponsiveLine
-          data={plot!}
+          data={plot}
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}

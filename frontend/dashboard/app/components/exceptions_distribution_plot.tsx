@@ -1,13 +1,14 @@
 "use client"
 
+import { useExceptionsDistributionPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveBar } from '@nivo/bar'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { ExceptionsDistributionPlotApiStatus, ExceptionsType, fetchExceptionsDistributionPlotFromServer } from '../api/api_calls'
+import React from 'react'
+import { ExceptionsType } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { SkeletonPlot } from './skeleton'
 
 const demoDistribution: any = {
   "app_version": {
@@ -38,18 +39,6 @@ const demoDistribution: any = {
   }
 }
 
-interface ExceptionsDistributionPlotProps {
-  exceptionsType: ExceptionsType,
-  exceptionsGroupId: string,
-  filters: Filters,
-  demo?: boolean,
-}
-
-type ExceptionsDistributionPlot = {
-  attribute: string
-  [key: string]: number | string
-}[]
-
 const formatAttribute = (str: string, hasAndroidData: boolean = false): string => {
   if (str === 'os_version' && hasAndroidData) {
     return 'API Level'
@@ -62,7 +51,6 @@ const formatAttribute = (str: string, hasAndroidData: boolean = false): string =
 }
 
 const formatOsVersionKey = (key: string): string => {
-  // Extract OS name and version from the key (e.g., "android 27" -> "Android API Level 27")
   const parts = key.toLowerCase().split(' ')
   if (parts.length >= 2) {
     const osName = parts[0]
@@ -81,19 +69,17 @@ const formatOsVersionKey = (key: string): string => {
   return key
 }
 
-const parsePlotFromResult = (resultData: any): { parsedPlot: ExceptionsDistributionPlot, parsedPlotKeys: string[] } => {
+const parseDemoData = (resultData: any): { parsedPlot: { attribute: string, [key: string]: number | string }[], parsedPlotKeys: string[] } => {
   const parsedPlotKeys: string[] = []
   const parsedPlot = Object.entries(resultData).map(([attribute, values]) => {
     const transformedValues: { [key: string]: number } = {}
     let hasAndroidData = false
 
     Object.entries(values as { [key: string]: number }).forEach(([key, value]) => {
-      // Check if this is Android data for os_version
       if (attribute === 'os_version' && key.toLowerCase().startsWith('android')) {
         hasAndroidData = true
       }
 
-      // Transform OS version keys for better display
       const transformedKey = attribute === 'os_version' ? formatOsVersionKey(key) : key
       transformedValues[transformedKey] = value
 
@@ -110,60 +96,31 @@ const parsePlotFromResult = (resultData: any): { parsedPlot: ExceptionsDistribut
   return { parsedPlot, parsedPlotKeys }
 }
 
+const { parsedPlot: demoParsedPlot, parsedPlotKeys: demoParsedPlotKeys } = parseDemoData(demoDistribution)
 
-const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({ exceptionsType, exceptionsGroupId, filters, demo = false }) => {
-  const [exceptionsDistributionPlotApiStatus, setExceptionsDistributionPlotApiStatus] = useState(ExceptionsDistributionPlotApiStatus.Loading)
-  const [plotKeys, setPlotKeys] = useState<string[]>([])
-  const [plot, setPlot] = useState<ExceptionsDistributionPlot>()
+interface ExceptionsDistributionPlotProps {
+  exceptionsType: ExceptionsType,
+  exceptionsGroupId: string,
+  demo?: boolean,
+}
+
+const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({ exceptionsType, exceptionsGroupId, demo = false }) => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: queryData, status } = useExceptionsDistributionPlotQuery(exceptionsType, exceptionsGroupId)
   const { theme } = useTheme()
 
-  const getExceptionsDistributionPlot = async () => {
-    if (demo) {
-      setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.Success)
-      const { parsedPlot, parsedPlotKeys } = parsePlotFromResult(demoDistribution)
-      setPlot(parsedPlot)
-      setPlotKeys(parsedPlotKeys)
-      return
-    }
-
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.Loading)
-
-    const result = await fetchExceptionsDistributionPlotFromServer(exceptionsType, exceptionsGroupId, filters)
-
-    switch (result.status) {
-      case ExceptionsDistributionPlotApiStatus.Error:
-        setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.Error)
-        break
-      case ExceptionsDistributionPlotApiStatus.NoData:
-        setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.NoData)
-        break
-      case ExceptionsDistributionPlotApiStatus.Success:
-        setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.Success)
-
-        const { parsedPlot, parsedPlotKeys } = parsePlotFromResult(result.data)
-        setPlot(parsedPlot)
-        setPlotKeys(parsedPlotKeys)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getExceptionsDistributionPlot()
-  }, [exceptionsType, exceptionsGroupId, filters, demo])
+  const effectiveStatus = demo ? 'success' : status
+  const plot = demo ? demoParsedPlot : queryData?.plot
+  const plotKeys = demo ? demoParsedPlotKeys : queryData?.plotKeys
 
   return (
     <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
-      {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Loading && <LoadingSpinner />}
-      {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Success &&
+      {effectiveStatus === 'pending' && <SkeletonPlot />}
+      {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {effectiveStatus === 'success' && queryData === null && !demo && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {effectiveStatus === 'success' && plot !== undefined && plotKeys !== undefined &&
         <ResponsiveBar
-          data={plot!}
+          data={plot}
           keys={plotKeys}
           theme={chartTheme}
           indexBy="attribute"

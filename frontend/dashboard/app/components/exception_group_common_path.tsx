@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { ExceptionGroupCommonPathApiStatus, ExceptionsType, fetchExceptionGroupCommonPathFromServer } from '../api/api_calls'
+import React, { useMemo, useState } from 'react'
+import { ExceptionsType } from '../api/api_calls'
+import { type ExceptionGroupCommonPath, useExceptionGroupCommonPathQuery } from '../query/hooks'
 import BetaBadge from './beta_badge'
-import LoadingSpinner from './loading_spinner'
+import { Skeleton } from './skeleton'
 import { Slider } from './slider'
 
-const demoExceptionGroupCommonPath = {
+const demoExceptionGroupCommonPath: ExceptionGroupCommonPath = {
   sessions_analyzed: 50,
   steps: [
     { description: "App moved to foreground", thread_name: "main", confidence_pct: 80.5 },
@@ -28,49 +29,19 @@ interface ExceptionGroupCommonPathProps {
   demo?: boolean,
 }
 
-type ExceptionGroupCommonPath = {
-  sessions_analyzed: number;
-  steps: Array<{
-    description: string;
-    thread_name: string;
-    confidence_pct: number;
-  }>;
-}
-
 const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ type, appId, groupId, demo = false }) => {
-  const [exceptionGroupCommonPathApiStatus, setExceptionGroupCommonPathApiStatus] = useState(ExceptionGroupCommonPathApiStatus.Loading)
-  const [exceptionsGroupCommonPath, setExceptionGroupCommonPath] = useState<ExceptionGroupCommonPath>()
+  const { data: queryCommonPath, status: queryStatus } = useExceptionGroupCommonPathQuery(type, demo ? '' : appId, demo ? '' : groupId)
+
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80)
 
-  const getExceptionGroupCommonPath = async () => {
-    if (demo) {
-      setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Success)
-      setExceptionGroupCommonPath(demoExceptionGroupCommonPath)
-      return
-    }
-
-    setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Loading)
-
-    const result = await fetchExceptionGroupCommonPathFromServer(type, appId, groupId)
-
-    switch (result.status) {
-      case ExceptionGroupCommonPathApiStatus.Error:
-        setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Error)
-        break
-      case ExceptionGroupCommonPathApiStatus.Success:
-        setExceptionGroupCommonPathApiStatus(ExceptionGroupCommonPathApiStatus.Success)
-        setExceptionGroupCommonPath(result.data)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getExceptionGroupCommonPath()
-  }, [type, groupId, appId, demo])
+  const commonPathStatus = demo ? 'success' : queryStatus
+  const exceptionsGroupCommonPath = demo ? demoExceptionGroupCommonPath : queryCommonPath
 
   // Filter steps based on confidence threshold
   const filteredSteps = useMemo(() => {
-    if (!exceptionsGroupCommonPath?.steps) return []
+    if (!exceptionsGroupCommonPath?.steps) {
+      return []
+    }
     return exceptionsGroupCommonPath.steps
       .filter(step => step.confidence_pct >= confidenceThreshold)
   }, [exceptionsGroupCommonPath, confidenceThreshold])
@@ -81,9 +52,14 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({ typ
         Common Path{" "}
         <BetaBadge />
       </p>
-      {exceptionGroupCommonPathApiStatus === ExceptionGroupCommonPathApiStatus.Loading && <div className='py-4'><LoadingSpinner /></div>}
-      {exceptionGroupCommonPathApiStatus === ExceptionGroupCommonPathApiStatus.Error && <p className="font-display py-4">Error fetching common path, please refresh page to try again</p>}
-      {exceptionGroupCommonPathApiStatus === ExceptionGroupCommonPathApiStatus.Success &&
+      {commonPathStatus === 'pending' &&
+        <div className='py-4 flex flex-col gap-3 w-full'>
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-[24rem] w-full rounded-sm" />
+        </div>
+      }
+      {commonPathStatus === 'error' && <p className="font-display py-4">Error fetching common path, please refresh page to try again</p>}
+      {commonPathStatus === 'success' &&
         <div className="flex flex-col w-full">
           {/* Confidence Filter */}
           <div className='py-3' />

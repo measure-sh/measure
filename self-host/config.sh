@@ -279,6 +279,12 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 POSTHOG_HOST=
 POSTHOG_API_KEY=
 
+######################
+# Google Tag Manager #
+######################
+
+GTM_ID=
+
 ###########
 # Billing #
 ###########
@@ -412,6 +418,12 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+######################
+# Google Tag Manager #
+######################
+
+GTM_ID=
 
 ###########
 # Billing #
@@ -845,6 +857,10 @@ ensure() {
 
   if ! check_env_variable "POSTHOG_API_KEY"; then
     add_env_variable "POSTHOG_API_KEY" ""
+  fi
+
+  if ! check_env_variable "GTM_ID"; then
+    add_env_variable "GTM_ID" ""
   fi
 
   if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then

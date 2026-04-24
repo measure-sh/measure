@@ -17,73 +17,43 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
-// Mock API calls and constants for traces overview with valid data.
+// Mock API calls and constants
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
     emptySpansResponse: {
         meta: { next: false, previous: false },
         results: [],
     },
-    SpansApiStatus: {
-        Loading: 'loading',
-        Error: 'error',
-        Success: 'success'
-    },
-    fetchSpansFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 'success',
-            data: {
-                results: [
-                    {
-                        app_id: 'app1',
-                        span_name: 'Test Span',
-                        span_id: 'span1',
-                        trace_id: 'trace1',
-                        status: 1,
-                        start_time: "2020-01-01T00:00:00Z",
-                        end_time: "2020-01-01T00:05:00Z",
-                        duration: 5000,
-                        app_version: '1.0',
-                        app_build: '1',
-                        os_name: 'ios',
-                        os_version: '15',
-                        device_manufacturer: 'Apple',
-                        device_model: 'iPhone 12',
-                    }
-                ],
-                // Enable both previous and next for pagination tests.
-                meta: { previous: true, next: true },
-            }
-        })
-    ),
     FilterSource: { Spans: 'spans' },
 }))
 
-// Update the Filters mock to always render two update buttons.
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return {
+        __esModule: true,
+        useFiltersStore: filtersStore,
+    }
+})
+
+const mockUseSpansQuery = jest.fn(() => ({
+    data: undefined as any,
+    status: 'pending' as string, isFetching: true,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useSpansQuery: () => mockUseSpansQuery(),
+    paginationOffsetUrlKey: 'po',
+}))
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: (props: any) => (
-        <div data-testid="filters-mock">
-            <button
-                data-testid="update-filters"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated' })
-                }
-            >
-                Update Filters
-            </button>
-            <button
-                data-testid="update-filters-2"
-                onClick={() =>
-                    props.onFiltersChanged({ ready: true, serialisedFilters: 'updated2' })
-                }
-            >
-                Update Filters 2
-            </button>
-        </div>
-    ),
+    default: () => <div data-testid="filters-mock" />,
     AppVersionsInitialSelectionType: { All: 'all' },
-    defaultFilters: { ready: false, serialisedFilters: '' },
 }))
 
 // Mock SpanMetricsPlot component.
@@ -115,15 +85,41 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatMillisToHumanReadable: jest.fn(() => '5s')
 }))
 
+const { useFiltersStore } = require('@/app/stores/provider') as any
+
+const mockSpanData = {
+    results: [
+        {
+            app_id: 'app1',
+            span_name: 'Test Span',
+            span_id: 'span1',
+            trace_id: 'trace1',
+            status: 1,
+            start_time: "2020-01-01T00:00:00Z",
+            end_time: "2020-01-01T00:05:00Z",
+            duration: 5000,
+            app_version: '1.0',
+            app_build: '1',
+            os_name: 'ios',
+            os_version: '15',
+            device_manufacturer: 'Apple',
+            device_model: 'iPhone 12',
+        }
+    ],
+    meta: { previous: true, next: true },
+}
+
 describe('TracesOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
         pushMock.mockClear()
+        mockUseSpansQuery.mockReset()
+        mockUseSpansQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
-    it('renders the Traces heading and Filters component', () => {
+    it('renders the Filters component', () => {
         render(<TracesOverview params={{ teamId: '123' }} />)
-        expect(screen.getByText('Traces')).toBeInTheDocument()
         expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
     })
 
@@ -132,63 +128,30 @@ describe('TracesOverview Component', () => {
         expect(screen.queryByTestId('span-metrics-plot-mock')).not.toBeInTheDocument()
         expect(screen.queryByTestId('paginator-mock')).not.toBeInTheDocument()
         expect(screen.queryByTestId('loading-bar-mock')).not.toBeInTheDocument()
-        expect(screen.queryByText('Trace Id')).not.toBeInTheDocument()
     })
 
-    it('renders main traces UI, updates URL when filters become ready, and renders table headers', async () => {
+    it('renders main traces UI when filters are ready and data is loaded', async () => {
+        mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
         render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        // Check URL update.
         expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
-
-        // Verify main UI components are rendered.
         expect(await screen.findByTestId('span-metrics-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('paginator-mock')).toBeInTheDocument()
-        // Check that the table header cells are rendered.
-        expect(screen.getByText('Traces')).toBeInTheDocument()
         expect(screen.getByText('Start Time')).toBeInTheDocument()
         expect(screen.getByText('Duration')).toBeInTheDocument()
         expect(screen.getByText('Status')).toBeInTheDocument()
     })
 
-    it('displays span data correctly when API returns results', async () => {
+    it('displays span data correctly', async () => {
+        mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
         render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        Promise.resolve({
-            status: 'success',
-            data: {
-                results: [
-                    {
-                        app_id: 'app1',
-                        span_name: 'Test Span',
-                        span_id: 'span1',
-                        trace_id: 'trace1',
-                        status: 1,
-                        start_time: "2020-01-01T00:00:00Z",
-                        end_time: "2020-01-01T00:05:00Z",
-                        duration: 5000,
-                        app_version: '1.0',
-                        app_build: '1',
-                        os_name: 'ios',
-                        os_version: '15',
-                        device_manufacturer: 'Apple',
-                        device_model: 'iPhone 12',
-                    }
-                ],
-                // Enable both previous and next for pagination tests.
-                meta: { previous: true, next: true },
-            }
-        })
-
-        // Verify the bug report data is displayed
         expect(screen.getByText('Test Span')).toBeInTheDocument()
         expect(screen.getByText('Jan 1, 2020')).toBeInTheDocument()
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
@@ -197,202 +160,102 @@ describe('TracesOverview Component', () => {
         expect(screen.getByText('1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
     })
 
-    it('does not update filters if they remain unchanged', async () => {
-        render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            fireEvent.click(updateButton)
-        })
-        expect(replaceMock).toHaveBeenCalledTimes(1)
-    })
-
     it('shows error message when API returns error status', async () => {
-        // Override the mock to return an error
-        const { fetchSpansFromServer } = require('@/app/api/api_calls')
-        fetchSpansFromServer.mockImplementationOnce(() =>
-            Promise.resolve({
-                status: 'error',
-            })
-        )
-
+        mockUseSpansQuery.mockReturnValue({ data: undefined, status: 'error', isFetching: false, error: new Error('fail') })
         render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        // Check that error message is displayed
         expect(screen.getByText(/Error fetching list of traces/)).toBeInTheDocument()
     })
 
-    it('renders appropriate link for each span that includes teamId, app_id and trace_id', async () => {
+    it('renders appropriate link for each span', async () => {
+        mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
         render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        // Check that the span link is rendered with the correct href and accessible name
         const link = screen.getByRole('link', { name: /ID: trace1/i })
         expect(link).toBeInTheDocument()
         expect(link).toHaveAttribute('href', '/123/traces/app1/trace1')
 
-        // Find the table row that contains this link
         const row = link.closest('tr')
-        expect(row).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
         await act(async () => {
             fireEvent.keyDown(row!, { key: 'Enter' })
         })
         expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
 
-        // Simulate keyboard navigation (Space) on the row
         await act(async () => {
             fireEvent.keyDown(row!, { key: ' ' })
         })
         expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
     })
 
-    describe('Pagination offset handling', () => {
-        it('initializes pagination offset to 0 when no offset is provided', async () => {
+    describe('Pagination', () => {
+        it('renders paginator with correct enabled state', async () => {
+            mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
             render(<TracesOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
-            expect(replaceMock).toHaveBeenCalledWith('?po=0&updated', { scroll: false })
+
+            const prevButton = screen.getByTestId('prev-button')
+            const nextButton = screen.getByTestId('next-button')
+            expect(prevButton).not.toBeDisabled()
+            expect(nextButton).not.toBeDisabled()
         })
 
-        it('increments pagination offset when Next is clicked', async () => {
+        it('disables paginator buttons during loading', async () => {
+            mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'pending' as string, isFetching: true, error: null })
             render(<TracesOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
             await act(async () => {
-                fireEvent.click(updateButton)
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
             })
-            const nextButton = await screen.findByTestId('next-button')
+
+            const prevButton = screen.getByTestId('prev-button')
+            const nextButton = screen.getByTestId('next-button')
+            expect(prevButton).toBeDisabled()
+            expect(nextButton).toBeDisabled()
+        })
+
+        it('includes pagination offset in URL', async () => {
+            mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
+            render(<TracesOverview params={{ teamId: '123' }} />)
+            await act(async () => {
+                useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
+            })
+
+            // Click next to change offset
+            const nextButton = screen.getByTestId('next-button')
             await act(async () => {
                 fireEvent.click(nextButton)
             })
-            // The pagination limit is 5 so offset should be 5.
+
             expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
-        })
-
-        it('decrements pagination offset when Prev is clicked, but not below 0', async () => {
-            render(<TracesOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
-            await act(async () => {
-                fireEvent.click(updateButton)
-            })
-            const nextButton = await screen.findByTestId('next-button')
-            await act(async () => {
-                fireEvent.click(nextButton)
-            })
-            expect(replaceMock).toHaveBeenLastCalledWith('?po=5&updated', { scroll: false })
-            const prevButton = await screen.findByTestId('prev-button')
-            await act(async () => {
-                fireEvent.click(prevButton)
-            })
-            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
-            await act(async () => {
-                fireEvent.click(prevButton)
-            })
-            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated', { scroll: false })
-        })
-
-        it('resets pagination offset to 0 when filters change (if previous filters were non-default)', async () => {
-            // Override useSearchParams to simulate an initial offset.
-            const { useSearchParams } = jest.requireActual('next/navigation')
-            const useSearchParamsSpy = jest
-                .spyOn(require('next/navigation'), 'useSearchParams')
-                .mockReturnValue(new URLSearchParams('?po=5'))
-
-            render(<TracesOverview params={{ teamId: '123' }} />)
-            const updateButton = screen.getByTestId('update-filters')
-            // First update: filters become ready with "updated" and offset parsed from URL is 5.
-            await act(async () => {
-                fireEvent.click(updateButton)
-            })
-            expect(replaceMock).toHaveBeenCalledWith('?po=5&updated', { scroll: false })
-
-            // Click Next to further increment the offset.
-            const nextButton = await screen.findByTestId('next-button')
-            await act(async () => {
-                fireEvent.click(nextButton)
-            })
-            expect(replaceMock).toHaveBeenLastCalledWith('?po=10&updated', { scroll: false })
-
-            // Now simulate a filter change with a different value.
-            const updateButton2 = screen.getByTestId('update-filters-2')
-            await act(async () => {
-                fireEvent.click(updateButton2)
-                await new Promise(resolve => setTimeout(resolve, 0))
-            })
-            expect(replaceMock).toHaveBeenLastCalledWith('?po=0&updated2', { scroll: false })
-            useSearchParamsSpy.mockRestore()
         })
     })
 
-    it('correctly toggles loading bar visibility based on API status', async () => {
-        // Mock implementation to control loading state
-        const { fetchSpansFromServer } = require('@/app/api/api_calls')
-
-        // Create a promise that won't resolve immediately to maintain loading state
-        let resolvePromise: (value: any) => void
-        const loadingPromise = new Promise(resolve => {
-            resolvePromise = resolve
-        })
-
-        fetchSpansFromServer.mockImplementationOnce(() => loadingPromise)
-
+    it('correctly toggles loading bar visibility', async () => {
+        mockUseSpansQuery.mockReturnValue({ data: undefined, status: 'pending' as string, isFetching: true, error: null })
         render(<TracesOverview params={{ teamId: '123' }} />)
-        const updateButton = screen.getByTestId('update-filters')
 
-        // Click to trigger loading state
+        // Set loading state
         await act(async () => {
-            fireEvent.click(updateButton)
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        // Test the loading state - loading bar should be visible
         const loadingBarContainer = screen.getByTestId('loading-bar-mock').parentElement
         expect(loadingBarContainer).toHaveClass('visible')
         expect(loadingBarContainer).not.toHaveClass('invisible')
 
-        // Resolve the loading promise to move to success state
+        // Set success state
         await act(async () => {
-            resolvePromise({
-                status: 'success',
-                data: {
-                    results: [
-                        {
-                            app_id: 'app1',
-                            span_name: 'Test Span',
-                            span_id: 'span1',
-                            trace_id: 'trace1',
-                            status: 1,
-                            start_time: "2020-01-01T00:00:00Z",
-                            end_time: "2020-01-01T00:05:00Z",
-                            duration: 5000,
-                            app_version: '1.0',
-                            app_build: '1',
-                            os_name: 'ios',
-                            os_version: '15',
-                            device_manufacturer: 'Apple',
-                            device_model: 'iPhone 12',
-                        }
-                    ],
-                    // Enable both previous and next for pagination tests.
-                    meta: { previous: true, next: true },
-                }
-            })
+            mockUseSpansQuery.mockReturnValue({ data: mockSpanData, status: 'success', isFetching: false, error: null })
+            useFiltersStore.setState({ filters: { ready: true, serialisedFilters: 'updated', app: { id: 'app-1' } } })
         })
 
-        // After loading, the loading bar should be invisible
-        await screen.findByText('Test Span')
         expect(loadingBarContainer).not.toHaveClass('visible')
         expect(loadingBarContainer).toHaveClass('invisible')
     })

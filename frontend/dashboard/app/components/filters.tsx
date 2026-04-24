@@ -1,5 +1,4 @@
 "use client"
-
 import { DateTime } from "luxon"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
@@ -7,16 +6,11 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
-  useState,
 } from "react"
 import {
-  App,
   AppsApiStatus,
   AppVersion,
   BugReportStatus,
-  fetchAppsFromServer,
-  fetchFiltersFromServer,
-  fetchRootSpanNamesFromServer,
   FiltersApiStatus,
   FilterSource,
   HttpMethod,
@@ -24,8 +18,16 @@ import {
   RootSpanNamesApiStatus,
   SessionType,
   SpanStatus,
-  UserDefAttr,
 } from "../api/api_calls"
+import {
+  AppVersionsInitialSelectionType,
+  expandRangesToArray,
+  type Filters,
+  type InitConfig,
+  type URLFilters,
+  urlFiltersKeyMap,
+} from "../stores/filters_store"
+import { useFiltersStore } from "../stores/provider"
 import { underlineLinkStyle } from "../utils/shared_styles"
 import {
   formatDateToHumanReadableDateTime,
@@ -35,14 +37,12 @@ import {
 import DebounceTextInput from "./debounce_text_input"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
 import { Input } from "./input"
-import LoadingSpinner from "./loading_spinner"
 import Pill from "./pill"
+import { Skeleton } from "./skeleton"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
 
-export enum AppVersionsInitialSelectionType {
-  Latest,
-  All,
-}
+export { AppVersionsInitialSelectionType }
+export type { Filters }
 
 interface FiltersProps {
   ref?: React.RefObject<HTMLDivElement>
@@ -69,7 +69,6 @@ interface FiltersProps {
   showUdAttrs: boolean
   showFreeText: boolean
   freeTextPlaceholder?: string
-  onFiltersChanged: (filters: Filters) => void
 }
 
 const defaultFreeTextPlaceholder = "Search anything..."
@@ -91,85 +90,7 @@ enum DateRange {
   Custom = "Custom Range",
 }
 
-export type Filters = {
-  ready: boolean
-  app: App | null
-  rootSpanName: string
-  startDate: string
-  endDate: string
-  versions: { selected: AppVersion[], all: boolean }
-  sessionTypes: { selected: SessionType[], all: boolean }
-  spanStatuses: { selected: SpanStatus[], all: boolean }
-  bugReportStatuses: { selected: BugReportStatus[], all: boolean }
-  httpMethods: { selected: HttpMethod[], all: boolean }
-  osVersions: { selected: OsVersion[], all: boolean }
-  countries: { selected: string[], all: boolean }
-  networkProviders: { selected: string[], all: boolean }
-  networkTypes: { selected: string[], all: boolean }
-  networkGenerations: { selected: string[], all: boolean }
-  locales: { selected: string[], all: boolean }
-  deviceManufacturers: { selected: string[], all: boolean }
-  deviceNames: { selected: string[], all: boolean }
-  udAttrMatchers: UdAttrMatcher[]
-  freeText: string
-  serialisedFilters: string | null
-}
-
-type SessionPersistedFilters = {
-  app: App
-  dateRange: string
-  startDate: string
-  endDate: string
-}
-
-type URLFilters = {
-  appId?: string
-  rootSpanName?: string
-  startDate?: string
-  endDate?: string
-  dateRange?: DateRange
-  versions?: number[]
-  sessionTypes?: SessionType[]
-  spanStatuses?: SpanStatus[]
-  bugReportStatuses?: BugReportStatus[]
-  httpMethods?: HttpMethod[]
-  osVersions?: number[]
-  countries?: number[]
-  networkProviders?: number[]
-  networkTypes?: number[]
-  networkGenerations?: number[]
-  locales?: number[]
-  deviceManufacturers?: number[]
-  deviceNames?: number[]
-  udAttrMatchers?: UdAttrMatcher[]
-  freeText?: string
-}
-
-export const defaultFilters: Filters = {
-  ready: false,
-  app: null,
-  rootSpanName: "",
-  startDate: "",
-  endDate: "",
-  versions: { selected: [], all: false },
-  sessionTypes: { selected: [], all: false },
-  spanStatuses: { selected: [], all: false },
-  bugReportStatuses: { selected: [], all: false },
-  httpMethods: { selected: [], all: false },
-  osVersions: { selected: [], all: false },
-  countries: { selected: [], all: false },
-  networkProviders: { selected: [], all: false },
-  networkTypes: { selected: [], all: false },
-  networkGenerations: { selected: [], all: false },
-  locales: { selected: [], all: false },
-  deviceManufacturers: { selected: [], all: false },
-  deviceNames: { selected: [], all: false },
-  udAttrMatchers: [],
-  freeText: "",
-  serialisedFilters: null,
-}
-
-const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
+const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
   (
     {
       teamId,
@@ -195,195 +116,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       showUdAttrs,
       showFreeText,
       freeTextPlaceholder,
-      onFiltersChanged,
     },
     ref,
   ) => {
-    const urlFiltersKeyMap = {
-      appId: "a",
-      rootSpanName: "r",
-      dateRange: "d",
-      startDate: "sd",
-      endDate: "ed",
-      versions: "v",
-      sessionTypes: "st",
-      spanStatuses: "ss",
-      bugReportStatuses: "bs",
-      httpMethods: "hm",
-      osVersions: "os",
-      countries: "c",
-      networkProviders: "np",
-      networkTypes: "nt",
-      networkGenerations: "ng",
-      locales: "l",
-      deviceManufacturers: "dm",
-      deviceNames: "dn",
-      udAttrMatchers: "ud",
-      freeText: "ft",
-    }
-
-    function compressArrayToRanges(arr: number[]): string {
-      if (arr.length === 0) return ""
-      const sorted = [...new Set(arr)].sort((a, b) => a - b)
-      let ranges: string[] = []
-      let start = sorted[0]
-      let current = start
-
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] === current + 1) {
-          current = sorted[i]
-        } else {
-          ranges.push(start === current ? `${start}` : `${start}-${current}`)
-          start = sorted[i]
-          current = start
-        }
-      }
-      ranges.push(start === current ? `${start}` : `${start}-${current}`)
-      return ranges.join(",")
-    }
-
-    function expandRangesToArray(str: string): number[] {
-      if (!str) return []
-      const parts = str.split(",")
-      const result: number[] = []
-      for (const part of parts) {
-        if (part.includes("-")) {
-          const [start, end] = part.split("-").map(Number)
-          for (let i = start; i <= end; i++) {
-            result.push(i)
-          }
-        } else {
-          const num = Number(part)
-          if (!isNaN(num)) result.push(num)
-        }
-      }
-      return result
-    }
-
-    function serializeUrlFilters(urlFilters: URLFilters): string {
-      const params = new URLSearchParams()
-
-      Object.entries(urlFilters).forEach(([key, value]) => {
-        const minifiedKey =
-          urlFiltersKeyMap[key as keyof typeof urlFiltersKeyMap]
-        if (!minifiedKey || value === undefined || value === null) return
-
-        let serializedValue: string
-
-        // only add keys whose show flags are true
-        switch (key) {
-          case "versions":
-            if (!showAppVersions) return
-            break
-          case "osVersions":
-            if (!showOsVersions) return
-            break
-          case "sessionTypes":
-            if (!showSessionTypes) return
-            break
-          case "countries":
-            if (!showCountries) return
-            break
-          case "networkProviders":
-            if (!showNetworkProviders) return
-            break
-          case "networkTypes":
-            if (!showNetworkTypes) return
-            break
-          case "networkGenerations":
-            if (!showNetworkGenerations) return
-            break
-          case "locales":
-            if (!showLocales) return
-            break
-          case "deviceManufacturers":
-            if (!showDeviceManufacturers) return
-            break
-          case "deviceNames":
-            if (!showDeviceNames) return
-            break
-          case "bugReportStatuses":
-            if (!showBugReportStatus) return
-            break
-          case "httpMethods":
-            if (!showHttpMethods) return
-            break
-          case "udAttrMatchers":
-            if (!showUdAttrs) return
-            break
-          case "freeText":
-            if (!showFreeText) return
-            break
-          case "startDate":
-          case "endDate":
-          case "dateRange":
-            if (!showDates) return
-            break
-          case "appId":
-            if (!showAppSelector) return
-            break
-          case "rootSpanName":
-          case "spanStatuses":
-            if (filterSource !== FilterSource.Spans) return
-            break
-          default:
-            break
-        }
-
-        switch (key) {
-          case "versions":
-          case "osVersions":
-          case "countries":
-          case "networkProviders":
-          case "networkTypes":
-          case "networkGenerations":
-          case "locales":
-          case "deviceManufacturers":
-          case "deviceNames":
-            if ((value as number[]).length === 0) return
-            serializedValue = compressArrayToRanges(value as number[])
-            break
-
-          case "udAttrMatchers":
-            const validMatchers = (value as UdAttrMatcher[]).filter(
-              (m) => m?.key && m?.type && m?.op && m.value !== undefined,
-            )
-            if (validMatchers.length === 0) return
-            serializedValue = validMatchers
-              .map(
-                (m) =>
-                  `${encodeURIComponent(m.key)}~${encodeURIComponent(m.type)}~${encodeURIComponent(m.op)}~${encodeURIComponent(m.value)}`,
-              )
-              .join("|")
-            break
-
-          case "spanStatuses":
-          case "bugReportStatuses":
-          case "httpMethods":
-            if ((value as string[]).length === 0) return
-            serializedValue = (value as string[]).join(",")
-            break
-
-          case "sessionTypes":
-            if ((value as SessionType[]).length === 0) return
-            serializedValue = (value as SessionType[]).join(",")
-            break
-
-          case "dateRange":
-            serializedValue = value.toString()
-            break
-
-          default:
-            if (value === "") return
-            serializedValue = value.toString()
-        }
-
-        if (serializedValue) params.set(minifiedKey, serializedValue)
-      })
-
-      return params.toString()
-    }
-
     function deserializeUrlFilters(queryString: string): URLFilters {
       const params = new URLSearchParams(queryString)
       const result: URLFilters = {}
@@ -475,7 +210,6 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       return result
     }
 
-    // Type guard for string-based URLFilter keys
     function isStringKey(
       key: string,
     ): key is "appId" | "rootSpanName" | "startDate" | "endDate" | "freeText" {
@@ -523,743 +257,170 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       }
     }
 
+    // --- Read URL params ---
     const searchParams = useSearchParams()
     const pathName = usePathname()
 
     const urlFilters = deserializeUrlFilters(searchParams.toString())
-    const sessionPersistedFiltersKey = "sessionPersistedFilters"
-    const sessionPersistedFilters: SessionPersistedFilters | null =
-      typeof window !== "undefined" &&
-        sessionStorage.getItem(sessionPersistedFiltersKey) !== null
-        ? JSON.parse(sessionStorage.getItem(sessionPersistedFiltersKey)!)
-        : null
 
-    const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
-    const [rootSpanNamesApiStatus, setRootSpanNamesApiStatus] = useState(
-      RootSpanNamesApiStatus.Loading,
-    )
-    const [filtersApiStatus, setFiltersApiStatus] = useState(
-      FiltersApiStatus.Loading,
-    )
-
-    const [apps, setApps] = useState<App[]>([])
-    const [selectedApp, setSelectedApp] = useState<App | null>(null)
-
-    const [rootSpanNames, setRootSpanNames] = useState([] as string[])
-    const [selectedRootSpanName, setSelectedRootSpanName] = useState("")
-
-    const spanStatuses = [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
-    const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(
-      filterSource === FilterSource.Spans
-        ? spanStatuses
-        : [],
-    )
-
-    const bugReportStatuses = [BugReportStatus.Open, BugReportStatus.Closed]
-    const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([
-      BugReportStatus.Open,
-    ])
-
-    const httpMethods = [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE]
-    const [selectedHttpMethods, setSelectedHttpMethods] = useState(httpMethods)
-
-    const [versions, setVersions] = useState([] as AppVersion[])
-    const [selectedVersions, setSelectedVersions] = useState(
-      [] as AppVersion[],
-    )
-
-    const sessionTypes = [SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.Background, SessionType.UserInteraction]
-    const [selectedSessionTypes, setSelectedSessionTypes] = useState(
-      [SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.UserInteraction],
-    )
-
-    const [osVersions, setOsVersions] = useState([] as OsVersion[])
-    const [selectedOsVersions, setSelectedOsVersions] = useState(
-      [] as OsVersion[],
-    )
-
-    const [countries, setCountries] = useState([] as string[])
-    const [selectedCountries, setSelectedCountries] = useState([] as string[])
-
-    const [networkProviders, setNetworkProviders] = useState([] as string[])
-    const [selectedNetworkProviders, setSelectedNetworkProviders] = useState(
-      [] as string[],
-    )
-
-    const [networkTypes, setNetworkTypes] = useState([] as string[])
-    const [selectedNetworkTypes, setSelectedNetworkTypes] = useState(
-      [] as string[],
-    )
-
-    const [networkGenerations, setNetworkGenerations] = useState(
-      [] as string[],
-    )
-    const [selectedNetworkGenerations, setSelectedNetworkGenerations] =
-      useState([] as string[])
-
-    const [locales, setLocales] = useState([] as string[])
-    const [selectedLocales, setSelectedLocales] = useState([] as string[])
-
-    const [deviceManufacturers, setDeviceManufacturers] = useState(
-      [] as string[],
-    )
-    const [selectedDeviceManufacturers, setSelectedDeviceManufacturers] =
-      useState([] as string[])
-
-    const [deviceNames, setDeviceNames] = useState([] as string[])
-    const [selectedDeviceNames, setSelectedDeviceNames] = useState(
-      [] as string[],
-    )
-
-    const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[])
-    const [userDefAttrOps, setUserDefAttrOps] = useState<Map<string, string[]>>(
-      new Map(),
-    )
-    const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<
-      UdAttrMatcher[]
-    >([])
-
-    const [selectedFreeText, setSelectedFreeText] = useState("")
-
-    const initDateRange = urlFilters.dateRange
-      ? urlFilters.dateRange
-      : sessionPersistedFilters
-        ? sessionPersistedFilters.dateRange
-        : DateRange.Last6Hours
-    const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
-
-    const [selectedStartDate, setSelectedStartDate] = useState(
-      urlFilters.dateRange && urlFilters.dateRange !== DateRange.Custom ?
-        mapDateRangeToDate(initDateRange)!.toISO() :
-        urlFilters.startDate
-          ? urlFilters.startDate
-          : sessionPersistedFilters
-            ? sessionPersistedFilters.dateRange === DateRange.Custom
-              ? sessionPersistedFilters.startDate
-              : mapDateRangeToDate(initDateRange)!.toISO()
-            : DateTime.now().minus({ hours: 6 }).toISO(),
-    )
-
-    const [selectedEndDate, setSelectedEndDate] = useState(
-      urlFilters.dateRange && urlFilters.dateRange !== DateRange.Custom ?
-        DateTime.now().toISO() :
-        urlFilters.endDate
-          ? urlFilters.endDate
-          : sessionPersistedFilters
-            ? sessionPersistedFilters.dateRange === DateRange.Custom
-              ? sessionPersistedFilters.endDate
-              : DateTime.now().toISO()
-            : DateTime.now().toISO(),
-    )
-
-    const getApps = async (appIdToSelect?: string) => {
-      setAppsApiStatus(AppsApiStatus.Loading)
-
-      const result = await fetchAppsFromServer(teamId)
-
-      switch (result.status) {
-        case AppsApiStatus.NoApps:
-          setAppsApiStatus(AppsApiStatus.NoApps)
-          break
-        case AppsApiStatus.Error:
-          setAppsApiStatus(AppsApiStatus.Error)
-          break
-        case AppsApiStatus.Success:
-          setAppsApiStatus(AppsApiStatus.Success)
-          setApps(result.data)
-          // Prefer app from function call, then url filters, then provided appId from props, then global persisted filters and finally first one in list
-          if (appIdToSelect !== undefined) {
-            let appFromGivenId = result.data.find(
-              (e: App) => e.id === appIdToSelect,
-            )
-            if (appFromGivenId === undefined) {
-              throw Error(
-                "Invalid app Id: " +
-                appIdToSelect +
-                " provided to getApps function",
-              )
-            } else {
-              setSelectedApp(appFromGivenId)
-            }
-          } else if (urlFilters.appId) {
-            let appFromUrlFilters = result.data.find(
-              (e: App) => e.id === urlFilters.appId,
-            )
-            if (appFromUrlFilters === undefined) {
-              throw Error(
-                "Invalid app Id: " + urlFilters.appId + " provided in URL",
-              )
-            } else {
-              setSelectedApp(appFromUrlFilters)
-            }
-            break
-          } else if (appId !== undefined) {
-            let appFromGivenId = result.data.find((e: App) => e.id === appId)
-            if (appFromGivenId === undefined) {
-              throw Error(
-                "Invalid app Id: " + appId + " provided to filters component",
-              )
-            } else {
-              setSelectedApp(appFromGivenId)
-            }
-          } else if (sessionPersistedFilters) {
-            let appFromSessionPersistedFilters = result.data.find(
-              (e: App) => e.id === sessionPersistedFilters.app.id,
-            )
-            if (appFromSessionPersistedFilters === undefined) {
-              setSelectedApp(result.data[0])
-            } else {
-              setSelectedApp(appFromSessionPersistedFilters)
-            }
-          } else {
-            setSelectedApp(result.data[0])
-          }
-          break
-      }
+    // --- Build init config ---
+    const initConfig: InitConfig = {
+      urlFilters,
+      appId,
+      appVersionsInitialSelectionType,
+      filterSource,
     }
 
+    // --- Connect to store ---
+    const store = useFiltersStore()
+
+    // --- Mount: set config, dates, fetch apps ---
     useEffect(() => {
-      getApps()
-    }, [])
+      store.setConfig({
+        filterSource,
+        showNoData,
+        showNotOnboarded,
+        showAppSelector,
+        showDates,
+        showAppVersions,
+        showOsVersions,
+        showSessionTypes,
+        showCountries,
+        showNetworkProviders,
+        showNetworkTypes,
+        showNetworkGenerations,
+        showLocales,
+        showDeviceManufacturers,
+        showDeviceNames,
+        showBugReportStatus,
+        showHttpMethods,
+        showUdAttrs,
+        showFreeText,
+      })
 
-    function refresh(appIdToSelect?: string) {
-      getApps(appIdToSelect)
-    }
+      // Initialize dates: URL > existing store > defaults.
+      // The store survives navigation, so cross-page navigation skips this
+      // and reuses the user's previous selection. URL params win on refresh
+      // or deep links. First-ever load falls through to Last6Hours defaults.
+      if (urlFilters.dateRange) {
+        const range = urlFilters.dateRange
+        const isCustom = range === DateRange.Custom
+        store.setSelectedDateRange(range)
+        store.setSelectedStartDate(
+          isCustom
+            ? urlFilters.startDate ?? DateTime.now().minus({ hours: 6 }).toISO()!
+            : mapDateRangeToDate(range)!.toISO()!,
+        )
+        store.setSelectedEndDate(
+          isCustom
+            ? urlFilters.endDate ?? DateTime.now().toISO()!
+            : DateTime.now().toISO()!,
+        )
+      } else if (!store.selectedDateRange) {
+        const range = DateRange.Last6Hours
+        store.setSelectedDateRange(range)
+        store.setSelectedStartDate(mapDateRangeToDate(range)!.toISO()!)
+        store.setSelectedEndDate(DateTime.now().toISO()!)
+      }
 
+      store.fetchApps(teamId, initConfig)
+    }, [teamId])
+
+    // --- Imperative handle for refresh ---
     useImperativeHandle(ref, () => ({
-      refresh,
+      refresh: (appIdToSelect?: string) => {
+        store.refresh(teamId, initConfig, appIdToSelect)
+      },
     }))
 
-    const getRootSpanNames = async () => {
-      setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading)
+    const skeletonDropdownCount = [
+      showAppSelector,
+      showDates,
+      showAppVersions,
+      showSessionTypes,
+      filterSource === FilterSource.Spans,
+      filterSource === FilterSource.Spans,
+      showBugReportStatus,
+      showHttpMethods,
+      showOsVersions,
+      showCountries,
+      showNetworkProviders,
+      showNetworkTypes,
+      showNetworkGenerations,
+      showLocales,
+      showDeviceManufacturers,
+      showDeviceNames,
+    ].filter(Boolean).length
 
-      const result = await fetchRootSpanNamesFromServer(selectedApp!)
+    const skeletonPillCount = [
+      showDates,
+      showAppVersions,
+      showSessionTypes,
+      filterSource === FilterSource.Spans,
+      filterSource === FilterSource.Spans,
+      showBugReportStatus,
+      showHttpMethods,
+      showOsVersions,
+      showCountries,
+      showNetworkProviders,
+      showNetworkTypes,
+      showNetworkGenerations,
+      showLocales,
+      showDeviceManufacturers,
+      showDeviceNames,
+    ].filter(Boolean).length
 
-      switch (result.status) {
-        case RootSpanNamesApiStatus.NoData:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.NoData)
-          break
-        case RootSpanNamesApiStatus.Error:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Error)
-          break
-        case RootSpanNamesApiStatus.Success:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Success)
+    const filtersSkeleton = (skeletonCount: number, leadingContent?: React.ReactNode) => (
+      <>
+        <div className="flex flex-wrap gap-8 items-center">
+          {leadingContent}
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-[150px]" />
+          ))}
+        </div>
+        {showFreeText &&
+          <>
+            <div className="py-4" />
+            <Skeleton className="h-9 w-full" />
+          </>
+        }
+        {skeletonPillCount > 0 &&
+          <>
+            <div className="py-4" />
+            <div className="flex flex-wrap gap-2 items-center">
+              {Array.from({ length: skeletonPillCount }).map((_, i) => (
+                <Skeleton key={i} className="h-6 w-[120px] rounded-full" />
+              ))}
+            </div>
+          </>
+        }
+      </>
+    )
 
-          if (
-            JSON.stringify(rootSpanNames) !==
-            JSON.stringify(result.data.results)
-          ) {
-            setRootSpanNames(result.data.results)
-            setSelectedRootSpanName(result.data.results[0])
-          }
-
-          if (result.data.results !== null) {
-            const parsedRootSpanNames = result.data.results
-            setRootSpanNames(parsedRootSpanNames)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.rootSpanName
-            ) {
-              const selectedRootSpanName = parsedRootSpanNames.find(
-                (name: string) => name === urlFilters.rootSpanName,
-              )
-              if (selectedRootSpanName === undefined) {
-                setSelectedRootSpanName(parsedRootSpanNames[0])
-              } else {
-                setSelectedRootSpanName(selectedRootSpanName)
-              }
-            } else {
-              setSelectedRootSpanName(parsedRootSpanNames[0])
-            }
-          }
-          break
-      }
-    }
-
-    const clearFiltersOnFilterApiFail = () => {
-      console.log("Filters API failed, clearing filters")
-      setSelectedVersions(defaultFilters.versions.selected)
-      setSelectedSessionTypes(defaultFilters.sessionTypes.selected)
-      setSelectedOsVersions(defaultFilters.osVersions.selected)
-      setSelectedCountries(defaultFilters.countries.selected)
-      setSelectedNetworkProviders(defaultFilters.networkProviders.selected)
-      setSelectedNetworkTypes(defaultFilters.networkTypes.selected)
-      setSelectedNetworkGenerations(defaultFilters.networkGenerations.selected)
-      setSelectedLocales(defaultFilters.locales.selected)
-      setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers.selected)
-      setSelectedDeviceNames(defaultFilters.deviceNames.selected)
-      setSelectedFreeText(defaultFilters.freeText)
-      setSelectedSpanStatuses(defaultFilters.spanStatuses.selected)
-      setSelectedRootSpanName(defaultFilters.rootSpanName)
-      setSelectedBugReportStatuses(defaultFilters.bugReportStatuses.selected)
-      setSelectedHttpMethods(httpMethods)
-      setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
-    }
-
-    const getFilters = async () => {
-      setFiltersApiStatus(FiltersApiStatus.Loading)
-
-      const result = await fetchFiltersFromServer(selectedApp!, filterSource)
-
-      switch (result.status) {
-        case FiltersApiStatus.NotOnboarded:
-          setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
-          clearFiltersOnFilterApiFail()
-          break
-        case FiltersApiStatus.NoData:
-          setFiltersApiStatus(FiltersApiStatus.NoData)
-          clearFiltersOnFilterApiFail()
-          break
-        case FiltersApiStatus.Error:
-          setFiltersApiStatus(FiltersApiStatus.Error)
-          clearFiltersOnFilterApiFail()
-          break
-        case FiltersApiStatus.Success:
-          setFiltersApiStatus(FiltersApiStatus.Success)
-
-          if (result.data.versions !== null) {
-            const parsedVersions = result.data.versions.map(
-              (v: { name: string; code: string }) =>
-                new AppVersion(v.name, v.code),
-            )
-
-            setVersions(parsedVersions)
-
-            if (urlFilters.appId === selectedApp!.id && urlFilters.versions) {
-              const selectedVersions = urlFilters.versions
-                .filter((index) => index >= 0 && index < parsedVersions.length)
-                .map((index) => parsedVersions[index])
-              setSelectedVersions(selectedVersions)
-            } else if (
-              appVersionsInitialSelectionType ===
-              AppVersionsInitialSelectionType.All
-            ) {
-              setSelectedVersions(parsedVersions)
-            } else {
-              setSelectedVersions(parsedVersions.slice(0, 1))
-            }
-          }
-
-          if (result.data.os_versions !== null) {
-            const parsedOsVersions = result.data.os_versions.map(
-              (v: { name: string; version: string }) =>
-                new OsVersion(v.name, v.version),
-            )
-
-            setOsVersions(parsedOsVersions)
-
-            if (urlFilters.appId === selectedApp!.id && urlFilters.osVersions) {
-              const selectedOsVersions = urlFilters.osVersions
-                .filter(
-                  (index) => index >= 0 && index < parsedOsVersions.length,
-                )
-                .map((index) => parsedOsVersions[index])
-              setSelectedOsVersions(selectedOsVersions)
-            } else {
-              setSelectedOsVersions(parsedOsVersions)
-            }
-          }
-
-          if (result.data.countries !== null) {
-            const parsedCountries = result.data.countries
-            setCountries(parsedCountries)
-
-            if (urlFilters.appId === selectedApp!.id && urlFilters.countries) {
-              const selectedCountries = urlFilters.countries
-                .filter((index) => index >= 0 && index < parsedCountries.length)
-                .map((index) => parsedCountries[index])
-              setSelectedCountries(selectedCountries)
-            } else {
-              setSelectedCountries(parsedCountries)
-            }
-          }
-
-          if (result.data.network_providers !== null) {
-            const parsedNetworkProviders = result.data.network_providers
-            setNetworkProviders(parsedNetworkProviders)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.networkProviders
-            ) {
-              const selectedNetworkProviders = urlFilters.networkProviders
-                .filter(
-                  (index) =>
-                    index >= 0 && index < parsedNetworkProviders.length,
-                )
-                .map((index) => parsedNetworkProviders[index])
-              setSelectedNetworkProviders(selectedNetworkProviders)
-            } else {
-              setSelectedNetworkProviders(parsedNetworkProviders)
-            }
-          }
-
-          if (result.data.network_types !== null) {
-            const parsedNetworkTypes = result.data.network_types
-            setNetworkTypes(parsedNetworkTypes)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.networkTypes
-            ) {
-              const selectedNetworkTypes = urlFilters.networkTypes
-                .filter(
-                  (index) => index >= 0 && index < parsedNetworkTypes.length,
-                )
-                .map((index) => parsedNetworkTypes[index])
-              setSelectedNetworkTypes(selectedNetworkTypes)
-            } else {
-              setSelectedNetworkTypes(parsedNetworkTypes)
-            }
-          }
-
-          if (result.data.network_generations !== null) {
-            const parsedNetworkGenerations = result.data.network_generations
-            setNetworkGenerations(parsedNetworkGenerations)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.networkGenerations
-            ) {
-              const selectedNetworkGenerations = urlFilters.networkGenerations
-                .filter(
-                  (index) =>
-                    index >= 0 && index < parsedNetworkGenerations.length,
-                )
-                .map((index) => parsedNetworkGenerations[index])
-              setSelectedNetworkGenerations(selectedNetworkGenerations)
-            } else {
-              setSelectedNetworkGenerations(parsedNetworkGenerations)
-            }
-          }
-
-          if (result.data.locales !== null) {
-            const parsedLocales = result.data.locales
-            setLocales(parsedLocales)
-
-            if (urlFilters.appId === selectedApp!.id && urlFilters.locales) {
-              const selectedLocales = urlFilters.locales
-                .filter((index) => index >= 0 && index < parsedLocales.length)
-                .map((index) => parsedLocales[index])
-              setSelectedLocales(selectedLocales)
-            } else {
-              setSelectedLocales(parsedLocales)
-            }
-          }
-
-          if (result.data.device_manufacturers !== null) {
-            const parsedDeviceManufacturers = result.data.device_manufacturers
-            setDeviceManufacturers(parsedDeviceManufacturers)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.deviceManufacturers
-            ) {
-              const selectedDeviceManufacturers = urlFilters.deviceManufacturers
-                .filter(
-                  (index) =>
-                    index >= 0 && index < parsedDeviceManufacturers.length,
-                )
-                .map((index) => parsedDeviceManufacturers[index])
-              setSelectedDeviceManufacturers(selectedDeviceManufacturers)
-            } else {
-              setSelectedDeviceManufacturers(parsedDeviceManufacturers)
-            }
-          }
-
-          if (result.data.device_names !== null) {
-            const parsedDeviceNames = result.data.device_names
-            setDeviceNames(parsedDeviceNames)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.deviceNames
-            ) {
-              const selectedDeviceNames = urlFilters.deviceNames
-                .filter(
-                  (index) => index >= 0 && index < parsedDeviceNames.length,
-                )
-                .map((index) => parsedDeviceNames[index])
-              setSelectedDeviceNames(selectedDeviceNames)
-            } else {
-              setSelectedDeviceNames(parsedDeviceNames)
-            }
-          }
-
-          if (
-            result.data.ud_attrs !== null &&
-            result.data.ud_attrs.key_types !== null &&
-            result.data.ud_attrs.operator_types !== null
-          ) {
-            const parsedUserDefAttrs = result.data.ud_attrs.key_types
-            const parsedUserDefAttrOps = new Map<string, string[]>(
-              Object.entries(result.data.ud_attrs.operator_types),
-            )
-
-            setUserDefAttrs(parsedUserDefAttrs)
-            setUserDefAttrOps(parsedUserDefAttrOps)
-
-            if (
-              urlFilters.appId === selectedApp!.id &&
-              urlFilters.udAttrMatchers
-            ) {
-              const selectedUdAttrMatchers = urlFilters.udAttrMatchers.filter(
-                (m: UdAttrMatcher) => {
-                  // Find the attribute definition for this matcher
-                  const attr = parsedUserDefAttrs.find(
-                    (attr: UserDefAttr) => attr.key === m.key,
-                  )
-                  if (!attr) return false
-                  // Use the type from the attribute definition and check if the op is valid for this type
-                  const ops = parsedUserDefAttrOps.get(attr.type)
-                  const opExists = ops ? ops.includes(m.op) : false
-                  // Accept if key exists, op exists for the type, and value is not undefined
-                  return opExists && m.value !== undefined
-                },
-              )
-              setSelectedUdAttrMatchers(selectedUdAttrMatchers)
-            } else {
-              setSelectedUdAttrMatchers([])
-            }
-          } else {
-            setUserDefAttrs([])
-            setUserDefAttrOps(new Map<string, string[]>())
-            setSelectedUdAttrMatchers([])
-          }
-
-          if (urlFilters.appId === selectedApp!.id && urlFilters.spanStatuses) {
-            const selectedSpanStatuses = urlFilters.spanStatuses
-              .filter((s: string) =>
-                Object.values(SpanStatus).includes(s as SpanStatus),
-              )
-              .map((s: string) => s as SpanStatus)
-            setSelectedSpanStatuses(selectedSpanStatuses)
-          } else {
-            setSelectedSpanStatuses(
-              filterSource === FilterSource.Spans
-                ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
-                : [],
-            )
-          }
-
-          if (
-            urlFilters.appId === selectedApp!.id &&
-            urlFilters.bugReportStatuses
-          ) {
-            const selectedBugReportStatuses = urlFilters.bugReportStatuses
-              .filter((s: string) =>
-                Object.values(BugReportStatus).includes(s as BugReportStatus),
-              )
-              .map((s: string) => s as BugReportStatus)
-            setSelectedBugReportStatuses(selectedBugReportStatuses)
-          } else {
-            setSelectedBugReportStatuses([BugReportStatus.Open])
-          }
-
-          if (
-            urlFilters.appId === selectedApp!.id &&
-            urlFilters.httpMethods
-          ) {
-            const selectedHttpMethods = urlFilters.httpMethods
-              .filter((s: string) =>
-                Object.values(HttpMethod).includes(s as HttpMethod),
-              )
-              .map((s: string) => s as HttpMethod)
-            setSelectedHttpMethods(selectedHttpMethods)
-          } else {
-            setSelectedHttpMethods(httpMethods)
-          }
-
-          if (urlFilters.appId === selectedApp!.id && urlFilters.sessionTypes) {
-            const selectedSessionTypes = urlFilters.sessionTypes
-              .filter((s: string) =>
-                Object.values(SessionType).includes(s as SessionType),
-              )
-              .map((s: string) => s as SessionType)
-            setSelectedSessionTypes(selectedSessionTypes)
-          } else {
-            setSelectedSessionTypes([SessionType.Crashes, SessionType.ANRs, SessionType.BugReports, SessionType.Foreground, SessionType.UserInteraction])
-          }
-
-          if (urlFilters.appId === selectedApp!.id && urlFilters.freeText) {
-            setSelectedFreeText(urlFilters.freeText)
-          } else {
-            setSelectedFreeText("")
-          }
-
-          break
-      }
-    }
-
-    useEffect(() => {
-      if (!selectedApp) {
-        return
-      }
-
-      getFilters()
-
-      if (filterSource === FilterSource.Spans) {
-        getRootSpanNames()
-      }
-    }, [selectedApp])
-
-    useEffect(() => {
-      if (!selectedApp) {
-        return
-      }
-
-      let ready = false
-      if (showNoData && showNotOnboarded) {
-        ready =
-          AppsApiStatus.Success &&
-          ((filterSource === FilterSource.Spans &&
-            rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-            filterSource !== FilterSource.Spans) &&
-          filtersApiStatus === FiltersApiStatus.Success
-      } else if (showNoData) {
-        ready =
-          AppsApiStatus.Success &&
-          ((filterSource === FilterSource.Spans &&
-            rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-            filterSource !== FilterSource.Spans) &&
-          (filtersApiStatus === FiltersApiStatus.Success ||
-            filtersApiStatus === FiltersApiStatus.NotOnboarded)
-      } else if (showNotOnboarded) {
-        ready =
-          AppsApiStatus.Success &&
-          ((filterSource === FilterSource.Spans &&
-            rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-            filterSource !== FilterSource.Spans) &&
-          (filtersApiStatus === FiltersApiStatus.Success ||
-            filtersApiStatus === FiltersApiStatus.NoData)
-      } else {
-        ready =
-          AppsApiStatus.Success &&
-          ((filterSource === FilterSource.Spans &&
-            rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-            filterSource !== FilterSource.Spans) &&
-          (filtersApiStatus === FiltersApiStatus.Success ||
-            filtersApiStatus === FiltersApiStatus.NoData ||
-            filtersApiStatus === FiltersApiStatus.NotOnboarded)
-      }
-
-      const updatedUrlFilters: URLFilters = {
-        appId: selectedApp!.id,
-        rootSpanName: selectedRootSpanName,
-        startDate: selectedStartDate,
-        endDate: selectedEndDate,
-        dateRange: Object.values(DateRange).includes(
-          selectedDateRange as DateRange,
-        )
-          ? (selectedDateRange as DateRange)
-          : undefined,
-        versions: selectedVersions.map((v) =>
-          versions.findIndex(
-            (ver) => ver.name === v.name && ver.code === v.code,
-          ),
-        ),
-        sessionTypes: selectedSessionTypes,
-        spanStatuses: selectedSpanStatuses,
-        bugReportStatuses: selectedBugReportStatuses,
-        httpMethods: selectedHttpMethods,
-        osVersions: selectedOsVersions.map((os) =>
-          osVersions.findIndex(
-            (o) => o.name === os.name && o.version === os.version,
-          ),
-        ),
-        countries: selectedCountries.map((c) => countries.indexOf(c)),
-        networkProviders: selectedNetworkProviders.map((np) =>
-          networkProviders.indexOf(np),
-        ),
-        networkTypes: selectedNetworkTypes.map((nt) =>
-          networkTypes.indexOf(nt),
-        ),
-        networkGenerations: selectedNetworkGenerations.map((ng) =>
-          networkGenerations.indexOf(ng),
-        ),
-        locales: selectedLocales.map((l) => locales.indexOf(l)),
-        deviceManufacturers: selectedDeviceManufacturers.map((dm) =>
-          deviceManufacturers.indexOf(dm),
-        ),
-        deviceNames: selectedDeviceNames.map((dn) => deviceNames.indexOf(dn)),
-        udAttrMatchers: selectedUdAttrMatchers,
-        freeText: selectedFreeText,
-      }
-
-      const updatedSelectedFilters: Filters = {
-        ready: ready,
-        app: selectedApp,
-        rootSpanName: selectedRootSpanName,
-        startDate: selectedStartDate,
-        endDate: selectedEndDate,
-        versions: { selected: selectedVersions, all: versions.length === selectedVersions.length },
-        sessionTypes: { selected: selectedSessionTypes, all: selectedSessionTypes.length === sessionTypes.length },
-        spanStatuses: { selected: selectedSpanStatuses, all: selectedSpanStatuses.length === spanStatuses.length },
-        bugReportStatuses: { selected: selectedBugReportStatuses, all: selectedBugReportStatuses.length === bugReportStatuses.length },
-        httpMethods: { selected: selectedHttpMethods, all: selectedHttpMethods.length === httpMethods.length },
-        osVersions: { selected: selectedOsVersions, all: selectedOsVersions.length === osVersions.length },
-        countries: { selected: selectedCountries, all: selectedCountries.length === countries.length },
-        networkProviders: { selected: selectedNetworkProviders, all: selectedNetworkProviders.length === networkProviders.length },
-        networkTypes: { selected: selectedNetworkTypes, all: selectedNetworkTypes.length === networkTypes.length },
-        networkGenerations: { selected: selectedNetworkGenerations, all: selectedNetworkGenerations.length === networkGenerations.length },
-        locales: { selected: selectedLocales, all: selectedLocales.length === locales.length },
-        deviceManufacturers: { selected: selectedDeviceManufacturers, all: selectedDeviceManufacturers.length === deviceManufacturers.length },
-        deviceNames: { selected: selectedDeviceNames, all: selectedDeviceNames.length === deviceNames.length },
-        udAttrMatchers: selectedUdAttrMatchers,
-        freeText: selectedFreeText,
-        serialisedFilters: serializeUrlFilters(updatedUrlFilters),
-      }
-
-      // update global persisted filters
-      const updatedSessionPersistedFilters: SessionPersistedFilters = {
-        app: selectedApp!,
-        dateRange: selectedDateRange,
-        startDate: selectedStartDate,
-        endDate: selectedEndDate,
-      }
-      sessionStorage.setItem(
-        sessionPersistedFiltersKey,
-        JSON.stringify(updatedSessionPersistedFilters),
-      )
-
-      // fire callback
-      onFiltersChanged(updatedSelectedFilters)
-    }, [
-      filtersApiStatus,
-      selectedStartDate,
-      selectedEndDate,
-      selectedDateRange,
-      selectedVersions,
-      selectedSessionTypes,
-      selectedOsVersions,
-      selectedCountries,
-      selectedNetworkProviders,
-      selectedNetworkTypes,
-      selectedNetworkGenerations,
-      selectedLocales,
-      selectedDeviceManufacturers,
-      selectedDeviceNames,
-      selectedUdAttrMatchers,
-      selectedFreeText,
-      selectedRootSpanName,
-      selectedSpanStatuses,
-      selectedBugReportStatuses,
-      selectedHttpMethods,
-    ])
+    const appSelectorDropdown = (
+      <DropdownSelect
+        title="App Name"
+        type={DropdownSelectType.SingleString}
+        items={store.apps.map((e) => e.name)}
+        initialSelected={store.selectedApp?.name ?? ""}
+        onChangeSelected={(item) =>
+          store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
+        }
+      />
+    )
 
     return (
       <div>
-        {appsApiStatus === AppsApiStatus.Loading && <LoadingSpinner />}
+        {store.appsApiStatus === AppsApiStatus.Loading && filtersSkeleton(skeletonDropdownCount)}
 
         {/* Error states for apps fetch */}
-        {appsApiStatus === AppsApiStatus.Error && (
+        {store.appsApiStatus === AppsApiStatus.Error && (
           <p className="font-body text-sm">
             Error fetching apps, please check if Team ID is valid or refresh
             page to try again
           </p>
         )}
-        {appsApiStatus === AppsApiStatus.NoApps && (
+        {store.appsApiStatus === AppsApiStatus.NoApps && (
           <p className="font-body text-sm">
             Looks like you don&apos;t have any apps yet. Get started by{" "}
             {pathName.includes("apps") ? (
@@ -1276,33 +437,25 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         )}
 
         {/* Error states for app success but filters fetch loading or failure */}
-        {appsApiStatus === AppsApiStatus.Success &&
-          filtersApiStatus !== FiltersApiStatus.Success && (
+        {store.appsApiStatus === AppsApiStatus.Success &&
+          store.filtersApiStatus !== FiltersApiStatus.Success && (
             <div className="flex flex-col">
-              {showAppSelector && (
+              {showAppSelector && store.filtersApiStatus === FiltersApiStatus.Loading &&
+                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)
+              }
+              {showAppSelector && store.filtersApiStatus !== FiltersApiStatus.Loading && (
                 <div className="flex flex-wrap gap-8 items-center">
-                  <DropdownSelect
-                    title="App Name"
-                    type={DropdownSelectType.SingleString}
-                    items={apps.map((e) => e.name)}
-                    initialSelected={selectedApp!.name}
-                    onChangeSelected={(item) =>
-                      setSelectedApp(apps.find((e) => e.name === item)!)
-                    }
-                  />
-                  {filtersApiStatus === FiltersApiStatus.Loading && (
-                    <LoadingSpinner />
-                  )}
+                  {appSelectorDropdown}
                 </div>
               )}
               <div className="py-4" />
-              {filtersApiStatus === FiltersApiStatus.Error && (
+              {store.filtersApiStatus === FiltersApiStatus.Error && (
                 <p className="font-body text-sm">
                   Error fetching filters, please refresh page or select a
                   different app to try again
                 </p>
               )}
-              {showNoData && filtersApiStatus === FiltersApiStatus.NoData && (
+              {showNoData && store.filtersApiStatus === FiltersApiStatus.NoData && (
                 <p className="font-body text-sm">
                   No{" "}
                   {filterSource === FilterSource.Crashes
@@ -1314,7 +467,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 </p>
               )}
               {showNotOnboarded &&
-                filtersApiStatus === FiltersApiStatus.NotOnboarded && (
+                store.filtersApiStatus === FiltersApiStatus.NotOnboarded && (
                   <p className="font-body text-sm">
                     Follow our{" "}
                     <Link
@@ -1330,34 +483,27 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
           )}
 
         {/* Error states for app success and filter success but traces loading or failure */}
-        {appsApiStatus === AppsApiStatus.Success &&
-          filtersApiStatus === FiltersApiStatus.Success &&
+        {store.appsApiStatus === AppsApiStatus.Success &&
+          store.filtersApiStatus === FiltersApiStatus.Success &&
           filterSource === FilterSource.Spans &&
-          rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success && (
+          store.rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success && (
             <div className="flex flex-col">
-              {showAppSelector && (
+              {showAppSelector && store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Loading &&
+                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)
+              }
+              {showAppSelector && store.rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Loading && (
                 <div className="flex flex-wrap gap-8 items-center">
-                  <DropdownSelect
-                    title="App Name"
-                    type={DropdownSelectType.SingleString}
-                    items={apps.map((e) => e.name)}
-                    initialSelected={selectedApp!.name}
-                    onChangeSelected={(item) =>
-                      setSelectedApp(apps.find((e) => e.name === item)!)
-                    }
-                  />
-                  {rootSpanNamesApiStatus ===
-                    RootSpanNamesApiStatus.Loading && <LoadingSpinner />}
+                  {appSelectorDropdown}
                 </div>
               )}
               <div className="py-4" />
-              {rootSpanNamesApiStatus === RootSpanNamesApiStatus.Error && (
+              {store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Error && (
                 <p className="font-body text-sm">
                   Error fetching traces list, please refresh page or select a
                   different app to try again
                 </p>
               )}
-              {rootSpanNamesApiStatus === RootSpanNamesApiStatus.NoData && (
+              {store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.NoData && (
                 <p className="font-body text-sm">
                   No traces received for this app yet
                 </p>
@@ -1366,21 +512,21 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
           )}
 
         {/* Success states for app, trace and filters fetch */}
-        {appsApiStatus === AppsApiStatus.Success &&
+        {store.appsApiStatus === AppsApiStatus.Success &&
           ((filterSource === FilterSource.Spans &&
-            rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
+            store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
             filterSource !== FilterSource.Spans) &&
-          filtersApiStatus === FiltersApiStatus.Success && (
+          store.filtersApiStatus === FiltersApiStatus.Success && (
             <div>
               <div className="flex flex-wrap gap-8 items-center">
                 {showAppSelector && (
                   <DropdownSelect
                     title="App Name"
                     type={DropdownSelectType.SingleString}
-                    items={apps.map((e) => e.name)}
-                    initialSelected={selectedApp!.name}
+                    items={store.apps.map((e) => e.name)}
+                    initialSelected={store.selectedApp!.name}
                     onChangeSelected={(item) =>
-                      setSelectedApp(apps.find((e) => e.name === item)!)
+                      store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
                     }
                   />
                 )}
@@ -1389,10 +535,10 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   <DropdownSelect
                     title="Trace Name"
                     type={DropdownSelectType.SingleString}
-                    items={rootSpanNames}
-                    initialSelected={selectedRootSpanName}
+                    items={store.rootSpanNames}
+                    initialSelected={store.selectedRootSpanName}
                     onChangeSelected={(item) =>
-                      setSelectedRootSpanName(item as string)
+                      store.setSelectedRootSpanName(item as string)
                     }
                   />
                 )}
@@ -1403,77 +549,74 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                       title="Date Range"
                       type={DropdownSelectType.SingleString}
                       items={Object.values(DateRange)}
-                      initialSelected={selectedDateRange}
+                      initialSelected={store.selectedDateRange}
                       onChangeSelected={(item) => {
                         const range = item as string
 
-                        // do nothing if same range is selected
-                        if (range === selectedDateRange) {
+                        if (range === store.selectedDateRange) {
                           return
                         }
 
                         if (range === DateRange.Custom) {
-                          setSelectedDateRange(range)
+                          store.setSelectedDateRange(range)
                           return
                         }
 
                         let today = DateTime.now()
                         let newDate = mapDateRangeToDate(range)
 
-                        setSelectedStartDate(newDate!.toISO())
-                        setSelectedEndDate(today.toISO())
-                        setSelectedDateRange(range)
+                        store.setSelectedStartDate(newDate!.toISO())
+                        store.setSelectedEndDate(today.toISO())
+                        store.setSelectedDateRange(range)
                       }}
                     />
                   )}
-                  {showDates && selectedDateRange === DateRange.Custom && (
+                  {showDates && store.selectedDateRange === DateRange.Custom && (
                     <p className="font-display px-2">:</p>
                   )}
-                  {showDates && selectedDateRange === DateRange.Custom && (
+                  {showDates && store.selectedDateRange === DateRange.Custom && (
                     <Input
                       type="datetime-local"
                       defaultValue={formatIsoDateForDateTimeInputField(
-                        selectedStartDate,
+                        store.selectedStartDate,
                       )}
-                      max={formatIsoDateForDateTimeInputField(selectedEndDate)}
+                      max={formatIsoDateForDateTimeInputField(store.selectedEndDate)}
                       onChange={(e) => {
                         if (isValidTimestamp(e.target.value)) {
-                          setSelectedStartDate(
+                          store.setSelectedStartDate(
                             DateTime.fromISO(e.target.value).toISO()!,
                           )
                         }
                       }}
                     />
                   )}
-                  {showDates && selectedDateRange === DateRange.Custom && (
+                  {showDates && store.selectedDateRange === DateRange.Custom && (
                     <p className="font-display px-2">to</p>
                   )}
-                  {showDates && selectedDateRange === DateRange.Custom && (
+                  {showDates && store.selectedDateRange === DateRange.Custom && (
                     <Input
                       type="datetime-local"
                       defaultValue={formatIsoDateForDateTimeInputField(
-                        selectedEndDate,
+                        store.selectedEndDate,
                       )}
                       min={formatIsoDateForDateTimeInputField(
-                        selectedStartDate,
+                        store.selectedStartDate,
                       )}
                       max={formatIsoDateForDateTimeInputField(
                         DateTime.now().toISO(),
                       )}
                       onChange={(e) => {
                         if (isValidTimestamp(e.target.value)) {
-                          // If "To" date is greater than now, ignore the change and reset to current end date.
-                          // We need to do this since setting "max" isn't enough in some browsers
                           if (
                             DateTime.fromISO(e.target.value) <= DateTime.now()
                           ) {
-                            setSelectedEndDate(
+                            store.setSelectedEndDate(
                               DateTime.fromISO(e.target.value).toISO()!,
                             )
                           } else {
                             e.target.value =
                               formatIsoDateForDateTimeInputField(
-                                selectedEndDate,
+                                store.selectedEndDate,
                               )
                           }
                         }
@@ -1485,10 +628,10 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   <DropdownSelect
                     title="App versions"
                     type={DropdownSelectType.MultiAppVersion}
-                    items={versions}
-                    initialSelected={selectedVersions}
+                    items={store.versions}
+                    initialSelected={store.selectedVersions}
                     onChangeSelected={(items) =>
-                      setSelectedVersions(items as AppVersion[])
+                      store.setSelectedVersions(items as AppVersion[])
                     }
                   />
                 )}
@@ -1497,9 +640,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     title="Session Types"
                     type={DropdownSelectType.MultiString}
                     items={Object.values(SessionType)}
-                    initialSelected={selectedSessionTypes}
+                    initialSelected={store.selectedSessionTypes}
                     onChangeSelected={(items) =>
-                      setSelectedSessionTypes(items as SessionType[])
+                      store.setSelectedSessionTypes(items as SessionType[])
                     }
                   />
                 )}
@@ -1508,9 +651,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     type={DropdownSelectType.MultiString}
                     title="Span Status"
                     items={Object.values(SpanStatus)}
-                    initialSelected={selectedSpanStatuses}
+                    initialSelected={store.selectedSpanStatuses}
                     onChangeSelected={(items) =>
-                      setSelectedSpanStatuses(items as SpanStatus[])
+                      store.setSelectedSpanStatuses(items as SpanStatus[])
                     }
                   />
                 )}
@@ -1519,9 +662,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     type={DropdownSelectType.MultiString}
                     title="Bug Report Status"
                     items={Object.values(BugReportStatus)}
-                    initialSelected={selectedBugReportStatuses}
+                    initialSelected={store.selectedBugReportStatuses}
                     onChangeSelected={(items) =>
-                      setSelectedBugReportStatuses(items as BugReportStatus[])
+                      store.setSelectedBugReportStatuses(items as BugReportStatus[])
                     }
                   />
                 )}
@@ -1530,107 +673,107 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                     type={DropdownSelectType.MultiString}
                     title="HTTP Method"
                     items={Object.values(HttpMethod).map((m) => m.toUpperCase())}
-                    initialSelected={selectedHttpMethods.map((m) => m.toUpperCase())}
+                    initialSelected={store.selectedHttpMethods.map((m) => m.toUpperCase())}
                     onChangeSelected={(items) =>
-                      setSelectedHttpMethods((items as string[]).map((m) => m.toLowerCase() as HttpMethod))
+                      store.setSelectedHttpMethods((items as string[]).map((m) => m.toLowerCase() as HttpMethod))
                     }
                   />
                 )}
-                {showOsVersions && osVersions.length > 0 && (
+                {showOsVersions && store.osVersions.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiOsVersion}
                     title="OS Versions"
-                    items={osVersions}
-                    initialSelected={selectedOsVersions}
+                    items={store.osVersions}
+                    initialSelected={store.selectedOsVersions}
                     onChangeSelected={(items) =>
-                      setSelectedOsVersions(items as OsVersion[])
+                      store.setSelectedOsVersions(items as OsVersion[])
                     }
                   />
                 )}
-                {showCountries && countries.length > 0 && (
+                {showCountries && store.countries.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Country"
-                    items={countries}
-                    initialSelected={selectedCountries}
+                    items={store.countries}
+                    initialSelected={store.selectedCountries}
                     onChangeSelected={(items) =>
-                      setSelectedCountries(items as string[])
+                      store.setSelectedCountries(items as string[])
                     }
                   />
                 )}
-                {showNetworkProviders && networkProviders.length > 0 && (
+                {showNetworkProviders && store.networkProviders.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Network Provider"
-                    items={networkProviders}
-                    initialSelected={selectedNetworkProviders}
+                    items={store.networkProviders}
+                    initialSelected={store.selectedNetworkProviders}
                     onChangeSelected={(items) =>
-                      setSelectedNetworkProviders(items as string[])
+                      store.setSelectedNetworkProviders(items as string[])
                     }
                   />
                 )}
-                {showNetworkTypes && networkTypes.length > 0 && (
+                {showNetworkTypes && store.networkTypes.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Network type"
-                    items={networkTypes}
-                    initialSelected={selectedNetworkTypes}
+                    items={store.networkTypes}
+                    initialSelected={store.selectedNetworkTypes}
                     onChangeSelected={(items) =>
-                      setSelectedNetworkTypes(items as string[])
+                      store.setSelectedNetworkTypes(items as string[])
                     }
                   />
                 )}
-                {showNetworkGenerations && networkGenerations.length > 0 && (
+                {showNetworkGenerations && store.networkGenerations.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Network generation"
-                    items={networkGenerations}
-                    initialSelected={selectedNetworkGenerations}
+                    items={store.networkGenerations}
+                    initialSelected={store.selectedNetworkGenerations}
                     onChangeSelected={(items) =>
-                      setSelectedNetworkGenerations(items as string[])
+                      store.setSelectedNetworkGenerations(items as string[])
                     }
                   />
                 )}
-                {showLocales && locales.length > 0 && (
+                {showLocales && store.locales.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Locale"
-                    items={locales}
-                    initialSelected={selectedLocales}
+                    items={store.locales}
+                    initialSelected={store.selectedLocales}
                     onChangeSelected={(items) =>
-                      setSelectedLocales(items as string[])
+                      store.setSelectedLocales(items as string[])
                     }
                   />
                 )}
-                {showDeviceManufacturers && deviceManufacturers.length > 0 && (
+                {showDeviceManufacturers && store.deviceManufacturers.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Device Manufacturer"
-                    items={deviceManufacturers}
-                    initialSelected={selectedDeviceManufacturers}
+                    items={store.deviceManufacturers}
+                    initialSelected={store.selectedDeviceManufacturers}
                     onChangeSelected={(items) =>
-                      setSelectedDeviceManufacturers(items as string[])
+                      store.setSelectedDeviceManufacturers(items as string[])
                     }
                   />
                 )}
-                {showDeviceNames && deviceNames.length > 0 && (
+                {showDeviceNames && store.deviceNames.length > 0 && (
                   <DropdownSelect
                     type={DropdownSelectType.MultiString}
                     title="Device Name"
-                    items={deviceNames}
-                    initialSelected={selectedDeviceNames}
+                    items={store.deviceNames}
+                    initialSelected={store.selectedDeviceNames}
                     onChangeSelected={(items) =>
-                      setSelectedDeviceNames(items as string[])
+                      store.setSelectedDeviceNames(items as string[])
                     }
                   />
                 )}
-                {showUdAttrs && userDefAttrs.length > 0 && (
+                {showUdAttrs && store.userDefAttrs.length > 0 && (
                   <UserDefAttrSelector
-                    attrs={userDefAttrs}
-                    ops={userDefAttrOps}
-                    initialSelected={selectedUdAttrMatchers}
+                    attrs={store.userDefAttrs}
+                    ops={store.userDefAttrOps}
+                    initialSelected={store.selectedUdAttrMatchers}
                     onChangeSelected={(udAttrMatchers) =>
-                      setSelectedUdAttrMatchers(udAttrMatchers)
+                      store.setSelectedUdAttrMatchers(udAttrMatchers)
                     }
                   />
                 )}
@@ -1642,97 +785,97 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                         ? freeTextPlaceholder
                         : defaultFreeTextPlaceholder
                     }
-                    initialValue={selectedFreeText}
-                    onChange={(input) => setSelectedFreeText(input)}
+                    initialValue={store.selectedFreeText}
+                    onChange={(input) => store.setSelectedFreeText(input)}
                   />
                 )}
               </div>
               <div className="py-4" />
               <div className="flex flex-wrap gap-2 items-center">
                 {filterSource === FilterSource.Spans && (
-                  <Pill title={selectedRootSpanName} />
+                  <Pill title={store.selectedRootSpanName} />
                 )}
                 {showDates && (
                   <Pill
-                    title={`${formatDateToHumanReadableDateTime(selectedStartDate)} to ${formatDateToHumanReadableDateTime(selectedEndDate)}`}
+                    title={`${formatDateToHumanReadableDateTime(store.selectedStartDate)} to ${formatDateToHumanReadableDateTime(store.selectedEndDate)}`}
                   />
                 )}
-                {showAppVersions && selectedVersions.length > 0 && (
+                {showAppVersions && store.selectedVersions.length > 0 && (
                   <Pill
-                    title={Array.from(selectedVersions)
+                    title={Array.from(store.selectedVersions)
                       .map((v) => v.displayName)
                       .join(", ")}
                   />
                 )}
-                {showSessionTypes && selectedSessionTypes.length > 0 && (
+                {showSessionTypes && store.selectedSessionTypes.length > 0 && (
                   <Pill
-                    title={Array.from(selectedSessionTypes).join(", ")}
+                    title={Array.from(store.selectedSessionTypes).join(", ")}
                   />
                 )}
                 {filterSource === FilterSource.Spans &&
-                  selectedSpanStatuses.length > 0 && (
+                  store.selectedSpanStatuses.length > 0 && (
                     <Pill
-                      title={Array.from(selectedSpanStatuses).join(", ")}
+                      title={Array.from(store.selectedSpanStatuses).join(", ")}
                     />
                   )}
                 {showBugReportStatus &&
-                  selectedBugReportStatuses.length > 0 && (
+                  store.selectedBugReportStatuses.length > 0 && (
                     <Pill
-                      title={Array.from(selectedBugReportStatuses).join(", ")}
+                      title={Array.from(store.selectedBugReportStatuses).join(", ")}
                     />
                   )}
                 {showHttpMethods &&
-                  selectedHttpMethods.length > 0 && (
+                  store.selectedHttpMethods.length > 0 && (
                     <Pill
-                      title={Array.from(selectedHttpMethods).map((m) => m.toUpperCase()).join(", ")}
+                      title={Array.from(store.selectedHttpMethods).map((m) => m.toUpperCase()).join(", ")}
                     />
                   )}
-                {showOsVersions && selectedOsVersions.length > 0 && (
+                {showOsVersions && store.selectedOsVersions.length > 0 && (
                   <Pill
-                    title={Array.from(selectedOsVersions)
+                    title={Array.from(store.selectedOsVersions)
                       .map((v) => v.displayName)
                       .join(", ")}
                   />
                 )}
-                {showCountries && selectedCountries.length > 0 && (
+                {showCountries && store.selectedCountries.length > 0 && (
                   <Pill
-                    title={Array.from(selectedCountries).join(", ")}
+                    title={Array.from(store.selectedCountries).join(", ")}
                   />
                 )}
                 {showNetworkProviders &&
-                  selectedNetworkProviders.length > 0 && (
+                  store.selectedNetworkProviders.length > 0 && (
                     <Pill
-                      title={Array.from(selectedNetworkProviders).join(", ")}
+                      title={Array.from(store.selectedNetworkProviders).join(", ")}
                     />
                   )}
-                {showNetworkTypes && selectedNetworkTypes.length > 0 && (
+                {showNetworkTypes && store.selectedNetworkTypes.length > 0 && (
                   <Pill
-                    title={Array.from(selectedNetworkTypes).join(", ")}
+                    title={Array.from(store.selectedNetworkTypes).join(", ")}
                   />
                 )}
                 {showNetworkGenerations &&
-                  selectedNetworkGenerations.length > 0 && (
+                  store.selectedNetworkGenerations.length > 0 && (
                     <Pill
-                      title={Array.from(selectedNetworkGenerations).join(", ")}
+                      title={Array.from(store.selectedNetworkGenerations).join(", ")}
                     />
                   )}
-                {showLocales && selectedLocales.length > 0 && (
-                  <Pill title={Array.from(selectedLocales).join(", ")} />
+                {showLocales && store.selectedLocales.length > 0 && (
+                  <Pill title={Array.from(store.selectedLocales).join(", ")} />
                 )}
                 {showDeviceManufacturers &&
-                  selectedDeviceManufacturers.length > 0 && (
+                  store.selectedDeviceManufacturers.length > 0 && (
                     <Pill
-                      title={Array.from(selectedDeviceManufacturers).join(", ")}
+                      title={Array.from(store.selectedDeviceManufacturers).join(", ")}
                     />
                   )}
-                {showDeviceNames && selectedDeviceNames.length > 0 && (
+                {showDeviceNames && store.selectedDeviceNames.length > 0 && (
                   <Pill
-                    title={Array.from(selectedDeviceNames).join(", ")}
+                    title={Array.from(store.selectedDeviceNames).join(", ")}
                   />
                 )}
-                {showUdAttrs && selectedUdAttrMatchers.length > 0 && (
+                {showUdAttrs && store.selectedUdAttrMatchers.length > 0 && (
                   <Pill
-                    title={selectedUdAttrMatchers
+                    title={store.selectedUdAttrMatchers
                       .map(
                         (matcher) =>
                           `${matcher.key} (${matcher.type}) ${matcher.op} ${matcher.value}`,
@@ -1740,8 +883,8 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                       .join(", ")}
                   />
                 )}
-                {showFreeText && selectedFreeText !== "" && (
-                  <Pill title={"Search Text: " + selectedFreeText} />
+                {showFreeText && store.selectedFreeText !== "" && (
+                  <Pill title={"Search Text: " + store.selectedFreeText} />
                 )}
               </div>
             </div>
@@ -1751,5 +894,5 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
   },
 )
 
-Filters.displayName = "Filters"
-export default Filters
+FiltersComponent.displayName = "Filters"
+export default FiltersComponent

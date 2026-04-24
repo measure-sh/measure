@@ -1,60 +1,22 @@
 "use client"
 
+import { RootSpanMetricsQuantile, useSpanMetricsPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { SpanMetricsPlotApiStatus, fetchSpanMetricsPlotFromServer } from '../api/api_calls'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import React, { useState } from 'react'
 import { chartTheme } from '../utils/shared_styles'
-import { formatMillisToHumanReadable, getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { formatMillisToHumanReadable, formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import { SkeletonPlot } from './skeleton'
 import TabSelect from './tab_select'
 
-interface SpanMetricsPlotProps {
-  filters: Filters
-}
-
-type SpanMetricsPlot = {
-  id: string
-  data: {
-    id: string
-    x: string
-    y: number
-  }[]
-}[]
-
-enum RootSpanMetricsQuantile {
-  p50 = "p50",
-  p90 = "p90",
-  p95 = "p95",
-  p99 = "p99",
-}
-
-const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
-  const [spanMetricsPlotApiStatus, setSpanMetricsPlotApiStatus] = useState(SpanMetricsPlotApiStatus.Loading)
-  const [quantile, setQuantile] = useState(RootSpanMetricsQuantile.p95)
-  const [spanMetricsPlotApiData, setSpanMetricsPlotApiData] = useState<any>()
-  const [plot, setPlot] = useState<SpanMetricsPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const SpanMetricsPlot: React.FC = () => {
+  const filters = useFiltersStore(state => state.filters)
+  const [quantile, setQuantile] = useState<RootSpanMetricsQuantile>(RootSpanMetricsQuantile.p50)
+  const { data: plot, status } = useSpanMetricsPlotQuery(quantile)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${filters.startDate}|${filters.endDate}|${plotTimeGroup}`
-  const shouldRenderPlot = spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
-
-  function getYBasedOnQuantile(data: any) {
-    switch (quantile) {
-      case RootSpanMetricsQuantile.p50:
-        return data.p50
-      case RootSpanMetricsQuantile.p90:
-        return data.p90
-      case RootSpanMetricsQuantile.p95:
-        return data.p95
-      case RootSpanMetricsQuantile.p99:
-        return data.p99
-    }
-  }
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {
@@ -71,66 +33,18 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
     throw "Invalid quantile selected"
   }
 
-  const getSpanMetricsPlot = async () => {
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.Loading)
-
-    const result = await fetchSpanMetricsPlotFromServer(filters)
-
-    switch (result.status) {
-      case SpanMetricsPlotApiStatus.Error:
-        setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case SpanMetricsPlotApiStatus.NoData:
-        setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.NoData)
-        setPlotDataKey(null)
-        break
-      case SpanMetricsPlotApiStatus.Success:
-        setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.Success)
-        setSpanMetricsPlotApiData(result.data)
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getSpanMetricsPlot()
-  }, [filters])
-
-  useEffect(() => {
-    if (spanMetricsPlotApiStatus !== SpanMetricsPlotApiStatus.Success || plotDataKey !== currentPlotKey) {
-      return
-    }
-
-    const newPlot = spanMetricsPlotApiData.map((item: any) => ({
-      id: item.id,
-      data: item.data.map((data: any, index: number) => ({
-        id: item.id + '.' + index,
-        x: data.datetime,
-        y: getYBasedOnQuantile(data)
-      }))
-    }))
-
-    setPlot(newPlot)
-  }, [spanMetricsPlotApiData, quantile, spanMetricsPlotApiStatus, plotDataKey, currentPlotKey])
-
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      {(spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Loading || (spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {status === 'pending' && <SkeletonPlot />}
+      {status === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {status === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {status === 'success' && plot !== null && plot !== undefined &&
         <div className='flex flex-col w-full h-full'>
           <div className='flex flex-col w-full items-end p-2'>
             <TabSelect items={Object.values(RootSpanMetricsQuantile)} selected={quantile} onChangeSelected={(item) => setQuantile(mapQuantileStringToQuantile(item as string))} />
           </div>
           <ResponsiveLine
-            data={plot!}
+            data={plot}
             curve="monotoneX"
             theme={chartTheme}
             enableArea={true}

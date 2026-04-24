@@ -21,6 +21,9 @@ options available to control the behavior of network monitoring.
 On Android, network requests made using the [OkHttp](https://square.github.io/okhttp/) library, including any third
 party libraries, are automatically tracked by simply adding the Measure Android Gradle Plugin.
 
+Supported OkHttp versions: `4.7.0` to `5.3.2`. Requests made with versions outside this range will not be
+auto-instrumented.
+
 #### iOS
 
 On iOS, network requests made using the [URLSession](https://developer.apple.com/documentation/foundation/urlsession),

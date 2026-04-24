@@ -34,20 +34,21 @@ const mockCommonPathData = {
     ]
 }
 
+// Mock query hook
+let mockQueryData: any = undefined
+let mockQueryStatus: string = 'pending'
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useExceptionGroupCommonPathQuery: () => ({
+        data: mockQueryData,
+        status: mockQueryStatus,
+    }),
+}))
+
 // Mock API calls
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
-    ExceptionGroupCommonPathApiStatus: {
-        Loading: 'loading',
-        Error: 'error',
-        Success: 'success'
-    },
-    fetchExceptionGroupCommonPathFromServer: jest.fn(() =>
-        Promise.resolve({
-            status: 'success',
-            data: mockCommonPathData
-        })
-    ),
     ExceptionsType: {
         Crash: 'crash',
         ANR: 'anr'
@@ -59,10 +60,14 @@ jest.mock('@/app/components/badge', () => ({
     Badge: ({ children, ...props }: any) => <span data-testid="badge-mock" {...props}>{children}</span>
 }))
 
-// Mock LoadingSpinner component
-jest.mock('@/app/components/loading_spinner', () => ({
+// Mock BetaBadge component
+jest.mock('@/app/components/beta_badge', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading-spinner-mock">Loading...</div>
+    default: () => <span data-testid="badge-mock">Beta</span>
+}))
+
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
 }))
 
 // Mock Slider component
@@ -91,6 +96,8 @@ describe('ExceptionGroupCommonPath Component', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockQueryData = mockCommonPathData
+        mockQueryStatus = 'success'
     })
 
     describe('Initial Rendering', () => {
@@ -108,31 +115,18 @@ describe('ExceptionGroupCommonPath Component', () => {
         })
 
         it('shows loading spinner initially', async () => {
-            // Create a promise we can control
-            let resolvePromise: (value: any) => void
-            const controlledPromise = new Promise((resolve) => {
-                resolvePromise = resolve
-            })
-
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-            fetchExceptionGroupCommonPathFromServer.mockImplementationOnce(() => controlledPromise)
+            mockQueryStatus = 'pending'
+            mockQueryData = undefined
 
             render(<ExceptionGroupCommonPath {...defaultProps} />)
 
-            // Loading spinner should be visible while promise is pending
-            expect(screen.getByTestId('loading-spinner-mock')).toBeInTheDocument()
+            // Loading spinner should be visible while in pending state
+            expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
 
-            // Resolve the promise
+            // Transition to success state
             await act(async () => {
-                resolvePromise!({
-                    status: 'success',
-                    data: mockCommonPathData
-                })
-            })
-
-            // Wait for loading spinner to disappear
-            await waitFor(() => {
-                expect(screen.queryByTestId('loading-spinner-mock')).not.toBeInTheDocument()
+                mockQueryStatus = 'success'
+                mockQueryData = mockCommonPathData
             })
         })
     })
@@ -189,12 +183,8 @@ describe('ExceptionGroupCommonPath Component', () => {
         })
 
         it('shows error message when API returns error status', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-            fetchExceptionGroupCommonPathFromServer.mockImplementationOnce(() =>
-                Promise.resolve({
-                    status: 'error'
-                })
-            )
+            mockQueryStatus = 'error'
+            mockQueryData = undefined
 
             await act(async () => {
                 render(<ExceptionGroupCommonPath {...defaultProps} />)
@@ -304,114 +294,12 @@ describe('ExceptionGroupCommonPath Component', () => {
         })
     })
 
-    describe('API Integration', () => {
-        it('calls fetchExceptionGroupCommonPathFromServer with correct parameters', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-
-            await act(async () => {
-                render(<ExceptionGroupCommonPath {...defaultProps} />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledWith(
-                    'crash',
-                    'app-123',
-                    'crash-group-123'
-                )
-            })
-        })
-
-        it('refetches data when groupId changes', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-
-            let result: ReturnType<typeof render>
-            await act(async () => {
-                result = render(<ExceptionGroupCommonPath {...defaultProps} />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(1)
-            })
-
-            await act(async () => {
-                result.rerender(<ExceptionGroupCommonPath {...defaultProps} groupId="crash-group-456" />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(2)
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenLastCalledWith(
-                    'crash',
-                    'app-123',
-                    'crash-group-456'
-                )
-            })
-        })
-
-        it('refetches data when appId changes', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-
-            let result: ReturnType<typeof render>
-            await act(async () => {
-                result = render(<ExceptionGroupCommonPath {...defaultProps} />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(1)
-            })
-
-            await act(async () => {
-                result.rerender(<ExceptionGroupCommonPath {...defaultProps} appId="app-456" />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(2)
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenLastCalledWith(
-                    'crash',
-                    'app-456',
-                    'crash-group-123'
-                )
-            })
-        })
-
-        it('refetches data when type changes', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-
-            let result: ReturnType<typeof render>
-            await act(async () => {
-                result = render(<ExceptionGroupCommonPath {...defaultProps} />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(1)
-            })
-
-            await act(async () => {
-                result.rerender(<ExceptionGroupCommonPath {...defaultProps} type={'anr' as any} />)
-            })
-
-            await waitFor(() => {
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenCalledTimes(2)
-                expect(fetchExceptionGroupCommonPathFromServer).toHaveBeenLastCalledWith(
-                    'anr',
-                    'app-123',
-                    'crash-group-123'
-                )
-            })
-        })
-    })
-
     describe('Empty State', () => {
         it('shows empty message when no steps are returned', async () => {
-            const { fetchExceptionGroupCommonPathFromServer } = require('@/app/api/api_calls')
-            fetchExceptionGroupCommonPathFromServer.mockImplementationOnce(() =>
-                Promise.resolve({
-                    status: 'success',
-                    data: {
-                        sessions_analyzed: 50,
-                        steps: []
-                    }
-                })
-            )
+            mockQueryData = {
+                sessions_analyzed: 50,
+                steps: []
+            }
 
             await act(async () => {
                 render(<ExceptionGroupCommonPath {...defaultProps} />)

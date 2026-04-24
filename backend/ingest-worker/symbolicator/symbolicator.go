@@ -344,12 +344,12 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 		}
 
 		if logResponse {
-			// bytes, err := json.MarshalIndent(js.response, "", "  ")
 			bytes, err := json.Marshal(js.response)
 			if err != nil {
 				return err
 			}
-			fmt.Println("response:", string(bytes))
+			fmt.Println("response")
+			fmt.Println(string(bytes))
 		}
 
 		js.rewriteException(events, spans, lambdaWorkaround)
@@ -385,15 +385,29 @@ func (js *jvmSymbolicator) configureModule(mappings map[string]symbol.MappingTyp
 	return
 }
 
+// splitClassName splits a fully qualified JVM class name into
+// its package (module) and simple class name components.
+// e.g. "java.lang.RuntimeException" → ("java.lang", "RuntimeException")
+func splitClassName(fqn string) (module, typeName string) {
+	idx := strings.LastIndex(fqn, ".")
+	if idx < 0 {
+		return "", fqn
+	}
+	return fqn[:idx], fqn[idx+1:]
+}
+
 // parseExceptions parses the exceptions
 // and threads from the event request
 // and prepares the JVM symbolicator
 // request.
 func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threads event.Threads, index int) {
 	for j, excep := range exceptions {
-		s.request.Exceptions = append(s.request.Exceptions, exceptionJVM{
-			Type: excep.Type,
-		})
+		module, typeName := splitClassName(excep.Type)
+		exc := exceptionJVM{
+			Type:   typeName,
+			Module: module,
+		}
+		s.request.Exceptions = append(s.request.Exceptions, exc)
 
 		// symbolicate each exception unit's type
 		// by matching classes
@@ -417,7 +431,8 @@ func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threa
 			s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(s.request.Stacktraces)})
 		}
 		s.request.Stacktraces = append(s.request.Stacktraces, stacktraceJVM{
-			Frames: frameJVMs,
+			Exception: &exc,
+			Frames:    frameJVMs,
 		})
 	}
 
@@ -514,7 +529,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 							frames = append(frames, frame)
 						}
 						exceptions[j].Frames = frames
-					} else {
+					} else if k < len(stacktraces[n].Frames) {
 						// no inline frames apparently, just rewrite original frame
 						// object parameters with output frame object parameters.
 						exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
@@ -547,7 +562,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 						frames = append(frames, frame)
 					}
 					threads[l].Frames = frames
-				} else {
+				} else if m < len(stacktraces[n].Frames) {
 					threads[l].Frames[m].MethodName = stacktraces[n].Frames[m].Function
 					threads[l].Frames[m].FileName = stacktraces[n].Frames[m].Filename
 					className := stacktraces[n].Frames[m].Module

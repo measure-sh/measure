@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, it } from '@jest/globals'
+import { afterEach, describe, expect, it } from '@jest/globals';
 
 // Build a minimal NextResponse mock that tracks cookie set calls
 type CookieSetCall = { name: string; value: string; options: Record<string, any> }
@@ -17,7 +17,7 @@ function createMockResponse() {
 
 jest.mock('next/server', () => ({}))
 
-import { setCookiesFromJWT } from '@/app/auth/cookie'
+import { setCookiesFromJWT } from '@/app/auth/cookie';
 
 // Helper: create a minimal JWT with a given exp (seconds since epoch)
 function makeJWT(exp: number): string {
@@ -30,7 +30,7 @@ describe('setCookiesFromJWT', () => {
     const originalEnv = process.env.NODE_ENV
 
     afterEach(() => {
-        process.env.NODE_ENV = originalEnv
+        Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv, writable: true })
     })
 
     it('sets access_token and refresh_token cookies', () => {
@@ -88,7 +88,7 @@ describe('setCookiesFromJWT', () => {
     })
 
     it('uses secure: false and sameSite: lax in development', () => {
-        process.env.NODE_ENV = 'development'
+        Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', writable: true })
 
         const now = Math.floor(Date.now() / 1000)
         const accessToken = makeJWT(now + 3600)
@@ -104,7 +104,7 @@ describe('setCookiesFromJWT', () => {
     })
 
     it('uses secure: true and sameSite: strict in production', () => {
-        process.env.NODE_ENV = 'production'
+        Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true })
 
         const now = Math.floor(Date.now() / 1000)
         const accessToken = makeJWT(now + 3600)
@@ -167,7 +167,7 @@ describe('setCookiesFromJWT', () => {
     })
 
     it('treats test environment as non-production (isDev = true)', () => {
-        process.env.NODE_ENV = 'test'
+        Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true })
 
         const now = Math.floor(Date.now() / 1000)
         const accessToken = makeJWT(now + 3600)

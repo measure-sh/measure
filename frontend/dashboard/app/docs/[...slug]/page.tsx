@@ -1,13 +1,13 @@
+import { extractTocEntries, getAllDocSlugs, getDocBySlug } from "@/app/docs/docs";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
-import { notFound } from "next/navigation";
-import { getDocBySlug, getAllDocSlugs, extractTocEntries } from "@/app/docs/docs";
-import { createMarkdownComponents } from "../components/md_components";
-import DocsToc from "../components/docs_toc";
+import remarkGfm from "remark-gfm";
 import DocsNavLinks from "../components/docs_nav_links";
-import type { Metadata } from "next";
+import DocsToc from "../components/docs_toc";
+import { createMarkdownComponents } from "../components/md_components";
 
 interface PageProps {
   params: { slug: string[] };

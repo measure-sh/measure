@@ -1,7 +1,10 @@
 'use client'
 
 import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
-import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { queryClient } from "@/app/query/query_client"
+import { useMeasureStoreRegistry } from "@/app/stores/provider"
+import { resetAllStores } from "@/app/stores/reset_all"
+import type { Session } from "@/app/stores/session_store"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { posthog } from "posthog-js"
@@ -28,7 +31,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
   const message = searchParams["message"]
   const inviteId = searchParams["inviteId"]
   const isMcp = searchParams["mcp"] === "1"
-  const [session, setSession] = useState<MeasureAuthSession | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [home, setHome] = useState("")
   const [loading, setLoading] = useState(!isMcp)
   const [inviteInvalid, setInviteInvalid] = useState(false)
@@ -53,8 +56,11 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
     }
   }, [inviteId, isMcp])
 
+  const registry = useMeasureStoreRegistry()
+
   const getSession = async () => {
-    const { session } = await measureAuth.getSession()
+    await registry.sessionStore.getState().fetchSession()
+    const session = registry.sessionStore.getState().session
     if (session) {
       setSession(session)
       posthog.identify(
@@ -64,6 +70,16 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (isMcp) {
+      return
+    }
+
+    // Clear any leftover state from a previous user so the next sign-in starts fresh
+    resetAllStores(registry)
+    queryClient.clear()
+  }, [isMcp])
 
   useEffect(() => {
     if (isMcp) {

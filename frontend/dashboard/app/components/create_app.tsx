@@ -2,10 +2,11 @@
 
 import { Plus } from 'lucide-react'
 import React, { FormEventHandler, useState } from 'react'
-import { App, CreateAppApiStatus, createAppFromServer } from '../api/api_calls'
+import { App } from '../api/api_calls'
+import { useCreateAppMutation } from '../query/hooks'
 import { toastNegative, toastPositive } from '../utils/use_toast'
 import { Button } from './button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 import { Input } from './input'
 
 interface CreateAppProps {
@@ -14,36 +15,29 @@ interface CreateAppProps {
   onSuccess?: (app: App) => void
 }
 const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess, disabled = false }) => {
-  const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init)
+  const createApp = useCreateAppMutation()
+
   const [appName, setAppName] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const createApp: FormEventHandler = async (event) => {
+  const handleCreateApp: FormEventHandler = async (event) => {
     event.preventDefault()
 
     if (appName === "") {
       return
     }
 
-    setCreateAppApiStatus(CreateAppApiStatus.Loading)
-
-    const result = await createAppFromServer(teamId, appName)
-
-    switch (result.status) {
-      case CreateAppApiStatus.Error:
-        setAppName("")
-        setCreateAppApiStatus(CreateAppApiStatus.Error)
-        toastNegative(`Error creating app: ${result.error}`)
-        break
-      case CreateAppApiStatus.Success:
-        setAppName("")
-        setCreateAppApiStatus(CreateAppApiStatus.Success)
-        setDialogOpen(false)
-        toastPositive(`App ${result.data.name} has been created`)
-        if (onSuccess) {
-          onSuccess(result.data)
-        }
-        break
+    try {
+      const app = await createApp.mutateAsync({ teamId, appName })
+      setAppName("")
+      setDialogOpen(false)
+      toastPositive(`App ${app?.name} has been created`)
+      if (onSuccess && app) {
+        onSuccess(app)
+      }
+    } catch (error) {
+      setAppName("")
+      toastNegative(`Error creating app: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }
 
@@ -60,23 +54,24 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess, disabled = fal
         <DialogContent className='bg-background text-foreground'>
           <DialogHeader>
             <DialogTitle className="font-display">Add new app</DialogTitle>
+            <DialogDescription>Create a new app for this team.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col w-5/6">
-            <form onSubmit={createApp} className="flex flex-col">
-              <Input id="app-name" type="string" placeholder="Enter app name" className="w-96 font-body" onChange={(event) => setAppName(event.target.value)} />
+            <form onSubmit={handleCreateApp} className="flex flex-col">
+              <Input id="app-name" type="string" placeholder="Enter app name" className="w-96 font-body" value={appName} onChange={(event) => setAppName(event.target.value)} />
               <div className="py-2" />
               <div className='flex flex-row gap-2'>
                 <Button
                   variant="outline"
                   type="submit"
                   className="w-fit"
-                  loading={createAppApiStatus === CreateAppApiStatus.Loading}
-                  disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0}
+                  loading={createApp.isPending}
+                  disabled={createApp.isPending || appName.length === 0}
                 >Create App
                 </Button>
                 <Button
                   variant="outline"
-                  type="submit"
+                  type="button"
                   className="w-fit"
                   onClick={() => setDialogOpen(false)}
                 >Cancel

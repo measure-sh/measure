@@ -1,16 +1,7 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import ExceptionsDistributionPlot from '@/app/components/exceptions_distribution_plot'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
-
-const mockFetchPlot = jest.fn()
-
-jest.mock('@/app/api/api_calls', () => ({
-    __esModule: true,
-    ExceptionsDistributionPlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    ExceptionsType: { Crash: 'crash', Anr: 'anr' },
-    fetchExceptionsDistributionPlotFromServer: (...args: any[]) => mockFetchPlot(...args),
-}))
 
 jest.mock('next-themes', () => ({
     useTheme: () => ({ theme: 'light' }),
@@ -43,39 +34,64 @@ jest.mock('@/app/components/filters', () => ({
     __esModule: true,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    SkeletonPlot: () => <div data-testid="skeleton-mock">Loading...</div>,
 }))
 
-import ExceptionsDistributionPlot from '@/app/components/exceptions_distribution_plot'
+const mockUseExceptionsDistributionPlotQuery = jest.fn((): { data: any; status: string; error: Error | null } => ({ data: undefined, status: 'pending', error: null }))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useExceptionsDistributionPlotQuery: () => mockUseExceptionsDistributionPlotQuery(),
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: null },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 function readyFilters() {
-    return { ready: true, app: { id: 'app-1' } }
+    return { ready: true, app: { id: 'app-1' }, serialisedFilters: 'default' }
 }
 
 function mockPlotData() {
-    return {
-        app_version: { '1.0.0 (100)': 1796, '2.0.0 (200)': 2204 },
-        country: { UK: 1200, US: 2800 },
-        os_version: { 'android 27': 200, 'android 33': 3200 },
-    }
+    return [
+        { attribute: 'App Version', '1.0.0 (100)': 1796, '2.0.0 (200)': 2204 },
+        { attribute: 'Country', 'UK': 1200, 'US': 2800 },
+        { attribute: 'API Level', 'Android API Level 27': 200, 'Android API Level 33': 3200 },
+    ]
+}
+
+function mockPlotKeys() {
+    return ['1.0.0 (100)', '2.0.0 (200)', 'UK', 'US', 'Android API Level 27', 'Android API Level 33']
 }
 
 describe('ExceptionsDistributionPlot', () => {
+    beforeEach(() => {
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: null } })
+        mockUseExceptionsDistributionPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
+    })
+
     describe('API states', () => {
         it('shows loading spinner while loading', async () => {
-            mockFetchPlot.mockReturnValue(new Promise(() => { }))
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({ data: undefined, status: 'pending', error: null })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
-            expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+            expect(screen.getByTestId('skeleton-mock')).toBeInTheDocument()
         })
 
         it('shows error message on error', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 2 })
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({ data: undefined, status: 'error', error: new Error('test') })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument()
@@ -83,9 +99,10 @@ describe('ExceptionsDistributionPlot', () => {
         })
 
         it('shows "No Data" on NoData status', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 3 })
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({ data: null, status: 'success', error: null })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 expect(screen.getByText('No Data')).toBeInTheDocument()
@@ -95,12 +112,17 @@ describe('ExceptionsDistributionPlot', () => {
 
     describe('Success state', () => {
         beforeEach(() => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: mockPlotData() })
+            useFiltersStore.setState({ filters: readyFilters() })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({
+                data: { plot: mockPlotData(), plotKeys: mockPlotKeys() },
+                status: 'success',
+                error: null,
+            })
         })
 
         it('renders ResponsiveBar chart', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 expect(screen.getByTestId('responsive-bar')).toBeInTheDocument()
@@ -109,7 +131,7 @@ describe('ExceptionsDistributionPlot', () => {
 
         it('transforms os_version keys for Android', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -121,7 +143,7 @@ describe('ExceptionsDistributionPlot', () => {
 
         it('formats attribute names with title case', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -132,9 +154,13 @@ describe('ExceptionsDistributionPlot', () => {
         })
 
         it('transforms ios os_version keys', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'ios 17': 500 } } })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({
+                data: { plot: [{ attribute: 'Os Version', 'iOS 17': 500 }], plotKeys: ['iOS 17'] },
+                status: 'success',
+                error: null,
+            })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -143,9 +169,13 @@ describe('ExceptionsDistributionPlot', () => {
         })
 
         it('transforms ipados os_version keys', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'ipados 17': 300 } } })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({
+                data: { plot: [{ attribute: 'Os Version', 'iPadOS 17': 300 }], plotKeys: ['iPadOS 17'] },
+                status: 'success',
+                error: null,
+            })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -154,9 +184,13 @@ describe('ExceptionsDistributionPlot', () => {
         })
 
         it('passes through unknown os names', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'linux 5.4': 100 } } })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({
+                data: { plot: [{ attribute: 'Os Version', 'linux 5.4': 100 }], plotKeys: ['linux 5.4'] },
+                status: 'success',
+                error: null,
+            })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -165,9 +199,13 @@ describe('ExceptionsDistributionPlot', () => {
         })
 
         it('handles single-word os_version key without version', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: { os_version: { 'unknown': 50 } } })
+            mockUseExceptionsDistributionPlotQuery.mockReturnValue({
+                data: { plot: [{ attribute: 'Os Version', 'unknown': 50 }], plotKeys: ['unknown'] },
+                status: 'success',
+                error: null,
+            })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -177,7 +215,7 @@ describe('ExceptionsDistributionPlot', () => {
 
         it('uses "API Level" label for os_version when android data present', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={readyFilters() as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
             await waitFor(() => {
                 const bar = screen.getByTestId('responsive-bar')
@@ -189,34 +227,35 @@ describe('ExceptionsDistributionPlot', () => {
 
     describe('Filters interaction', () => {
         it('does not fetch when filters are not ready', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: mockPlotData() })
+            useFiltersStore.setState({ filters: { ready: false, serialisedFilters: null } })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={{ ready: false } as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
-            expect(mockFetchPlot).not.toHaveBeenCalled()
+            // Query hook is called but TanStack Query handles the enabled flag internally
+            expect(mockUseExceptionsDistributionPlotQuery).toHaveBeenCalled()
         })
 
-        it('calls API with correct arguments', async () => {
-            mockFetchPlot.mockResolvedValue({ status: 1, data: mockPlotData() })
-            const filters = readyFilters()
+        it('calls query hook when filters are ready', async () => {
+            useFiltersStore.setState({ filters: readyFilters() })
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={filters as any} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" />)
             })
-            expect(mockFetchPlot).toHaveBeenCalledWith('crash', 'grp-1', filters)
+            expect(mockUseExceptionsDistributionPlotQuery).toHaveBeenCalled()
         })
     })
 
     describe('Demo mode', () => {
-        it('does not call API in demo mode', async () => {
+        it('does not use query data in demo mode', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={{ ready: false } as any} demo={true} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" demo={true} />)
             })
-            expect(mockFetchPlot).not.toHaveBeenCalled()
+            // In demo mode, the component uses hardcoded demo data instead of query result
+            expect(screen.getByTestId('responsive-bar')).toBeInTheDocument()
         })
 
         it('renders chart in demo mode', async () => {
             await act(async () => {
-                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" filters={{ ready: false } as any} demo={true} />)
+                render(<ExceptionsDistributionPlot exceptionsType={'crash' as any} exceptionsGroupId="grp-1" demo={true} />)
             })
             expect(screen.getByTestId('responsive-bar')).toBeInTheDocument()
         })

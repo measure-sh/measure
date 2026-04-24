@@ -68,24 +68,66 @@ final class LifecycleCollectorTests: XCTestCase {
         XCTAssertTrue(mockLogger.logs.contains("LifecycleCollector disabled."))
     }
 
-    func testApplicationDidEnterBackground() {
-        lifecycleCollector.applicationDidEnterBackground()
+    func testEnable_isIdempotent() {
+        lifecycleCollector.enable()
+        lifecycleCollector.enable()
+        let enableLogs = mockLogger.logs.filter { $0 == "LifecycleCollector enabled." }
+        XCTAssertEqual(enableLogs.count, 1, "enable() should only log once even if called multiple times")
+    }
+
+    func testDisable_whenNotEnabled_doesNothing() {
+        lifecycleCollector.disable()
+        XCTAssertFalse(mockLogger.logs.contains("LifecycleCollector disabled."))
+    }
+
+    func testApplicationDidLaunch_tracksForegroundEvent() {
+        lifecycleCollector.applicationDidLaunch()
 
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
-            XCTAssertEqual(lifecycleData.type, .background)
+            XCTAssertEqual(lifecycleData.type, .foreground)
         } else {
             XCTFail("Data should be of type ApplicationLifecycleData")
         }
         XCTAssertEqual(mockSignalProcessor.type, .lifecycleApp)
     }
 
-    func testApplicationWillEnterForeground() {
+    func testApplicationDidLaunch_calledTwice_tracksOnlyOnce() {
+        lifecycleCollector.applicationDidLaunch()
+        let countAfterFirst = mockSignalProcessor.trackEventCallCount
+
+        lifecycleCollector.applicationDidLaunch()
+        let countAfterSecond = mockSignalProcessor.trackEventCallCount
+
+        XCTAssertEqual(countAfterFirst, countAfterSecond, "applicationDidLaunch should only track once regardless of how many times it is called")
+    }
+
+    func testApplicationWillEnterForeground_beforeApplicationDidLaunch_doesNotTrack() {
+        lifecycleCollector.applicationWillEnterForeground()
+
+        XCTAssertNil(mockSignalProcessor.data, "applicationWillEnterForeground should not track before applicationDidLaunch is called")
+    }
+
+    func testApplicationWillEnterForeground_afterApplicationDidLaunch_tracksForegroundEvent() {
+        lifecycleCollector.applicationDidLaunch()
+
         lifecycleCollector.applicationWillEnterForeground()
 
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
             XCTAssertEqual(lifecycleData.type, .foreground)
+        } else {
+            XCTFail("Data should be of type ApplicationLifecycleData")
+        }
+        XCTAssertEqual(mockSignalProcessor.type, .lifecycleApp)
+    }
+
+    func testApplicationDidEnterBackground() {
+        lifecycleCollector.applicationDidEnterBackground()
+
+        XCTAssertNotNil(mockSignalProcessor.data)
+        if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
+            XCTAssertEqual(lifecycleData.type, .background)
         } else {
             XCTFail("Data should be of type ApplicationLifecycleData")
         }
@@ -160,7 +202,22 @@ final class LifecycleCollectorTests: XCTestCase {
         XCTAssertEqual(mockSignalProcessor.type, .lifecycleViewController)
     }
 
-    func testProcessSwiftUILifecycleEvent() {
+    func testProcessControllerLifecycleEvent_whenDisabled_doesNotTrack() {
+        lifecycleCollector.processControllerLifecycleEvent(.viewDidLoad, for: mockViewController)
+
+        XCTAssertNil(mockSignalProcessor.data, "VC lifecycle events should not be tracked when collector is disabled")
+    }
+
+    func testProcessControllerLifecycleEvent_whenInExcludeList_doesNotTrack() {
+        lifecycleCollector.enable()
+        mockConfigProvider.lifecycleViewControllerExcludeList = ["MockViewController"]
+
+        lifecycleCollector.processControllerLifecycleEvent(.viewDidLoad, for: mockViewController)
+
+        XCTAssertNil(mockSignalProcessor.data, "VC lifecycle events should not be tracked for excluded view controllers")
+    }
+
+    func testProcessSwiftUILifecycleEvent_onAppear() {
         let className = "TestView"
         lifecycleCollector.processSwiftUILifecycleEvent(.onAppear, for: className)
 
@@ -199,5 +256,21 @@ final class LifecycleCollectorTests: XCTestCase {
 
         // Verify span was ended with OK status
         XCTAssertEqual(mockTracer.lastSpan?.status, .ok)
+    }
+
+    func testTrackEvent_whenSamplerReturnsFalse_needsReportingIsFalse() {
+        mockSignalSampler.shouldTrackLaunchEventsReturnValue = false
+
+        lifecycleCollector.applicationDidEnterBackground()
+
+        XCTAssertEqual(mockSignalProcessor.needsReporting, false, "needsReporting should be false when signal sampler returns false")
+    }
+
+    func testTrackEvent_whenSamplerReturnsTrue_needsReportingIsTrue() {
+        mockSignalSampler.shouldTrackLaunchEventsReturnValue = true
+
+        lifecycleCollector.applicationDidEnterBackground()
+
+        XCTAssertEqual(mockSignalProcessor.needsReporting, true, "needsReporting should be true when signal sampler returns true")
     }
 }

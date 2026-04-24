@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { cn } from "@/app/utils/shadcn_utils";
 import type { TocEntry } from "@/app/docs/docs";
+import { cn } from "@/app/utils/shadcn_utils";
+import { useEffect, useState } from "react";
 
 export default function DocsToc({ entries }: { entries: TocEntry[] }) {
   const [activeId, setActiveId] = useState<string>("");

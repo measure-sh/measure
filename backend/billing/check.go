@@ -248,7 +248,7 @@ func downgradeProTeam(ctx context.Context, deps Deps, team TeamBillingInfo, fall
 
 func checkSubscriptionStatus(sub *stripe.Subscription) (bool, *string) {
 	switch sub.Status {
-	case stripe.SubscriptionStatusActive, stripe.SubscriptionStatusPastDue:
+	case stripe.SubscriptionStatusActive, stripe.SubscriptionStatusPastDue, stripe.SubscriptionStatusTrialing:
 		return true, nil
 
 	default:

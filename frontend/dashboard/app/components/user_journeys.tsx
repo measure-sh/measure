@@ -2,24 +2,16 @@
 
 import { FilterSource } from '@/app/api/api_calls'
 import DebounceTextInput from '@/app/components/debounce_text_input'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import Journey, { JourneyType } from '@/app/components/journey'
 import TabSelect from '@/app/components/tab_select'
+import { useFiltersStore, useUserJourneysStore } from '@/app/stores/provider'
+import { PlotType } from '@/app/stores/user_journeys_store'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { Skeleton, SkeletonPlot } from '../components/skeleton'
 import { underlineLinkStyle } from '../utils/shared_styles'
-
-enum PlotType {
-    Paths = "Paths",
-    Exceptions = "Exceptions",
-}
-
-interface PageState {
-    filters: typeof defaultFilters
-    plotType: PlotType
-    searchText: string
-}
 
 interface UserJourneysProps {
     params?: { teamId: string }
@@ -30,51 +22,32 @@ interface UserJourneysProps {
 export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo = false, hideDemoTitle = false }: UserJourneysProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const filters = useFiltersStore(state => state.filters)
+
+    const { plotType, searchText, setPlotType, setSearchText } = useUserJourneysStore()
 
     const journeyTypeUrlKey = "jt"
 
-    // Determine initial plot type from URL or default
-    const initialPlotType = (() => {
-        const jt = searchParams.get(journeyTypeUrlKey)
-        if (jt === PlotType.Exceptions) return PlotType.Exceptions
-        return PlotType.Paths
-    })()
-
-    const initialState: PageState = {
-        filters: defaultFilters,
-        plotType: initialPlotType,
-        searchText: ''
-    }
-
-    const [pageState, setPageState] = useState<PageState>(initialState)
-
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        // update filters only if they have changed
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters
-            })
-        }
-    }
-
+    // Initialize plot type from URL on mount
     useEffect(() => {
-        if (!pageState.filters.ready) {
+        const jt = searchParams.get(journeyTypeUrlKey)
+        if (jt === PlotType.Exceptions) {
+            setPlotType(PlotType.Exceptions)
+        }
+    }, [])
+
+    // Sync filters and plot type to URL
+    useEffect(() => {
+        if (!filters.ready) {
             return
         }
-        const queryParams = `${journeyTypeUrlKey}=${encodeURIComponent(pageState.plotType)}&${pageState.filters.serialisedFilters!}`
+        const queryParams = `${journeyTypeUrlKey}=${encodeURIComponent(plotType)}&${filters.serialisedFilters!}`
         router.replace(`?${queryParams}`, { scroll: false })
-    }, [pageState.filters, pageState.plotType])
+    }, [filters.ready, filters.serialisedFilters, plotType])
 
     return (
         <div className="flex flex-col items-start">
-            {!hideDemoTitle && <p className="font-display text-4xl max-w-6xl text-center">User Journeys</p>}
+            <p className="font-display text-4xl max-w-6xl text-center">{demo ? (hideDemoTitle ? '' : 'User Journeys') : ''}</p>
             <div className="py-4" />
 
             {!demo &&
@@ -100,17 +73,32 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
                     showHttpMethods={false}
                     showFreeText={false}
                     showUdAttrs={false}
-                    onFiltersChanged={handleFiltersChanged} />}
+                />}
 
-            {(demo || pageState.filters.ready) && (
+            {!demo && filters.loading && (
+                <>
+                    <div className="w-full flex justify-end pb-2 pr-2">
+                        <Skeleton className="h-9 w-40" />
+                    </div>
+                    <div className="w-full h-[800px]">
+                        <div className="py-2" />
+                        <Skeleton className="h-9 w-full" />
+                        <Skeleton className="h-3 w-72 mt-4" />
+                        <div className="py-4" />
+                        <SkeletonPlot showAxes={false} />
+                    </div>
+                </>
+            )}
+
+            {(demo || filters.ready) && (
                 <>
                     {/* TabSelect for plot type */}
                     <div className="w-full flex justify-end pb-2 pr-2">
                         <TabSelect
                             items={Object.values(PlotType)}
-                            selected={pageState.plotType}
+                            selected={plotType}
                             onChangeSelected={item => {
-                                updatePageState({ plotType: item as PlotType })
+                                setPlotType(item as PlotType)
                             }}
                         />
                     </div>
@@ -118,28 +106,26 @@ export default function UserJourneys({ params = { teamId: 'demo-team-id' }, demo
                     {/* Main content area */}
                     <div className='w-full h-[800px]'>
                         {!demo && <div className="py-2" />}
-                        {!demo && <DebounceTextInput className="w-full" id="free-text" placeholder="Search nodes..." initialValue={''} onChange={(it) => setPageState(prev => ({ ...prev, searchText: it }))} />}
+                        {!demo && <DebounceTextInput className="w-full" id="free-text" placeholder="Search nodes..." initialValue={''} onChange={(it) => setSearchText(it)} />}
                         {!demo && <p className='py-4 text-xs font-body'>Note: Journeys are approximated based on sampled journey events. <Link href="/docs/features/configuration-options#journey-sampling" className={underlineLinkStyle}>Learn more</Link> </p>}
                         <div className="py-4" />
 
-                        {pageState.plotType === PlotType.Paths &&
+                        {plotType === PlotType.Paths &&
                             <Journey
                                 teamId={params.teamId}
                                 bidirectional={false}
                                 journeyType={JourneyType.Paths}
                                 exceptionsGroupId={null}
-                                filters={pageState.filters}
-                                searchText={pageState.searchText}
+                                searchText={searchText}
                                 demo={demo}
                             />}
-                        {pageState.plotType === PlotType.Exceptions &&
+                        {plotType === PlotType.Exceptions &&
                             <Journey
                                 teamId={params.teamId}
                                 bidirectional={false}
                                 journeyType={JourneyType.Exceptions}
                                 exceptionsGroupId={null}
-                                filters={pageState.filters}
-                                searchText={pageState.searchText}
+                                searchText={searchText}
                                 demo={demo}
                             />}
                     </div>

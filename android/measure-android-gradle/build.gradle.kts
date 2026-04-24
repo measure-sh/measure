@@ -134,6 +134,10 @@ dependencies {
     testImplementation(libs.agp802)
     testImplementation(libs.mockitokotlin2.mockito.kotlin)
     testImplementationAar(libs.measure.android)
+    testImplementationAar(libs.androidx.navigation.compose)
+    testImplementationAar(libs.androidx.navigation.runtime)
+    testImplementationAar(libs.androidx.navigation.common)
+    testImplementationAar(libs.androidx.compose.runtime)
 
     functionalTestRuntimeOnly(libs.junit.platform.launcher)
     functionalTestImplementation(libs.junit.jupiter)

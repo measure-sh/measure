@@ -41,9 +41,10 @@ var (
 	minioEndpoint           string
 	s3Client                *s3.Client
 	symbolsBucket           = "test-symbols"
-	basicProguardMappingKey string // unified layout key for the basic proguard mapping
-	basicProguardDebugID    string // UUID-formatted debug ID for the basic proguard mapping
-	realProguardMappingKey  string // unified layout key for the real proguard mapping
+	basicProguardMappingKey  string // unified layout key for the basic proguard mapping
+	basicProguardDebugID     string // UUID-formatted debug ID for the basic proguard mapping
+	realProguardMappingKey   string // unified layout key for the real proguard mapping
+	sqliteProguardMappingKey string // unified layout key for the sqlite proguard mapping
 	elfDebugMappingKey      string // unified layout key for the ELF debug symbols
 	symbolicatorContainer   testcontainers.Container
 	minioContainer          testcontainers.Container
@@ -161,6 +162,26 @@ func TestMain(m *testing.M) {
 	})
 	if err != nil {
 		fmt.Printf("failed to upload real mapping to minio: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Upload sqlite proguard mapping (mapping_sqlite.txt) to MinIO
+	sqliteMappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_sqlite.txt"))
+	if err != nil {
+		fmt.Printf("failed to read mapping_sqlite.txt: %v\n", err)
+		os.Exit(1)
+	}
+
+	sqliteDebugUUID := uuid.NewSHA1(ns, sqliteMappingBytes)
+	sqliteProguardMappingKey = symbol.BuildUnifiedLayout(sqliteDebugUUID.String()) + "/proguard"
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(sqliteProguardMappingKey),
+		Body:   bytes.NewReader(sqliteMappingBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload sqlite mapping to minio: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -1096,4 +1117,26 @@ func TestJVMNestedExceptionReal(t *testing.T) {
 
 	stacktrace := events[0].Exception.Stacktrace()
 	assertStacktraceMatchesGolden(t, "jvm_nested_exception_stacktrace_golden.txt", stacktrace)
+}
+
+func TestJVMSQLiteExceptionReal(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "2.0.0"
+	versionCode := "200"
+
+	seedApp(ctx, t, appID)
+	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", sqliteProguardMappingKey)
+
+	events := makeJVMRealEvents(t, "jvm_sqlite_input.json", versionName, versionCode)
+	sources := []Source{newS3Source()}
+
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
+	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
+	if err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	results := extractResult(events)
+	assertMatchesGolden(t, "jvm_sqlite_exception_golden.json", results)
 }

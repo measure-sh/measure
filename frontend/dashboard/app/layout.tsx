@@ -1,5 +1,7 @@
+import { GoogleTagManager } from "@next/third-parties/google";
 import type { Metadata, Viewport } from "next";
 import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
+import { ClientProviders } from "./components/client_providers";
 import { CookieBanner } from "./components/cookie_banner";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
@@ -75,18 +77,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <PostHogProvider proxyPath="/yrtmlt">
-            <CookieBanner />
-            <div className="bg-background text-foreground">{children}</div>
-          </PostHogProvider>
-          <Toaster />
-        </ThemeProvider>
+        {process.env.NEXT_PUBLIC_GTM_ID && (
+          <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
+        )}
+        <ClientProviders>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <PostHogProvider proxyPath="/yrtmlt">
+              <CookieBanner />
+              <div className="bg-background text-foreground">{children}</div>
+            </PostHogProvider>
+            <Toaster />
+          </ThemeProvider>
+        </ClientProviders>
       </body>
     </html>
   );

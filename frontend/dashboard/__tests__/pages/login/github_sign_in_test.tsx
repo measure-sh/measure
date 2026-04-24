@@ -3,11 +3,28 @@ import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 
-jest.mock('@/app/auth/measure_auth', () => ({
-    measureAuth: {
-        oAuthSignin: jest.fn(() => Promise.resolve({ url: 'https://github.com/login/oauth/authorize?test=1', error: null })),
-    },
-}))
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const store = create((set: any) => ({
+        session: null,
+        error: null,
+        loaded: false,
+        init: jest.fn(),
+        fetchSession: jest.fn(),
+        signOut: jest.fn(),
+        signInWithOAuth: jest.fn(() => Promise.resolve({ url: 'https://github.com/login/oauth/authorize?test=1', error: null })),
+        encodeOAuthState: jest.fn(() => 'encoded-state'),
+        reset: jest.fn(),
+    }))
+    const mockRegistry = { sessionStore: store }
+    return {
+        __esModule: true,
+        useSessionStore: store,
+        useMeasureStoreRegistry: () => mockRegistry,
+    }
+})
+
+const { useSessionStore } = require('@/app/stores/provider') as { useSessionStore: any }
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -22,11 +39,14 @@ Object.defineProperty(window, 'location', {
 })
 
 // Silence console.error from the component during tests
-jest.spyOn(console, 'error').mockImplementation(() => {})
+jest.spyOn(console, 'error').mockImplementation(() => { })
 
 describe('GitHubSignIn', () => {
     beforeEach(() => {
         mockAssign.mockClear()
+        useSessionStore.setState({
+            signInWithOAuth: jest.fn(() => Promise.resolve({ url: 'https://github.com/login/oauth/authorize?test=1', error: null })),
+        } as any)
     })
 
     it('renders sign in with GitHub button', () => {
@@ -48,34 +68,28 @@ describe('GitHubSignIn', () => {
         expect(mockAssign).toHaveBeenCalledWith(mcpUrl)
     })
 
-    it('MCP mode does not call measureAuth.oAuthSignin', () => {
-        const { measureAuth } = require('@/app/auth/measure_auth')
-        measureAuth.oAuthSignin.mockClear()
-
+    it('MCP mode does not call signInWithOAuth', () => {
         const mcpUrl = 'https://api.example.com/oauth/authorize?provider=github&client_id=test'
         render(<GitHubSignIn mcpAuthorizeUrl={mcpUrl} />)
         fireEvent.click(screen.getByText('Sign in with GitHub'))
 
-        expect(measureAuth.oAuthSignin).not.toHaveBeenCalled()
+        expect(useSessionStore.getState().signInWithOAuth).not.toHaveBeenCalled()
     })
 
-    it('normal mode calls measureAuth.oAuthSignin on click', () => {
-        const { measureAuth } = require('@/app/auth/measure_auth')
-        measureAuth.oAuthSignin.mockClear()
-
+    it('normal mode calls signInWithOAuth on click', () => {
         render(<GitHubSignIn />)
         fireEvent.click(screen.getByText('Sign in with GitHub'))
 
-        expect(measureAuth.oAuthSignin).toHaveBeenCalled()
+        expect(useSessionStore.getState().signInWithOAuth).toHaveBeenCalled()
     })
 
-    it('normal mode does not redirect when oAuthSignin returns error', async () => {
-        const { measureAuth } = require('@/app/auth/measure_auth')
-        measureAuth.oAuthSignin.mockClear()
-        measureAuth.oAuthSignin.mockResolvedValueOnce({
-            url: null,
-            error: 'something went wrong',
-        })
+    it('normal mode does not redirect when signInWithOAuth returns error', async () => {
+        useSessionStore.setState({
+            signInWithOAuth: jest.fn(() => Promise.resolve({
+                url: null,
+                error: 'something went wrong',
+            })),
+        } as any)
 
         render(<GitHubSignIn />)
         fireEvent.click(screen.getByText('Sign in with GitHub'))
@@ -86,12 +100,12 @@ describe('GitHubSignIn', () => {
     })
 
     it('normal mode redirects to GitHub OAuth URL', async () => {
-        const { measureAuth } = require('@/app/auth/measure_auth')
-        measureAuth.oAuthSignin.mockClear()
-        measureAuth.oAuthSignin.mockResolvedValueOnce({
-            url: 'https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback%2Fgithub',
-            error: null,
-        })
+        useSessionStore.setState({
+            signInWithOAuth: jest.fn(() => Promise.resolve({
+                url: 'https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback%2Fgithub',
+                error: null,
+            })),
+        } as any)
 
         render(<GitHubSignIn />)
         fireEvent.click(screen.getByText('Sign in with GitHub'))

@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
 
 // --- Mocks ---
 
-const mockCreateApp = jest.fn()
+const mockMutateAsync = jest.fn()
 const mockToastPositive = jest.fn()
 const mockToastNegative = jest.fn()
 
-jest.mock('@/app/api/api_calls', () => ({
+let mockIsPending = false
+
+jest.mock('@/app/query/hooks', () => ({
     __esModule: true,
-    CreateAppApiStatus: { Init: 0, Loading: 1, Success: 2, Error: 3, Cancelled: 4 },
-    createAppFromServer: (...args: any[]) => mockCreateApp(...args),
+    useCreateAppMutation: () => ({
+        mutateAsync: mockMutateAsync,
+        isPending: mockIsPending,
+    }),
 }))
 
 jest.mock('@/app/utils/use_toast', () => ({
@@ -37,6 +40,7 @@ jest.mock('@/app/components/dialog', () => ({
     DialogContent: ({ children }: any) => <div>{children}</div>,
     DialogHeader: ({ children }: any) => <div>{children}</div>,
     DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+    DialogDescription: ({ children }: any) => <p>{children}</p>,
 }))
 
 jest.mock('@/app/components/input', () => ({
@@ -76,6 +80,11 @@ async function fillAndSubmit(name: string) {
 // ============================================================
 
 describe('CreateApp', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsPending = false
+    })
+
     describe('Rendering', () => {
         it('renders Create App trigger button', () => {
             renderCreateApp()
@@ -121,47 +130,39 @@ describe('CreateApp', () => {
     })
 
     describe('Form submission', () => {
-        beforeEach(() => {
-            mockCreateApp.mockReset()
-        })
-
         it('does not call API when app name is empty', async () => {
             renderCreateApp()
             openDialog()
             await fillAndSubmit('')
-            expect(mockCreateApp).not.toHaveBeenCalled()
+            expect(mockMutateAsync).not.toHaveBeenCalled()
         })
 
-        it('calls createAppFromServer with teamId and app name', async () => {
-            mockCreateApp.mockResolvedValue({ status: 2, data: { name: 'My App', id: 'app-1' } })
+        it('calls createApp with teamId and app name', async () => {
+            mockMutateAsync.mockResolvedValue({ name: 'My App', id: 'app-1' })
             renderCreateApp({ teamId: 'team-42' })
             openDialog()
             await fillAndSubmit('My App')
-            expect(mockCreateApp).toHaveBeenCalledWith('team-42', 'My App')
+            expect(mockMutateAsync).toHaveBeenCalledWith({ teamId: 'team-42', appName: 'My App' })
         })
 
         it('shows loading state while API is in progress', async () => {
-            let resolveApi: Function
-            mockCreateApp.mockReturnValue(new Promise(r => { resolveApi = r }))
+            mockIsPending = true
             renderCreateApp()
             openDialog()
-            await fillAndSubmit('My App')
 
-            // Submit button should be in loading state
+            // Type a name so the button would normally be enabled
+            fireEvent.change(screen.getByPlaceholderText('Enter app name'), { target: { value: 'My App' } })
+
+            // Submit button should be disabled because isPending is true
             const submitButtons = screen.getAllByText(/Create App/)
             const submitButton = submitButtons.find(b => b.closest('button')?.getAttribute('type') === 'submit')!
             expect(submitButton.closest('button')).toBeDisabled()
-
-            // Resolve to clean up
-            await act(async () => {
-                resolveApi!({ status: 2, data: { name: 'My App', id: 'app-1' } })
-            })
         })
     })
 
     describe('Success handling', () => {
         beforeEach(() => {
-            mockCreateApp.mockResolvedValue({ status: 2, data: { name: 'My App', id: 'app-1' } })
+            mockMutateAsync.mockResolvedValue({ name: 'My App', id: 'app-1' })
         })
 
         it('closes dialog on success', async () => {
@@ -215,7 +216,7 @@ describe('CreateApp', () => {
 
     describe('Error handling', () => {
         beforeEach(() => {
-            mockCreateApp.mockResolvedValue({ status: 3, error: 'Name already taken' })
+            mockMutateAsync.mockRejectedValue(new Error('Name already taken'))
         })
 
         it('shows error toast with error message', async () => {

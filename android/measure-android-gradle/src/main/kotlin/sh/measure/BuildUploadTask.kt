@@ -13,6 +13,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
@@ -94,7 +95,7 @@ abstract class BuildUploadTask : DefaultTask() {
 
     @get:Optional
     @get:InputDirectory
-    abstract val flutterSymbolsDirProperty: RegularFileProperty
+    abstract val flutterSymbolsDirProperty: DirectoryProperty
 
     @get:InputFile
     abstract val manifestFileProperty: RegularFileProperty
@@ -128,7 +129,7 @@ abstract class BuildUploadTask : DefaultTask() {
             buildsRequest,
             mappings,
             mappingFile,
-            flutterSymbolsDir
+            flutterSymbolsDir,
         )
     }
 
@@ -236,7 +237,6 @@ abstract class BuildUploadTask : DefaultTask() {
                     flutterSymbolsDir?.listFiles { f -> f.extension == "symbols" && f.name == mapping.filename }
                         ?.firstOrNull()
                 }
-
                 else -> null
             }
 

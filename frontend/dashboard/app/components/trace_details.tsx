@@ -1,14 +1,13 @@
 "use client"
 
-import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls"
 import { buttonVariants } from "@/app/components/button"
-import LoadingSpinner from "@/app/components/loading_spinner"
+import { Skeleton } from "@/app/components/skeleton"
 import TraceViz from "@/app/components/trace_viz"
+import { useTraceQuery } from "@/app/query/hooks"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils"
 import { DateTime } from 'luxon'
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import Pill from "./pill"
 
 const demoTimelineLastEventTime = DateTime.now().toUTC()
@@ -91,60 +90,53 @@ interface TraceDetailsProps {
 }
 
 export default function TraceDetails({ params = { teamId: 'demo-team-id', appId: 'demo-app-id', traceId: 'demo-trace-id' }, demo = false, hideDemoTitle = false }: TraceDetailsProps) {
-    const [trace, setTrace] = useState(emptyTrace)
-    const [traceApiStatus, setTraceApiStatus] = useState(TraceApiStatus.Loading)
+    const { data: trace, status: traceStatus } = useTraceQuery(demo ? '' : params.appId, demo ? '' : params.traceId)
 
-    const getTrace = async () => {
-        setTraceApiStatus(TraceApiStatus.Loading)
-
-        if (demo) {
-            setTrace(demoTrace)
-            setTraceApiStatus(TraceApiStatus.Success)
-            return
-        }
-
-        const result = await fetchTraceFromServer(params.appId, params.traceId)
-
-        switch (result.status) {
-            case TraceApiStatus.Error:
-                setTraceApiStatus(TraceApiStatus.Error)
-                break
-            case TraceApiStatus.Success:
-                setTraceApiStatus(TraceApiStatus.Success)
-                setTrace(result.data)
-                break
-        }
-    }
-
-    useEffect(() => {
-        getTrace()
-    }, [])
+    const displayTrace = demo ? demoTrace : trace
+    const displayStatus = demo ? 'success' : traceStatus
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Performance Traces' : `Trace: ${params.traceId}`}</p>
+            <p className="font-display text-4xl">{demo ? hideDemoTitle ? '' : 'Performance Traces' : ''}</p>
             <div className="py-2" />
 
-            {traceApiStatus === TraceApiStatus.Loading && <LoadingSpinner />}
+            {displayStatus === 'pending' &&
+                <div className="flex flex-col w-full py-4">
+                    {/* Pills */}
+                    <div className="flex flex-wrap gap-2 py-2 pb-8">
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-28 rounded-full" />
+                        <Skeleton className="h-6 w-36 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                        <Skeleton className="h-6 w-32 rounded-full" />
+                    </div>
+                    {/* Trace visualization */}
+                    <Skeleton className="h-[300px] w-full rounded-lg" />
+                    {/* Button */}
+                    <div className="py-4" />
+                    <Skeleton className="h-9 w-44" />
+                </div>
+            }
 
-            {traceApiStatus === TraceApiStatus.Error && <p className="font-body text-sm">Error fetching trace, please refresh page to try again</p>}
+            {displayStatus === 'error' && <p className="font-body text-sm">Error fetching trace, please refresh page to try again</p>}
 
-            {traceApiStatus === TraceApiStatus.Success &&
+            {displayStatus === 'success' &&
                 <div className="w-full">
                     <div className="flex flex-wrap gap-2 py-2 pb-8 items-center">
-                        <Pill title={`User ID: ${trace.user_id !== "" ? trace.user_id : "N/A"}`} />
-                        <Pill title={`Start Time: ${formatDateToHumanReadableDateTime(trace.start_time)}`} />
-                        <Pill title={`Duration: ${formatMillisToHumanReadable(trace.duration)}`} />
-                        <Pill title={`Device: ${trace.device_manufacturer + trace.device_model}`} />
-                        <Pill title={`App version: ${trace.app_version}`} />
-                        <Pill title={`Network type: ${trace.network_type}`} />
+                        <Pill title={`User ID: ${displayTrace.user_id !== "" ? displayTrace.user_id : "N/A"}`} />
+                        <Pill title={`Start Time: ${formatDateToHumanReadableDateTime(displayTrace.start_time)}`} />
+                        <Pill title={`Duration: ${formatMillisToHumanReadable(displayTrace.duration)}`} />
+                        <Pill title={`Device: ${displayTrace.device_manufacturer + displayTrace.device_model}`} />
+                        <Pill title={`App version: ${displayTrace.app_version}`} />
+                        <Pill title={`Network type: ${displayTrace.network_type}`} />
                     </div>
-                    <TraceViz inputTrace={trace} />
+                    <TraceViz inputTrace={displayTrace} />
                     <div className="py-4" />
                     {demo ? (
                         <div className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>View Session Timeline</div>
                     ) : (
-                        <Link href={`/${params.teamId}/session_timelines/${params.appId}/${trace.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>View Session Timeline</Link>
+                        <Link href={`/${params.teamId}/session_timelines/${params.appId}/${displayTrace.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>View Session Timeline</Link>
                     )}
                 </div>}
         </div>

@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
 
 // --- Mocks ---
 
-const mockCreateTeam = jest.fn()
+const mockMutateAsync = jest.fn()
 const mockToastPositive = jest.fn()
 const mockToastNegative = jest.fn()
 
-jest.mock('@/app/api/api_calls', () => ({
+let mockIsPending = false
+
+jest.mock('@/app/query/hooks', () => ({
     __esModule: true,
-    CreateTeamApiStatus: { Init: 0, Loading: 1, Success: 2, Error: 3, Cancelled: 4 },
-    createTeamFromServer: (...args: any[]) => mockCreateTeam(...args),
+    useCreateTeamMutation: () => ({
+        mutateAsync: mockMutateAsync,
+        isPending: mockIsPending,
+    }),
 }))
 
 jest.mock('@/app/utils/use_toast', () => ({
@@ -37,6 +40,7 @@ jest.mock('@/app/components/dialog', () => ({
     DialogContent: ({ children }: any) => <div>{children}</div>,
     DialogHeader: ({ children }: any) => <div>{children}</div>,
     DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+    DialogDescription: ({ children }: any) => <p>{children}</p>,
 }))
 
 jest.mock('@/app/components/input', () => ({
@@ -74,6 +78,11 @@ async function fillAndSubmit(name: string) {
 // ============================================================
 
 describe('CreateTeam', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsPending = false
+    })
+
     describe('Rendering', () => {
         it('renders Create Team trigger button', () => {
             renderCreateTeam()
@@ -114,45 +123,38 @@ describe('CreateTeam', () => {
     })
 
     describe('Form submission', () => {
-        beforeEach(() => {
-            mockCreateTeam.mockReset()
-        })
-
         it('does not call API when team name is empty', async () => {
             renderCreateTeam()
             openDialog()
             await fillAndSubmit('')
-            expect(mockCreateTeam).not.toHaveBeenCalled()
+            expect(mockMutateAsync).not.toHaveBeenCalled()
         })
 
-        it('calls createTeamFromServer with team name', async () => {
-            mockCreateTeam.mockResolvedValue({ status: 2, data: { id: 'team-1' } })
+        it('calls createTeam with team name', async () => {
+            mockMutateAsync.mockResolvedValue({ id: 'team-1' })
             renderCreateTeam()
             openDialog()
             await fillAndSubmit('My Team')
-            expect(mockCreateTeam).toHaveBeenCalledWith('My Team')
+            expect(mockMutateAsync).toHaveBeenCalledWith({ teamName: 'My Team' })
         })
 
         it('shows loading state while API is in progress', async () => {
-            let resolveApi: Function
-            mockCreateTeam.mockReturnValue(new Promise(r => { resolveApi = r }))
+            mockIsPending = true
             renderCreateTeam()
             openDialog()
-            await fillAndSubmit('My Team')
+
+            // Type a name so the button would normally be enabled
+            fireEvent.change(screen.getByPlaceholderText('Enter team name'), { target: { value: 'My Team' } })
 
             const submitButtons = screen.getAllByText(/Create Team/)
             const submitButton = submitButtons.find(b => b.closest('button')?.getAttribute('type') === 'submit')!
             expect(submitButton.closest('button')).toBeDisabled()
-
-            await act(async () => {
-                resolveApi!({ status: 2, data: { id: 'team-1' } })
-            })
         })
     })
 
     describe('Success handling', () => {
         beforeEach(() => {
-            mockCreateTeam.mockResolvedValue({ status: 2, data: { id: 'team-new' } })
+            mockMutateAsync.mockResolvedValue({ id: 'team-new' })
         })
 
         it('closes dialog on success', async () => {
@@ -204,7 +206,7 @@ describe('CreateTeam', () => {
 
     describe('Error handling', () => {
         beforeEach(() => {
-            mockCreateTeam.mockResolvedValue({ status: 3, error: 'Name already taken' })
+            mockMutateAsync.mockRejectedValue(new Error('Name already taken'))
         })
 
         it('shows error toast with error message', async () => {

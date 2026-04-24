@@ -1,16 +1,16 @@
 "use client"
 
+import { useExceptionsDetailsPlotQuery } from '@/app/query/hooks'
+import { useFiltersStore } from '@/app/stores/provider'
 import { ResponsiveLine } from '@nivo/line'
 import { DateTime } from 'luxon'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
-import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls'
+import React from 'react'
+import { ExceptionsType } from '../api/api_calls'
 import { numberToKMB } from '../utils/number_utils'
-import { formatPlotTooltipDate, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
 import { chartTheme } from '../utils/shared_styles'
-import { getPlotTimeGroupForRange } from '../utils/time_utils'
-import { Filters } from './filters'
-import LoadingSpinner from './loading_spinner'
+import { formatPlotTooltipDate, getPlotTimeGroupForRange, getPlotTimeGroupNivoConfig } from '../utils/time_utils'
+import { SkeletonPlot } from './skeleton'
 
 const demoDataDate = DateTime.now()
 const demoData = [
@@ -43,11 +43,10 @@ const demoData = [
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
   exceptionsGroupId: string,
-  filters: Filters,
   demo?: boolean,
 }
 
-type ExceptionsDetailsPlot = {
+type ExceptionsDetailsPlotData = {
   id: string
   data: {
     x: string
@@ -55,70 +54,25 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters, demo = false }) => {
-  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
-  const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
-  const [plotDataKey, setPlotDataKey] = useState<string | null>(null)
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, demo = false }) => {
+  const filters = useFiltersStore(state => state.filters)
+  const { data: queryPlot, status } = useExceptionsDetailsPlotQuery(exceptionsType, exceptionsGroupId)
   const { theme } = useTheme()
   const plotTimeGroup = getPlotTimeGroupForRange(filters.startDate, filters.endDate)
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
-  const currentPlotKey = `${exceptionsType}|${exceptionsGroupId}|${filters.startDate}|${filters.endDate}|${plotTimeGroup}|${demo ? "demo" : "live"}`
-  const shouldRenderPlot = exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success && plot !== undefined && plotDataKey === currentPlotKey
 
-  const getExceptionsDetailsPlot = async () => {
-    if (demo) {
-      setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
-      setPlot(demoData.map((item: any) => ({ id: item.id, data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })) })))
-      setPlotDataKey(currentPlotKey)
-      return
-    }
-
-    // Don't try to fetch plot if filters aren't ready
-    if (!filters.ready) {
-      return
-    }
-
-    setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
-
-    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters)
-
-    switch (result.status) {
-      case ExceptionsDetailsPlotApiStatus.Error:
-        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Error)
-        setPlotDataKey(null)
-        break
-      case ExceptionsDetailsPlotApiStatus.NoData:
-        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.NoData)
-        setPlotDataKey(null)
-        break
-      case ExceptionsDetailsPlotApiStatus.Success:
-        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
-
-        // map result data to chart format
-        setPlot(result.data.map((item: any) => ({
-          id: item.id,
-          data: item.data.map((data: any) => ({
-            x: data.datetime,
-            y: data.instances,
-          })),
-        })))
-        setPlotDataKey(currentPlotKey)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getExceptionsDetailsPlot()
-  }, [exceptionsType, exceptionsGroupId, filters, demo])
+  const demoPlot: ExceptionsDetailsPlotData = demoData.map((item: any) => ({ id: item.id, data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })) }))
+  const effectiveStatus = demo ? 'success' : status
+  const plot = demo ? demoPlot : queryPlot
 
   return (
     <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
-      {(exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading || (exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success && !shouldRenderPlot)) && <LoadingSpinner />}
-      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {shouldRenderPlot &&
+      {effectiveStatus === 'pending' && <SkeletonPlot />}
+      {effectiveStatus === 'error' && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {effectiveStatus === 'success' && plot === null && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {effectiveStatus === 'success' && plot !== null && plot !== undefined &&
         <ResponsiveLine
-          data={plot!}
+          data={plot}
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}

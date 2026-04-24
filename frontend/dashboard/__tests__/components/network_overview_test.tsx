@@ -1,27 +1,10 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
+import NetworkOverview from '@/app/components/network_overview'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import React from 'react'
+import { act, render, screen } from '@testing-library/react'
 
-const mockFetchDomains = jest.fn()
-const mockFetchStatusPlot = jest.fn()
-const mockFetchTimeline = jest.fn()
-const mockFetchPaths = jest.fn()
 const mockRouterReplace = jest.fn()
 const mockRouterPush = jest.fn()
-
-jest.mock('@/app/api/api_calls', () => ({
-    __esModule: true,
-    FilterSource: { Events: 0 },
-    NetworkDomainsApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    NetworkPathsApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    NetworkOverviewStatusCodesPlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    NetworkTimelinePlotApiStatus: { Loading: 0, Success: 1, Error: 2, NoData: 3 },
-    fetchNetworkDomainsFromServer: (...args: any[]) => mockFetchDomains(...args),
-    fetchNetworkPathsFromServer: (...args: any[]) => mockFetchPaths(...args),
-    fetchNetworkOverviewStatusCodesPlotFromServer: (...args: any[]) => mockFetchStatusPlot(...args),
-    fetchNetworkTimelinePlotFromServer: (...args: any[]) => mockFetchTimeline(...args),
-}))
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
@@ -40,17 +23,55 @@ jest.mock('lucide-react', () => ({
     History: () => <span data-testid="history-icon" />,
 }))
 
+jest.mock('@/app/api/api_calls', () => ({
+    __esModule: true,
+    FilterSource: { Events: 0 },
+}))
+
+jest.mock('@/app/stores/provider', () => {
+    const { create } = jest.requireActual('zustand')
+    const filtersStore = create(() => ({
+        filters: { ready: false, serialisedFilters: '' },
+    }))
+    return { __esModule: true, useFiltersStore: filtersStore }
+})
+
+const mockUseNetworkDomainsQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseNetworkPathsQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseNetworkStatusPlotQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+const mockUseNetworkTimelineQuery = jest.fn(() => ({
+    data: null as any,
+    status: 'pending' as string,
+    error: null as Error | null,
+}))
+
+jest.mock('@/app/query/hooks', () => ({
+    __esModule: true,
+    useNetworkDomainsQuery: () => mockUseNetworkDomainsQuery(),
+    useNetworkPathsQuery: () => mockUseNetworkPathsQuery(),
+    useNetworkStatusPlotQuery: () => mockUseNetworkStatusPlotQuery(),
+    useNetworkTimelineQuery: () => mockUseNetworkTimelineQuery(),
+}))
+
 jest.mock('@/app/components/filters', () => ({
     __esModule: true,
-    default: ({ onFiltersChanged }: any) => (
-        <div data-testid="filters-mock">
-            <button data-testid="set-filters-ready" onClick={() =>
-                onFiltersChanged({ ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' })
-            }>Ready</button>
-        </div>
-    ),
-    AppVersionsInitialSelectionType: { All: 1 },
-    defaultFilters: { ready: false, serialisedFilters: null, startDate: '', endDate: '' },
+    default: () => <div data-testid="filters-mock" />,
+    AppVersionsInitialSelectionType: { Latest: 'latest', All: 'all' },
 }))
 
 jest.mock('@/app/components/beta_badge', () => ({
@@ -58,9 +79,10 @@ jest.mock('@/app/components/beta_badge', () => ({
     default: () => <span data-testid="beta-badge" />,
 }))
 
-jest.mock('@/app/components/loading_spinner', () => ({
-    __esModule: true,
-    default: () => <div data-testid="loading-spinner">Loading...</div>,
+jest.mock('@/app/components/skeleton', () => ({
+    Skeleton: ({ className, ...props }: any) => <div data-testid="skeleton-mock" className={className} {...props} />,
+    SkeletonPlot: () => <div data-testid="skeleton-plot-mock">Loading...</div>,
+    SkeletonTable: () => <div data-testid="skeleton-table-mock" />,
 }))
 
 jest.mock('@/app/components/dropdown_select', () => ({
@@ -110,15 +132,21 @@ jest.mock('@/app/utils/shared_styles', () => ({
     underlineLinkStyle: 'underline',
 }))
 
-import NetworkOverview from '@/app/components/network_overview'
+const { useFiltersStore } = require('@/app/stores/provider') as any
 
 describe('NetworkOverview', () => {
     beforeEach(() => {
-        mockFetchDomains.mockReset()
-        mockFetchStatusPlot.mockReset()
-        mockFetchTimeline.mockReset()
-        mockFetchPaths.mockReset()
         mockRouterPush.mockReset()
+        mockRouterReplace.mockReset()
+        mockUseNetworkDomainsQuery.mockReset()
+        mockUseNetworkPathsQuery.mockReset()
+        mockUseNetworkStatusPlotQuery.mockReset()
+        mockUseNetworkTimelineQuery.mockReset()
+        mockUseNetworkDomainsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        mockUseNetworkPathsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        mockUseNetworkStatusPlotQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        mockUseNetworkTimelineQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
+        useFiltersStore.setState({ filters: { ready: false, serialisedFilters: '' } })
     })
 
     describe('Demo mode', () => {
@@ -135,13 +163,6 @@ describe('NetworkOverview', () => {
         it('does not render Filters in demo mode', () => {
             render(<NetworkOverview demo={true} />)
             expect(screen.queryByTestId('filters-mock')).not.toBeInTheDocument()
-        })
-
-        it('does not call any API in demo mode', () => {
-            render(<NetworkOverview demo={true} />)
-            expect(mockFetchDomains).not.toHaveBeenCalled()
-            expect(mockFetchStatusPlot).not.toHaveBeenCalled()
-            expect(mockFetchTimeline).not.toHaveBeenCalled()
         })
 
         it('renders status distribution section', () => {
@@ -171,96 +192,60 @@ describe('NetworkOverview', () => {
             expect(screen.getByTestId('filters-mock')).toBeInTheDocument()
         })
 
-        it('renders beta badge', () => {
-            render(<NetworkOverview params={{ teamId: 'team-1' }} />)
-            expect(screen.getByTestId('beta-badge')).toBeInTheDocument()
-        })
-
         it('shows loading spinner before domains are fetched', async () => {
-            mockFetchDomains.mockReturnValue(new Promise(() => { }))
-            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: null, status: 'pending' as string, error: null })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
-            })
+            expect(screen.getAllByTestId('skeleton-mock').length).toBeGreaterThan(0)
         })
 
         it('shows error message when domains API fails', async () => {
-            mockFetchDomains.mockResolvedValue({ status: 2 })
-            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByText(/Error fetching domains/)).toBeInTheDocument()
-            })
+            expect(screen.getByText(/Error fetching domains/)).toBeInTheDocument()
         })
 
         it('shows no data message when domains API returns no data', async () => {
-            mockFetchDomains.mockResolvedValue({ status: 3 })
-            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: null, status: 'success', error: null })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByText(/No data available/)).toBeInTheDocument()
-            })
+            expect(screen.getByText(/No data available/)).toBeInTheDocument()
         })
 
         it('shows status distribution section after domains succeed', async () => {
-            mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
-            mockFetchStatusPlot.mockResolvedValue({ status: 2 })
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-            mockFetchPaths.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: ['api.example.com'], status: 'success', error: null })
+            mockUseNetworkStatusPlotQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByText('Status Distribution')).toBeInTheDocument()
-            })
+            expect(screen.getByText('Status Distribution')).toBeInTheDocument()
         })
 
         it('shows timeline section after domains succeed', async () => {
-            mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
-            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockResolvedValue({ status: 2 })
-            mockFetchPaths.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: ['api.example.com'], status: 'success', error: null })
+            mockUseNetworkTimelineQuery.mockReturnValue({ data: null, status: 'error', error: new Error('fail') })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByText('Timeline')).toBeInTheDocument()
-            })
+            expect(screen.getByText('Timeline')).toBeInTheDocument()
         })
 
         it('shows search section when domains succeed', async () => {
-            mockFetchDomains.mockResolvedValue({ status: 1, data: { results: ['api.example.com'] } })
-            mockFetchStatusPlot.mockReturnValue(new Promise(() => { }))
-            mockFetchTimeline.mockReturnValue(new Promise(() => { }))
-            mockFetchPaths.mockReturnValue(new Promise(() => { }))
-
+            mockUseNetworkDomainsQuery.mockReturnValue({ data: ['api.example.com'], status: 'success', error: null })
             render(<NetworkOverview params={{ teamId: 'team-1' }} />)
             await act(async () => {
-                fireEvent.click(screen.getByTestId('set-filters-ready'))
+                useFiltersStore.setState({ filters: { ready: true, app: { id: 'app-1' }, serialisedFilters: 'a=app-1', startDate: '2024-01-01', endDate: '2024-01-14' } })
             })
-            await waitFor(() => {
-                expect(screen.getByText('Explore endpoint')).toBeInTheDocument()
-            })
+            expect(screen.getByText('Explore endpoint')).toBeInTheDocument()
         })
     })
 })

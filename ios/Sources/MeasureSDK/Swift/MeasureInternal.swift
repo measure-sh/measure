@@ -159,6 +159,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var measureDispatchQueue: MeasureDispatchQueue {
         return measureInitializer.measureDispatchQueue
     }
+    private var launchTracker: LaunchTracker {
+        return measureInitializer.launchTracker
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -166,6 +169,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
+        self.launchTracker.setOnAppLaunchCallback {
+            self.lifecycleCollector.applicationDidLaunch()
+        }
         if configProvider.enableDiagnosticMode {
             let logWriter = SdkDebugLogWriter(fileManager: systemFileManager,
                                              sdkVersion: FrameworkInfo.version,

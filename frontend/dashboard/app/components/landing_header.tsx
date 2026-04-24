@@ -98,15 +98,6 @@ export default function LandingHeader() {
         {/* Desktop nav - hidden on small screens */}
         <div className="hidden md:flex md:flex-row items-center justify-center md:ml-24">
           <Link
-            href="/docs"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-24"
-            )}
-          >
-            Docs
-          </Link>
-          <Link
             href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost" }),
@@ -116,6 +107,15 @@ export default function LandingHeader() {
             Pricing
           </Link>
           <Link
+            href="/docs"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-24"
+            )}
+          >
+            Docs
+          </Link>
+          <Link
             href="/about"
             className={cn(
               buttonVariants({ variant: "ghost" }),
@@ -123,6 +123,15 @@ export default function LandingHeader() {
             )}
           >
             About
+          </Link>
+          <Link
+            href="https://blog.measure.sh/"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-24"
+            )}
+          >
+            Blog
           </Link>
         </div>
 
@@ -152,7 +161,7 @@ export default function LandingHeader() {
               className="w-4 h-4 hidden dark:block group-hover:block"
               alt={"GitHub logo"}
             />
-            <span className="mt-0.5">1.1k</span>
+            <span className="mt-0.5">1.2k</span>
           </Link>
           <div className="px-1" />
           <Link
@@ -184,16 +193,6 @@ export default function LandingHeader() {
         )}
       >
         <Link
-          href="/docs"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "w-full justify-center"
-          )}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Docs
-        </Link>
-        <Link
           href="/pricing"
           className={cn(
             buttonVariants({ variant: "ghost" }),
@@ -204,6 +203,16 @@ export default function LandingHeader() {
           Pricing
         </Link>
         <Link
+          href="/docs"
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "w-full justify-center"
+          )}
+          onClick={() => setIsMenuOpen(false)}
+        >
+          Docs
+        </Link>
+        <Link
           href="/about"
           className={cn(
             buttonVariants({ variant: "ghost" }),
@@ -212,6 +221,16 @@ export default function LandingHeader() {
           onClick={() => setIsMenuOpen(false)}
         >
           About
+        </Link>
+        <Link
+          href="https://blog.measure.sh"
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "w-full justify-center"
+          )}
+          onClick={() => setIsMenuOpen(false)}
+        >
+          Blog
         </Link>
         <div className="py-2" />
         <ThemeToggle />

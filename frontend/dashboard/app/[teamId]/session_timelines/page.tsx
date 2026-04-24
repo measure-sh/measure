@@ -1,99 +1,59 @@
 "use client"
+import { useFiltersStore } from '@/app/stores/provider'
 
-import { emptySessionTimelinesOverviewResponse, fetchSessionTimelinesOverviewFromServer, FilterSource, SessionTimelinesOverviewApiStatus } from '@/app/api/api_calls'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import { FilterSource, emptySessionTimelinesOverviewResponse } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SessionTimelinesOverviewPlot from '@/app/components/session_timelines_overview_plot'
+import { SkeletonListPage } from '@/app/components/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { paginationOffsetUrlKey, useSessionTimelinesOverviewQuery } from '@/app/query/hooks'
 import { underlineLinkStyle } from '@/app/utils/shared_styles'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-interface PageState {
-    sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus
-    filters: typeof defaultFilters
-    sessionTimelinesOverview: typeof emptySessionTimelinesOverviewResponse
-    paginationOffset: number
-}
-
-const paginationLimit = 5
-const paginationOffsetUrlKey = "po"
+const PAGINATION_LIMIT = 5
 
 export default function SessionTimelinesOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-    const initialState: PageState = {
-        sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus.Loading,
-        filters: defaultFilters,
-        sessionTimelinesOverview: emptySessionTimelinesOverviewResponse,
-        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
-    }
+    const filters = useFiltersStore(state => state.filters)
 
-    const [pageState, setPageState] = useState<PageState>(initialState)
+    // Pagination is component-local state, initialized from URL
+    const [paginationOffset, setPaginationOffset] = useState(() => {
+        const po = searchParams.get(paginationOffsetUrlKey)
+        return po ? parseInt(po) : 0
+    })
 
-
-    const updatePageState = (newState: Partial<PageState>) => {
-        setPageState(prevState => {
-            const updatedState = { ...prevState, ...newState }
-            return updatedState
-        })
-    }
-
-    const getSessionTimelinesOverview = async () => {
-        updatePageState({ sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus.Loading })
-
-        const result = await fetchSessionTimelinesOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
-
-        switch (result.status) {
-            case SessionTimelinesOverviewApiStatus.Error:
-                updatePageState({ sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus.Error })
-                break
-            case SessionTimelinesOverviewApiStatus.Success:
-                updatePageState({
-                    sessionTimelinesOverviewApiStatus: SessionTimelinesOverviewApiStatus.Success,
-                    sessionTimelinesOverview: result.data
-                })
-                break
-        }
-    }
-
-    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-        // update filters only if they have changed
-        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
-            updatePageState({
-                filters: updatedFilters,
-                // Reset pagination on filters change if previous filters were not default filters
-                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
-            })
-        }
-    }
-
-    const handleNextPage = () => {
-        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
-    }
-
-    const handlePrevPage = () => {
-        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
-    }
-
+    // Reset pagination when filters change (skip pre-ready transitions)
+    const prevFiltersRef = useRef<string | null>(null)
     useEffect(() => {
-        if (!pageState.filters.ready) {
+        if (!filters.ready) return
+        if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
+            setPaginationOffset(0)
+        }
+        prevFiltersRef.current = filters.serialisedFilters
+    }, [filters.ready, filters.serialisedFilters])
+
+    // URL sync
+    useEffect(() => {
+        if (!filters.ready) {
             return
         }
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
+    }, [paginationOffset, filters.ready, filters.serialisedFilters])
 
-        // update url
-        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
+    const { data: sessionTimelinesOverview = emptySessionTimelinesOverviewResponse, status, isFetching } = useSessionTimelinesOverviewQuery(paginationOffset)
 
-        getSessionTimelinesOverview()
-    }, [pageState.paginationOffset, pageState.filters])
+    const nextPage = () => setPaginationOffset(o => o + PAGINATION_LIMIT)
+    const prevPage = () => setPaginationOffset(o => Math.max(0, o - PAGINATION_LIMIT))
 
     return (
         <div className="flex flex-col items-start">
-            <p className="font-display text-4xl max-w-6xl text-center">Session Timelines</p>
             <div className="py-4" />
 
             <Filters
@@ -118,30 +78,31 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                 showHttpMethods={false}
                 showUdAttrs={true}
                 showFreeText={true}
-                freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...'
-                onFiltersChanged={handleFiltersChanged} />
+                freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...' />
             <div className="py-4" />
 
+            {filters.loading && <SkeletonListPage />}
+
             {/* Error state for sessions fetch */}
-            {pageState.filters.ready
-                && pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Error
+            {filters.ready
+                && status === 'error'
                 && <p className="text-lg font-display">Error fetching list of sessions, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main sessions list UI */}
-            {pageState.filters.ready
-                && (pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Success || pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Loading) &&
+            {filters.ready
+                && (status === 'success' || status === 'pending') &&
                 <div className="flex flex-col items-center w-full">
-                    <SessionTimelinesOverviewPlot filters={pageState.filters} />
+                    <SessionTimelinesOverviewPlot />
                     <div className='self-end'>
                         <Paginator
-                            prevEnabled={pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Loading ? false : pageState.sessionTimelinesOverview.meta.previous}
-                            nextEnabled={pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Loading ? false : pageState.sessionTimelinesOverview.meta.next}
+                            prevEnabled={isFetching ? false : sessionTimelinesOverview.meta.previous}
+                            nextEnabled={isFetching ? false : sessionTimelinesOverview.meta.next}
                             displayText=''
-                            onNext={handleNextPage}
-                            onPrev={handlePrevPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
                         />
                     </div>
-                    <div className={`py-1 w-full ${pageState.sessionTimelinesOverviewApiStatus === SessionTimelinesOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${isFetching ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
                     <div className="py-4" />
@@ -159,7 +120,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.sessionTimelinesOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => {
+                            {sessionTimelinesOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }: any, idx: number) => {
                                 const sessionHref = `/${params.teamId}/session_timelines/${app_id}/${session_id}`
                                 return (
                                     <TableRow
@@ -174,7 +135,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                                         }}
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -189,7 +150,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
@@ -203,7 +164,7 @@ export default function SessionTimelinesOverview({ params }: { params: { teamId:
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
                                                 className="absolute inset-0 z-10 cursor-pointer"
                                                 tabIndex={-1}
