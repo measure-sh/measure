@@ -413,13 +413,19 @@ services:
         TARGETTYPE: debug
     ports:
       - "8083:8083"
+    secrets:
+      - drive-api-key
+      - service-account-key
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYSTEM_SYMBOLS_S3_BUCKET=${SYSTEM_SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
       - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - DRIVE_API_KEY_FILE=/run/secrets/drive-api-key
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/service-account-key
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
@@ -555,7 +561,7 @@ services:
 
       mc alias set msr-minio http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
 
-      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
+      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET} msr-minio/${SYSTEM_SYMBOLS_S3_BUCKET};
 
       mc event add msr-minio/${SYMBOLS_S3_BUCKET} arn:minio:sqs::SYMBOLS:webhook --ignore-existing --event put --prefix incoming/;
 
@@ -746,3 +752,9 @@ volumes:
   minio-data:
   iggy-data:
   pgdata:
+
+secrets:
+  drive-api-key:
+    environment: "DRIVE_API_KEY"
+  service-account-key:
+    file: ../backend/symboloader/service-account-key.json
