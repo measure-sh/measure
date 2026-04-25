@@ -5,13 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 const manifestKey = "manifest.toml"
@@ -35,7 +31,7 @@ type ManifestRun struct {
 }
 
 // Manifest is the full history of all sync runs, stored as manifest.toml
-// at the root of SYSTEM_SYMBOLS_S3_BUCKET.
+// at the root of the symbols bucket.
 type Manifest struct {
 	Runs []ManifestRun `toml:"runs"`
 }
@@ -54,25 +50,15 @@ func (m *Manifest) completedVBAs() map[string]bool {
 	return vbas
 }
 
-// loadManifest reads manifest.toml from the S3 bucket root.
-// Returns an empty Manifest on first run (NoSuchKey).
-func loadManifest(ctx context.Context, client *s3.Client, bucket string) (*Manifest, error) {
-	out, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(manifestKey),
-	})
+// loadManifest reads manifest.toml from the bucket root.
+// Returns an empty Manifest on first run (object not found).
+func loadManifest(ctx context.Context, store ObjectStore) (*Manifest, error) {
+	data, err := store.Get(ctx, manifestKey)
 	if err != nil {
-		var notFound *types.NoSuchKey
-		if errors.As(err, &notFound) {
+		if errors.Is(err, ErrNotFound) {
 			return &Manifest{}, nil
 		}
 		return nil, fmt.Errorf("get manifest: %w", err)
-	}
-	defer out.Body.Close()
-
-	data, err := io.ReadAll(out.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read manifest body: %w", err)
 	}
 
 	var m Manifest
@@ -82,19 +68,13 @@ func loadManifest(ctx context.Context, client *s3.Client, bucket string) (*Manif
 	return &m, nil
 }
 
-// saveManifest encodes the manifest as TOML and writes it to the S3 bucket root.
-func saveManifest(ctx context.Context, client *s3.Client, bucket string, m *Manifest) error {
+// saveManifest encodes the manifest as TOML and writes it to the bucket root.
+func saveManifest(ctx context.Context, store ObjectStore, m *Manifest) error {
 	var buf bytes.Buffer
 	if err := toml.NewEncoder(&buf).Encode(m); err != nil {
 		return fmt.Errorf("encode manifest: %w", err)
 	}
-	_, err := client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(manifestKey),
-		Body:        bytes.NewReader(buf.Bytes()),
-		ContentType: aws.String("application/toml"),
-	})
-	if err != nil {
+	if err := store.Put(ctx, manifestKey, buf.Bytes(), "application/toml"); err != nil {
 		return fmt.Errorf("put manifest: %w", err)
 	}
 	return nil

@@ -22,9 +22,6 @@ import (
 	"google.golang.org/api/option"
 
 	"symboloader/symbol"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // fetchProgress tracks the overall state of a Fetch call for the Reporter.
@@ -56,9 +53,10 @@ type archiveFile struct {
 }
 
 // GoogleDriveFetcher implements Fetcher by downloading .7z archives from
-// Google Drive and uploading DIFs to an S3-compatible object store.
+// Google Drive and uploading DIFs to the configured object store.
 type GoogleDriveFetcher struct {
 	client      *drive.Service
+	store       ObjectStore
 	concurrency int
 	force       bool // when true, reprocess archives already in the manifest
 	onStart     func(count int)
@@ -79,11 +77,7 @@ func (f *GoogleDriveFetcher) PendingCount(ctx context.Context, plan *Plan) (pend
 	if f.force {
 		return total, total, nil
 	}
-	storageEnv, err := StorageEnvFromEnv()
-	if err != nil {
-		return 0, 0, fmt.Errorf("storage env: %w", err)
-	}
-	manifest, err := loadManifest(ctx, storageEnv.NewS3Client(), storageEnv.Bucket)
+	manifest, err := loadManifest(ctx, f.store)
 	if err != nil {
 		return 0, 0, fmt.Errorf("load manifest: %w", err)
 	}
@@ -106,12 +100,12 @@ func (f *GoogleDriveFetcher) SetProgressCallback(fn func(FetchProgressUpdate)) {
 // NewGoogleDriveFetcher creates a Fetcher using service account credentials
 // for Drive access. concurrency controls how many archives are processed in parallel.
 // When force is true, already-completed archives are reprocessed instead of skipped.
-func NewGoogleDriveFetcher(creds *google.Credentials, concurrency int, force bool) (*GoogleDriveFetcher, error) {
+func NewGoogleDriveFetcher(creds *google.Credentials, concurrency int, force bool, store ObjectStore) (*GoogleDriveFetcher, error) {
 	svc, err := drive.NewService(context.Background(), option.WithCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("drive service: %w", err)
 	}
-	return &GoogleDriveFetcher{client: svc, concurrency: concurrency, force: force}, nil
+	return &GoogleDriveFetcher{client: svc, store: store, concurrency: concurrency, force: force}, nil
 }
 
 // Fetch downloads, extracts, and uploads DIFs for all pending actions in the plan.
@@ -119,19 +113,7 @@ func NewGoogleDriveFetcher(creds *google.Credentials, concurrency int, force boo
 // On any upload or processing error the operation fails fast; re-running is safe
 // because completed archives are recorded in the manifest and skipped on resume.
 func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress chan<- FetchResult) (err error) {
-	storageEnv, err := StorageEnvFromEnv()
-	if err != nil {
-		return fmt.Errorf("storage env: %w", err)
-	}
-
-	if storageEnv.IsCloud {
-		// TODO: implement GCS upload path for Cloud Run
-		return fmt.Errorf("cloud run environment detected: GCS upload path not yet implemented")
-	}
-
-	s3client := storageEnv.NewS3Client()
-
-	manifest, err := loadManifest(ctx, s3client, storageEnv.Bucket)
+	manifest, err := loadManifest(ctx, f.store)
 	if err != nil {
 		return fmt.Errorf("load manifest: %w", err)
 	}
@@ -199,7 +181,7 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 				}
 
 				prog.begin()
-				result := f.processAction(ctx, action, s3client, storageEnv.Bucket)
+				result := f.processAction(ctx, action)
 				prog.done()
 
 				if result.Err != nil {
@@ -224,7 +206,7 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 					DifsUploaded: result.DifsUploaded,
 					CompletedAt:  time.Now().UTC(),
 				})
-				if saveErr := saveManifest(ctx, s3client, storageEnv.Bucket, manifest); saveErr != nil {
+				if saveErr := saveManifest(ctx, f.store, manifest); saveErr != nil {
 					slog.Warn("fetcher: failed to save manifest after archive completion",
 						"filename", action.Target.FileName,
 						"error", saveErr,
@@ -247,13 +229,13 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 
 	manifestMu.Lock()
 	manifest.Runs[runIdx].FinishedAt = time.Now().UTC()
-	err = saveManifest(ctx, s3client, storageEnv.Bucket, manifest)
+	err = saveManifest(ctx, f.store, manifest)
 	manifestMu.Unlock()
 	return err
 }
 
 // processAction downloads one .7z archive, processes its contents, and returns the result.
-func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action, s3client *s3.Client, bucket string) FetchResult {
+func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action) FetchResult {
 	target := action.Target
 	slog.Info("fetcher: downloading archive",
 		"filename", target.FileName,
@@ -293,7 +275,7 @@ func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action, s
 			f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "processing", DifsUploaded: n, BytesUploaded: b})
 		}
 	}
-	difsUploaded, bytesUploaded, err := processArchive(ctx, tempPath, arch, s3client, bucket, difCb)
+	difsUploaded, bytesUploaded, err := processArchive(ctx, tempPath, arch, f.store, difCb)
 	if err != nil {
 		return FetchResult{Target: target, Err: fmt.Errorf("process %s: %w", target.FileName, err)}
 	}
@@ -359,11 +341,11 @@ func (f *GoogleDriveFetcher) downloadToTemp(ctx context.Context, fileID string, 
 	return tmp.Name(), n, nil
 }
 
-// processArchive extracts files from the .7z at path and uploads DIFs to S3.
+// processArchive extracts files from the .7z at path and uploads DIFs to the object store.
 // Extraction is sequential (safe for the sevenzip reader); Mach-O parsing and
-// S3 uploads run concurrently across runtime.NumCPU() workers.
+// uploads run concurrently across runtime.NumCPU() workers.
 // onDif is called after each DIF is uploaded with running (count, bytesUploaded); may be nil.
-func processArchive(ctx context.Context, path, arch string, s3client *s3.Client, bucket string, onDif func(count int, bytesUploaded int64)) (int, int64, error) {
+func processArchive(ctx context.Context, path, arch string, store ObjectStore, onDif func(count int, bytesUploaded int64)) (int, int64, error) {
 	rc, err := sevenzip.OpenReader(path)
 	if err != nil {
 		return 0, 0, fmt.Errorf("open 7z: %w", err)
@@ -383,7 +365,7 @@ func processArchive(ctx context.Context, path, arch string, s3client *s3.Client,
 				if gctx.Err() != nil {
 					return gctx.Err()
 				}
-				uploaded, bytesUp, err := uploadDifs(gctx, af, s3client, bucket)
+				uploaded, bytesUp, err := uploadDifs(gctx, af, store)
 				if err != nil {
 					return err
 				}
@@ -434,8 +416,9 @@ func processArchive(ctx context.Context, path, arch string, s3client *s3.Client,
 }
 
 // uploadDifs verifies a file as Mach-O, extracts its UUID, and uploads
-// the debuginfo and meta objects to S3. Returns uploaded=false for non-Mach-O files.
-func uploadDifs(ctx context.Context, af archiveFile, s3client *s3.Client, bucket string) (uploaded bool, bytesUploaded int64, err error) {
+// the debuginfo and meta objects to the object store. Returns uploaded=false
+// for non-Mach-O files.
+func uploadDifs(ctx context.Context, af archiveFile, store ObjectStore) (uploaded bool, bytesUploaded int64, err error) {
 	reader := bytes.NewReader(af.data)
 	if err := symbol.VerifyMachO(reader); err != nil {
 		// Not a Mach-O binary — skip silently
@@ -479,11 +462,7 @@ func uploadDifs(ctx context.Context, af archiveFile, s3client *s3.Client, bucket
 
 	var totalBytes int64
 	for _, u := range uploads {
-		if _, err := s3client.PutObject(ctx, &s3.PutObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(u.key),
-			Body:   bytes.NewReader(u.data),
-		}); err != nil {
+		if err := store.Put(ctx, u.key, u.data, ""); err != nil {
 			return false, 0, fmt.Errorf("upload %s: %w", u.key, err)
 		}
 		totalBytes += int64(len(u.data))

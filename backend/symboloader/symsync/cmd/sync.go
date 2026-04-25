@@ -115,7 +115,8 @@ func runSync(cmd *cobra.Command) error {
 		if err := spot.ValidateVersions(versions); err != nil {
 			validationErrs = append(validationErrs, err.Error())
 		}
-		if _, err := pipeline.StorageEnvFromEnv(); err != nil {
+		storageEnv, err := pipeline.StorageEnvFromEnv()
+		if err != nil {
 			if errors.Is(err, pipeline.ErrMissingBucket) || errors.Is(err, pipeline.ErrMissingRegion) {
 				validationErrs = append(validationErrs, err.Error())
 			}
@@ -132,6 +133,11 @@ func runSync(cmd *cobra.Command) error {
 			combined := errors.New(strings.Join(validationErrs, "; "))
 			r.StageFailed("validate", combined)
 			return combined
+		}
+		store, err := pipeline.NewObjectStore(ctx, storageEnv)
+		if err != nil {
+			r.StageFailed("validate", err)
+			return fmt.Errorf("object store: %w", err)
 		}
 		r.StageFinished("validate", "ok")
 
@@ -185,7 +191,7 @@ func runSync(cmd *cobra.Command) error {
 		r.StageFinished("clone", fmt.Sprintf("%d folder(s) → %s", len(clonedFolders), dest))
 
 		// Fetcher created early so PendingCount can annotate the plan result.
-		fetcher, err := pipeline.NewGoogleDriveFetcher(creds, syncConcurrency, syncForce)
+		fetcher, err := pipeline.NewGoogleDriveFetcher(creds, syncConcurrency, syncForce, store)
 		if err != nil {
 			return fmt.Errorf("fetcher: %w", err)
 		}

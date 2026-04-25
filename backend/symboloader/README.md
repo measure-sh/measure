@@ -1,7 +1,8 @@
 # symboloader
 
 Enumerates, clones, and uploads Apple iOS system framework symbols to an
-S3-compatible bucket for use in symbolication.
+S3-compatible bucket (self-host) or a GCS bucket (Cloud Run) for use in
+symbolication.
 
 ## Commands
 
@@ -25,13 +26,21 @@ symboloader sync [flags]    Run the full symbol sync pipeline
 
 ### Storage (required)
 
-| Variable | Description |
-|---|---|
-| `SYSTEM_SYMBOLS_S3_BUCKET` | S3 bucket name |
-| `SYSTEM_SYMBOLS_S3_REGION` | AWS region (e.g. `us-east-1`) |
-| `SYSTEM_SYMBOLS_S3_ENDPOINT` | Custom endpoint for S3-compatible stores (e.g. MinIO) |
-| `SYSTEM_SYMBOLS_S3_ACCESS_KEY_ID` | Access key ID |
-| `SYSTEM_SYMBOLS_S3_SECRET_ACCESS_KEY` | Secret access key |
+The destination is selected automatically: a Cloud Run job (detected via
+`CLOUD_RUN_JOB` and `CLOUD_RUN_EXECUTION` env vars set by the runtime) writes
+to GCS; everything else writes to an S3-compatible store.
+
+| Variable | Required when | Description |
+|---|---|---|
+| `SYSTEM_SYMBOLS_S3_BUCKET` | always | Bucket name. In Cloud Run this is the GCS bucket; everywhere else, the S3 bucket. |
+| `SYMBOLS_S3_BUCKET_REGION` | self-host | AWS region (e.g. `us-east-1`) |
+| `AWS_ENDPOINT_URL` | self-host (MinIO) | Custom endpoint for S3-compatible stores |
+| `SYMBOLS_ACCESS_KEY` | self-host | Access key ID |
+| `SYMBOLS_SECRET_ACCESS_KEY` | self-host | Secret access key |
+
+In Cloud Run, the job's attached service account must have
+`roles/storage.objectUser` on the destination bucket. No keys or endpoint are
+needed — credentials are resolved via the metadata server.
 
 ### Google Drive credentials (required)
 
@@ -65,10 +74,10 @@ Enables reading public source Drive folders without consuming service account qu
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
 export GOOGLE_DRIVE_API_KEY=<api-key>       # optional
 export SYSTEM_SYMBOLS_S3_BUCKET=symbols
-export SYSTEM_SYMBOLS_S3_REGION=us-east-1
-export SYSTEM_SYMBOLS_S3_ENDPOINT=http://localhost:9000
-export SYSTEM_SYMBOLS_S3_ACCESS_KEY_ID=minioadmin
-export SYSTEM_SYMBOLS_S3_SECRET_ACCESS_KEY=minioadmin
+export SYMBOLS_S3_BUCKET_REGION=us-east-1
+export AWS_ENDPOINT_URL=http://localhost:9000
+export SYMBOLS_ACCESS_KEY=minioadmin
+export SYMBOLS_SECRET_ACCESS_KEY=minioadmin
 
 go run cmd/symboloader/main.go sync --versions "18.x"
 ```
@@ -93,14 +102,54 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/service-account-key
       - DRIVE_API_KEY_FILE=/run/secrets/drive-api-key
       - SYSTEM_SYMBOLS_S3_BUCKET=symbols
-      - SYSTEM_SYMBOLS_S3_REGION=us-east-1
-      - SYSTEM_SYMBOLS_S3_ENDPOINT=http://minio:9000
-      - SYSTEM_SYMBOLS_S3_ACCESS_KEY_ID=...
-      - SYSTEM_SYMBOLS_S3_SECRET_ACCESS_KEY=...
+      - SYMBOLS_S3_BUCKET_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://minio:9000
+      - SYMBOLS_ACCESS_KEY=...
+      - SYMBOLS_SECRET_ACCESS_KEY=...
 ```
 
 ### Cloud Run
 
-Attach a service account to the Cloud Run job directly. No key file or
-environment variable is needed — ADC reads credentials from the metadata server
-automatically.
+Attach a service account to the Cloud Run job directly — no key file, no
+environment variable. ADC resolves credentials from the metadata server, and
+the same service account serves both Drive reads and GCS writes.
+
+Required setup:
+
+- The service account must have `roles/storage.objectUser` on the destination
+  GCS bucket.
+- The service account must have read access to the upstream Drive folders, or
+  set `GOOGLE_DRIVE_API_KEY` / `DRIVE_API_KEY_FILE` to read public folders
+  without consuming SA quota.
+- Set `SYSTEM_SYMBOLS_S3_BUCKET` to the GCS bucket name. The S3-only variables
+  (`SYMBOLS_S3_BUCKET_REGION`, `SYMBOLS_ACCESS_KEY`, `SYMBOLS_SECRET_ACCESS_KEY`,
+  `AWS_ENDPOINT_URL`) are unused here and may be omitted.
+
+## Operational requirements
+
+### Run at most one execution at a time
+
+The pipeline records progress in `manifest.toml` at the bucket root using a
+read-modify-write pattern. Two overlapping executions can both load the same
+manifest, append different entries, and the second writer will overwrite the
+first writer's append.
+
+Symbol objects are content-addressed (`<debugID>/debuginfo`, `<debugID>/meta`)
+and idempotent, so this never causes incorrect symbolication. But a dropped
+manifest entry will cause the next run to re-download the archive from Drive
+and re-upload identical bytes, wasting Drive API quota and Cloud Run time.
+
+Configure your scheduler so executions cannot overlap:
+
+- Cloud Run Jobs: do not trigger a new execution while one is still running.
+- Cloud Scheduler: set an attempt deadline shorter than the schedule interval,
+  and verify no manual triggers overlap a scheduled run.
+
+When triggering manually, confirm no execution is already in progress.
+
+### About `manifest.toml`
+
+`manifest.toml` is bookkeeping. The planner reads it to skip already-completed
+`(version, build, arch)` tuples on subsequent runs, and it serves as an audit
+log of historical runs for operators. It is not required for symbolication
+correctness — symbol objects in the bucket are the source of truth.

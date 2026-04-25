@@ -14,7 +14,7 @@ var (
 	ErrMissingRegion = errors.New("SYMBOLS_S3_BUCKET_REGION is not set")
 )
 
-// StorageEnv holds S3 configuration read from environment variables.
+// StorageEnv holds storage configuration read from environment variables.
 type StorageEnv struct {
 	Bucket    string
 	Region    string
@@ -38,7 +38,7 @@ func StorageEnvFromEnv() (StorageEnv, error) {
 	if env.Bucket == "" {
 		return StorageEnv{}, ErrMissingBucket
 	}
-	if env.Region == "" {
+	if !env.IsCloud && env.Region == "" {
 		return StorageEnv{}, ErrMissingRegion
 	}
 	return env, nil
