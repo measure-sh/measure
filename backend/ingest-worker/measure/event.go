@@ -1255,9 +1255,15 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 						fmt.Printf("failed to generate token for GCS Apple source: %v\n", err)
 					} else {
 						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, tok.Value))
+						if config.SystemSymbolsBucket != "" {
+							sources = append(sources, symbolicator.NewGCSSourceApple("msr-system-symbols", config.SystemSymbolsBucket, tok.Value))
+						}
 					}
 				} else {
 					sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					if config.SystemSymbolsBucket != "" {
+						sources = append(sources, symbolicator.NewS3SourceApple("msr-system-symbols", config.SystemSymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+					}
 				}
 			}
 
