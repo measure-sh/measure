@@ -415,7 +415,6 @@ services:
       - "8083:8083"
     secrets:
       - drive-api-key
-      - service-account-key
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
@@ -425,7 +424,6 @@ services:
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
       - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
       - DRIVE_API_KEY_FILE=/run/secrets/drive-api-key
-      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/service-account-key
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
@@ -756,5 +754,3 @@ volumes:
 secrets:
   drive-api-key:
     environment: "DRIVE_API_KEY"
-  service-account-key:
-    file: ../backend/symboloader/service-account-key.json

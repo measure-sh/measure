@@ -1,7 +1,5 @@
 package pipeline
 
-import "context"
-
 // DriveFolder is a Google Drive folder link parsed from the README.
 type DriveFolder struct {
 	// URL is the full Google Drive folder URL.
@@ -42,11 +40,4 @@ type Catalog struct {
 
 	// Groups is the list of version groups with their symbol entries.
 	Groups []VersionGroup
-}
-
-// Enumerator parses an upstream source (e.g., a GitHub README) to
-// discover available iOS system symbol versions and their Google
-// Drive locations.
-type Enumerator interface {
-	Enumerate(ctx context.Context) (*Catalog, error)
 }

@@ -16,6 +16,10 @@ type ObjectStore interface {
 	Put(ctx context.Context, key string, data []byte, contentType string) error
 	// Get reads the object at key. Returns ErrNotFound if absent.
 	Get(ctx context.Context, key string) ([]byte, error)
+	// Delete removes the object at key. Missing keys are not an error.
+	Delete(ctx context.Context, key string) error
+	// List returns all keys under prefix. Order is not guaranteed.
+	List(ctx context.Context, prefix string) ([]string, error)
 }
 
 // NewObjectStore constructs the appropriate ObjectStore for the given environment.

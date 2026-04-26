@@ -3,10 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
+	"time"
 
-	"symboloader/symsync/config"
 	"symboloader/symsync/enumerate"
 	"symboloader/symsync/pipeline"
 	"symboloader/symsync/reporter"
@@ -15,8 +16,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ErrMissingDriveAPIKey is reported during validation when the user has not
+// configured a Drive API key via either env var.
+var ErrMissingDriveAPIKey = errors.New("Drive API key is required: set GOOGLE_DRIVE_API_KEY or DRIVE_API_KEY_FILE (see backend/symboloader/README.md)")
+
 // getAPIKey reads the Drive API key from environment variable or file.
-// Priority: GOOGLE_DRIVE_API_KEY (env var) > DRIVE_API_KEY_FILE (file path)
+// Priority: GOOGLE_DRIVE_API_KEY (env var) > DRIVE_API_KEY_FILE (file path).
+// Returns an empty string with no error when neither is configured;
+// the validate stage surfaces a clear ErrMissingDriveAPIKey.
 func getAPIKey() (string, error) {
 	if apiKey := strings.TrimSpace(os.Getenv("GOOGLE_DRIVE_API_KEY")); apiKey != "" {
 		return apiKey, nil
@@ -32,23 +39,25 @@ func getAPIKey() (string, error) {
 }
 
 var (
-	syncVersions      []string
-	syncConcurrency   int
-	syncDryRun        bool
-	syncForce         bool
-	syncList          bool
-	syncDriveFolder   string
-	syncDriveFolderID string
+	syncVersions    []string
+	syncConcurrency int
+	syncDryRun      bool
+	syncForce       bool
+	syncList        bool
+	syncNoRemoval   bool
 )
 
 var syncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "run the full symbol sync pipeline",
 	Long: `Enumerates available iOS system symbol versions, resolves targets,
-plans downloads, fetches archives, processes symbols, and uploads to storage.
+plans downloads, fetches archives, processes symbols, uploads to storage,
+and removes DIFs that are no longer in the target set.
 
 Use --list to enumerate available versions without syncing.
-Use --dry-run to see the download plan without executing it.`,
+Use --dry-run to see the plan (fetches + removals) without executing it.
+Use --no-removal to keep previously-synced symbols even when they are no
+longer in the target set.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if syncList {
 			return runList(cmd)
@@ -60,11 +69,10 @@ Use --dry-run to see the download plan without executing it.`,
 func init() {
 	syncCmd.Flags().StringSliceVar(&syncVersions, "versions", nil, "target versions (e.g. \"26.0,18.x\"); default: last 5 versions")
 	syncCmd.Flags().IntVar(&syncConcurrency, "concurrency", 4, "number of archives to process in parallel")
-	syncCmd.Flags().StringVar(&syncDriveFolder, "drive-folder", "symboloader", "Google Drive destination folder name (created if missing)")
-	syncCmd.Flags().StringVar(&syncDriveFolderID, "drive-folder-id", "", "Google Drive destination folder ID (takes priority over --drive-folder)")
-	syncCmd.Flags().BoolVar(&syncDryRun, "dry-run", false, "show download plan without executing")
+	syncCmd.Flags().BoolVar(&syncDryRun, "dry-run", false, "show plan without executing")
 	syncCmd.Flags().BoolVar(&syncForce, "force", false, "reprocess archives already recorded in the manifest")
 	syncCmd.Flags().BoolVar(&syncList, "list", false, "enumerate and list available versions, then exit")
+	syncCmd.Flags().BoolVar(&syncNoRemoval, "no-removal", false, "keep previously-synced symbols even if they are no longer in the target set")
 }
 
 func runList(cmd *cobra.Command) error {
@@ -121,13 +129,12 @@ func runSync(cmd *cobra.Command) error {
 				validationErrs = append(validationErrs, err.Error())
 			}
 		}
-		creds, err := config.DriveCredentials(ctx)
-		if err != nil {
-			validationErrs = append(validationErrs, err.Error())
-		}
 		apiKey, err := getAPIKey()
 		if err != nil {
 			validationErrs = append(validationErrs, err.Error())
+		}
+		if apiKey == "" {
+			validationErrs = append(validationErrs, ErrMissingDriveAPIKey.Error())
 		}
 		if len(validationErrs) > 0 {
 			combined := errors.New(strings.Join(validationErrs, "; "))
@@ -153,7 +160,7 @@ func runSync(cmd *cobra.Command) error {
 
 		// Spot
 		r.StageStarted("spot")
-		spotter, err := spot.NewSpotterImpl(creds, apiKey)
+		spotter, err := spot.NewDriveSpotter(apiKey)
 		if err != nil {
 			r.StageFailed("spot", err)
 			return fmt.Errorf("spotter: %w", err)
@@ -169,58 +176,42 @@ func runSync(cmd *cobra.Command) error {
 		}
 		r.StageFinished("spot", fmt.Sprintf("%d target(s) for %v", len(targets), versions))
 
-		// Clone
-		r.StageStarted("clone")
-		cloner, err := pipeline.NewGoogleDriveCloner(creds, apiKey, syncDriveFolder, syncDriveFolderID)
+		// Plan — needs the manifest to compute deletions
+		r.StageStarted("plan")
+		manifest, err := pipeline.LoadManifest(ctx, store)
 		if err != nil {
-			r.StageFailed("clone", err)
-			return fmt.Errorf("cloner: %w", err)
+			r.StageFailed("plan", err)
+			return fmt.Errorf("load manifest: %w", err)
 		}
-		if cb := r.CloneProgressCallback(); cb != nil {
-			cloner.SetProgressCallback(cb)
-		}
-		clonedFolders, err := cloner.Clone(ctx, targets)
-		if err != nil {
-			r.StageFailed("clone", err)
-			return fmt.Errorf("clone: %w", err)
-		}
-		dest := syncDriveFolder
-		if syncDriveFolderID != "" {
-			dest = syncDriveFolderID
-		}
-		r.StageFinished("clone", fmt.Sprintf("%d folder(s) → %s", len(clonedFolders), dest))
+		plan := pipeline.NewPlan(targets, manifest)
 
-		// Fetcher created early so PendingCount can annotate the plan result.
-		fetcher, err := pipeline.NewGoogleDriveFetcher(creds, syncConcurrency, syncForce, store)
+		fetcher, err := pipeline.NewGoogleDriveFetcher(apiKey, syncConcurrency, syncForce, store)
 		if err != nil {
+			r.StageFailed("plan", err)
 			return fmt.Errorf("fetcher: %w", err)
 		}
+		fetcher.SetManifest(manifest)
+		pending, total := fetcher.PendingCount(plan)
 
-		// Plan
-		r.StageStarted("plan")
-		planner, err := pipeline.NewGoogleDrivePlanner(creds)
-		if err != nil {
-			r.StageFailed("plan", err)
-			return fmt.Errorf("planner: %w", err)
+		removals := plan.DeleteCount()
+		if syncNoRemoval {
+			removals = 0
 		}
-		plan, err := planner.Plan(ctx, targets, clonedFolders)
-		if err != nil {
-			r.StageFailed("plan", err)
-			return fmt.Errorf("plan: %w", err)
-		}
-		pending, total, err := fetcher.PendingCount(ctx, plan)
-		if err != nil {
-			r.StageFailed("plan", err)
-			return fmt.Errorf("pending count: %w", err)
-		}
+		planDetail := fmt.Sprintf("%d to fetch", pending)
 		if pending < total {
-			r.StageFinished("plan", fmt.Sprintf("%d to fetch  ·  %d already done", pending, total-pending))
-		} else {
-			r.StageFinished("plan", fmt.Sprintf("%d to fetch", pending))
+			planDetail += fmt.Sprintf("  ·  %d already done", total-pending)
 		}
+		planDetail += fmt.Sprintf("  ·  %d to remove", removals)
+		r.StageFinished("plan", planDetail)
 
 		if syncDryRun {
 			return nil
+		}
+
+		// Fetch
+		runRec := pipeline.RunRecord{
+			RunID:     pipeline.NewRunID(time.Now()),
+			StartedAt: time.Now().UTC(),
 		}
 
 		fetcher.SetStartCallback(r.FetchStartCallback())
@@ -230,12 +221,76 @@ func runSync(cmd *cobra.Command) error {
 
 		results := make(chan pipeline.FetchResult)
 		var fetchErr error
+		var addedRefs []pipeline.ArchiveRef
 		go func() {
-			fetchErr = fetcher.Fetch(ctx, plan, results)
+			addedRefs, fetchErr = fetcher.Fetch(ctx, plan, results)
 			close(results)
 		}()
 		r.DrainFetch(results)
 
-		return fetchErr
+		runRec.ArchivesAdded = addedRefs
+		if fetchErr != nil {
+			return fetchErr
+		}
+
+		// Janitor
+		var deletedRefs []pipeline.ArchiveRef
+		if !syncNoRemoval && len(plan.Deletes) > 0 {
+			r.StageStarted("janitor")
+			janitor := pipeline.NewStoreJanitor(store, manifest, syncConcurrency)
+			janitor.SetStartCallback(r.JanitorStartCallback())
+
+			delResults := make(chan pipeline.DeleteResult)
+			var janErr error
+			go func() {
+				deletedRefs, janErr = janitor.Delete(ctx, plan, delResults)
+				close(delResults)
+			}()
+			r.DrainJanitor(delResults)
+
+			if janErr != nil {
+				r.StageFailed("janitor", janErr)
+				return janErr
+			}
+			runRec.ArchivesDeleted = deletedRefs
+			r.StageFinished("janitor", fmt.Sprintf("%d removed", len(deletedRefs)))
+		}
+
+		// Audit log
+		runRec.FinishedAt = time.Now().UTC()
+		if err := pipeline.SaveRunRecord(ctx, store, runRec); err != nil {
+			slog.Warn("failed to save run record", "error", err)
+		}
+
+		// Manifest summary
+		r.ManifestSummary(buildSummary(manifest, addedRefs, deletedRefs))
+		return nil
 	})
+}
+
+// buildSummary partitions the in-memory manifest into Added/Kept/Deleted
+// based on the just-completed run's added and deleted archive refs.
+func buildSummary(m *pipeline.Manifest, added, deleted []pipeline.ArchiveRef) reporter.ManifestCategorized {
+	addedSet := make(map[string]bool, len(added))
+	for _, a := range added {
+		addedSet[a.VBAC()] = true
+	}
+	deletedSet := make(map[string]bool, len(deleted))
+	for _, d := range deleted {
+		deletedSet[d.VBAC()] = true
+	}
+
+	var c reporter.ManifestCategorized
+	for _, e := range m.Archives {
+		key := e.VBAC()
+		switch {
+		case deletedSet[key]:
+			c.Deleted = append(c.Deleted, e)
+		case addedSet[key]:
+			c.Added = append(c.Added, e)
+		case e.Active():
+			c.Kept = append(c.Kept, e)
+		}
+	}
+	return c
 }

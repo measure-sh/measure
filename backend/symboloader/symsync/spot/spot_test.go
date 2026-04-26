@@ -146,7 +146,7 @@ func TestLatestVersions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("n="+string(rune(tt.n)), func(t *testing.T) {
-			got := LatestVersions(catalog, tt.n)
+			got := latestVersions(catalog, tt.n)
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d versions, want %d", len(got), len(tt.want))
 			}
@@ -202,7 +202,7 @@ func TestLastNVersionsResolution(t *testing.T) {
 
 			parts := strings.SplitN(tt.versionSpec, " ", 3)
 			n, _ := strconv.Atoi(parts[1])
-			got := LatestVersions(catalog, n)
+			got := latestVersions(catalog, n)
 
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d versions, want %d", len(got), len(tt.want))
@@ -278,7 +278,7 @@ func TestResolveVersionsSpecific(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ResolveVersions(catalog, tt.versions)
+			got, err := resolveVersions(catalog, tt.versions)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -328,7 +328,7 @@ func TestResolveVersionsWildcard(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ResolveVersions(catalog, tt.versions)
+			got, err := resolveVersions(catalog, tt.versions)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -373,7 +373,7 @@ func TestResolveVersionsRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ResolveVersions(catalog, tt.versions)
+			got, err := resolveVersions(catalog, tt.versions)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -418,7 +418,7 @@ func TestResolveVersionsLastN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ResolveVersions(catalog, tt.versions)
+			got, err := resolveVersions(catalog, tt.versions)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -447,7 +447,7 @@ func TestResolveVersionsMixed(t *testing.T) {
 	t.Run("mixed: specific + wildcard + range", func(t *testing.T) {
 		// "26.0" (specific) + "17.x" (wildcard) + "18.0-18.6" (range)
 		versions := []string{"26.0", "17.x", "18.0-18.6"}
-		got, err := ResolveVersions(catalog, versions)
+		got, err := resolveVersions(catalog, versions)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -481,7 +481,7 @@ func TestResolveVersionsMatchesFolders(t *testing.T) {
 		},
 	}
 
-	folders, err := ResolveVersions(catalog, []string{"26.0", "18.x"})
+	folders, err := resolveVersions(catalog, []string{"26.0", "18.x"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -501,4 +501,80 @@ func TestResolveVersionsMatchesFolders(t *testing.T) {
 	if !urls["https://drive.google.com/drive/folders/folder2"] {
 		t.Error("expected folder2 for versions 18.x")
 	}
+}
+
+func TestDedupByChecksum(t *testing.T) {
+	tests := []struct {
+		name      string
+		targets   []pipeline.Target
+		wantKept  int
+		wantDrops int
+	}{
+		{
+			name: "same checksum across two folders collapses to one",
+			targets: []pipeline.Target{
+				{FileID: "id-A", FileName: "17.6.1 (21G93) arm64e.7z", Checksum: "abc"},
+				{FileID: "id-B", FileName: "17.6.1 (21G93) arm64e.7z", Checksum: "abc"},
+			},
+			wantKept:  1,
+			wantDrops: 1,
+		},
+		{
+			name: "different checksums on same VBA both kept",
+			targets: []pipeline.Target{
+				{FileID: "id-A", FileName: "18.0 (22A3351) arm64e.7z", Checksum: "abc"},
+				{FileID: "id-B", FileName: "18.0 (22A3351) arm64e.7z", Checksum: "def"},
+			},
+			wantKept:  2,
+			wantDrops: 0,
+		},
+		{
+			name: "empty checksums are not deduped",
+			targets: []pipeline.Target{
+				{FileID: "id-A", FileName: "x.7z", Checksum: ""},
+				{FileID: "id-B", FileName: "y.7z", Checksum: ""},
+			},
+			wantKept:  2,
+			wantDrops: 0,
+		},
+		{
+			name: "first-seen wins, preserving order",
+			targets: []pipeline.Target{
+				{FileID: "first", Checksum: "abc"},
+				{FileID: "second", Checksum: "abc"},
+				{FileID: "third", Checksum: "def"},
+			},
+			wantKept:  2,
+			wantDrops: 1,
+		},
+		{
+			name:      "empty input returns empty",
+			targets:   nil,
+			wantKept:  0,
+			wantDrops: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kept, dropped := dedupByChecksum(tt.targets)
+			if len(kept) != tt.wantKept {
+				t.Errorf("kept=%d, want %d", len(kept), tt.wantKept)
+			}
+			if dropped != tt.wantDrops {
+				t.Errorf("dropped=%d, want %d", dropped, tt.wantDrops)
+			}
+		})
+	}
+
+	t.Run("first-seen target retained", func(t *testing.T) {
+		targets := []pipeline.Target{
+			{FileID: "first", Checksum: "abc"},
+			{FileID: "second", Checksum: "abc"},
+		}
+		kept, _ := dedupByChecksum(targets)
+		if len(kept) != 1 || kept[0].FileID != "first" {
+			t.Errorf("expected first-seen target retained; got %+v", kept)
+		}
+	})
 }

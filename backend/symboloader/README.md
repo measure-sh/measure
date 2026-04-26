@@ -1,8 +1,7 @@
 # symboloader
 
-Enumerates, clones, and uploads Apple iOS system framework symbols to an
-S3-compatible bucket (self-host) or a GCS bucket (Cloud Run) for use in
-symbolication.
+Enumerates and uploads Apple iOS system framework symbols to an S3-compatible
+bucket (self-host) or a GCS bucket (Cloud Run) for use in symbolication.
 
 ## Commands
 
@@ -16,8 +15,6 @@ symboloader sync [flags]    Run the full symbol sync pipeline
 |---|---|---|
 | `--versions` | last 5 versions | Target iOS versions (e.g. `"18.x"`, `"17.6.1"`) |
 | `--concurrency` | `4` | Number of archives to process in parallel |
-| `--drive-folder` | `symboloader` | Google Drive destination folder name (created if missing) |
-| `--drive-folder-id` | — | Google Drive destination folder ID (takes priority over `--drive-folder`) |
 | `--dry-run` | `false` | Show download plan without executing |
 | `--force` | `false` | Reprocess archives already recorded in the manifest |
 | `--list` | `false` | List available versions and exit |
@@ -42,37 +39,26 @@ In Cloud Run, the job's attached service account must have
 `roles/storage.objectUser` on the destination bucket. No keys or endpoint are
 needed — credentials are resolved via the metadata server.
 
-### Google Drive credentials (required)
+### Google Drive API key (required)
 
-One of the following must be configured so the service account can access Google Drive:
-
-| Variable | Description |
-|---|---|
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to a service account JSON key file |
-
-Resolution order:
-1. `GOOGLE_APPLICATION_CREDENTIALS` environment variable
-2. Application Default Credentials (ADC) — gcloud local credentials or the
-   GCP metadata server (Cloud Run / GKE)
-
-### Google Drive API key (optional)
-
-Enables reading public source Drive folders without consuming service account quota.
+Drive access uses an API key only — there is no service account requirement.
+The upstream catalog folders are public, so the key is sufficient for both
+listing files and downloading archives.
 
 | Variable | Description |
 |---|---|
 | `GOOGLE_DRIVE_API_KEY` | API key value |
 | `DRIVE_API_KEY_FILE` | Path to a file containing the API key (for Docker secrets) |
 
-`GOOGLE_DRIVE_API_KEY` takes priority over `DRIVE_API_KEY_FILE`.
+`GOOGLE_DRIVE_API_KEY` takes priority over `DRIVE_API_KEY_FILE`. Sync fails
+fast at the validate stage if neither is set.
 
 ## Deployment
 
 ### Local development
 
 ```sh
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
-export GOOGLE_DRIVE_API_KEY=<api-key>       # optional
+export GOOGLE_DRIVE_API_KEY=<api-key>
 export SYSTEM_SYMBOLS_S3_BUCKET=symbols
 export SYMBOLS_S3_BUCKET_REGION=us-east-1
 export AWS_ENDPOINT_URL=http://localhost:9000
@@ -84,22 +70,18 @@ go run cmd/symboloader/main.go sync --versions "18.x"
 
 ### Docker / self-host
 
-Credentials are passed as Docker secrets:
+The Drive API key is passed as a Docker secret:
 
 ```yaml
 secrets:
-  service-account-key:
-    file: ./sa-key.json
   drive-api-key:
     environment: "DRIVE_API_KEY"
 
 services:
   symboloader:
     secrets:
-      - service-account-key
       - drive-api-key
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/service-account-key
       - DRIVE_API_KEY_FILE=/run/secrets/drive-api-key
       - SYSTEM_SYMBOLS_S3_BUCKET=symbols
       - SYMBOLS_S3_BUCKET_REGION=us-east-1
@@ -110,20 +92,19 @@ services:
 
 ### Cloud Run
 
-Attach a service account to the Cloud Run job directly — no key file, no
-environment variable. ADC resolves credentials from the metadata server, and
-the same service account serves both Drive reads and GCS writes.
+Attach a service account to the Cloud Run job. The SA needs **only**
+`roles/storage.objectUser` on the destination GCS bucket — Drive access still
+goes through the API key, so no Drive scope is required on the SA.
 
 Required setup:
 
-- The service account must have `roles/storage.objectUser` on the destination
-  GCS bucket.
-- The service account must have read access to the upstream Drive folders, or
-  set `GOOGLE_DRIVE_API_KEY` / `DRIVE_API_KEY_FILE` to read public folders
-  without consuming SA quota.
-- Set `SYSTEM_SYMBOLS_S3_BUCKET` to the GCS bucket name. The S3-only variables
+- SA bound to the Cloud Run job with `roles/storage.objectUser` on the GCS
+  bucket.
+- `SYSTEM_SYMBOLS_S3_BUCKET` set to the GCS bucket name. The S3-only variables
   (`SYMBOLS_S3_BUCKET_REGION`, `SYMBOLS_ACCESS_KEY`, `SYMBOLS_SECRET_ACCESS_KEY`,
-  `AWS_ENDPOINT_URL`) are unused here and may be omitted.
+  `AWS_ENDPOINT_URL`) are unused and may be omitted.
+- `GOOGLE_DRIVE_API_KEY` (or `DRIVE_API_KEY_FILE`) configured the same way as
+  self-host.
 
 ## Operational requirements
 
@@ -149,7 +130,11 @@ When triggering manually, confirm no execution is already in progress.
 
 ### About `manifest.toml`
 
-`manifest.toml` is bookkeeping. The planner reads it to skip already-completed
-`(version, build, arch)` tuples on subsequent runs, and it serves as an audit
-log of historical runs for operators. It is not required for symbolication
-correctness — symbol objects in the bucket are the source of truth.
+`manifest.toml` is bookkeeping. It records every successfully processed
+archive's `(version, build, arch, md5Checksum)` so subsequent runs skip
+already-uploaded content. It also serves as an audit log of historical runs
+for operators. It is not required for symbolication correctness — symbol
+objects in the bucket are the source of truth.
+
+Each archive's MD5 checksum is also verified against the source after download
+and before upload, so partial or corrupted downloads fail fast.

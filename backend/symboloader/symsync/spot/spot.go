@@ -11,7 +11,6 @@ import (
 
 	"symboloader/symsync/pipeline"
 
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )
@@ -149,9 +148,9 @@ func componentVal(s string) int {
 	return v
 }
 
-// LatestVersions extracts all unique versions from the catalog's drive folders
+// latestVersions extracts all unique versions from the catalog's drive folders
 // and returns the top n versions in descending order (newest first).
-func LatestVersions(catalog *pipeline.Catalog, n int) []string {
+func latestVersions(catalog *pipeline.Catalog, n int) []string {
 	if n <= 0 || catalog == nil {
 		return []string{}
 	}
@@ -202,7 +201,7 @@ func resolveTargetVersionSet(catalog *pipeline.Catalog, versions []string) map[s
 		} else if isLastNVersions(spec) {
 			parts := strings.SplitN(spec, " ", 3)
 			n, _ := strconv.Atoi(parts[1])
-			for _, v := range LatestVersions(catalog, n) {
+			for _, v := range latestVersions(catalog, n) {
 				targetVersions[v] = true
 			}
 		} else if isRange(spec) {
@@ -215,9 +214,9 @@ func resolveTargetVersionSet(catalog *pipeline.Catalog, versions []string) map[s
 	return targetVersions
 }
 
-// ResolveVersions takes version specifiers (validated strings) and resolves them
+// resolveVersions takes version specifiers (validated strings) and resolves them
 // to a list of unique DriveFolder entries from the catalog that match those versions.
-func ResolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pipeline.DriveFolder, err error) {
+func resolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pipeline.DriveFolder, err error) {
 	if catalog == nil || len(versions) == 0 {
 		return []pipeline.DriveFolder{}, nil
 	}
@@ -313,37 +312,32 @@ func extractFolderID(url string) (string, error) {
 	return m[1], nil
 }
 
-// SpotterImpl implements the pipeline.Spotter interface using version validation,
+// DriveSpotter implements the pipeline.Spotter interface using version validation,
 // resolution logic, and Google Drive file enumeration.
-type SpotterImpl struct {
+type DriveSpotter struct {
 	client *drive.Service
 }
 
-// NewSpotterImpl creates a SpotterImpl with a Drive client for reading source folders.
-// Uses apiKey when provided (sufficient for public folders), otherwise falls back to creds.
-func NewSpotterImpl(creds *google.Credentials, apiKey string) (*SpotterImpl, error) {
-	var svc *drive.Service
-	var err error
-	if apiKey != "" {
-		svc, err = drive.NewService(context.Background(), option.WithAPIKey(apiKey))
-	} else {
-		svc, err = drive.NewService(context.Background(), option.WithCredentials(creds))
-	}
+// NewDriveSpotter creates a DriveSpotter with a Drive client built from the
+// supplied API key. The upstream catalog folders are public, so an API key
+// alone is sufficient for both listing and downloading.
+func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
+	svc, err := drive.NewService(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("drive service: %w", err)
 	}
-	return &SpotterImpl{client: svc}, nil
+	return &DriveSpotter{client: svc}, nil
 }
 
 // Spot validates user-supplied version specs, resolves them to Drive folders,
 // then enumerates the individual .7z archives within each folder to produce
 // one Target per archive file, filtered to only the requested versions.
-func (s *SpotterImpl) Spot(ctx context.Context, catalog *pipeline.Catalog, versions []string) ([]pipeline.Target, error) {
+func (s *DriveSpotter) Spot(ctx context.Context, catalog *pipeline.Catalog, versions []string) ([]pipeline.Target, error) {
 	if err := ValidateVersions(versions); err != nil {
 		return nil, err
 	}
 
-	folders, err := ResolveVersions(catalog, versions)
+	folders, err := resolveVersions(catalog, versions)
 	if err != nil {
 		return nil, err
 	}
@@ -363,17 +357,47 @@ func (s *SpotterImpl) Spot(ctx context.Context, catalog *pipeline.Catalog, versi
 		targets = append(targets, files...)
 	}
 
+	deduped, collapsed := dedupByChecksum(targets)
+
 	slog.Info("spotter: resolved targets",
 		"version_specs", versions,
 		"folders", len(folders),
-		"targets", len(targets),
+		"targets", len(deduped),
+		"collapsed_duplicates", collapsed,
 	)
 
-	return targets, nil
+	return deduped, nil
+}
+
+// dedupByChecksum collapses targets with identical md5Checksum to a single entry.
+// Targets with empty checksum pass through unchanged (no dedup signal available).
+// Among duplicates, the first-seen target wins, preserving the source-folder
+// iteration order chosen by the catalog.
+func dedupByChecksum(targets []pipeline.Target) (kept []pipeline.Target, collapsed int) {
+	seen := make(map[string]bool, len(targets))
+	kept = make([]pipeline.Target, 0, len(targets))
+	for _, t := range targets {
+		if t.Checksum == "" {
+			kept = append(kept, t)
+			continue
+		}
+		if seen[t.Checksum] {
+			slog.Info("spotter: collapsing duplicate by checksum",
+				"filename", t.FileName,
+				"checksum", t.Checksum,
+				"source_folder", t.SourceFolder.URL,
+			)
+			collapsed++
+			continue
+		}
+		seen[t.Checksum] = true
+		kept = append(kept, t)
+	}
+	return kept, collapsed
 }
 
 // listArchives lists .7z files in a Drive folder, filtered to the given version set.
-func (s *SpotterImpl) listArchives(ctx context.Context, folderID string, folder pipeline.DriveFolder, targetVersions map[string]bool) ([]pipeline.Target, error) {
+func (s *DriveSpotter) listArchives(ctx context.Context, folderID string, folder pipeline.DriveFolder, targetVersions map[string]bool) ([]pipeline.Target, error) {
 	var targets []pipeline.Target
 	pageToken := ""
 	for {
@@ -381,7 +405,7 @@ func (s *SpotterImpl) listArchives(ctx context.Context, folderID string, folder 
 		result, err := s.client.Files.List().Context(ctx).
 			Q(query).
 			Spaces("drive").
-			Fields("files(id, name, size), nextPageToken").
+			Fields("files(id, name, size, md5Checksum), nextPageToken").
 			PageSize(200).
 			PageToken(pageToken).
 			Do()
@@ -409,6 +433,7 @@ func (s *SpotterImpl) listArchives(ctx context.Context, folderID string, folder 
 				FileID:       f.Id,
 				FileName:     f.Name,
 				Size:         f.Size,
+				Checksum:     f.Md5Checksum,
 				SourceFolder: folder,
 			})
 		}

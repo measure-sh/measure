@@ -1,12 +1,8 @@
 package pipeline
 
 import (
-	"context"
 	"errors"
 	"os"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var (
@@ -42,25 +38,4 @@ func StorageEnvFromEnv() (StorageEnv, error) {
 		return StorageEnv{}, ErrMissingRegion
 	}
 	return env, nil
-}
-
-// NewS3Client creates an S3 client configured for this environment.
-// When Endpoint is set (self-host / MinIO), path-style addressing is used.
-func (e StorageEnv) NewS3Client() *s3.Client {
-	var creds aws.CredentialsProviderFunc = func(_ context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     e.AccessKey,
-			SecretAccessKey: e.SecretKey,
-		}, nil
-	}
-	cfg := aws.Config{
-		Region:      e.Region,
-		Credentials: creds,
-	}
-	return s3.NewFromConfig(cfg, func(o *s3.Options) {
-		if e.Endpoint != "" {
-			o.BaseEndpoint = aws.String(e.Endpoint)
-			o.UsePathStyle = true
-		}
-	})
 }

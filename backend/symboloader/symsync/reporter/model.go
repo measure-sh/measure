@@ -2,7 +2,10 @@ package reporter
 
 import (
 	"fmt"
+	"io"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,15 +16,40 @@ import (
 
 // --- messages ---
 
-type stageStartedMsg  struct{ name string }
-type stageProgressMsg struct{ name, detail string }
-type stageFinishedMsg struct{ name, detail string }
-type stageFailedMsg   struct{ name string; err error }
-type fetchStartedMsg  struct{ total int }
-type fetchProgressMsg struct{ update pipeline.FetchProgressUpdate }
-type fetchResultMsg   struct{ result pipeline.FetchResult }
-type fetchDoneMsg     struct{}
-type doneMsg          struct{ err error }
+type stageStartedMsg     struct{ name string }
+type stageProgressMsg    struct{ name, detail string }
+type stageFinishedMsg    struct{ name, detail string }
+type stageFailedMsg      struct{ name string; err error }
+type fetchStartedMsg     struct{ total int }
+type fetchProgressMsg    struct{ update pipeline.FetchProgressUpdate }
+type fetchResultMsg      struct{ result pipeline.FetchResult }
+type fetchDoneMsg        struct{}
+type janitorStartedMsg   struct{ total int }
+type deleteResultMsg     struct{ result pipeline.DeleteResult }
+type janitorDoneMsg      struct{}
+type manifestSummaryMsg  struct{ cat ManifestCategorized }
+type doneMsg             struct{ err error }
+
+// --- public categorization ---
+
+// ManifestCategorized partitions archive entries by their status in this run.
+// The caller builds it after a successful sync from the in-memory manifest
+// and the run record's added/deleted refs.
+type ManifestCategorized struct {
+	Added   []pipeline.ArchiveEntry // newly added in this run (rendered green / "+")
+	Kept    []pipeline.ArchiveEntry // active from prior runs (muted / " ")
+	Deleted []pipeline.ArchiveEntry // soft-deleted in this run (red / "-")
+}
+
+// IsEmpty reports whether all categories are empty.
+func (c ManifestCategorized) IsEmpty() bool {
+	return len(c.Added) == 0 && len(c.Kept) == 0 && len(c.Deleted) == 0
+}
+
+// ActiveCount returns the count of currently-active archives (added + kept).
+func (c ManifestCategorized) ActiveCount() int {
+	return len(c.Added) + len(c.Kept)
+}
 
 // --- state ---
 
@@ -48,6 +76,13 @@ type archiveRow struct {
 	err           error
 }
 
+type deleteRow struct {
+	vbac        string
+	filename    string
+	difsDeleted int
+	err         error
+}
+
 type inProgressRow struct {
 	filename      string
 	phase         string
@@ -60,16 +95,19 @@ type inProgressRow struct {
 // --- model ---
 
 type model struct {
-	stages     []stageRow
-	sp         spinner.Model
-	fetchTotal int
-	fetchDone  int
-	archives   []archiveRow
-	inProgress []inProgressRow
-	fetching   bool
-	done       bool
-	finalErr   error
-	width      int
+	stages       []stageRow
+	sp           spinner.Model
+	fetchTotal   int
+	fetchDone    int
+	archives     []archiveRow
+	inProgress   []inProgressRow
+	janitorTotal int
+	janitorDone  int
+	deletes      []deleteRow
+	manifest     ManifestCategorized
+	done         bool
+	finalErr     error
+	width        int
 }
 
 func newModel() model {
@@ -87,8 +125,8 @@ func (m *model) setInProgress(u pipeline.FetchProgressUpdate) {
 				m.inProgress[i].bytesDone = u.BytesDone
 				m.inProgress[i].bytesTotal = u.BytesTotal
 			}
-			if u.DifsUploaded > 0 {
-				m.inProgress[i].difsUploaded = u.DifsUploaded
+			if u.DIFsUploaded > 0 {
+				m.inProgress[i].difsUploaded = u.DIFsUploaded
 				m.inProgress[i].bytesUploaded = u.BytesUploaded
 			}
 			return
@@ -117,7 +155,6 @@ func (m model) pct() int {
 	}
 	return m.fetchDone * 100 / m.fetchTotal
 }
-
 
 // --- styles ---
 
@@ -177,7 +214,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case fetchStartedMsg:
-		m.fetching = true
 		m.fetchTotal = msg.total
 		m.inProgress = nil
 
@@ -189,14 +225,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.removeInProgress(r.Target.FileName)
 		m.archives = append(m.archives, archiveRow{
 			filename:      r.Target.FileName,
-			difs:          r.DifsUploaded,
+			difs:          r.DIFsUploaded,
 			bytesUploaded: r.BytesUploaded,
 			err:           r.Err,
 		})
 		m.fetchDone++
 
 	case fetchDoneMsg:
-		m.fetching = false
+		// fetch results have been drained; nothing to update.
+
+	case janitorStartedMsg:
+		m.janitorTotal = msg.total
+
+	case deleteResultMsg:
+		dr := msg.result
+		m.deletes = append(m.deletes, deleteRow{
+			vbac:        dr.Entry.VBAC(),
+			filename:    dr.Entry.Filename,
+			difsDeleted: dr.DIFsDeleted,
+			err:         dr.Err,
+		})
+		m.janitorDone++
+
+	case janitorDoneMsg:
+		// delete results have been drained; nothing to update.
+
+	case manifestSummaryMsg:
+		m.manifest = msg.cat
 
 	case doneMsg:
 		m.done = true
@@ -244,6 +299,19 @@ func (m model) liveView() string {
 		}
 	}
 
+	if m.janitorTotal > 0 {
+		b.WriteString("\n")
+		b.WriteString(fmt.Sprintf("  %s  %s\n",
+			styleBold.Render("Removing out-of-target symbols"),
+			styleMuted.Render(fmt.Sprintf("%d / %d", m.janitorDone, m.janitorTotal)),
+		))
+		b.WriteString("\n")
+		for _, d := range m.deletes {
+			b.WriteString(m.deleteView(d))
+			b.WriteString("\n")
+		}
+	}
+
 	return b.String()
 }
 
@@ -267,7 +335,7 @@ func (m model) finalView() string {
 
 	if m.finalErr != nil {
 		b.WriteString("  " + styleRed.Render("✗  "+m.finalErr.Error()) + "\n")
-	} else if m.fetchTotal > 0 {
+	} else {
 		totalDIFs, failed := 0, 0
 		var totalBytes int64
 		for _, a := range m.archives {
@@ -278,17 +346,46 @@ func (m model) finalView() string {
 				totalBytes += a.bytesUploaded
 			}
 		}
-		line := fmt.Sprintf("Done  ·  %d archive(s)  ·  %d DIFs  ·  %s",
-			len(m.archives), totalDIFs, formatBytes(totalBytes))
+		var line string
+		if m.fetchTotal > 0 {
+			line = fmt.Sprintf("Done  ·  %d archive(s)  ·  %d DIFs  ·  %s",
+				len(m.archives), totalDIFs, formatBytes(totalBytes))
+		} else {
+			line = "Done"
+		}
 		if failed > 0 {
 			line += fmt.Sprintf("  ·  %d failed", failed)
 		}
+		if m.janitorTotal > 0 {
+			line += fmt.Sprintf("  ·  %d removed", len(m.deletes))
+		}
 		b.WriteString("  " + styleGreen.Render("✓  "+line) + "\n")
-	} else {
-		b.WriteString("  " + styleGreen.Render("✓  Done") + "\n")
+	}
+
+	if m.finalErr == nil && !m.manifest.IsEmpty() {
+		b.WriteString("\n")
+		b.WriteString(m.manifestView())
 	}
 
 	b.WriteString("\n")
+	return b.String()
+}
+
+func (m model) manifestView() string {
+	var b strings.Builder
+	header := fmt.Sprintf("Manifest  ·  %d active archives  ·  %d added  ·  %d deleted in this run",
+		m.manifest.ActiveCount(), len(m.manifest.Added), len(m.manifest.Deleted))
+	b.WriteString("  " + styleBold.Render(header) + "\n\n")
+
+	for _, e := range sortedEntries(m.manifest.Added, false) {
+		b.WriteString("    " + styleGreen.Render(formatManifestRow(e, e.CompletedAt)) + "\n")
+	}
+	for _, e := range sortedEntries(m.manifest.Kept, false) {
+		b.WriteString("    " + styleMuted.Render(formatManifestRow(e, e.CompletedAt)) + "\n")
+	}
+	for _, e := range sortedEntries(m.manifest.Deleted, true) {
+		b.WriteString("    " + styleRed.Render(formatManifestRow(e, e.DeletedAt)) + "\n")
+	}
 	return b.String()
 }
 
@@ -353,6 +450,17 @@ func (m model) archiveView(a archiveRow) string {
 	)
 }
 
+func (m model) deleteView(d deleteRow) string {
+	if d.err != nil {
+		return fmt.Sprintf("  %s  %s  %s", styleRed.Render("✗"), d.filename, styleRed.Render(d.err.Error()))
+	}
+	return fmt.Sprintf("  %s  %-45s  %s",
+		styleRed.Render("−"),
+		d.filename,
+		styleMuted.Render(fmt.Sprintf("%d DIFs removed", d.difsDeleted)),
+	)
+}
+
 func formatBytes(b int64) string {
 	const unit = 1024
 	if b < unit {
@@ -364,4 +472,42 @@ func formatBytes(b int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+// sortedEntries returns entries sorted descending by the relevant timestamp:
+// CompletedAt for added/kept, DeletedAt for deleted.
+func sortedEntries(entries []pipeline.ArchiveEntry, byDeletedAt bool) []pipeline.ArchiveEntry {
+	out := make([]pipeline.ArchiveEntry, len(entries))
+	copy(out, entries)
+	sort.Slice(out, func(i, j int) bool {
+		if byDeletedAt {
+			return out[i].DeletedAt.After(out[j].DeletedAt)
+		}
+		return out[i].CompletedAt.After(out[j].CompletedAt)
+	})
+	return out
+}
+
+const manifestRowFmt = "%-8s  %-9s  %-7s  %3d DIFs  %s"
+
+func formatManifestRow(e pipeline.ArchiveEntry, ts time.Time) string {
+	return fmt.Sprintf(manifestRowFmt, e.Version, e.Build, e.Arch, e.DIFsUploaded, ts.UTC().Format(time.RFC3339))
+}
+
+// writeManifestSummary renders the manifest categories to w for non-TTY mode.
+// Added rows: " + ", deleted rows: " - ", kept rows: "   ".
+func writeManifestSummary(w io.Writer, c ManifestCategorized) {
+	fmt.Fprintf(w, "\nmanifest: %d active archives, %d added, %d deleted in this run\n\n",
+		c.ActiveCount(), len(c.Added), len(c.Deleted))
+
+	for _, e := range sortedEntries(c.Added, false) {
+		fmt.Fprintf(w, " + %s\n", formatManifestRow(e, e.CompletedAt))
+	}
+	for _, e := range sortedEntries(c.Kept, false) {
+		fmt.Fprintf(w, "   %s\n", formatManifestRow(e, e.CompletedAt))
+	}
+	for _, e := range sortedEntries(c.Deleted, true) {
+		fmt.Fprintf(w, " - %s\n", formatManifestRow(e, e.DeletedAt))
+	}
+	fmt.Fprintf(w, "\n(+ = added, - = deleted in this run)\n\n")
 }

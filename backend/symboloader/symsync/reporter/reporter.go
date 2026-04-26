@@ -1,7 +1,6 @@
 package reporter
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -15,6 +14,7 @@ import (
 // Reporter manages all user-facing output for the sync pipeline.
 // In TTY mode it renders a bubbletea TUI; otherwise all output goes through slog.
 type Reporter struct {
+	out   io.Writer
 	isTTY bool
 	prog  *tea.Program
 }
@@ -22,7 +22,7 @@ type Reporter struct {
 // New creates a Reporter that writes to out.
 // Detects TTY automatically — bubbletea TUI for terminals, slog otherwise.
 func New(out io.Writer) *Reporter {
-	r := &Reporter{}
+	r := &Reporter{out: out}
 	if f, ok := out.(*os.File); ok {
 		r.isTTY = term.IsTerminal(f.Fd())
 	}
@@ -92,6 +92,20 @@ func (r *Reporter) DrainFetch(results <-chan pipeline.FetchResult) {
 	}
 }
 
+// DrainJanitor reads all DeleteResults from results and reports each one.
+// Blocks until results is closed.
+func (r *Reporter) DrainJanitor(results <-chan pipeline.DeleteResult) {
+	if r.isTTY {
+		for result := range results {
+			r.prog.Send(deleteResultMsg{result: result})
+		}
+		r.prog.Send(janitorDoneMsg{})
+		return
+	}
+	for range results {
+	}
+}
+
 // FetchStartCallback returns a function the fetcher calls with the actual
 // number of archives to process (after manifest filtering).
 func (r *Reporter) FetchStartCallback() func(int) {
@@ -99,20 +113,6 @@ func (r *Reporter) FetchStartCallback() func(int) {
 		return func(n int) { r.prog.Send(fetchStartedMsg{total: n}) }
 	}
 	return func(int) {}
-}
-
-// CloneProgressCallback returns a function the cloner calls before each folder clone,
-// updating the running clone stage detail. Returns nil in non-TTY mode.
-func (r *Reporter) CloneProgressCallback() func(folderName string, current, total int) {
-	if !r.isTTY {
-		return nil
-	}
-	return func(folderName string, current, total int) {
-		r.prog.Send(stageProgressMsg{
-			name:   "clone",
-			detail: fmt.Sprintf("%s  (%d/%d)", folderName, current, total),
-		})
-	}
 }
 
 // FetchProgressCallback returns a function the fetcher can call to report
@@ -124,4 +124,26 @@ func (r *Reporter) FetchProgressCallback() func(pipeline.FetchProgressUpdate) {
 	return func(u pipeline.FetchProgressUpdate) {
 		r.prog.Send(fetchProgressMsg{update: u})
 	}
+}
+
+// JanitorStartCallback returns a function the janitor calls with the actual
+// number of archives to remove before any work begins.
+func (r *Reporter) JanitorStartCallback() func(int) {
+	if r.isTTY {
+		return func(n int) { r.prog.Send(janitorStartedMsg{total: n}) }
+	}
+	return func(int) {}
+}
+
+// ManifestSummary renders the post-run state of the manifest with rows
+// categorized as Added (this run), Kept (prior runs), or Deleted (this run).
+func (r *Reporter) ManifestSummary(c ManifestCategorized) {
+	if c.IsEmpty() {
+		return
+	}
+	if r.isTTY {
+		r.prog.Send(manifestSummaryMsg{cat: c})
+		return
+	}
+	writeManifestSummary(r.out, c)
 }

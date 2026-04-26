@@ -3,7 +3,10 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,13 +19,36 @@ import (
 	"time"
 
 	"github.com/bodgit/sevenzip"
-	"golang.org/x/oauth2/google"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 
 	"symboloader/symbol"
 )
+
+// ErrChecksumMismatch is returned when a downloaded archive's MD5 does not
+// match the value Drive reported for the source file.
+var ErrChecksumMismatch = errors.New("downloaded archive md5 does not match source")
+
+// verifyMD5 streams the file at path through MD5 and compares the lowercase
+// hex digest to expected. Returns ErrChecksumMismatch on mismatch.
+func verifyMD5(path, expected string) (err error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open for hash: %w", err)
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err = io.Copy(h, f); err != nil {
+		return fmt.Errorf("hash: %w", err)
+	}
+	got := hex.EncodeToString(h.Sum(nil))
+	if got != strings.ToLower(expected) {
+		return fmt.Errorf("%w: got %s, expected %s", ErrChecksumMismatch, got, expected)
+	}
+	return nil
+}
 
 // fetchProgress tracks the overall state of a Fetch call for the Reporter.
 type fetchProgress struct {
@@ -52,8 +78,8 @@ type archiveFile struct {
 	arch string
 }
 
-// GoogleDriveFetcher implements Fetcher by downloading .7z archives from
-// Google Drive and uploading DIFs to the configured object store.
+// GoogleDriveFetcher downloads .7z archives from Google Drive and uploads
+// the contained DIFs to the configured object store.
 type GoogleDriveFetcher struct {
 	client      *drive.Service
 	store       ObjectStore
@@ -61,7 +87,15 @@ type GoogleDriveFetcher struct {
 	force       bool // when true, reprocess archives already in the manifest
 	onStart     func(count int)
 	onProgress  func(FetchProgressUpdate)
+
+	// manifest is the in-memory manifest mutated by Fetch as archives complete.
+	// Set via SetManifest before Fetch.
+	manifest *Manifest
 }
+
+// SetManifest registers the in-memory manifest the fetcher will mutate as
+// archives complete. Must be called before Fetch.
+func (f *GoogleDriveFetcher) SetManifest(m *Manifest) { f.manifest = m }
 
 // SetStartCallback registers a function called with the actual number of archives
 // to process, after manifest filtering, before any work begins.
@@ -72,24 +106,19 @@ func (f *GoogleDriveFetcher) SetStartCallback(fn func(int)) {
 // PendingCount returns how many actions in plan would actually be processed
 // (i.e. are not yet recorded in the manifest). Used to show accurate counts
 // before the fetch stage begins.
-func (f *GoogleDriveFetcher) PendingCount(ctx context.Context, plan *Plan) (pending, total int, err error) {
+func (f *GoogleDriveFetcher) PendingCount(plan *Plan) (pending, total int) {
 	total = plan.DownloadCount()
-	if f.force {
-		return total, total, nil
+	if f.force || f.manifest == nil {
+		return total, total
 	}
-	manifest, err := loadManifest(ctx, f.store)
-	if err != nil {
-		return 0, 0, fmt.Errorf("load manifest: %w", err)
-	}
-	completed := manifest.completedVBAs()
 	for _, a := range plan.Actions {
 		info, ok := ParseArchiveFilename(a.Target.FileName)
-		if ok && completed[vbaKey(info.Version, info.Build, info.Arch)] {
+		if ok && f.manifest.IsCompleted(info.Version, info.Build, info.Arch, a.Target.Checksum) {
 			continue
 		}
 		pending++
 	}
-	return pending, total, nil
+	return pending, total
 }
 
 // SetProgressCallback registers a function called at each phase change for in-flight archives.
@@ -97,34 +126,40 @@ func (f *GoogleDriveFetcher) SetProgressCallback(fn func(FetchProgressUpdate)) {
 	f.onProgress = fn
 }
 
-// NewGoogleDriveFetcher creates a Fetcher using service account credentials
-// for Drive access. concurrency controls how many archives are processed in parallel.
-// When force is true, already-completed archives are reprocessed instead of skipped.
-func NewGoogleDriveFetcher(creds *google.Credentials, concurrency int, force bool, store ObjectStore) (*GoogleDriveFetcher, error) {
-	svc, err := drive.NewService(context.Background(), option.WithCredentials(creds))
+// NewGoogleDriveFetcher creates a fetcher using a Drive API key. The upstream
+// catalog folders are public, so the key is sufficient for downloads.
+// concurrency controls how many archives are processed in parallel. When force
+// is true, already-completed archives are reprocessed instead of skipped.
+func NewGoogleDriveFetcher(apiKey string, concurrency int, force bool, store ObjectStore) (*GoogleDriveFetcher, error) {
+	svc, err := drive.NewService(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("drive service: %w", err)
 	}
-	return &GoogleDriveFetcher{client: svc, store: store, concurrency: concurrency, force: force}, nil
+	return &GoogleDriveFetcher{
+		client:      svc,
+		store:       store,
+		concurrency: concurrency,
+		force:       force,
+	}, nil
 }
 
-// Fetch downloads, extracts, and uploads DIFs for all pending actions in the plan.
-// Results are sent to progress as each archive completes or fails.
-// On any upload or processing error the operation fails fast; re-running is safe
-// because completed archives are recorded in the manifest and skipped on resume.
-func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress chan<- FetchResult) (err error) {
-	manifest, err := loadManifest(ctx, f.store)
-	if err != nil {
-		return fmt.Errorf("load manifest: %w", err)
+// Fetch downloads, extracts, and uploads DIFs for all pending actions in the
+// plan, writing one manifest archive index file per completed archive. The
+// in-memory manifest set via SetManifest is mutated to reflect persisted state.
+// Returns the list of archives that were actually added in this call.
+func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress chan<- FetchResult) (added []ArchiveRef, err error) {
+	if f.manifest == nil {
+		return nil, errors.New("fetcher: SetManifest must be called before Fetch")
 	}
-	completed := manifest.completedVBAs()
+
+	guard := &upsertGuard{m: f.manifest}
 
 	// Filter out already-completed actions (skipped when --force is set)
 	var toProcess []Action
 	for _, a := range plan.Actions {
 		if !f.force {
 			info, ok := ParseArchiveFilename(a.Target.FileName)
-			if ok && completed[vbaKey(info.Version, info.Build, info.Arch)] {
+			if ok && f.manifest.IsCompleted(info.Version, info.Build, info.Arch, a.Target.Checksum) {
 				slog.Info("fetcher: skipping completed archive",
 					"filename", a.Target.FileName,
 					"file_id", a.Target.FileID,
@@ -146,15 +181,11 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 		if f.onStart != nil {
 			f.onStart(0)
 		}
-		return nil
+		return nil, nil
 	}
 	if f.onStart != nil {
 		f.onStart(len(toProcess))
 	}
-
-	// Open a new run entry only when there is real work to do
-	manifest.Runs = append(manifest.Runs, ManifestRun{StartedAt: time.Now().UTC()})
-	runIdx := len(manifest.Runs) - 1
 
 	prog := &fetchProgress{total: len(toProcess)}
 
@@ -164,7 +195,7 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 	}
 	close(workCh)
 
-	var manifestMu sync.Mutex
+	var addedMu sync.Mutex
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -195,24 +226,32 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 				}
 
 				info, _ := ParseArchiveFilename(action.Target.FileName)
-
-				manifestMu.Lock()
-				manifest.Runs[runIdx].Archives = append(manifest.Runs[runIdx].Archives, ManifestArchive{
+				entry := ArchiveEntry{
 					FileID:       action.Target.FileID,
 					Filename:     action.Target.FileName,
 					Version:      info.Version,
 					Build:        info.Build,
 					Arch:         info.Arch,
-					DifsUploaded: result.DifsUploaded,
+					Checksum:     action.Target.Checksum,
+					DebugIDs:     result.DebugIDs,
+					DIFsUploaded: result.DIFsUploaded,
 					CompletedAt:  time.Now().UTC(),
-				})
-				if saveErr := saveManifest(ctx, f.store, manifest); saveErr != nil {
-					slog.Warn("fetcher: failed to save manifest after archive completion",
-						"filename", action.Target.FileName,
-						"error", saveErr,
-					)
 				}
-				manifestMu.Unlock()
+				if saveErr := SaveArchiveEntry(ctx, f.store, entry); saveErr != nil {
+					select {
+					case errCh <- fmt.Errorf("save entry %s: %w", entry.VBAC(), saveErr):
+					default:
+					}
+					cancel()
+					result.Err = saveErr
+					progress <- result
+					return
+				}
+				guard.upsert(entry)
+
+				addedMu.Lock()
+				added = append(added, entry.Ref())
+				addedMu.Unlock()
 
 				progress <- result
 			}
@@ -223,15 +262,11 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 
 	select {
 	case fetchErr := <-errCh:
-		return fetchErr
+		return added, fetchErr
 	default:
 	}
 
-	manifestMu.Lock()
-	manifest.Runs[runIdx].FinishedAt = time.Now().UTC()
-	err = saveManifest(ctx, f.store, manifest)
-	manifestMu.Unlock()
-	return err
+	return added, nil
 }
 
 // processAction downloads one .7z archive, processes its contents, and returns the result.
@@ -256,6 +291,12 @@ func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action) F
 	}
 	defer os.Remove(tempPath)
 
+	if target.Checksum != "" {
+		if err := verifyMD5(tempPath, target.Checksum); err != nil {
+			return FetchResult{Target: target, Err: fmt.Errorf("checksum %s: %w", target.FileName, err)}
+		}
+	}
+
 	if f.onProgress != nil {
 		f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "processing"})
 	}
@@ -272,22 +313,23 @@ func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action) F
 	var difCb func(int, int64)
 	if f.onProgress != nil {
 		difCb = func(n int, b int64) {
-			f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "processing", DifsUploaded: n, BytesUploaded: b})
+			f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "processing", DIFsUploaded: n, BytesUploaded: b})
 		}
 	}
-	difsUploaded, bytesUploaded, err := processArchive(ctx, tempPath, arch, f.store, difCb)
+	debugIDs, bytesUploaded, err := processArchive(ctx, tempPath, arch, f.store, difCb)
 	if err != nil {
 		return FetchResult{Target: target, Err: fmt.Errorf("process %s: %w", target.FileName, err)}
 	}
 
 	slog.Info("fetcher: archive complete",
 		"filename", target.FileName,
-		"difs_uploaded", difsUploaded,
+		"difs_uploaded", len(debugIDs),
 	)
 
 	return FetchResult{
 		Target:        target,
-		DifsUploaded:  difsUploaded,
+		DIFsUploaded:  len(debugIDs),
+		DebugIDs:      debugIDs,
 		BytesFetched:  bytesDownloaded,
 		BytesUploaded: bytesUploaded,
 	}
@@ -344,11 +386,12 @@ func (f *GoogleDriveFetcher) downloadToTemp(ctx context.Context, fileID string, 
 // processArchive extracts files from the .7z at path and uploads DIFs to the object store.
 // Extraction is sequential (safe for the sevenzip reader); Mach-O parsing and
 // uploads run concurrently across runtime.NumCPU() workers.
+// Returns the list of debug IDs uploaded plus total bytes written.
 // onDif is called after each DIF is uploaded with running (count, bytesUploaded); may be nil.
-func processArchive(ctx context.Context, path, arch string, store ObjectStore, onDif func(count int, bytesUploaded int64)) (int, int64, error) {
+func processArchive(ctx context.Context, path, arch string, store ObjectStore, onDif func(count int, bytesUploaded int64)) (debugIDs []string, bytesUploaded int64, err error) {
 	rc, err := sevenzip.OpenReader(path)
 	if err != nil {
-		return 0, 0, fmt.Errorf("open 7z: %w", err)
+		return nil, 0, fmt.Errorf("open 7z: %w", err)
 	}
 	defer rc.Close()
 
@@ -358,6 +401,8 @@ func processArchive(ctx context.Context, path, arch string, store ObjectStore, o
 	var uploadCount atomic.Int64
 	var uploadBytes atomic.Int64
 
+	var idsMu sync.Mutex
+
 	// Workers: parse Mach-O and upload DIFs concurrently
 	for range runtime.NumCPU() {
 		g.Go(func() error {
@@ -365,11 +410,14 @@ func processArchive(ctx context.Context, path, arch string, store ObjectStore, o
 				if gctx.Err() != nil {
 					return gctx.Err()
 				}
-				uploaded, bytesUp, err := uploadDifs(gctx, af, store)
+				debugID, bytesUp, err := uploadDIFs(gctx, af, store)
 				if err != nil {
 					return err
 				}
-				if uploaded {
+				if debugID != "" {
+					idsMu.Lock()
+					debugIDs = append(debugIDs, debugID)
+					idsMu.Unlock()
 					n := int(uploadCount.Add(1))
 					b := uploadBytes.Add(bytesUp)
 					if onDif != nil {
@@ -410,32 +458,32 @@ func processArchive(ctx context.Context, path, arch string, store ObjectStore, o
 	})
 
 	if err := g.Wait(); err != nil {
-		return 0, 0, err
+		return nil, 0, err
 	}
-	return int(uploadCount.Load()), uploadBytes.Load(), nil
+	return debugIDs, uploadBytes.Load(), nil
 }
 
-// uploadDifs verifies a file as Mach-O, extracts its UUID, and uploads
-// the debuginfo and meta objects to the object store. Returns uploaded=false
-// for non-Mach-O files.
-func uploadDifs(ctx context.Context, af archiveFile, store ObjectStore) (uploaded bool, bytesUploaded int64, err error) {
+// uploadDIFs verifies a file as Mach-O, extracts its UUID, and uploads
+// the debuginfo and meta objects to the object store. Returns the debug ID
+// (or empty for non-Mach-O / no-UUID files).
+func uploadDIFs(ctx context.Context, af archiveFile, store ObjectStore) (debugID string, bytesUploaded int64, err error) {
 	reader := bytes.NewReader(af.data)
 	if err := symbol.VerifyMachO(reader); err != nil {
 		// Not a Mach-O binary — skip silently
-		return false, 0, nil
+		return "", 0, nil
 	}
 
 	if _, err := reader.Seek(0, io.SeekStart); err != nil {
-		return false, 0, fmt.Errorf("seek in %s: %w", af.name, err)
+		return "", 0, fmt.Errorf("seek in %s: %w", af.name, err)
 	}
 
-	debugID, err := symbol.GetMachOUUID(reader)
+	debugID, err = symbol.GetMachOUUID(reader)
 	if err != nil {
-		return false, 0, fmt.Errorf("get UUID from %s: %w", af.name, err)
+		return "", 0, fmt.Errorf("get UUID from %s: %w", af.name, err)
 	}
 	if debugID == "" {
 		slog.Warn("fetcher: skipping file with empty debug ID", "file", af.name)
-		return false, 0, nil
+		return "", 0, nil
 	}
 
 	baseName := filepath.Base(af.name)
@@ -447,7 +495,7 @@ func uploadDifs(ctx context.Context, af archiveFile, store ObjectStore) (uploade
 	}
 	metaJSON, err := json.Marshal(fileMeta{Name: baseName, Arch: af.arch, FileFormat: "macho"})
 	if err != nil {
-		return false, 0, fmt.Errorf("marshal meta for %s: %w", af.name, err)
+		return "", 0, fmt.Errorf("marshal meta for %s: %w", af.name, err)
 	}
 
 	base := symbol.BuildUnifiedLayout(debugID)
@@ -463,10 +511,10 @@ func uploadDifs(ctx context.Context, af archiveFile, store ObjectStore) (uploade
 	var totalBytes int64
 	for _, u := range uploads {
 		if err := store.Put(ctx, u.key, u.data, ""); err != nil {
-			return false, 0, fmt.Errorf("upload %s: %w", u.key, err)
+			return "", 0, fmt.Errorf("upload %s: %w", u.key, err)
 		}
 		totalBytes += int64(len(u.data))
 	}
 
-	return true, totalBytes, nil
+	return debugID, totalBytes, nil
 }
