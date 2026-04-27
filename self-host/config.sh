@@ -237,6 +237,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -378,6 +379,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
@@ -894,6 +896,10 @@ ensure() {
 
   if ! check_env_variable "SYSTEM_SYMBOLS_S3_BUCKET"; then
     add_env_variable "SYSTEM_SYMBOLS_S3_BUCKET" "$system_symbols_s3_bucket" "SYMBOLS_S3_BUCKET"
+  fi
+
+  if ! check_env_variable "DRIVE_API_KEY"; then
+    add_env_variable "DRIVE_API_KEY" "change-this" "SYMBOLOADER_ORIGIN"
   fi
 
   # remove `frontend/dashboard/.env.local` file

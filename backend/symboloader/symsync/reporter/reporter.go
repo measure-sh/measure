@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -12,7 +13,9 @@ import (
 )
 
 // Reporter manages all user-facing output for the sync pipeline.
-// In TTY mode it renders a bubbletea TUI; otherwise all output goes through slog.
+// In TTY mode it renders a bubbletea TUI; in non-TTY mode it writes plain
+// status lines to out (one per stage event), suitable for `docker compose
+// exec` or CI logs. Pipeline-level slog logging is unaffected in either mode.
 type Reporter struct {
 	out   io.Writer
 	isTTY bool
@@ -20,7 +23,8 @@ type Reporter struct {
 }
 
 // New creates a Reporter that writes to out.
-// Detects TTY automatically — bubbletea TUI for terminals, slog otherwise.
+// Detects TTY automatically — bubbletea TUI for terminals, plain status
+// lines otherwise.
 func New(out io.Writer) *Reporter {
 	r := &Reporter{out: out}
 	if f, ok := out.(*os.File); ok {
@@ -57,7 +61,7 @@ func (r *Reporter) StageStarted(name string) {
 		r.prog.Send(stageStartedMsg{name: name})
 		return
 	}
-	slog.Info("stage started", "stage", name)
+	fmt.Fprintf(r.out, "  ·  %-10s  running…\n", name)
 }
 
 // StageFinished marks a pipeline stage as successfully completed.
@@ -66,7 +70,7 @@ func (r *Reporter) StageFinished(name, detail string) {
 		r.prog.Send(stageFinishedMsg{name: name, detail: detail})
 		return
 	}
-	slog.Info("stage finished", "stage", name, "detail", detail)
+	fmt.Fprintf(r.out, "  ✓  %-10s  %s\n", name, detail)
 }
 
 // StageFailed marks a pipeline stage as failed.
@@ -75,7 +79,7 @@ func (r *Reporter) StageFailed(name string, err error) {
 		r.prog.Send(stageFailedMsg{name: name, err: err})
 		return
 	}
-	slog.Error("stage failed", "stage", name, "error", err)
+	fmt.Fprintf(r.out, "  ✗  %-10s  %s\n", name, err)
 }
 
 // DrainFetch reads all FetchResults from results and reports each one.

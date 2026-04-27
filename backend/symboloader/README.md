@@ -47,10 +47,10 @@ listing files and downloading archives.
 
 | Variable | Description |
 |---|---|
-| `GOOGLE_DRIVE_API_KEY` | API key value |
+| `DRIVE_API_KEY` | API key value |
 | `DRIVE_API_KEY_FILE` | Path to a file containing the API key (for Docker secrets) |
 
-`GOOGLE_DRIVE_API_KEY` takes priority over `DRIVE_API_KEY_FILE`. Sync fails
+`DRIVE_API_KEY` takes priority over `DRIVE_API_KEY_FILE`. Sync fails
 fast at the validate stage if neither is set.
 
 ## Deployment
@@ -58,7 +58,7 @@ fast at the validate stage if neither is set.
 ### Local development
 
 ```sh
-export GOOGLE_DRIVE_API_KEY=<api-key>
+export DRIVE_API_KEY=<api-key>
 export SYSTEM_SYMBOLS_S3_BUCKET=symbols
 export SYMBOLS_S3_BUCKET_REGION=us-east-1
 export AWS_ENDPOINT_URL=http://localhost:9000
@@ -103,7 +103,7 @@ Required setup:
 - `SYSTEM_SYMBOLS_S3_BUCKET` set to the GCS bucket name. The S3-only variables
   (`SYMBOLS_S3_BUCKET_REGION`, `SYMBOLS_ACCESS_KEY`, `SYMBOLS_SECRET_ACCESS_KEY`,
   `AWS_ENDPOINT_URL`) are unused and may be omitted.
-- `GOOGLE_DRIVE_API_KEY` (or `DRIVE_API_KEY_FILE`) configured the same way as
+- `DRIVE_API_KEY` (or `DRIVE_API_KEY_FILE`) configured the same way as
   self-host.
 
 ## Operational requirements

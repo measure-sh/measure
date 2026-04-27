@@ -18,14 +18,14 @@ import (
 
 // ErrMissingDriveAPIKey is reported during validation when the user has not
 // configured a Drive API key via either env var.
-var ErrMissingDriveAPIKey = errors.New("Drive API key is required: set GOOGLE_DRIVE_API_KEY or DRIVE_API_KEY_FILE (see backend/symboloader/README.md)")
+var ErrMissingDriveAPIKey = errors.New("Drive API key is required: set DRIVE_API_KEY or DRIVE_API_KEY_FILE (see backend/symboloader/README.md)")
 
 // getAPIKey reads the Drive API key from environment variable or file.
-// Priority: GOOGLE_DRIVE_API_KEY (env var) > DRIVE_API_KEY_FILE (file path).
+// Priority: DRIVE_API_KEY (env var) > DRIVE_API_KEY_FILE (file path).
 // Returns an empty string with no error when neither is configured;
 // the validate stage surfaces a clear ErrMissingDriveAPIKey.
 func getAPIKey() (string, error) {
-	if apiKey := strings.TrimSpace(os.Getenv("GOOGLE_DRIVE_API_KEY")); apiKey != "" {
+	if apiKey := strings.TrimSpace(os.Getenv("DRIVE_API_KEY")); apiKey != "" {
 		return apiKey, nil
 	}
 	if keyFile := os.Getenv("DRIVE_API_KEY_FILE"); keyFile != "" {
@@ -58,6 +58,11 @@ Use --list to enumerate available versions without syncing.
 Use --dry-run to see the plan (fetches + removals) without executing it.
 Use --no-removal to keep previously-synced symbols even when they are no
 longer in the target set.`,
+	// The reporter is the source of truth for user-facing errors — let it
+	// render the failure once and suppress cobra's automatic "Error:" line
+	// and usage spam.
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if syncList {
 			return runList(cmd)
@@ -136,6 +141,19 @@ func runSync(cmd *cobra.Command) error {
 		if apiKey == "" {
 			validationErrs = append(validationErrs, ErrMissingDriveAPIKey.Error())
 		}
+
+		var spotter *spot.DriveSpotter
+		if apiKey != "" {
+			s, err := spot.NewDriveSpotter(apiKey)
+			if err != nil {
+				validationErrs = append(validationErrs, err.Error())
+			} else if err := s.ValidateAPIKey(ctx); err != nil {
+				validationErrs = append(validationErrs, err.Error())
+			} else {
+				spotter = s
+			}
+		}
+
 		if len(validationErrs) > 0 {
 			combined := errors.New(strings.Join(validationErrs, "; "))
 			r.StageFailed("validate", combined)
@@ -160,11 +178,6 @@ func runSync(cmd *cobra.Command) error {
 
 		// Spot
 		r.StageStarted("spot")
-		spotter, err := spot.NewDriveSpotter(apiKey)
-		if err != nil {
-			r.StageFailed("spot", err)
-			return fmt.Errorf("spotter: %w", err)
-		}
 		targets, err := spotter.Spot(ctx, catalog, versions)
 		if err != nil {
 			r.StageFailed("spot", err)

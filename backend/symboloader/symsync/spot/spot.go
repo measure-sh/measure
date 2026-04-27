@@ -13,11 +13,15 @@ import (
 	"symboloader/symsync/pipeline"
 
 	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
 var ErrEmptyVersion = errors.New("version string is empty")
 var ErrInvalidVersion = errors.New("invalid version string")
+
+// ErrInvalidAPIKey is returned when Google Drive rejects the API key.
+var ErrInvalidAPIKey = errors.New("Drive API key is invalid: set a valid key via DRIVE_API_KEY or DRIVE_API_KEY_FILE")
 
 // isAll reports whether s is the wildcard-all token "*".
 func isAll(s string) bool {
@@ -441,6 +445,27 @@ func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
 	return &DriveSpotter{client: svc}, nil
 }
 
+// validateProbeFileID is an obviously-fake Drive file ID used by ValidateAPIKey.
+// Drive checks API-key validity before resource lookup, so a bad key surfaces
+// as 400 API_KEY_INVALID and a good key on a nonexistent ID surfaces as 404.
+const validateProbeFileID = "symboloader_validate_probe_nonexistent_file_id"
+
+// ValidateAPIKey issues a minimal Drive request to confirm the configured
+// API key is accepted. A 404 on the fake probe ID means the key worked.
+// Returns ErrInvalidAPIKey when the key is rejected; other Drive errors
+// (network, 5xx, quota) bubble through verbatim.
+func (s *DriveSpotter) ValidateAPIKey(ctx context.Context) error {
+	_, err := s.client.Files.Get(validateProbeFileID).Context(ctx).Fields("id").Do()
+	if err == nil {
+		return nil
+	}
+	var gErr *googleapi.Error
+	if errors.As(err, &gErr) && gErr.Code == 404 {
+		return nil
+	}
+	return cleanDriveError(err)
+}
+
 // Spot validates user-supplied specs, pre-selects candidate folders from the
 // catalog, lists every .7z archive in those folders, then filters each
 // archive's parsed version against the user's specs (union). Catalog folder
@@ -512,6 +537,35 @@ func dedupByChecksum(targets []pipeline.Target) (kept []pipeline.Target, collaps
 	return kept, collapsed
 }
 
+// cleanDriveError replaces verbose googleapi error payloads with a concise
+// sentinel when the reason is API_KEY_INVALID. Modern Google APIs report the
+// reason via gRPC-style Details (ErrorInfo), while legacy responses use the
+// Errors slice; we check both, then fall back to the message text.
+func cleanDriveError(err error) error {
+	var gErr *googleapi.Error
+	if !errors.As(err, &gErr) {
+		return err
+	}
+	for _, e := range gErr.Errors {
+		if e.Reason == "API_KEY_INVALID" {
+			return ErrInvalidAPIKey
+		}
+	}
+	for _, d := range gErr.Details {
+		m, ok := d.(map[string]any)
+		if !ok {
+			continue
+		}
+		if reason, _ := m["reason"].(string); reason == "API_KEY_INVALID" {
+			return ErrInvalidAPIKey
+		}
+	}
+	if gErr.Code == 400 && strings.Contains(gErr.Message, "API key not valid") {
+		return ErrInvalidAPIKey
+	}
+	return err
+}
+
 // listAllArchives lists every parseable .7z archive in a single Drive folder.
 // No version-set filtering is applied — file-level filtering happens in
 // archivesPassingSpecs against the user's specs.
@@ -528,7 +582,7 @@ func (s *DriveSpotter) listAllArchives(ctx context.Context, folderID string, fol
 			PageToken(pageToken).
 			Do()
 		if err != nil {
-			return nil, fmt.Errorf("list files: %w", err)
+			return nil, fmt.Errorf("list files: %w", cleanDriveError(err))
 		}
 
 		for _, f := range result.Files {

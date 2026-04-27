@@ -149,6 +149,15 @@ func (m *model) removeInProgress(filename string) {
 	}
 }
 
+func (m model) hasFailedStage() bool {
+	for _, s := range m.stages {
+		if s.status == stageFailed {
+			return true
+		}
+	}
+	return false
+}
+
 func (m model) pct() int {
 	if m.fetchTotal == 0 {
 		return 0
@@ -334,7 +343,12 @@ func (m model) finalView() string {
 	}
 
 	if m.finalErr != nil {
-		b.WriteString("  " + styleRed.Render("✗  "+m.finalErr.Error()) + "\n")
+		// Avoid duplicating the error: if a stage already rendered ✗ above
+		// (StageFailed was called), the user has already seen it. Only emit
+		// the standalone error line for failures that aren't tied to a stage.
+		if !m.hasFailedStage() {
+			b.WriteString("  " + styleRed.Render("✗  "+m.finalErr.Error()) + "\n")
+		}
 	} else {
 		totalDIFs, failed := 0, 0
 		var totalBytes int64
