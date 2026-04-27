@@ -10,6 +10,7 @@ import Foundation
 import KSCrashRecording
 import MachO
 import MeasureWebP
+import ObjectiveC.NSObjCRuntime
 import Network
 import ObjectiveC
 import Photos
@@ -81,6 +82,13 @@ extension Measure.SessionOb {
   required public init(from decoder: any Swift.Decoder) throws
   final public func encode(to encoder: any Swift.Encoder) throws
   @objc deinit
+}
+@available(iOS 13.0, *)
+extension SwiftUICore.View {
+  @_Concurrency.MainActor @preconcurrency public func msrMask() -> some SwiftUICore.View
+  
+  @_Concurrency.MainActor @preconcurrency public func msrUnmask() -> some SwiftUICore.View
+  
 }
 public protocol Span {
   var traceId: Swift.String { get }

@@ -41,6 +41,9 @@ struct ContentView: View {
                         ContentView()
                     }
 
+                    Button("bug report") {
+                        Measure.launchBugReport(takeScreenshot: true)
+                    }
                     // Button 3: Modal Navigation using .sheet
                     Button("Present Modal with .sheet") {
                         isSheetPresented = true
