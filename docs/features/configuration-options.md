@@ -423,6 +423,13 @@ By default, the following headers are never collected, even if not specified in 
 Change the masking level of screenshots collected with Crashes and ANRs. It helps prevent sensitive
 information from leaking.
 
+> [!NOTE]
+> _Applies to iOS UIKit screens only._ The mask level configuration does not apply to SwiftUI screens.
+> Because of the way SwiftUI renders its views, all SwiftUI content is masked by default regardless of
+> the mask level setting. See [Screenshot Masking for SwiftUI](feature_screenshot_masking_swiftui.md)
+> for details on how to control masking for SwiftUI views using the `.msrMask()` and `.msrUnmask()`
+> modifiers.
+
 The following levels of masking can be applied to the screenshots:
 
 #### Mask all text and media

@@ -36,7 +36,6 @@ struct SwiftUIDetailViewController: View {
             NavigationView {
                 VStack(spacing: 0) {
 
-                    // MARK: - UILabel (bridges as UILabel in hierarchy)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("UILabel equivalent (Text)")
                             .font(.headline)
@@ -51,7 +50,6 @@ struct SwiftUIDetailViewController: View {
 
                     Divider()
 
-                    // MARK: - UITextField (bridges as UITextField in hierarchy)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("UITextField equivalent (TextField)")
                             .font(.headline)
@@ -67,7 +65,6 @@ struct SwiftUIDetailViewController: View {
 
                     Divider()
 
-                    // MARK: - UITextView (bridges as UITextView in hierarchy)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("UITextView equivalent (TextEditor)")
                             .font(.headline)

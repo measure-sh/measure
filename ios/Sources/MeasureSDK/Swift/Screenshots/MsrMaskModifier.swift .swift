@@ -24,7 +24,7 @@ private struct MsrRedactUIView: UIViewRepresentable {
 
     func updateUIView(_ uiView: MsrOverlayView, context: Context) {
         switch behavior {
-        case .mask:   MsrRedactViewHelper.maskView(uiView)
+        case .mask: MsrRedactViewHelper.maskView(uiView)
         case .unmask: MsrRedactViewHelper.unmaskView(uiView)
         }
     }
