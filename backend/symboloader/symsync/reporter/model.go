@@ -86,8 +86,6 @@ type deleteRow struct {
 type inProgressRow struct {
 	filename      string
 	phase         string
-	bytesDone     int64
-	bytesTotal    int64
 	difsUploaded  int
 	bytesUploaded int64
 }
@@ -121,10 +119,6 @@ func (m *model) setInProgress(u pipeline.FetchProgressUpdate) {
 	for i := range m.inProgress {
 		if m.inProgress[i].filename == u.FileName {
 			m.inProgress[i].phase = u.Phase
-			if u.BytesTotal > 0 {
-				m.inProgress[i].bytesDone = u.BytesDone
-				m.inProgress[i].bytesTotal = u.BytesTotal
-			}
 			if u.DIFsUploaded > 0 {
 				m.inProgress[i].difsUploaded = u.DIFsUploaded
 				m.inProgress[i].bytesUploaded = u.BytesUploaded
@@ -133,10 +127,8 @@ func (m *model) setInProgress(u pipeline.FetchProgressUpdate) {
 		}
 	}
 	m.inProgress = append(m.inProgress, inProgressRow{
-		filename:   u.FileName,
-		phase:      u.Phase,
-		bytesDone:  u.BytesDone,
-		bytesTotal: u.BytesTotal,
+		filename: u.FileName,
+		phase:    u.Phase,
 	})
 }
 
@@ -436,13 +428,7 @@ func (m model) inProgressView(row inProgressRow) string {
 	var detail string
 	switch row.phase {
 	case "fetching":
-		if row.bytesTotal > 0 {
-			pct := int(row.bytesDone * 100 / row.bytesTotal)
-			detail = fmt.Sprintf("fetching  %d%%  (%s / %s)",
-				pct, formatBytes(row.bytesDone), formatBytes(row.bytesTotal))
-		} else {
-			detail = "fetching…"
-		}
+		detail = "fetching…"
 	case "processing":
 		if row.difsUploaded > 0 {
 			detail = fmt.Sprintf("processing  %d DIFs  %s",

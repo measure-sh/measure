@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -204,6 +203,29 @@ func topNMajors(c *pipeline.Catalog, n int) []int {
 	return majors[:n]
 }
 
+// targetMajors returns sorted-desc unique majors derived from each target's
+// parsed filename version. Used by SpotFromFolder so "last N versions"
+// resolves against the actual destination-folder contents instead of the
+// README catalog.
+func targetMajors(targets []pipeline.Target) []int {
+	seen := make(map[int]bool)
+	var majors []int
+	for _, t := range targets {
+		info, ok := pipeline.ParseArchiveFilename(t.FileName)
+		if !ok {
+			continue
+		}
+		m := majorOf(info.Version)
+		if m == 0 || seen[m] {
+			continue
+		}
+		seen[m] = true
+		majors = append(majors, m)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(majors)))
+	return majors
+}
+
 // folderCoversMajor reports whether any of f.Versions has the given major.
 func folderCoversMajor(f pipeline.DriveFolder, m int) bool {
 	for _, v := range f.Versions {
@@ -349,8 +371,10 @@ func archiveMatchesSpec(version, spec string) bool {
 
 // archivesPassingSpecs filters all listed archives down to those matching
 // at least one of the user specs (union semantics). last-N specs are
-// resolved against the catalog's top majors.
-func archivesPassingSpecs(all []pipeline.Target, specs []string, c *pipeline.Catalog) []pipeline.Target {
+// resolved against `availableMajors` — the sorted-desc list of majors
+// the caller considers in scope (catalog majors for the README path,
+// destination-folder archive majors for the cloned-mirror path).
+func archivesPassingSpecs(all []pipeline.Target, specs []string, availableMajors []int) []pipeline.Target {
 	if len(all) == 0 {
 		return nil
 	}
@@ -364,8 +388,11 @@ func archivesPassingSpecs(all []pipeline.Target, specs []string, c *pipeline.Cat
 		}
 		parts := strings.SplitN(spec, " ", 3)
 		n, _ := strconv.Atoi(parts[1])
-		for _, m := range topNMajors(c, n) {
-			majorAllow[m] = true
+		if n > len(availableMajors) {
+			n = len(availableMajors)
+		}
+		for i := 0; i < n; i++ {
+			majorAllow[availableMajors[i]] = true
 		}
 	}
 
@@ -418,15 +445,6 @@ func normalizeUpperBound(s string) string {
 	return strings.Join(parts, ".")
 }
 
-var reFolderID = regexp.MustCompile(`/folders/([a-zA-Z0-9_-]+)`)
-
-func extractFolderID(url string) (string, error) {
-	m := reFolderID.FindStringSubmatch(url)
-	if len(m) < 2 {
-		return "", fmt.Errorf("cannot extract folder ID from URL: %s", url)
-	}
-	return m[1], nil
-}
 
 // DriveSpotter resolves user-supplied version specs into concrete archive
 // targets by combining the README catalog with live Drive folder listings.
@@ -436,13 +454,21 @@ type DriveSpotter struct {
 
 // NewDriveSpotter builds a DriveSpotter with a Drive client constructed from
 // the supplied API key. The upstream catalog folders are public, so an API
-// key alone is sufficient for both listing and downloading.
+// key alone is sufficient for both listing and downloading. Used by the
+// no-flags code path where the README catalog is the source of truth.
 func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
 	svc, err := drive.NewService(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("drive service: %w", err)
 	}
 	return &DriveSpotter{client: svc}, nil
+}
+
+// NewDriveSpotterWithService wraps a pre-built Drive service. Used by the
+// --drive-folder-id code path where credentials are SA-based (so the caller
+// has already invoked drive.NewService with the right scopes).
+func NewDriveSpotterWithService(svc *drive.Service) *DriveSpotter {
+	return &DriveSpotter{client: svc}
 }
 
 // validateProbeFileID is an obviously-fake Drive file ID used by ValidateAPIKey.
@@ -484,7 +510,7 @@ func (s *DriveSpotter) Spot(ctx context.Context, catalog *pipeline.Catalog, vers
 
 	var all []pipeline.Target
 	for _, folder := range folders {
-		folderID, err := extractFolderID(folder.URL)
+		folderID, err := pipeline.ExtractFolderID(folder.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -495,7 +521,7 @@ func (s *DriveSpotter) Spot(ctx context.Context, catalog *pipeline.Catalog, vers
 		all = append(all, files...)
 	}
 
-	matched := archivesPassingSpecs(all, versions, catalog)
+	matched := archivesPassingSpecs(all, versions, catalogMajors(catalog))
 	deduped, collapsed := dedupByChecksum(matched)
 
 	slog.Info("spotter: resolved targets",
@@ -564,6 +590,43 @@ func cleanDriveError(err error) error {
 		return ErrInvalidAPIKey
 	}
 	return err
+}
+
+// SpotFromFolder lists a single Drive folder (the operator-provided
+// destination from --drive-folder-id) and filters the entries against
+// user version specs. Used in the cloned-mirror code path where the
+// destination is the source of truth and the README catalog isn't
+// consulted for archive selection.
+//
+// Each Target's FileID is the destination-folder file's ID — i.e. the
+// SA-owned `Files.copy()` result. Downloads via that ID hit the SA's
+// quota rather than the upstream public file's per-file 24h cap.
+func (s *DriveSpotter) SpotFromFolder(ctx context.Context, folderID string, versions []string) ([]pipeline.Target, error) {
+	if err := ValidateVersions(versions); err != nil {
+		return nil, err
+	}
+	if folderID == "" {
+		return nil, errors.New("SpotFromFolder: empty folder ID")
+	}
+
+	all, err := s.listAllArchives(ctx, folderID, pipeline.DriveFolder{})
+	if err != nil {
+		return nil, fmt.Errorf("list archives in folder %s: %w", folderID, err)
+	}
+
+	matched := archivesPassingSpecs(all, versions, targetMajors(all))
+	deduped, collapsed := dedupByChecksum(matched)
+
+	slog.Info("spotter: resolved targets from destination folder",
+		"folder_id", folderID,
+		"version_specs", versions,
+		"archives_listed", len(all),
+		"archives_matched", len(matched),
+		"targets", len(deduped),
+		"collapsed_duplicates", collapsed,
+	)
+
+	return deduped, nil
 }
 
 // listAllArchives lists every parseable .7z archive in a single Drive folder.

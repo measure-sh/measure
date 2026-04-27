@@ -402,7 +402,7 @@ func TestArchivesPassingSpecsLastN(t *testing.T) {
 		{FileName: "26.4.1 (23E254) arm64e.7z"},
 	}
 
-	got := archivesPassingSpecs(all, []string{"last 1 versions"}, c)
+	got := archivesPassingSpecs(all, []string{"last 1 versions"}, catalogMajors(c))
 	if len(got) != len(all) {
 		t.Fatalf("expected all 9 archives kept; got %d", len(got))
 	}
@@ -418,7 +418,7 @@ func TestArchivesPassingSpecsCombined(t *testing.T) {
 		{FileName: "17.6.1 (21G101) arm64e.7z"},   // 17.x — kept by spec
 	}
 
-	got := archivesPassingSpecs(all, []string{"last 1 versions", "17.x"}, c)
+	got := archivesPassingSpecs(all, []string{"last 1 versions", "17.x"}, catalogMajors(c))
 	if len(got) != 2 {
 		t.Fatalf("expected 2 archives; got %d (%v)", len(got), got)
 	}
@@ -449,7 +449,7 @@ func TestArchivesPassingSpecsRangeIncludesMidVersions(t *testing.T) {
 		{FileName: "16.0 (20A362) arm64e.7z"},    // below range, dropped
 	}
 
-	got := archivesPassingSpecs(all, []string{"17.5-18.7"}, c)
+	got := archivesPassingSpecs(all, []string{"17.5-18.7"}, catalogMajors(c))
 	keptNames := map[string]bool{}
 	for _, t := range got {
 		keptNames[t.FileName] = true

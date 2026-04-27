@@ -17,7 +17,6 @@ import (
 	"github.com/bodgit/sevenzip"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 
 	"symboloader/symbol"
 )
@@ -32,27 +31,6 @@ const (
 	uploadRetryBackoff = 500 * time.Millisecond
 )
 
-// fetchProgress tracks the overall state of a Fetch call for the Reporter.
-type fetchProgress struct {
-	total      int
-	completed  int
-	inProgress int
-	mu         sync.Mutex
-}
-
-func (p *fetchProgress) begin() {
-	p.mu.Lock()
-	p.inProgress++
-	p.mu.Unlock()
-}
-
-func (p *fetchProgress) done() {
-	p.mu.Lock()
-	p.inProgress--
-	p.completed++
-	p.mu.Unlock()
-}
-
 // GoogleDriveFetcher streams .7z archives from Google Drive (random-access
 // via the driveReaderAt) and uploads the contained DIFs to the configured
 // object store without ever materializing either the archive or the
@@ -65,6 +43,12 @@ type GoogleDriveFetcher struct {
 	force       bool
 	onStart     func(count int)
 	onProgress  func(FetchProgressUpdate)
+
+	// cloner, if set, owns the destination Drive folder. Successful fetches
+	// invoke cloner.DeleteCopy(target.FileID) so the SA-owned copy is freed
+	// as soon as the manifest entry is persisted, capping in-flight Drive
+	// storage at concurrency × archive size.
+	cloner *DriveCloner
 
 	// manifest is the in-memory manifest mutated by Fetch as archives complete.
 	// Set via SetManifest before Fetch.
@@ -104,20 +88,20 @@ func (f *GoogleDriveFetcher) SetProgressCallback(fn func(FetchProgressUpdate)) {
 	f.onProgress = fn
 }
 
-// NewGoogleDriveFetcher creates a fetcher using a Drive API key. concurrency
-// controls how many archives are processed in parallel; workers controls how
-// many upload goroutines run within each archive. force=true reprocesses
-// archives already recorded in the manifest.
-func NewGoogleDriveFetcher(apiKey string, concurrency, workers int, force bool, store ObjectStore) (*GoogleDriveFetcher, error) {
+// NewGoogleDriveFetcher creates a fetcher around a pre-built Drive service.
+// The caller chooses the credential strategy (API key for the no-flags
+// path, ADC + Drive scope for the cloned-mirror path). concurrency controls
+// how many archives are processed in parallel; workers controls how many
+// upload goroutines run within each archive. force=true reprocesses
+// archives already recorded in the manifest. cloner is optional — when
+// non-nil, the fetcher deletes each target's copy after persisting the
+// manifest entry.
+func NewGoogleDriveFetcher(svc *drive.Service, concurrency, workers int, force bool, store ObjectStore, cloner *DriveCloner) *GoogleDriveFetcher {
 	if concurrency < 1 {
 		concurrency = 1
 	}
 	if workers < 1 {
 		workers = 1
-	}
-	svc, err := drive.NewService(context.Background(), option.WithAPIKey(apiKey))
-	if err != nil {
-		return nil, fmt.Errorf("drive service: %w", err)
 	}
 	return &GoogleDriveFetcher{
 		client:      svc,
@@ -125,7 +109,8 @@ func NewGoogleDriveFetcher(apiKey string, concurrency, workers int, force bool, 
 		concurrency: concurrency,
 		workers:     workers,
 		force:       force,
-	}, nil
+		cloner:      cloner,
+	}
 }
 
 // Fetch streams every pending archive from Drive, uploads its DIFs, and
@@ -171,8 +156,6 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 		f.onStart(len(toProcess))
 	}
 
-	prog := &fetchProgress{total: len(toProcess)}
-
 	workCh := make(chan Action, len(toProcess))
 	for _, a := range toProcess {
 		workCh <- a
@@ -195,9 +178,7 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 					return
 				}
 
-				prog.begin()
 				result := f.processAction(ctx, action)
-				prog.done()
 
 				if result.Err != nil {
 					select {
@@ -237,6 +218,19 @@ func (f *GoogleDriveFetcher) Fetch(ctx context.Context, plan *Plan, progress cha
 				added = append(added, entry.Ref())
 				addedMu.Unlock()
 
+				// Delete the SA-owned copy now that the manifest entry
+				// is durable. Failures here are logged but non-fatal —
+				// the next --clone run will wipe leftover copies.
+				if f.cloner != nil {
+					if delErr := f.cloner.DeleteCopy(ctx, action.Target.FileID); delErr != nil {
+						slog.Warn("fetcher: failed to delete drive copy",
+							"file_id", action.Target.FileID,
+							"filename", action.Target.FileName,
+							"error", delErr,
+						)
+					}
+				}
+
 				progress <- result
 			}
 		}()
@@ -264,7 +258,7 @@ func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action) F
 	)
 
 	if f.onProgress != nil {
-		f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "fetching", BytesTotal: target.Size})
+		f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "fetching"})
 	}
 
 	readerAt, err := newDriveReaderAt(ctx, f.client, target.FileID)

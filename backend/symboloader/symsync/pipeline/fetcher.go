@@ -11,13 +11,12 @@ type FetchResult struct {
 }
 
 // FetchProgressUpdate reports the current phase of an in-flight archive.
-// During "downloading", BytesDone and BytesTotal are populated.
-// During "processing", DIFsUploaded and BytesUploaded are running totals (total unknown upfront).
+// During "fetching", only FileName and Phase are set (the streaming reader
+// has no eager byte-progress signal). During "processing", DIFsUploaded
+// and BytesUploaded are running totals — total is unknown upfront.
 type FetchProgressUpdate struct {
 	FileName      string
-	Phase         string // "downloading" | "processing"
-	BytesDone     int64
-	BytesTotal    int64
+	Phase         string // "fetching" | "processing"
 	DIFsUploaded  int
 	BytesUploaded int64
 }
