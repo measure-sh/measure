@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ func getAPIKey() (string, error) {
 var (
 	syncVersions    []string
 	syncConcurrency int
+	syncWorkers     int
 	syncDryRun      bool
 	syncForce       bool
 	syncList        bool
@@ -74,6 +76,7 @@ longer in the target set.`,
 func init() {
 	syncCmd.Flags().StringSliceVar(&syncVersions, "versions", nil, "target versions (e.g. \"26.0,18.x\"); default: last 5 versions")
 	syncCmd.Flags().IntVar(&syncConcurrency, "concurrency", 4, "number of archives to process in parallel")
+	syncCmd.Flags().IntVar(&syncWorkers, "workers", runtime.NumCPU(), "number of parallel uploads per archive")
 	syncCmd.Flags().BoolVar(&syncDryRun, "dry-run", false, "show plan without executing")
 	syncCmd.Flags().BoolVar(&syncForce, "force", false, "reprocess archives already recorded in the manifest")
 	syncCmd.Flags().BoolVar(&syncList, "list", false, "enumerate and list available versions, then exit")
@@ -198,7 +201,7 @@ func runSync(cmd *cobra.Command) error {
 		}
 		plan := pipeline.NewPlan(targets, manifest)
 
-		fetcher, err := pipeline.NewGoogleDriveFetcher(apiKey, syncConcurrency, syncForce, store)
+		fetcher, err := pipeline.NewGoogleDriveFetcher(apiKey, syncConcurrency, syncWorkers, syncForce, store)
 		if err != nil {
 			r.StageFailed("plan", err)
 			return fmt.Errorf("fetcher: %w", err)

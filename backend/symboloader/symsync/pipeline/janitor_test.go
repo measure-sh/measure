@@ -12,10 +12,10 @@ func seedDIF(t *testing.T, store *fakeStore, debugID string) {
 	t.Helper()
 	base := symbol.BuildUnifiedLayout(debugID)
 	ctx := context.Background()
-	if err := store.Put(ctx, base+"/debuginfo", []byte("dummy"), ""); err != nil {
+	if err := putBytes(ctx, store, base+"/debuginfo", []byte("dummy")); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Put(ctx, base+"/meta", []byte("{}"), ""); err != nil {
+	if err := putBytes(ctx, store, base+"/meta", []byte("{}")); err != nil {
 		t.Fatal(err)
 	}
 }

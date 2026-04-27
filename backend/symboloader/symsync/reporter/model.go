@@ -347,7 +347,8 @@ func (m model) finalView() string {
 		// (StageFailed was called), the user has already seen it. Only emit
 		// the standalone error line for failures that aren't tied to a stage.
 		if !m.hasFailedStage() {
-			b.WriteString("  " + styleRed.Render("✗  "+m.finalErr.Error()) + "\n")
+			b.WriteString("  " + styleRed.Render("✗") + "\n")
+			b.WriteString(m.renderError(m.finalErr, 6) + "\n")
 		}
 	} else {
 		totalDIFs, failed := 0, 0
@@ -419,7 +420,9 @@ func (m model) stageView(s stageRow) string {
 	case stageFailed:
 		icon = styleRed.Render("✗")
 		if s.err != nil {
-			detail = styleRed.Render(s.err.Error())
+			name := lipgloss.NewStyle().Width(stageNameWidth).Render(s.name)
+			head := fmt.Sprintf("  %s  %s", icon, name)
+			return head + "\n" + m.renderError(s.err, 6)
 		}
 	default:
 		icon = styleMuted.Render("·")
@@ -455,7 +458,8 @@ func (m model) inProgressView(row inProgressRow) string {
 
 func (m model) archiveView(a archiveRow) string {
 	if a.err != nil {
-		return fmt.Sprintf("  %s  %s  %s", styleRed.Render("✗"), a.filename, styleRed.Render(a.err.Error()))
+		head := fmt.Sprintf("  %s  %s", styleRed.Render("✗"), a.filename)
+		return head + "\n" + m.renderError(a.err, 6)
 	}
 	return fmt.Sprintf("  %s  %-45s  %s",
 		styleGreen.Render("✓"),
@@ -466,13 +470,49 @@ func (m model) archiveView(a archiveRow) string {
 
 func (m model) deleteView(d deleteRow) string {
 	if d.err != nil {
-		return fmt.Sprintf("  %s  %s  %s", styleRed.Render("✗"), d.filename, styleRed.Render(d.err.Error()))
+		head := fmt.Sprintf("  %s  %s", styleRed.Render("✗"), d.filename)
+		return head + "\n" + m.renderError(d.err, 6)
 	}
 	return fmt.Sprintf("  %s  %-45s  %s",
 		styleRed.Render("−"),
 		d.filename,
 		styleMuted.Render(fmt.Sprintf("%d DIFs removed", d.difsDeleted)),
 	)
+}
+
+// renderError returns the error message wrapped to the model's terminal
+// width and indented `indent` spaces on every line. Lipgloss otherwise
+// truncates over-long single-line errors when the terminal is narrower
+// than the message — losing the part the user needs to debug.
+func (m model) renderError(err error, indent int) string {
+	if err == nil {
+		return ""
+	}
+	width := m.width - indent
+	if width < 20 {
+		width = 20
+	}
+	pad := strings.Repeat(" ", indent)
+	msg := strings.ReplaceAll(err.Error(), "\n", " ")
+
+	var lines []string
+	for len(msg) > width {
+		// Prefer breaking at whitespace within the second half of the line.
+		cut := width
+		if sp := strings.LastIndexAny(msg[:width], " \t"); sp > width/2 {
+			cut = sp
+		}
+		lines = append(lines, msg[:cut])
+		msg = strings.TrimLeft(msg[cut:], " \t")
+	}
+	if msg != "" {
+		lines = append(lines, msg)
+	}
+
+	for i, l := range lines {
+		lines[i] = pad + styleRed.Render(l)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func formatBytes(b int64) string {

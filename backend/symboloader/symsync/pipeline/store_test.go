@@ -1,8 +1,10 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -20,13 +22,21 @@ func newFakeStore() *fakeStore {
 	return &fakeStore{objects: make(map[string][]byte)}
 }
 
-func (f *fakeStore) Put(_ context.Context, key string, data []byte, _ string) error {
+func (f *fakeStore) Put(_ context.Context, key string, body io.Reader, _ int64, _ string) error {
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return err
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	cp := make([]byte, len(data))
-	copy(cp, data)
-	f.objects[key] = cp
+	f.objects[key] = data
 	return nil
+}
+
+// putBytes is a test helper that adapts the io.Reader-based Put to a []byte
+// caller. Keeps test bodies short.
+func putBytes(ctx context.Context, store ObjectStore, key string, data []byte) error {
+	return store.Put(ctx, key, bytes.NewReader(data), int64(len(data)), "")
 }
 
 func (f *fakeStore) Get(_ context.Context, key string) ([]byte, error) {
@@ -65,7 +75,8 @@ func TestFakeStorePutGet(t *testing.T) {
 	store := newFakeStore()
 	ctx := context.Background()
 
-	if err := store.Put(ctx, "foo", []byte("hello"), "text/plain"); err != nil {
+	data := []byte("hello")
+	if err := store.Put(ctx, "foo", bytes.NewReader(data), int64(len(data)), "text/plain"); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
 	got, err := store.Get(ctx, "foo")
@@ -91,7 +102,7 @@ func TestFakeStoreDeleteIdempotent(t *testing.T) {
 	if err := store.Delete(ctx, "absent"); err != nil {
 		t.Fatalf("Delete absent: %v", err)
 	}
-	if err := store.Put(ctx, "k", []byte("v"), ""); err != nil {
+	if err := putBytes(ctx, store, "k", []byte("v")); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
 	if err := store.Delete(ctx, "k"); err != nil {
@@ -106,7 +117,7 @@ func TestFakeStoreListPrefix(t *testing.T) {
 	store := newFakeStore()
 	ctx := context.Background()
 	for _, k := range []string{"a/1", "a/2", "b/1"} {
-		_ = store.Put(ctx, k, []byte("x"), "")
+		_ = putBytes(ctx, store, k, []byte("x"))
 	}
 	got, err := store.List(ctx, "a/")
 	if err != nil {

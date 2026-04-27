@@ -1,26 +1,38 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // s3Store is an ObjectStore backed by an S3-compatible bucket
 // (real AWS S3, MinIO, or any other S3-compatible service).
+//
+// Put uses the transfermanager.Client so non-seekable bodies (streaming
+// sevenzip entries, for example) can be uploaded without buffering the
+// full payload in memory. The uploader chunks the body and signs each
+// chunk separately, avoiding SigV4's "compute body hash up front"
+// requirement that fails on non-seekable readers.
 type s3Store struct {
-	client *s3.Client
-	bucket string
+	client   *s3.Client
+	uploader *transfermanager.Client
+	bucket   string
 }
 
 func newS3Store(env StorageEnv) *s3Store {
-	return &s3Store{client: newS3Client(env), bucket: env.Bucket}
+	c := newS3Client(env)
+	return &s3Store{
+		client:   c,
+		uploader: transfermanager.New(c),
+		bucket:   env.Bucket,
+	}
 }
 
 // newS3Client builds an S3 client from the environment. When Endpoint is set
@@ -44,16 +56,19 @@ func newS3Client(env StorageEnv) *s3.Client {
 	})
 }
 
-func (s *s3Store) Put(ctx context.Context, key string, data []byte, contentType string) error {
-	in := &s3.PutObjectInput{
+func (s *s3Store) Put(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
+	in := &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-		Body:   bytes.NewReader(data),
+		Body:   body,
+	}
+	if size > 0 {
+		in.ContentLength = aws.Int64(size)
 	}
 	if contentType != "" {
 		in.ContentType = aws.String(contentType)
 	}
-	if _, err := s.client.PutObject(ctx, in); err != nil {
+	if _, err := s.uploader.UploadObject(ctx, in); err != nil {
 		return fmt.Errorf("s3 put %s: %w", key, err)
 	}
 	return nil

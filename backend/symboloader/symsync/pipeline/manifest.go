@@ -150,7 +150,8 @@ func SaveArchiveEntry(ctx context.Context, store ObjectStore, e ArchiveEntry) er
 	if err := toml.NewEncoder(&buf).Encode(e); err != nil {
 		return fmt.Errorf("encode entry %s: %w", e.VBAC(), err)
 	}
-	if err := store.Put(ctx, e.ObjectKey(), buf.Bytes(), "application/toml"); err != nil {
+	body := bytes.NewReader(buf.Bytes())
+	if err := store.Put(ctx, e.ObjectKey(), body, int64(buf.Len()), "application/toml"); err != nil {
 		return fmt.Errorf("put entry %s: %w", e.VBAC(), err)
 	}
 	return nil
@@ -203,7 +204,8 @@ func SaveRunRecord(ctx context.Context, store ObjectStore, r RunRecord) error {
 		return fmt.Errorf("encode run record %s: %w", r.RunID, err)
 	}
 	key := runsPrefix + r.RunID + ".toml"
-	if err := store.Put(ctx, key, buf.Bytes(), "application/toml"); err != nil {
+	body := bytes.NewReader(buf.Bytes())
+	if err := store.Put(ctx, key, body, int64(buf.Len()), "application/toml"); err != nil {
 		return fmt.Errorf("put run record: %w", err)
 	}
 	return nil

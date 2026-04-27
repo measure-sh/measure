@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -27,12 +26,15 @@ func newGCSStore(ctx context.Context, bucket string) (*gcsStore, error) {
 	return &gcsStore{client: c, bucket: bucket}, nil
 }
 
-func (g *gcsStore) Put(ctx context.Context, key string, data []byte, contentType string) (err error) {
+func (g *gcsStore) Put(ctx context.Context, key string, body io.Reader, size int64, contentType string) (err error) {
 	w := g.client.Bucket(g.bucket).Object(key).NewWriter(ctx)
 	if contentType != "" {
 		w.ContentType = contentType
 	}
-	if _, err = io.Copy(w, bytes.NewReader(data)); err != nil {
+	// GCS chunks the upload internally (default 16 MB). Size is informational
+	// here but lets us short-circuit if the caller advertised an empty payload.
+	_ = size
+	if _, err = io.Copy(w, body); err != nil {
 		_ = w.Close()
 		return fmt.Errorf("gcs write %s: %w", key, err)
 	}
