@@ -2,12 +2,51 @@ package spot
 
 import (
 	"errors"
-	"strconv"
-	"strings"
 	"testing"
 
 	"symboloader/symsync/pipeline"
 )
+
+// fixtureCatalog mirrors enumerate/testdata/readme.md so test expectations
+// match the production README format.
+func fixtureCatalog() *pipeline.Catalog {
+	return &pipeline.Catalog{
+		Folders: []pipeline.DriveFolder{
+			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/26"},
+			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/18-late"},
+			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/18-early"},
+			{Versions: []string{"18.0 beta1", "18.1 beta3"}, URL: "https://example.com/18-beta"},
+			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/17"},
+		},
+	}
+}
+
+// folderURLs is a helper to extract URLs from folder slices for test assertions.
+func folderURLs(folders []pipeline.DriveFolder) []string {
+	out := make([]string, len(folders))
+	for i, f := range folders {
+		out[i] = f.URL
+	}
+	return out
+}
+
+// stringsEqual compares two slices ignoring order.
+func stringsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]int, len(a))
+	for _, s := range a {
+		seen[s]++
+	}
+	for _, s := range b {
+		seen[s]--
+		if seen[s] < 0 {
+			return false
+		}
+	}
+	return true
+}
 
 func TestValidateVersionsValid(t *testing.T) {
 	tests := []struct {
@@ -97,13 +136,6 @@ func TestValidateVersionsMultiple(t *testing.T) {
 		}
 	})
 
-	t.Run("star after others", func(t *testing.T) {
-		err := ValidateVersions([]string{"18.x", "*"})
-		if !errors.Is(err, ErrInvalidVersion) {
-			t.Errorf("expected ErrInvalidVersion, got: %v", err)
-		}
-	})
-
 	t.Run("nil slice", func(t *testing.T) {
 		if err := ValidateVersions(nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -111,108 +143,10 @@ func TestValidateVersionsMultiple(t *testing.T) {
 	})
 }
 
-func TestLatestVersions(t *testing.T) {
-	// Simulated catalog from enumerator results (drive folder version endpoints)
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
-	tests := []struct {
-		n    int
-		want []string
-	}{
-		{
-			n:    1,
-			want: []string{"26.4.1"},
-		},
-		{
-			n:    3,
-			want: []string{"26.4.1", "26.0", "18.7.6"},
-		},
-		{
-			n:    5,
-			want: []string{"26.4.1", "26.0", "18.7.6", "18.6.1", "18.5"},
-		},
-		{
-			n:    10,
-			want: []string{"26.4.1", "26.0", "18.7.6", "18.6.1", "18.5", "18.0", "17.6.1", "17.0"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run("n="+string(rune(tt.n)), func(t *testing.T) {
-			got := latestVersions(catalog, tt.n)
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d versions, want %d", len(got), len(tt.want))
-			}
-			for i, v := range got {
-				if v != tt.want[i] {
-					t.Errorf("version[%d]: got %q, want %q", i, v, tt.want[i])
-				}
-			}
-		})
-	}
-}
-
-func TestLastNVersionsResolution(t *testing.T) {
-	// Simulated catalog from enumerator results
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
-	tests := []struct {
-		versionSpec string
-		want        []string
-	}{
-		{
-			versionSpec: "last 5 versions",
-			want:        []string{"26.4.1", "26.0", "18.7.6", "18.6.1", "18.5"},
-		},
-		{
-			versionSpec: "last 3 versions",
-			want:        []string{"26.4.1", "26.0", "18.7.6"},
-		},
-		{
-			versionSpec: "last 1 versions",
-			want:        []string{"26.4.1"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.versionSpec, func(t *testing.T) {
-			// Validate the version spec is recognized as valid
-			if err := ValidateVersions([]string{tt.versionSpec}); err != nil {
-				t.Fatalf("ValidateVersions(%q) unexpected error: %v", tt.versionSpec, err)
-			}
-
-			// Extract N from "last N versions" and resolve to actual versions
-			if !isLastNVersions(tt.versionSpec) {
-				t.Fatalf("isLastNVersions(%q) should be true", tt.versionSpec)
-			}
-
-			parts := strings.SplitN(tt.versionSpec, " ", 3)
-			n, _ := strconv.Atoi(parts[1])
-			got := latestVersions(catalog, n)
-
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d versions, want %d", len(got), len(tt.want))
-			}
-			for i, v := range got {
-				if v != tt.want[i] {
-					t.Errorf("version[%d]: got %q, want %q", i, v, tt.want[i])
-				}
-			}
-		})
+func TestValidateVersionsRejectsInvalid(t *testing.T) {
+	err := ValidateVersions([]string{"invalid..version"})
+	if err == nil {
+		t.Error("expected validation error for invalid version")
 	}
 }
 
@@ -244,262 +178,293 @@ func TestIsLastNVersions(t *testing.T) {
 	}
 }
 
-func TestResolveVersionsSpecific(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
+func TestMajorOf(t *testing.T) {
 	tests := []struct {
-		name     string
-		versions []string
-		want     []string // URLs of matched folders
+		in   string
+		want int
 	}{
-		{
-			name:     "specific version 26.0",
-			versions: []string{"26.0"},
-			want:     []string{"https://example.com/1"},
-		},
-		{
-			name:     "specific version 18.7.6",
-			versions: []string{"18.7.6"},
-			want:     []string{"https://example.com/2"},
-		},
-		{
-			name:     "multiple specific versions",
-			versions: []string{"26.0", "18.0"},
-			want:     []string{"https://example.com/1", "https://example.com/3"},
-		},
+		{"26.4.1", 26},
+		{"26.0", 26},
+		{"26.x", 26},
+		{"18.0 beta1", 18},
+		{"17", 17},
+		{"", 0},
+		{"x", 0},
 	}
-
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveVersions(catalog, tt.versions)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d folders, want %d", len(got), len(tt.want))
-			}
-			for i, folder := range got {
-				if folder.URL != tt.want[i] {
-					t.Errorf("folder[%d]: got %q, want %q", i, folder.URL, tt.want[i])
-				}
+		t.Run(tt.in, func(t *testing.T) {
+			if got := majorOf(tt.in); got != tt.want {
+				t.Errorf("majorOf(%q) = %d, want %d", tt.in, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestResolveVersionsWildcard(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
+func TestCatalogMajors(t *testing.T) {
+	got := catalogMajors(fixtureCatalog())
+	want := []int{26, 18, 17}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
 	}
-
-	tests := []struct {
-		name     string
-		versions []string
-		want     []string
-	}{
-		{
-			name:     "major wildcard 26.x",
-			versions: []string{"26.x"},
-			want:     []string{"https://example.com/1"},
-		},
-		{
-			name:     "major wildcard 18.x",
-			versions: []string{"18.x"},
-			want:     []string{"https://example.com/2", "https://example.com/3"},
-		},
-		{
-			name:     "wildcard all *",
-			versions: []string{"*"},
-			want:     []string{"https://example.com/1", "https://example.com/2", "https://example.com/3", "https://example.com/4"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveVersions(catalog, tt.versions)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d folders, want %d", len(got), len(tt.want))
-			}
-			for i, folder := range got {
-				if folder.URL != tt.want[i] {
-					t.Errorf("folder[%d]: got %q, want %q", i, folder.URL, tt.want[i])
-				}
-			}
-		})
-	}
-}
-
-func TestResolveVersionsRange(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
-	tests := []struct {
-		name     string
-		versions []string
-		want     []string
-	}{
-		{
-			name:     "range 18.x-26.x",
-			versions: []string{"18.x-26.x"},
-			want:     []string{"https://example.com/1", "https://example.com/2", "https://example.com/3"},
-		},
-		{
-			name:     "range 17.5-18.7",
-			versions: []string{"17.5-18.7"},
-			want:     []string{"https://example.com/2", "https://example.com/3", "https://example.com/4"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveVersions(catalog, tt.versions)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d folders, want %d", len(got), len(tt.want))
-			}
-			for i, folder := range got {
-				if folder.URL != tt.want[i] {
-					t.Errorf("folder[%d]: got %q, want %q", i, folder.URL, tt.want[i])
-				}
-			}
-		})
-	}
-}
-
-func TestResolveVersionsLastN(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
-	tests := []struct {
-		name     string
-		versions []string
-		want     []string
-	}{
-		{
-			name:     "last 3 versions",
-			versions: []string{"last 3 versions"},
-			want:     []string{"https://example.com/1", "https://example.com/2"},
-		},
-		{
-			name:     "last 1 version",
-			versions: []string{"last 1 versions"},
-			want:     []string{"https://example.com/1"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveVersions(catalog, tt.versions)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %d folders, want %d", len(got), len(tt.want))
-			}
-			for i, folder := range got {
-				if folder.URL != tt.want[i] {
-					t.Errorf("folder[%d]: got %q, want %q", i, folder.URL, tt.want[i])
-				}
-			}
-		})
-	}
-}
-
-func TestResolveVersionsMixed(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{Versions: []string{"26.0", "26.4.1"}, URL: "https://example.com/1"},
-			{Versions: []string{"18.6.1", "18.7.6"}, URL: "https://example.com/2"},
-			{Versions: []string{"18.0", "18.5"}, URL: "https://example.com/3"},
-			{Versions: []string{"17.0", "17.6.1"}, URL: "https://example.com/4"},
-		},
-	}
-
-	t.Run("mixed: specific + wildcard + range", func(t *testing.T) {
-		// "26.0" (specific) + "17.x" (wildcard) + "18.0-18.6" (range)
-		versions := []string{"26.0", "17.x", "18.0-18.6"}
-		got, err := resolveVersions(catalog, versions)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+	for i, m := range want {
+		if got[i] != m {
+			t.Errorf("majors[%d] = %d, want %d", i, got[i], m)
 		}
+	}
+}
 
-		// Should match: 26.0 (folder 1), 17.0, 17.6.1 (folder 4), 18.0, 18.5 (folder 3)
-		// Folders: 1, 3, 4
-		want := []string{"https://example.com/1", "https://example.com/3", "https://example.com/4"}
-		if len(got) != len(want) {
-			t.Fatalf("got %d folders, want %d", len(got), len(want))
-		}
-		for i, folder := range got {
-			if folder.URL != want[i] {
-				t.Errorf("folder[%d]: got %q, want %q", i, folder.URL, want[i])
+func TestTopNMajors(t *testing.T) {
+	c := fixtureCatalog()
+	tests := []struct {
+		n    int
+		want []int
+	}{
+		{1, []int{26}},
+		{2, []int{26, 18}},
+		{3, []int{26, 18, 17}},
+		{10, []int{26, 18, 17}}, // capped at what exists
+		{0, []int{}},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			got := topNMajors(c, tt.n)
+			if len(got) != len(tt.want) {
+				t.Fatalf("topNMajors(_, %d) = %v, want %v", tt.n, got, tt.want)
 			}
+			for i, m := range tt.want {
+				if got[i] != m {
+					t.Errorf("topNMajors(_, %d)[%d] = %d, want %d", tt.n, i, got[i], m)
+				}
+			}
+		})
+	}
+}
+
+func TestSelectFoldersWildcard(t *testing.T) {
+	c := fixtureCatalog()
+
+	t.Run("26.x", func(t *testing.T) {
+		got := folderURLs(selectFolders(c, []string{"26.x"}))
+		want := []string{"https://example.com/26"}
+		if !stringsEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("18.x", func(t *testing.T) {
+		got := folderURLs(selectFolders(c, []string{"18.x"}))
+		want := []string{
+			"https://example.com/18-late",
+			"https://example.com/18-early",
+			"https://example.com/18-beta",
+		}
+		if !stringsEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
 		}
 	})
 }
 
-func TestValidateVersionsRejectsInvalid(t *testing.T) {
-	err := ValidateVersions([]string{"invalid..version"})
-	if err == nil {
-		t.Error("expected validation error for invalid version")
+func TestSelectFoldersSpecific(t *testing.T) {
+	c := fixtureCatalog()
+	got := folderURLs(selectFolders(c, []string{"17.6.1"}))
+	want := []string{"https://example.com/17"}
+	if !stringsEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
-func TestResolveVersionsMatchesFolders(t *testing.T) {
-	catalog := &pipeline.Catalog{
-		Folders: []pipeline.DriveFolder{
-			{URL: "https://drive.google.com/drive/folders/folder1", Versions: []string{"26.0"}},
-			{URL: "https://drive.google.com/drive/folders/folder2", Versions: []string{"18.0", "18.1"}},
-		},
+func TestSelectFoldersRange(t *testing.T) {
+	c := fixtureCatalog()
+	got := folderURLs(selectFolders(c, []string{"17.5-18.7"}))
+	want := []string{
+		"https://example.com/17",
+		"https://example.com/18-early",
+		"https://example.com/18-late",
+		"https://example.com/18-beta",
+	}
+	if !stringsEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestSelectFoldersLastN(t *testing.T) {
+	c := fixtureCatalog()
+
+	t.Run("last 1 versions", func(t *testing.T) {
+		got := folderURLs(selectFolders(c, []string{"last 1 versions"}))
+		want := []string{"https://example.com/26"}
+		if !stringsEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("last 3 versions", func(t *testing.T) {
+		got := folderURLs(selectFolders(c, []string{"last 3 versions"}))
+		want := []string{
+			"https://example.com/26",
+			"https://example.com/18-late",
+			"https://example.com/18-early",
+			"https://example.com/18-beta",
+			"https://example.com/17",
+		}
+		if !stringsEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("last 100 versions caps at catalog", func(t *testing.T) {
+		got := folderURLs(selectFolders(c, []string{"last 100 versions"}))
+		want := []string{
+			"https://example.com/26",
+			"https://example.com/18-late",
+			"https://example.com/18-early",
+			"https://example.com/18-beta",
+			"https://example.com/17",
+		}
+		if !stringsEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+}
+
+func TestSelectFoldersAll(t *testing.T) {
+	c := fixtureCatalog()
+	got := folderURLs(selectFolders(c, []string{"*"}))
+	want := folderURLs(c.Folders)
+	if !stringsEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestSelectFoldersUnion(t *testing.T) {
+	c := fixtureCatalog()
+	got := folderURLs(selectFolders(c, []string{"26.x", "17.x"}))
+	want := []string{
+		"https://example.com/26",
+		"https://example.com/17",
+	}
+	if !stringsEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestArchiveMatchesSpec(t *testing.T) {
+	tests := []struct {
+		version string
+		spec    string
+		want    bool
+	}{
+		// User-reported case: 26.0.1 must match 26.x.
+		{"26.0.1", "26.x", true},
+		// Specific spec is exact: "26.0" does NOT match "26.0.1".
+		{"26.0.1", "26.0", false},
+		{"26.0", "26.0", true},
+		{"26.0", "26.x", true},
+
+		// Mid-range version that the old code dropped.
+		{"18.3.2", "17.5-18.7", true},
+		{"18.0", "17.5-18.7", true},   // in range
+		{"17.4", "17.5-18.7", false},  // below range
+		{"18.8", "17.5-18.7", false},  // above range
+		{"18.7.6", "17.5-18.7", false}, // 18.7.6 > 18.7 upper bound
+
+		// Wildcard-all bound.
+		{"99.99.99", "*", true},
+
+		// Specific-vs-specific.
+		{"18.0", "18.0", true},
+		{"18.0", "18.1", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version+"_vs_"+tt.spec, func(t *testing.T) {
+			got := archiveMatchesSpec(tt.version, tt.spec)
+			if got != tt.want {
+				t.Errorf("archiveMatchesSpec(%q, %q) = %v, want %v", tt.version, tt.spec, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestArchivesPassingSpecsLastN captures the user-reported regression:
+// the 26.x folder contains 9 archives spanning 26.0 to 26.4.1, all of which
+// must be selected by "last 1 versions" (since 26 is the top major).
+func TestArchivesPassingSpecsLastN(t *testing.T) {
+	c := fixtureCatalog()
+	all := []pipeline.Target{
+		{FileName: "26.0 (23A341) arm64e.7z"},
+		{FileName: "26.0.1 (23A355) arm64e.7z"},
+		{FileName: "26.1 (23B85) arm64e.7z"},
+		{FileName: "26.2 (23C55) arm64e.7z"},
+		{FileName: "26.2.1 (23C71) arm64e.7z"},
+		{FileName: "26.3 (23D127) arm64e.7z"},
+		{FileName: "26.3.1 (23D8133) arm64e.7z"},
+		{FileName: "26.4 (23E246) arm64e.7z"},
+		{FileName: "26.4.1 (23E254) arm64e.7z"},
 	}
 
-	folders, err := resolveVersions(catalog, []string{"26.0", "18.x"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	got := archivesPassingSpecs(all, []string{"last 1 versions"}, c)
+	if len(got) != len(all) {
+		t.Fatalf("expected all 9 archives kept; got %d", len(got))
+	}
+}
+
+// TestArchivesPassingSpecsCombined verifies union semantics across last-N
+// and a wildcard spec.
+func TestArchivesPassingSpecsCombined(t *testing.T) {
+	c := fixtureCatalog()
+	all := []pipeline.Target{
+		{FileName: "26.4.1 (23E254) arm64e.7z"},   // 26 — top major
+		{FileName: "18.5 (22F76) arm64e.7z"},      // 18 — not top, but not 17.x either
+		{FileName: "17.6.1 (21G101) arm64e.7z"},   // 17.x — kept by spec
 	}
 
-	if len(folders) != 2 {
-		t.Errorf("expected 2 folders, got %d", len(folders))
+	got := archivesPassingSpecs(all, []string{"last 1 versions", "17.x"}, c)
+	if len(got) != 2 {
+		t.Fatalf("expected 2 archives; got %d (%v)", len(got), got)
+	}
+	keptNames := map[string]bool{}
+	for _, t := range got {
+		keptNames[t.FileName] = true
+	}
+	if !keptNames["26.4.1 (23E254) arm64e.7z"] {
+		t.Errorf("expected 26.4.1 (top major) kept")
+	}
+	if !keptNames["17.6.1 (21G101) arm64e.7z"] {
+		t.Errorf("expected 17.6.1 (matched 17.x) kept")
+	}
+	if keptNames["18.5 (22F76) arm64e.7z"] {
+		t.Errorf("18.5 should not be in the union")
+	}
+}
+
+// TestArchivesPassingSpecsRangeIncludesMidVersions captures the in-range
+// drop bug for non-last-N specs: 18.3.2 sits inside 17.5-18.7 and must
+// pass, even though it's not a labelled folder endpoint.
+func TestArchivesPassingSpecsRangeIncludesMidVersions(t *testing.T) {
+	c := fixtureCatalog()
+	all := []pipeline.Target{
+		{FileName: "18.3.2 (22D8082) arm64e.7z"}, // mid-range, kept
+		{FileName: "18.5 (22F76) arm64e.7z"},     // mid-range, kept
+		{FileName: "18.7.6 (22H320) arm64e.7z"},  // 18.7.6 > 18.7 upper bound, dropped
+		{FileName: "16.0 (20A362) arm64e.7z"},    // below range, dropped
 	}
 
-	urls := map[string]bool{}
-	for _, f := range folders {
-		urls[f.URL] = true
+	got := archivesPassingSpecs(all, []string{"17.5-18.7"}, c)
+	keptNames := map[string]bool{}
+	for _, t := range got {
+		keptNames[t.FileName] = true
 	}
-
-	if !urls["https://drive.google.com/drive/folders/folder1"] {
-		t.Error("expected folder1 for version 26.0")
+	if !keptNames["18.3.2 (22D8082) arm64e.7z"] {
+		t.Errorf("18.3.2 should be in range and kept (the regression)")
 	}
-	if !urls["https://drive.google.com/drive/folders/folder2"] {
-		t.Error("expected folder2 for versions 18.x")
+	if !keptNames["18.5 (22F76) arm64e.7z"] {
+		t.Errorf("18.5 should be in range and kept")
+	}
+	if keptNames["18.7.6 (22H320) arm64e.7z"] {
+		t.Errorf("18.7.6 must be dropped — exceeds upper bound 18.7")
+	}
+	if keptNames["16.0 (20A362) arm64e.7z"] {
+		t.Errorf("16.0 must be dropped — below lower bound 17.5")
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -148,106 +149,155 @@ func componentVal(s string) int {
 	return v
 }
 
-// latestVersions extracts all unique versions from the catalog's drive folders
-// and returns the top n versions in descending order (newest first).
-func latestVersions(catalog *pipeline.Catalog, n int) []string {
-	if n <= 0 || catalog == nil {
-		return []string{}
+// majorOf returns the leading integer of v. Examples:
+//
+//	"26.4.1"      -> 26
+//	"26.x"        -> 26
+//	"18.0 beta1"  -> 18
+//	""            ->  0
+func majorOf(v string) int {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 0
 	}
+	dot := strings.Index(v, ".")
+	if dot < 0 {
+		dot = len(v)
+	}
+	n, _ := strconv.Atoi(v[:dot])
+	return n
+}
 
-	seen := make(map[string]bool)
-	var versions []string
-	for _, folder := range catalog.Folders {
+// catalogMajors returns the unique majors derived from every folder's
+// Versions slice, sorted descending (newest first).
+func catalogMajors(c *pipeline.Catalog) []int {
+	if c == nil {
+		return nil
+	}
+	seen := make(map[int]bool)
+	var majors []int
+	for _, folder := range c.Folders {
 		for _, v := range folder.Versions {
-			if !seen[v] {
-				seen[v] = true
-				versions = append(versions, v)
+			m := majorOf(v)
+			if m == 0 || seen[m] {
+				continue
 			}
+			seen[m] = true
+			majors = append(majors, m)
 		}
 	}
-
-	sortDescending(versions)
-
-	if n > len(versions) {
-		n = len(versions)
-	}
-	return versions[:n]
+	sort.Sort(sort.Reverse(sort.IntSlice(majors)))
+	return majors
 }
 
-// sortDescending sorts version strings in descending order (newest first).
-func sortDescending(versions []string) {
-	for i := range len(versions) {
-		for j := i + 1; j < len(versions); j++ {
-			if versionLE(versions[i], versions[j]) {
-				versions[i], versions[j] = versions[j], versions[i]
-			}
+// topNMajors returns the first n majors in catalogMajors. Caps at the number
+// of majors actually present; never returns more than exist.
+func topNMajors(c *pipeline.Catalog, n int) []int {
+	majors := catalogMajors(c)
+	if n > len(majors) {
+		n = len(majors)
+	}
+	return majors[:n]
+}
+
+// folderCoversMajor reports whether any of f.Versions has the given major.
+func folderCoversMajor(f pipeline.DriveFolder, m int) bool {
+	for _, v := range f.Versions {
+		if majorOf(v) == m {
+			return true
 		}
 	}
+	return false
 }
 
-// resolveTargetVersionSet builds the concrete set of version strings that match
-// the given specs against the catalog. Used for both folder selection and
-// per-archive filtering.
-func resolveTargetVersionSet(catalog *pipeline.Catalog, versions []string) map[string]bool {
-	targetVersions := make(map[string]bool)
-	for _, spec := range versions {
+// folderOverlapsRange reports whether [f.Versions[first], f.Versions[last]]
+// overlaps the inclusive range [lo, hi]. lo and hi are user-supplied tokens
+// that may contain "x"; they are normalized before comparison.
+func folderOverlapsRange(f pipeline.DriveFolder, lo, hi string) bool {
+	if len(f.Versions) == 0 {
+		return false
+	}
+	fStart := f.Versions[0]
+	fEnd := f.Versions[len(f.Versions)-1]
+	rangeLo := normalizeLowerBound(lo)
+	rangeHi := normalizeUpperBound(hi)
+	// Overlap: fStart <= rangeHi AND rangeLo <= fEnd
+	return versionLE(fStart, rangeHi) && versionLE(rangeLo, fEnd)
+}
+
+// folderMatchesSpec reports whether f should be listed for the given user spec.
+// Specs that operate at major granularity (last-N) are not handled here —
+// callers must invoke folderCoversMajor against pre-computed top majors.
+func folderMatchesSpec(f pipeline.DriveFolder, spec string) bool {
+	spec = strings.TrimSpace(spec)
+	if isAll(spec) {
+		return true
+	}
+	if isRange(spec) {
+		idx := strings.Index(spec, "-")
+		return folderOverlapsRange(f, spec[:idx], spec[idx+1:])
+	}
+	// Single token (specific or wildcard) — treat as a 1-element range.
+	return folderOverlapsRange(f, spec, spec)
+}
+
+// selectFolders returns the union of folders that should be listed for the
+// given specs. Folders are deduped by URL. Order is the catalog's original
+// folder order (stable for tests).
+func selectFolders(c *pipeline.Catalog, specs []string) []pipeline.DriveFolder {
+	if c == nil || len(c.Folders) == 0 {
+		return nil
+	}
+
+	keep := make(map[string]bool)
+	var topMajors map[int]bool
+
+	for _, spec := range specs {
 		spec = strings.TrimSpace(spec)
-		if isAll(spec) {
-			for _, folder := range catalog.Folders {
-				for _, v := range folder.Versions {
-					targetVersions[v] = true
-				}
+		if isLastNVersions(spec) {
+			if topMajors == nil {
+				topMajors = make(map[int]bool)
 			}
-		} else if isLastNVersions(spec) {
 			parts := strings.SplitN(spec, " ", 3)
 			n, _ := strconv.Atoi(parts[1])
-			for _, v := range latestVersions(catalog, n) {
-				targetVersions[v] = true
+			for _, m := range topNMajors(c, n) {
+				topMajors[m] = true
 			}
-		} else if isRange(spec) {
-			idx := strings.Index(spec, "-")
-			addRangeVersions(catalog, spec[:idx], spec[idx+1:], targetVersions)
-		} else {
-			addMatchingVersions(catalog, spec, targetVersions)
-		}
-	}
-	return targetVersions
-}
-
-// resolveVersions takes version specifiers (validated strings) and resolves them
-// to a list of unique DriveFolder entries from the catalog that match those versions.
-func resolveVersions(catalog *pipeline.Catalog, versions []string) (folders []pipeline.DriveFolder, err error) {
-	if catalog == nil || len(versions) == 0 {
-		return []pipeline.DriveFolder{}, nil
-	}
-
-	targetVersions := resolveTargetVersionSet(catalog, versions)
-
-	seen := make(map[string]bool)
-	for _, folder := range catalog.Folders {
-		if seen[folder.URL] {
 			continue
 		}
-		for _, v := range folder.Versions {
-			if targetVersions[v] {
-				folders = append(folders, folder)
-				seen[folder.URL] = true
-				break
+		for _, folder := range c.Folders {
+			if folderMatchesSpec(folder, spec) {
+				keep[folder.URL] = true
 			}
 		}
 	}
 
-	return
+	if topMajors != nil {
+		for _, folder := range c.Folders {
+			for m := range topMajors {
+				if folderCoversMajor(folder, m) {
+					keep[folder.URL] = true
+					break
+				}
+			}
+		}
+	}
+
+	var out []pipeline.DriveFolder
+	for _, folder := range c.Folders {
+		if keep[folder.URL] {
+			out = append(out, folder)
+		}
+	}
+	return out
 }
 
-func addMatchingVersions(catalog *pipeline.Catalog, spec string, target map[string]bool) {
-	for _, folder := range catalog.Folders {
-		for _, v := range folder.Versions {
-			if versionMatches(v, spec) {
-				target[v] = true
-			}
-		}
-	}
+// versionInRange reports whether v falls within [start, end] inclusive,
+// after normalizing wildcards in the bounds.
+func versionInRange(v, start, end string) bool {
+	lo := normalizeLowerBound(start)
+	hi := normalizeUpperBound(end)
+	return versionLE(lo, v) && versionLE(v, hi)
 }
 
 func versionMatches(v, spec string) bool {
@@ -269,17 +319,79 @@ func versionMatches(v, spec string) bool {
 	return true
 }
 
-func addRangeVersions(catalog *pipeline.Catalog, start, end string, target map[string]bool) {
-	startBound := normalizeLowerBound(start)
-	endBound := normalizeUpperBound(end)
+// archiveMatchesSpec reports whether an archive's parsed version satisfies
+// a single non-last-N user spec. last-N is handled by archivesPassingSpecs
+// because it requires the catalog to compute top majors.
+//
+// Spec semantics at file level:
+//   - "*"        → match anything
+//   - "X.x"      → wildcard prefix (any version with major X)
+//   - "X.Y[.Z]"  → exact equality with the parsed archive version
+//   - "A-B"      → inclusive range (with wildcard expansion on bounds)
+func archiveMatchesSpec(version, spec string) bool {
+	spec = strings.TrimSpace(spec)
+	if isAll(spec) {
+		return true
+	}
+	if isRange(spec) {
+		idx := strings.Index(spec, "-")
+		return versionInRange(version, spec[:idx], spec[idx+1:])
+	}
+	if strings.Contains(spec, "x") {
+		return versionMatches(version, spec)
+	}
+	return version == spec
+}
 
-	for _, folder := range catalog.Folders {
-		for _, v := range folder.Versions {
-			if versionLE(startBound, v) && versionLE(v, endBound) {
-				target[v] = true
-			}
+// archivesPassingSpecs filters all listed archives down to those matching
+// at least one of the user specs (union semantics). last-N specs are
+// resolved against the catalog's top majors.
+func archivesPassingSpecs(all []pipeline.Target, specs []string, c *pipeline.Catalog) []pipeline.Target {
+	if len(all) == 0 {
+		return nil
+	}
+
+	// Pre-compute the top-N major set across all last-N specs.
+	majorAllow := make(map[int]bool)
+	for _, spec := range specs {
+		spec = strings.TrimSpace(spec)
+		if !isLastNVersions(spec) {
+			continue
+		}
+		parts := strings.SplitN(spec, " ", 3)
+		n, _ := strconv.Atoi(parts[1])
+		for _, m := range topNMajors(c, n) {
+			majorAllow[m] = true
 		}
 	}
+
+	out := make([]pipeline.Target, 0, len(all))
+	for _, t := range all {
+		info, ok := pipeline.ParseArchiveFilename(t.FileName)
+		if !ok {
+			continue
+		}
+		matched := false
+		if len(majorAllow) > 0 && majorAllow[majorOf(info.Version)] {
+			matched = true
+		}
+		if !matched {
+			for _, spec := range specs {
+				spec = strings.TrimSpace(spec)
+				if isLastNVersions(spec) {
+					continue
+				}
+				if archiveMatchesSpec(info.Version, spec) {
+					matched = true
+					break
+				}
+			}
+		}
+		if matched {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func normalizeLowerBound(s string) string {
@@ -312,15 +424,15 @@ func extractFolderID(url string) (string, error) {
 	return m[1], nil
 }
 
-// DriveSpotter implements the pipeline.Spotter interface using version validation,
-// resolution logic, and Google Drive file enumeration.
+// DriveSpotter resolves user-supplied version specs into concrete archive
+// targets by combining the README catalog with live Drive folder listings.
 type DriveSpotter struct {
 	client *drive.Service
 }
 
-// NewDriveSpotter creates a DriveSpotter with a Drive client built from the
-// supplied API key. The upstream catalog folders are public, so an API key
-// alone is sufficient for both listing and downloading.
+// NewDriveSpotter builds a DriveSpotter with a Drive client constructed from
+// the supplied API key. The upstream catalog folders are public, so an API
+// key alone is sufficient for both listing and downloading.
 func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
 	svc, err := drive.NewService(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
@@ -329,39 +441,43 @@ func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
 	return &DriveSpotter{client: svc}, nil
 }
 
-// Spot validates user-supplied version specs, resolves them to Drive folders,
-// then enumerates the individual .7z archives within each folder to produce
-// one Target per archive file, filtered to only the requested versions.
+// Spot validates user-supplied specs, pre-selects candidate folders from the
+// catalog, lists every .7z archive in those folders, then filters each
+// archive's parsed version against the user's specs (union). Catalog folder
+// labels are version *ranges* (e.g. "26.0-26.4.1"), so the actual file
+// versions inside can only be discovered by listing Drive — we cannot rely
+// on catalog labels alone for archive selection.
 func (s *DriveSpotter) Spot(ctx context.Context, catalog *pipeline.Catalog, versions []string) ([]pipeline.Target, error) {
 	if err := ValidateVersions(versions); err != nil {
 		return nil, err
 	}
-
-	folders, err := resolveVersions(catalog, versions)
-	if err != nil {
-		return nil, err
+	if catalog == nil || len(catalog.Folders) == 0 {
+		return nil, nil
 	}
 
-	targetVersions := resolveTargetVersionSet(catalog, versions)
+	folders := selectFolders(catalog, versions)
 
-	var targets []pipeline.Target
+	var all []pipeline.Target
 	for _, folder := range folders {
 		folderID, err := extractFolderID(folder.URL)
 		if err != nil {
 			return nil, err
 		}
-		files, err := s.listArchives(ctx, folderID, folder, targetVersions)
+		files, err := s.listAllArchives(ctx, folderID, folder)
 		if err != nil {
 			return nil, fmt.Errorf("list archives in folder %s: %w", folderID, err)
 		}
-		targets = append(targets, files...)
+		all = append(all, files...)
 	}
 
-	deduped, collapsed := dedupByChecksum(targets)
+	matched := archivesPassingSpecs(all, versions, catalog)
+	deduped, collapsed := dedupByChecksum(matched)
 
 	slog.Info("spotter: resolved targets",
 		"version_specs", versions,
-		"folders", len(folders),
+		"folders_selected", len(folders),
+		"archives_listed", len(all),
+		"archives_matched", len(matched),
 		"targets", len(deduped),
 		"collapsed_duplicates", collapsed,
 	)
@@ -396,8 +512,10 @@ func dedupByChecksum(targets []pipeline.Target) (kept []pipeline.Target, collaps
 	return kept, collapsed
 }
 
-// listArchives lists .7z files in a Drive folder, filtered to the given version set.
-func (s *DriveSpotter) listArchives(ctx context.Context, folderID string, folder pipeline.DriveFolder, targetVersions map[string]bool) ([]pipeline.Target, error) {
+// listAllArchives lists every parseable .7z archive in a single Drive folder.
+// No version-set filtering is applied — file-level filtering happens in
+// archivesPassingSpecs against the user's specs.
+func (s *DriveSpotter) listAllArchives(ctx context.Context, folderID string, folder pipeline.DriveFolder) ([]pipeline.Target, error) {
 	var targets []pipeline.Target
 	pageToken := ""
 	for {
@@ -420,9 +538,6 @@ func (s *DriveSpotter) listArchives(ctx context.Context, folderID string, folder
 			info, ok := pipeline.ParseArchiveFilename(f.Name)
 			if !ok {
 				slog.Warn("spotter: skipping unparseable filename", "name", f.Name)
-				continue
-			}
-			if !targetVersions[info.Version] {
 				continue
 			}
 			targets = append(targets, pipeline.Target{
