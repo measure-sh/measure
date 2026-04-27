@@ -18,8 +18,36 @@ Pod::Spec.new do |spec|
   }
   spec.resources    = [
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld",
-    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel" 
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel"
   ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "KSCrash", "~> 2.5"
+
+  spec.subspec 'WebP' do |ss|
+    ss.source_files = [
+      "ios/Sources/MeasureWebP/libwebp/sharpyuv/*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/enc/**/*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/cpu.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/alpha_processing*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/cost*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/enc*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/filters*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/dec*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/lossless*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/rescaler*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/ssim*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/upsampling*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/dsp/yuv*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/utils/*.{c,h}",
+      "ios/Sources/MeasureWebP/libwebp/src/webp/encode.h",
+      "ios/Sources/MeasureWebP/libwebp/src/webp/types.h",
+      "ios/Sources/MeasureWebP/include/MeasureWebP.h",
+    ]
+    ss.public_header_files = "ios/Sources/MeasureWebP/include/MeasureWebP.h"
+    ss.pod_target_xcconfig = {
+      "HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/ios/Sources/MeasureWebP/libwebp\" \"$(PODS_TARGET_SRCROOT)/ios/Sources/MeasureWebP/libwebp/src\""
+    }
+  end
+
+  spec.default_subspecs = ['WebP']
 end

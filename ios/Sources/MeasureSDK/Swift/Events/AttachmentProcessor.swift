@@ -36,7 +36,7 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
             switch attachmentType {
             case .layoutSnapshot: return "\(uuid).svg"
             case .layoutSnapshotJson: return "\(uuid)"
-            default: return "\(uuid).png"
+            default: return "\(uuid).webp"
             }
         }()
 

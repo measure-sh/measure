@@ -9,6 +9,7 @@ import CoreTelephony
 import Foundation
 import KSCrashRecording
 import MachO
+import MeasureWebP
 import Network
 import ObjectiveC
 import Photos

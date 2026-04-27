@@ -62,7 +62,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                     return
                 }
 
-                guard let compressedData = redactedImage.jpegData(compressionQuality: CGFloat(self.configProvider.screenshotCompressionQuality) / 100.0) else {
+                guard let compressedData = WebPEncoder.encode(redactedImage, quality: CGFloat(self.configProvider.screenshotCompressionQuality) / 100.0) else {
                     self.logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
                     completion(nil)
                     return

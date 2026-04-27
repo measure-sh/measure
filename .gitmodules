@@ -1,0 +1,4 @@
+[submodule "ios/Sources/MeasureWebP/libwebp"]
+	path = ios/Sources/MeasureWebP/libwebp
+	url = https://github.com/webmproject/libwebp.git
+	branch = v1.6.0

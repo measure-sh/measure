@@ -53,6 +53,9 @@ struct ContentView: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
 
+                    Button("Launch Bug Report") {
+                        Measure.launchBugReport(takeScreenshot: true)
+                    }
                     // Button 4: Full-Screen Cover
                     Button("Present Full Screen") {
                         isFullScreenPresented = true
