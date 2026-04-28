@@ -258,6 +258,8 @@ export const Measure = {
       console.warn('Measure.setUserId requires a non-empty string.');
       return;
     }
+
+    _measureInternal.setUserId(userId);
   },
 
   /**
