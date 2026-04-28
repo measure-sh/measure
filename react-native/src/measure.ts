@@ -228,6 +228,9 @@ export const Measure = {
    * @returns A W3C trace context compliant header value (e.g., '00-traceId-spanId-01').
    */
   getTraceParentHeaderValue(span: Span): string {
+    if (!_measureInternal) {
+      return '';
+    }
     return _measureInternal.getTraceParentHeaderValue(span);
   },
 
@@ -237,6 +240,9 @@ export const Measure = {
    * @returns The standardized header key 'traceparent'.
    */
   getTraceParentHeaderKey(): string {
+    if (!_measureInternal) {
+      return '';
+    }
     return _measureInternal.getTraceParentHeaderKey();
   },
 
@@ -333,6 +339,11 @@ export const Measure = {
     bugReportConfig: Record<string, any> = {},
     attributes: Record<string, ValidAttributeValue> = {}
   ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
     return _measureInternal.launchBugReport(
       takeScreenshot,
       bugReportConfig,
