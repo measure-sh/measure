@@ -78,6 +78,7 @@ export const Measure = {
   start(): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
+      return;
     }
     return _measureInternal.start();
   },
@@ -88,6 +89,7 @@ export const Measure = {
   stop(): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
+      return;
     }
     return _measureInternal.stop();
   },
