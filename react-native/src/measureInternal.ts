@@ -63,6 +63,7 @@ export class MeasureInternal {
       })
       .catch((error) => {
         console.error('Failed to load dynamic config', error);
+        this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
     if (config?.autoStart) {
