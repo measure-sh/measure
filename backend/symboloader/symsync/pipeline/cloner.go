@@ -171,6 +171,7 @@ func (c *DriveCloner) listDestArchives(ctx context.Context) ([]*drive.File, erro
 			Fields("files(id, name, md5Checksum), nextPageToken").
 			PageSize(200).
 			PageToken(pageToken).
+			Corpora("allDrives").
 			SupportsAllDrives(true).
 			IncludeItemsFromAllDrives(true).
 			Do()
