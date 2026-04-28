@@ -25,7 +25,25 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     private let logger: Logger
     private let attachmentProcessor: AttachmentProcessor
     private let userPermissionManager: UserPermissionManager
-    private let maskedClassNameFragments: [String] = ["RCTParagraphTextView"]
+
+    /// Class name fragments that trigger masking via name matching.
+    /// Used for SwiftUI backing views that don't appear as known UIView
+    /// subclasses. _UIHostingView blanket-masks all SwiftUI content by
+    /// default — use .msrUnmask() to opt specific views out.
+    private let maskedClassNameFragments: [String] = [
+        "RCTParagraphTextView",
+        "_UIHostingView"
+    ]
+
+    /// Class name fragments whose subtrees are skipped during traversal
+    /// to prevent crashes from accessing problematic private layers.
+    private let traversalBlocklist: [String] = {
+        var blocklist: [String] = []
+        if #available(iOS 26.0, *) {
+            blocklist.append("CameraUI.ChromeSwiftUIView")
+        }
+        return blocklist
+    }()
 
     init(configProvider: ConfigProvider,
          logger: Logger,
@@ -50,14 +68,26 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
 
             SignPost.trace(subcategory: "Attachment", label: "generateScreenshot") {
                 let typesToMask = self.typesToMask(for: self.configProvider.screenshotMaskLevel)
-                let sensitiveFrames = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask)
+                let result = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask)
+
+                // Subtract exempt frames from sensitive frames
+                var sensitiveFrames = result.sensitive
+                if !result.exempt.isEmpty {
+                    sensitiveFrames = sensitiveFrames.filter { frame in
+                        !result.exempt.contains { $0.intersects(frame) }
+                    }
+                }
 
                 let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
                 let screenshot = renderer.image { _ in
                     window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
                 }
 
-                guard let redactedImage = self.redactScreenshot(screenshot, sensitiveFrames: sensitiveFrames, maskColor: self.maskColor) else {
+                guard let redactedImage = self.redactScreenshot(
+                    screenshot,
+                    sensitiveFrames: sensitiveFrames,
+                    maskColor: self.maskColor
+                ) else {
                     completion(nil)
                     return
                 }
@@ -96,28 +126,43 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         }
     }
 
-    private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> [CGRect] {
-        var sensitiveFrames: [CGRect] = []
+    private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> (sensitive: [CGRect], exempt: [CGRect]) {
+        var sensitive: [CGRect] = []
+        var exempt: [CGRect] = []
 
-        for type in types {
-            if view.isKind(of: type) {
-                let frameInRootView = view.convert(view.bounds, to: rootView)
-                sensitiveFrames.append(frameInRootView)
-                break
+        // Per-instance override from .msrMask() takes highest priority
+        if MsrRedactViewHelper.shouldMask(view) {
+            sensitive.append(view.convert(view.bounds, to: rootView))
+        } else if MsrRedactViewHelper.shouldUnmask(view) {
+            // Per-instance unmask — record frame for subtraction
+            exempt.append(view.convert(view.bounds, to: rootView))
+        } else {
+            // Fall through to class-based and fragment-based checks
+            let className = String(describing: type(of: view))
+            let matchesType = types.contains { view.isKind(of: $0) }
+            let matchesFragment = maskedClassNameFragments.contains { className.contains($0) }
+
+            if matchesType || matchesFragment {
+                sensitive.append(view.convert(view.bounds, to: rootView))
             }
-            let className = String(describing: view)
-            if maskedClassNameFragments.contains(where: { className.contains($0) }) {
-                let frameInRootView = view.convert(view.bounds, to: rootView)
-                sensitiveFrames.append(frameInRootView)
-                break
-            }
+        }
+
+        // Skip subtree traversal for known crash-prone view types.
+        // The view itself is still masked above if it matched — only
+        // traversal into its children is skipped.
+        let className = String(describing: type(of: view))
+        let isBlocked = traversalBlocklist.contains { className.contains($0) }
+        guard !isBlocked else {
+            return (sensitive, exempt)
         }
 
         for subview in view.subviews {
-            sensitiveFrames.append(contentsOf: findSensitiveFrames(in: subview, rootView: rootView, types: types))
+            let result = findSensitiveFrames(in: subview, rootView: rootView, types: types)
+            sensitive.append(contentsOf: result.sensitive)
+            exempt.append(contentsOf: result.exempt)
         }
 
-        return sensitiveFrames
+        return (sensitive, exempt)
     }
 
     private func redactScreenshot(_ screenshot: UIImage, sensitiveFrames: [CGRect], maskColor: UIColor) -> UIImage? {

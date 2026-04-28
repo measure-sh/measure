@@ -10,6 +10,9 @@ import SwiftUI
 import UIKit
 
 struct SwiftUIDetailViewController: View {
+    @State private var textFieldValue: String = "Sensitive text field input"
+    @State private var textEditorValue: String = "Sensitive text editor content.\nThis spans multiple lines."
+
     let crashTypes = [
         "Trigger Http Event",
         "Abort",
@@ -31,13 +34,60 @@ struct SwiftUIDetailViewController: View {
     var body: some View {
         MsrMoniterView("DetailListView") {
             NavigationView {
-                VStack {
+                VStack(spacing: 0) {
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("UILabel equivalent (Text)")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        Text("Sensitive label content")
+                            .padding(.horizontal)
+                    }
+                    .msrMask()
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("UITextField equivalent (TextField)")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        TextField("Enter sensitive data", text: $textFieldValue)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.horizontal)
+                    }
+                    .msrMask()
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("UITextView equivalent (TextEditor)")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        TextEditor(text: $textEditorValue)
+                            .frame(height: 80)
+                            .padding(.horizontal)
+                    }
+                    .msrMask()
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+
+                    Divider()
+
+                    // MARK: - All three inside a List (the hard case)
+
                     List(crashTypes, id: \.self) { crashType in
                         Text(crashType)
                             .onTapGesture {
                                 triggerCrash(type: crashType)
                             }
-                    }
+                    }.msrUnmask()
                     .navigationBarTitle("SwiftUI View Controller", displayMode: .inline)
                 }
             }

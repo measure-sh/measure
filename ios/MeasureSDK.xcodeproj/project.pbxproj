@@ -177,6 +177,8 @@
 		69C4496B2DACC7C700E44CF4 /* InternalSignalCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */; };
 		69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */; };
 		69F6D44B2DFAA2DA000367EA /* ClientInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F6D44A2DFAA2D4000367EA /* ClientInfoTests.swift */; };
+		CF03BF232F9CC218001F5CE3 /* MsrRedactViewHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF03BF222F9CC218001F5CE3 /* MsrRedactViewHelper.swift */; };
+		CF03BF252F9CC22B001F5CE3 /* MsrMaskModifier.swift .swift in Sources */ = {isa = PBXBuildFile; fileRef = CF03BF242F9CC22B001F5CE3 /* MsrMaskModifier.swift .swift */; };
 		CF041C432ED437F6004B4D28 /* SignalSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF041C422ED437F6004B4D28 /* SignalSampler.swift */; };
 		CF041C452ED46E7F004B4D28 /* MockSignalSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF041C442ED46E7F004B4D28 /* MockSignalSampler.swift */; };
 		CF0F95782F5834450018D95D /* Recording in Frameworks */ = {isa = PBXBuildFile; productRef = CF0F95772F5834450018D95D /* Recording */; };
@@ -537,6 +539,8 @@
 		69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalSignalCollectorTests.swift; sourceTree = "<group>"; };
 		69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInitializer.swift; sourceTree = "<group>"; };
 		69F6D44A2DFAA2D4000367EA /* ClientInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientInfoTests.swift; sourceTree = "<group>"; };
+		CF03BF222F9CC218001F5CE3 /* MsrRedactViewHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrRedactViewHelper.swift; sourceTree = "<group>"; };
+		CF03BF242F9CC22B001F5CE3 /* MsrMaskModifier.swift .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MsrMaskModifier.swift .swift"; sourceTree = "<group>"; };
 		CF041C422ED437F6004B4D28 /* SignalSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalSampler.swift; sourceTree = "<group>"; };
 		CF041C442ED46E7F004B4D28 /* MockSignalSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSignalSampler.swift; sourceTree = "<group>"; };
 		CF11CCD72F1B996B00EF68E9 /* MockSignalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSignalStore.swift; sourceTree = "<group>"; };
@@ -950,6 +954,8 @@
 			isa = PBXGroup;
 			children = (
 				CFD9D88B2F97513600EE8E21 /* WebPEncoder.swift */,
+				CF03BF242F9CC22B001F5CE3 /* MsrMaskModifier.swift .swift */,
+				CF03BF222F9CC218001F5CE3 /* MsrRedactViewHelper.swift */,
 				526D17FB2D5A1913009A2E90 /* ScreenshotGenerator.swift */,
 			);
 			path = Screenshots;
@@ -1678,6 +1684,7 @@
 				CF041C432ED437F6004B4D28 /* SignalSampler.swift in Sources */,
 				69C449692DA9266400E44CF4 /* InternalSignalCollector.swift in Sources */,
 				CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */,
+				CF03BF252F9CC22B001F5CE3 /* MsrMaskModifier.swift .swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
 				CF893DD22E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel in Sources */,
 				CF1BB3BF2DC0BCA300588506 /* CGFloat+Extension.swift in Sources */,
@@ -1730,6 +1737,7 @@
 				CF1BB4A02DD2039000588506 /* BugReportImageCell.swift in Sources */,
 				526D18352D5A1913009A2E90 /* InternalConfig.swift in Sources */,
 				526D18442D5A1913009A2E90 /* SystemCrashReporter.swift in Sources */,
+				CF03BF232F9CC218001F5CE3 /* MsrRedactViewHelper.swift in Sources */,
 				CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */,
 				CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */,
 				CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */,
