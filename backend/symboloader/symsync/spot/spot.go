@@ -643,6 +643,8 @@ func (s *DriveSpotter) listAllArchives(ctx context.Context, folderID string, fol
 			Fields("files(id, name, size, md5Checksum), nextPageToken").
 			PageSize(200).
 			PageToken(pageToken).
+			SupportsAllDrives(true).
+			IncludeItemsFromAllDrives(true).
 			Do()
 		if err != nil {
 			return nil, fmt.Errorf("list files: %w", cleanDriveError(err))

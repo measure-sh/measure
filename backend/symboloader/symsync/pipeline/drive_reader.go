@@ -65,7 +65,7 @@ type driveReaderAt struct {
 // fetchDriveFileSize retrieves the size of a Drive file via a single
 // metadata request.
 func fetchDriveFileSize(ctx context.Context, client *drive.Service, fileID string) (int64, error) {
-	f, err := client.Files.Get(fileID).Context(ctx).Fields("size").Do()
+	f, err := client.Files.Get(fileID).Context(ctx).Fields("size").SupportsAllDrives(true).Do()
 	if err != nil {
 		return 0, fmt.Errorf("drive get size: %w", err)
 	}
@@ -254,7 +254,7 @@ func (r *driveReaderAt) openBodyLocked(from int64) error {
 // archives exceed Drive's "may be malicious" threshold and would
 // otherwise be rejected with a 403 + HTML scan-warning page.
 func openDriveRange(ctx context.Context, client *drive.Service, fileID, rangeHeader string) (*http.Response, error) {
-	call := client.Files.Get(fileID).Context(ctx).AcknowledgeAbuse(true)
+	call := client.Files.Get(fileID).Context(ctx).AcknowledgeAbuse(true).SupportsAllDrives(true)
 	call.Header().Set("Range", rangeHeader)
 	resp, err := call.Download()
 	if err != nil {
