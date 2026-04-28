@@ -74,7 +74,11 @@ longer in the target set.`,
 	SilenceUsage:  true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if syncList {
-			return runList(cmd)
+			err := runList(cmd)
+			if err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "  ✗  %s\n", err)
+			}
+			return err
 		}
 		return runSync(cmd)
 	},

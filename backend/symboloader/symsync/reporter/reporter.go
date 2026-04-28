@@ -17,9 +17,10 @@ import (
 // status lines to out (one per stage event), suitable for `docker compose
 // exec` or CI logs. Pipeline-level slog logging is unaffected in either mode.
 type Reporter struct {
-	out   io.Writer
-	isTTY bool
-	prog  *tea.Program
+	out            io.Writer
+	isTTY          bool
+	prog           *tea.Program
+	hasFailedStage bool
 }
 
 // New creates a Reporter that writes to out.
@@ -42,7 +43,11 @@ func New(out io.Writer) *Reporter {
 // For non-TTY: fn runs directly.
 func (r *Reporter) Run(fn func() error) error {
 	if !r.isTTY {
-		return fn()
+		err := fn()
+		if err != nil && !r.hasFailedStage {
+			fmt.Fprintf(r.out, "  ✗  %s\n", err)
+		}
+		return err
 	}
 	var fnErr error
 	go func() {
@@ -79,6 +84,7 @@ func (r *Reporter) StageFailed(name string, err error) {
 		r.prog.Send(stageFailedMsg{name: name, err: err})
 		return
 	}
+	r.hasFailedStage = true
 	fmt.Fprintf(r.out, "  ✗  %-10s  %s\n", name, err)
 }
 
