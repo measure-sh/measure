@@ -424,7 +424,7 @@ Change the masking level of screenshots collected with Crashes and ANRs. It help
 information from leaking.
 
 > [!NOTE]
-> _Applies to iOS UIKit screens only._ The mask level configuration does not apply to SwiftUI screens.
+> _The mask level configuration does not apply to SwiftUI screens._
 > Because of the way SwiftUI renders its views, all SwiftUI content is masked by default regardless of
 > the mask level setting. See [Screenshot Masking for SwiftUI](feature_screenshot_masking_swiftui.md)
 > for details on how to control masking for SwiftUI views using the `.msrMask()` and `.msrUnmask()`
