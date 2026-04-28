@@ -69,6 +69,7 @@ export class MeasureInternal {
     if (config?.autoStart) {
       this.started = true;
       this.registerCollectors();
+      enableNativeModule();
     }
   }
 

@@ -99,9 +99,6 @@ export const Measure = {
    *
    * Event names should be clear and consistent to aid in dashboard searches.
    *
-   * For now, this simply logs the event and its attributes to the console.
-   * A future version will send the event to the Measure SDK for full tracking.
-   *
    * @param name - The name of the event (max 64 characters).
    * @param attributes - Optional key-value pairs providing additional context.
    * @param timestamp - Optional timestamp in milliseconds (defaults to current time).
@@ -204,7 +201,6 @@ export const Measure = {
     if (!_measureInternal) {
       return new InvalidSpan();
     }
-    // Assuming MeasureInternal has a method to call the Tracer/Collector with a timestamp
     return _measureInternal.startSpan(name, timestampMs);
   },
 
