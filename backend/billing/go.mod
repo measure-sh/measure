@@ -6,7 +6,7 @@ require (
 	backend/email v0.0.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/leporo/sqlf v1.4.0
 	github.com/stripe/stripe-go/v84 v84.4.1
 	github.com/valkey-io/valkey-go v1.0.73
