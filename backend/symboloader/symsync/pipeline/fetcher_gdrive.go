@@ -447,7 +447,7 @@ func uploadEntry(ctx context.Context, job entryJob, store ObjectStore) (debugID 
 	if err := putWithRetry(ctx, store, base+"/debuginfo", job.data); err != nil {
 		return "", 0, fmt.Errorf("upload debuginfo for %s: %w", job.name, err)
 	}
-	if err := store.Put(ctx, base+"/meta", bytes.NewReader(metaJSON), int64(len(metaJSON)), ""); err != nil {
+	if err := putWithRetry(ctx, store, base+"/meta", metaJSON); err != nil {
 		return "", 0, fmt.Errorf("upload meta for %s: %w", job.name, err)
 	}
 
