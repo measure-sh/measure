@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**deps**): Bump github.com/jackc/pgx/v5 in /backend/alerts (#3528) by @dependabot[bot] in #3528
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/billing (#3527) by @dependabot[bot] in #3527
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/metering (#3526) by @dependabot[bot] in #3526
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/ingest-worker (#3525) by @dependabot[bot] in #3525
