@@ -53,20 +53,16 @@ export const Measure = {
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise(async (resolve, reject) => {
-      try {
-        console.info('Initializing Measure SDK ...');
+    _initializationPromise = (async () => {
+      console.info('Initializing Measure SDK ...');
 
-        _measureInitializer = new MeasureInitializer(config);
-        _measureInternal = new MeasureInternal(_measureInitializer);
+      _measureInitializer = new MeasureInitializer(config);
+      _measureInternal = new MeasureInternal(_measureInitializer);
 
-        await _measureInternal.init(config);
-
-        resolve();
-      } catch (error) {
-        _initializationPromise = null;
-        reject(error);
-      }
+      await _measureInternal.init(config);
+    })().catch((error) => {
+      _initializationPromise = null;
+      throw error;
     });
 
     return _initializationPromise;
