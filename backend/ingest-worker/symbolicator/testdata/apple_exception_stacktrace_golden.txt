@@ -1,31 +1,34 @@
 Thread 0 Crashed:
-0   libsystem_kernel.dylib         00000001028d885c                                                           00000001028d0000 + 8
-1   libsystem_pthread.dylib        00000001026362a8                                                           0000000102630000 + 264
-2   libsystem_c.dylib              00000001801ad950                                                           0000000180139000 + 100
-3   DemoApp                        specialized ViewController.triggerCrash(type: String)                      0000000102324000  ViewController.swift:320
-4   DemoApp                        ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)        0000000102324000  ViewController.swift:237
-5   DemoApp                        @objc ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)  0000000102324000  <compiler-generated>
-6   UIKitCore                      00000001864d2bf8                                                           0000000185156000 + 1196
-7   UIKitCore                      00000001864d2f18                                                           0000000185156000 + 252
-8   UIKitCore                      00000001864d2ffc                                                           0000000185156000 + 192
-9   UIKitCore                      00000001867e82cc                                                           0000000185156000 + 64
-10  UIKitCore                      00000001867e86e0                                                           0000000185156000 + 164
-11  UIKitCore                      000000018626c5d4                                                           0000000185156000 + 256
-12  UIKitCore                      000000018625e2b4                                                           0000000185156000 + 76
-13  UIKitCore                      000000018625e37c                                                           0000000185156000 + 68
-14  UIKitCore                      000000018617e834                                                           0000000185156000 + 372
-15  UIKitCore                      0000000185773878                                                           0000000185156000 + 120
-16  UIKitCore                      000000018617ec90                                                           0000000185156000 + 56
-17  UpdateCycle                    00000002509462b4                                                           0000000250945000 + 80
-18  CoreFoundation                 000000018044d4dc                                                           00000001803ba000 + 24
-19  CoreFoundation                 000000018044d424                                                           00000001803ba000 + 168
-20  CoreFoundation                 000000018044cbb0                                                           00000001803ba000 + 220
-21  CoreFoundation                 000000018044bd84                                                           00000001803ba000 + 760
-22  CoreFoundation                 0000000180446e24                                                           00000001803ba000 + 496
-23  GraphicsServices               00000001925319bc                                                           000000019252f000 + 116
-24  UIKitCore                      000000018625fc3c                                                           0000000185156000 + 772
-25  UIKitCore                      0000000186263e64                                                           0000000185156000 + 124
-26  UIKitCore                      00000001854dc098                                                           0000000185156000 + 5120
-27  DemoApp                        main                                                                       0000000102324000  AppDelegate.swift
-28                                 00000001026c93d0                                                            + 0
-29                                 0000000102a10d54                                                            + 0
+  0   libsystem_kernel.dylib        0x00000001028d0000   00000001028d885c + 8
+  1   libsystem_pthread.dylib       0x0000000102630000   00000001026362a8 + 264
+  2   libsystem_c.dylib             0x0000000180139000   00000001801ad950 + 100
+  3   DemoApp                       0x0000000102324000   specialized ViewController.triggerCrash(type: String)   (ViewController.swift:320)
+  4   DemoApp                       0x0000000102324000   ViewController.tableView(_: UITableView, didSelectRo...   (ViewController.swift:237)
+    Full symbol:ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)
+  5   DemoApp                       0x0000000102324000   @objc ViewController.tableView(_: UITableView, didSe...   (<compiler-generated>)
+    Full symbol:@objc ViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)
+  6   UIKitCore                     0x0000000185156000   00000001864d2bf8 + 1196
+  7   UIKitCore                     0x0000000185156000   00000001864d2f18 + 252
+  8   UIKitCore                     0x0000000185156000   00000001864d2ffc + 192
+  9   UIKitCore                     0x0000000185156000   00000001867e82cc + 64
+ 10   UIKitCore                     0x0000000185156000   00000001867e86e0 + 164
+ 11   UIKitCore                     0x0000000185156000   000000018626c5d4 + 256
+ 12   UIKitCore                     0x0000000185156000   000000018625e2b4 + 76
+ 13   UIKitCore                     0x0000000185156000   000000018625e37c + 68
+ 14   UIKitCore                     0x0000000185156000   000000018617e834 + 372
+ 15   UIKitCore                     0x0000000185156000   0000000185773878 + 120
+ 16   UIKitCore                     0x0000000185156000   000000018617ec90 + 56
+ 17   UpdateCycle                   0x0000000250945000   00000002509462b4 + 80
+ 18   CoreFoundation                0x00000001803ba000   000000018044d4dc + 24
+ 19   CoreFoundation                0x00000001803ba000   000000018044d424 + 168
+ 20   CoreFoundation                0x00000001803ba000   000000018044cbb0 + 220
+ 21   CoreFoundation                0x00000001803ba000   000000018044bd84 + 760
+ 22   CoreFoundation                0x00000001803ba000   0000000180446e24 + 496
+ 23   GraphicsServices              0x000000019252f000   00000001925319bc + 116
+ 24   UIKitCore                     0x0000000185156000   000000018625fc3c + 772
+ 25   UIKitCore                     0x0000000185156000   0000000186263e64 + 124
+ 26   UIKitCore                     0x0000000185156000   00000001854dc098 + 5120
+ 27   DemoApp                       0x0000000102324000   main   (AppDelegate.swift)
+ 28   ???                              00000001026c93d0 + 0
+ 29   ???                              0000000102a10d54 + 0
+
