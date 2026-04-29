@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,6 +61,15 @@ func (r rank) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Value implements driver.Valuer so rank is encoded as its role name
+// (e.g. "owner") rather than the underlying int when used as a SQL
+// parameter. pgx v5.9.2 stopped wrapping fmt.Stringer types ahead of
+// the underlying int codec, which would otherwise insert "4" into
+// varchar role columns and break the team_membership FK.
+func (r rank) Value() (driver.Value, error) {
+	return r.String(), nil
 }
 
 func (r rank) String() string {
