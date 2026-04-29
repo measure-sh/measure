@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Preserve role name encoding under pgx simple protocol (#3522) by @detj in #3522
 - (**backend**): Type & exception field were not being set correctly (#3507) by @detj in #3507
 - (**backend**): Use deterministic order in crash & anr list (#3498) by @detj in #3498
 - (**backend**): Use correct field names for span attrs by @anupcowkur in #3481
