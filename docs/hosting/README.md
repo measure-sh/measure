@@ -29,6 +29,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
   - [Q. I'm using nginx as a reverse proxy. What configurations should I change?](#q-im-using-nginx-as-a-reverse-proxy-what-configurations-should-i-change)
   - [Q. How to add or update environment variables?](#q-how-to-add-or-update-environment-variables)
+  - [Q. How to setup complete symbolication for iOS?](#q-how-to-setup-complete-symbolication-for-ios)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -506,6 +507,33 @@ Then run the `./install.sh` script.
 ```sh
 sudo ./install.sh
 ```
+
+### Q. How to setup complete symbolication for iOS? 
+
+To symbolicate iOS frames for system frameworks, you would need to obtain a Google Drive API key & do the following:
+
+1. Update & save the `DRIVE_API_KEY` environment variable in `self-host/.env`
+2. Restart the `symboloader` service by running
+
+```sh
+docker compose down symboloader
+docker compose up -d symboloader
+```
+
+3. Run symboloader's sync command, like this
+
+```sh
+docker compose exec symboloader symboloader \
+  sync \
+  --versions "last 5 versions"
+```
+
+Few things to note:
+
+- iOS system symbol files can occupy a lot of disk space. Make sure you have at least 500 GB additional disk space capacity.
+- You may be rate-limited by Google Drive if you receive a 403 error: _We're sorry... but your computer or network may be sending automated queries_. When this happens, retry after 24 hours.
+
+[Read about the symboloader CLI commands](../../backend/symboloader/README.md)
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 

@@ -77,6 +77,7 @@ type ServerConfig struct {
 	AttachmentsBucketRegion    string
 	AttachmentsAccessKey       string
 	AttachmentsSecretAccessKey string
+	SystemSymbolsBucket        string
 	AWSEndpoint                string
 	APIOrigin                  string
 	SymbolicatorOrigin         string
@@ -148,6 +149,11 @@ func NewConfig() *ServerConfig {
 	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
 	if attachmentsSecretAccessKey == "" {
 		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment uploads won't work")
+	}
+
+	systemSymbolsBucket := os.Getenv("SYSTEM_SYMBOLS_S3_BUCKET")
+	if systemSymbolsBucket == "" {
+		log.Println("SYSTEM_SYMBOLS_S3_BUCKET env var not set, iOS system framework symbolication won't work")
 	}
 
 	apiOrigin := os.Getenv("API_ORIGIN")
@@ -238,6 +244,7 @@ func NewConfig() *ServerConfig {
 		AttachmentsBucketRegion:    attachmentsBucketRegion,
 		AttachmentsAccessKey:       attachmentsAccessKey,
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
+		SystemSymbolsBucket:        systemSymbolsBucket,
 		AWSEndpoint:                endpoint,
 		APIOrigin:                  apiOrigin,
 		SymbolicatorOrigin:         symbolicatorOrigin,

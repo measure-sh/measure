@@ -218,6 +218,7 @@ MINIO_ROOT_PASSWORD=minio123
 AWS_ENDPOINT_URL=http://minio:9000
 
 # Symbolication features won't work without these
+SYSTEM_SYMBOLS_S3_BUCKET=msr-system-symbols
 SYMBOLS_S3_BUCKET=msr-symbols-sandbox
 SYMBOLS_S3_BUCKET_REGION=us-east-1
 SYMBOLS_ACCESS_KEY=minio
@@ -236,6 +237,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -360,6 +362,7 @@ MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
 AWS_ENDPOINT_URL=http://minio:9000
 
 SYMBOLS_S3_BUCKET=$SYMBOLS_S3_BUCKET
+SYSTEM_SYMBOLS_S3_BUCKET=$SYSTEM_SYMBOLS_S3_BUCKET
 SYMBOLS_S3_BUCKET_REGION=$SYMBOLS_S3_BUCKET_REGION
 SYMBOLS_ACCESS_KEY=$SYMBOLS_ACCESS_KEY
 SYMBOLS_SECRET_ACCESS_KEY=$SYMBOLS_SECRET_ACCESS_KEY
@@ -376,6 +379,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
@@ -536,6 +540,7 @@ END
 
     if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
       echo -e "\nSet storage bucket for symbols"
+      SYSTEM_SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter system symbols S3 bucket name: ")
       SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
       SYMBOLS_S3_BUCKET_REGION=$(prompt_value_manual "Enter symbols S3 bucket region: ")
       SYMBOLS_ACCESS_KEY=$(prompt_value_manual "Enter symbols S3 bucket access key: ")
@@ -551,6 +556,7 @@ END
     else
       echo -e "Setting storage bucket for symbols"
       SYMBOLS_S3_BUCKET="msr-$NAMESPACE-symbols"
+      SYSTEM_SYMBOLS_S3_BUCKET="msr-$NAMESPACE-system-symbols"
       SYMBOLS_S3_BUCKET_REGION="us-east-1"
       SYMBOLS_ACCESS_KEY=$MINIO_ROOT_USER
       SYMBOLS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
@@ -646,6 +652,7 @@ ensure() {
   redis_port="6379"
   iggy_username="iggy"
   iggy_addr="iggy:8090"
+  system_symbols_s3_bucket="msr-system-symbols"
 
   if [[ "$SETUP_ENV" == "development" ]]; then
     clickhouse_admin_password="dummY_pa55w0rd"
@@ -885,6 +892,14 @@ ensure() {
 
   if ! check_env_variable "STRIPE_PRO_PRICE_ID"; then
     add_env_variable "STRIPE_PRO_PRICE_ID" "" "STRIPE_METER_NAME"
+  fi
+
+  if ! check_env_variable "SYSTEM_SYMBOLS_S3_BUCKET"; then
+    add_env_variable "SYSTEM_SYMBOLS_S3_BUCKET" "$system_symbols_s3_bucket" "SYMBOLS_S3_BUCKET"
+  fi
+
+  if ! check_env_variable "DRIVE_API_KEY"; then
+    add_env_variable "DRIVE_API_KEY" "change-this" "SYMBOLOADER_ORIGIN"
   fi
 
   # remove `frontend/dashboard/.env.local` file

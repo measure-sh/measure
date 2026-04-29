@@ -1,0 +1,20 @@
+Thread 0 Crashed:
+  0   libsystem_kernel.dylib        1044f4000   00000001044fd108 + 37128
+  1   libsystem_c.dylib             1800fd000   00000001801704ec + 472300
+  2   Wikipedia                     102770000   uncaught_exception_handler   (PLCrashReporter.m:361)
+  3   CoreFoundation                18038d000   00000001804b94a0 + 1229984
+  4   libobjc.A.dylib               180068000   000000018006f8a0 + 30880
+  5   libc++abi.dylib               180298000   00000001802ac4d8 + 83160
+  6   libc++abi.dylib               180298000   00000001802af61c + 95772
+  7   libobjc.A.dylib               180068000   0000000180092f3c + 175932
+  8   CoreFoundation                18038d000   0000000180416808 + 563208
+  9   GraphicsServices              190601000   0000000190604b10 + 15120
+ 10   UIKitCore                     184cd9000   0000000185b39180 + 15073664
+ 11   UIKitCore                     184cd9000   0000000185b3d378 + 15090552
+ 12   UIKitCore                     184cd9000   0000000184f0fad4 + 2321108
+ 13   Wikipedia                     102770000   static UIApplicationDelegate.main()   (<compiler-generated>)
+ 14   Wikipedia                     102770000   static AppDelegate.$main()   (<compiler-generated>)
+ 15   Wikipedia                     102770000   main   (AppDelegate.swift:18)
+ 16   ???                           0   000000010442d410 + 0
+ 17   ???                           0   000000010416e274 + 0
+

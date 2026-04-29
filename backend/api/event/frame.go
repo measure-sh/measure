@@ -3,6 +3,8 @@ package event
 import (
 	"fmt"
 	"strconv"
+	"strings"
+	"unicode"
 
 	"backend/libs/text"
 )
@@ -93,27 +95,81 @@ func (f Frame) String(frmwrk string) string {
 		methodName := f.MethodName
 		className := f.ClassName
 		fileInfo := f.FileInfo()
-		sep := "\t"
 
-		// if method & class is empty
-		// replace with symbol address
-		// and binary address to show
-		// unsymbolicated details
-		{
-			if methodName == "" {
-				methodName = f.SymbolAddress
-			}
-
-			if className == "" {
-				className = f.BinaryAddress
-			}
+		// fallbacks for unsymbolicated frames
+		if methodName == "" {
+			methodName = f.SymbolAddress
 		}
 
-		if fileInfo == "" {
-			fileInfo = fmt.Sprintf("+ %d", f.Offset)
-			sep = " "
+		if className == "" {
+			className = f.BinaryAddress
 		}
 
-		return fmt.Sprintf("%d\t%s\t\t\t\t%s\t%s%s%s", f.FrameIndex, binaryName, methodName, className, sep, fileInfo)
+		// graceful handling for completely unsymbolicated
+		// frames
+		if binaryName == "" {
+			binaryName = "???"
+		}
+
+		// normalize address to 0x prefix
+		addr := normalizeAddress(className)
+
+		// build the tail
+		var tail string
+		if fileInfo != "" {
+			tail = fmt.Sprintf("   (%s)", fileInfo)
+		} else {
+			tail = fmt.Sprintf(" + %d", f.Offset)
+		}
+
+		// long symbol handling
+		const maxSymbolLen = 55
+		displayMethod := methodName
+		extraLine := ""
+		if len(methodName) > maxSymbolLen {
+			displayMethod = methodName[:maxSymbolLen-3] + "..."
+			extraLine = "\n    Full symbol:" + methodName
+		}
+
+		// final line in classic Apple .crash style:
+		//   0   BinaryName   0xaddr   method + offset   (file:line)
+		// keep module + address + (truncated) symbol on one line for scannability.
+		// only the rare monster SwiftUI symbols get a second "Full symbol:" line.
+		line := fmt.Sprintf("%3d   %-28s  %s   %s%s",
+			f.FrameIndex,
+			binaryName,
+			addr,
+			displayMethod,
+			tail,
+		)
+
+		return line + extraLine
 	}
+}
+
+// normalizeAddress ensures a memory address string is correctly
+// formatted with a "0x" prefix and lowercase characters.
+func normalizeAddress(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return s
+	}
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		return strings.ToLower(s)
+	}
+	if len(s) == 16 && isHexString(s) {
+		return "0x" + strings.ToLower(s)
+	}
+	return s
+}
+
+// isHexString checks if the given string consists
+// entirely of valid hexadecimal digits.
+func isHexString(s string) bool {
+	for _, r := range s {
+		if !unicode.Is(unicode.Hex_Digit, r) {
+			return false
+		}
+	}
+	return true
 }

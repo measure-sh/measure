@@ -118,6 +118,40 @@ func TestObfuscatedDartExceptionStacktraceOne(t *testing.T) {
 	}
 }
 
+func TestAppleExceptionStacktraceOne(t *testing.T) {
+	exception, err := readException("./testdata/apple_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./testdata/apple_stacktrace_one.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, got)
+	}
+}
+
+func TestAppleExceptionStacktraceTwo(t *testing.T) {
+	exception, err := readException("./testdata/apple_two.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./testdata/apple_stacktrace_two.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, got)
+	}
+}
+
 func TestHasError(t *testing.T) {
 	// Empty exception
 	{
