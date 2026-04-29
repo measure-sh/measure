@@ -1,7 +1,7 @@
 # symboloader
 
 Enumerates and uploads Apple iOS system framework symbols to an S3-compatible
-bucket (self-host) or a GCS bucket (Cloud Run) for use in symbolication.
+bucket (self-host) or a GCS bucket (remote) for use in symbolication.
 
 ## Commands
 
@@ -20,26 +20,26 @@ symboloader sync [flags]    Run the full symbol sync pipeline
 | `--force` | `false` | Reprocess archives already recorded in the manifest |
 | `--list` | `false` | List available versions and exit |
 | `--no-removal` | `false` | Keep previously-synced symbols even if no longer in the target set |
-| `--clone` | `false` | Wipe and `Files.copy()` catalog archives into `--drive-folder-id` before fetching (Cloud Run only) |
-| `--drive-folder-id` | _(none)_ | Destination Drive folder ID for SA-owned copies; treats this folder as source for downloads (Cloud Run only) |
+| `--clone` | `false` | Wipe and `Files.copy()` catalog archives into `--drive-folder-id` before fetching (remote only) |
+| `--drive-folder-id` | _(none)_ | Destination Drive folder ID for SA-owned copies; treats this folder as source for downloads (remote only) |
 
 ## Environment variables
 
 ### Storage (required)
 
-The destination is selected automatically: a Cloud Run job (detected via
+The destination is selected automatically: a remote job (detected via
 `CLOUD_RUN_JOB` and `CLOUD_RUN_EXECUTION` env vars set by the runtime) writes
 to GCS; everything else writes to an S3-compatible store.
 
 | Variable | Required when | Description |
 |---|---|---|
-| `SYSTEM_SYMBOLS_S3_BUCKET` | always | Bucket name. In Cloud Run this is the GCS bucket; everywhere else, the S3 bucket. |
+| `SYSTEM_SYMBOLS_S3_BUCKET` | always | Bucket name. In remote environments this is the GCS bucket; everywhere else, the S3 bucket. |
 | `SYMBOLS_S3_BUCKET_REGION` | self-host | AWS region (e.g. `us-east-1`) |
 | `AWS_ENDPOINT_URL` | self-host (MinIO) | Custom endpoint for S3-compatible stores |
 | `SYMBOLS_ACCESS_KEY` | self-host | Access key ID |
 | `SYMBOLS_SECRET_ACCESS_KEY` | self-host | Secret access key |
 
-In Cloud Run, the job's attached service account must have
+In remote environments, the job's attached service account must have
 `roles/storage.objectUser` on the destination bucket. No keys or endpoint are
 needed — credentials are resolved via the metadata server.
 
@@ -95,14 +95,14 @@ services:
       - SYMBOLS_SECRET_ACCESS_KEY=...
 ```
 
-### Cloud Run
+### Remote Environments
 
-Attach a service account to the Cloud Run job with **`roles/storage.objectUser`**
+Attach a service account to the remote job with **`roles/storage.objectUser`**
 on the destination GCS bucket.
 
 Required setup:
 
-- SA bound to the Cloud Run job with `roles/storage.objectUser` on the GCS
+- SA bound to the remote job with `roles/storage.objectUser` on the GCS
   bucket.
 - `SYSTEM_SYMBOLS_S3_BUCKET` set to the GCS bucket name. The S3-only variables
   (`SYMBOLS_S3_BUCKET_REGION`, `SYMBOLS_ACCESS_KEY`, `SYMBOLS_SECRET_ACCESS_KEY`,
@@ -125,10 +125,10 @@ higher than the per-public-file cap.
 1. Create a Shared Drive in your Workspace (typical SA "My Drive" 15 GiB is
    too small; iOS archive batches run ~50 GiB). Or, in a pinch, a folder in
    any Drive with sufficient free space.
-2. Share the folder with the Cloud Run SA's email (`...@<project>.iam.gserviceaccount.com`)
+2. Share the folder with the remote SA's email (`...@<project>.iam.gserviceaccount.com`)
    and grant it the **Editor** role.
 3. Grant the SA the Drive scope `https://www.googleapis.com/auth/drive` so
-   Application Default Credentials resolve it on Cloud Run. The SA does not
+   Application Default Credentials resolve it remotely. The SA does not
    need a service account key — the metadata server handles this automatically.
 4. Note the folder ID (the trailing component of the Drive URL).
 
@@ -172,11 +172,11 @@ append.
 Symbol objects are content-addressed (`<debugID>/debuginfo`, `<debugID>/meta`)
 and idempotent, so this never causes incorrect symbolication. But a dropped
 manifest entry will cause the next run to re-download the archive from Drive
-and re-upload identical bytes, wasting Drive API quota and Cloud Run time.
+and re-upload identical bytes, wasting Drive API quota and remote compute time.
 
 Configure your scheduler so executions cannot overlap:
 
-- Cloud Run Jobs: do not trigger a new execution while one is still running.
+- Remote Jobs: do not trigger a new execution while one is still running.
 - Cloud Scheduler: set an attempt deadline shorter than the schedule interval,
   and verify no manual triggers overlap a scheduled run.
 

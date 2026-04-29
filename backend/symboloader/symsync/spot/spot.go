@@ -445,11 +445,11 @@ func normalizeUpperBound(s string) string {
 	return strings.Join(parts, ".")
 }
 
-
 // DriveSpotter resolves user-supplied version specs into concrete archive
 // targets by combining the README catalog with live Drive folder listings.
 type DriveSpotter struct {
-	client *drive.Service
+	client   *drive.Service
+	isPublic bool
 }
 
 // NewDriveSpotter builds a DriveSpotter with a Drive client constructed from
@@ -461,14 +461,14 @@ func NewDriveSpotter(apiKey string) (*DriveSpotter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("drive service: %w", err)
 	}
-	return &DriveSpotter{client: svc}, nil
+	return &DriveSpotter{client: svc, isPublic: true}, nil
 }
 
 // NewDriveSpotterWithService wraps a pre-built Drive service. Used by the
 // --drive-folder-id code path where credentials are SA-based (so the caller
 // has already invoked drive.NewService with the right scopes).
-func NewDriveSpotterWithService(svc *drive.Service) *DriveSpotter {
-	return &DriveSpotter{client: svc}
+func NewDriveSpotterWithService(svc *drive.Service, isPublic bool) *DriveSpotter {
+	return &DriveSpotter{client: svc, isPublic: isPublic}
 }
 
 // validateProbeFileID is an obviously-fake Drive file ID used by ValidateAPIKey.
@@ -636,17 +636,24 @@ func (s *DriveSpotter) listAllArchives(ctx context.Context, folderID string, fol
 	var targets []pipeline.Target
 	pageToken := ""
 	for {
-		query := fmt.Sprintf("'%s' in parents and trashed=false", folderID)
-		result, err := s.client.Files.List().Context(ctx).
+		query := fmt.Sprintf("'%s' in parents and trashed = false", folderID)
+		call := s.client.Files.List().Context(ctx).
 			Q(query).
 			Spaces("drive").
 			Fields("files(id, name, size, md5Checksum), nextPageToken").
-			PageSize(200).
-			PageToken(pageToken).
-			Corpora("allDrives").
-			SupportsAllDrives(true).
-			IncludeItemsFromAllDrives(true).
-			Do()
+			PageSize(200)
+
+		if pageToken != "" {
+			call.PageToken(pageToken)
+		}
+
+		if !s.isPublic {
+			call.Corpora("allDrives").
+				SupportsAllDrives(true).
+				IncludeItemsFromAllDrives(true)
+		}
+
+		result, err := call.Do()
 		if err != nil {
 			return nil, fmt.Errorf("list files: %w", cleanDriveError(err))
 		}

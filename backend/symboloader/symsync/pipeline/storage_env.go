@@ -17,7 +17,7 @@ type StorageEnv struct {
 	AccessKey string
 	SecretKey string
 	Endpoint  string // empty for real AWS S3; set for MinIO or other S3-compatible stores
-	IsCloud   bool   // true when running inside a Cloud Run Job
+	IsCloud   bool   // true when running inside a remote job
 }
 
 // StorageEnvFromEnv reads storage configuration from environment variables.

@@ -50,9 +50,10 @@ const (
 // Concurrent ReadAt calls are serialized via the mutex; sevenzip
 // extraction is single-threaded in our caller anyway.
 type driveReaderAt struct {
-	client *drive.Service
-	fileID string
-	size   int64
+	client   *drive.Service
+	fileID   string
+	size     int64
+	isPublic bool
 
 	tail    []byte
 	tailOff int64 // size - len(tail)
@@ -64,8 +65,12 @@ type driveReaderAt struct {
 
 // fetchDriveFileSize retrieves the size of a Drive file via a single
 // metadata request.
-func fetchDriveFileSize(ctx context.Context, client *drive.Service, fileID string) (int64, error) {
-	f, err := client.Files.Get(fileID).Context(ctx).Fields("size").SupportsAllDrives(true).Do()
+func fetchDriveFileSize(ctx context.Context, client *drive.Service, fileID string, isPublic bool) (int64, error) {
+	call := client.Files.Get(fileID).Context(ctx).Fields("size")
+	if !isPublic {
+		call.SupportsAllDrives(true)
+	}
+	f, err := call.Do()
 	if err != nil {
 		return 0, fmt.Errorf("drive get size: %w", err)
 	}
@@ -75,8 +80,8 @@ func fetchDriveFileSize(ctx context.Context, client *drive.Service, fileID strin
 // newDriveReaderAt constructs a reader ready to serve sevenzip:
 // it eagerly fetches the tail (so CD parsing is RAM-only) and opens a
 // single streaming body request positioned at offset 0.
-func newDriveReaderAt(ctx context.Context, client *drive.Service, fileID string) (*driveReaderAt, error) {
-	size, err := fetchDriveFileSize(ctx, client, fileID)
+func newDriveReaderAt(ctx context.Context, client *drive.Service, fileID string, isPublic bool) (*driveReaderAt, error) {
+	size, err := fetchDriveFileSize(ctx, client, fileID, isPublic)
 	if err != nil {
 		return nil, err
 	}
@@ -84,17 +89,18 @@ func newDriveReaderAt(ctx context.Context, client *drive.Service, fileID string)
 		return nil, fmt.Errorf("drive file %s has unknown or zero size", fileID)
 	}
 
-	tail, tailOff, err := fetchTail(ctx, client, fileID, size)
+	tail, tailOff, err := fetchTail(ctx, client, fileID, size, isPublic)
 	if err != nil {
 		return nil, fmt.Errorf("fetch tail: %w", err)
 	}
 
 	r := &driveReaderAt{
-		client:  client,
-		fileID:  fileID,
-		size:    size,
-		tail:    tail,
-		tailOff: tailOff,
+		client:   client,
+		fileID:   fileID,
+		size:     size,
+		isPublic: isPublic,
+		tail:     tail,
+		tailOff:  tailOff,
 	}
 
 	// Don't open the body stream up front — sevenzip will read the tail
@@ -106,7 +112,7 @@ func newDriveReaderAt(ctx context.Context, client *drive.Service, fileID string)
 
 // fetchTail downloads the trailing tailSize bytes (or the whole file if
 // it's smaller). Returned tail covers offsets [tailOff, size).
-func fetchTail(ctx context.Context, client *drive.Service, fileID string, size int64) (tail []byte, tailOff int64, err error) {
+func fetchTail(ctx context.Context, client *drive.Service, fileID string, size int64, isPublic bool) (tail []byte, tailOff int64, err error) {
 	wantSize := driveTailSize
 	if wantSize > size {
 		wantSize = size
@@ -115,7 +121,7 @@ func fetchTail(ctx context.Context, client *drive.Service, fileID string, size i
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", tailOff, size-1)
 
 	tail, err = withRetries(func() ([]byte, error) {
-		resp, err := openDriveRange(ctx, client, fileID, rangeHeader)
+		resp, err := openDriveRange(ctx, client, fileID, rangeHeader, isPublic)
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +245,7 @@ func (r *driveReaderAt) readBodyLocked(p []byte, off int64) (n int, err error) {
 func (r *driveReaderAt) openBodyLocked(from int64) error {
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", from, r.tailOff-1)
 	resp, err := withRetries(func() (*http.Response, error) {
-		return openDriveRange(context.Background(), r.client, r.fileID, rangeHeader)
+		return openDriveRange(context.Background(), r.client, r.fileID, rangeHeader, r.isPublic)
 	})
 	if err != nil {
 		return fmt.Errorf("open body stream from %d: %w", from, err)
@@ -253,8 +259,11 @@ func (r *driveReaderAt) openBodyLocked(from int64) error {
 // inclusive byte range. AcknowledgeAbuse(true) is required because iOS
 // archives exceed Drive's "may be malicious" threshold and would
 // otherwise be rejected with a 403 + HTML scan-warning page.
-func openDriveRange(ctx context.Context, client *drive.Service, fileID, rangeHeader string) (*http.Response, error) {
-	call := client.Files.Get(fileID).Context(ctx).AcknowledgeAbuse(true).SupportsAllDrives(true)
+func openDriveRange(ctx context.Context, client *drive.Service, fileID, rangeHeader string, isPublic bool) (*http.Response, error) {
+	call := client.Files.Get(fileID).Context(ctx).AcknowledgeAbuse(true)
+	if !isPublic {
+		call.SupportsAllDrives(true)
+	}
 	call.Header().Set("Range", rangeHeader)
 	resp, err := call.Download()
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 
 // gcsStore is an ObjectStore backed by a Google Cloud Storage bucket.
 // Credentials are resolved via Application Default Credentials, so on
-// Cloud Run the attached service account is used automatically.
+// remote environments the attached service account is used automatically.
 type gcsStore struct {
 	client *storage.Client
 	bucket string

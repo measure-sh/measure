@@ -11,7 +11,7 @@ var ErrNotFound = errors.New("object not found")
 
 // ObjectStore abstracts the object storage backend used to persist the
 // manifest and uploaded DIFs. Implementations exist for S3-compatible
-// stores (self-host / MinIO) and GCS (Cloud Run).
+// stores (self-host / MinIO) and GCS (remote).
 type ObjectStore interface {
 	// Put streams the body to the given key. size is the exact byte length
 	// of body and is required so backends can set Content-Length up front
@@ -31,7 +31,7 @@ type ObjectStore interface {
 }
 
 // NewObjectStore constructs the appropriate ObjectStore for the given environment.
-// In Cloud Run, GCS is used with ADC-resolved credentials. Otherwise an
+// In remote environments, GCS is used with ADC-resolved credentials. Otherwise an
 // S3-compatible store (real AWS S3 or MinIO) is used.
 func NewObjectStore(ctx context.Context, env StorageEnv) (ObjectStore, error) {
 	if env.IsCloud {

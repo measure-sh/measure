@@ -92,12 +92,12 @@ func init() {
 	syncCmd.Flags().BoolVar(&syncForce, "force", false, "reprocess archives already recorded in the manifest")
 	syncCmd.Flags().BoolVar(&syncList, "list", false, "enumerate and list available versions, then exit")
 	syncCmd.Flags().BoolVar(&syncNoRemoval, "no-removal", false, "keep previously-synced symbols even if they are no longer in the target set")
-	syncCmd.Flags().BoolVar(&syncClone, "clone", false, "wipe and Files.copy() catalog archives into --drive-folder-id before fetching (Cloud Run only)")
-	syncCmd.Flags().StringVar(&syncDriveFolderID, "drive-folder-id", "", "destination Drive folder ID for SA-owned copies; treats this folder as the source of truth (Cloud Run only)")
+	syncCmd.Flags().BoolVar(&syncClone, "clone", false, "wipe and Files.copy() catalog archives into --drive-folder-id before fetching (remote only)")
+	syncCmd.Flags().StringVar(&syncDriveFolderID, "drive-folder-id", "", "destination Drive folder ID for SA-owned copies; treats this folder as the source of truth (remote only)")
 }
 
 // newSADriveService builds a Drive service authenticated via Application
-// Default Credentials (the Cloud Run SA on Cloud Run, gcloud ADC locally)
+// Default Credentials (the remote SA remotely, gcloud ADC locally)
 // with the full Drive scope. Used for the cloned-mirror code path.
 func newSADriveService(ctx context.Context) (*drive.Service, error) {
 	creds, err := google.FindDefaultCredentials(ctx, drive.DriveScope)
@@ -194,7 +194,7 @@ func runSync(cmd *cobra.Command) error {
 			validationErrs = append(validationErrs, "--clone requires --drive-folder-id")
 		}
 		if (syncClone || useDriveFolder) && !storageEnv.IsCloud {
-			validationErrs = append(validationErrs, "--clone and --drive-folder-id are supported in Cloud Run only for now")
+			validationErrs = append(validationErrs, "--clone and --drive-folder-id are supported in remote environments only for now")
 		}
 
 		var (
@@ -226,7 +226,7 @@ func runSync(cmd *cobra.Command) error {
 						}
 					}
 					if len(validationErrs) == 0 {
-						spotter = spot.NewDriveSpotterWithService(svc)
+						spotter = spot.NewDriveSpotterWithService(svc, false)
 					}
 				}
 			} else {
@@ -243,7 +243,7 @@ func runSync(cmd *cobra.Command) error {
 						validationErrs = append(validationErrs, err.Error())
 					} else {
 						driveSvc = svc
-						s := spot.NewDriveSpotterWithService(svc)
+						s := spot.NewDriveSpotterWithService(svc, true)
 						if err := s.ValidateAPIKey(ctx); err != nil {
 							validationErrs = append(validationErrs, err.Error())
 						} else {
@@ -320,7 +320,7 @@ func runSync(cmd *cobra.Command) error {
 		}
 		plan := pipeline.NewPlan(targets, manifest)
 
-		fetcher := pipeline.NewGoogleDriveFetcher(driveSvc, syncConcurrency, syncWorkers, syncForce, store, cloner)
+		fetcher := pipeline.NewGoogleDriveFetcher(driveSvc, syncConcurrency, syncWorkers, syncForce, store, cloner, !useDriveFolder)
 		fetcher.SetManifest(manifest)
 		pending, total := fetcher.PendingCount(plan)
 

@@ -101,7 +101,7 @@ func TestDriveReaderAtSequentialRead(t *testing.T) {
 	shrinkTailSize(t, 1024)
 	payload := randomBytes(50_000) // body region is most of it
 	srv := newFakeDriveServer(t, payload)
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestDriveReaderAtTailServedFromBuffer(t *testing.T) {
 	shrinkTailSize(t, 1024)
 	payload := randomBytes(10_000)
 	srv := newFakeDriveServer(t, payload)
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestDriveReaderAtBodyToTailStraddle(t *testing.T) {
 	shrinkTailSize(t, 1024)
 	payload := randomBytes(10_000)
 	srv := newFakeDriveServer(t, payload)
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestDriveReaderAtBackwardSeekReopens(t *testing.T) {
 	shrinkTailSize(t, 1024)
 	payload := randomBytes(10_000)
 	srv := newFakeDriveServer(t, payload)
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestDriveReaderAtRetriesOn5xx(t *testing.T) {
 	srv := newFakeDriveServer(t, payload)
 	srv.statusOverrides = []int{http.StatusBadGateway, http.StatusServiceUnavailable}
 
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestDriveReaderAtFailsOn4xx(t *testing.T) {
 	srv := newFakeDriveServer(t, randomBytes(10_000))
 	srv.statusOverrides = []int{http.StatusForbidden}
 
-	_, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	_, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err == nil || !strings.Contains(err.Error(), "403") {
 		t.Errorf("expected 403 propagated, got %v", err)
 	}
@@ -235,7 +235,7 @@ func TestDriveReaderAtSmallFileAllInTail(t *testing.T) {
 	shrinkTailSize(t, 1024)
 	payload := []byte("hello world")
 	srv := newFakeDriveServer(t, payload)
-	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID)
+	r, err := newDriveReaderAt(context.Background(), srv.client(t), srv.fileID, false)
 	if err != nil {
 		t.Fatalf("newDriveReaderAt: %v", err)
 	}

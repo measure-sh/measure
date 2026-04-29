@@ -41,6 +41,7 @@ type GoogleDriveFetcher struct {
 	concurrency int // archives processed in parallel
 	workers     int // upload workers per in-flight archive
 	force       bool
+	isPublic    bool
 	onStart     func(count int)
 	onProgress  func(FetchProgressUpdate)
 
@@ -96,7 +97,7 @@ func (f *GoogleDriveFetcher) SetProgressCallback(fn func(FetchProgressUpdate)) {
 // archives already recorded in the manifest. cloner is optional — when
 // non-nil, the fetcher deletes each target's copy after persisting the
 // manifest entry.
-func NewGoogleDriveFetcher(svc *drive.Service, concurrency, workers int, force bool, store ObjectStore, cloner *DriveCloner) *GoogleDriveFetcher {
+func NewGoogleDriveFetcher(svc *drive.Service, concurrency, workers int, force bool, store ObjectStore, cloner *DriveCloner, isPublic bool) *GoogleDriveFetcher {
 	if concurrency < 1 {
 		concurrency = 1
 	}
@@ -110,6 +111,7 @@ func NewGoogleDriveFetcher(svc *drive.Service, concurrency, workers int, force b
 		workers:     workers,
 		force:       force,
 		cloner:      cloner,
+		isPublic:    isPublic,
 	}
 }
 
@@ -261,7 +263,7 @@ func (f *GoogleDriveFetcher) processAction(ctx context.Context, action Action) F
 		f.onProgress(FetchProgressUpdate{FileName: target.FileName, Phase: "fetching"})
 	}
 
-	readerAt, err := newDriveReaderAt(ctx, f.client, target.FileID)
+	readerAt, err := newDriveReaderAt(ctx, f.client, target.FileID, f.isPublic)
 	if err != nil {
 		return FetchResult{Target: target, Err: fmt.Errorf("open drive reader %s: %w", target.FileName, err)}
 	}
