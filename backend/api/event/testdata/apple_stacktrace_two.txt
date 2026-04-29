@@ -1,0 +1,71 @@
+Thread 0 Crashed:
+  0   libsystem_kernel.dylib        0x000000024b4b8000   __pthread_kill + 8
+  1   libsystem_pthread.dylib       0x00000001fb83b000   pthread_kill + 268
+  2   libsystem_c.dylib             0x00000001a84f6000   abort + 148
+  3   LocationSaver                 0x000000010402c000   _ZN5swift28swift_Concurrency_fatalErrorEjPKcz   (MeasureHomeScreen.swift:65)
+  4   SwiftUI                       0x00000001a5a08000   partial apply for closure #1 () in closure #2 () in ... + 32
+    Full symbol:partial apply for closure #1 () in closure #2 () in ContextMenuBridge.contextMenuInteraction(_: UIContextMenuInteraction, willPerformPreviewActionForMenuWith: UIContextMenuConfiguration, animator: UIContextMenuInteractionCommitAnimating)
+  5   SwiftUI                       0x00000001a5a08000   specialized static MainActor.assumeIsolated<A>(_: @M... + 140
+    Full symbol:specialized static MainActor.assumeIsolated<A>(_: @MainActor (), file: StaticString, line: UInt)
+  6   SwiftUI                       0x00000001a5a08000   ButtonAction.callAsFunction() + 540
+  7   SwiftUI                       0x00000001a5a08000   partial apply for implicit closure #2 () in implicit... + 88
+    Full symbol:partial apply for implicit closure #2 () in implicit closure #1 @Sendable (PrimitiveButtonStyleConfiguration) in PlatformItemListButtonStyle.makeBody(configuration: PrimitiveButtonStyleConfiguration)
+  8   SwiftUI                       0x00000001a5a08000   ButtonBehavior.ended() + 252
+  9   SwiftUI                       0x00000001a5a08000   partial apply for implicit closure #2 @Sendable () i... + 36
+    Full symbol:partial apply for implicit closure #2 @Sendable () in implicit closure #1 @Sendable (ButtonBehavior<A>) in ButtonBehavior.body.getter
+ 10   SwiftUI                       0x00000001a5a08000   partial apply for closure #1 @MainActor () in closur... + 36
+    Full symbol:partial apply for closure #1 @MainActor () in closure #2 (CGPoint?) in closure #1 () in _ButtonGesture.internalBody.getter
+ 11   SwiftUI                       0x00000001a5a08000   specialized static MainActor.assumeIsolated<A>(_: @M... + 140
+    Full symbol:specialized static MainActor.assumeIsolated<A>(_: @MainActor (), file: StaticString, line: UInt)
+ 12   SwiftUI                       0x00000001a5a08000   closure #2 (CGPoint?) in closure #1 () in _ButtonGes... + 96
+    Full symbol:closure #2 (CGPoint?) in closure #1 () in _ButtonGesture.internalBody.getter
+ 13   SwiftUI                       0x00000001a5a08000   partial apply for closure #2 () in PrimitiveButtonGe... + 96
+    Full symbol:partial apply for closure #2 () in PrimitiveButtonGestureCallbacks.dispatch(phase: GesturePhase<PrimitiveButtonGestureCore.Value>, state: inout ButtonPressPhase)
+ 14   SwiftUICore                   0x00000001a6ce0000   partial apply for thunk for @escaping @callee_guaran... + 28
+    Full symbol:partial apply for thunk for @escaping @callee_guaranteed () -> ()
+ 15   SwiftUICore                   0x00000001a6ce0000   thunk for @escaping @callee_guaranteed () -> (@out ()) + 28
+ 16   SwiftUI                       0x00000001a5a08000   closure #1 () in PlatformViewCoordinator.dispatchUpd... + 28
+    Full symbol:closure #1 () in PlatformViewCoordinator.dispatchUpdate(reason: CustomEventTrace.ActionEventType.Reason?, _: ())
+ 17   SwiftUI                       0x00000001a5a08000   closure #2 () in DragAndDropBridge.dragInteraction(_... + 52
+    Full symbol:closure #2 () in DragAndDropBridge.dragInteraction(_: UIDragInteraction, sessionWillBegin: UIDragSession)
+ 18   SwiftUICore                   0x00000001a6ce0000   static Update.dispatchActions() + 1648
+ 19   SwiftUICore                   0x00000001a6ce0000   static Update.end() + 224
+ 20   SwiftUICore                   0x00000001a6ce0000   static Update.enqueueAction(reason: CustomEventTrace... + 204
+    Full symbol:static Update.enqueueAction(reason: CustomEventTrace.ActionEventType.Reason?, _: ())
+ 21   SwiftUI                       0x00000001a5a08000   UIKitResponderEventBindingBridge.flushActions() + 288
+ 22   SwiftUI                       0x00000001a5a08000   @objc UIKitResponderEventBindingBridge.flushActions() + 28
+ 23   UIKitCore                     0x00000001a25c4000   -[UIGestureRecognizerTarget _sendActionWithGestureRe... + 128
+    Full symbol:-[UIGestureRecognizerTarget _sendActionWithGestureRecognizer:]
+ 24   UIKitCore                     0x00000001a25c4000   _UIGestureRecognizerSendTargetActions + 96
+ 25   UIKitCore                     0x00000001a25c4000   _UIGestureRecognizerSendActions + 276
+ 26   UIKitCore                     0x00000001a25c4000   -[UIGestureRecognizer _updateGestureForActiveEvents] + 316
+ 27   UIKitCore                     0x00000001a25c4000   -[UIGestureRecognizer gestureNode:didUpdatePhase:] + 308
+ 28   Gestures                      0x00000001a8262000   __swift_project_value_buffer + 8568
+ 29   Gestures                      0x00000001a8262000   __swift_memcpy1_1 + 25688
+ 30   Gestures                      0x00000001a8262000   __swift_project_value_buffer + 23880
+ 31   Gestures                      0x00000001a8262000   __swift_allocate_value_buffer + 2076
+ 32   UIKitCore                     0x00000001a25c4000   -[UIGestureEnvironment _updateForEvent:window:] + 540
+ 33   UIKitCore                     0x00000001a25c4000   -[UIWindow sendEvent:] + 3540
+ 34   UIKitCore                     0x00000001a25c4000   -[UIApplication sendEvent:] + 408
+ 35   LocationSaver                 0x000000010402c000   UIApplication.swizzled_sendEvent(UIEvent)   (UIApplication+Extension.swift:26)
+ 36   LocationSaver                 0x000000010402c000   @objc UIApplication.swizzled_sendEvent(UIEvent)   (<compiler-generated>)
+ 37   UIKitCore                     0x00000001a25c4000   __dispatchPreprocessedEventFromEventQueue + 1024
+ 38   UIKitCore                     0x00000001a25c4000   __processEventQueue + 4932
+ 39   UIKitCore                     0x00000001a25c4000   updateCycleEntry + 176
+ 40   UIKitCore                     0x00000001a25c4000   _UIUpdateSequenceRunNext + 128
+ 41   UIKitCore                     0x00000001a25c4000   schedulerStepScheduledMainSectionContinue + 60
+ 42   UpdateCycle                   0x00000002b150d000   UC::DriverCore::continueProcessing() + 84
+ 43   CoreFoundation                0x000000019c9f3000   __CFMachPortPerform + 168
+ 44   CoreFoundation                0x000000019c9f3000   __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNC... + 60
+    Full symbol:__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__
+ 45   CoreFoundation                0x000000019c9f3000   __CFRunLoopDoSource1 + 504
+ 46   CoreFoundation                0x000000019c9f3000   __CFRunLoopRun + 2168
+ 47   CoreFoundation                0x000000019c9f3000   _CFRunLoopRunSpecificWithOptions + 532
+ 48   GraphicsServices              0x0000000241f42000   GSEventRunModal + 120
+ 49   UIKitCore                     0x00000001a25c4000   -[UIApplication _run] + 796
+ 50   UIKitCore                     0x00000001a25c4000   UIApplicationMain + 332
+ 51   UIKitCore                     0x00000001a25c4000   -[UIView(UIConstraintBasedLayout) _setContentHugging... + 528
+    Full symbol:-[UIView(UIConstraintBasedLayout) _setContentHuggingPriorities:]
+ 52   LocationSaver                 0x000000010402c000   main   (AppDelegate.swift)
+ 53   ???                              0000000199635c1c + 0
+

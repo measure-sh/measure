@@ -1,7 +1,6 @@
 package event
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -11,7 +10,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"backend/libs/ingest"
@@ -1654,36 +1652,32 @@ func (e Exception) Stacktrace() string {
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
 		//
-		// symbolicated
-		// <thread_name>:
-		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
-		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// format matches classic Apple .crash style:
+		//   0   BinaryName   0xaddr   method + offset   (file:line)
 		//
-		// unsymbolicated
+		// symbolicated:
 		// <thread_name>:
-		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
-		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>   <binary_name>                  <binary_address>   <method_name>   (<file_name>:<line_num>)
 		//
-		// symbolicated + unsymbolicated
+		// unsymbolicated:
 		// <thread_name>:
-		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
-		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
-		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
-		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>   <binary_name>                  <binary_address>   <symbol_address> + <offset>
 		//
-		var buf bytes.Buffer
-		w := &buf
-		t := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-
+		// completely unsymbolicated (missing binary name):
+		// <thread_name>:
+		// <seq>   ???                            <binary_address>   <symbol_address> + <offset>
+		//
+		// long symbols (SwiftUI):
+		// <thread_name>:
+		// <seq>   <binary_name>                  <binary_address>   <truncated_method_name>...   (<file_name>:<line_num>)
+		//     Full symbol:<full_method_name>
 		for _, exception := range e.Exceptions {
 			b.WriteString(exception.ThreadName + ":\n")
 			for _, frame := range exception.Frames {
-				fmt.Fprintln(t, frame.String(f))
+				b.WriteString(frame.String(FrameworkApple) + "\n")
 			}
+			b.WriteString("\n") // separator between threads
 		}
-
-		t.Flush()
-		b.WriteString(buf.String())
 	default:
 		fmt.Printf("unknown framework %s\n", f)
 	}
