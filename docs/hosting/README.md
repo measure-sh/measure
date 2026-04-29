@@ -531,7 +531,7 @@ docker compose exec symboloader symboloader \
 Few things to note:
 
 - iOS system symbol files can occupy a lot of disk space. Make sure you have at least 500 GB additional disk space capacity.
-- You may be rate-limited by Google Drive if you receive a 403 error: "We're sorry... but your computer or network may be sending automated queries". When this happens, retry after 24 hours.
+- You may be rate-limited by Google Drive if you receive a 403 error: _We're sorry... but your computer or network may be sending automated queries_. When this happens, retry after 24 hours.
 
 [Read about the symboloader CLI commands](../../backend/symboloader/README.md)
 
