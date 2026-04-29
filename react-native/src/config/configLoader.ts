@@ -31,7 +31,6 @@ export class ConfigLoader {
         'info',
         'ConfigLoader: Dynamic config loaded successfully'
       );
-      console.log('Loaded dynamic config:', json);
 
       return DynamicConfig.fromNative(json);
   }

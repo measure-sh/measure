@@ -52,7 +52,7 @@ export function trackEvent(
   sessionId?: string,
   threadName?: string,
   attachments: any[] = []
-): Promise<any> {
+): Promise<void> {
   if (!MeasureModule.trackEvent || isDisabled()) {
     return Promise.reject(new Error('trackEvent native method not available.'));
   }
@@ -84,7 +84,7 @@ export function trackSpan(
   checkpoints: Record<string, number> = {},
   hasEnded: boolean,
   isSampled: boolean
-): Promise<any> {
+): Promise<void> {
   if (!MeasureModule.trackSpan || isDisabled()) {
     return Promise.reject(new Error('trackSpan native method not available.'));
   }
@@ -176,7 +176,7 @@ export function launchBugReport(
 
 export function setShakeListener(enable: boolean, handler?: () => void): void {
   if (!MeasureModule.setShakeListener || isDisabled()) {
-    throw new Error('setShakeListener native method not available.');
+    return;
   }
 
   const emitter = getShakeEmitter();

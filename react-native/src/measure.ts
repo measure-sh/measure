@@ -53,20 +53,16 @@ export const Measure = {
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise(async (resolve, reject) => {
-      try {
-        console.info('Initializing Measure SDK ...');
+    _initializationPromise = (async () => {
+      console.info('Initializing Measure SDK ...');
 
-        _measureInitializer = new MeasureInitializer(config);
-        _measureInternal = new MeasureInternal(_measureInitializer);
+      _measureInitializer = new MeasureInitializer(config);
+      _measureInternal = new MeasureInternal(_measureInitializer);
 
-        await _measureInternal.init(config);
-
-        resolve();
-      } catch (error) {
-        _initializationPromise = null;
-        reject(error);
-      }
+      await _measureInternal.init(config);
+    })().catch((error) => {
+      _initializationPromise = null;
+      throw error;
     });
 
     return _initializationPromise;
@@ -78,6 +74,7 @@ export const Measure = {
   start(): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
+      return;
     }
     return _measureInternal.start();
   },
@@ -88,6 +85,7 @@ export const Measure = {
   stop(): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
+      return;
     }
     return _measureInternal.stop();
   },
@@ -96,9 +94,6 @@ export const Measure = {
    * Tracks a custom event with optional attributes and timestamp.
    *
    * Event names should be clear and consistent to aid in dashboard searches.
-   *
-   * For now, this simply logs the event and its attributes to the console.
-   * A future version will send the event to the Measure SDK for full tracking.
    *
    * @param name - The name of the event (max 64 characters).
    * @param attributes - Optional key-value pairs providing additional context.
@@ -202,7 +197,6 @@ export const Measure = {
     if (!_measureInternal) {
       return new InvalidSpan();
     }
-    // Assuming MeasureInternal has a method to call the Tracer/Collector with a timestamp
     return _measureInternal.startSpan(name, timestampMs);
   },
 
@@ -226,6 +220,9 @@ export const Measure = {
    * @returns A W3C trace context compliant header value (e.g., '00-traceId-spanId-01').
    */
   getTraceParentHeaderValue(span: Span): string {
+    if (!_measureInternal) {
+      return '';
+    }
     return _measureInternal.getTraceParentHeaderValue(span);
   },
 
@@ -235,6 +232,9 @@ export const Measure = {
    * @returns The standardized header key 'traceparent'.
    */
   getTraceParentHeaderKey(): string {
+    if (!_measureInternal) {
+      return '';
+    }
     return _measureInternal.getTraceParentHeaderKey();
   },
 
@@ -258,6 +258,8 @@ export const Measure = {
       console.warn('Measure.setUserId requires a non-empty string.');
       return;
     }
+
+    _measureInternal.setUserId(userId);
   },
 
   /**
@@ -329,6 +331,11 @@ export const Measure = {
     bugReportConfig: Record<string, any> = {},
     attributes: Record<string, ValidAttributeValue> = {}
   ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
     return _measureInternal.launchBugReport(
       takeScreenshot,
       bugReportConfig,
