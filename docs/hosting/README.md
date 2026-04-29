@@ -29,7 +29,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
   - [Q. I'm using nginx as a reverse proxy. What configurations should I change?](#q-im-using-nginx-as-a-reverse-proxy-what-configurations-should-i-change)
   - [Q. How to add or update environment variables?](#q-how-to-add-or-update-environment-variables)
-  - [Q. How to setup complete symbolication for iOS?]()
+  - [Q. How to setup complete symbolication for iOS?](#q-how-to-setup-complete-symbolication-for-ios)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
