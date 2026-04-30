@@ -871,7 +871,7 @@ func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes 
 		Where("app_id = toUUID(?)", af.AppID).
 		GroupBy("version").
 		GroupBy("code").
-		OrderBy("code desc, version")
+		OrderBy("code::UInt32 desc, version")
 
 	defer stmt.Close()
 
