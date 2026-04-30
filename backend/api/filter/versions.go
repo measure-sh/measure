@@ -2,31 +2,10 @@ package filter
 
 import (
 	"sort"
+	"strconv"
 
 	"github.com/blang/semver/v4"
 )
-
-// exclude figures out the set of excluded versions
-// from sets of all versions and sets of selected
-// versions.
-func exclude(allV, allC, selV, selC []string) (versions Versions) {
-	selCount := make(map[string]int)
-	for i := range selV {
-		key := selV[i] + "\x00" + selC[i]
-		selCount[key]++
-	}
-
-	for i := range allV {
-		key := allV[i] + "\x00" + allC[i]
-		if selCount[key] > 0 {
-			selCount[key]--
-			continue
-		}
-		versions.Add(allV[i], allC[i])
-	}
-
-	return
-}
 
 // Versions represents a list of
 // (version, code) pairs.
@@ -70,7 +49,12 @@ func (v *Versions) SemverSortByVersionDesc() (err error) {
 		}
 	}
 
-	sort.Slice(pairs, func(i, j int) bool {
+	sort.SliceStable(pairs, func(i, j int) bool {
+		if pairs[i].ver.EQ(pairs[j].ver) {
+			ci, _ := strconv.ParseInt(pairs[i].code, 10, 64)
+			cj, _ := strconv.ParseInt(pairs[j].code, 10, 64)
+			return ci > cj
+		}
 		return pairs[i].ver.GT(pairs[j].ver)
 	})
 
@@ -117,4 +101,26 @@ func (v Versions) Versions() []string {
 // Codes gets the version codes.
 func (v Versions) Codes() []string {
 	return v.codes
+}
+
+// exclude figures out the set of excluded versions
+// from sets of all versions and sets of selected
+// versions.
+func exclude(allV, allC, selV, selC []string) (versions Versions) {
+	selCount := make(map[string]int)
+	for i := range selV {
+		key := selV[i] + "\x00" + selC[i]
+		selCount[key]++
+	}
+
+	for i := range allV {
+		key := allV[i] + "\x00" + allC[i]
+		if selCount[key] > 0 {
+			selCount[key]--
+			continue
+		}
+		versions.Add(allV[i], allC[i])
+	}
+
+	return
 }
