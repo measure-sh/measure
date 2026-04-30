@@ -26,8 +26,7 @@ internal interface ScreenshotCollector {
 /**
  * Captures a screenshot of the currently resumed activity, given the system memory is not running
  * low. The screenshot is captured using the PixelCopy API on Android O and above, and using
- * the Canvas API on older versions. The returned screenshot is compressed webp on supported
- * versions with a fallback to JPEG.
+ * the Canvas API on older versions. The returned screenshot is compressed as WebP.
  *
  * The screenshot is masked to hide sensitive text and can also be configured to mask all text.
  */
