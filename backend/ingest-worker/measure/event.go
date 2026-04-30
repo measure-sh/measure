@@ -229,10 +229,10 @@ func (e eventreq) getOSVersion() (osVersion string) {
 // ingest batch.
 func (e eventreq) getAppUniqueID() (appUniqueID string) {
 	if len(e.events) > 0 {
-		return strings.ToLower(e.events[0].Attribute.AppUniqueID)
+		return e.events[0].Attribute.AppUniqueID
 	}
 
-	return strings.ToLower(e.spans[0].Attributes.AppUniqueID)
+	return e.spans[0].Attributes.AppUniqueID
 }
 
 // getUnhandledExceptions returns unhandled exceptions
