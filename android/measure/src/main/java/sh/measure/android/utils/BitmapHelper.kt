@@ -32,6 +32,7 @@ internal object BitmapHelper {
     private const val PIXEL_COPY_TIMEOUT_MS = 750L
     private const val HANDLER_THREAD_NAME = "msr-pixel-copy"
     private const val DEFAULT_MASK_RADIUS = 8f
+    private const val WEBP_EXTENSION = "webp"
 
     private val maskPaint by lazy(NONE) {
         Paint().apply {
@@ -91,7 +92,7 @@ internal object BitmapHelper {
     }
 
     /**
-     * Compresses a bitmap using the optimal format for the current Android version.
+     * Compresses a bitmap as WebP at the given quality.
      * Returns a Pair of (file extension, compressed bytes) or null if compression fails.
      */
     fun compressBitmap(
@@ -101,20 +102,19 @@ internal object BitmapHelper {
     ): Pair<String, ByteArray>? {
         return try {
             ByteArrayOutputStream().use { byteArrayOutputStream ->
-                val extension = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(
                         Bitmap.CompressFormat.WEBP_LOSSY,
                         quality,
                         byteArrayOutputStream,
                     )
-                    "webp"
                 } else {
+                    @Suppress("DEPRECATION")
                     bitmap.compress(
-                        Bitmap.CompressFormat.JPEG,
+                        Bitmap.CompressFormat.WEBP,
                         quality,
                         byteArrayOutputStream,
                     )
-                    "jpeg"
                 }
 
                 if (byteArrayOutputStream.size() <= 0) {
@@ -122,7 +122,7 @@ internal object BitmapHelper {
                     return null
                 }
 
-                Pair(extension, byteArrayOutputStream.toByteArray())
+                Pair(WEBP_EXTENSION, byteArrayOutputStream.toByteArray())
             }
         } catch (e: Throwable) {
             logger.log(LogLevel.Debug, "Failed to take screenshot: compression failed", e)
