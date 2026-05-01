@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): App versions may not appear properly sorted (#3540) by @detj in #3540
 - (**backend**): Semver version sort was not stable for ios (#3538) by @detj in #3538
 - (**backend**): Preserve role name encoding under pgx simple protocol (#3522) by @detj in #3522
 - (**backend**): Type & exception field were not being set correctly (#3507) by @detj in #3507
