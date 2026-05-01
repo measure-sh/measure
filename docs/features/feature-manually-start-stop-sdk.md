@@ -70,3 +70,19 @@ Measure.instance.start();
 // Stop collecting
 Measure.instance.stop();
 ```
+
+### React Native
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+await Measure.init(new MeasureConfig({
+  autoStart: false, // delay starting of collection
+}));
+
+// Start collecting
+Measure.start();
+
+// Stop collecting
+Measure.stop();
+```

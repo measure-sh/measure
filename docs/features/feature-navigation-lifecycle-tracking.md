@@ -14,6 +14,7 @@ description: "Automatic capture of Activity, Fragment, View Controller, SwiftUI 
         - [**View Controller Lifecycle**](#view-controller-lifecycle)
         - [**SwiftUI lifecycle**](#swiftui-lifecycle)
     - [**Flutter**](#flutter)
+    - [**React Native**](#react-native)
 - [**Manually track screen views**](#manually-track-screen-views)
 - [**Application foregrounded/backgrounded**](#application-foregroundedbackgrounded)
 
@@ -140,6 +141,38 @@ struct ContentView: View {
 }
 ```
 
+### React Native
+
+The React Native SDK does not automatically track navigation events because React Native apps commonly use
+a variety of navigation libraries (e.g., React Navigation, Expo Router). Use `Measure.trackScreenView` to
+manually record screen view events when navigating between screens.
+
+For apps using [React Navigation](https://reactnavigation.org/), you can hook into the `onStateChange` callback
+of `NavigationContainer`:
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+
+function App() {
+  return (
+    <NavigationContainer
+      onStateChange={(state) => {
+        const currentRoute = state?.routes[state.index];
+        if (currentRoute?.name) {
+          Measure.trackScreenView(currentRoute.name);
+        }
+      }}
+    >
+      {/* ... */}
+    </NavigationContainer>
+  );
+}
+```
+
+All underlying native Android and iOS lifecycle events (Activity, Fragment, UIViewController) are still
+automatically tracked for React Native apps.
+
 ## Manually track screen views
 
 If you want to manually track screen views in your application, you can use the `trackScreenView` method. This is useful
@@ -204,6 +237,20 @@ Measure.instance.trackScreenView("Home");
 
 > [!Note]
 > All Android/iOS lifecycle events are also automatically tracked for Flutter.
+
+#### React Native
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackScreenView("Home");
+```
+
+You can also include attributes to provide additional context:
+
+```typescript
+Measure.trackScreenView("TrackOrder", { order_id: "12345" });
+```
 
 ## Data collected
 

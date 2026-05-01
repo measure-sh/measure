@@ -10,6 +10,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [Android](#android)
     * [iOS](#ios)
     * [Flutter](#flutter)
+    * [React Native](#react-native)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -28,6 +29,7 @@ in later steps.
 * [Android](#android)
 * [iOS](#ios)
 * [Flutter](#flutter)
+* [React Native](#react-native)
 
 ## Android
 
@@ -461,6 +463,84 @@ on every click to help visualize user interactions. To enable these features, si
 Read more about adding custom widget names in the layout snapshots
 in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
 
+## React Native
+
+The React Native SDK currently supports Android and iOS targets. It depends on the native Android and iOS SDKs,
+so all the minimum requirements for Android and iOS apply to the React Native SDK as well.
+
+<details>
+  <summary>Minimum Requirements</summary>
+
+| Name         | Version  |
+|--------------|----------|
+| React Native | `0.72.0` |
+| React        | `18.2.0` |
+
+</details>
+
+### Install the SDK
+
+Add the following dependency to your project:
+
+```sh
+npm install @measuresh/react-native
+```
+
+or with yarn:
+
+```sh
+yarn add @measuresh/react-native
+```
+
+### Initialize the SDK
+
+Call `Measure.init` as early as possible in your app entry point — for example, inside a `useEffect` in your
+root component or top-level `App` component.
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+const measureConfig = new MeasureConfig({
+  // Enable full collection in debug mode
+  // to verify installation
+  enableFullCollectionMode: true,
+});
+
+await Measure.init(measureConfig);
+```
+
+### React Native Android Setup
+
+The React Native SDK depends on the native Android SDK, so you need to follow all the steps mentioned in the
+[Android](#android) section to set up the Android SDK properly.
+
+1. [Add API Key & API URL to Android Manifest](#add-the-api-key--api-url)
+2. [Add Android Gradle Plugin](#add-the-gradle-plugin)
+3. [Initialize the native Android SDK](#initialize-the-sdk)
+
+### React Native iOS Setup
+
+The React Native SDK depends on the native iOS SDK, so you need to follow all the steps mentioned in the
+[iOS](#ios) section to set up the iOS SDK properly.
+
+1. [Install the SDK using CocoaPods or SPM](#install-the-sdk)
+2. [Initialize the native iOS SDK](#initialize-the-sdk-1)
+
+After running `pod install`, rebuild the app to link the native module:
+
+```sh
+npx react-native run-ios
+```
+
+### Track navigation
+
+See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md#react-native) for instructions on how to track
+navigation events.
+
+### Track http requests
+
+See [Network Monitoring](features/feature-network-monitoring.md#react-native) for instructions on how to track HTTP requests.
+
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
@@ -519,6 +599,19 @@ Android and iOS native SDK initializations.
 
 </details>
 
+<details>
+    <summary>React Native</summary>
+
+React Native SDK depends on the native SDKs, so you need to set `enableFullCollectionMode` to `true` in both
+Android and iOS native SDK initializations. In your JS initialization:
+
+```typescript
+const config = new MeasureConfig({ enableFullCollectionMode: true });
+await Measure.init(config);
+```
+
+</details>
+
 ### Verify API URL and API Key
 
 If you are not seeing any data in the dashboard, verify that the API URL and API key are set correctly in your app.
@@ -553,6 +646,14 @@ Measure.initialize(with: clientInfo, config: config)
     <summary>Flutter</summary>
 
 Flutter SDK depends on the native SDKs, so verify that the API URL and API key are set correctly in both
+Android and iOS native SDK initializations.
+
+</details>
+
+<details>
+    <summary>React Native</summary>
+
+React Native SDK depends on the native SDKs, so verify that the API URL and API key are set correctly in both
 Android and iOS native SDK initializations.
 
 </details>
@@ -623,6 +724,18 @@ config: const MeasureConfig(enableLogging:true));
 
 </details>
 
+<details>
+    <summary>React Native</summary>
+
+Enable logging during SDK initialization.
+
+```typescript
+const config = new MeasureConfig({ enableLogging: true });
+await Measure.init(config);
+```
+
+</details>
+
 ### Connecting to a Self-hosted Server
 
 If you are hosting the server in cloud. Make sure the API URL is set to the public URL of your server.
@@ -679,6 +792,20 @@ await Measure.instance.init(
   () => runApp(MeasureWidget(child: MyApp())),
   config: const MeasureConfig(enableDiagnosticMode: true),
 );
+```
+
+On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.
+
+</details>
+
+<details>
+    <summary>React Native</summary>
+
+Enable diagnostic mode during SDK initialization.
+
+```typescript
+const config = new MeasureConfig({ enableDiagnosticMode: true });
+await Measure.init(config);
 ```
 
 On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.

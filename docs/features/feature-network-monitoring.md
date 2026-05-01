@@ -42,6 +42,11 @@ On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) 
 the `measure_dio` package to your project. This package provides `MsrInterceptor` that can automatically
 track network requests done using Dio.
 
+#### React Native
+
+// TODO: update this. RN's XHR and fetch use urlSession and OKHttp to make api calls. These are automatically tracked. to track responses are well, add 
+// TODO: add manual http tracking for react native, ios and android.
+// TODO: add ios response tracking config as well.
 
 ```yaml
 dependencies:
@@ -205,6 +210,22 @@ For example, `/api/users/550e8400-e29b-41d4-a716-446655440000/orders/12345` beco
 For these, Measure looks at the variety of values seen in each position of a path. If a segment has many distinct
 values (e.g. `/api/products/abc`, `/api/products/xyz`, ...), it is automatically replaced with `*` to form
 `/api/products/*`.
+
+The `trackHttpEvent` method accepts the following parameters:
+
+| Parameter         | Type                           | Required | Description                                                     |
+|-------------------|--------------------------------|----------|-----------------------------------------------------------------|
+| `url`             | `string`                       | Yes      | The URL of the request.                                         |
+| `method`          | `string`                       | Yes      | HTTP method (e.g. `GET`, `POST`).                               |
+| `startTime`       | `number`                       | Yes      | Request start time in milliseconds (use `getCurrentTime()`).    |
+| `endTime`         | `number`                       | Yes      | Request end time in milliseconds (use `getCurrentTime()`).      |
+| `statusCode`      | `number \| null`               | No       | HTTP status code of the response.                               |
+| `error`           | `string \| null`               | No       | Error message if the request failed.                            |
+| `requestHeaders`  | `Record<string, string> \| null` | No     | Request headers.                                                |
+| `responseHeaders` | `Record<string, string> \| null` | No     | Response headers.                                               |
+| `requestBody`     | `string \| null`               | No       | Request body.                                                   |
+| `responseBody`    | `string \| null`               | No       | Response body.                                                  |
+| `client`          | `string \| null`               | No       | Name of the HTTP client used (e.g. `fetch`, `axios`).           |
 
 ## Data collected
 

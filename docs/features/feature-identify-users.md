@@ -57,3 +57,19 @@ To clear a user ID.
 ```dart
 Measure.instance.clearUserId();
 ```
+
+### React Native
+
+To set a user ID.
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.setUserId("user-id");
+```
+
+To clear a user ID.
+
+```typescript
+Measure.clearUserId();
+```
