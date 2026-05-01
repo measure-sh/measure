@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
 - (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
 
 ### :bug: Bug fixes
