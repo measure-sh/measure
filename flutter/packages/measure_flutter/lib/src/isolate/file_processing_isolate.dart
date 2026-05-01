@@ -21,17 +21,6 @@ sealed class FileProcessingRequest {
   });
 }
 
-/// Request to compress an image and save to file
-class ImageCompressionRequest extends FileProcessingRequest {
-  final CompressAndSaveParams params;
-
-  ImageCompressionRequest({
-    required super.requestId,
-    required super.responsePort,
-    required this.params,
-  });
-}
-
 /// Request to serialize JSON and save to file
 class LayoutSnapshotWriteRequest extends FileProcessingRequest {
   final SnapshotNode snapshot;
@@ -169,60 +158,6 @@ class FileProcessingIsolate {
     _isInitialized = false;
   }
 
-  /// Process image compression request
-  Future<FileProcessingResult> processImageCompression(
-    CompressAndSaveParams params,
-  ) async {
-    if (!_isInitialized || _sendPort == null) {
-      return const FileProcessingResult(
-        error: 'Isolate not initialized',
-      );
-    }
-
-    final requestId = params.fileName;
-    final completer = Completer<FileProcessingResult>();
-    _pendingRequests[requestId] = completer;
-
-    final sendPort = _sendPort;
-    final receivePort = _receivePort;
-
-    if (sendPort == null || receivePort == null) {
-      return const FileProcessingResult(
-        error: 'Isolate ports not available',
-      );
-    }
-
-    try {
-      sendPort.send(
-        ImageCompressionRequest(
-          requestId: requestId,
-          responsePort: receivePort.sendPort,
-          params: params,
-        ),
-      );
-
-      // Wait for response with timeout
-      return await completer.future.timeout(
-        _writeTimeout,
-        onTimeout: () {
-          return const FileProcessingResult(
-            error: 'Image compression timed out',
-          );
-        },
-      );
-    } catch (e, stackTrace) {
-      _logger.log(
-        LogLevel.error,
-        'FileProcessingIsolate: Error processing image: $e',
-        e,
-        stackTrace,
-      );
-      return FileProcessingResult(error: e.toString());
-    } finally {
-      _pendingRequests.remove(requestId);
-    }
-  }
-
   /// Process JSON write request
   Future<FileProcessingResult> processLayoutSnapshotWrite(
     SnapshotNode snapshot,
@@ -307,35 +242,10 @@ class FileProcessingIsolate {
 
     // Listen for requests
     receivePort.listen((message) async {
-      if (message is ImageCompressionRequest) {
-        await _handleImageCompression(message);
-      } else if (message is LayoutSnapshotWriteRequest) {
+      if (message is LayoutSnapshotWriteRequest) {
         await _handleJsonWrite(message);
       }
     });
-  }
-
-  /// Handle image compression in isolate
-  static Future<void> _handleImageCompression(
-    ImageCompressionRequest request,
-  ) async {
-    try {
-      final result = await compressAndSaveInIsolateWorker(request.params);
-
-      request.responsePort.send(
-        FileProcessingResponse(
-          requestId: request.requestId,
-          result: result,
-        ),
-      );
-    } catch (e) {
-      request.responsePort.send(
-        FileProcessingResponse(
-          requestId: request.requestId,
-          result: FileProcessingResult(error: e.toString()),
-        ),
-      );
-    }
   }
 
   /// Handle JSON write in isolate

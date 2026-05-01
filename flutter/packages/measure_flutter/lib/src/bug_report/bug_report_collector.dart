@@ -7,12 +7,12 @@ import 'package:measure_flutter/src/bug_report/ui/image_picker.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
+import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import '../../measure_flutter.dart';
-import '../isolate/file_processor.dart';
 import '../logger/logger.dart';
 import '../storage/file_storage.dart';
 import 'bug_report_data.dart';
@@ -25,6 +25,7 @@ class BugReportCollector {
   final FileStorage _fileStorage;
   final ShakeDetector _shakeDetector;
   final TimeProvider _timeProvider;
+  final MsrMethodChannel _methodChannel;
   bool isEnabled = false;
 
   BugReportCollector({
@@ -35,13 +36,15 @@ class BugReportCollector {
     required FileStorage fileStorage,
     required ShakeDetector shakeDetector,
     required TimeProvider timeProvider,
+    required MsrMethodChannel methodChannel,
   })  : _logger = logger,
         _configProvider = configProvider,
         _signalProcessor = signalProcessor,
         _idProvider = idProvider,
         _fileStorage = fileStorage,
         _shakeDetector = shakeDetector,
-        _timeProvider = timeProvider;
+        _timeProvider = timeProvider,
+        _methodChannel = methodChannel;
 
   void register() {
     isEnabled = true;
@@ -59,14 +62,6 @@ class BugReportCollector {
     try {
       final storedAttachments = <MsrAttachment>[];
 
-      // Get root path once before processing
-      final rootPath = await _fileStorage.getRootPath();
-
-      if (rootPath == null) {
-        _logger.log(LogLevel.error, "Root path is null");
-        return;
-      }
-
       for (var attachment in attachments) {
         final path = attachment.path;
         var bytes = attachment.bytes;
@@ -79,36 +74,47 @@ class BugReportCollector {
         }
 
         final uuid = _idProvider.uuid();
-        final result = await compressAndSaveInIsolate(
-          CompressAndSaveParams(
-            originalBytes: bytes,
-            jpegQuality: _configProvider.screenshotCompressionQuality,
-            fileName: uuid,
-            rootPath: rootPath,
+        final width = attachment.width;
+        final height = attachment.height;
+
+        final File? file;
+        final int sizeBytes;
+        if (width != null && height != null) {
+          final webp = await _methodChannel.encodeWebP(
+            pixels: bytes,
+            width: width,
+            height: height,
+          );
+          if (webp == null) {
+            _logger.log(LogLevel.error, 'BugReportCollector: WebP encoding failed');
+            continue;
+          }
+          file = await _fileStorage.writeFile(webp, uuid);
+          sizeBytes = webp.length;
+        } else {
+          file = await _fileStorage.writeFile(bytes, uuid);
+          sizeBytes = bytes.length;
+        }
+
+        if (file == null) {
+          _logger.log(LogLevel.error, 'BugReportCollector: Failed to write attachment');
+          continue;
+        }
+
+        _logger.log(
+          LogLevel.debug,
+          'BugReportCollector: Successfully stored screenshot attachment (id: $uuid, size: $sizeBytes bytes, path: ${file.path})',
+        );
+        storedAttachments.add(
+          MsrAttachment(
+            name: uuid,
+            path: file.path,
+            type: attachment.type,
+            id: uuid,
+            size: sizeBytes,
+            bytes: null,
           ),
         );
-
-        final filePath = result.filePath;
-        final compressedSize = result.size;
-        if (filePath != null && compressedSize != null) {
-          _logger.log(
-            LogLevel.debug,
-            'BugReportCollector: Successfully stored screenshot attachment (id: $uuid, size: $compressedSize bytes, path: $filePath)',
-          );
-          storedAttachments.add(
-            MsrAttachment(
-              name: uuid,
-              path: filePath,
-              type: attachment.type,
-              id: uuid,
-              size: compressedSize,
-              bytes: null,
-            ),
-          );
-        } else {
-          _logger.log(LogLevel.error,
-              "BugReportCollector: Failed to process attachment: ${result.error}");
-        }
       }
 
       _logger.log(LogLevel.debug,

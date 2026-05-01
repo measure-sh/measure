@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -42,20 +43,31 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
       }
 
       final ui.Image image = await renderObject.toImage(pixelRatio: 1);
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? rgba;
+      final int width;
+      final int height;
+      try {
+        width = image.width;
+        height = image.height;
+        rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      } finally {
+        image.dispose();
+      }
 
-      if (png == null) {
+      if (rgba == null) {
         logger.log(
           LogLevel.debug,
-          'ScreenshotService: Error reading image as PNG',
+          'ScreenshotService: Error reading image as raw RGBA',
         );
         return null;
       }
 
       return MsrAttachment.fromBytes(
-        bytes: png.buffer.asUint8List(),
+        bytes: rgba.buffer.asUint8List(),
         type: AttachmentType.screenshot,
         uuid: idProvider.uuid(),
+        width: width,
+        height: height,
       );
     } catch (e) {
       logger.log(

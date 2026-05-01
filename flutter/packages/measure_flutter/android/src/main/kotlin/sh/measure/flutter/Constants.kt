@@ -14,6 +14,7 @@ object MethodConstants {
     const val FUNCTION_ENABLE_SHAKE_DETECTOR = "enableShakeDetector"
     const val FUNCTION_DISABLE_SHAKE_DETECTOR = "disableShakeDetector"
     const val FUNCTION_GET_DYNAMIC_CONFIG_PATH = "getDynamicConfigPath"
+    const val FUNCTION_ENCODE_WEBP = "encodeWebP"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
@@ -23,8 +24,6 @@ object MethodConstants {
     const val ARG_USER_TRIGGERED = "user_triggered"
     const val ARG_THREAD_NAME = "thread_name"
     const val ARG_ATTACHMENTS = "attachments"
-    const val ARG_CONFIG = "config"
-    const val ARG_CLIENT_INFO = "client_info"
     const val ARG_SPAN_NAME = "name";
     const val ARG_SPAN_TRACE_ID = "traceId";
     const val ARG_SPAN_SPAN_ID = "id";
@@ -39,6 +38,9 @@ object MethodConstants {
     const val ARG_SPAN_HAS_ENDED = "hasEnded";
     const val ARG_SPAN_IS_SAMPLED = "isSampled";
     const val ARG_USER_ID = "user_id";
+    const val ARG_ENCODE_WEBP_PIXELS = "pixels"
+    const val ARG_ENCODE_WEBP_WIDTH = "width"
+    const val ARG_ENCODE_WEBP_HEIGHT = "height"
 
     // Callbacks
     const val CALLBACK_ON_SHAKE_DETECTED = "onShakeDetected"

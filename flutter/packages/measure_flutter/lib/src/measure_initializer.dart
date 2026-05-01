@@ -133,6 +133,7 @@ final class MeasureInitializer {
       fileStorage: _fileStorage,
       screenshotCollector: _screenshotCollector,
       timeProvider: timeProvider,
+      methodChannel: _methodChannel,
     );
     _navigationCollector = NavigationCollector(
       signalProcessor: signalProcessor,
@@ -155,6 +156,7 @@ final class MeasureInitializer {
       idProvider: _idProvider,
       shakeDetector: _shakeDetector,
       timeProvider: _timeProvider,
+      methodChannel: _methodChannel,
     );
     _sampler = SamplerImpl(_configProvider);
     _spanProcessor = MsrSpanProcessor(

@@ -12,6 +12,7 @@ class MethodConstants {
   static const String functionEnableShakeDetector = 'enableShakeDetector';
   static const String functionDisableShakeDetector = 'disableShakeDetector';
   static const String functionGetDynamicConfigPath = 'getDynamicConfigPath';
+  static const String functionEncodeWebP = 'encodeWebP';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -39,6 +40,9 @@ class MethodConstants {
   static const String argSpanHasEnded = "hasEnded";
   static const String argSpanIsSampled = "isSampled";
   static const String argUserId = 'user_id';
+  static const String argEncodeWebPPixels = 'pixels';
+  static const String argEncodeWebPWidth = 'width';
+  static const String argEncodeWebPHeight = 'height';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

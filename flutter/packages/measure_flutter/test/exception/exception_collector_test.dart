@@ -5,24 +5,15 @@ import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_framework.dart';
-import 'package:measure_flutter/src/isolate/file_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_file_storage.dart';
+import '../utils/fake_msr_method_channel.dart';
 import '../utils/fake_screenshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
-
-// Mock the isolate function
-Future<FileProcessingResult> mockCompressAndSaveInIsolate(
-    CompressAndSaveParams params) async {
-  return FileProcessingResult(
-    filePath: '/mock/path/screenshot.jpg',
-    size: 1024,
-  );
-}
 
 void main() {
   group('ExceptionCollector', () {
@@ -46,7 +37,7 @@ void main() {
         fileStorage: fileStorage,
         screenshotCollector: screenshotCollector,
         timeProvider: FlutterTimeProvider(TestClock.create()),
-        compressAndSave: mockCompressAndSaveInIsolate,
+        methodChannel: FakeMethodChannel()..encodedWebPResult = Uint8List.fromList([1, 2, 3, 4]),
       );
     });
 

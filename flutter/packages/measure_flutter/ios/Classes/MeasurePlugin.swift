@@ -39,6 +39,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try disableShakeDetector()
             case MethodConstants.functionGetDynamicConfigPath:
                 try getDynamicConfigPath(result: result)
+            case MethodConstants.functionEncodeWebP:
+                try encodeWebP(call, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -200,5 +202,20 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     private func getDynamicConfigPath(result: @escaping FlutterResult) throws {
         let path = Measure.internalGetDynamicConfigPath()
         result(path)
+    }
+
+    private func encodeWebP(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let reader = MethodCallReader(call)
+        let typed: FlutterStandardTypedData = try reader.requireArg(MethodConstants.argEncodeWebPPixels)
+        let width: Int = try reader.requireArg(MethodConstants.argEncodeWebPWidth)
+        let height: Int = try reader.requireArg(MethodConstants.argEncodeWebPHeight)
+        let pixels = typed.data
+        Measure.internalEncodeWebP(pixels: pixels, width: width, height: height) { encoded in
+            if let encoded = encoded {
+                result(FlutterStandardTypedData(bytes: encoded))
+            } else {
+                result(nil)
+            }
+        }
     }
 }

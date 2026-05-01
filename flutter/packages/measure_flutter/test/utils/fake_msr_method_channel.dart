@@ -4,6 +4,7 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 
 class FakeMethodChannel extends MsrMethodChannel {
   Future<void> Function(MethodCall call)? handler;
+  Uint8List? encodedWebPResult;
 
   @override
   void setMethodCallHandler(
@@ -59,4 +60,12 @@ class FakeMethodChannel extends MsrMethodChannel {
 
   @override
   Future<void> disableShakeDetector() => throw UnimplementedError();
+
+  @override
+  Future<Uint8List?> encodeWebP({
+    required Uint8List pixels,
+    required int width,
+    required int height,
+  }) async =>
+      encodedWebPResult;
 }

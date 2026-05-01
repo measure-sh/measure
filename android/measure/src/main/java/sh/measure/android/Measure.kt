@@ -652,6 +652,26 @@ object Measure {
     }
 
     /**
+     * Encodes pixels to WebP asynchronously. The callback is invoked
+     * on the main thread.
+     *
+     * Internal API for Flutter only; not for public use. The `pixels`
+     * be encoded using Flutter's ImageByteFormat.rawRgba.
+     */
+    fun internalEncodeWebP(
+        pixels: ByteArray,
+        width: Int,
+        height: Int,
+        callback: (ByteArray?) -> Unit,
+    ) {
+        if (isInitialized.get()) {
+            measure.encodeWebP(pixels, width, height, callback)
+        } else {
+            callback(null)
+        }
+    }
+
+    /**
      * An internal method that adds logs Measure logger.
      * This method is not intended for public usage.
      */

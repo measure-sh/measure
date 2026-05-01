@@ -181,4 +181,29 @@ final class MeasureInternalTests: XCTestCase {
         measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:], collectStackTraces: false)
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
     }
+
+    func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
+        // Use a synchronous dispatch queue + a config-provider with a known quality.
+        // Verifies the orchestrator (a) ran the codec, (b) hopped back to main
+        // before invoking the completion handler.
+        let initializer = MockMeasureInitializer(
+            configProvider: MockConfigProvider(autoStart: false),
+            measureDispatchQueue: MockMeasureDispatchQueue()
+        )
+        let internalUnderTest = MeasureInternal(initializer)
+        let pixels = Data(count: 2 * 2 * 4)
+        let completed = expectation(description: "completion")
+        var ranOnMainThread = false
+        var encoded: Data?
+
+        internalUnderTest.encodeWebP(pixels: pixels, width: 2, height: 2) { result in
+            ranOnMainThread = Thread.isMainThread
+            encoded = result
+            completed.fulfill()
+        }
+
+        wait(for: [completed], timeout: 1.0)
+        XCTAssertTrue(ranOnMainThread)
+        XCTAssertNotNil(encoded)
+    }
 }

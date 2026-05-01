@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/src/services/message_codec.dart';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -93,6 +95,15 @@ class TestMethodChannel implements MsrMethodChannel {
 
   @override
   Future<String?> getDynamicConfigPath() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Uint8List?> encodeWebP({
+    required Uint8List pixels,
+    required int width,
+    required int height,
+  }) {
     throw UnimplementedError();
   }
 }

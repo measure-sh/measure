@@ -10,7 +10,10 @@ class FakeFileStorage implements FileStorage {
   int? shouldFailWriteAfterCount;
   int _writeCount = 0;
 
-  final String _rootPath = '/fake/root/path';
+  final Directory _tempDir =
+      Directory.systemTemp.createTempSync('fake_file_storage_');
+
+  String get _rootPath => _tempDir.path;
 
   @override
   Future<File?> writeFile(Uint8List data, String fileName) async {
@@ -26,7 +29,9 @@ class FakeFileStorage implements FileStorage {
     }
 
     _storedFiles[fileName] = data;
-    return File('$_rootPath/$fileName');
+    final file = File('$_rootPath/$fileName');
+    await file.writeAsBytes(data);
+    return file;
   }
 
   Uint8List? getStoredFile(String fileName) {

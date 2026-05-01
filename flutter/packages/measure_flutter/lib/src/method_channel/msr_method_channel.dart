@@ -112,6 +112,22 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
         .invokeMethod(MethodConstants.functionGetDynamicConfigPath);
   }
 
+  @override
+  Future<Uint8List?> encodeWebP({
+    required Uint8List pixels,
+    required int width,
+    required int height,
+  }) {
+    return _methodChannel.invokeMethod<Uint8List>(
+      MethodConstants.functionEncodeWebP,
+      {
+        MethodConstants.argEncodeWebPPixels: pixels,
+        MethodConstants.argEncodeWebPWidth: width,
+        MethodConstants.argEncodeWebPHeight: height,
+      },
+    );
+  }
+
   void setMethodCallHandler(
       Future<void> Function(MethodCall call) handleMethodCall) {
     _methodChannel.setMethodCallHandler(handleMethodCall);
