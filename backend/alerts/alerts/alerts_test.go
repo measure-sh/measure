@@ -2312,7 +2312,7 @@ func TestCreateDailySummary(t *testing.T) {
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
 		userID := uuid.New().String()
-		customerID := "cust_blocked"
+		customerID := uuid.New().String()
 
 		th.SeedTeam(ctx, t, teamID, "Blocked Team")
 		th.SeedTeamAutumnCustomer(ctx, t, teamID, customerID)
@@ -2353,7 +2353,7 @@ func TestCreateDailySummary(t *testing.T) {
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
 		userID := uuid.New().String()
-		customerID := "cust_autumn_err"
+		customerID := uuid.New().String()
 
 		th.SeedTeam(ctx, t, teamID, "Outage Team")
 		th.SeedTeamAutumnCustomer(ctx, t, teamID, customerID)
@@ -2425,7 +2425,8 @@ func TestCreateDailySummary(t *testing.T) {
 		userID := uuid.New().String()
 
 		th.SeedTeam(ctx, t, teamID, "Self-hosted Team")
-		th.SeedTeamAutumnCustomer(ctx, t, teamID, "cust_selfhost")
+		custID := uuid.New().String()
+		th.SeedTeamAutumnCustomer(ctx, t, teamID, custID)
 		th.SeedUser(ctx, t, userID, "owner-self@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Self-hosted App", 30)

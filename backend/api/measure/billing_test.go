@@ -235,11 +235,12 @@ func TestApplyPlanTransition(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 30) // existing retention
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_tx")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_tx",
+				ID: custID,
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -265,11 +266,12 @@ func TestApplyPlanTransition(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 30)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_tx_ok")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_tx_ok",
+				ID: custID,
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -336,11 +338,12 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_pro",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
@@ -358,11 +361,12 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_ent",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: "plan_ent_acme"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 180},
@@ -380,11 +384,12 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_misconfigured")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_misconfigured",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: "plan_missing_feature"}},
 				// no Balances["retention_days"]
 			}, nil
@@ -403,11 +408,12 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_free",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
@@ -425,7 +431,8 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, fmt.Errorf("autumn unreachable")
@@ -484,10 +491,11 @@ func TestGetTeamBilling(t *testing.T) {
 	t.Run("returns pro plan when autumn says so", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_abc")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: "cust_abc", Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
+			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
 		})
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
@@ -503,22 +511,23 @@ func TestGetTeamBilling(t *testing.T) {
 		if got["plan"] != "pro" {
 			t.Errorf("plan = %v, want pro", got["plan"])
 		}
-		if got["autumn_customer_id"] != "cust_abc" {
-			t.Errorf("autumn_customer_id = %v, want cust_abc", got["autumn_customer_id"])
+		if got["autumn_customer_id"] != custID {
+			t.Errorf("autumn_customer_id = %v, want %q", got["autumn_customer_id"], custID)
 		}
 	})
 
 	t.Run("includes bytes balance and subscription state from autumn", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_full")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		// Autumn returns ms timestamps; backend converts to seconds for the frontend.
 		startedAtSec := int64(1700000000)
 		endsAtSec := int64(1702592000)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_full",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Subscriptions: []autumn.Subscription{{
 					PlanID:             autumnPlanPro,
@@ -570,14 +579,15 @@ func TestGetTeamBilling(t *testing.T) {
 		// even if Free lands at index 0, we must read the active Pro.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_two_subs")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		canceledAtSec := int64(1700100000)
 		startedAtSec := int64(1700000000)
 		endsAtSec := int64(1702592000)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_two_subs",
+				ID: custID,
 				Subscriptions: []autumn.Subscription{
 					// scheduled Free at index 0 — we should NOT pick this one.
 					{
@@ -632,12 +642,13 @@ func TestGetTeamBilling(t *testing.T) {
 		// based on the date.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_stale")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		pastSec := int64(1)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_stale",
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID:             autumnPlanPro,
 					Status:             "active",
@@ -669,12 +680,13 @@ func TestGetTeamBilling(t *testing.T) {
 	t.Run("populates canceled_at when subscription has a pending cancellation", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_canceled")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		canceledAtSec := int64(1700100000)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_canceled",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Subscriptions: []autumn.Subscription{{
 					PlanID:             autumnPlanPro,
@@ -760,10 +772,11 @@ func TestCreateCheckoutSession(t *testing.T) {
 	t.Run("already on pro → already_upgraded:true", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: "cust_pro", Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
+			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: autumnPlanPro}}}, nil
 		})
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
@@ -784,10 +797,11 @@ func TestCreateCheckoutSession(t *testing.T) {
 	t.Run("happy path returns checkout url", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: "cust_free", Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
+			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
 		})
 		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
 			if req.PlanID != autumnPlanPro {
@@ -821,7 +835,8 @@ func TestCreateCheckoutSession(t *testing.T) {
 	t.Run("autumn 5xx during pre-check → 503 (no checkout attempted)", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_unreachable")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, &autumn.APIError{StatusCode: 503, Body: "unavailable"}
@@ -847,7 +862,8 @@ func TestCreateCheckoutSession(t *testing.T) {
 		// Checkout sessions. Surface the 4xx as a 400 to the client.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_4xx")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, &autumn.APIError{StatusCode: 404, Body: "customer not found"}
@@ -870,10 +886,11 @@ func TestCreateCheckoutSession(t *testing.T) {
 	t.Run("attach returns empty payment url → already_upgraded", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: "cust_free", Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
+			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: autumnPlanFree}}}, nil
 		})
 		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
 			return &autumn.AttachResponse{CustomerID: req.CustomerID, PaymentURL: ""}, nil
@@ -932,7 +949,8 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
@@ -951,7 +969,8 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 	t.Run("happy path schedules cancellation at end of cycle", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		var gotReq autumn.UpdateRequest
 		autumntest.MockUpdate(t, func(_ context.Context, req autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
@@ -973,15 +992,16 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 		if gotReq.CancelAction != autumn.CancelEndOfCycle {
 			t.Errorf("cancel_action = %q, want %q", gotReq.CancelAction, autumn.CancelEndOfCycle)
 		}
-		if gotReq.CustomerID != "cust_pro" {
-			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, "cust_pro")
+		if gotReq.CustomerID != custID {
+			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, custID)
 		}
 	})
 
 	t.Run("autumn update failure → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
 			return nil, errors.New("boom")
@@ -1000,7 +1020,8 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 	t.Run("non-owner → 403", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "viewer")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
 		c.Set("userId", userID)
@@ -1050,7 +1071,8 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
@@ -1067,9 +1089,9 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 
 	// mockProWithPendingCancel returns a customer object that satisfies the
 	// uncancel pre-check (active Pro sub with canceled_at set).
-	mockProWithPendingCancel := func() *autumn.Customer {
+	mockProWithPendingCancel := func(custID string) *autumn.Customer {
 		return &autumn.Customer{
-			ID: "cust_pro",
+			ID: custID,
 			Subscriptions: []autumn.Subscription{{
 				PlanID:     autumnPlanPro,
 				Status:     "active",
@@ -1081,10 +1103,11 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("happy path uncancels the Pro subscription", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return mockProWithPendingCancel(), nil
+			return mockProWithPendingCancel(custID), nil
 		})
 		var gotReq autumn.UpdateRequest
 		autumntest.MockUpdate(t, func(_ context.Context, req autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
@@ -1106,18 +1129,19 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 		if gotReq.CancelAction != autumn.Uncancel {
 			t.Errorf("cancel_action = %q, want %q", gotReq.CancelAction, autumn.Uncancel)
 		}
-		if gotReq.CustomerID != "cust_pro" {
-			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, "cust_pro")
+		if gotReq.CustomerID != custID {
+			t.Errorf("customer_id = %q, want %q", gotReq.CustomerID, custID)
 		}
 	})
 
 	t.Run("autumn update failure → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return mockProWithPendingCancel(), nil
+			return mockProWithPendingCancel(custID), nil
 		})
 		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
 			return nil, errors.New("boom")
@@ -1136,12 +1160,13 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("no cancellation pending → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		// Active Pro but canceled_at is zero — nothing to undo.
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_pro",
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID: autumnPlanPro,
 					Status: "active",
@@ -1166,11 +1191,12 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("on Free plan → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_pro",
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID: autumnPlanFree,
 					Status: "active",
@@ -1195,7 +1221,8 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("autumn unreachable on pre-check → 503", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, &autumn.APIError{StatusCode: 503, Body: "unavailable"}
@@ -1217,7 +1244,8 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 		// won't help, instead of masking it as a 503 transient outage.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, &autumn.APIError{StatusCode: 404, Body: "customer not found"}
@@ -1240,7 +1268,8 @@ func TestUndoDowngradeToFreePlan(t *testing.T) {
 	t.Run("non-owner → 403", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "viewer")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/undo-downgrade", nil)
 		c.Set("userId", userID)
@@ -1282,7 +1311,8 @@ func TestCreateCustomerPortalSession(t *testing.T) {
 	t.Run("missing return_url → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body(""))
 		c.Set("userId", userID)
@@ -1296,7 +1326,8 @@ func TestCreateCustomerPortalSession(t *testing.T) {
 	t.Run("DB error during customer-id lookup → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		c, w := newTestGinContext("POST", "/teams/"+teamID.String()+"/billing/portal", body("https://r"))
 		c.Set("userId", userID)
@@ -1314,7 +1345,8 @@ func TestCreateCustomerPortalSession(t *testing.T) {
 	t.Run("autumn 5xx on portal open → 503", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, _, _ string) (string, error) {
 			return "", &autumn.APIError{StatusCode: 503, Body: "unavailable"}
@@ -1333,7 +1365,8 @@ func TestCreateCustomerPortalSession(t *testing.T) {
 	t.Run("autumn 4xx on portal open → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, _, _ string) (string, error) {
 			return "", &autumn.APIError{StatusCode: 400, Body: "bad request"}
@@ -1352,10 +1385,11 @@ func TestCreateCustomerPortalSession(t *testing.T) {
 	t.Run("happy path returns portal url", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockOpenCustomerPortal(t, func(_ context.Context, cid, ret string) (string, error) {
-			if cid != "cust_pro" {
+			if cid != custID {
 				t.Errorf("customerID = %q", cid)
 			}
 			if ret != "https://r" {
@@ -1444,11 +1478,12 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, MIN_RETENTION_DAYS)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_up")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_up",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
@@ -1457,8 +1492,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_up"},"updated_product":{"id":%q}}}`,
-			autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_upgrade", payload)
 		c, w := webhookReq(payload, headers)
@@ -1481,11 +1516,12 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, MIN_RETENTION_DAYS)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_ent",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: "plan_ent_acme"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 240},
@@ -1493,7 +1529,10 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			}, nil
 		})
 
-		payload := []byte(`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_ent"},"updated_product":{"id":"plan_ent_acme"}}}`)
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":%q},"updated_product":{"id":"plan_ent_acme"}}}`,
+			custID,
+		))
 		headers := signSvixWebhook(t, secret, "msg_ent_up", payload)
 		c, w := webhookReq(payload, headers)
 		HandleAutumnWebhook(c)
@@ -1514,13 +1553,17 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 180) // value the failed lookup must not clobber
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent_err")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, fmt.Errorf("autumn unreachable")
 		})
 
-		payload := []byte(`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":"cust_ent_err"},"updated_product":{"id":"plan_ent_whatever"}}}`)
+		payload := []byte(fmt.Sprintf(
+			`{"type":"customer.products.updated","data":{"scenario":"upgrade","customer":{"id":%q},"updated_product":{"id":"plan_ent_whatever"}}}`,
+			custID,
+		))
 		headers := signSvixWebhook(t, secret, "msg_ent_err", payload)
 		c, w := webhookReq(payload, headers)
 		HandleAutumnWebhook(c)
@@ -1543,11 +1586,12 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 180)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_down")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_down",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
@@ -1556,8 +1600,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":"cust_down"},"updated_product":{"id":%q}}}`,
-			autumnPlanFree,
+			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanFree,
 		))
 		headers := signSvixWebhook(t, secret, "msg_down", payload)
 		c, w := webhookReq(payload, headers)
@@ -1581,11 +1625,12 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		seedTeam(ctx, t, teamID, testTeamName)
 		// Simulate an app that had an Enterprise 365d retention.
 		seedApp(ctx, t, appID, teamID, 365)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent_to_pro")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_ent_to_pro",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
@@ -1594,8 +1639,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":"cust_ent_to_pro"},"updated_product":{"id":%q}}}`,
-			autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"downgrade","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_ent_to_pro", payload)
 		c, w := webhookReq(payload, headers)
@@ -1621,7 +1666,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_new_free")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			t.Errorf("autumn.GetCustomer must not be called for scenario=new+measure_free")
@@ -1629,8 +1675,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"new","customer":{"id":"cust_new_free"},"updated_product":{"id":%q}}}`,
-			autumnPlanFree,
+			`{"type":"customer.products.updated","data":{"scenario":"new","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanFree,
 		))
 		headers := signSvixWebhook(t, secret, "msg_new_free", payload)
 		c, w := webhookReq(payload, headers)
@@ -1652,12 +1698,13 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90) // was on Pro
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_exp")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			// After Pro expires, Autumn auto-activates the is_default Free plan.
 			return &autumn.Customer{
-				ID:       "cust_exp",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
@@ -1666,8 +1713,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"expired","customer":{"id":"cust_exp"},"updated_product":{"id":%q}}}`,
-			autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"expired","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_expired", payload)
 		c, w := webhookReq(payload, headers)
@@ -1693,13 +1740,14 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_cancel")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		// Returning Free retention here would trip the test — if the handler
 		// (mistakenly) called resetAppsRetention, the app would drop to 30d.
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_cancel",
+				ID: custID,
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
@@ -1708,8 +1756,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		// products[] still includes Pro with status=active → cancel is a no-op.
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":"cust_cancel","products":[{"id":%q,"status":"active"},{"id":%q,"status":"scheduled"}]},"updated_product":{"id":%q}}}`,
-			autumnPlanPro, autumnPlanFree, autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":%q,"products":[{"id":%q,"status":"active"},{"id":%q,"status":"scheduled"}]},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro, autumnPlanFree, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_cancel", payload)
 		c, w := webhookReq(payload, headers)
@@ -1734,12 +1782,13 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_cancel_now")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			// Customer is now on Free post-cancel.
 			return &autumn.Customer{
-				ID:       "cust_cancel_now",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
@@ -1749,8 +1798,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		// products[] does NOT include Pro as active anymore.
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":"cust_cancel_now","products":[{"id":%q,"status":"active"}]},"updated_product":{"id":%q}}}`,
-			autumnPlanFree, autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"cancel","customer":{"id":%q,"products":[{"id":%q,"status":"active"}]},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanFree, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_cancel_now", payload)
 		c, w := webhookReq(payload, headers)
@@ -1775,13 +1824,14 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_renew")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		// Wrong-value retention proof: if the handler called
 		// resetAppsRetention, the app would drop to this 30d value.
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID: "cust_renew",
+				ID: custID,
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
@@ -1789,8 +1839,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"renew","customer":{"id":"cust_renew"},"updated_product":{"id":%q}}}`,
-			autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"renew","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_renew", payload)
 		c, w := webhookReq(payload, headers)
@@ -1814,7 +1864,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 		seedApp(ctx, t, appID, teamID, 90)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pd")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		// Should never be called for past_due.
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
@@ -1823,8 +1874,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		})
 
 		payload := []byte(fmt.Sprintf(
-			`{"type":"customer.products.updated","data":{"scenario":"past_due","customer":{"id":"cust_pd"},"updated_product":{"id":%q}}}`,
-			autumnPlanPro,
+			`{"type":"customer.products.updated","data":{"scenario":"past_due","customer":{"id":%q},"updated_product":{"id":%q}}}`,
+			custID, autumnPlanPro,
 		))
 		headers := signSvixWebhook(t, secret, "msg_pd", payload)
 		c, w := webhookReq(payload, headers)
@@ -1844,9 +1895,13 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_limit")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
-		payload := []byte(`{"type":"balances.limit_reached","data":{"customer_id":"cust_limit","feature_id":"bytes","limit_type":"included"}}`)
+		payload := []byte(fmt.Sprintf(
+			`{"type":"balances.limit_reached","data":{"customer_id":%q,"feature_id":"bytes","limit_type":"included"}}`,
+			custID,
+		))
 		headers := signSvixWebhook(t, secret, "msg_limit", payload)
 		c, w := webhookReq(payload, headers)
 		HandleAutumnWebhook(c)
@@ -1862,9 +1917,13 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_alert")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
-		payload := []byte(`{"type":"balances.usage_alert_triggered","data":{"customer_id":"cust_alert","feature_id":"bytes","usage_alert":{"name":"75","threshold":75,"threshold_type":"usage_percentage"}}}`)
+		payload := []byte(fmt.Sprintf(
+			`{"type":"balances.usage_alert_triggered","data":{"customer_id":%q,"feature_id":"bytes","usage_alert":{"name":"75","threshold":75,"threshold_type":"usage_percentage"}}}`,
+			custID,
+		))
 		headers := signSvixWebhook(t, secret, "msg_alert", payload)
 		c, w := webhookReq(payload, headers)
 		HandleAutumnWebhook(c)
@@ -1942,19 +2001,23 @@ func TestProvisionAutumnCustomer(t *testing.T) {
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)
 
-		var gotCreate, gotAttach bool
+		var gotCreate bool
+		var generatedCustID string
 		autumntest.MockGetOrCreateCustomer(t, func(_ context.Context, id, email, name string) (*autumn.Customer, error) {
 			gotCreate = true
-			if id != teamID.String() {
-				t.Errorf("customer id = %q, want %s", id, teamID)
+			if _, err := uuid.Parse(id); err != nil {
+				t.Errorf("customer id = %q, want a UUID: %v", id, err)
 			}
-			return &autumn.Customer{ID: "cust_new"}, nil
+			if id == teamID.String() {
+				t.Errorf("customer id must not equal teamID — the team UUID should never leak to Autumn")
+			}
+			generatedCustID = id
+			return &autumn.Customer{ID: id}, nil
 		})
+		// Autumn auto-attaches Free on customer create, so ProvisionAutumnCustomer
+		// must not call Attach itself. Fail loudly if it ever starts to.
 		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
-			gotAttach = true
-			if req.CustomerID != "cust_new" || req.PlanID != autumnPlanFree {
-				t.Errorf("attach args unexpected: %+v", req)
-			}
+			t.Errorf("Attach should not be called during provisioning, got: %+v", req)
 			return &autumn.AttachResponse{CustomerID: req.CustomerID}, nil
 		})
 
@@ -1967,18 +2030,18 @@ func TestProvisionAutumnCustomer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}
-		if id != "cust_new" {
-			t.Errorf("id = %q", id)
+		if id != generatedCustID {
+			t.Errorf("id = %q, want %q (the UUID we generated and Autumn echoed back)", id, generatedCustID)
 		}
-		if !gotCreate || !gotAttach {
-			t.Errorf("create=%v attach=%v; want both true", gotCreate, gotAttach)
+		if !gotCreate {
+			t.Errorf("GetOrCreateCustomer was not called")
 		}
 
 		if err := tx.Commit(ctx); err != nil {
 			t.Fatalf("commit: %v", err)
 		}
-		if saved := getTeamAutumnCustomerID(ctx, t, teamID); saved == nil || *saved != "cust_new" {
-			t.Errorf("saved = %v, want cust_new", saved)
+		if saved := getTeamAutumnCustomerID(ctx, t, teamID); saved == nil || *saved != generatedCustID {
+			t.Errorf("saved = %v, want %q", saved, generatedCustID)
 		}
 	})
 
@@ -2008,6 +2071,7 @@ func TestProvisionAutumnCustomer(t *testing.T) {
 			t.Errorf("autumn_customer_id should be nil after rollback, got %v", *saved)
 		}
 	})
+
 }
 
 // --------------------------------------------------------------------------

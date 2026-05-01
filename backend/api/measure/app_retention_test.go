@@ -183,11 +183,12 @@ func TestCreateAppRetention(t *testing.T) {
 	t.Run("billing enabled + free plan → retention is 30d regardless of payload", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_free_create")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_free_create",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
@@ -207,11 +208,12 @@ func TestCreateAppRetention(t *testing.T) {
 	t.Run("billing enabled + pro plan → retention is 90d regardless of payload", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_pro_create")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_pro_create",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
@@ -231,11 +233,12 @@ func TestCreateAppRetention(t *testing.T) {
 	t.Run("billing enabled + enterprise plan → retention from feature entitlement", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_ent_create")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       "cust_ent_create",
+				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: "plan_ent_foo"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 240},
@@ -268,7 +271,8 @@ func TestCreateAppRetention(t *testing.T) {
 	t.Run("billing enabled and autumn.GetCustomer fails → 503, no app created", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err_create")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return nil, fmt.Errorf("autumn unreachable")

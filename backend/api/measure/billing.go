@@ -161,22 +161,18 @@ func saveAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, te
 }
 
 // ProvisionAutumnCustomer creates an Autumn customer for the given team and
-// attaches them to the Free plan. Called inside the team-creation transaction
-// so that team creation fails if Autumn is unreachable. Returns the newly
-// created autumn_customer_id.
+// returns the newly created autumn_customer_id. Called inside the
+// team-creation transaction so that team creation fails if Autumn is
+// unreachable. Autumn auto-attaches the Free plan on customer create — no
+// explicit Attach call is needed.
 func ProvisionAutumnCustomer(ctx context.Context, tx pgx.Tx, teamID uuid.UUID, teamName, ownerEmail string) (string, error) {
 	if !server.Server.Config.IsBillingEnabled() {
 		return "", nil
 	}
-	cust, err := autumn.GetOrCreateCustomer(ctx, teamID.String(), ownerEmail, teamName)
+	autumnCustomerID := uuid.New().String()
+	cust, err := autumn.GetOrCreateCustomer(ctx, autumnCustomerID, ownerEmail, teamName)
 	if err != nil {
 		return "", fmt.Errorf("autumn create customer: %w", err)
-	}
-	if _, err := autumn.Attach(ctx, autumn.AttachRequest{
-		CustomerID: cust.ID,
-		PlanID:     autumnPlanFree,
-	}); err != nil {
-		return "", fmt.Errorf("autumn attach free plan: %w", err)
 	}
 	if err := saveAutumnCustomerID(ctx, nil, tx, teamID, cust.ID); err != nil {
 		return "", fmt.Errorf("save autumn customer id: %w", err)

@@ -85,15 +85,16 @@ func TestTrackBatchBytes(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, "test-team")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_happy")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		ch := captureTrack(t)
 		trackBatchBytes(teamID, 4096)
 
 		select {
 		case call := <-ch:
-			if call.customerID != "cust_happy" {
-				t.Errorf("customerID = %q, want cust_happy", call.customerID)
+			if call.customerID != custID {
+				t.Errorf("customerID = %q, want %q", call.customerID, custID)
 			}
 			if call.featureID != autumn.FeatureBytes {
 				t.Errorf("featureID = %q, want %q", call.featureID, autumn.FeatureBytes)
@@ -110,7 +111,8 @@ func TestTrackBatchBytes(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, "test-team")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_err")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		called := make(chan struct{}, 1)
 		autumntest.MockTrack(t, func(_ context.Context, _, _ string, _ float64) error {
@@ -153,14 +155,15 @@ func TestGetAutumnCustomerIDForTeam(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, "test-team")
-		seedTeamAutumnCustomer(ctx, t, teamID, "cust_lookup")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		got, err := getAutumnCustomerIDForTeam(ctx, teamID)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}
-		if got != "cust_lookup" {
-			t.Errorf("want cust_lookup, got %q", got)
+		if got != custID {
+			t.Errorf("want %q, got %q", custID, got)
 		}
 	})
 
