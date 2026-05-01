@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 	// creation (e.g. MCP/auth signup flows) don't need their own mocks.
 	// Tests that care about Autumn behavior override these per-test.
 	autumn.GetOrCreateCustomer = func(_ context.Context, id, email, name string) (*autumn.Customer, error) {
-		return &autumn.Customer{ID: "cust_" + id, Email: email, Name: name}, nil
+		return &autumn.Customer{ID: id, Email: email, Name: name}, nil
 	}
 	autumn.Attach = func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
 		return &autumn.AttachResponse{CustomerID: req.CustomerID}, nil
