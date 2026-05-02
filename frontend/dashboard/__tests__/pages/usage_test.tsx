@@ -1,4 +1,9 @@
 import Usage from "@/app/[teamId]/usage/page";
+import {
+  INCLUDED_PRO_GB,
+  PRICE_PER_GB_MONTH,
+  PRO_RETENTION_DAYS,
+} from "@/app/utils/pricing_constants";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -1186,7 +1191,7 @@ describe("Usage Page", () => {
     expect(screen.getByText(/active/i)).toBeInTheDocument();
     expect(screen.getByText(/Current billing cycle:/)).toBeInTheDocument();
     expect(screen.getByText(/Next invoice:/)).toBeInTheDocument();
-    expect(screen.getByText(/Data used this cycle:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Data:/)).toBeInTheDocument();
   });
 
   it("does not show subscription info when on free plan", async () => {
@@ -1240,59 +1245,34 @@ describe("Usage Page", () => {
     expect(screen.getByText("PRO")).toBeInTheDocument();
   });
 
-  it("shows bytes used in pro plan card", async () => {
+  it("Free plan card shows 'Data: X of Y used' from Autumn values", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
-      billingInfo: { ...proBillingInfo, bytes_used: 1_000_000_000 }, // 1 GB
-      currentUserCanChangePlan: true,
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...freeBillingInfo,
+        bytes_used: 1_000_000_000,
+        bytes_granted: 5_000_000_000,
+      },
     });
 
     await act(async () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    const unitsItem = screen.getByText(/Data used this cycle/);
-    expect(unitsItem).toBeInTheDocument();
-    expect(unitsItem.textContent).toMatch(/GB/);
+    expect(screen.getByText(/^Data:/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.00 GB of 5\.00 GB used/)).toBeInTheDocument();
+    // Free has no overage — must not append the overage suffix even if
+    // used > granted (which can't happen on Free in practice).
+    expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
   });
 
-  it("shows bytes used in pro plan card with high usage", async () => {
+  it("Pro upgrade-pitch card shown to free users keeps the marketing copy", async () => {
+    // The Pro card on a Free user's view is purely marketing (we don't have
+    // Pro's Autumn balance for an unattached user). Lock the contract so a
+    // future "use Autumn for everything" attempt doesn't silently delete the
+    // pitch bullets.
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
-      billingInfo: { ...proBillingInfo, bytes_used: 30_000_000_000 }, // 30 GB
-      currentUserCanChangePlan: true,
-    });
-
-    await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
-    });
-
-    const unitsItem = screen.getByText(/Data used this cycle/);
-    expect(unitsItem).toBeInTheDocument();
-    expect(unitsItem.textContent).toMatch(/GB/);
-  });
-
-  it("formats small byte counts with a sub-GB unit", async () => {
-    useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
-      billingInfo: { ...proBillingInfo, bytes_used: 5_000_000 }, // 5 MB
-      currentUserCanChangePlan: true,
-    });
-
-    await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
-    });
-
-    const unitsItem = screen.getByText(/Data used this cycle/);
-    // Must render a human-readable unit — don't assert the exact formatter,
-    // just that it's not a raw byte count or 0 GB.
-    expect(unitsItem.textContent).not.toContain("5000000");
-    expect(unitsItem.textContent).not.toContain("0 GB");
-  });
-
-  it("does not show data used on free plan", async () => {
-    useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      fetchBillingInfoApiStatus: 1,
       billingInfo: freeBillingInfo,
     });
 
@@ -1300,12 +1280,66 @@ describe("Usage Page", () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    expect(screen.queryByText(/Data used this cycle/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(`${INCLUDED_PRO_GB} GB per month included`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`${PRO_RETENTION_DAYS} days retention`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Extra data charged at $${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month`,
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("does not show subscription details when status is missing on billingInfo", async () => {
+  it("Pro plan Data line shows 'X of Y used' when under quota", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...proBillingInfo,
+        bytes_used: 1_000_000_000, // 1 GB
+        bytes_granted: 25_000_000_000, // 25 GB
+        bytes_overage_allowed: true,
+      },
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={{ teamId: "team1" }} />);
+    });
+
+    expect(screen.getByText(/1\.00 GB of 25\.00 GB used/)).toBeInTheDocument();
+    expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
+  });
+
+  it("Pro plan Data line appends ', Z overage' when used > granted and overage is allowed", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...proBillingInfo,
+        bytes_used: 30_000_000_000, // 30 GB
+        bytes_granted: 25_000_000_000, // 25 GB
+        bytes_overage_allowed: true,
+      },
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={{ teamId: "team1" }} />);
+    });
+
+    expect(
+      screen.getByText(/30\.00 GB of 25\.00 GB used, 5\.00 GB overage/),
+    ).toBeInTheDocument();
+  });
+
+  it("Subscription block (Status/Cycle/Data) is hidden on pro when status is missing", async () => {
+    // The Data line on Pro lives inside the subscription block; if status
+    // isn't populated yet the whole block is omitted, so "Data:" must not
+    // appear on the Pro card.
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
       billingInfo: { ...proBillingInfo, status: undefined },
       currentUserCanChangePlan: true,
     });
@@ -1314,7 +1348,11 @@ describe("Usage Page", () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    expect(screen.queryByText(/Data used this cycle/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Current billing cycle:/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Data:/)).not.toBeInTheDocument();
   });
 
   // ---- Manage Billing button ----
@@ -1362,11 +1400,9 @@ describe("Usage Page", () => {
   });
 
   it("clicking Manage Billing calls portal API and redirects", async () => {
-    const handleManageBilling = jest
-      .fn()
-      .mockResolvedValue({
-        redirect: "https://billing.stripe.com/session/test",
-      });
+    const handleManageBilling = jest.fn().mockResolvedValue({
+      redirect: "https://billing.stripe.com/session/test",
+    });
     useUsageStore.setState({
       fetchBillingInfoApiStatus: 1, // Success
       billingInfo: proBillingInfo,
@@ -1596,7 +1632,7 @@ describe("Usage Page", () => {
     expect(screen.getByText("ENTERPRISE")).toBeInTheDocument();
   });
 
-  it('shows "Unlimited" data label when bytes_unlimited is true on enterprise', async () => {
+  it("Enterprise Data line reads 'Unlimited' when bytes_unlimited is true", async () => {
     useUsageStore.setState({
       fetchBillingInfoApiStatus: 1,
       billingInfo: enterpriseBillingInfo,
@@ -1606,17 +1642,21 @@ describe("Usage Page", () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    expect(screen.getByText(/Data included:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Data:/)).toBeInTheDocument();
     expect(screen.getByText("Unlimited")).toBeInTheDocument();
+    expect(screen.queryByText(/used/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
   });
 
-  it("shows formatted byte allotment when bytes_unlimited is false on enterprise", async () => {
+  it("Enterprise Data line reads 'X of Y used' for bounded plans without overage", async () => {
     useUsageStore.setState({
       fetchBillingInfoApiStatus: 1,
       billingInfo: {
         ...enterpriseBillingInfo,
         bytes_unlimited: false,
         bytes_granted: 100_000_000_000,
+        bytes_used: 5_000_000_000,
+        bytes_overage_allowed: false,
       },
     });
 
@@ -1625,7 +1665,51 @@ describe("Usage Page", () => {
     });
 
     expect(screen.queryByText("Unlimited")).not.toBeInTheDocument();
-    expect(screen.getByText(/100\.00 GB/)).toBeInTheDocument();
+    expect(screen.getByText(/5\.00 GB of 100\.00 GB used/)).toBeInTheDocument();
+    expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
+  });
+
+  it("Enterprise Data line appends ', Z overage' when overage allowed and used > granted", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...enterpriseBillingInfo,
+        bytes_unlimited: false,
+        bytes_granted: 100_000_000_000,
+        bytes_used: 110_000_000_000,
+        bytes_overage_allowed: true,
+      },
+    });
+
+    await act(async () => {
+      render(<Usage params={{ teamId: "team1" }} />);
+    });
+
+    expect(
+      screen.getByText(/110\.00 GB of 100\.00 GB used, 10\.00 GB overage/),
+    ).toBeInTheDocument();
+  });
+
+  it("Enterprise Data line omits overage even when used > granted if overage is not allowed", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...enterpriseBillingInfo,
+        bytes_unlimited: false,
+        bytes_granted: 100_000_000_000,
+        bytes_used: 110_000_000_000,
+        bytes_overage_allowed: false,
+      },
+    });
+
+    await act(async () => {
+      render(<Usage params={{ teamId: "team1" }} />);
+    });
+
+    expect(
+      screen.getByText(/110\.00 GB of 100\.00 GB used/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
   });
 
   it("shows retention line when retention_days is set on enterprise", async () => {
@@ -1685,7 +1769,10 @@ describe("Usage Page", () => {
     expect(screen.queryByText(/Plan period:/)).not.toBeInTheDocument();
   });
 
-  it("shows data used this cycle on enterprise", async () => {
+  it("Enterprise card never uses the Pro 'Data used this cycle' wording", async () => {
+    // The Pro framing implies a recurring cycle; Enterprise plans often
+    // aren't recurring. Whatever variant the Data line takes, it's just
+    // "Data:".
     useUsageStore.setState({
       fetchBillingInfoApiStatus: 1,
       billingInfo: enterpriseBillingInfo,
@@ -1695,8 +1782,9 @@ describe("Usage Page", () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    expect(screen.getByText(/Data used this cycle:/)).toBeInTheDocument();
-    expect(screen.getByText(/5\.00 GB/)).toBeInTheDocument();
+    expect(screen.queryByText(/Data used this cycle:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Data used:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Data included:/)).not.toBeInTheDocument();
   });
 
   it("hides Free and Pro cards on enterprise plan", async () => {

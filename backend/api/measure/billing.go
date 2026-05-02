@@ -58,6 +58,9 @@ type BillingInfo struct {
 	// BytesUnlimited is true when the customer's bytes feature is configured
 	// as unlimited in Autumn — typically only on bespoke Enterprise plans.
 	BytesUnlimited bool `json:"bytes_unlimited"`
+	// BytesOverageAllowed is true when the customer's plan permits going
+	// over BytesGranted (Pro: yes, Free: no, Enterprise: depends).
+	BytesOverageAllowed bool `json:"bytes_overage_allowed"`
 	// RetentionDays is the retention entitlement on the customer's current
 	// plan, read from the retention_days feature in Autumn. 0 when billing
 	// is disabled or the customer has no Autumn record yet.
@@ -294,6 +297,7 @@ func GetTeamBilling(c *gin.Context) {
 				result.BytesGranted = b.Granted
 				result.BytesUsed = b.Usage
 				result.BytesUnlimited = b.Unlimited
+				result.BytesOverageAllowed = b.OverageAllowed
 			}
 			if b, ok := cust.Balances[autumn.FeatureRetentionDays]; ok && b.Granted > 0 {
 				result.RetentionDays = int(b.Granted)

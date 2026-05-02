@@ -45,6 +45,31 @@ type AppMonthlyUsage = {
   bytes_in: number;
 };
 
+// formatDataLine renders the unified "Data" line shown on the user's
+// current plan card. All inputs come from BillingInfo (i.e. Autumn) so the
+// caller doesn't need plan-specific constants.
+//
+//   - bytes_unlimited           → "Unlimited"
+//   - else, with overage usage  → "X of Y used, Z overage"
+//   - else                      → "X of Y used"
+function formatDataLine(billingInfo: {
+  bytes_used?: number;
+  bytes_granted?: number;
+  bytes_unlimited?: boolean;
+  bytes_overage_allowed?: boolean;
+}): string {
+  if (billingInfo?.bytes_unlimited) {
+    return "Unlimited";
+  }
+  const used = billingInfo?.bytes_used ?? 0;
+  const granted = billingInfo?.bytes_granted ?? 0;
+  const base = `${formatBytesSI(used)} of ${formatBytesSI(granted)} used`;
+  if (billingInfo?.bytes_overage_allowed && used > granted) {
+    return `${base}, ${formatBytesSI(used - granted)} overage`;
+  }
+  return base;
+}
+
 function parseMonths(data: any[]): string[] {
   const monthYearSet: Set<string> = new Set();
   data.forEach((app) => {
@@ -472,11 +497,12 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       <p className="text-xl font-display">FREE</p>
                       <p className="text-4xl font-display py-2">$0 per month</p>
                       <ul className="list-disc space-y-2 mt-6">
-                        <li className="font-body">{FREE_GB} GB per month</li>
+                        <li className="font-body">
+                          Data: {formatDataLine(billingInfo)}
+                        </li>
                         <li className="font-body">
                           {FREE_RETENTION_DAYS} days retention
                         </li>
-                        <li className="font-body">No credit card needed</li>
                       </ul>
                     </div>
                   </Card>
@@ -544,9 +570,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                                 </li>
                               )}
                               <li className="text-green-900 dark:text-foreground">
-                                Data used this cycle:{" "}
+                                Data:{" "}
                                 <span className="font-semibold">
-                                  {formatBytesSI(bytesUsed)}
+                                  {formatDataLine(billingInfo)}
                                 </span>
                               </li>
                             </ul>
@@ -641,11 +667,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       <div className="mt-4 font-body text-start space-y-1">
                         <ul className="list-disc list-inside">
                           <li className="text-green-900 dark:text-foreground">
-                            Data included:{" "}
+                            Data:{" "}
                             <span className="font-semibold">
-                              {billingInfo?.bytes_unlimited
-                                ? "Unlimited"
-                                : formatBytesSI(bytesGranted)}
+                              {formatDataLine(billingInfo)}
                             </span>
                           </li>
                           {billingInfo?.retention_days ? (
@@ -671,12 +695,6 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                               </span>
                             </li>
                           ) : null}
-                          <li className="text-green-900 dark:text-foreground">
-                            Data used this cycle:{" "}
-                            <span className="font-semibold">
-                              {formatBytesSI(bytesUsed)}
-                            </span>
-                          </li>
                         </ul>
                       </div>
                       <div className="pt-12">
