@@ -677,6 +677,86 @@ func TestGetTeamBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("enterprise plan exposes retention_days and bytes_unlimited", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: "measure_enterprise_acme"}},
+				Subscriptions: []autumn.Subscription{{
+					PlanID: "measure_enterprise_acme",
+					Status: "active",
+				}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Unlimited: true, Usage: 12_345},
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 365},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["plan"] != planEnterprise {
+			t.Errorf("plan = %v, want %q", got["plan"], planEnterprise)
+		}
+		if got["bytes_unlimited"] != true {
+			t.Errorf("bytes_unlimited = %v, want true", got["bytes_unlimited"])
+		}
+		if got["retention_days"] != float64(365) {
+			t.Errorf("retention_days = %v, want 365", got["retention_days"])
+		}
+		if got["bytes_used"] != float64(12_345) {
+			t.Errorf("bytes_used = %v, want 12345 (still surfaced under unlimited)", got["bytes_used"])
+		}
+	})
+
+	t.Run("non-unlimited bytes balance leaves bytes_unlimited=false and populates retention_days", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 100, Unlimited: false},
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["bytes_unlimited"] != false {
+			t.Errorf("bytes_unlimited = %v, want false", got["bytes_unlimited"])
+		}
+		if got["retention_days"] != float64(90) {
+			t.Errorf("retention_days = %v, want 90", got["retention_days"])
+		}
+	})
+
 	t.Run("populates canceled_at when subscription has a pending cancellation", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
