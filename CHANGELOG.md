@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use UUID for autumn customer ids by @anupcowkur in #3546
 - (**backend**): Support symbolication of iOS system frameworks (#3495) by @detj in #3495
 - (**backend**): Switch to bearer token auth for reading gcs symbols (#3509) by @detj in #3509
 - (**backend**): Skip all alerts for ingestion blocked teams by @anupcowkur in #3477
