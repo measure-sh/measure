@@ -50,14 +50,21 @@ const (
 // Autumn subscription. CurrentPeriodStart/End are seconds since epoch (the
 // frontend multiplies by 1000 for JS Date).
 type BillingInfo struct {
-	TeamID             uuid.UUID `json:"team_id"`
-	Plan               string    `json:"plan"`
-	AutumnCustomerID   *string   `json:"autumn_customer_id"`
-	BytesGranted       float64   `json:"bytes_granted"`
-	BytesUsed          float64   `json:"bytes_used"`
-	Status             string    `json:"status,omitempty"`
-	CurrentPeriodStart int64     `json:"current_period_start,omitempty"`
-	CurrentPeriodEnd   int64     `json:"current_period_end,omitempty"`
+	TeamID           uuid.UUID `json:"team_id"`
+	Plan             string    `json:"plan"`
+	AutumnCustomerID *string   `json:"autumn_customer_id"`
+	BytesGranted     float64   `json:"bytes_granted"`
+	BytesUsed        float64   `json:"bytes_used"`
+	// BytesUnlimited is true when the customer's bytes feature is configured
+	// as unlimited in Autumn — typically only on bespoke Enterprise plans.
+	BytesUnlimited bool `json:"bytes_unlimited"`
+	// RetentionDays is the retention entitlement on the customer's current
+	// plan, read from the retention_days feature in Autumn. 0 when billing
+	// is disabled or the customer has no Autumn record yet.
+	RetentionDays      int    `json:"retention_days,omitempty"`
+	Status             string `json:"status,omitempty"`
+	CurrentPeriodStart int64  `json:"current_period_start,omitempty"`
+	CurrentPeriodEnd   int64  `json:"current_period_end,omitempty"`
 	// CanceledAt is non-zero when a cancel_end_of_cycle is pending on the
 	// active subscription. The subscription remains usable until
 	// CurrentPeriodEnd; the frontend reads this to swap the downgrade button
@@ -286,6 +293,10 @@ func GetTeamBilling(c *gin.Context) {
 			if b, ok := cust.Balances[autumn.FeatureBytes]; ok {
 				result.BytesGranted = b.Granted
 				result.BytesUsed = b.Usage
+				result.BytesUnlimited = b.Unlimited
+			}
+			if b, ok := cust.Balances[autumn.FeatureRetentionDays]; ok && b.Granted > 0 {
+				result.RetentionDays = int(b.Granted)
 			}
 			// Pick the active subscription. During a scheduled cancel, the
 			// customer also has a Free sub with status="scheduled" — we want
