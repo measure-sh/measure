@@ -678,6 +678,11 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 
 	t.Run("enterprise plan exposes retention_days and bytes_unlimited", func(t *testing.T) {
+		// A bespoke Enterprise plan typically has unlimited bytes and a
+		// custom retention entitlement (e.g. 365 days). Note that Autumn
+		// hardcodes balance.usage=0 for any feature marked unlimited, so
+		// even though the customer may be ingesting data, BytesUsed comes
+		// through as 0.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 		custID := uuid.New().String()
@@ -692,7 +697,7 @@ func TestGetTeamBilling(t *testing.T) {
 					Status: "active",
 				}},
 				Balances: map[string]autumn.Balance{
-					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Unlimited: true, Usage: 12_345},
+					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Unlimited: true, Usage: 0},
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 365},
 				},
 			}, nil
@@ -717,12 +722,9 @@ func TestGetTeamBilling(t *testing.T) {
 		if got["retention_days"] != float64(365) {
 			t.Errorf("retention_days = %v, want 365", got["retention_days"])
 		}
-		if got["bytes_used"] != float64(12_345) {
-			t.Errorf("bytes_used = %v, want 12345 (still surfaced under unlimited)", got["bytes_used"])
-		}
 	})
 
-	t.Run("non-unlimited bytes balance leaves bytes_unlimited=false and populates retention_days", func(t *testing.T) {
+	t.Run("non-unlimited bytes balance leaves bytes_unlimited=false and populates retention_days + bytes_overage_allowed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 		custID := uuid.New().String()
@@ -733,7 +735,7 @@ func TestGetTeamBilling(t *testing.T) {
 				ID:       custID,
 				Products: []autumn.CustomerProduct{{ID: autumnPlanPro}},
 				Balances: map[string]autumn.Balance{
-					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 100, Unlimited: false},
+					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 100, Unlimited: false, OverageAllowed: true},
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
 			}, nil
@@ -752,8 +754,98 @@ func TestGetTeamBilling(t *testing.T) {
 		if got["bytes_unlimited"] != false {
 			t.Errorf("bytes_unlimited = %v, want false", got["bytes_unlimited"])
 		}
+		if got["bytes_overage_allowed"] != true {
+			t.Errorf("bytes_overage_allowed = %v, want true (Pro allows overage)", got["bytes_overage_allowed"])
+		}
 		if got["retention_days"] != float64(90) {
 			t.Errorf("retention_days = %v, want 90", got["retention_days"])
+		}
+	})
+
+	t.Run("bespoke Enterprise plan with bounded quota + overage_allowed flows through correctly", func(t *testing.T) {
+		// Some Enterprise plans aren't unlimited — they have a
+		// quota with overage permitted (Autumn returns Granted > 0,
+		// Unlimited=false, OverageAllowed=true).
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: "measure_enterprise_acme"}},
+				Subscriptions: []autumn.Subscription{{
+					PlanID: "measure_enterprise_acme",
+					Status: "active",
+				}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Granted: 100_000_000_000, Usage: 110_000_000_000, Unlimited: false, OverageAllowed: true},
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 180},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["plan"] != planEnterprise {
+			t.Errorf("plan = %v, want %q", got["plan"], planEnterprise)
+		}
+		if got["bytes_unlimited"] != false {
+			t.Errorf("bytes_unlimited = %v, want false (bounded plan)", got["bytes_unlimited"])
+		}
+		if got["bytes_overage_allowed"] != true {
+			t.Errorf("bytes_overage_allowed = %v, want true", got["bytes_overage_allowed"])
+		}
+		if got["bytes_granted"] != float64(100_000_000_000) {
+			t.Errorf("bytes_granted = %v, want 100GB", got["bytes_granted"])
+		}
+		if got["bytes_used"] != float64(110_000_000_000) {
+			t.Errorf("bytes_used = %v, want 110GB", got["bytes_used"])
+		}
+		if got["retention_days"] != float64(180) {
+			t.Errorf("retention_days = %v, want 180", got["retention_days"])
+		}
+	})
+
+	t.Run("bytes_overage_allowed=false flows through (e.g. Free, hard-capped Enterprise)", func(t *testing.T) {
+		// The Free plan and any bespoke Enterprise plan with a hard byte
+		// cap configure bytes with overage_allowed=false.
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: autumnPlanFree}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {FeatureID: autumn.FeatureBytes, Granted: 5_000_000_000, Usage: 0, Unlimited: false, OverageAllowed: false},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["bytes_overage_allowed"] != false {
+			t.Errorf("bytes_overage_allowed = %v, want false (Free is hard-capped)", got["bytes_overage_allowed"])
 		}
 	})
 

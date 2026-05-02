@@ -732,13 +732,19 @@ describe("Usage — billing enabled", () => {
         { timeout: 5000 },
       );
 
-      expect(screen.getByText(/Data included:/)).toBeTruthy();
+      expect(screen.getByText(/^Data:/)).toBeTruthy();
       expect(screen.getByText("Unlimited")).toBeTruthy();
       expect(screen.getByText(/Retention:/)).toBeTruthy();
       expect(screen.getByText("365 days")).toBeTruthy();
       expect(screen.getByText(/Plan period:/)).toBeTruthy();
-      expect(screen.getByText(/Data used this cycle:/)).toBeTruthy();
       expect(screen.getByText("Manage Billing")).toBeTruthy();
+
+      // The Pro-style "this cycle" framing and the prior split
+      // "Data included" / "Data used" wording must not leak onto the
+      // unified enterprise Data line.
+      expect(screen.queryByText(/Data included:/)).toBeNull();
+      expect(screen.queryByText(/Data used:/)).toBeNull();
+      expect(screen.queryByText(/Data used this cycle:/)).toBeNull();
 
       // Pro/Free affordances must not appear on the enterprise screen.
       expect(screen.queryByText("FREE")).toBeNull();
@@ -746,6 +752,39 @@ describe("Usage — billing enabled", () => {
       expect(screen.queryByText("Upgrade to Pro")).toBeNull();
       expect(screen.queryByText("Downgrade to Free")).toBeNull();
       expect(screen.queryByText(/personalised plans/)).toBeNull();
+    });
+
+    it("Enterprise Data line shows 'X of Y used, Z overage' when overage is allowed and used > granted", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/billing/info", () => {
+          return HttpResponse.json(
+            makeBillingInfoFixture({
+              plan: "enterprise",
+              bytes_unlimited: false,
+              bytes_overage_allowed: true,
+              bytes_granted: 100_000_000_000, // 100 GB
+              bytes_used: 110_000_000_000, // 110 GB
+              retention_days: 90,
+              status: "active",
+              current_period_start: 1700000000,
+              current_period_end: 1702678400,
+            }),
+          );
+        }),
+      );
+
+      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      await waitFor(
+        () => {
+          expect(screen.getByText("ENTERPRISE")).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      expect(
+        screen.getByText(/110\.00 GB of 100\.00 GB used, 10\.00 GB overage/),
+      ).toBeTruthy();
+      expect(screen.queryByText("Unlimited")).toBeNull();
     });
 
     it("clicking Manage Billing on enterprise opens the customer portal", async () => {
@@ -804,6 +843,50 @@ describe("Usage — billing enabled", () => {
         writable: true,
         value: originalLocation,
       });
+    });
+  });
+
+  describe("free plan", () => {
+    it("Free card shows the unified Data line driven by Autumn values; Pro pitch keeps marketing copy", async () => {
+      // End-to-end: API returns plan=free with the user's actual byte
+      // figures. The Free card should render "Data: X of Y used" sourced
+      // from the response, and the Pro upgrade pitch alongside it should
+      // keep the marketing bullets (we don't have Pro's Autumn balance
+      // for an unattached user).
+      server.use(
+        http.get("*/api/teams/:teamId/billing/info", () => {
+          return HttpResponse.json(
+            makeBillingInfoFixture({
+              plan: "free",
+              bytes_granted: 5_000_000_000,
+              bytes_used: 1_500_000_000,
+              bytes_unlimited: false,
+              bytes_overage_allowed: false,
+            }),
+          );
+        }),
+      );
+
+      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      await waitFor(
+        () => {
+          expect(screen.getByText("FREE")).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      // Free card: Autumn-driven Data line, no overage suffix.
+      expect(
+        screen.getByText(/1\.50 GB of 5\.00 GB used/),
+      ).toBeTruthy();
+      expect(screen.queryByText(/overage/)).toBeNull();
+      // Removed bullet must not regress.
+      expect(screen.queryByText(/No credit card needed/)).toBeNull();
+
+      // Pro pitch card: marketing constants must still render.
+      expect(screen.getByText(/GB per month included/)).toBeTruthy();
+      expect(screen.getByText(/Extra data charged at \$/)).toBeTruthy();
+      expect(screen.getByText("Upgrade to Pro")).toBeTruthy();
     });
   });
 });
