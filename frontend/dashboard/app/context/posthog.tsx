@@ -1,24 +1,18 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { isCloud } from "../utils/env_utils";
+import { useCookieConsent } from "./cookie_consent";
 
-const PostHogLoadedContext = createContext(false);
-
-export function usePostHogLoaded() {
-  return useContext(PostHogLoadedContext);
-}
-
-// Returns 'denied' so the cookie banner doesn't show when PostHog is unavailable
 const createNoopPostHog = () =>
   ({
-    get_explicit_consent_status: () => "denied",
-    opt_in_capturing: () => { },
-    opt_out_capturing: () => { },
-    init: () => { },
-    capture: () => { },
+    opt_in_capturing: () => {},
+    opt_out_capturing: () => {},
+    init: () => {},
+    capture: () => {},
   }) as unknown as typeof posthog;
 
 export function PostHogProvider({
@@ -36,35 +30,41 @@ export function PostHogProvider({
   proxyPath?: string;
 }) {
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+  const host =
+    process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+  const { consent, hydrated } = useCookieConsent();
 
-  const [phLoaded, setPhLoaded] = useState(false);
-
-  const shouldInit = !!apiKey;
+  const shouldInit = isCloud() && !!apiKey;
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (shouldInit) {
+    if (shouldInit && !initialized) {
       posthog.init(apiKey as string, {
         api_host: proxyPath ?? host,
         ...(proxyPath && { ui_host: "https://us.posthog.com" }),
         person_profiles: "identified_only",
         defaults: "2025-05-24",
         cookieless_mode: "on_reject",
-        loaded: () => setPhLoaded(true),
       });
+      setInitialized(true);
     }
-  }, [shouldInit, apiKey, host, proxyPath]);
+  }, [shouldInit, initialized, apiKey, host, proxyPath]);
 
-  const client = useMemo(() => (shouldInit ? posthog : createNoopPostHog()), [shouldInit]);
+  useEffect(() => {
+    if (!shouldInit || !initialized || !hydrated) {
+      return;
+    }
+    if (consent === "granted") {
+      posthog.opt_in_capturing();
+    } else {
+      posthog.opt_out_capturing();
+    }
+  }, [shouldInit, initialized, hydrated, consent]);
 
-  // When there's no API key the noop client is used immediately — treat as loaded.
-  const phLoadedValue = phLoaded || !shouldInit;
-
-  return (
-    <PHProvider client={client}>
-      <PostHogLoadedContext.Provider value={phLoadedValue}>
-        {children}
-      </PostHogLoadedContext.Provider>
-    </PHProvider>
+  const client = useMemo(
+    () => (shouldInit ? posthog : createNoopPostHog()),
+    [shouldInit],
   );
+
+  return <PHProvider client={client}>{children}</PHProvider>;
 }

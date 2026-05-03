@@ -1,10 +1,11 @@
-import { GoogleTagManager } from "@next/third-parties/google";
 import type { Metadata, Viewport } from "next";
 import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
 import { ClientProviders } from "./components/client_providers";
+import { ConditionalGoogleTagManager } from "./components/conditional_google_tag_manager";
 import { CookieBanner } from "./components/cookie_banner";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
+import { CookieConsentProvider } from "./context/cookie_consent";
 import { PostHogProvider } from "./context/posthog";
 import "./globals.css";
 
@@ -73,13 +74,16 @@ export const viewport: Viewport = {
   minimumScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}>
-        {process.env.NEXT_PUBLIC_GTM_ID && (
-          <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
-        )}
+      <body
+        className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}
+      >
         <ClientProviders>
           <ThemeProvider
             attribute="class"
@@ -87,10 +91,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             enableSystem
             disableTransitionOnChange
           >
-            <PostHogProvider proxyPath="/yrtmlt">
+            <CookieConsentProvider>
+              <ConditionalGoogleTagManager />
               <CookieBanner />
-              <div className="bg-background text-foreground">{children}</div>
-            </PostHogProvider>
+              <PostHogProvider proxyPath="/yrtmlt">
+                <div className="bg-background text-foreground">{children}</div>
+              </PostHogProvider>
+            </CookieConsentProvider>
             <Toaster />
           </ThemeProvider>
         </ClientProviders>
