@@ -287,6 +287,12 @@ POSTHOG_API_KEY=
 
 GTM_ID=
 
+##########
+# Leadsy #
+##########
+
+LEADSY_ID=
+
 ###########
 # Billing #
 ###########
@@ -426,6 +432,12 @@ POSTHOG_API_KEY=
 ######################
 
 GTM_ID=
+
+##########
+# Leadsy #
+##########
+
+LEADSY_ID=
 
 ###########
 # Billing #
@@ -864,6 +876,10 @@ ensure() {
 
   if ! check_env_variable "GTM_ID"; then
     add_env_variable "GTM_ID" ""
+  fi
+
+  if ! check_env_variable "LEADSY_ID"; then
+    add_env_variable "LEADSY_ID" ""
   fi
 
   if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then
