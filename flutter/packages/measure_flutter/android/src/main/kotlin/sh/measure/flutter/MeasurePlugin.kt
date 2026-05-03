@@ -36,6 +36,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_ENABLE_SHAKE_DETECTOR -> enableShakeDetector()
                 MethodConstants.FUNCTION_DISABLE_SHAKE_DETECTOR -> disableShakeDetector()
                 MethodConstants.FUNCTION_GET_DYNAMIC_CONFIG_PATH -> getDynamicConfigPath(result)
+                MethodConstants.FUNCTION_ENCODE_WEBP -> encodeWebP(call, result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -89,8 +90,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         data: MutableMap<String, Any?>,
         type: String,
         timestamp: Long,
-        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),
-        attachments: MutableList<MsrAttachment> = mutableListOf<MsrAttachment>(),
+        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf(),
+        attachments: MutableList<MsrAttachment> = mutableListOf(),
         userTriggered: Boolean,
         sessionId: String? = null,
         threadName: String? = null,
@@ -184,6 +185,16 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     private fun getDynamicConfigPath(result: MethodChannel.Result) {
         val path = Measure.getDynamicConfigPath()
         result.success(path)
+    }
+
+    private fun encodeWebP(call: MethodCall, result: MethodChannel.Result) {
+        val reader = MethodCallReader(call)
+        val pixels = reader.requireArg<ByteArray>(MethodConstants.ARG_ENCODE_WEBP_PIXELS)
+        val width = reader.requireArg<Int>(MethodConstants.ARG_ENCODE_WEBP_WIDTH)
+        val height = reader.requireArg<Int>(MethodConstants.ARG_ENCODE_WEBP_HEIGHT)
+        Measure.internalEncodeWebP(pixels, width, height) { encoded ->
+            result.success(encoded)
+        }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

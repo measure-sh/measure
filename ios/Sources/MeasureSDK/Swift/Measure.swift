@@ -278,7 +278,15 @@ import UIKit
         guard let measureInternal = self.measureInternal else { return nil }
         return measureInternal.getDocumentDirectoryPath()
     }
-    
+
+    func internalEncodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
+        guard let measureInternal = self.measureInternal else {
+            completion(nil)
+            return
+        }
+        measureInternal.encodeWebP(pixels: pixels, width: width, height: height, completion: completion)
+    }
+
     func internalGetDynamicConfigPath() -> String? {
         guard let measureInternal = self.measureInternal else { return nil }
         return measureInternal.getDynamicConfigPath()
@@ -809,7 +817,15 @@ extension Measure {
     public static func internalGetAttachmentDirectory() -> String? {
         return Measure.shared.internalGetAttachmentDirectory()
     }
-    
+
+    /// Encodes pixels to WebP asynchronously.
+    /// 
+    /// Internal API for Flutter only; not for public use. The `pixels`
+    /// be encoded using Flutter's ImageByteFormat.rawRgba.
+    public static func internalEncodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
+        Measure.shared.internalEncodeWebP(pixels: pixels, width: width, height: height, completion: completion)
+    }
+
     public static func internalGetDynamicConfigPath() -> String? {
         return Measure.shared.internalGetDynamicConfigPath()
     }

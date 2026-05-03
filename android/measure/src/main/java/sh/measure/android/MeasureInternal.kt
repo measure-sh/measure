@@ -13,6 +13,7 @@ import sh.measure.android.logger.SdkDebugLogWriter
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
+import sh.measure.android.utils.WebPEncoder
 import sh.measure.android.utils.iso8601Timestamp
 
 /**
@@ -305,6 +306,19 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     }
 
     fun getAttachmentDirectory(): String? = measure.fileStorage.getAttachmentDirectory()
+
+    fun encodeWebP(
+        pixels: ByteArray,
+        width: Int,
+        height: Int,
+        callback: (ByteArray?) -> Unit,
+    ) {
+        val quality = measure.configProvider.screenshotCompressionQuality
+        measure.executorServiceRegistry.defaultExecutor().submit {
+            val encoded = WebPEncoder.encode(pixels, width, height, quality, measure.logger)
+            mainHandler.post { callback(encoded) }
+        }
+    }
 
     fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
         measure.logger.log(

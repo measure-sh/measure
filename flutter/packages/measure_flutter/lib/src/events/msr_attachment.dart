@@ -23,6 +23,16 @@ class MsrAttachment {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final Uint8List? bytes;
 
+  /// Pixel width of [bytes] when [bytes] holds raw RGBA pixel data.
+  /// Null for encoded image bytes (PNG/JPEG/etc.) or path-based attachments.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int? width;
+
+  /// Pixel height of [bytes] when [bytes] holds raw RGBA pixel data.
+  /// Null for encoded image bytes (PNG/JPEG/etc.) or path-based attachments.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int? height;
+
   MsrAttachment({
     required this.name,
     required this.id,
@@ -30,6 +40,8 @@ class MsrAttachment {
     required this.size,
     this.path,
     this.bytes,
+    this.width,
+    this.height,
   });
 
   /// Creates an [MsrAttachment] from binary data.
@@ -45,6 +57,8 @@ class MsrAttachment {
     required Uint8List bytes,
     required AttachmentType type,
     required String uuid,
+    int? width,
+    int? height,
   }) {
     return MsrAttachment(
       name: uuid,
@@ -52,6 +66,8 @@ class MsrAttachment {
       type: type,
       size: bytes.length,
       bytes: bytes,
+      width: width,
+      height: height,
     );
   }
 

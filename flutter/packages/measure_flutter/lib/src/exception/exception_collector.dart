@@ -7,12 +7,12 @@ import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_factory.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../events/event_type.dart';
-import '../isolate/file_processor.dart';
 import '../storage/file_storage.dart';
 
 final class ExceptionCollector {
@@ -21,8 +21,8 @@ final class ExceptionCollector {
   final ConfigProvider configProvider;
   final FileStorage fileStorage;
   final ScreenshotCollector screenshotCollector;
-  final Future<FileProcessingResult> Function(CompressAndSaveParams) compressAndSave;
   final TimeProvider timeProvider;
+  final MsrMethodChannel methodChannel;
   bool _enabled = false;
 
   ExceptionCollector({
@@ -32,7 +32,7 @@ final class ExceptionCollector {
     required this.fileStorage,
     required this.screenshotCollector,
     required this.timeProvider,
-    this.compressAndSave = compressAndSaveInIsolate,
+    required this.methodChannel,
   });
 
   void register() {
@@ -78,47 +78,38 @@ final class ExceptionCollector {
   }
 
   Future<void> _addScreenshot(List<MsrAttachment> attachments) async {
-    final rootPath = await fileStorage.getRootPath();
-
-    if (rootPath == null) {
+    final screenshot = await screenshotCollector.capture();
+    final width = screenshot?.width;
+    final height = screenshot?.height;
+    if (screenshot == null || screenshot.bytes == null || width == null || height == null) {
       return;
     }
 
-    final screenshot = await screenshotCollector.capture();
-
-    if (screenshot != null && screenshot.bytes != null) {
-      final result = await compressAndSave(
-        CompressAndSaveParams(
-          originalBytes: screenshot.bytes!,
-          jpegQuality: configProvider.screenshotCompressionQuality,
-          fileName: screenshot.id,
-          rootPath: rootPath,
-        ),
-      );
-
-      final filePath = result.filePath;
-      final compressedSize = result.size;
-      if (filePath != null && compressedSize != null) {
-        logger.log(
-          LogLevel.debug,
-          'ExceptionCollector: Successfully stored screenshot attachment (id: ${screenshot.id}, size: $compressedSize bytes, path: $filePath)',
-        );
-        attachments.add(
-          MsrAttachment(
-            name: screenshot.id,
-            path: filePath,
-            type: AttachmentType.screenshot,
-            id: screenshot.id,
-            size: compressedSize,
-            bytes: null,
-          ),
-        );
-      } else {
-        logger.log(
-          LogLevel.debug,
-          'ExceptionCollector: Failed to store screenshot attachment: ${result.error}',
-        );
-      }
+    final webp = await methodChannel.encodeWebP(
+      pixels: screenshot.bytes!,
+      width: width,
+      height: height,
+    );
+    if (webp == null) {
+      logger.log(LogLevel.debug, 'ExceptionCollector: WebP encoding failed');
+      return;
     }
+    final file = await fileStorage.writeFile(webp, screenshot.id);
+    if (file == null) return;
+
+    logger.log(
+      LogLevel.debug,
+      'ExceptionCollector: Successfully stored screenshot attachment (id: ${screenshot.id}, size: ${webp.length} bytes, path: ${file.path})',
+    );
+    attachments.add(
+      MsrAttachment(
+        name: screenshot.id,
+        path: file.path,
+        type: AttachmentType.screenshot,
+        id: screenshot.id,
+        size: webp.length,
+        bytes: null,
+      ),
+    );
   }
 }

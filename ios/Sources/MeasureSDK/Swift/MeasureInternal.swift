@@ -415,7 +415,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func getDocumentDirectoryPath() -> String? {
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
-    
+
+    func encodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
+        let quality = Int(configProvider.screenshotCompressionQuality)
+        measureDispatchQueue.submit {
+            let encoded = WebPEncoder.encode(pixels: pixels, width: width, height: height, quality: quality)
+            DispatchQueue.main.async { completion(encoded) }
+        }
+    }
+
     func getDynamicConfigPath() -> String? {
         return systemFileManager.getDynamicConfigPath()
     }

@@ -42,14 +42,6 @@ class FakeFileProcessingIsolate implements FileProcessingIsolate {
     );
   }
 
-  @override
-  Future<FileProcessingResult> processImageCompression(
-    CompressAndSaveParams params,
-  ) async {
-    // Not used in layout snapshot collector tests
-    throw UnimplementedError();
-  }
-
   Future<void> shutdown() async {
     // No-op for testing
   }

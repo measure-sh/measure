@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/gestures/snapshot_node.dart';
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
-import 'package:measure_flutter/src/isolate/file_processor.dart';
 
 import '../utils/noop_logger.dart';
-import '../utils/test_png.dart';
 
 void main() {
   group('FileProcessingIsolate', () {
@@ -137,28 +135,6 @@ void main() {
       final content = await file.readAsString();
       expect(content, contains('Parent'));
       expect(content, contains('Child'));
-    });
-
-    test('processes image compression successfully', () async {
-      await isolate.init();
-
-      final imageBytes = createTestPngBytes();
-      final params = CompressAndSaveParams(
-        originalBytes: imageBytes,
-        jpegQuality: 85,
-        fileName: 'test-image.jpg',
-        rootPath: tempDir.path,
-      );
-
-      final result = await isolate.processImageCompression(params);
-
-      expect(result.error, isNull);
-      expect(result.filePath, contains('test-image.jpg'));
-      expect(result.size, greaterThan(0));
-
-      // Verify file was created
-      final file = File(result.filePath!);
-      expect(file.existsSync(), isTrue);
     });
 
     test('handles multiple concurrent requests', () async {

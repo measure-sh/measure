@@ -11,6 +11,7 @@ import 'package:measure_flutter/src/time/time_provider.dart';
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_file_storage.dart';
 import '../utils/fake_id_provider.dart';
+import '../utils/fake_msr_method_channel.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
@@ -44,6 +45,7 @@ void main() {
         fileStorage: fileStorage,
         shakeDetector: shakeDetector,
         timeProvider: timeProvider,
+        methodChannel: FakeMethodChannel(),
       );
       // Enable the collector for all tests
       collector.register();
