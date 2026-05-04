@@ -28,6 +28,7 @@ class MeasureInternalTest {
         `when`(initializer.logger).thenReturn(mock())
         `when`(initializer.signalProcessor).thenReturn(signalProcessor)
         `when`(initializer.httpEventCollector).thenReturn(mock())
+        `when`(initializer.httpUrlConnectionEventCollector).thenReturn(mock())
         `when`(initializer.processInfoProvider).thenReturn(mock())
         `when`(initializer.timeProvider).thenReturn(mock())
         `when`(initializer.bugReportCollector).thenReturn(mock())

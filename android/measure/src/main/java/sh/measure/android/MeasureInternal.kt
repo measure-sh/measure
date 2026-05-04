@@ -27,6 +27,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     val logger = measure.logger
     val bugReportCollector = measure.bugReportCollector
     val httpEventCollector = measure.httpEventCollector
+    val httpUrlConnectionEventCollector = measure.httpUrlConnectionEventCollector
     val signalProcessor = measure.signalProcessor
 
     @Volatile
@@ -383,8 +384,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             )
             false
         } else {
-            measure.configProvider.setMeasureUrl(apiUrl!!)
-            measure.networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
+            measure.networkClient.init(baseUrl = apiUrl!!, apiKey = apiKey!!)
             true
         }
     }
@@ -399,6 +399,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.gestureCollector.register()
         measure.networkChangesCollector.register()
         measure.httpEventCollector.register()
+        measure.httpUrlConnectionEventCollector.register()
         measure.powerStateProvider.register()
         measure.spanCollector.register()
         measure.customEventCollector.register()
@@ -415,6 +416,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.gestureCollector.unregister()
         measure.networkChangesCollector.unregister()
         measure.httpEventCollector.unregister()
+        measure.httpUrlConnectionEventCollector.unregister()
         measure.powerStateProvider.unregister()
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()

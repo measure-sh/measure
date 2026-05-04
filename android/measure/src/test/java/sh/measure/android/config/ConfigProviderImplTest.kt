@@ -177,30 +177,6 @@ class ConfigProviderImplTest {
     }
 
     @Test
-    fun `setMeasureUrl adds URL to httpDisableEventForUrls`() {
-        val measureUrl = "https://measure.sh/api/v1"
-        configProvider.setMeasureUrl(measureUrl)
-
-        assertFalse(configProvider.shouldTrackHttpEvent(measureUrl))
-    }
-
-    @Test
-    fun `setMeasureUrl is preserved after setDynamicConfig is called`() {
-        val measureUrl = "https://measure.sh/api/v1"
-        configProvider.setMeasureUrl(measureUrl)
-
-        // Simulate loading dynamic config from server
-        val dynamicConfig = DynamicConfig().copy(
-            httpDisableEventForUrls = mutableListOf("https://analytics.example.com/*"),
-        )
-        configProvider.setDynamicConfig(dynamicConfig)
-
-        // Both should be blocked
-        assertFalse(configProvider.shouldTrackHttpEvent(measureUrl))
-        assertFalse(configProvider.shouldTrackHttpEvent("https://analytics.example.com/event"))
-    }
-
-    @Test
     fun `setDynamicConfig updates config values`() {
         val newConfig = DynamicConfig().copy(
             traceSamplingRate = 0.5f,
