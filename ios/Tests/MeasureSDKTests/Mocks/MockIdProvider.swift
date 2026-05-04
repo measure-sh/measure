@@ -14,7 +14,7 @@ final class MockIdProvider: IdProvider {
     var traceid: String = ""
 
     func uuid() -> String {
-        return uuId
+        return uuId.isEmpty ? UUID().uuidString : uuId
     }
 
     func spanId() -> String {

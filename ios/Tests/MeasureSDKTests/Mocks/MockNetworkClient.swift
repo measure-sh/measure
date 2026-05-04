@@ -14,12 +14,16 @@ final class MockNetworkClient: NetworkClient {
     private(set) var lastSpans: [SpanEntity] = []
     private(set) var lastETag: String?
     private(set) var executedBatchIds: [String] = []
+    private(set) var executedEventCounts: [Int] = []
+    private(set) var executedSpanCounts: [Int] = []
 
     var executeResponse: HttpResponse = .success(body: nil, eTag: nil)
     var configResponse: ConfigResponse = .notModified
 
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
         executedBatchIds.append(batchId)
+        executedEventCounts.append(events.count)
+        executedSpanCounts.append(spans.count)
         lastBatchId = batchId
         lastEvents = events
         lastSpans = spans
@@ -39,6 +43,8 @@ final class MockNetworkClient: NetworkClient {
         executeResponse = .success(body: nil, eTag: nil)
         configResponse = .notModified
         executedBatchIds = []
+        executedEventCounts = []
+        executedSpanCounts = []
     }
 
     func stubExecuteSuccess(body: String? = nil, eTag: String? = nil) {

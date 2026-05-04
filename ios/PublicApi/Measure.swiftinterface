@@ -402,6 +402,9 @@ extension Measure.Measure {
   public static func internalGetAttachmentDirectory() -> Swift.String?
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
+  public static func internalEncodeWebP(pixels: Foundation.Data, width: Swift.Int, height: Swift.Int, completion: @escaping (Foundation.Data?) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetDynamicConfigPath() -> Swift.String?
   #endif
   #if compiler(>=5.3) && $NonescapableTypes
