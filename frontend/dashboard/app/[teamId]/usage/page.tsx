@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, buttonVariants } from "@/app/components/button";
+import { Button } from "@/app/components/button";
+import { buttonVariants } from "@/app/components/button_variants";
 import { Card } from "@/app/components/card";
 import DropdownSelect, {
   DropdownSelectType,

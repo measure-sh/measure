@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
-import { buttonVariants } from "./button";
+import { buttonVariants } from "./button_variants";
 import { ThemeToggle } from "./theme_toggle";
 
 // Hook to detect if we're on a small screen
@@ -41,7 +41,7 @@ export default function LandingHeader() {
       onBlur={() => setIsFocused(false)}
       className={cn(
         "w-full flex flex-col z-50 bg-background border-b border-border fixed top-0 transition-transform duration-100 ease-in-out",
-        shouldHide ? "-translate-y-full" : "translate-y-0"
+        shouldHide ? "-translate-y-full" : "translate-y-0",
       )}
     >
       <div className="w-full flex flex-row justify-between items-center py-4 px-4">
@@ -99,37 +99,25 @@ export default function LandingHeader() {
         <div className="hidden md:flex md:flex-row items-center justify-center md:ml-24">
           <Link
             href="/pricing"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-24"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
           >
             Pricing
           </Link>
           <Link
             href="/docs"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-24"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
           >
             Docs
           </Link>
           <Link
             href="/about"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-24"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
           >
             About
           </Link>
           <Link
             href="https://blog.measure.sh/"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-24"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
           >
             Blog
           </Link>
@@ -142,10 +130,7 @@ export default function LandingHeader() {
           <Link
             target="_blank"
             href="https://github.com/measure-sh/measure"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "group px-2"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "group px-2")}
           >
             <Image
               src="/images/github_logo_black.svg"
@@ -166,19 +151,14 @@ export default function LandingHeader() {
           <div className="px-1" />
           <Link
             href="/auth/login"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "px-4"
-            )}
+            className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
           >
             Sign In
           </Link>
           <div className="px-1" />
           <Link
             href="/auth/login"
-            className={cn(
-              buttonVariants({ variant: "default" })
-            )}
+            className={cn(buttonVariants({ variant: "default" }))}
           >
             Get Started
           </Link>
@@ -189,14 +169,14 @@ export default function LandingHeader() {
       <div
         className={cn(
           "md:hidden flex flex-col items-center overflow-hidden transition-all duration-200 ease-in-out",
-          isMenuOpen ? "max-h-96 pb-4" : "max-h-0"
+          isMenuOpen ? "max-h-96 pb-4" : "max-h-0",
         )}
       >
         <Link
           href="/pricing"
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            "w-full justify-center"
+            "w-full justify-center",
           )}
           onClick={() => setIsMenuOpen(false)}
         >
@@ -206,7 +186,7 @@ export default function LandingHeader() {
           href="/docs"
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            "w-full justify-center"
+            "w-full justify-center",
           )}
           onClick={() => setIsMenuOpen(false)}
         >
@@ -216,7 +196,7 @@ export default function LandingHeader() {
           href="/about"
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            "font-display select-none w-full justify-center"
+            "font-display select-none w-full justify-center",
           )}
           onClick={() => setIsMenuOpen(false)}
         >
@@ -226,7 +206,7 @@ export default function LandingHeader() {
           href="https://blog.measure.sh"
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            "w-full justify-center"
+            "w-full justify-center",
           )}
           onClick={() => setIsMenuOpen(false)}
         >
@@ -238,9 +218,7 @@ export default function LandingHeader() {
         <Link
           target="_blank"
           href="https://github.com/measure-sh/measure"
-          className={cn(
-            buttonVariants({ variant: "ghost" })
-          )}
+          className={cn(buttonVariants({ variant: "ghost" }))}
         >
           <Image
             src="/images/github_logo_black.svg"
@@ -261,9 +239,7 @@ export default function LandingHeader() {
         <div className="py-1" />
         <Link
           href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "ghost" })
-          )}
+          className={cn(buttonVariants({ variant: "ghost" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Sign In
@@ -271,9 +247,7 @@ export default function LandingHeader() {
         <div className="py-1" />
         <Link
           href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" })
-          )}
+          className={cn(buttonVariants({ variant: "default" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Get Started

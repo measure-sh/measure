@@ -1,24 +1,38 @@
-"use client"
+"use client";
 
-import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType, FilterSource } from '@/app/api/api_calls'
-import Paginator from '@/app/components/paginator'
-import { paginationOffsetUrlKey, useAnrDetailsQuery, useCrashDetailsQuery } from '@/app/query/hooks'
-import { useFiltersStore } from '@/app/stores/provider'
-import { DateTime } from 'luxon'
-import Image from 'next/image'
-import Link from "next/link"
-import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useRef, useState } from 'react'
-import { cn } from '../utils/shadcn_utils'
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
-import { buttonVariants } from './button'
-import CopyAiContext from './copy_ai_context'
-import ExceptionGroupCommonPath from './exception_group_common_path'
-import ExceptionsDetailsPlot from './exceptions_details_plot'
-import ExceptionsDistributionPlot from './exceptions_distribution_plot'
-import Filters, { AppVersionsInitialSelectionType } from './filters'
-import { Skeleton, SkeletonPlot } from './skeleton'
+import {
+  emptyAnrExceptionsDetailsResponse,
+  emptyCrashExceptionsDetailsResponse,
+  ExceptionsType,
+  FilterSource,
+} from "@/app/api/api_calls";
+import Paginator from "@/app/components/paginator";
+import {
+  paginationOffsetUrlKey,
+  useAnrDetailsQuery,
+  useCrashDetailsQuery,
+} from "@/app/query/hooks";
+import { useFiltersStore } from "@/app/stores/provider";
+import { DateTime } from "luxon";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+import { cn } from "../utils/shadcn_utils";
+import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./accordion";
+import { buttonVariants } from "./button_variants";
+import CopyAiContext from "./copy_ai_context";
+import ExceptionGroupCommonPath from "./exception_group_common_path";
+import ExceptionsDetailsPlot from "./exceptions_details_plot";
+import ExceptionsDistributionPlot from "./exceptions_distribution_plot";
+import Filters, { AppVersionsInitialSelectionType } from "./filters";
+import { Skeleton, SkeletonPlot } from "./skeleton";
 
 const demoExceptionDetails = {
   meta: { next: false, previous: false },
@@ -26,7 +40,11 @@ const demoExceptionDetails = {
     {
       id: "d58064f1-80d9-4a6a-9f0f-1af51ccfcb19",
       session_id: "df45556c-1a00-452b-bc0b-7ccc65f5a148",
-      timestamp: DateTime.now().toUTC().minus({ minutes: 7.5 }).plus({ seconds: 13 }).toISO(),
+      timestamp: DateTime.now()
+        .toUTC()
+        .minus({ minutes: 7.5 })
+        .plus({ seconds: 13 })
+        .toISO(),
       type: "exception",
       attribute: {
         installation_id: "00000000-0000-0000-0000-000000000000",
@@ -60,7 +78,8 @@ const demoExceptionDetails = {
       },
       exception: {
         title: "java.lang.IllegalStateException@CheckoutActivity.kt",
-        stacktrace: "java.lang.IllegalStateException: Payment method must be specified\n\tat MaterialButton.onClick(CheckoutActivity.kt:102)\n\tat android.view.View.performClick(View.java:6294)\n\tat android.view.View$PerformClick.run(View.java:24774)\n\tat android.os.Handler.handleCallback(Handler.java:790)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loop(Looper.java:164)\n\tat android.app.ActivityThread.main(ActivityThread.java:6518)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.IllegalStateException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:448)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)",
+        stacktrace:
+          "java.lang.IllegalStateException: Payment method must be specified\n\tat MaterialButton.onClick(CheckoutActivity.kt:102)\n\tat android.view.View.performClick(View.java:6294)\n\tat android.view.View$PerformClick.run(View.java:24774)\n\tat android.os.Handler.handleCallback(Handler.java:790)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loop(Looper.java:164)\n\tat android.app.ActivityThread.main(ActivityThread.java:6518)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.IllegalStateException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:448)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)",
         message: "Payment method must be specified",
       },
       attachments: [
@@ -69,8 +88,8 @@ const demoExceptionDetails = {
           name: "screenshot.png",
           type: "screenshot",
           key: "85082bcc-8242-4ac3-a03d-17436c87fdb6.png",
-          location: "/images/demo_checkout_screenshot.png"
-        }
+          location: "/images/demo_checkout_screenshot.png",
+        },
       ],
       threads: [
         {
@@ -79,8 +98,8 @@ const demoExceptionDetails = {
             "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
             "android.os.MessageQueue.next(MessageQueue.java:325)",
             "android.os.Looper.loop(Looper.java:142)",
-            "android.os.HandlerThread.run(HandlerThread.java:65)"
-          ]
+            "android.os.HandlerThread.run(HandlerThread.java:65)",
+          ],
         },
         {
           name: "queued-work-looper",
@@ -88,8 +107,8 @@ const demoExceptionDetails = {
             "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
             "android.os.MessageQueue.next(MessageQueue.java:325)",
             "android.os.Looper.loop(Looper.java:142)",
-            "android.os.HandlerThread.run(HandlerThread.java:65)"
-          ]
+            "android.os.HandlerThread.run(HandlerThread.java:65)",
+          ],
         },
         {
           name: "OkHttp ConnectionPool",
@@ -98,8 +117,8 @@ const demoExceptionDetails = {
             "com.android.okhttp.ConnectionPool$1.run(ConnectionPool.java:101)",
             "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1162)",
             "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:636)",
-            "java.lang.Thread.run(Thread.java:764)"
-          ]
+            "java.lang.Thread.run(Thread.java:764)",
+          ],
         },
         {
           name: "FinalizerDaemon",
@@ -110,8 +129,8 @@ const demoExceptionDetails = {
             "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:209)",
             "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:232)",
             "java.lang.Daemons$Daemon.run(Daemons.java:103)",
-            "java.lang.Thread.run(Thread.java:764)"
-          ]
+            "java.lang.Thread.run(Thread.java:764)",
+          ],
         },
         {
           name: "Okio Watchdog",
@@ -119,8 +138,8 @@ const demoExceptionDetails = {
             "java.lang.Object.wait(Object.java:-2)",
             "com.android.okhttp.okio.AsyncTimeout.awaitTimeout(AsyncTimeout.java:323)",
             "com.android.okhttp.okio.AsyncTimeout.-wrap0",
-            "com.android.okhttp.okio.AsyncTimeout$Watchdog.run(AsyncTimeout.java:286)"
-          ]
+            "com.android.okhttp.okio.AsyncTimeout$Watchdog.run(AsyncTimeout.java:286)",
+          ],
         },
         {
           name: "ReferenceQueueDaemon",
@@ -128,8 +147,8 @@ const demoExceptionDetails = {
             "java.lang.Object.wait(Object.java:-2)",
             "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:178)",
             "java.lang.Daemons$Daemon.run(Daemons.java:103)",
-            "java.lang.Thread.run(Thread.java:764)"
-          ]
+            "java.lang.Thread.run(Thread.java:764)",
+          ],
         },
         {
           name: "FinalizerWatchdogDaemon",
@@ -141,97 +160,124 @@ const demoExceptionDetails = {
             "java.lang.Daemons$FinalizerWatchdogDaemon.waitForFinalization(Daemons.java:364)",
             "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:281)",
             "java.lang.Daemons$Daemon.run(Daemons.java:103)",
-            "java.lang.Thread.run(Thread.java:764)"
-          ]
-        }
-      ]
-    }
-  ]
-} as any
+            "java.lang.Thread.run(Thread.java:764)",
+          ],
+        },
+      ],
+    },
+  ],
+} as any;
 
 interface ExceptionsDetailsProps {
-  exceptionsType?: ExceptionsType,
-  teamId?: string,
-  appId?: string,
-  exceptionsGroupId?: string,
-  exceptionsGroupName?: string,
-  demo?: boolean,
-  hideDemoTitle?: boolean
+  exceptionsType?: ExceptionsType;
+  teamId?: string;
+  appId?: string;
+  exceptionsGroupId?: string;
+  exceptionsGroupName?: string;
+  demo?: boolean;
+  hideDemoTitle?: boolean;
 }
 
-const stackTraceAccordionContentStyle = 'whitespace-pre-wrap font-code leading-5.5 bg-accent text-accent-foreground p-4 rounded-sm'
+const stackTraceAccordionContentStyle =
+  "whitespace-pre-wrap font-code leading-5.5 bg-accent text-accent-foreground p-4 rounded-sm";
 
-export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptionsType = ExceptionsType.Crash,
-  teamId = 'demo-team',
-  appId = 'demo-app',
-  exceptionsGroupId = 'demo-exception-group',
-  exceptionsGroupName = 'java.lang.IllegalStateException@CheckoutActivity.kt',
+export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
+  exceptionsType = ExceptionsType.Crash,
+  teamId = "demo-team",
+  appId = "demo-app",
+  exceptionsGroupId = "demo-exception-group",
+  exceptionsGroupName = "java.lang.IllegalStateException@CheckoutActivity.kt",
   demo = false,
-  hideDemoTitle = false
+  hideDemoTitle = false,
 }) => {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const filters = useFiltersStore(state => state.filters)
+  const filters = useFiltersStore((state) => state.filters);
 
   // Pagination is component-local state, initialized from URL
   const [paginationOffset, setPaginationOffset] = useState(() => {
-    const po = searchParams.get(paginationOffsetUrlKey)
-    return po ? parseInt(po) : 0
-  })
+    const po = searchParams.get(paginationOffsetUrlKey);
+    return po ? parseInt(po) : 0;
+  });
 
   // Reset pagination when filters change (skip pre-ready transitions)
-  const prevFiltersRef = useRef<string | null>(null)
+  const prevFiltersRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!filters.ready) return
-    if (prevFiltersRef.current !== null && prevFiltersRef.current !== filters.serialisedFilters) {
-      setPaginationOffset(0)
+    if (!filters.ready) return;
+    if (
+      prevFiltersRef.current !== null &&
+      prevFiltersRef.current !== filters.serialisedFilters
+    ) {
+      setPaginationOffset(0);
     }
-    prevFiltersRef.current = filters.serialisedFilters
-  }, [filters.ready, filters.serialisedFilters])
+    prevFiltersRef.current = filters.serialisedFilters;
+  }, [filters.ready, filters.serialisedFilters]);
 
   // URL sync
   useEffect(() => {
     if (demo) {
-      return
+      return;
     }
 
     if (!filters.ready) {
-      return
+      return;
     }
 
-    router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`, { scroll: false })
-  }, [paginationOffset, filters.ready, filters.serialisedFilters])
+    router.replace(
+      `?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`,
+      { scroll: false },
+    );
+  }, [paginationOffset, filters.ready, filters.serialisedFilters]);
 
   // Both hooks must be called unconditionally (rules of hooks)
-  const crashQuery = useCrashDetailsQuery(exceptionsGroupId!, paginationOffset)
-  const anrQuery = useAnrDetailsQuery(exceptionsGroupId!, paginationOffset)
-  const { data: queryData, status, isFetching } = exceptionsType === ExceptionsType.Crash ? crashQuery : anrQuery
+  const crashQuery = useCrashDetailsQuery(exceptionsGroupId!, paginationOffset);
+  const anrQuery = useAnrDetailsQuery(exceptionsGroupId!, paginationOffset);
+  const {
+    data: queryData,
+    status,
+    isFetching,
+  } = exceptionsType === ExceptionsType.Crash ? crashQuery : anrQuery;
 
-  const emptyDefault = exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse
-  const exceptionsDetails = (demo ? demoExceptionDetails : (queryData ?? emptyDefault)) as typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
-  const effectiveStatus = demo ? 'success' as const : status
-  const effectiveFetching = demo ? false : isFetching
+  const emptyDefault =
+    exceptionsType === ExceptionsType.Crash
+      ? emptyCrashExceptionsDetailsResponse
+      : emptyAnrExceptionsDetailsResponse;
+  const exceptionsDetails = (
+    demo ? demoExceptionDetails : (queryData ?? emptyDefault)
+  ) as
+    | typeof emptyCrashExceptionsDetailsResponse
+    | typeof emptyAnrExceptionsDetailsResponse;
+  const effectiveStatus = demo ? ("success" as const) : status;
+  const effectiveFetching = demo ? false : isFetching;
 
-  const nextPage = () => setPaginationOffset(o => o + 1)
-  const prevPage = () => setPaginationOffset(o => Math.max(0, o - 1))
+  const nextPage = () => setPaginationOffset((o) => o + 1);
+  const prevPage = () => setPaginationOffset((o) => Math.max(0, o - 1));
 
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const handleImageError = (key: string) => {
-    setImageErrors(prev => new Set(prev).add(key))
-  }
+    setImageErrors((prev) => new Set(prev).add(key));
+  };
 
   return (
     <div className="flex flex-col items-start">
-      {demo && !hideDemoTitle && <p className="font-display font-normal text-4xl max-w-6xl text-center">Crash Details</p>}
+      {demo && !hideDemoTitle && (
+        <p className="font-display font-normal text-4xl max-w-6xl text-center">
+          Crash Details
+        </p>
+      )}
       <div className="py-4" />
 
-      {!demo &&
+      {!demo && (
         <Filters
           teamId={teamId}
           appId={appId}
-          filterSource={exceptionsType === ExceptionsType.Crash ? FilterSource.Crashes : FilterSource.Anrs}
+          filterSource={
+            exceptionsType === ExceptionsType.Crash
+              ? FilterSource.Crashes
+              : FilterSource.Anrs
+          }
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
           showNoData={true}
           showNotOnboarded={true}
@@ -250,12 +296,14 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           showBugReportStatus={false}
           showHttpMethods={false}
           showUdAttrs={true}
-          showFreeText={false} />}
+          showFreeText={false}
+        />
+      )}
 
       <div className="py-4" />
 
       {/* Full page skeleton when filters not ready */}
-      {!demo && filters.loading &&
+      {!demo && filters.loading && (
         <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
             <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
@@ -283,49 +331,62 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
             <Skeleton className="h-4 w-full" />
           </div>
         </div>
-      }
+      )}
 
-      {(demo || filters.ready) &&
-        <div className='w-full'>
+      {(demo || filters.ready) && (
+        <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionsDetailsPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              demo={demo} />
+              demo={demo}
+            />
             <ExceptionsDistributionPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              demo={demo} />
+              demo={demo}
+            />
           </div>
 
           <div className="py-8" />
           <ExceptionGroupCommonPath
             type={exceptionsType}
             groupId={exceptionsGroupId}
-            appId={demo ? 'demo-app-id' : filters.app!.id}
+            appId={demo ? "demo-app-id" : filters.app!.id}
             demo={demo}
           />
           <div className="py-12" />
 
-          {effectiveStatus === 'error' &&
-            <p className="font-body text-sm">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
+          {effectiveStatus === "error" && (
+            <p className="font-body text-sm">
+              Error fetching list of{" "}
+              {exceptionsType === ExceptionsType.Crash ? "crashes" : "ANRs"},
+              please change filters, refresh page or select a different app to
+              try again
+            </p>
+          )}
 
-          {(effectiveStatus === 'success' || effectiveStatus === 'pending') &&
-            <div className='flex flex-col'>
+          {(effectiveStatus === "success" || effectiveStatus === "pending") && (
+            <div className="flex flex-col">
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-body text-3xl"> Stack traces</p>
                 <div className="grow" />
                 <Paginator
-                  prevEnabled={effectiveFetching ? false : exceptionsDetails.meta.previous}
-                  nextEnabled={effectiveFetching ? false : exceptionsDetails.meta.next}
+                  prevEnabled={
+                    effectiveFetching ? false : exceptionsDetails.meta.previous
+                  }
+                  nextEnabled={
+                    effectiveFetching ? false : exceptionsDetails.meta.next
+                  }
                   displayText=""
                   onNext={nextPage}
-                  onPrev={prevPage} />
+                  onPrev={prevPage}
+                />
               </div>
 
               <div className="py-2" />
 
-              {effectiveFetching &&
+              {effectiveFetching && (
                 <div className="flex flex-col gap-3 w-full py-4">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
@@ -333,23 +394,50 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="h-4 w-full" />
                 </div>
-              }
+              )}
 
-              {exceptionsDetails.results?.length > 0 &&
-                <div className={`${effectiveFetching ? 'invisible' : 'visible'}`}>
-                  <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
-                  <p className="font-body"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
-                  <p className="font-body"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
-                  <p className="font-body"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
-                  <p className="font-body"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
-                  {exceptionsDetails.results[0].attachments?.length > 0 &&
-                    <div className='flex mt-8 flex-wrap gap-8 items-center'>
+              {exceptionsDetails.results?.length > 0 && (
+                <div
+                  className={`${effectiveFetching ? "invisible" : "visible"}`}
+                >
+                  <p className="font-display text-xl">
+                    {" "}
+                    Id: {exceptionsDetails.results[0].id}
+                  </p>
+                  <p className="font-body">
+                    {" "}
+                    Date & time:{" "}
+                    {formatDateToHumanReadableDateTime(
+                      exceptionsDetails.results[0].timestamp,
+                    )}
+                  </p>
+                  <p className="font-body">
+                    {" "}
+                    Device:{" "}
+                    {exceptionsDetails.results[0].attribute
+                      .device_manufacturer +
+                      exceptionsDetails.results[0].attribute.device_model}
+                  </p>
+                  <p className="font-body">
+                    {" "}
+                    App version:{" "}
+                    {exceptionsDetails.results[0].attribute.app_version}
+                  </p>
+                  <p className="font-body">
+                    {" "}
+                    Network type:{" "}
+                    {exceptionsDetails.results[0].attribute.network_type}
+                  </p>
+                  {exceptionsDetails.results[0].attachments?.length > 0 && (
+                    <div className="flex mt-8 flex-wrap gap-8 items-center">
                       {exceptionsDetails.results[0].attachments
-                        .filter(attachment => !imageErrors.has(attachment.key))
+                        .filter(
+                          (attachment) => !imageErrors.has(attachment.key),
+                        )
                         .map((attachment, index) => (
                           <Image
                             key={attachment.key}
-                            className='border border-black'
+                            className="border border-black"
                             src={attachment.location}
                             width={200}
                             height={200}
@@ -358,62 +446,120 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                             onError={() => handleImageError(attachment.key)}
                           />
                         ))}
-                    </div>}
+                    </div>
+                  )}
                   <div className="py-4" />
-                  <div className='flex flex-row items-center'>
+                  <div className="flex flex-row items-center">
                     {demo ? (
-                      <div className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>View Session Timeline</div>
+                      <div
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "justify-center w-fit",
+                        )}
+                      >
+                        View Session Timeline
+                      </div>
                     ) : (
                       <Link
                         key={exceptionsDetails.results[0].id}
                         href={`/${teamId}/session_timelines/${appId}/${exceptionsDetails.results[0].session_id}`}
-                        className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit")}>
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "justify-center w-fit",
+                        )}
+                      >
                         View Session Timeline
                       </Link>
                     )}
-                    <div className='px-2' />
-                    {!demo &&
+                    <div className="px-2" />
+                    {!demo && (
                       <CopyAiContext
                         appName={filters.app!.name}
                         exceptionsType={exceptionsType}
-                        exceptionsDetails={exceptionsDetails} />}
+                        exceptionsDetails={exceptionsDetails}
+                      />
+                    )}
                   </div>
                   <div className="py-4" />
-                  <Accordion type="single" collapsible defaultValue={
-                    exceptionsType === ExceptionsType.Crash
-                      ? 'Thread: ' + exceptionsDetails.results[0].attribute.thread_name
-                      : exceptionsType === ExceptionsType.Anr
-                        ? 'Thread: ' + exceptionsDetails.results[0].attribute.thread_name
-                        : undefined
-                  }>
-                    {exceptionsType === ExceptionsType.Crash &&
-                      <AccordionItem value={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}>
-                        <AccordionTrigger className='font-display'>{'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
-                        <AccordionContent className={stackTraceAccordionContentStyle}>
-                          {(exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
+                  <Accordion
+                    type="single"
+                    collapsible
+                    defaultValue={
+                      exceptionsType === ExceptionsType.Crash
+                        ? "Thread: " +
+                          exceptionsDetails.results[0].attribute.thread_name
+                        : exceptionsType === ExceptionsType.Anr
+                          ? "Thread: " +
+                            exceptionsDetails.results[0].attribute.thread_name
+                          : undefined
+                    }
+                  >
+                    {exceptionsType === ExceptionsType.Crash && (
+                      <AccordionItem
+                        value={
+                          "Thread: " +
+                          exceptionsDetails.results[0].attribute.thread_name
+                        }
+                      >
+                        <AccordionTrigger className="font-display">
+                          {"Thread: " +
+                            exceptionsDetails.results[0].attribute.thread_name}
+                        </AccordionTrigger>
+                        <AccordionContent
+                          className={stackTraceAccordionContentStyle}
+                        >
+                          {
+                            (
+                              exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse
+                            ).results[0].exception.stacktrace
+                          }
                         </AccordionContent>
                       </AccordionItem>
-                    }
-                    {exceptionsType === ExceptionsType.Anr &&
-                      <AccordionItem value={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}>
-                        <AccordionTrigger className='font-display'>{'Thread: ' + exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
-                        <AccordionContent className={stackTraceAccordionContentStyle}>
-                          {(exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
+                    )}
+                    {exceptionsType === ExceptionsType.Anr && (
+                      <AccordionItem
+                        value={
+                          "Thread: " +
+                          exceptionsDetails.results[0].attribute.thread_name
+                        }
+                      >
+                        <AccordionTrigger className="font-display">
+                          {"Thread: " +
+                            exceptionsDetails.results[0].attribute.thread_name}
+                        </AccordionTrigger>
+                        <AccordionContent
+                          className={stackTraceAccordionContentStyle}
+                        >
+                          {
+                            (
+                              exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse
+                            ).results[0].anr.stacktrace
+                          }
                         </AccordionContent>
                       </AccordionItem>
-                    }
+                    )}
                     {exceptionsDetails.results[0].threads?.map((e, index) => (
-                      <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
-                        <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
-                        <AccordionContent className={stackTraceAccordionContentStyle}>
-                          {e.frames.join('\n')}
+                      <AccordionItem
+                        value={`${e.name}-${index}`}
+                        key={`${e.name}-${index}`}
+                      >
+                        <AccordionTrigger className="font-display">
+                          {"Thread: " + e.name}
+                        </AccordionTrigger>
+                        <AccordionContent
+                          className={stackTraceAccordionContentStyle}
+                        >
+                          {e.frames.join("\n")}
                         </AccordionContent>
                       </AccordionItem>
                     )) || []}
                   </Accordion>
-                </div>}
-            </div>}
-        </div>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
