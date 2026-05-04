@@ -103,8 +103,9 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/$1', // Map @ to the root directory
   },
 
-  // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
-  // modulePathIgnorePatterns: [],
+  // Skip Next.js build output so jest-haste-map doesn't see duplicate
+  // package.json from .next/standalone/ (output: "standalone" in next.config.js)
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
 
   // Activates notifications for test results
   // notify: false,

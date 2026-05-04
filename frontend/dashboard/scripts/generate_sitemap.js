@@ -30,6 +30,12 @@ function isDynamic(route) {
     return /\[.+?\]/.test(route)
 }
 
+const EXCLUDED_PREFIXES = ['/auth/']
+
+function isExcluded(route) {
+    return EXCLUDED_PREFIXES.some(prefix => route.startsWith(prefix))
+}
+
 function getDocsSlugs() {
     const contentDir = path.join(ROOT, 'content', 'docs')
     if (!fs.existsSync(contentDir)) {
@@ -93,7 +99,7 @@ function main() {
 
     for (const f of files) {
         const route = routeFromFile(f)
-        if (isDynamic(route)) {
+        if (isDynamic(route) || isExcluded(route)) {
             continue
         }
         routes.add(route === '/' ? '/' : route.replace(/\\/g, '/'))
@@ -122,4 +128,4 @@ function main() {
 
 if (require.main === module) main()
 
-module.exports = { walk, routeFromFile, isDynamic, getDocsSlugs, buildSitemap, ensurePublicDir, main, APP_DIR, PUBLIC_DIR, ROOT, SITE_URL }
+module.exports = { walk, routeFromFile, isDynamic, isExcluded, getDocsSlugs, buildSitemap, ensurePublicDir, main, APP_DIR, PUBLIC_DIR, ROOT, SITE_URL }

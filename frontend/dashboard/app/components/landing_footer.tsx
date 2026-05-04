@@ -3,13 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "../utils/shadcn_utils";
-import { buttonVariants } from "./button";
+import { buttonVariants } from "./button_variants";
 
 export default function LandingFooter() {
   return (
     <footer className="w-full bg-background text-foreground border-t border-border py-12">
       <div className="flex flex-col md:flex-row items-center md:items-start gap-16 justify-between w-full px-16">
-        <div className='flex flex-col items-center'>
+        <div className="flex flex-col items-center">
           <Image
             src="/images/measure_logo_horizontal_black.svg"
             width={200}
@@ -25,15 +25,14 @@ export default function LandingFooter() {
             className="hidden dark:block"
           />
           <div className="py-2" />
-          <p className='font-display text-sm text-center'>&copy; {new Date().getFullYear()} Measure, Inc. All rights reserved.</p>
+          <p className="font-display text-sm text-center">
+            &copy; {new Date().getFullYear()} Measure, Inc. All rights reserved.
+          </p>
           <div className="py-4" />
           <Link
             target="_blank"
             href="https://github.com/measure-sh/measure"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "group px-2",
-            )}
+            className={cn(buttonVariants({ variant: "outline" }), "group px-2")}
           >
             <Image
               src="/images/github_logo_black.svg"
@@ -53,7 +52,7 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        <div className='flex flex-col items-center md:items-start gap-4'>
+        <div className="flex flex-col items-center md:items-start gap-4">
           <p className="font-display text-2xl md:px-2">Product</p>
           <Link
             href="/product/session-timelines"
@@ -138,7 +137,7 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        <div className='flex flex-col items-center md:items-start gap-4'>
+        <div className="flex flex-col items-center md:items-start gap-4">
           <p className="font-display text-2xl md:px-2">Resources</p>
           <Link
             href="/why-measure"
@@ -178,7 +177,7 @@ export default function LandingFooter() {
           </Link>
           <Link
             href="https://github.com/measure-sh/measure"
-            target='_blank'
+            target="_blank"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "font-display select-none w-full md:w-fit",
@@ -188,7 +187,7 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        <div className='flex flex-col items-center md:items-start gap-4'>
+        <div className="flex flex-col items-center md:items-start gap-4">
           <p className="font-display text-2xl md:px-2">Company</p>
           <Link
             href="/about"
@@ -210,7 +209,7 @@ export default function LandingFooter() {
           </Link>
           <Link
             href="mailto:hello@measure.sh"
-            target='_blank'
+            target="_blank"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "font-display select-none w-full md:w-fit",
@@ -220,7 +219,7 @@ export default function LandingFooter() {
           </Link>
           <Link
             href="/media_kit/measure.sh_media_kit.zip"
-            download={'measure.sh_media_kit.zip'}
+            download={"measure.sh_media_kit.zip"}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
@@ -232,7 +231,7 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        <div className='flex flex-col items-center md:items-start gap-4'>
+        <div className="flex flex-col items-center md:items-start gap-4">
           <p className="font-display text-2xl md:px-2">Legal</p>
           <Link
             href="/privacy-policy"
@@ -254,25 +253,22 @@ export default function LandingFooter() {
           </Link>
         </div>
 
-        <div className='flex flex-col items-center md:items-start gap-4'>
+        <div className="flex flex-col items-center md:items-start gap-4">
           <p className="font-display text-2xl md:px-2">Connect</p>
           <Link
             href="https://www.linkedin.com/company/measure-sh"
-            target='_blank'
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "group w-full",
-            )}
+            target="_blank"
+            className={cn(buttonVariants({ variant: "ghost" }), "group w-full")}
           >
             <Image
-              src={'/images/linkedin_logo_black.png'}
+              src={"/images/linkedin_logo_black.png"}
               alt="LinkedIn Logo"
               width={22}
               height={22}
               className="dark:hidden group-hover:hidden"
             />
             <Image
-              src={'/images/linkedin_logo_white.png'}
+              src={"/images/linkedin_logo_white.png"}
               alt="LinkedIn Logo"
               width={22}
               height={22}
@@ -281,21 +277,21 @@ export default function LandingFooter() {
           </Link>
           <Link
             href="https://x.com/measure_sh"
-            target='_blank'
+            target="_blank"
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "group w-full py-2",
             )}
           >
             <Image
-              src={'/images/x_logo_black.png'}
+              src={"/images/x_logo_black.png"}
               alt="X Logo"
               width={20}
               height={20}
               className="dark:hidden group-hover:hidden"
             />
             <Image
-              src={'/images/x_logo_white.png'}
+              src={"/images/x_logo_white.png"}
               alt="X Logo"
               width={20}
               height={20}

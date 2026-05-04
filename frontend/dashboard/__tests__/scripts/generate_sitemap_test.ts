@@ -6,6 +6,7 @@ const {
   walk,
   routeFromFile,
   isDynamic,
+  isExcluded,
   getDocsSlugs,
   buildSitemap,
   ensurePublicDir,
@@ -75,6 +76,41 @@ describe('isDynamic', () => {
 
   it('returns false for nested static route', () => {
     expect(isDynamic('/product/app-health')).toBe(false)
+  })
+})
+
+// ─── isExcluded ─────────────────────────────────────────────────────────────
+
+describe('isExcluded', () => {
+  it('returns true for /auth/ root', () => {
+    expect(isExcluded('/auth/')).toBe(true)
+  })
+
+  it('returns true for /auth/login', () => {
+    expect(isExcluded('/auth/login')).toBe(true)
+  })
+
+  it('returns true for nested auth routes', () => {
+    expect(isExcluded('/auth/callback/google')).toBe(true)
+  })
+
+  it('returns false for routes that contain "auth" but are not under /auth/', () => {
+    expect(isExcluded('/about/auth-team')).toBe(false)
+  })
+
+  it('returns false for marketing pages', () => {
+    expect(isExcluded('/about')).toBe(false)
+    expect(isExcluded('/pricing')).toBe(false)
+    expect(isExcluded('/product/crashes-and-anrs')).toBe(false)
+  })
+
+  it('returns false for root', () => {
+    expect(isExcluded('/')).toBe(false)
+  })
+
+  it('returns false for docs routes', () => {
+    expect(isExcluded('/docs')).toBe(false)
+    expect(isExcluded('/docs/features/feature-crash-reporting')).toBe(false)
   })
 })
 
@@ -286,6 +322,13 @@ describe('main', () => {
 
     expect(writtenContent).not.toContain('[teamId]')
     expect(writtenContent).not.toContain('[...slug]')
+  })
+
+  it('excludes auth routes', () => {
+    main()
+
+    expect(writtenContent).not.toContain(`${SITE_URL}/auth/`)
+    expect(writtenContent).not.toContain(`${SITE_URL}/auth/login`)
   })
 
   it('includes docs pages when content/docs exists', () => {

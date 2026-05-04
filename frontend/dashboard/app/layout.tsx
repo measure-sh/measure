@@ -32,11 +32,14 @@ const fira_code = Fira_Code({
 });
 
 const title = "Measure";
-const description = "Open source tool to monitor mobile apps";
+const description =
+  "Open source mobile app monitoring for crashes, ANRs, performance, bug reports, user journeys, and more.";
 const siteName = "measure.sh";
-const previewImage = "https://measure.sh/images/social_preview.png";
+const previewImage = "/images/social_preview.png";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://measure.sh"),
+
   title: {
     default: title,
     template: `%s | ${title}`,

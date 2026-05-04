@@ -1,6 +1,6 @@
 "use client";
 
-import { buttonVariants } from "@/app/components/button";
+import { buttonVariants } from "@/app/components/button_variants";
 import {
   SidebarInset,
   SidebarProvider,
@@ -23,7 +23,10 @@ export default function DocsLayout({
         {/* Mobile header with logo and sidebar trigger. Hidden on medium and larger screens. */}
         <header className="md:hidden flex items-center justify-between border-b border-border px-4 py-3">
           <Link
-            className={cn(buttonVariants({ variant: "ghost" }), "group/logo py-2")}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "group/logo py-2",
+            )}
             href="/"
           >
             <Image
