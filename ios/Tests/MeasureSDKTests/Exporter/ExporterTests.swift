@@ -382,6 +382,123 @@ final class BaseExporterTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
+    func testCreatesMultipleBatchesWhenEventsExceedConfigLimit() {
+        config.maxEventsInBatch = 5
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        for i in 0..<11 {
+            eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
+        }
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.executedEventCounts.count, 3)
+            XCTAssertTrue(self.network.executedEventCounts.allSatisfy { $0 <= 5 })
+            XCTAssertEqual(self.network.executedEventCounts.reduce(0, +), 11)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testSpansAreSplitIntoMultipleBatches() {
+        config.maxEventsInBatch = 3
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        for i in 0..<7 {
+            spanStore.insertSpan(span: makeSpan(id: "sp\(i)", sessionId: "s1"))
+        }
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.executedSpanCounts.count, 3)
+            XCTAssertTrue(self.network.executedSpanCounts.allSatisfy { $0 <= 3 })
+            XCTAssertEqual(self.network.executedSpanCounts.reduce(0, +), 7)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testPayloadLimitOf10MBSplitsBatchWhenConfigLimitIsLarger() {
+        // payload limit: 10 MB / 1 KB = 10_240 events per batch
+        config.maxEventsInBatch = 20_000
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        for i in 0..<10_241 {
+            eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
+        }
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.executedEventCounts.count, 2)
+            XCTAssertEqual(self.network.executedEventCounts[0], 10_240)
+            XCTAssertEqual(self.network.executedEventCounts[1], 1)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 2)
+    }
+
+    func testUsesConfigLimitWhenSmallerThanPayloadLimit() {
+        // config limit (5) < payload limit (10_240), so config wins
+        config.maxEventsInBatch = 5
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        for i in 0..<6 {
+            eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
+        }
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            XCTAssertEqual(self.network.executedEventCounts.count, 2)
+            XCTAssertEqual(self.network.executedEventCounts[0], 5)
+            XCTAssertEqual(self.network.executedEventCounts[1], 1)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testMixedEventsAndSpansRespectPayloadLimit() {
+        config.maxEventsInBatch = 5
+        network.executeResponse = .success(body: nil, eTag: nil)
+
+        for i in 0..<4 {
+            eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
+        }
+        for i in 0..<4 {
+            spanStore.insertSpan(span: makeSpan(id: "sp\(i)", sessionId: "s1"))
+        }
+
+        let exp = expectation(description: "export")
+
+        exporter.export()
+
+        DispatchQueue.main.async {
+            let totalItems = zip(self.network.executedEventCounts, self.network.executedSpanCounts)
+                .map { $0 + $1 }
+            XCTAssertTrue(totalItems.allSatisfy { $0 <= 5 })
+            XCTAssertEqual(self.network.executedEventCounts.reduce(0, +), 4)
+            XCTAssertEqual(self.network.executedSpanCounts.reduce(0, +), 4)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
     func testEncodingForScreenshot() {
         let attachment = makeAttachment(type: .screenshot, filename: "test.webp")
         XCTAssertEqual(attachment.contentType, screenshotContentTypeWebp)

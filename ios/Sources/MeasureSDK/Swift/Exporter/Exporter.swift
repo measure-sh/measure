@@ -28,6 +28,8 @@ final class BaseExporter: Exporter {
     private let isExporting = AtomicBool(false)
     private let systemFileManager: SystemFileManager
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
+    private static let maxBatchPayloadSizeBytes = 10 * 1024 * 1024
+    private static let estimatedEventSizeBytes = 1024
 
     init(
         logger: Logger,
@@ -251,12 +253,14 @@ final class BaseExporter: Exporter {
 
     private func createNewBatches() -> Int {
         let sessionIds = eventStore.getSessionIdsWithUnBatchedEvents()
-        guard !sessionIds.isEmpty else { return 0 }
+        let unbatchedSpans = spanStore.getUnBatchedSpans(spanCount: Int64.max, ascending: true)
+        guard !sessionIds.isEmpty || !unbatchedSpans.isEmpty else { return 0 }
 
         let prioritySessionIds = sessionStore.getPrioritySessionIds()
         let orderedSessionIds = prioritySessionIds.filter(sessionIds.contains) + sessionIds.filter { !prioritySessionIds.contains($0) }
 
-        let maxBatchSize = configProvider.maxEventsInBatch
+        let payloadBasedLimit = Self.maxBatchPayloadSizeBytes / Self.estimatedEventSizeBytes
+        let maxBatchSize = min(Int(configProvider.maxEventsInBatch), payloadBasedLimit)
         var inserted = 0
 
         func flushBatch(eventIds: inout Set<String>, spanIds: inout Set<String>) {
@@ -286,19 +290,17 @@ final class BaseExporter: Exporter {
             for eventId in events {
                 currentEventIds.insert(eventId)
 
-                if currentEventIds.count >= maxBatchSize {
+                if currentEventIds.count + currentSpanIds.count >= maxBatchSize {
                     flushBatch(eventIds: &currentEventIds, spanIds: &currentSpanIds)
                 }
             }
         }
 
         // Process all spans
-        let spans = spanStore.getUnBatchedSpans(spanCount: Int64.max, ascending: true)
-
-        for spanId in spans {
+        for spanId in unbatchedSpans {
             currentSpanIds.insert(spanId)
 
-            if currentSpanIds.count >= maxBatchSize {
+            if currentEventIds.count + currentSpanIds.count >= maxBatchSize {
                 flushBatch(eventIds: &currentEventIds, spanIds: &currentSpanIds)
             }
         }
