@@ -260,6 +260,56 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   #endif
   @objc deinit
 }
+@_hasMissingDesignatedInitializers @objc final public class MsrObjCSpan : ObjectiveC.NSObject {
+  @objc final public var traceId: Swift.String {
+    @objc get
+  }
+  @objc final public var spanId: Swift.String {
+    @objc get
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc final public var parentId: Swift.String? {
+    @objc get
+  }
+  #endif
+  @objc final public var isSampled: Swift.Bool {
+    @objc get
+  }
+  @objc final public func setStatus(_ status: Measure.MsrSpanStatus)
+  @objc final public func setParent(_ parentSpan: Measure.MsrObjCSpan)
+  @objc final public func setCheckpoint(_ name: Swift.String)
+  @objc final public func setName(_ name: Swift.String)
+  @objc final public func setAttributeString(_ key: Swift.String, value: Swift.String)
+  @objc final public func setAttributeInt(_ key: Swift.String, value: Swift.Int)
+  @objc final public func setAttributeDouble(_ key: Swift.String, value: Swift.Double)
+  @objc final public func setAttributeBool(_ key: Swift.String, value: Swift.Bool)
+  @objc final public func setAttributes(_ attributes: [Swift.String : Any])
+  @objc final public func removeAttribute(_ key: Swift.String)
+  @objc final public func end()
+  @objc(endWithTimestamp:) final public func end(timestamp: Swift.Int64)
+  @objc final public func hasEnded() -> Swift.Bool
+  @objc final public func getDuration() -> Swift.Int64
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers @objc final public class MsrObjCSpanBuilder : ObjectiveC.NSObject {
+  @discardableResult
+  @objc final public func setParent(_ span: Measure.MsrObjCSpan) -> Measure.MsrObjCSpanBuilder
+  @objc final public func startSpan() -> Measure.MsrObjCSpan
+  @objc(startSpanWithTimestamp:) final public func startSpan(timestamp: Swift.Int64) -> Measure.MsrObjCSpan
+  @objc deinit
+}
+@objc public enum MsrSpanStatus : Swift.Int {
+  case unset = 0
+  case ok = 1
+  case error = 2
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init?(rawValue: Swift.Int)
+  #endif
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
+}
 @objc public protocol MsrRequestHeadersProvider : ObjectiveC.NSObjectProtocol {
   @objc func getRequestHeaders() -> Foundation.NSDictionary
 }
@@ -364,7 +414,13 @@ extension Measure.Measure {
   public static func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
   #endif
   public static func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
-  public static func getTraceParentHeaderKey() -> Swift.String
+  @objc public static func getTraceParentHeaderKey() -> Swift.String
+  @objc(startSpanWithName:) public static func startSpanObjC(name: Swift.String) -> Measure.MsrObjCSpan
+  @objc(startSpanWithName:timestamp:) public static func startSpanObjC(name: Swift.String, timestamp: Swift.Int64) -> Measure.MsrObjCSpan
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc(createSpanBuilderWithName:) public static func createSpanBuilderObjC(name: Swift.String) -> Measure.MsrObjCSpanBuilder?
+  #endif
+  @objc(getTraceParentHeaderValueForSpan:) public static func getTraceParentHeaderValue(objcSpan: Measure.MsrObjCSpan) -> Swift.String
   #if compiler(>=5.3) && $NonescapableTypes
   public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
   #endif
@@ -447,6 +503,9 @@ extension Measure.ScreenshotMaskLevel : Swift.RawRepresentable {}
 extension Measure.ScreenshotMaskLevelObjc : Swift.Equatable {}
 extension Measure.ScreenshotMaskLevelObjc : Swift.Hashable {}
 extension Measure.ScreenshotMaskLevelObjc : Swift.RawRepresentable {}
+extension Measure.MsrSpanStatus : Swift.Equatable {}
+extension Measure.MsrSpanStatus : Swift.Hashable {}
+extension Measure.MsrSpanStatus : Swift.RawRepresentable {}
 extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}

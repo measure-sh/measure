@@ -75,6 +75,7 @@ protocol MeasureInitializer {
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
     var signalSampler: SignalSampler { get }
+    var attributeTransformer: AttributeTransformer { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -211,6 +212,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
     let signalSampler: SignalSampler
+    let attributeTransformer: AttributeTransformer
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -225,6 +227,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
         self.userDefaultStorage = BaseUserDefaultStorage()
         self.logger = MeasureLogger(enabled: config.enableLogging)
+        self.attributeTransformer = BaseAttributeTransformer(logger: logger)
         self.systemFileManager = BaseSystemFileManager(logger: logger)
         self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
         self.networkClient = BaseNetworkClient(client: client,

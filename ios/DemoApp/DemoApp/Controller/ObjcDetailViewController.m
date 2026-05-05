@@ -62,9 +62,9 @@
 
 - (UIView *)createTableHeaderView {
     // Create the header view
-    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 100)];
-    
-    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Collection Controller"];
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 150)];
+
+    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Collection Controller", @"Track Spans"];
     
     // Create two vertical stack views
     UIStackView *verticalStackView1 = [[UIStackView alloc] init];
@@ -124,9 +124,36 @@
         case 1:
             [self transitionToCollectionViewController];
             break;
+        case 2:
+            [self trackSpans];
+            break;
         default:
             break;
     }
+}
+
+- (void)trackSpans {
+    MsrObjCSpan *parentSpan = [Measure startSpanWithName:@"parent_span"];
+
+    MsrObjCSpanBuilder *childBuilder1 = [Measure createSpanBuilderWithName:@"child_span_1"];
+    [childBuilder1 setParent:parentSpan];
+    MsrObjCSpan *childSpan1 = [childBuilder1 startSpan];
+
+    MsrObjCSpanBuilder *childBuilder2 = [Measure createSpanBuilderWithName:@"child_span_2"];
+    [childBuilder2 setParent:parentSpan];
+    MsrObjCSpan *childSpan2 = [childBuilder2 startSpan];
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [childSpan1 setStatus:MsrSpanStatusOk];
+        [childSpan1 end];
+        [childSpan2 setStatus:MsrSpanStatusOk];
+        [childSpan2 end];
+    });
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [parentSpan setStatus:MsrSpanStatusOk];
+        [parentSpan end];
+    });
 }
 
 -(void)transitionToCollectionViewController {
