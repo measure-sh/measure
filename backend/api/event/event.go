@@ -276,6 +276,27 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
+type Severity string
+
+const (
+	SeverityFatal     Severity = "fatal"
+	SeverityHandled   Severity = "handled"
+	SeverityUnhandled Severity = "unhandled"
+)
+
+func (s Severity) String() string {
+	return string(s)
+}
+
+func (s Severity) IsValid() bool {
+	switch s {
+	case SeverityFatal, SeverityHandled, SeverityUnhandled:
+		return true
+	default:
+		return false
+	}
+}
+
 // ExceptionUnitiOS represents iOS specific
 // structure to work with iOS exceptions.
 type ExceptionUnitiOS struct {
@@ -340,6 +361,15 @@ type Exception struct {
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
 	Framework    string         `json:"framework"`
 	Error        *Error         `json:"error"`
+	// NumCode represents the numeric error code.
+	NumCode int `json:"num_code"`
+	// Code represents the string error code.
+	Code string `json:"code"`
+	// Meta represents arbitrary metadata
+	// associated with the error.
+	Meta     map[string]any `json:"meta"`
+	IsCustom bool           `json:"is_custom" binding:"required"`
+	Severity Severity       `json:"severity" binding:"required"`
 }
 
 // Error represents a generic error object that occurred
