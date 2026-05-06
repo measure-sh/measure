@@ -131,6 +131,7 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kamalnayan04"><img src="https://avatars.githubusercontent.com/u/70440124?v=4?s=100" width="100px;" alt="Kamal Nayan"/><br /><sub><b>Kamal Nayan</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=kamalnayan04" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://abhaypro.com/"><img src="https://avatars.githubusercontent.com/u/61083922?v=4?s=100" width="100px;" alt="Abhay kumar"/><br /><sub><b>Abhay kumar</b></sub></a><br /><a href="#security-abhayclasher" title="Security">🛡️</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://medium.com/@developersancho"><img src="https://avatars.githubusercontent.com/u/30066734?v=4?s=100" width="100px;" alt="Mr.Sanchez"/><br /><sub><b>Mr.Sanchez</b></sub></a><br /><a href="#ideas-developersancho" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/fahmisdk6"><img src="https://avatars.githubusercontent.com/u/10940190?v=4?s=100" width="100px;" alt="fahmisdk6"/><br /><sub><b>fahmisdk6</b></sub></a><br /><a href="https://github.com/measure-sh/measure/issues?q=author%3Afahmisdk6" title="Bug reports">🐛</a> <a href="#ideas-fahmisdk6" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
 </table>
