@@ -200,6 +200,26 @@ import UIKit
         return measureInternal.getTraceParentHeaderKey()
     }
 
+    func startSpanObjC(name: String) -> MsrObjCSpan {
+        guard let measureInternal = self.measureInternal else { return .invalid }
+        return measureInternal.startSpanObjC(name: name)
+    }
+
+    func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
+        guard let measureInternal = self.measureInternal else { return .invalid }
+        return measureInternal.startSpanObjC(name: name, timestamp: timestamp)
+    }
+
+    func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.createSpanBuilderObjC(name: name)
+    }
+
+    func getTraceParentHeaderValue(objcSpan: MsrObjCSpan) -> String {
+        guard let measureInternal = self.measureInternal else { return "" }
+        return measureInternal.getTraceParentHeaderValue(for: objcSpan)
+    }
+
     func launchBugReport(takeScreenshot: Bool = true,
                          bugReportConfig: BugReportConfig = .default,
                          attributes: [String: AttributeValue]? = nil) {
@@ -659,8 +679,50 @@ extension Measure {
     /// Returns the W3C traceparent header key/name.
     /// - Returns: The standardized header key 'traceparent' that should be used when adding
     /// distributed tracing context to HTTP requests
-    public static func getTraceParentHeaderKey() -> String {
+    @objc public static func getTraceParentHeaderKey() -> String {
         Measure.shared.getTraceParentHeaderKey()
+    }
+
+    /// Starts a new performance tracing span with the specified name. For use from Objective-C.
+    /// - Parameter name: The name to identify this span.
+    /// - Returns: A new span if the SDK is initialized, or a no-op span if not initialized.
+    ///
+    /// In Swift, use `startSpan(name:)` which returns the `Span` protocol directly.
+    @objc(startSpanWithName:)
+    public static func startSpanObjC(name: String) -> MsrObjCSpan {
+        Measure.shared.startSpanObjC(name: name)
+    }
+
+    /// Starts a new performance tracing span with the specified name and start timestamp. For use from Objective-C.
+    /// - Parameters:
+    ///   - name: The name to identify this span.
+    ///   - timestamp: The milliseconds since epoch when the span started. Obtain via `getCurrentTime()`.
+    /// - Returns: A new span if the SDK is initialized, or a no-op span if not initialized.
+    ///
+    /// In Swift, use `startSpan(name:timestamp:)` which returns the `Span` protocol directly.
+    @objc(startSpanWithName:timestamp:)
+    public static func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
+        Measure.shared.startSpanObjC(name: name, timestamp: timestamp)
+    }
+
+    /// Creates a configurable span builder for deferred span creation. For use from Objective-C.
+    /// - Parameter name: The name to identify this span.
+    /// - Returns: A builder instance if the SDK is initialized, or nil if not initialized.
+    ///
+    /// In Swift, use `createSpanBuilder(name:)` which returns the `SpanBuilder` protocol directly.
+    @objc(createSpanBuilderWithName:)
+    public static func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
+        Measure.shared.createSpanBuilderObjC(name: name)
+    }
+
+    /// Returns the W3C traceparent header value for the given span. For use from Objective-C.
+    /// - Parameter span: The `MsrObjCSpan` to extract the traceparent header value from.
+    /// - Returns: A W3C trace context compliant header value in the format: `{version}-{traceId}-{spanId}-{traceFlags}`
+    ///
+    /// In Swift, use `getTraceParentHeaderValue(span:)` which accepts the `Span` protocol directly.
+    @objc(getTraceParentHeaderValueForSpan:)
+    public static func getTraceParentHeaderValue(objcSpan: MsrObjCSpan) -> String {
+        Measure.shared.getTraceParentHeaderValue(objcSpan: objcSpan)
     }
 
     /// Takes a screenshot and launches the bug report flow.

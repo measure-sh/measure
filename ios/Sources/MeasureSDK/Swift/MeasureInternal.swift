@@ -162,6 +162,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var launchTracker: LaunchTracker {
         return measureInitializer.launchTracker
     }
+    var attributeTransformer: AttributeTransformer {
+        return measureInitializer.attributeTransformer
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -291,7 +294,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
 
         customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
     }
@@ -305,7 +308,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
 
         userTriggeredEventCollector.trackScreenView(screenName, attributes: transformedAttributes)
     }
@@ -332,6 +335,23 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     func getTraceParentHeaderKey() -> String {
         return spanCollector.getTraceParentHeaderKey()
+    }
+
+    func startSpanObjC(name: String) -> MsrObjCSpan {
+        MsrObjCSpan(startSpan(name: name), attributeTransformer: attributeTransformer)
+    }
+
+    func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
+        MsrObjCSpan(startSpan(name: name, timestamp: timestamp), attributeTransformer: attributeTransformer)
+    }
+
+    func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
+        guard let builder = createSpan(name: name) else { return nil }
+        return MsrObjCSpanBuilder(builder, attributeTransformer: attributeTransformer)
+    }
+
+    func getTraceParentHeaderValue(for objcSpan: MsrObjCSpan) -> String {
+        getTraceParentHeaderValue(for: objcSpan.span)
     }
 
     func startBugReportFlow(takeScreenshot: Bool = true,
@@ -373,7 +393,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                             attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
         startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: transformedAttributes)
     }
 
@@ -382,7 +402,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                         attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
         trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
@@ -395,7 +415,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
@@ -408,7 +428,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
         guard isStarted else { return }
 
-        let transformedAttributes = transformAttributes(attributes)
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
         userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
@@ -522,33 +542,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.appLaunchCollector.enable()
     }
 
-    private func transformAttributes(_ attributes: [String: Any]?) -> [String: AttributeValue] {
-        guard let attributes = attributes else {
-            return [:]
-        }
-
-        var transformedAttributes: [String: AttributeValue] = [:]
-
-        for (key, value) in attributes {
-            if let stringVal = value as? String {
-                transformedAttributes[key] = .string(stringVal)
-            } else if let boolVal = value as? Bool {
-                transformedAttributes[key] = .boolean(boolVal)
-            } else if let intVal = value as? Int {
-                transformedAttributes[key] = .int(intVal)
-            } else if let longVal = value as? Int64 {
-                transformedAttributes[key] = .long(longVal)
-            } else if let floatVal = value as? Float {
-                transformedAttributes[key] = .float(floatVal)
-            } else if let doubleVal = value as? Double {
-                transformedAttributes[key] = .double(doubleVal)
-            } else {
-                logger.log(level: .fatal, message: "MeasureInternal: Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
-            }
-        }
-
-        return transformedAttributes
-    }
 
     private func trackSessionStart(_ sessionId: String, timestamp: Number) {
         self.signalProcessor.track(data: SessionStartData(),

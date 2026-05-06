@@ -8,7 +8,8 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
+final class MockMeasureInitializer: MeasureInitializer {
+    // swiftlint:disable:this type_body_length
     let configLoader: ConfigLoader
     let signalSampler: SignalSampler
     let configProvider: ConfigProvider
@@ -74,6 +75,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
+    let attributeTransformer: AttributeTransformer
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configLoader: ConfigLoader? = nil,
@@ -138,10 +140,12 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          bugReportManager: BugReportManager? = nil,
          bugReportCollector: BugReportCollector? = nil,
          shakeDetector: ShakeDetector? = nil,
-         shakeBugReportCollector: ShakeBugReportCollector? = nil) {
+         shakeBugReportCollector: ShakeBugReportCollector? = nil,
+         attributeTransformer: AttributeTransformer? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config())
         self.logger = logger ?? MockLogger()
+        self.attributeTransformer = attributeTransformer ?? BaseAttributeTransformer()
         self.userDefaultStorage = userDefaultStorage ?? BaseUserDefaultStorage()
         self.systemFileManager = systemFileManager ?? BaseSystemFileManager(logger: self.logger)
         self.httpClient = httpClient ?? BaseHttpClient(logger: self.logger, configProvider: self.configProvider)
