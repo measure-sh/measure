@@ -12,5 +12,20 @@
   "contributorsPerLine": 7,
   "contributorsSortAlphabetically": false,
   "skipCi": true,
-  "contributors": []
+  "contributors": [
+    {
+      "login": "anupcowkur",
+      "name": "Anup Cowkur",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1691740?v=4",
+      "profile": "https://measure.sh/",
+      "contributions": [
+        "code",
+        "maintenance",
+        "review",
+        "doc",
+        "security"
+      ]
+    }
+  ],
+  "commitType": "docs"
 }
