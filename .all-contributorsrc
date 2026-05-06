@@ -72,6 +72,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "vunder",
+      "name": "Aleksei Starchikov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8414626?v=4",
+      "profile": "https://github.com/vunder",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "commitType": "docs"
