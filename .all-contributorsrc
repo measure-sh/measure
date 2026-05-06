@@ -128,6 +128,15 @@
       "contributions": [
         "security"
       ]
+    },
+    {
+      "login": "developersancho",
+      "name": "Mr.Sanchez",
+      "avatar_url": "https://avatars.githubusercontent.com/u/30066734?v=4",
+      "profile": "https://medium.com/@developersancho",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "commitType": "docs"
