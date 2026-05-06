@@ -136,6 +136,7 @@ Measure would not be possible without our amazing contributors! ❤️
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/naftaly"><img src="https://avatars.githubusercontent.com/u/221626?v=4?s=100" width="100px;" alt="Alex Cohen"/><br /><sub><b>Alex Cohen</b></sub></a><br /><a href="#ideas-naftaly" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ritikjainx"><img src="https://avatars.githubusercontent.com/u/61776980?v=4?s=100" width="100px;" alt="Ritik Jain"/><br /><sub><b>Ritik Jain</b></sub></a><br /><a href="#ideas-ritikjainx" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
 </table>
