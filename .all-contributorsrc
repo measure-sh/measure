@@ -50,6 +50,18 @@
         "doc",
         "security"
       ]
+    },
+    {
+      "login": "adwinross",
+      "name": "Adwin Ronald Ross",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9717171?v=4",
+      "profile": "https://github.com/adwinross",
+      "contributions": [
+        "code",
+        "maintenance",
+        "review",
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
