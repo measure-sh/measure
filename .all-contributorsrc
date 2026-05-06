@@ -137,6 +137,16 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "fahmisdk6",
+      "name": "fahmisdk6",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10940190?v=4",
+      "profile": "https://github.com/fahmisdk6",
+      "contributions": [
+        "bug",
+        "ideas"
+      ]
     }
   ],
   "commitType": "docs"
