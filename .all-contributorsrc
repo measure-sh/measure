@@ -37,6 +37,19 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "detj",
+      "name": "Debjeet Biswas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/280236?v=4",
+      "profile": "https://measure.sh",
+      "contributions": [
+        "code",
+        "maintenance",
+        "review",
+        "doc",
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
