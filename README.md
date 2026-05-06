@@ -125,6 +125,9 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/vunder"><img src="https://avatars.githubusercontent.com/u/8414626?v=4?s=100" width="100px;" alt="Aleksei Starchikov"/><br /><sub><b>Aleksei Starchikov</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=vunder" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://amitsamant.in"><img src="https://avatars.githubusercontent.com/u/41822551?v=4?s=100" width="100px;" alt="Amit Samant"/><br /><sub><b>Amit Samant</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=DominatorVbN" title="Code">💻</a> <a href="https://github.com/measure-sh/measure/commits?author=DominatorVbN" title="Documentation">📖</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/hoermannpaul"><img src="https://avatars.githubusercontent.com/u/22156026?v=4?s=100" width="100px;" alt="Paul Hörmann"/><br /><sub><b>Paul Hörmann</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=hoermannpaul" title="Code">💻</a></td>
+    </tr>
   </tbody>
 </table>
 
