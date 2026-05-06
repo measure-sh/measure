@@ -62,6 +62,16 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "gandharva",
+      "name": "gandharva kumar",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1049219?v=4",
+      "profile": "https://www.measure.sh/",
+      "contributions": [
+        "review",
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
