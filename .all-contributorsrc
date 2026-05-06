@@ -119,6 +119,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "abhayclasher",
+      "name": "Abhay kumar",
+      "avatar_url": "https://avatars.githubusercontent.com/u/61083922?v=4",
+      "profile": "https://abhaypro.com/",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
