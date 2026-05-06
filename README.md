@@ -134,6 +134,9 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/fahmisdk6"><img src="https://avatars.githubusercontent.com/u/10940190?v=4?s=100" width="100px;" alt="fahmisdk6"/><br /><sub><b>fahmisdk6</b></sub></a><br /><a href="https://github.com/measure-sh/measure/issues?q=author%3Afahmisdk6" title="Bug reports">🐛</a> <a href="#ideas-fahmisdk6" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/gyan-kukufm"><img src="https://avatars.githubusercontent.com/u/157699013?v=4?s=100" width="100px;" alt="gyan-kukufm"/><br /><sub><b>gyan-kukufm</b></sub></a><br /><a href="https://github.com/measure-sh/measure/issues?q=author%3Agyan-kukufm" title="Bug reports">🐛</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/naftaly"><img src="https://avatars.githubusercontent.com/u/221626?v=4?s=100" width="100px;" alt="Alex Cohen"/><br /><sub><b>Alex Cohen</b></sub></a><br /><a href="#ideas-naftaly" title="Ideas, Planning, & Feedback">🤔</a></td>
+    </tr>
   </tbody>
 </table>
 
