@@ -118,6 +118,7 @@ Measure would not be possible without our amazing contributors! ❤️
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://measure.sh/"><img src="https://avatars.githubusercontent.com/u/1691740?v=4?s=100" width="100px;" alt="Anup Cowkur"/><br /><sub><b>Anup Cowkur</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=anupcowkur" title="Code">💻</a> <a href="#maintenance-anupcowkur" title="Maintenance">🚧</a> <a href="https://github.com/measure-sh/measure/pulls?q=is%3Apr+reviewed-by%3Aanupcowkur" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/measure-sh/measure/commits?author=anupcowkur" title="Documentation">📖</a> <a href="#security-anupcowkur" title="Security">🛡️</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/abhaysood"><img src="https://avatars.githubusercontent.com/u/3646627?v=4?s=100" width="100px;" alt="Abhay Sood"/><br /><sub><b>Abhay Sood</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=abhaysood" title="Code">💻</a> <a href="#maintenance-abhaysood" title="Maintenance">🚧</a> <a href="https://github.com/measure-sh/measure/pulls?q=is%3Apr+reviewed-by%3Aabhaysood" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/measure-sh/measure/commits?author=abhaysood" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
