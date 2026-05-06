@@ -84,6 +84,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add tests for filters component by @anupcowkur in #3438
 - (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
 
+### :books: Documentation
+
+- Add new contributors by @anupcowkur in #3582
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3580
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3579
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3578
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3577
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3576
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3575
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3574
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3573
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3572
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3571
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3570
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3569
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3568
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3567
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3566
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3565
+- Update README.md [skip ci] by @allcontributors[bot]
+
 ## [0.10.0] - 2026-04-06
 
 ### :sparkles: New features
