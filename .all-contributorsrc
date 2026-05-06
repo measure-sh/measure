@@ -156,6 +156,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "naftaly",
+      "name": "Alex Cohen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/221626?v=4",
+      "profile": "https://github.com/naftaly",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "commitType": "docs"
