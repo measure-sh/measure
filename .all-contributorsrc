@@ -110,6 +110,15 @@
         "code",
         "doc"
       ]
+    },
+    {
+      "login": "kamalnayan04",
+      "name": "Kamal Nayan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/70440124?v=4",
+      "profile": "https://github.com/kamalnayan04",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "commitType": "docs"
