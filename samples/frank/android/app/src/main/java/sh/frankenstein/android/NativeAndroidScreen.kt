@@ -212,8 +212,8 @@ fun NativeAndroidScreen() {
             action = { Thread.sleep(10_000) },
         ),
         DemoItem(
-            title = "OkHttp Client",
-            description = "Send HTTP requests with tracing",
+            title = "HTTP Client",
+            description = "Send requests via OkHttp or HttpURLConnection",
             category = DemoCategory.MISC,
             action = { launchActivity(context, OkHttpActivity::class.java) },
         ),

@@ -42,6 +42,8 @@ import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.gestures.GestureCollector
+import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
+import sh.measure.android.httpurl.HttpUrlConnectionEventCollectorImpl
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.ActivityLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleCollector
@@ -296,6 +298,13 @@ internal class MeasureInitializerImpl(
         configProvider = configProvider,
     ),
     override val httpEventCollector: HttpEventCollector = httpEventCollectorFactory.create(),
+    override val httpUrlConnectionEventCollector: HttpUrlConnectionEventCollector =
+        HttpUrlConnectionEventCollectorImpl(
+            logger = logger,
+            signalProcessor = signalProcessor,
+            timeProvider = timeProvider,
+            configProvider = configProvider,
+        ),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
         timeProvider = timeProvider,
@@ -465,6 +474,7 @@ internal interface MeasureInitializer {
     val signalProcessor: SignalProcessor
     val userTriggeredEventCollector: UserTriggeredEventCollector
     val httpEventCollector: HttpEventCollector
+    val httpUrlConnectionEventCollector: HttpUrlConnectionEventCollector
     val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector
     val anrCollector: AnrCollector

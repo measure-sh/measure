@@ -191,6 +191,13 @@ public abstract interface class sh/measure/android/config/MsrRequestHeadersProvi
 	public abstract fun getRequestHeaders ()Ljava/util/Map;
 }
 
+public final class sh/measure/android/httpurl/MsrHttpUrlFactory {
+	public static final field $stable I
+	public static final field INSTANCE Lsh/measure/android/httpurl/MsrHttpUrlFactory;
+	public static final fun openStream (Ljava/net/URL;)Ljava/io/InputStream;
+	public static final fun wrap (Ljava/net/URLConnection;)Ljava/net/URLConnection;
+}
+
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {
 	public static final fun withMeasureNavigationListener (Landroidx/navigation/NavHostController;Landroidx/compose/runtime/Composer;I)Landroidx/navigation/NavHostController;
 }

@@ -11,6 +11,7 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import sh.measure.asm.BytecodeTransformationPipelineBuilder
 import sh.measure.asm.BytecodeTransformer
+import sh.measure.asm.HttpUrlConnectionTransformer
 import sh.measure.asm.NavigationTransformer
 import sh.measure.asm.OkHttpTransformer
 import sh.measure.utils.capitalize
@@ -52,6 +53,7 @@ class MeasurePlugin : Plugin<Project> {
             BytecodeTransformationPipelineBuilder()
                 .addTransformer(OkHttpTransformer())
                 .addTransformer(NavigationTransformer())
+                .addTransformer(HttpUrlConnectionTransformer())
                 .build()
 
         androidComponents.onVariants { variant ->

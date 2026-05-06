@@ -9,11 +9,6 @@ internal interface ConfigProvider :
     fun shouldTrackHttpResponseBody(url: String): Boolean
     fun shouldTrackHttpHeader(key: String): Boolean
 
-    /**
-     * Sets the measure URL so that it can added to the httpUrlBlocklist. Required as it can be any
-     * URL when the SDK is running in self-hosted mode.
-     */
-    fun setMeasureUrl(url: String)
     fun setDynamicConfig(config: DynamicConfig)
 }
 
@@ -31,8 +26,8 @@ internal interface ConfigProvider :
  *
  * This class is designed for concurrent access from multiple threads:
  *
- * - **Writes** ([setMeasureUrl], [setDynamicConfig]) are synchronized via a lock to ensure
- *   atomic updates of related fields.
+ * - **Writes** ([setDynamicConfig]) are synchronized via a lock to ensure atomic updates of
+ *   related fields.
  *
  * - **Reads** ([shouldTrackHttpEvent], [shouldTrackHttpRequestBody], etc.) are lock-free
  *   and use a single volatile reference to [HttpPatternState].
@@ -43,9 +38,6 @@ internal interface ConfigProvider :
  * pre-compiled to [Regex] objects when configuration is loaded to avoid repeated compilation
  * on every HTTP event. For example, `https://api.example.com/\*` compiles to
  * `^https://api\.example\.com/.*$`.
- *
- * The SDK's own endpoint URL is excluded from tracking via [setMeasureUrl] to prevent
- * recursive tracking of export requests.
  */
 internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     private data class HttpPatternState(
@@ -53,7 +45,6 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         val trackRequestPatterns: List<Regex>,
         val trackResponsePatterns: List<Regex>,
         val blockedHeaders: List<String>,
-        val measureUrl: String?,
     )
 
     private val lock = Any()
@@ -67,7 +58,6 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         trackRequestPatterns = emptyList(),
         trackResponsePatterns = emptyList(),
         blockedHeaders = emptyList(),
-        measureUrl = null,
     )
 
     override val enableLogging: Boolean = defaultConfig.enableLogging
@@ -168,42 +158,16 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
             state.blockedHeaders.none { it.equals(key, ignoreCase = true) }
     }
 
-    override fun setMeasureUrl(url: String) {
-        synchronized(lock) {
-            val currentState = httpPatternState
-            httpPatternState = currentState.copy(
-                disableEventPatterns = buildDisableEventPatterns(
-                    dynamicConfig.httpDisableEventForUrls,
-                    url,
-                ),
-                measureUrl = url,
-            )
-        }
-    }
-
     override fun setDynamicConfig(config: DynamicConfig) {
         synchronized(lock) {
             dynamicConfig = config
-            val currentMeasureUrl = httpPatternState.measureUrl
             httpPatternState = HttpPatternState(
-                disableEventPatterns = buildDisableEventPatterns(
-                    config.httpDisableEventForUrls,
-                    currentMeasureUrl,
-                ),
+                disableEventPatterns = config.httpDisableEventForUrls.map { compilePattern(it) },
                 trackRequestPatterns = config.httpTrackRequestForUrls.map { compilePattern(it) },
                 trackResponsePatterns = config.httpTrackResponseForUrls.map { compilePattern(it) },
                 blockedHeaders = config.httpBlockedHeaders.toList(),
-                measureUrl = currentMeasureUrl,
             )
         }
-    }
-
-    private fun buildDisableEventPatterns(
-        configUrls: List<String>,
-        measureUrl: String?,
-    ): List<Regex> {
-        val urls = if (measureUrl != null) configUrls + measureUrl else configUrls
-        return urls.map { compilePattern(it) }
     }
 
     private fun compilePattern(pattern: String): Regex {

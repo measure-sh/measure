@@ -18,11 +18,13 @@ options available to control the behavior of network monitoring.
 
 #### Android
 
-On Android, network requests made using the [OkHttp](https://square.github.io/okhttp/) library, including any third
-party libraries, are automatically tracked by simply adding the Measure Android Gradle Plugin.
+On Android, network requests made using the following clients, including any third party libraries that use them,
+are automatically tracked by simply adding the Measure Android Gradle Plugin:
 
-Supported OkHttp versions: `4.7.0` to `5.3.2`. Requests made with versions outside this range will not be
-auto-instrumented.
+* [OkHttp](https://square.github.io/okhttp/): supported versions `4.7.0` to `5.3.2`. Requests made with versions
+  outside this range will not be auto-instrumented.
+* [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection): requires minimum 
+  Android SDK version: 0.18.0.
 
 #### iOS
 
