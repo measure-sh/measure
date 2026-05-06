@@ -81,6 +81,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "DominatorVbN",
+      "name": "Amit Samant",
+      "avatar_url": "https://avatars.githubusercontent.com/u/41822551?v=4",
+      "profile": "https://amitsamant.in",
+      "contributions": [
+        "code",
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
