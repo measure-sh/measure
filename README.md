@@ -127,6 +127,7 @@ Measure would not be possible without our amazing contributors! ❤️
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/hoermannpaul"><img src="https://avatars.githubusercontent.com/u/22156026?v=4?s=100" width="100px;" alt="Paul Hörmann"/><br /><sub><b>Paul Hörmann</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=hoermannpaul" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/shabinder/"><img src="https://avatars.githubusercontent.com/u/44765050?v=4?s=100" width="100px;" alt="Shabinder Singh"/><br /><sub><b>Shabinder Singh</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=Shabinder" title="Code">💻</a> <a href="https://github.com/measure-sh/measure/commits?author=Shabinder" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
