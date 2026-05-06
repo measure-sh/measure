@@ -91,6 +91,15 @@
         "code",
         "doc"
       ]
+    },
+    {
+      "login": "hoermannpaul",
+      "name": "Paul Hörmann",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22156026?v=4",
+      "profile": "https://github.com/hoermannpaul",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "commitType": "docs"
