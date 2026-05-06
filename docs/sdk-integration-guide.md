@@ -202,6 +202,16 @@ Measure.init(
 )
 ```
 
+### Enable Full Collection Mode
+
+The init snippet above sets `enableFullCollectionMode = true`, which forces all data to be sent to the server
+regardless of sampling. This makes it easy to verify the installation by confirming that events from your app
+are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
+
 See the [troubleshooting](#troubleshoot) section if you face any issues.
 
 ## iOS
@@ -318,6 +328,16 @@ func application(_ application: UIApplication,
 
 ```
 
+### Enable Full Collection Mode
+
+The init snippet above sets `enableFullCollectionMode` to `true`, which forces all data to be sent to the
+server regardless of sampling. This makes it easy to verify the installation by confirming that events from
+your app are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
+
 ## Flutter
 
 The Flutter SDK currently supports only Android and iOS targets and is not available for web or desktop. The
@@ -389,6 +409,17 @@ This does the following:
 * Initializes the Measure SDK with the provided `config`.
 * Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
 * Sets up the error handlers to track uncaught exceptions.
+
+### Enable Full Collection Mode
+
+The Flutter SDK depends on the native SDKs, so `enableFullCollectionMode` must be set to `true` in both the
+Android and iOS native SDK initializations (see the Android and iOS sections above). This forces all data to
+be sent to the server regardless of sampling, which makes it easy to verify the installation by confirming
+that events from your app are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ### Flutter Android Setup
 
