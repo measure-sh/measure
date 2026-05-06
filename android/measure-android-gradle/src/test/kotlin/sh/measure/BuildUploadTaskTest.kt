@@ -132,6 +132,109 @@ class BuildUploadTaskTest {
     }
 
     @Test
+    fun `sends request with React Native source map when available`() {
+        val sourceMapFile = temporaryFolder.newFile("index.android.bundle.map").apply {
+            writeText("""{"version":3,"sources":[]}""")
+        }
+        task.reactNativeSourceMapFileProperty.set(sourceMapFile)
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val buildsRequest =
+            Json.decodeFromString(BuildsApiRequest.serializer(), recordedRequest.body.readUtf8())
+
+        assertEquals(2, buildsRequest.mappings.size)
+        assertTrue(buildsRequest.mappings.any { it.type == "proguard" && it.filename == "mapping.txt" })
+        assertTrue(buildsRequest.mappings.any { it.type == "js_source_map" && it.filename == "index.android.bundle.map" })
+    }
+
+    @Test
+    fun `sends request with proguard, flutter, and RN mappings together`() {
+        val flutterSymbolsDir = temporaryFolder.root.resolve("flutter_symbols")
+        File(flutterSymbolsDir, "app.android-arm64.symbols").writeText("flutter symbols data")
+        val sourceMapFile = temporaryFolder.newFile("index.android.bundle.map").apply {
+            writeText("""{"version":3,"sources":[]}""")
+        }
+        task.reactNativeSourceMapFileProperty.set(sourceMapFile)
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val buildsRequest =
+            Json.decodeFromString(BuildsApiRequest.serializer(), recordedRequest.body.readUtf8())
+
+        assertEquals(3, buildsRequest.mappings.size)
+        assertTrue(buildsRequest.mappings.any { it.type == "proguard" })
+        assertTrue(buildsRequest.mappings.any { it.type == "elf_debug" })
+        assertTrue(buildsRequest.mappings.any { it.type == "js_source_map" })
+    }
+
+    @Test
+    fun `sends only RN source map when proguard mapping is absent`() {
+        val sourceMapFile = temporaryFolder.newFile("index.android.bundle.map").apply {
+            writeText("""{"version":3,"sources":[]}""")
+        }
+        task.reactNativeSourceMapFileProperty.set(sourceMapFile)
+        task.mappingFileProperty.set(null as File?)
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val buildsRequest =
+            Json.decodeFromString(BuildsApiRequest.serializer(), recordedRequest.body.readUtf8())
+
+        assertEquals(1, buildsRequest.mappings.size)
+        assertEquals("js_source_map", buildsRequest.mappings[0].type)
+        assertEquals("index.android.bundle.map", buildsRequest.mappings[0].filename)
+    }
+
+    @Test
+    fun `uploads RN source map content to presigned URL`() {
+        val sourceMapContent = """{"version":3,"sources":["index.js"]}"""
+        val sourceMapFile = temporaryFolder.newFile("index.android.bundle.map").apply {
+            writeText(sourceMapContent)
+        }
+        task.reactNativeSourceMapFileProperty.set(sourceMapFile)
+        task.mappingFileProperty.set(null as File?)
+
+        val uploadUrl = mockWebServer.url("/upload-rn-map").toString()
+        val buildsResponse = """
+            {
+                "mappings": [
+                    {
+                        "id": "rn-id",
+                        "type": "js_source_map",
+                        "filename": "index.android.bundle.map",
+                        "upload_url": "$uploadUrl",
+                        "expires_at": "2025-08-13T01:59:45.577889184Z",
+                        "headers": {
+                            "x-amz-meta-mapping_id": "rn-id"
+                        }
+                    }
+                ]
+            }
+        """.trimIndent()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(buildsResponse))
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+
+        task.upload()
+
+        // Skip builds request
+        mockWebServer.takeRequest()
+        val uploadRequest = mockWebServer.takeRequest()
+        assertEquals("PUT", uploadRequest.method)
+        assertEquals("/upload-rn-map", uploadRequest.path)
+        assertEquals(sourceMapContent, uploadRequest.body.readUtf8())
+    }
+
+    @Test
     fun `sends request with API_KEY in the header`() {
         mockWebServer.enqueue(
             MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
