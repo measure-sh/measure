@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Stay on top of your mobile app's health by tracking the metrics that matter: crash-free sessions, app launch times, release adoption and more.",
   alternates: { canonical: "/product/app-health" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Mobile App Health",
     description:
       "Stay on top of your mobile app's health by tracking the metrics that matter: crash-free sessions, app launch times, release adoption and more.",

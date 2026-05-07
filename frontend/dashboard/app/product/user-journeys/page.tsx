@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Understand how users actually move through your mobile app. Track popular paths, find friction, and prioritize the flows that matter most.",
   alternates: { canonical: "/product/user-journeys" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "User Journey Tracking for Mobile Apps",
     description:
       "Understand how users actually move through your mobile app. Track popular paths, find friction, and prioritize the flows that matter most.",

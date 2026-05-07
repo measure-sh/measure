@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues harming your app experience.",
   alternates: { canonical: "/product/performance-traces" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Mobile App Performance Tracing & Monitoring",
     description:
       "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues harming your app experience.",

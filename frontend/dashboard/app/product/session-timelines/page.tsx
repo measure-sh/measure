@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "No more guessing what the user was doing - see every click, navigation, network call, log, error and CPU/memory signal stitched into a single timeline to diagnose issues faster.",
   alternates: { canonical: "/product/session-timelines" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Mobile Session Timelines",
     description:
       "No more guessing what the user was doing - see every click, navigation, network call, log, error and CPU/memory signal stitched into a single timeline to diagnose issues faster.",

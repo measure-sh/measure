@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import {
   LucideBug,
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     "At Measure, Mobile is not an add-on to an observability product. Mobile is the product.",
   alternates: { canonical: "/why-measure" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Why Measure",
     description:
       "At Measure, Mobile is not an add-on to an observability product. Mobile is the product.",

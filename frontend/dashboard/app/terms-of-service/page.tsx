@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Terms of Service for Measure Cloud and the open source Measure project.",
   alternates: { canonical: "/terms-of-service" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Terms of Service",
     description:
       "Terms of Service for Measure Cloud and the open source Measure project.",

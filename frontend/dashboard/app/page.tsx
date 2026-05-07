@@ -11,6 +11,7 @@ import LandingFooter from "./components/landing_footer";
 import LandingHeader from "./components/landing_header";
 import LandingHeroAnimation from "./components/landing_hero_animation";
 import MCPDemo from "./components/mcp_demo";
+import { sharedOpenGraph } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
 
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
     "Complete Mobile App Monitoring platform — Crash Reporting, ANR Tracking, Bug Reporting, Performance Tracing, Logging and more! 100% Open Source alternative to Firebase Crashlytics.",
   alternates: { canonical: "/" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Open Source Mobile App Monitoring & Crash Reporting | Measure",
     description:
       "Complete Mobile App Monitoring platform — Crash Reporting, ANR Tracking, Bug Reporting, Performance Tracing, Logging and more. 100% Open Source alternative to Firebase Crashlytics.",

@@ -5,6 +5,7 @@ import LandingHeader from "../components/landing_header";
 
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
+import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     "Mobile apps break, get to the root cause faster. Built by and for mobile developers.",
   alternates: { canonical: "/about" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "About Measure",
     description:
       "Mobile apps break, get to the root cause faster. Built by and for mobile developers.",

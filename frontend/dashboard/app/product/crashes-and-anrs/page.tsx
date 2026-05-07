@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Mobile Crash Reporting and ANR Tracking - Open Source Firebase Crashlytics alternative. Get full stack traces, likely reproduction steps and complete session context to fix crashes faster.",
   alternates: { canonical: "/product/crashes-and-anrs" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Mobile Crash Reporting & ANR Tracking",
     description:
       "Mobile Crash Reporting and ANR Tracking - Open Source Firebase Crashlytics alternative. Get full stack traces, likely reproduction steps and complete session context to fix crashes faster.",
