@@ -292,6 +292,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "hubcio",
+      "name": "Hubert Gruszecki",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5490304?v=4",
+      "profile": "https://github.com/hubcio",
+      "contributions": [
+        "review"
+      ]
     }
   ],
   "commitType": "docs"
