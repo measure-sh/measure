@@ -293,6 +293,12 @@ GTM_ID=
 
 LEADSY_ID=
 
+#######
+# Reo #
+#######
+
+REO_ID=
+
 ###########
 # Billing #
 ###########
@@ -438,6 +444,12 @@ GTM_ID=
 ##########
 
 LEADSY_ID=
+
+#######
+# Reo #
+#######
+
+REO_ID=
 
 ###########
 # Billing #
@@ -880,6 +892,10 @@ ensure() {
 
   if ! check_env_variable "LEADSY_ID"; then
     add_env_variable "LEADSY_ID" ""
+  fi
+
+  if ! check_env_variable "REO_ID"; then
+    add_env_variable "REO_ID" ""
   fi
 
   if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then

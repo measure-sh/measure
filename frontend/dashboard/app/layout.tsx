@@ -3,6 +3,7 @@ import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
 import { ClientProviders } from "./components/client_providers";
 import { ConditionalGoogleTagManager } from "./components/conditional_google_tag_manager";
 import { ConditionalLeadsy } from "./components/conditional_leadsy";
+import { ConditionalReo } from "./components/conditional_reo";
 import { CookieBanner } from "./components/cookie_banner";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
@@ -98,6 +99,7 @@ export default function RootLayout({
             <CookieConsentProvider>
               <ConditionalGoogleTagManager />
               <ConditionalLeadsy />
+              <ConditionalReo />
               <CookieBanner />
               <PostHogProvider proxyPath="/yrtmlt">
                 <div className="bg-background text-foreground">{children}</div>
