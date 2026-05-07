@@ -87,6 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
+- Update README.md [skip ci] by @allcontributors[bot]
 - Use screenshots in README by @anupcowkur in #3584
 - Add new contributors by @anupcowkur in #3582
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3580
