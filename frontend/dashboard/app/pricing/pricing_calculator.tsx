@@ -54,7 +54,7 @@ export default function PricingCalculator() {
     rawMonthlyCost,
   } = result;
 
-  const compactFormatter = new Intl.NumberFormat(undefined, {
+  const compactFormatter = new Intl.NumberFormat("en-US", {
     notation: "compact",
     compactDisplay: "short",
     maximumFractionDigits: 1,
@@ -63,8 +63,8 @@ export default function PricingCalculator() {
   const formatNumber = (num: number) => {
     if (Math.abs(num) < 1000) {
       return Number.isInteger(num)
-        ? num.toLocaleString()
-        : num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        ? num.toLocaleString("en-US")
+        : num.toLocaleString("en-US", { maximumFractionDigits: 2 });
     }
 
     return compactFormatter.format(num);
@@ -73,6 +73,16 @@ export default function PricingCalculator() {
   const formatPercent = (rate: number) => {
     const pct = rate * 100;
     return Number.isInteger(pct) ? `${pct}%` : `${parseFloat(pct.toFixed(2))}%`;
+  };
+
+  const percentStep = (value: number) => {
+    if (value < 1) {
+      return 0.01;
+    }
+    if (value < 10) {
+      return 0.1;
+    }
+    return 1;
   };
 
   return (
@@ -100,7 +110,7 @@ export default function PricingCalculator() {
             value={[dailyUsers]}
             onValueChange={(value) => setDailyUsers(value[0])}
             min={0}
-            max={5000000}
+            max={10000000}
             step={
               dailyUsers < 10000 ? 1000 : dailyUsers < 100000 ? 10000 : 100000
             }
@@ -108,7 +118,7 @@ export default function PricingCalculator() {
           />
           <div className="flex justify-between text-sm text-muted-foreground font-body">
             <span>0</span>
-            <span>5M+</span>
+            <span>10M+</span>
           </div>
         </div>
 
@@ -176,13 +186,13 @@ export default function PricingCalculator() {
                 value={[launchSamplePercent]}
                 onValueChange={(v) => setLaunchSamplePercent(v[0])}
                 min={0}
-                max={5}
-                step={0.01}
+                max={100}
+                step={percentStep(launchSamplePercent)}
                 className="mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground font-body">
                 <span>0%</span>
-                <span>5%</span>
+                <span>100%</span>
               </div>
             </div>
 
@@ -206,13 +216,13 @@ export default function PricingCalculator() {
                 value={[errorRatePercent]}
                 onValueChange={(v) => setErrorRatePercent(v[0])}
                 min={0}
-                max={5}
-                step={0.01}
+                max={100}
+                step={percentStep(errorRatePercent)}
                 className="mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground font-body">
                 <span>0%</span>
-                <span>5%</span>
+                <span>100%</span>
               </div>
             </div>
 
@@ -236,13 +246,13 @@ export default function PricingCalculator() {
                 value={[perfSpanSamplePercent]}
                 onValueChange={(v) => setPerfSpanSamplePercent(v[0])}
                 min={0}
-                max={1}
-                step={0.01}
+                max={100}
+                step={percentStep(perfSpanSamplePercent)}
                 className="mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground font-body">
                 <span>0%</span>
-                <span>1%</span>
+                <span>100%</span>
               </div>
             </div>
 
@@ -296,13 +306,13 @@ export default function PricingCalculator() {
                 value={[journeySamplePercent]}
                 onValueChange={(v) => setJourneySamplePercent(v[0])}
                 min={0}
-                max={1}
-                step={0.01}
+                max={100}
+                step={percentStep(journeySamplePercent)}
                 className="mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground font-body">
                 <span>0%</span>
-                <span>1%</span>
+                <span>100%</span>
               </div>
             </div>
           </CollapsibleContent>
