@@ -1,109 +1,128 @@
-'use client'
+"use client";
 
-import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
-import { queryClient } from "@/app/query/query_client"
-import { useMeasureStoreRegistry } from "@/app/stores/provider"
-import { resetAllStores } from "@/app/stores/reset_all"
-import type { Session } from "@/app/stores/session_store"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { posthog } from "posthog-js"
-import { useEffect, useState } from "react"
-import GitHubSignIn from "./github-sign-in"
-import GoogleSignIn from "./google-sign-in"
-import Messages from "./messages"
+import {
+  ValidateInviteApiStatus,
+  validateInvitesFromServer,
+} from "@/app/api/api_calls";
+import { queryClient } from "@/app/query/query_client";
+import { useMeasureStoreRegistry } from "@/app/stores/provider";
+import { resetAllStores } from "@/app/stores/reset_all";
+import type { Session } from "@/app/stores/session_store";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { posthog } from "posthog-js";
+import { useEffect, useState } from "react";
+import GitHubSignIn from "./github-sign-in";
+import GoogleSignIn from "./google-sign-in";
+import Messages from "./messages";
 
-function buildMcpAuthorizeUrl(searchParams: { [key: string]: string | string[] | undefined }, provider: string): string {
-  const apiBaseUrl = process?.env?.NEXT_PUBLIC_API_BASE_URL || ""
-  const params = new URLSearchParams()
+function buildMcpAuthorizeUrl(
+  searchParams: { [key: string]: string | string[] | undefined },
+  provider: string,
+): string {
+  const apiBaseUrl = process?.env?.NEXT_PUBLIC_API_BASE_URL || "";
+  const params = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === "mcp" || value === undefined) {
-      continue
+      continue;
     }
-    params.set(key, Array.isArray(value) ? value[0] : value)
+    params.set(key, Array.isArray(value) ? value[0] : value);
   }
-  params.set("provider", provider)
-  return `${apiBaseUrl}/oauth/authorize?${params.toString()}`
+  params.set("provider", provider);
+  return `${apiBaseUrl}/oauth/authorize?${params.toString()}`;
 }
 
-export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  const error = searchParams["error"]
-  const message = searchParams["message"]
-  const inviteId = searchParams["inviteId"]
-  const isMcp = searchParams["mcp"] === "1"
-  const [session, setSession] = useState<Session | null>(null)
-  const [home, setHome] = useState("")
-  const [loading, setLoading] = useState(!isMcp)
-  const [inviteInvalid, setInviteInvalid] = useState(false)
-  const router = useRouter()
+export default function Login({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const error = searchParams["error"];
+  const message = searchParams["message"];
+  const inviteId = searchParams["inviteId"];
+  const isMcp = searchParams["mcp"] === "1";
+  const [session, setSession] = useState<Session | null>(null);
+  const [home, setHome] = useState("");
+  const [loading, setLoading] = useState(!isMcp);
+  const [inviteInvalid, setInviteInvalid] = useState(false);
+  const router = useRouter();
 
   const validateInvite = async () => {
-    const result = await validateInvitesFromServer(inviteId as string)
+    const result = await validateInvitesFromServer(inviteId as string);
 
     switch (result.status) {
       case ValidateInviteApiStatus.Error:
-        setInviteInvalid(true)
-        break
+        setInviteInvalid(true);
+        break;
       case ValidateInviteApiStatus.Success:
-        setInviteInvalid(false)
-        break
+        setInviteInvalid(false);
+        break;
     }
-  }
+  };
 
   useEffect(() => {
     if (!isMcp && inviteId) {
-      validateInvite()
+      validateInvite();
     }
-  }, [inviteId, isMcp])
+  }, [inviteId, isMcp]);
 
-  const registry = useMeasureStoreRegistry()
+  const registry = useMeasureStoreRegistry();
 
   const getSession = async () => {
-    await registry.sessionStore.getState().fetchSession()
-    const session = registry.sessionStore.getState().session
+    await registry.sessionStore.getState().fetchSession();
+    const session = registry.sessionStore.getState().session;
     if (session) {
-      setSession(session)
-      posthog.identify(
-        session.user.id,
-        { email: session.user.email, name: session.user.name, plan: "free" }
-      );
+      setSession(session);
+      posthog.identify(session.user.id, {
+        email: session.user.email,
+        name: session.user.name,
+        plan: "free",
+      });
+      window.Reo?.identify({
+        username: session.user.email,
+        type: "email",
+        firstname: session.user.name,
+      });
     }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (isMcp) {
-      return
+      return;
     }
 
     // Clear any leftover state from a previous user so the next sign-in starts fresh
-    resetAllStores(registry)
-    queryClient.clear()
-  }, [isMcp])
+    resetAllStores(registry);
+    queryClient.clear();
+  }, [isMcp]);
 
   useEffect(() => {
     if (isMcp) {
-      return
+      return;
     }
 
     if (!session) {
-      getSession()
-      return
+      getSession();
+      return;
     }
 
     if (session) {
-      const url = `/${session.user.own_team_id}/overview`
-      setHome(url)
-      router.replace(url)
+      const url = `/${session.user.own_team_id}/overview`;
+      setHome(url);
+      router.replace(url);
     }
-  }, [session, isMcp])
+  }, [session, isMcp]);
 
-  const mcpGitHubUrl = isMcp ? buildMcpAuthorizeUrl(searchParams, "github") : undefined
-  const mcpGoogleUrl = isMcp ? buildMcpAuthorizeUrl(searchParams, "google") : undefined
+  const mcpGitHubUrl = isMcp
+    ? buildMcpAuthorizeUrl(searchParams, "github")
+    : undefined;
+  const mcpGoogleUrl = isMcp
+    ? buildMcpAuthorizeUrl(searchParams, "google")
+    : undefined;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-background text-foreground">
-
       {/* a fixed max-width is best as the google sign-in button has a width constraint */}
       <div className="w-full space-y-6" style={{ width: "400px" }}>
         <div className="flex justify-center pb-4">
@@ -125,15 +144,21 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
 
         {loading && <p className="font-body text-center">Loading...</p>}
         {home && <p className="font-body text-center">Logging in...</p>}
-        {!loading && !session && !error && !message && <GoogleSignIn mcpAuthorizeUrl={mcpGoogleUrl} />}
+        {!loading && !session && !error && !message && (
+          <GoogleSignIn mcpAuthorizeUrl={mcpGoogleUrl} />
+        )}
       </div>
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
-        {!loading && !session && !error && !message && <GitHubSignIn mcpAuthorizeUrl={mcpGitHubUrl} />}
+        {!loading && !session && !error && !message && (
+          <GitHubSignIn mcpAuthorizeUrl={mcpGitHubUrl} />
+        )}
       </div>
       {!isMcp && inviteInvalid && (
-        <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link.</p>
+        <p className="font-display text-center text-sm p-2 my-4 text-red-600">
+          Invalid or expired invite link.
+        </p>
       )}
       <Messages />
     </div>
-  )
+  );
 }

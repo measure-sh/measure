@@ -54,6 +54,7 @@ services:
       - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_GTM_ID=${GTM_ID}
       - NEXT_PUBLIC_LEADSY_ID=${LEADSY_ID}
+      - NEXT_PUBLIC_REO_ID=${REO_ID}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://0.0.0.0:3000"]
       interval: 5s
