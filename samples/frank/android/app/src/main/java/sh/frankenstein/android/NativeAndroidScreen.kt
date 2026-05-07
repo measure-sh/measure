@@ -236,6 +236,23 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
+            title = "Track Custom Event",
+            description = "Fires a custom event with all attribute types",
+            category = DemoCategory.MISC,
+            action = {
+                val attributes = AttributesBuilder()
+                    .put("string_attr", "hello")
+                    .put("int_attr", 42)
+                    .put("long_attr", 9_000_000_000L)
+                    .put("double_attr", 3.141592653589793)
+                    .put("float_attr", 2.718f)
+                    .put("boolean_attr", true)
+                    .build()
+                Measure.trackEvent(name = "custom_event_all_attrs", attributes = attributes)
+                Toast.makeText(context, "Custom event tracked", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
             title = "Set User ID",
             description = "Sets a dummy user ID on the SDK",
             category = DemoCategory.MISC,
