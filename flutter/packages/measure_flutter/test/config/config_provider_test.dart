@@ -18,6 +18,19 @@ void main() {
     );
   });
 
+  group('enableDiagnosticMode', () {
+    test('defaults to false when not set', () {
+      expect(provider.enableDiagnosticMode, isFalse);
+    });
+
+    test('reflects value from default config', () {
+      final p = ConfigProviderImpl(
+        defaultConfig: Config(enableDiagnosticMode: true),
+      );
+      expect(p.enableDiagnosticMode, isTrue);
+    });
+  });
+
   group('shouldTrackHttpEvent', () {
     test('returns true when no URLs are blocked', () {
       expect(provider.shouldTrackHttpEvent('https://api.example.com/data'), isTrue);

@@ -5,6 +5,9 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 class FakeMethodChannel extends MsrMethodChannel {
   Future<void> Function(MethodCall call)? handler;
   Uint8List? encodedWebPResult;
+  final List<({String platform, String message, String? errorMessage})>
+      internalAddLogCalls = [];
+  bool internalAddLogShouldThrow = false;
 
   @override
   void setMethodCallHandler(
@@ -68,4 +71,17 @@ class FakeMethodChannel extends MsrMethodChannel {
     required int height,
   }) async =>
       encodedWebPResult;
+
+  @override
+  Future<void> internalAddLog({
+    required String platform,
+    required String message,
+    String? errorMessage,
+  }) async {
+    internalAddLogCalls
+        .add((platform: platform, message: message, errorMessage: errorMessage));
+    if (internalAddLogShouldThrow) {
+      throw Exception('forced error');
+    }
+  }
 }

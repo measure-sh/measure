@@ -37,6 +37,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_DISABLE_SHAKE_DETECTOR -> disableShakeDetector()
                 MethodConstants.FUNCTION_GET_DYNAMIC_CONFIG_PATH -> getDynamicConfigPath(result)
                 MethodConstants.FUNCTION_ENCODE_WEBP -> encodeWebP(call, result)
+                MethodConstants.FUNCTION_INTERNAL_ADD_LOG -> internalAddLog(call, result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -185,6 +186,16 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     private fun getDynamicConfigPath(result: MethodChannel.Result) {
         val path = Measure.getDynamicConfigPath()
         result.success(path)
+    }
+
+    private fun internalAddLog(call: MethodCall, result: MethodChannel.Result) {
+        val reader = MethodCallReader(call)
+        val platform = reader.requireArg<String>(MethodConstants.ARG_PLATFORM)
+        val message = reader.requireArg<String>(MethodConstants.ARG_MESSAGE)
+        val errorMessage = reader.optionalArg<String>(MethodConstants.ARG_ERROR_MESSAGE)
+        val throwable = errorMessage?.let { Exception(it) }
+        Measure.internalAddLog(platform = platform, message = message, throwable = throwable)
+        result.success(null)
     }
 
     private fun encodeWebP(call: MethodCall, result: MethodChannel.Result) {

@@ -95,7 +95,10 @@ final class MeasureInitializer {
   }
 
   void _initializeDependencies(MeasureConfig inputConfig) {
-    _logger = FlutterLogger(enabled: inputConfig.enableLogging);
+    _logger = FlutterLogger(
+      enabled: inputConfig.enableLogging,
+      enableDiagnosticMode: inputConfig.enableDiagnosticMode,
+    );
     final clock = DateTimeClock();
     _timeProvider = FlutterTimeProvider(clock);
     _methodChannel = MsrMethodChannel();
@@ -112,6 +115,7 @@ final class MeasureInitializer {
       defaultConfig: Config(
         enableLogging: inputConfig.enableLogging,
         autoStart: inputConfig.autoStart,
+        enableDiagnosticMode: inputConfig.enableDiagnosticMode,
       ),
     );
     _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);

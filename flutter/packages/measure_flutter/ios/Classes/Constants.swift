@@ -22,6 +22,7 @@ enum MethodConstants {
     static let functionDisableShakeDetection = "disableShakeDetector"
     static let functionGetDynamicConfigPath = "getDynamicConfigPath"
     static let functionEncodeWebP = "encodeWebP"
+    static let functionInternalAddLog = "internalAddLog"
 
     // arguments
     static let argEventData = "event_data"
@@ -50,6 +51,9 @@ enum MethodConstants {
     static let argEncodeWebPPixels = "pixels"
     static let argEncodeWebPWidth = "width"
     static let argEncodeWebPHeight = "height"
+    static let argPlatform = "platform"
+    static let argMessage = "message"
+    static let argErrorMessage = "error_message"
 
     // Callbacks
     static let callbackOnShakeDetected = "onShakeDetected"
