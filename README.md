@@ -154,6 +154,7 @@ Measure would not be possible without our amazing contributors! ❤️
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Pranathi-pellakuru"><img src="https://avatars.githubusercontent.com/u/84898399?v=4?s=100" width="100px;" alt="Pranathi-pellakuru"/><br /><sub><b>Pranathi-pellakuru</b></sub></a><br /><a href="#ideas-Pranathi-pellakuru" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/hubcio"><img src="https://avatars.githubusercontent.com/u/5490304?v=4?s=100" width="100px;" alt="Hubert Gruszecki"/><br /><sub><b>Hubert Gruszecki</b></sub></a><br /><a href="https://github.com/measure-sh/measure/pulls?q=is%3Apr+reviewed-by%3Ahubcio" title="Reviewed Pull Requests">👀</a></td>
     </tr>
   </tbody>
 </table>
