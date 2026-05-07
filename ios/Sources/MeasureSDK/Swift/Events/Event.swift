@@ -134,7 +134,7 @@ final class Event<T: Codable>: Codable {
         case attributes = "attribute"
         case userTriggered = "user_triggered"
         case timestampInMillis
-        case userDefinedAttributes = "user_defined_attributes"
+        case userDefinedAttributes = "user_defined_attribute"
         case exception
         case gestureClick = "gesture_click"
         case gestureLongClick = "gesture_long_click"
