@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Pin pricing calculator locale and widen slider ranges by @anupcowkur in #3596
 - (**frontend**): Restore social preview image on landing pages by @anupcowkur in #3594
 - (**frontend**): Block framing to prevent clickjacking by @anupcowkur in #3499
 - (**frontend**): Remove overflow-auto from inner main to fix scroll hitch by @anupcowkur in #3488
