@@ -3436,39 +3436,6 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		}
 	}
 
-	if af.HasOSVersions() {
-		stmt.Where("`attribute.os_name` in ?", af.OsNames)
-		stmt.Where("`attribute.os_version` in ?", af.OsVersions)
-	}
-
-	if af.HasCountries() {
-		stmt.Where("`inet.country_code` in ?", af.Countries)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("`attribute.device_name` in ?", af.DeviceNames)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("`attribute.device_manufacturer` in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("`attribute.device_locale` in ?", af.Locales)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("`attribute.network_provider` in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("`attribute.network_type` in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("`attribute.network_generation` in ?", af.NetworkGenerations)
-	}
-
 	stmt.OrderBy(`timestamp`)
 
 	defer stmt.Close()
