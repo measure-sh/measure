@@ -89,7 +89,6 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   Future<void> internalAddLog({
     required String platform,
     required String message,
-    String? errorMessage,
   }) {
     throw UnimplementedError('internalAddLog() has not been implemented.');
   }

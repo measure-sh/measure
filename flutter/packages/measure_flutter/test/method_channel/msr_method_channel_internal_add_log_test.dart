@@ -15,7 +15,7 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     });
 
-    test('invokes functionInternalAddLog with all three args', () async {
+    test('invokes functionInternalAddLog with platform and message', () async {
       MethodCall? receivedCall;
       messenger.setMockMethodCallHandler(channel, (call) async {
         receivedCall = call;
@@ -25,31 +25,14 @@ void main() {
       await MsrMethodChannel().internalAddLog(
         platform: 'flutter',
         message: 'a message',
-        errorMessage: 'boom',
       );
 
       expect(receivedCall, isNotNull);
       expect(receivedCall!.method, MethodConstants.functionInternalAddLog);
       expect(receivedCall!.arguments, {
-        MethodConstants.argPlatform: 'flutter',
-        MethodConstants.argMessage: 'a message',
-        MethodConstants.argErrorMessage: 'boom',
+        MethodConstants.argDiagnosticModePlatform: 'flutter',
+        MethodConstants.argDiagnosticModeMessage: 'a message',
       });
-    });
-
-    test('forwards null errorMessage when not provided', () async {
-      MethodCall? receivedCall;
-      messenger.setMockMethodCallHandler(channel, (call) async {
-        receivedCall = call;
-        return null;
-      });
-
-      await MsrMethodChannel().internalAddLog(
-        platform: 'flutter',
-        message: 'no error',
-      );
-
-      expect(receivedCall!.arguments[MethodConstants.argErrorMessage], isNull);
     });
   });
 }

@@ -49,12 +49,13 @@ export class MeasureLogger implements Logger {
     const output = `${prefix} ${message} ${dataStr} ${errorStr}`.trim();
 
     if (this.enableDiagnosticMode) {
-      const errorStr = error
-        ? error instanceof Error
-          ? error.message
-          : String(error)
-        : null;
-      internalAddLog('react-native', message, errorStr).catch(() => {});
+      let composed = message;
+      if (error instanceof Error) {
+        composed += '\n' + (error.stack ?? error.message);
+      } else if (error != null) {
+        composed += '\n' + String(error);
+      }
+      internalAddLog('react-native', composed).catch(() => {});
     }
 
     switch (level) {

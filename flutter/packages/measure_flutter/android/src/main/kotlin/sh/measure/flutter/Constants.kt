@@ -42,9 +42,8 @@ object MethodConstants {
     const val ARG_ENCODE_WEBP_PIXELS = "pixels"
     const val ARG_ENCODE_WEBP_WIDTH = "width"
     const val ARG_ENCODE_WEBP_HEIGHT = "height"
-    const val ARG_PLATFORM = "platform"
-    const val ARG_MESSAGE = "message"
-    const val ARG_ERROR_MESSAGE = "error_message"
+    const val ARG_DIAGNOSTIC_MODE_PLATFORM = "platform"
+    const val ARG_DIAGNOSTIC_MODE_MESSAGE = "message"
 
     // Callbacks
     const val CALLBACK_ON_SHAKE_DETECTED = "onShakeDetected"

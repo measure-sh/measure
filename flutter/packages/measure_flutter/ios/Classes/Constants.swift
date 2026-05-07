@@ -51,9 +51,8 @@ enum MethodConstants {
     static let argEncodeWebPPixels = "pixels"
     static let argEncodeWebPWidth = "width"
     static let argEncodeWebPHeight = "height"
-    static let argPlatform = "platform"
-    static let argMessage = "message"
-    static let argErrorMessage = "error_message"
+    static let argDiagnosticModePlatform = "platform"
+    static let argDiagnosticModeMessage = "message"
 
     // Callbacks
     static let callbackOnShakeDetected = "onShakeDetected"

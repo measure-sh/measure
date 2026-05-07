@@ -44,9 +44,8 @@ class MethodConstants {
   static const String argEncodeWebPPixels = 'pixels';
   static const String argEncodeWebPWidth = 'width';
   static const String argEncodeWebPHeight = 'height';
-  static const String argPlatform = 'platform';
-  static const String argMessage = 'message';
-  static const String argErrorMessage = 'error_message';
+  static const String argDiagnosticModePlatform = 'platform';
+  static const String argDiagnosticModeMessage = 'message';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

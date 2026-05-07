@@ -29,7 +29,7 @@ void main() {
       expect(fakeChannel.internalAddLogCalls, isEmpty);
     });
 
-    test('calls internalAddLog with platform=flutter when diagnostic mode is on',
+    test('forwards just the message when no error or stack is provided',
         () async {
       final logger = FlutterLogger(enabled: false, enableDiagnosticMode: true);
 
@@ -40,10 +40,9 @@ void main() {
       final call = fakeChannel.internalAddLogCalls.single;
       expect(call.platform, 'flutter');
       expect(call.message, 'a message');
-      expect(call.errorMessage, isNull);
     });
 
-    test('forwards stringified error when diagnostic mode is on', () async {
+    test('appends error.toString() when error is provided', () async {
       final logger = FlutterLogger(enabled: false, enableDiagnosticMode: true);
       final error = Exception('boom');
 
@@ -51,8 +50,33 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(fakeChannel.internalAddLogCalls, hasLength(1));
-      expect(fakeChannel.internalAddLogCalls.single.errorMessage,
-          error.toString());
+      expect(fakeChannel.internalAddLogCalls.single.message,
+          'failed\n${error.toString()}');
+    });
+
+    test('appends stack trace when stackTrace is provided', () async {
+      final logger = FlutterLogger(enabled: false, enableDiagnosticMode: true);
+      final stack = StackTrace.fromString('#0 fakeFrame (file.dart:1:1)');
+
+      logger.log(LogLevel.error, 'failed', null, stack);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeChannel.internalAddLogCalls, hasLength(1));
+      expect(fakeChannel.internalAddLogCalls.single.message,
+          'failed\n${stack.toString()}');
+    });
+
+    test('appends both error and stack when both are provided', () async {
+      final logger = FlutterLogger(enabled: false, enableDiagnosticMode: true);
+      final error = Exception('boom');
+      final stack = StackTrace.fromString('#0 fakeFrame (file.dart:1:1)');
+
+      logger.log(LogLevel.error, 'failed', error, stack);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeChannel.internalAddLogCalls, hasLength(1));
+      expect(fakeChannel.internalAddLogCalls.single.message,
+          'failed\n${error.toString()}\n${stack.toString()}');
     });
 
     test('swallows errors thrown by internalAddLog', () async {

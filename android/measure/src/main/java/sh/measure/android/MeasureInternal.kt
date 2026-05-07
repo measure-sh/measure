@@ -321,11 +321,10 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         }
     }
 
-    fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
+    fun internalAddLog(platform: String, message: String) {
         measure.logger.log(
             LogLevel.Debug,
             "[$platform] $message",
-            throwable,
         )
     }
 

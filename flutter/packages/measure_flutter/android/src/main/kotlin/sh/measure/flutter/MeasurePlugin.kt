@@ -190,11 +190,9 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
 
     private fun internalAddLog(call: MethodCall, result: MethodChannel.Result) {
         val reader = MethodCallReader(call)
-        val platform = reader.requireArg<String>(MethodConstants.ARG_PLATFORM)
-        val message = reader.requireArg<String>(MethodConstants.ARG_MESSAGE)
-        val errorMessage = reader.optionalArg<String>(MethodConstants.ARG_ERROR_MESSAGE)
-        val throwable = errorMessage?.let { Exception(it) }
-        Measure.internalAddLog(platform = platform, message = message, throwable = throwable)
+        val platform = reader.requireArg<String>(MethodConstants.ARG_DIAGNOSTIC_MODE_PLATFORM)
+        val message = reader.requireArg<String>(MethodConstants.ARG_DIAGNOSTIC_MODE_MESSAGE)
+        Measure.internalAddLog(platform = platform, message = message)
         result.success(null)
     }
 

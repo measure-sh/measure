@@ -30,12 +30,20 @@ final class FlutterLogger implements Logger {
       );
     }
     if (enableDiagnosticMode) {
+      final composed = StringBuffer(message);
+      if (error != null) {
+        composed.write('\n');
+        composed.write(error.toString());
+      }
+      if (stackTrace != null) {
+        composed.write('\n');
+        composed.write(stackTrace.toString());
+      }
       unawaited(
         MeasureFlutterPlatform.instance
             .internalAddLog(
               platform: _platformFlutter,
-              message: message,
-              errorMessage: error?.toString(),
+              message: composed.toString(),
             )
             .catchError((_) {}),
       );

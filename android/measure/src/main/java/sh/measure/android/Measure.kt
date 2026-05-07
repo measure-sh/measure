@@ -676,9 +676,9 @@ object Measure {
      * An internal method that adds logs Measure logger.
      * This method is not intended for public usage.
      */
-    fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
+    fun internalAddLog(platform: String, message: String) {
         if (isInitialized.get()) {
-            measure.internalAddLog(platform, message, throwable)
+            measure.internalAddLog(platform, message)
         }
     }
 
