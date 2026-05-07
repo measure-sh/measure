@@ -68,7 +68,7 @@ type eventreq struct {
 	// symbolicateSpans is a look up table to find
 	// the spans that need symbolication
 	symbolicateSpans map[string]int
-	// exceptionIds is a list of all unhandled exception
+	// exceptionIds is a list of all exception
 	// event ids
 	exceptionIds []int
 	// anrIds is a list of all ANR event IDs
@@ -193,9 +193,9 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
-// hasUnhandledExceptions returns true if event payload
-// contains unhandled exceptions.
-func (e eventreq) hasUnhandledExceptions() bool {
+// hasExceptions returns true if event payload
+// contains exceptions.
+func (e eventreq) hasExceptions() bool {
 	return len(e.exceptionIds) > 0
 }
 
@@ -235,10 +235,9 @@ func (e eventreq) getAppUniqueID() (appUniqueID string) {
 	return e.spans[0].Attributes.AppUniqueID
 }
 
-// getUnhandledExceptions returns unhandled exceptions
-// from the event payload.
-func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
-	if !e.hasUnhandledExceptions() {
+// getExceptions returns exceptions from the event payload.
+func (e eventreq) getExceptions() (events []event.EventField) {
+	if !e.hasExceptions() {
 		return
 	}
 	for _, v := range e.exceptionIds {
@@ -258,10 +257,9 @@ func (e eventreq) getANRs() (events []event.EventField) {
 	return
 }
 
-// bucketUnhandledExceptions groups unhandled exceptions
-// based on similarity.
-func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
-	events := e.getUnhandledExceptions()
+// bucketExceptions groups exceptions based on similarity.
+func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
+	events := e.getExceptions()
 
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
@@ -280,6 +278,8 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 			events[i].Exception.GetMethodName(),
 			events[i].Exception.GetFileName(),
 			events[i].Exception.GetLineNumber(),
+			events[i].Exception.Handled,
+			events[i].Exception.IsCustom,
 			events[i].Timestamp,
 		)
 
@@ -400,7 +400,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionThreads := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
-		error := "{}"
+		errorMeta := "{}"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -442,12 +442,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			}
 
 			if e.events[i].Exception.HasError() {
-				marshalledError, err := json.Marshal(e.events[i].Exception.Error)
+				metaBytes, err := e.events[i].Exception.GetMetaBytes()
 				if err != nil {
 					return err
 				}
-
-				error = string(marshalledError)
+				errorMeta = string(metaBytes)
 			}
 		}
 
@@ -537,7 +536,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
 				Set(`exception.binary_images`, binaryImages).
 				Set(`exception.framework`, e.events[i].Exception.GetFramework()).
-				Set(`exception.error`, error)
+				Set(`exception.num_code`, e.events[i].Exception.NumCode).
+				Set(`exception.code`, e.events[i].Exception.Code).
+				Set(`exception.meta`, errorMeta).
+				Set(`exception.severity`, e.events[i].Exception.GetSeverity()).
+				Set(`exception.is_custom`, e.events[i].Exception.IsCustom)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -547,7 +550,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.foreground`, nil).
 				Set(`exception.binary_images`, nil).
 				Set(`exception.framework`, nil).
-				Set(`exception.error`, nil)
+				Set(`exception.num_code`, nil).
+				Set(`exception.code`, nil).
+				Set(`exception.meta`, nil).
+				Set(`exception.severity`, nil).
+				Set(`exception.is_custom`, nil)
 		}
 
 		// app exit
@@ -1160,7 +1167,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		if eventReq.events[i].NeedsSymbolication() {
 			eventReq.symbolicateEvents[eventReq.events[i].ID] = i
 		}
-		if eventReq.events[i].IsUnhandledException() {
+		if eventReq.events[i].IsException() {
+			fmt.Println("processing exception: ", eventReq.events[i].ID)
 			eventReq.exceptionIds = append(eventReq.exceptionIds, i)
 		}
 		if eventReq.events[i].IsANR() {
@@ -1312,10 +1320,10 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 	var bucketGroup errgroup.Group
 	bucketGroup.Go(func() error {
-		_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
-		defer bucketUnhandledExceptionsSpan.End()
-		if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
-			fmt.Println(`failed to bucket unhandled exceptions`, err)
+		_, bucketExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-exceptions")
+		defer bucketExceptionsSpan.End()
+		if err := eventReq.bucketExceptions(ingestCtx); err != nil {
+			fmt.Println(`failed to bucket exceptions`, err)
 			return err
 		}
 		return nil
@@ -1405,5 +1413,6 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	trackBatchBytes(eventReq.teamId, eventReq.size)
 
 	ingestBatchAckCount.Add(ctx, 1)
+	fmt.Println("processed batch")
 	return nil
 }

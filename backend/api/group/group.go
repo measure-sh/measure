@@ -42,6 +42,8 @@ type ExceptionGroup struct {
 	MethodName      string                 `json:"method_name" db:"method_name"`
 	FileName        string                 `json:"file_name" db:"file_name"`
 	LineNumber      int32                  `json:"line_number" db:"line_number"`
+	Handled         bool                   `json:"handled" db:"handled"`
+	IsCustom        bool                   `json:"is_custom" db:"is_custom"`
 	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
@@ -114,7 +116,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 	}
 
 	stmt := sqlf.
-		New("insert into unhandled_exception_groups").
+		New("insert into fatal_exception_groups").
 		Clause("(").
 		Expr("team_id").
 		Expr("app_id").
@@ -125,6 +127,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		Expr("method_name").
 		Expr("file_name").
 		Expr("line_number").
+		Expr("handled").
+		Expr("is_custom").
 		Expr("os_versions").
 		Expr("country_codes").
 		Expr("network_providers").
@@ -147,6 +151,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		Expr("?", e.MethodName).
 		Expr("?", e.FileName).
 		Expr("?", e.LineNumber).
+		Expr("?", e.Handled).
+		Expr("?", e.IsCustom).
 		Expr("groupUniqArrayState(tuple(?, ?))", e.Attribute.OSName, e.Attribute.OSVersion).
 		Expr("groupUniqArrayState(?)", e.CountryCode).
 		Expr("groupUniqArrayState(?)", e.Attribute.NetworkProvider).
@@ -470,7 +476,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, timestamp time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, handled bool, isCustom bool, timestamp time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:       appId,
 		CountryCode: countryCode,
@@ -481,6 +487,8 @@ func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attr
 		MethodName:  methodName,
 		FileName:    fileName,
 		LineNumber:  lineNumber,
+		Handled:     handled,
+		IsCustom:    isCustom,
 		UpdatedAt:   timestamp,
 	}
 }

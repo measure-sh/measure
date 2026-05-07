@@ -4648,7 +4648,7 @@ func GetAppJourney(c *gin.Context) {
 	var issueEvents []event.EventField
 
 	for i := range journeyEvents {
-		if journeyEvents[i].IsUnhandledException() {
+		if journeyEvents[i].IsFatalException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 		if app.OSName == opsys.Android && journeyEvents[i].IsANR() {
