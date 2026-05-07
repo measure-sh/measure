@@ -1,5 +1,6 @@
 import AdaptiveCaptureDemo from "@/app/components/adaptive_capture_demo";
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you will never read.",
   alternates: { canonical: "/product/adaptive-capture" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Adaptive Capture — Control Mobile Monitoring Costs",
     description:
       "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you will never read.",

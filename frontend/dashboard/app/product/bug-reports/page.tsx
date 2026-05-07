@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Capture bug reports with a device shake or SDK call. Get the full session context, device state, and network info so you can get to the root cause.",
   alternates: { canonical: "/product/bug-reports" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "In-App Bug Reporting for Mobile Apps",
     description:
       "Capture bug reports with a device shake or SDK call. Get the full session context, device state, and network info so you can get to the root cause.",

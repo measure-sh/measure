@@ -10,6 +10,7 @@ import { Toaster } from "./components/toaster";
 import { CookieConsentProvider } from "./context/cookie_consent";
 import { PostHogProvider } from "./context/posthog";
 import "./globals.css";
+import { previewImage, sharedOpenGraph } from "./utils/metadata";
 
 const josefin_sans = Josefin_Sans({
   subsets: ["latin"],
@@ -35,8 +36,6 @@ const fira_code = Fira_Code({
 const title = "Measure";
 const description =
   "Open source mobile app monitoring for crashes, ANRs, performance, bug reports, user journeys, and more.";
-const siteName = "measure.sh";
-const previewImage = "/images/social_preview.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://measure.sh"),
@@ -49,20 +48,10 @@ export const metadata: Metadata = {
   description: description,
 
   openGraph: {
+    ...sharedOpenGraph,
     title: title,
     description: description,
     url: "/",
-    siteName: siteName,
-    images: [
-      {
-        url: previewImage,
-        width: 1200,
-        height: 630,
-        alt: "Measure preview image",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
   },
 
   twitter: {

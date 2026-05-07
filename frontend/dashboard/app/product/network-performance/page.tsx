@@ -1,4 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Monitor the API call latency that your users actually feel. Investigate HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
   alternates: { canonical: "/product/network-performance" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Mobile Network Performance Monitoring",
     description:
       "Monitor the API call latency that your users actually feel. Investigate HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",

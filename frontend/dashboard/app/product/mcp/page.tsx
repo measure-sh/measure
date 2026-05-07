@@ -1,5 +1,6 @@
 import { buttonVariants } from "@/app/components/button_variants";
 import MCPDemo from "@/app/components/mcp_demo";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Connect Measure to Claude, Codex, Cursor and other coding agents. Query crashes, traces and sessions to fix issues faster than ever with AI.",
   alternates: { canonical: "/product/mcp" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Measure MCP Server",
     description:
       "Connect Measure to Claude, Codex, Cursor and other coding agents. Query crashes, traces and sessions to fix issues faster than ever with AI.",

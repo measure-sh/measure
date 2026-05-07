@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import { sharedOpenGraph } from "../utils/metadata";
 import {
   FREE_GB,
   FREE_RETENTION_DAYS,
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits, no feature restrictions. 100% Open Source.",
   alternates: { canonical: "/pricing" },
   openGraph: {
+    ...sharedOpenGraph,
     title: "Plans and Pricing",
     description:
       "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits, no feature restrictions. 100% Open Source.",
