@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Journey api fails sometimes (#3586) by @detj in #3586
 - (**backend**): Preserve casing of app's unique id on onboard (#3542) by @detj in #3542
 - (**backend**): App versions may not appear properly sorted (#3540) by @detj in #3540
 - (**backend**): Semver version sort was not stable for ios (#3538) by @detj in #3538
