@@ -122,12 +122,8 @@ export default function Home() {
         {/* Main description */}
         <div className="py-8 md:py-14" />
         <h2 className="text-xl leading-relaxed font-body md:w-4xl text-center px-4">
-          Complete Mobile App Monitoring platform with Crash Reporting{" "}
-          <span aria-hidden="true">💥</span>, ANR Tracking{" "}
-          <span aria-hidden="true">⏳</span>, Bug Reporting{" "}
-          <span aria-hidden="true">🐞</span>, Performance Tracing{" "}
-          <span aria-hidden="true">⚡️</span>, Logging{" "}
-          <span aria-hidden="true">🪵</span> and more!
+          Complete Mobile App Monitoring platform with Crash Reporting, ANR
+          Tracking, Bug Reporting, Performance Tracing, Logging and more!
           <br />
           <br />
           100% Open Source alternative to{" "}
