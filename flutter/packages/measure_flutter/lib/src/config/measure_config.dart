@@ -32,7 +32,7 @@ class MeasureConfig implements IMeasureConfig {
   ///
   /// To pull all log files from an Android device:
   /// ```
-  /// adb shell "run-as <your.package.name> tar cf - files/measure/sdk_debug_logs/" | tar xf - -C /tmp/
+  /// adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
   /// ```
   /// On iOS, set `enableDiagnosticModeGesture` on the native `MeasureConfig` (in your AppDelegate)
   /// to trigger the share sheet via the double finger double tap gesture.
