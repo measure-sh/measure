@@ -5,12 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.10.2] - 2026-05-08
+
+### :bug: Bug fixes
+
+
+- (**ios**): Remove orphaned attachment cleanup logic
+
 ## [ios-v0.10.1] - 2026-05-07
 
 ### :bug: Bug fixes
 
 
 - (**ios**): Send correct user defined attributes json (#3589)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.10.1
 
 ## [ios-v0.10.0] - 2026-04-03
 
@@ -342,7 +354,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Log error messages when upload dsym script fails (#1975) by @adwinross in #1975
 - (**ios**): Create new session if build number or app version is updated (#1972) by @adwinross in #1972
 - (**ios**): Rename MeasureSDK to Measure (#1957) by @adwinross in #1957
-- (**ios**): Update plcrashreporter config (#1938) by @adwinross in #1938
+- (**ios**): Update plcrashreporter config (#1938) by @adwinross
 - (**ios**): Remove fatal errors (#1932) by @adwinross in #1932
 - (**ios**): Update cpu frequency generation logic by @adwinross in #1904
 - (**ios**): Prepare sdk release 0.0.1-rc1 (#1877) by @adwinross in #1877
@@ -392,6 +404,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross
 - (**ios**): Initial project setup  (#1034) by @adwinross
 
+[ios-v0.10.2]: https://github.com/measure-sh/measure/compare/ios-v0.10.1..ios-v0.10.2
 [ios-v0.10.1]: https://github.com/measure-sh/measure/compare/ios-v0.10.0..ios-v0.10.1
 [ios-v0.10.0]: https://github.com/measure-sh/measure/compare/ios-v0.9.2..ios-v0.10.0
 [ios-v0.9.2]: https://github.com/measure-sh/measure/compare/ios-v0.9.1..ios-v0.9.2
