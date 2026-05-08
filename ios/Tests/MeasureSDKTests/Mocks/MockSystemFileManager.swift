@@ -51,15 +51,6 @@ final class MockSystemFileManager: SystemFileManager {
         sdkDebugLogFiles.removeAll { $0.path == path }
     }
 
-    func cleanupOrphanedAttachmentFiles(validPaths: Set<String>) {
-        let allPaths = Array(savedFiles.keys)
-        for path in allPaths {
-            if !validPaths.contains(path) {
-                savedFiles.removeValue(forKey: path)
-            }
-        }
-    }
-
     func getSdkDebugLogsDirectory() -> URL? {
         return sdkDebugLogsDirectory
     }

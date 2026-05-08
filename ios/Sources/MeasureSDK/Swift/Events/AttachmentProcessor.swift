@@ -44,7 +44,7 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
         case .data:
             return MsrAttachment(name: attachmentName, type: attachmentType, size: Int64(image.count), id: uuid, bytes: image, path: nil)
         case .fileStorage:
-            guard let fileURL = fileManager.saveFile(data: image, name: attachmentName, folderName: nil, directory: .documentDirectory) else {
+            guard let fileURL = fileManager.saveFile(data: image, name: attachmentName, folderName: "measure", directory: .documentDirectory) else {
                 logger.internalLog(level: .error, message: "AttachmentProcessor: Failed to save compressed image to file storage.", error: nil, data: nil)
                 return nil
             }
