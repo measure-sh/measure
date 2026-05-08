@@ -44,7 +44,6 @@ final class BaseDataCleanupService: DataCleanupService {
 
     func clearStaleData() {
         trimIfDiskLimitExceeded(currentSessionId: sessionManager.sessionId)
-        cleanupOrphanedAttachments()
         attachmentStore.deleteExpiredAttachments()
 
         guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
@@ -149,15 +148,5 @@ final class BaseDataCleanupService: DataCleanupService {
         eventStore.deleteEvents(sessionIds: sessionIds)
         spanStore.deleteSpans(sessionIds: sessionIds)
         attachmentStore.deleteAttachments(forSessionIds: sessionIds)
-    }
-
-    private func cleanupOrphanedAttachments() {
-        guard !userDefaultsStorage.hasRunOrphanAttachmentCleanup() else { return }
-
-        let validPaths = attachmentStore.getAllAttachmentPaths()
-
-        systemFileManager.cleanupOrphanedAttachmentFiles(validPaths: validPaths)
-
-        userDefaultsStorage.setHasRunOrphanAttachmentCleanup(true)
     }
 }
