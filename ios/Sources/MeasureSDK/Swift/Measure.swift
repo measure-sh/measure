@@ -939,4 +939,53 @@ extension Measure {
                                              requestBody: requestBody,
                                              responseBody: responseBody)
     }
+
+    /// Tracks a HTTP event. Note that if you're using the Measure gradle plugin,
+    /// OkHttp events will be automatically tracked. This method is useful if you
+    /// use any other HTTP client.
+    ///
+    /// Usage notes:
+    /// - **This api is intended for Objective-C use only. For swift, use the `trackHttpEvent` api instead.**
+    /// - Always set the `statusCode` in case of a response or `error` in case the request failed.
+    /// - Use a time source that provides monotonic time (like `CFAbsoluteTimeGetCurrent()` or a custom one based on `mach_absolute_time()`) for start and end time to avoid clock skew issues.
+    /// - Use `requestHeaders`, `responseHeaders`, `requestBody` and `responseBody` only when
+    /// required as they can increase the amount of data to be stored and sent considerably.
+    /// - Request body is only tracked if the request headers contain the `Content-Type` header set to `application/json`.
+    /// Similarly, response body is only tracked if the response headers contain the `Content-Type` header set to `application/json`.
+    ///
+    /// - Parameters:
+    ///   - url: The URL to which the request was made
+    ///   - method: The HTTP method used for the request
+    ///   - startTime: The time when the HTTP request started (recommended to use a monotonic time source)
+    ///   - endTime: The time when the HTTP request ended (recommended to use a monotonic time source)
+    ///   - client: The name of the HTTP client used, optional (defaults to "unknown")
+    ///   - statusCode: The HTTP status code of the response received
+    ///   - error: The error if the request fails.
+    ///   - requestHeaders: The HTTP headers in the request
+    ///   - responseHeaders: The HTTP headers in the response
+    ///   - requestBody: An optional request body
+    ///   - responseBody: An optional response body
+    @objc public static func trackHttpEventObjc(url: String,
+                                                method: String,
+                                                startTime: UInt64,
+                                                endTime: UInt64,
+                                                client: String,
+                                                statusCode: NSNumber?,
+                                                error: Error?,
+                                                requestHeaders: [String: String]?,
+                                                responseHeaders: [String: String]?,
+                                                requestBody: String?,
+                                                responseBody: String?) {
+        return Measure.shared.trackHttpEvent(url: url,
+                                             method: method,
+                                             startTime: startTime,
+                                             endTime: endTime,
+                                             client: client,
+                                             statusCode: statusCode?.intValue,
+                                             error: error,
+                                             requestHeaders: requestHeaders,
+                                             responseHeaders: responseHeaders,
+                                             requestBody: requestBody,
+                                             responseBody: responseBody)
+    }
 } // swiftlint:disable:this file_length
