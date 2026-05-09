@@ -38,26 +38,15 @@ export default function WhyMeasure() {
           <h1 className="text-5xl font-display mb-2">Why Measure?</h1>
           <div className="py-4" />
           <p className="text-justify text-lg">
-            There are several mobile app monitoring tools in the market and at
-            the end of the day, everyone ends up with similar features since
-            good ideas should and do propagate.
-            <br />
-            <br />
-            What is different between these tools is the core philosophy of the
-            teams building them which affects the products in small and large
-            ways.
-            <br />
-            <br />
-            Measure will be a great fit for you if you care about the following
-            values like we do:
+            There are several mobile app monitoring tools in the market. What is
+            different between these tools is the core philosophy of the teams
+            building them which affects the products in small and large ways.
           </p>
 
           {/* Differentiator 1 */}
           <div className="flex flex-col md:flex-row w-full items-center gap-8 mt-24">
             <div className="flex flex-col flex-1">
-              <h2 className="text-3xl font-display mb-4">
-                Comprehensive Monitoring
-              </h2>
+              <h2 className="text-3xl font-display mb-4">Beyond Crashes</h2>
               <p className="text-justify text-lg">
                 Measure is focused on giving the full picture of apps in
                 production to mobile developers and is not just limited to basic
@@ -113,10 +102,17 @@ export default function WhyMeasure() {
             <div className="flex flex-col flex-1">
               <h2 className="text-3xl font-display mb-4">Open Source</h2>
               <p className="text-justify text-lg">
-                Measure is fully open-source and can be self-hosted or used via
-                Measure Cloud. This means our code is open to scrutiny and
-                community contributions which we strongly believe leads to a
-                better product.
+                Measure is{" "}
+                <Link
+                  href="https://github.com/measure-sh/measure"
+                  target="_blank"
+                  className={underlineLinkStyle}
+                >
+                  fully open source.{" "}
+                </Link>
+                This means our code is open to scrutiny and community
+                contributions which we strongly believe leads to a better
+                product.
                 <br />
                 <br />
                 If you value transparency, flexibility and open development,
@@ -152,11 +148,7 @@ export default function WhyMeasure() {
                 </Link>
                 , you can optimize your data collection to only capture what you
                 need and adjust it dynamically without rolling out app updates,
-                reducing costs and data bloat. You can even{" "}
-                <Link href="/docs/hosting" className={underlineLinkStyle}>
-                  self-host
-                </Link>{" "}
-                Measure for free on your own infrastructure!
+                reducing costs and data bloat.
                 <br />
                 <br />
                 If you hate playing with excel sheets and pricing calculators to
