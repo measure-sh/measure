@@ -149,6 +149,15 @@ export default function LandingFooter() {
             Why Measure?
           </Link>
           <Link
+            href="/crashlytics-alternatives"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Firebase Crashlytics alternative
+          </Link>
+          <Link
             href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost" }),
