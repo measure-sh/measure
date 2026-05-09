@@ -203,7 +203,7 @@ export default function CrashlyticsAlternatives() {
                 to do with the data.
                 <br />
                 <br />
-                Measure Cloud has a single, transparent{" "}
+                Measure has a single, transparent{" "}
                 <Link href="/pricing" className={underlineLinkStyle}>
                   price
                 </Link>{" "}

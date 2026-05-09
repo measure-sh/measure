@@ -129,7 +129,7 @@ export default function WhyMeasure() {
             <div className="flex flex-col flex-1">
               <h2 className="text-3xl font-display mb-4">Simple Pricing</h2>
               <p className="text-justify text-lg">
-                Measure Cloud offers clear and transparent{" "}
+                Measure offers clear and transparent{" "}
                 <Link href="/pricing" className={underlineLinkStyle}>
                   pricing
                 </Link>{" "}
