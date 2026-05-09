@@ -104,7 +104,7 @@ export default function Security() {
             Authentication & Authorization
           </h2>
           <p className="mb-8 text-justify text-lg">
-            <b>Open Source (Self-Hosted)</b>: Authentication and authorization
+            <b>Open Source (Self Hosted)</b>: Authentication and authorization
             are provided via Google and GitHub OAuth 2.0 protocols, strictly
             following the latest version of the{" "}
             <Link
@@ -144,7 +144,7 @@ export default function Security() {
           {/* Data Security */}
           <h2 className="text-3xl font-display mt-12 mb-4">Data Security</h2>
           <p className="mb-8 text-justify text-lg">
-            <b>Open Source (Self-Hosted)</b>: Measure does not process or store
+            <b>Open Source (Self Hosted)</b>: Measure does not process or store
             sensitive customer data by design. All data is stored within the
             user&apos;s infrastructure. Users are responsible for performing
             security assessments and implementing safeguards appropriate to

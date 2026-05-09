@@ -584,9 +584,9 @@ export default function TermsOfService() {
           <h2 className="text-3xl font-display mt-12 mb-4">Self Hosted</h2>
           <p className="mb-8 text-justify text-lg">
             Please note that the Terms of Service listed above apply
-            specifically to the Measure Cloud (hosted) service. The self-hosted
-            version of the software is governed by the terms of the Apache
-            License 2.0, available in the source code{" "}
+            specifically to the Measure Cloud service. The Self Hosted version
+            of the software is governed by the terms of the Apache License 2.0,
+            available in the source code{" "}
             <Link
               target="_blank"
               className={underlineLinkStyle}
