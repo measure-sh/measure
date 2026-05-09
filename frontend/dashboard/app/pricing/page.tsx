@@ -41,12 +41,9 @@ export default function Pricing() {
 
         <div className="py-8" />
         <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
-          Measure Cloud pricing is based on the data you send to us and how long
-          you retain it. If you are{" "}
-          <Link href="/docs/hosting" className={underlineLinkStyle}>
-            self hosting
-          </Link>
-          , it is completely free to use.
+          Simple pricing based on the data used. No stressing over seat limits.
+          No need to buy artifical bundles of crashes and spans - just track
+          what you need to get to the root cause faster.
         </p>
 
         <div className="py-8" />
@@ -108,7 +105,7 @@ export default function Pricing() {
             <LucideCheckCircle className="text-green-600 dark:text-green-500 w-4 h-4" />
           </div>
           <div className="flex flex-row gap-4 items-center">
-            <p>No feature restrictions</p>
+            <p>No Artificial Bundles</p>
             <LucideCheckCircle className="text-green-600 dark:text-green-500 w-4 h-4" />
           </div>
         </div>
