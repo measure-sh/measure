@@ -34,12 +34,6 @@ describe("GitHub docs links have been replaced", () => {
     });
   }
 
-  it("page.tsx links to /docs/hosting for self-hosting", () => {
-    const content = fs.readFileSync(path.join(APP_DIR, "page.tsx"), "utf-8");
-
-    expect(content).toContain('href="/docs/hosting"');
-  });
-
   it("pricing/page.tsx links to /docs/hosting for self-hosting", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "pricing/page.tsx"),

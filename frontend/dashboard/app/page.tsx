@@ -409,15 +409,13 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-border">
-              <p className="text-4xl font-body text-center">Flexible Hosting</p>
+              <p className="text-4xl font-body text-center">Simple Pricing</p>
               <p className="text-sm font-display text-center mt-4">
-                <Link href="/auth/login" className={underlineLinkStyle}>
-                  Measure Cloud
+                Pay only for the{" "}
+                <Link href="/pricing" className={underlineLinkStyle}>
+                  data you use.
                 </Link>{" "}
-                for convenience or{" "}
-                <Link href="/docs/hosting" className={underlineLinkStyle}>
-                  Self Host
-                </Link>
+                No seat limits or feature restrictions.
               </p>
             </div>
           </div>
@@ -426,44 +424,54 @@ export default function Home() {
               Every mobile platform
             </p>
             <div className="py-4" />
-            <div className="flex flex-row gap-16 items-center justify-center flex-wrap">
-              <div className="w-[64px] h-[64px] relative flex items-center justify-center">
-                <Image
-                  src="/images/android_logo.svg"
-                  alt="Android Logo"
-                  fill
-                  className="object-contain"
-                />
+            <div className="flex flex-row gap-16 items-start justify-center flex-wrap">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-14 flex items-center">
+                  <Image
+                    src="/images/android_logo.svg"
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-8 w-auto object-contain"
+                  />
+                </div>
+                <span className="font-body text-sm">Android</span>
               </div>
-              <div className="w-[64px] h-[64px] relative flex items-center justify-center">
-                <Image
-                  src="/images/ios_logo.svg"
-                  alt="iOS Logo"
-                  fill
-                  className="object-contain"
-                />
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-14 flex items-center">
+                  <Image
+                    src="/images/ios_logo.svg"
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="h-14 w-auto object-contain"
+                  />
+                </div>
+                <span className="font-body text-sm">iOS</span>
               </div>
-              <div className="w-[64px] h-[48px] relative flex items-center justify-center">
-                <Image
-                  src="/images/flutter_logo.svg"
-                  alt="Flutter Logo"
-                  fill
-                  className="object-contain"
-                />
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-14 flex items-center">
+                  <Image
+                    src="/images/flutter_logo.svg"
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-10 w-auto object-contain"
+                  />
+                </div>
+                <span className="font-body text-sm">Flutter</span>
               </div>
-              <div className="w-[64px] h-[48px] relative flex items-center justify-center">
-                <Badge
-                  variant="outline"
-                  className="select-none absolute -bottom-8 font-body text-[10px]"
-                >
-                  Coming Soon
-                </Badge>
-                <Image
-                  src="/images/react_native_logo.png"
-                  alt="React Native Logo"
-                  fill
-                  className="object-contain"
-                />
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-14 flex items-center">
+                  <Image
+                    src="/images/react_native_logo.png"
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-10 w-auto object-contain"
+                  />
+                </div>
+                <span className="font-body text-sm">React Native (soon)</span>
               </div>
             </div>
           </div>
