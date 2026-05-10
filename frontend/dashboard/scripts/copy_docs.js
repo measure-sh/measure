@@ -13,7 +13,12 @@ const rootDir = path.resolve(__dirname, "..");
 const docsSource = path.resolve(rootDir, "..", "..", "docs");
 const contentDest = path.join(rootDir, "content", "docs");
 const assetsDest = path.join(rootDir, "public", "docs", "assets");
-const searchIndexDest = path.join(rootDir, "public", "docs", "search-index.json");
+const searchIndexDest = path.join(
+  rootDir,
+  "public",
+  "docs",
+  "search-index.json",
+);
 const navDest = path.join(rootDir, "content", "docs_nav.json");
 
 function copyDirRecursive(src, dest) {
@@ -153,7 +158,11 @@ function parseDirectoryNav(docsDir, subDir) {
 
   while ((match = linkRegex.exec(readme)) !== null) {
     const href = match[2];
-    if (href.startsWith("#") || href.startsWith("http") || href.startsWith("../")) {
+    if (
+      href.startsWith("#") ||
+      href.startsWith("http") ||
+      href.startsWith("../")
+    ) {
       continue;
     }
 
@@ -169,15 +178,22 @@ function parseDirectoryNav(docsDir, subDir) {
     if (cleanHref.endsWith("README.md")) {
       const nestedDir = fullPath.replace(/\/README\.md$/, "");
       const nestedChildren = parseDirectoryNav(docsDir, nestedDir);
-      const title = getTitleFromFile(docsDir, fullPath) || match[1].replace(/\*\*/g, "").trim();
+      const title =
+        getTitleFromFile(docsDir, fullPath) ||
+        match[1].replace(/\*\*/g, "").trim();
 
       if (nestedChildren.length > 0) {
-        children.push({ title, children: [{ title: "Overview", slug }, ...nestedChildren] });
+        children.push({
+          title,
+          children: [{ title: "Overview", slug }, ...nestedChildren],
+        });
       } else {
         children.push({ title, slug });
       }
     } else {
-      const title = getTitleFromFile(docsDir, fullPath) || match[1].replace(/\*\*/g, "").trim();
+      const title =
+        getTitleFromFile(docsDir, fullPath) ||
+        match[1].replace(/\*\*/g, "").trim();
       children.push({ title, slug });
     }
   }
@@ -193,19 +209,30 @@ function parseDirectoryNav(docsDir, subDir) {
       const slug = mdPathToSlug(fullPath);
       if (!seen.has(slug)) {
         seen.add(slug);
-        const title = getTitleFromFile(docsDir, fullPath) || entry.name.replace(/\.md$/, "");
+        const title =
+          getTitleFromFile(docsDir, fullPath) ||
+          entry.name.replace(/\.md$/, "");
         children.push({ title, slug });
       }
     }
-    if (entry.isDirectory() && fs.existsSync(path.join(dirPath, entry.name, "README.md"))) {
+    if (
+      entry.isDirectory() &&
+      fs.existsSync(path.join(dirPath, entry.name, "README.md"))
+    ) {
       const fullPath = `${subDir}/${entry.name}/README.md`;
       const slug = mdPathToSlug(fullPath);
       if (!seen.has(slug)) {
         seen.add(slug);
-        const nestedChildren = parseDirectoryNav(docsDir, `${subDir}/${entry.name}`);
+        const nestedChildren = parseDirectoryNav(
+          docsDir,
+          `${subDir}/${entry.name}`,
+        );
         const title = getTitleFromFile(docsDir, fullPath) || entry.name;
         if (nestedChildren.length > 0) {
-          children.push({ title, children: [{ title: "Overview", slug }, ...nestedChildren] });
+          children.push({
+            title,
+            children: [{ title: "Overview", slug }, ...nestedChildren],
+          });
         } else {
           children.push({ title, slug });
         }
@@ -262,12 +289,16 @@ function generateDocsNav(docsDir) {
     }
 
     // Indented bullet with link → child of current group
-    const indentedMatch = line.match(/^\s{2,}\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/);
+    const indentedMatch = line.match(
+      /^\s{2,}\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/,
+    );
     if (indentedMatch && currentBulletGroup) {
       const href = indentedMatch[2];
       if (!href.startsWith("#")) {
         const slug = mdPathToSlug(href);
-        const title = getTitleFromFile(docsDir, href) || indentedMatch[1].replace(/\*\*/g, "").trim();
+        const title =
+          getTitleFromFile(docsDir, href) ||
+          indentedMatch[1].replace(/\*\*/g, "").trim();
         currentBulletGroup.children.push({ title, slug });
       }
       continue;
@@ -284,7 +315,9 @@ function generateDocsNav(docsDir) {
     }
 
     // Bullet with link
-    const bulletMatch = line.match(/^\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/);
+    const bulletMatch = line.match(
+      /^\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/,
+    );
     if (bulletMatch) {
       const href = bulletMatch[2];
       if (href.startsWith("#")) {
@@ -296,24 +329,38 @@ function generateDocsNav(docsDir) {
 
       if (currentSection === "Explore Features" && featuresGroup) {
         const slug = mdPathToSlug(href);
-        const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+        const title =
+          getTitleFromFile(docsDir, href) ||
+          bulletMatch[1].replace(/\*\*/g, "").trim();
         featuresGroup.children.push({ title, slug });
-      } else if (currentSection === "Documentation" || currentSection === "Further Reading") {
+      } else if (
+        currentSection === "Documentation" ||
+        currentSection === "Further Reading"
+      ) {
         // Preamble/further reading links → collect for appending after body sections
         if (isDirectory) {
           const slug = mdPathToSlug(href);
-          const subDir = href.replace(/\/?README\.md$/, "").replace(/^\.\//, "");
+          const subDir = href
+            .replace(/\/?README\.md$/, "")
+            .replace(/^\.\//, "");
           const children = parseDirectoryNav(docsDir, subDir);
-          const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+          const title =
+            getTitleFromFile(docsDir, href) ||
+            bulletMatch[1].replace(/\*\*/g, "").trim();
 
           if (children.length > 0) {
-            preambleLinks.push({ title, children: [{ title: "Overview", slug }, ...children] });
+            preambleLinks.push({
+              title,
+              children: [{ title: "Overview", slug }, ...children],
+            });
           } else {
             preambleLinks.push({ title, slug });
           }
         } else {
           const slug = mdPathToSlug(href);
-          const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+          const title =
+            getTitleFromFile(docsDir, href) ||
+            bulletMatch[1].replace(/\*\*/g, "").trim();
           preambleLinks.push({ title, slug });
         }
       }
@@ -321,9 +368,18 @@ function generateDocsNav(docsDir) {
     }
 
     // Inline link in paragraph text (for sections like "Configuration Options")
-    if (currentSection && !["Explore Features", "Further Reading", "Documentation"].includes(currentSection)) {
+    if (
+      currentSection &&
+      !["Explore Features", "Further Reading", "Documentation"].includes(
+        currentSection,
+      )
+    ) {
       const inlineMatch = line.match(/\[([^\]]+)\]\(([^)]+\.md[^)]*)\)/);
-      if (inlineMatch && !inlineMatch[2].startsWith("#") && !processedSections.has(currentSection)) {
+      if (
+        inlineMatch &&
+        !inlineMatch[2].startsWith("#") &&
+        !processedSections.has(currentSection)
+      ) {
         processedSections.add(currentSection);
         const href = inlineMatch[2];
         const slug = mdPathToSlug(href);
@@ -352,18 +408,21 @@ module.exports = {
 
 // Main — only runs when executed directly, not when required by tests
 if (require.main === module) {
-  // Determine docs source: use content/docs if already present (Docker), otherwise copy from monorepo root
-  const docsDir = fs.existsSync(contentDest) ? contentDest : null;
-
-  if (!docsDir) {
-    if (!fs.existsSync(docsSource)) {
-      console.error("Error: docs directory not found at", docsSource);
-      process.exit(1);
-    }
+  // Prefer the canonical monorepo docs source. Only fall back to the
+  // existing content/docs/ when the monorepo root isn't available (Docker
+  // builds, where the dashboard image is built with content/docs/
+  // pre-populated and the repo root is not mounted).
+  if (fs.existsSync(docsSource)) {
     console.log("Copying docs to content/docs/...");
+    if (fs.existsSync(contentDest)) {
+      fs.rmSync(contentDest, { recursive: true });
+    }
     copyDirRecursive(docsSource, contentDest);
-  } else {
+  } else if (fs.existsSync(contentDest)) {
     console.log("Using existing content/docs/ (Docker build)");
+  } else {
+    console.error("Error: docs directory not found at", docsSource);
+    process.exit(1);
   }
 
   const effectiveDocsDir = contentDest;
@@ -390,7 +449,9 @@ if (require.main === module) {
   const docsNavData = generateDocsNav(effectiveDocsDir);
   fs.mkdirSync(path.dirname(navDest), { recursive: true });
   fs.writeFileSync(navDest, JSON.stringify(docsNavData, null, 2));
-  console.log(`Sidebar nav generated with ${docsNavData.length} top-level items.`);
+  console.log(
+    `Sidebar nav generated with ${docsNavData.length} top-level items.`,
+  );
 
   console.log("Done!");
 }

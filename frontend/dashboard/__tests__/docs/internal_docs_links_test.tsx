@@ -54,13 +54,13 @@ describe("GitHub docs links have been replaced", () => {
     );
   });
 
-  it("filters.tsx links to /docs", () => {
+  it("onboarding.tsx links to /docs", () => {
     const content = fs.readFileSync(
-      path.join(APP_DIR, "components/filters.tsx"),
+      path.join(APP_DIR, "components/onboarding.tsx"),
       "utf-8",
     );
 
-    expect(content).toContain('href="/docs"');
+    expect(content).toContain('href="/docs/sdk-integration-guide');
   });
 
   it("apps/page.tsx links to /docs", () => {
@@ -69,7 +69,7 @@ describe("GitHub docs links have been replaced", () => {
       "utf-8",
     );
 
-    expect(content).toContain("href='/docs'");
+    expect(content).toContain('href="/docs"');
   });
 
   it("team/page.tsx links to /docs/hosting/slack", () => {
