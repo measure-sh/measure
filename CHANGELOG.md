@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update crashlytics alternative page description by @anupcowkur in #3608
 - (**frontend**): Drop "cloud" in pages by @anupcowkur in #3607
 - (**frontend**): Update pricing page copy and tests by @anupcowkur in #3606
 - (**frontend**): Use consitent formatting for self host by @anupcowkur in #3605
