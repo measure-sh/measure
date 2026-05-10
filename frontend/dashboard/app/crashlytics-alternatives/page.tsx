@@ -19,13 +19,13 @@ export const metadata: Metadata = {
     absolute: "Measure vs Firebase Crashlytics",
   },
   description:
-    "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines without locking you into Firebase ecosystem.",
+    "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines into a single platform so you can stop stitching context and get to the root cause faster.",
   alternates: { canonical: "/crashlytics-alternatives" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Measure vs Firebase Crashlytics",
     description:
-      "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines without locking you into Firebase ecosystem.",
+      "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines into a single platform so you can stop stitching context and get to the root cause faster.",
     url: "/crashlytics-alternatives",
   },
 };
