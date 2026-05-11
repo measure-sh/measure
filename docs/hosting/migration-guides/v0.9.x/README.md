@@ -1,3 +1,8 @@
+---
+title: "Self-Hosted Measure v0.9.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.9.x. Configuration migration and database synchronization."
+---
+
 # Migration Guide for `v0.9.x`
 
 Use this guide only when you are on less than `v0.9.0` and upgrading to `v0.9.x`.

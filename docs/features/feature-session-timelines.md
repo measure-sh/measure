@@ -1,3 +1,8 @@
+---
+title: "Session Timelines"
+description: "View every session as a chronological timeline of events, errors, screens, and gestures, with CPU and memory usage graphs."
+---
+
 # Session Timeline
 
 * [**What Is a Session?**](#what-is-a-session)

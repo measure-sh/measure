@@ -1,6 +1,10 @@
+---
+title: "Mobile App CPU Monitoring"
+description: "Periodically capture CPU usage of Android, iOS, and Flutter apps while they're in the foreground."
+---
+
 # CPU Monitoring
 
-- [**Introduction**](#introduction)
 - [**Android**](#android)
 - [**iOS**](#ios)
 - [**Flutter**](#flutter)
@@ -70,4 +74,4 @@ same methods as described above for Android and iOS.
 
 ## Data collected
 
-Checkout the data collected by Measure in [CPU Usage Event](../api/sdk/README.md#cpuusage) section.
+Checkout the data collected by Measure in [CPU Usage Event](../api/sdk/README.md#cpu_usage) section.

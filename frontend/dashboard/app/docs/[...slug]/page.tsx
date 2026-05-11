@@ -1,4 +1,9 @@
-import { extractTocEntries, getAllDocSlugs, getDocBySlug } from "@/app/docs/docs";
+import {
+  extractTocEntries,
+  getAllDocSlugs,
+  getDocBySlug,
+} from "@/app/docs/docs";
+import { sharedOpenGraph } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
@@ -25,8 +30,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {};
   }
 
+  const path = `/docs/${params.slug.join("/")}`;
+
   return {
     title: doc.title,
+    ...(doc.description && { description: doc.description }),
+    alternates: { canonical: path },
+    openGraph: {
+      ...sharedOpenGraph,
+      title: doc.title,
+      ...(doc.description && { description: doc.description }),
+      url: path,
+    },
   };
 }
 
@@ -46,7 +61,7 @@ export default function DocPage({ params }: PageProps) {
           <Markdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw, rehypeSlug]}
-            components={createMarkdownComponents(params.slug)}
+            components={createMarkdownComponents(params.slug, doc.isIndex)}
           >
             {doc.content}
           </Markdown>

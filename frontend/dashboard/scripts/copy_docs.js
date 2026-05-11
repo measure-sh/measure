@@ -45,8 +45,16 @@ function stripHtmlComments(text) {
   return result.trim();
 }
 
+/**
+ * Strip leading YAML frontmatter (--- ... --- block at start of file).
+ */
+function stripFrontmatter(text) {
+  const match = text.match(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/);
+  return match ? text.slice(match[0].length) : text;
+}
+
 function extractTitle(content) {
-  const match = content.match(/^#\s+(.+)$/m);
+  const match = stripFrontmatter(content).match(/^#\s+(.+)$/m);
   return match ? stripHtmlComments(match[1]).trim() : "Documentation";
 }
 
@@ -63,15 +71,7 @@ function generateSearchIndex(docsDir) {
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
         const filePath = path.join(dir, entry.name);
         const content = fs.readFileSync(filePath, "utf-8");
-
-        // Strip frontmatter
-        let body = content;
-        if (body.startsWith("---")) {
-          const end = body.indexOf("---", 3);
-          if (end !== -1) {
-            body = body.slice(end + 3).trim();
-          }
-        }
+        const body = stripFrontmatter(content);
 
         const title = extractTitle(body);
         const headings = [];
@@ -134,7 +134,7 @@ function getTitleFromFile(docsDir, mdPath) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
-  const content = fs.readFileSync(filePath, "utf-8");
+  const content = stripFrontmatter(fs.readFileSync(filePath, "utf-8"));
   const match = content.match(/^#\s+(.+)$/m);
   return match ? stripHtmlComments(match[1]).trim() : null;
 }
@@ -149,7 +149,7 @@ function parseDirectoryNav(docsDir, subDir) {
     return [];
   }
 
-  const readme = fs.readFileSync(readmePath, "utf-8");
+  const readme = stripFrontmatter(fs.readFileSync(readmePath, "utf-8"));
   const children = [];
   const seen = new Set();
 
@@ -253,7 +253,9 @@ function parseDirectoryNav(docsDir, subDir) {
  * - "Further Reading" section for directory-based groups
  */
 function generateDocsNav(docsDir) {
-  const readme = fs.readFileSync(path.join(docsDir, "README.md"), "utf-8");
+  const readme = stripFrontmatter(
+    fs.readFileSync(path.join(docsDir, "README.md"), "utf-8"),
+  );
   const lines = readme.split("\n");
   const nav = [];
   const preambleLinks = []; // .md links from before the first content section
@@ -398,6 +400,7 @@ function generateDocsNav(docsDir) {
 // Exports for testing
 module.exports = {
   stripHtmlComments,
+  stripFrontmatter,
   extractTitle,
   mdPathToSlug,
   getTitleFromFile,

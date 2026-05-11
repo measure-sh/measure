@@ -9,15 +9,13 @@ import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 
 export const metadata: Metadata = {
-  title: "About",
-  description:
-    "Mobile apps break, get to the root cause faster. Built by and for mobile developers.",
+  title: "About Measure — Built by and for Mobile Developers",
+  description: "Meet the team behind Measure. Open source mobile app monitoring built by mobile developers, for mobile developers.",
   alternates: { canonical: "/about" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "About Measure",
-    description:
-      "Mobile apps break, get to the root cause faster. Built by and for mobile developers.",
+    title: "About Measure — Built by and for Mobile Developers | Measure",
+    description: "Meet the team behind Measure. Open source mobile app monitoring built by mobile developers, for mobile developers.",
     url: "/about",
   },
 };

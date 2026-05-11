@@ -1,3 +1,8 @@
+---
+title: "Self-Hosting Migration Guides"
+description: "Migration guides for upgrading self-hosted Measure across versions that need extra configuration or data migration."
+---
+
 # Migration Guides
 
 Use these guides when upgrading to newer versions of Measure that requires some additional configurations, like one time data maintenance operations. For the usual upgrade process, [follow this guide](../../hosting/README.md#upgrade-a-self-hosted-installation).

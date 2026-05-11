@@ -14,15 +14,13 @@ import LandingHeader from "../components/landing_header";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
-  title: { absolute: "Why Measure" },
-  description:
-    "At Measure, Mobile is not an add-on to an observability product. Mobile is the product.",
+  title: "Mobile-First App Monitoring",
+  description: "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
   alternates: { canonical: "/why-measure" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Why Measure",
-    description:
-      "At Measure, Mobile is not an add-on to an observability product. Mobile is the product.",
+    title: "Mobile-First App Monitoring | Measure",
+    description: "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
     url: "/why-measure",
   },
 };

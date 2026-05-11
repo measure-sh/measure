@@ -1,3 +1,8 @@
+---
+title: "Mobile Performance Tracing"
+description: "Trace any operation in your mobile app — API calls, DB queries, custom user flows — with nested spans, attributes, and automatic screen load traces."
+---
+
 # Performance Tracing
 
 * [**Introduction**](#introduction)
@@ -32,7 +37,7 @@ You can easily track the performance of any part of your application, such as AP
 
 > [!NOTE]
 >
-> measure-sh can automatically track traces for screen load times in Android and iOS apps for _Activities_, _Fragments_, and _UIViewControllers_. See [Screen Load Time](feature-screen-load-time.md) for more details.
+> measure-sh can automatically track traces for screen load times in Android and iOS apps for _Activities_, _Fragments_, and _UIViewControllers_. See [Screen Load Time](#screen-load-time) for more details.
 
 Here's a simple example of how to use the performance tracing APIs:
 

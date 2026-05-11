@@ -1,3 +1,7 @@
+---
+description: "Mask sensitive content in SwiftUI views when Measure captures screenshots."
+---
+
 # Screenshot Masking for SwiftUI
 
 Measure's screenshot masking works by traversing the UIKit view hierarchy to identify and redact

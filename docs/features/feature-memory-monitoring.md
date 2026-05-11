@@ -1,3 +1,8 @@
+---
+title: "Mobile App Memory Monitoring"
+description: "Periodically capture memory usage of Android, iOS, and Flutter apps to spot leaks and memory pressure."
+---
+
 # Memory Monitoring
 
 - [Introduction](#introduction)
@@ -36,7 +41,7 @@ A worker thread reads the following properties every 2 seconds and reports them 
 #### Data collected
 
 Checkout all the data collected for memory usage in
-the [Memory Usage Event](../api/sdk/README.md#memoryusage) section.
+the [Memory Usage Event](../api/sdk/README.md#memory_usage) section.
 
 ## iOS
 

@@ -1,3 +1,8 @@
+---
+title: "In-App Bug Reports — Android SDK"
+description: "Let users report bugs from inside your Android app. Built-in or custom UI, screenshots, layout snapshots, and shake to report."
+---
+
 # Bug Reports — Android
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
@@ -103,11 +108,11 @@ Measure.trackBugReport(
 ```
 
 > [!IMPORTANT]
-> For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the configuration options [here](configuration-options.md#screenshotmasklevel).
+> For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the configuration options [here](configuration-options.md#screenshot-mask-level).
 
 #### Capture Layout Snapshot
 
-Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread. Read more about layout snapshots [here](../feature_layout_snapshots.md).
+Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread.
 
 ```kotlin
 private val attachments = mutableListOf<Attachment>()

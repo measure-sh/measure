@@ -1,3 +1,8 @@
+---
+title: "Self-Hosted Measure v0.6.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.6.x. Required data backfills for user-defined attributes."
+---
+
 # Migration Guide for `v0.6.x`
 
 Use this guide only when you are on less than `v0.6.0` and upgrading to `v0.6.x`.

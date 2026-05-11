@@ -1,3 +1,8 @@
+---
+title: "HTTP Network Monitoring"
+description: "Monitor HTTP requests and responses from your mobile app. Status codes, latency, payload sizes and per-endpoint metrics."
+---
+
 # Network Monitoring
 
 * [**Overview**](#overview)

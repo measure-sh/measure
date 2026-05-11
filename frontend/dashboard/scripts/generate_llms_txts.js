@@ -12,7 +12,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { stripHtmlComments, mdPathToSlug } = require("./copy_docs");
+const { stripHtmlComments, stripFrontmatter, mdPathToSlug } = require("./copy_docs");
 
 const rootDir = path.resolve(__dirname, "..");
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
@@ -167,7 +167,7 @@ function generateLlmsFullTxt(docsDir, navData) {
     }
 
     const raw = fs.readFileSync(filePath, "utf-8");
-    const cleaned = stripHtmlComments(raw);
+    const cleaned = stripHtmlComments(stripFrontmatter(raw));
     const rewritten = rewriteRelativeLinks(cleaned);
     const sourceUrl =
       slug === "/docs" ? `${SITE_URL}/docs` : `${SITE_URL}${slug}`;

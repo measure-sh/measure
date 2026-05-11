@@ -1,3 +1,8 @@
+---
+title: "Set Up Google OAuth for Self-Hosted Measure"
+description: "Set up a Google OAuth application for your self-hosted Measure instance. Configure the consent screen, scopes, and redirect URIs."
+---
+
 # Setup a Google OAuth Application
 
 In this guide, we'll help you setup a Google OAuth app so that your users can login using their Google accounts on your Measure Web dashboard.

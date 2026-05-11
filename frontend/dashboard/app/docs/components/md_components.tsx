@@ -5,16 +5,26 @@ import type { Components } from "react-markdown";
 
 /**
  * Rewrite relative markdown links to /docs/... routes.
+ *
+ * `isIndex` indicates whether the current page is rendered from a README.md.
+ * For README pages, currentSlug already represents the directory the page lives
+ * in, so we resolve siblings relative to currentSlug directly. For file pages
+ * (e.g. /docs/features/feature-X) the directory is one level up.
  */
-export function rewriteHref(href: string, currentSlug: string[]): string {
+export function rewriteHref(href: string, currentSlug: string[], isIndex = false): string {
   if (!href || href.startsWith("#") || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:")) {
     return href;
   }
 
+  const currentDir = isIndex
+    ? [...currentSlug]
+    : currentSlug.length > 0
+      ? currentSlug.slice(0, -1)
+      : [];
+
   // Relative .md link
   if (href.includes(".md")) {
     const [pathPart, anchor] = href.split("#");
-    const currentDir = currentSlug.length > 0 ? currentSlug.slice(0, -1) : [];
     const segments = pathPart.split("/");
     const resolved: string[] = [...currentDir];
 
@@ -25,7 +35,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
       if (seg === "..") {
         if (resolved.length === 0) {
           const remainingSegments = segments.slice(segments.indexOf(seg));
-          const githubPath = resolveGitHubPath(currentSlug, remainingSegments);
+          const githubPath = resolveGitHubPath(currentDir, remainingSegments);
           return `https://github.com/measure-sh/measure/blob/main/${githubPath}`;
         }
         resolved.pop();
@@ -48,7 +58,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
   // Relative path with ../ that escapes the docs tree — link to GitHub
   if (href.includes("..")) {
     const segments = href.replace(/^\.\//, "").split("/");
-    const resolved = [...(currentSlug.length > 0 ? currentSlug.slice(0, -1) : [])];
+    const resolved = [...currentDir];
     for (const seg of segments) {
       if (seg === "." || seg === "") {
         continue;
@@ -56,7 +66,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
       if (seg === "..") {
         if (resolved.length === 0) {
           const remainingSegments = segments.slice(segments.indexOf(seg));
-          const githubPath = resolveGitHubPath(currentSlug, remainingSegments);
+          const githubPath = resolveGitHubPath(currentDir, remainingSegments);
           return `https://github.com/measure-sh/measure/blob/main/${githubPath}`;
         }
         resolved.pop();
@@ -69,8 +79,8 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
   return href;
 }
 
-function resolveGitHubPath(currentSlug: string[], segments: string[]): string {
-  const repoPath = ["docs", ...currentSlug.slice(0, -1)];
+function resolveGitHubPath(currentDir: string[], segments: string[]): string {
+  const repoPath = ["docs", ...currentDir];
   for (const seg of segments) {
     if (seg === "..") {
       repoPath.pop();
@@ -95,7 +105,7 @@ export function rewriteImgSrc(src: string): string {
   return src;
 }
 
-export function createMarkdownComponents(currentSlug: string[]): Components {
+export function createMarkdownComponents(currentSlug: string[], isIndex = false): Components {
   return {
     h1: ({ children, id }) => (
       <h1 id={id} className="font-display text-3xl font-bold mt-12 mb-6 scroll-mt-24">
@@ -133,7 +143,7 @@ export function createMarkdownComponents(currentSlug: string[]): Components {
       </p>
     ),
     a: ({ href, children, node, ...props }) => {
-      const rewritten = rewriteHref(href || "", currentSlug);
+      const rewritten = rewriteHref(href || "", currentSlug, isIndex);
       const isExternal = rewritten.startsWith("http://") || rewritten.startsWith("https://") || rewritten.startsWith("mailto:");
 
       if (isExternal) {

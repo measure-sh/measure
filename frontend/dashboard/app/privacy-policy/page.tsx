@@ -9,14 +9,12 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description:
-    "What Measure does with your data. Open source so you can audit it yourself.",
+  description: "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
   alternates: { canonical: "/privacy-policy" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Privacy Policy",
-    description:
-      "What Measure does with your data. Open source so you can audit it yourself.",
+    description: "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
     url: "/privacy-policy",
   },
 };

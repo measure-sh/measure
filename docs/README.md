@@ -1,3 +1,8 @@
+---
+title: "Measure SDK Documentation"
+description: "Measure documentation. SDK integration, features, self-hosting, and REST API reference for monitoring mobile apps."
+---
+
 # Documentation
 
 ### Table of Contents
@@ -5,7 +10,7 @@
 * [**Integrate the SDK**](#integrate-the-sdk) — Set up the measure-sh SDK in your mobile app
 * [**Explore Features**](#explore-features) — Discover all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
-* [**Data Control**](#data-control) — Techniques to manage data collection and storage costs
+* [**Data Retention**](#data-retention) — Techniques to manage data collection and storage costs
 * [**Performance Impact**](#performance-impact) — Assess the SDK's impact on app performance
 * [**SDK Upgrade Guides**](sdk-upgrade-guides/README.md) — Upgrade to the latest SDK versions for Android and iOS
 
@@ -39,6 +44,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
     * [**Android**](features/feature-bug-report-android.md)
     * [**iOS**](features/feature-bug-report-ios.md)
     * [**Flutter**](features/feature-bug-report-flutter.md)
+* [**Screenshot Masking for SwiftUI**](features/feature-screenshot-masking-swiftui.md) — Mask sensitive content in SwiftUI views when capturing screenshots
 * [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network Monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
 * [**Network Connectivity Changes**](features/feature-network-connectivity-changes.md) — Track when network connectivity changes

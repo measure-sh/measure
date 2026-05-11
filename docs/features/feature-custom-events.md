@@ -1,3 +1,7 @@
+---
+description: "Track app-specific events like user actions with custom attributes and view them on the Session Timeline."
+---
+
 # Track Custom Events
 
 * [**Introduction**](#introduction)
@@ -17,7 +21,7 @@ Custom events let you add your own context on top of the automatically collected
 
 ## Custom Events in Session Timeline
 
-Custom events are included in the [Session Timeline](feature-session-monitoring.md#session-timeline) along with other automatically collected events. The event and its attributes can be viewed in the timeline, making it easy to get context on what happened during a session.
+Custom events are included in the [Session Timeline](feature-session-timelines.md) along with other automatically collected events. The event and its attributes can be viewed in the timeline, making it easy to get context on what happened during a session.
 
 ## API Reference
 

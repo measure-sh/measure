@@ -1,3 +1,8 @@
+---
+title: "Measure SDK Performance Impact & Benchmarks"
+description: "Benchmarks for the Measure SDK's impact on app startup and per-event overhead, plus comparison to Firebase initialization."
+---
+
 # Performance Impact
 
 See the platform-specific sections below for details on the performance impact of the Measure SDK on your app.

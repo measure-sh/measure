@@ -1,3 +1,8 @@
+---
+title: "Error Tracking (Handled Exceptions)"
+description: "Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS, and Flutter APIs."
+---
+
 # Track errors
 
 Measure automatically captures crashes and ANRs (Application Not Responding) in your app, but you can also track handled

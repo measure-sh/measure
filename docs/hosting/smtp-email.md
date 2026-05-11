@@ -1,3 +1,8 @@
+---
+title: "Set Up SMTP Email for Self-Hosted Measure"
+description: "Configure an SMTP email provider for your self-hosted Measure instance to send invites, alerts, and daily summary emails."
+---
+
 # Set up an SMTP email provider
 
 Set up an email provider to get SMTP credentials. We recommend [Ethereal Mail](https://ethereal.email) for local development/testing and [Resend](https://resend.com), [SendGrid](https://sendgrid.com) or [AWS SES](https://aws.amazon.com/ses) for production.

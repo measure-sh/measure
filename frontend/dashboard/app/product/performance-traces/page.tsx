@@ -9,14 +9,12 @@ import TraceDemo from "./trace_demo";
 
 export const metadata: Metadata = {
   title: "Mobile App Performance Tracing & Monitoring",
-  description:
-    "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues harming your app experience.",
+  description: "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks, and fix performance issues hurting your app.",
   alternates: { canonical: "/product/performance-traces" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile App Performance Tracing & Monitoring",
-    description:
-      "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues harming your app experience.",
+    description: "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks, and fix performance issues hurting your app.",
     url: "/product/performance-traces",
   },
 };

@@ -1,3 +1,8 @@
+---
+title: "SDK Ingestion REST API Reference"
+description: "Reference for the Measure SDK ingestion REST API. Events, builds, config, attachments, traces, and authentication."
+---
+
 # SDK REST API Documentation <!-- omit in toc -->
 
 Find all the endpoints, resources and detailed documentation for Measure SDK REST APIs.
@@ -55,7 +60,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`navigation`**](#navigation)
     - [**`screen_view`**](#screen_view)
     - [**`custom`**](#custom)
-    - [**`session_start`**](#session-start)
+    - [**`session_start`**](#session_start)
 
   - [Traces](#traces)
 

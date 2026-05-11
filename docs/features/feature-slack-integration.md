@@ -1,3 +1,8 @@
+---
+title: "Slack Integration — Crash, ANR, Bug Report Alerts and Daily Summaries"
+description: "Receive Measure crash spike, ANR spike, bug report alerts and daily summaries in Slack. Manage subscriptions, list channels, and stop alerts via slash commands."
+---
+
 # Slack Integration
 
 Measure's Slack integration lets you receive alert notifications and daily summaries directly in your Slack workspace.
@@ -9,7 +14,7 @@ Measure's Slack integration lets you receive alert notifications and daily summa
   * [`/list-alert-channels`](#list-alert-channels)
 * [**Sending a Test Alert**](#sending-a-test-alert)
 * [**Disabling Slack Integration**](#disabling-slack-integration)
-* [**Self Hosted Setup**](#self-hosted-setup)
+* [**Self Hosted Setup**](../hosting/slack.md)
 
 ## Connecting Your Slack Workspace
 

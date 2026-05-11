@@ -1,3 +1,8 @@
+---
+title: "SDK Upgrade Guides (Android, iOS, Flutter)"
+description: "Upgrade guides for major Measure SDK versions across Android, iOS, and Flutter. Breaking changes and migration steps."
+---
+
 # SDK Upgrade Guides
 
 This directory contains upgrade guides for the SDKs. This contains detailed information about any breaking changes or
@@ -7,3 +12,4 @@ any breaking changes or behavior changes, we recommend checking the release note
 
 - [Android SDK v0.16.0](android-v0.16.0.md)
 - [iOS SDK v0.9.0](ios-v0.9.0.md)
+- [Measure Flutter SDK v0.4.0](measre_flutter-v0.4.0.md)

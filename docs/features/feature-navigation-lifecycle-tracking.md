@@ -1,3 +1,7 @@
+---
+description: "Automatic capture of Activity, Fragment, View Controller, SwiftUI, and Flutter lifecycle events plus screen views for navigation."
+---
+
 # Navigation & Lifecycle Tracking
 
 - [**Introduction**](#introduction)
@@ -205,12 +209,12 @@ Measure.instance.trackScreenView("Home");
 
 Check the following sections for the data collected by Measure for each lifecycle event:
 
-- [App Lifecycle Event](../api/sdk/README.md#lifecycleapp) — for application foregrounded and backgrounded.
-- [Activity Lifecycle Event](../api/sdk/README.md#lifecycleactivity) — for `Activity` lifecycle events.
-- [Fragment Lifecycle Event](../api/sdk/README.md#lifecyclefragment) — for `Fragment` lifecycle events.
+- [App Lifecycle Event](../api/sdk/README.md#lifecycle_app) — for application foregrounded and backgrounded.
+- [Activity Lifecycle Event](../api/sdk/README.md#lifecycle_activity) — for `Activity` lifecycle events.
+- [Fragment Lifecycle Event](../api/sdk/README.md#lifecycle_fragment) — for `Fragment` lifecycle events.
 - [View Controller Lifecycle Event](https://github.com/measure-sh/measure/blob/main/docs/api/sdk/README.md#lifecycle_view_controller) —
   for `UIViewController` lifecycle events.
 - [SwiftUI Lifecycle Event](https://github.com/measure-sh/measure/blob/main/docs/api/sdk/README.md#lifecycle_swift_ui) —
   for
   `SwiftUI` lifecycle events.
-- [Screen View Event](../api/sdk/README.md#screenview) — for screen view events.
+- [Screen View Event](../api/sdk/README.md#screen_view) — for screen view events.

@@ -1,3 +1,8 @@
+---
+title: "Mobile App Launch Metrics"
+description: "Track cold, warm, and hot launch times for Android and iOS apps with full sampling control.."
+---
+
 # App Launch Metrics
 
 * [**Introduction**](#introduction)
@@ -26,7 +31,7 @@ metrics.
 
 ## Data Collected
 
-Check out the data collected by Measure for [Cold Launch](../api/sdk/README.md#coldlaunch), [Warm Launch](../api/sdk/README.md#warmlaunch), and [Hot Launch](../api/sdk/README.md#hotlaunch) respectively.
+Check out the data collected by Measure for [Cold Launch](../api/sdk/README.md#cold_launch), [Warm Launch](../api/sdk/README.md#warm_launch), and [Hot Launch](../api/sdk/README.md#hot_launch) respectively.
 
 ## How It Works
 

@@ -1,4 +1,4 @@
-import { cleanContent, extractTitle, extractTocEntries } from '@/app/docs/docs'
+import { cleanContent, extractDescription, extractTitle, extractTocEntries, parseFrontmatter } from '@/app/docs/docs'
 import { describe, expect, it } from '@jest/globals'
 
 describe('extractTocEntries', () => {
@@ -209,5 +209,167 @@ describe('extractTitle', () => {
 
   it('ignores h2 and h3 headings', () => {
     expect(extractTitle('## Not a title\n### Also not')).toBe('Documentation')
+  })
+})
+
+describe('extractDescription', () => {
+  it('returns the first paragraph after the title', () => {
+    const content = [
+      '# Crash Reporting',
+      '',
+      'Crashes are automatically tracked, optionally with a snapshot of the app UI.',
+      '',
+      '## Metrics',
+    ].join('\n')
+
+    expect(extractDescription(content)).toBe(
+      'Crashes are automatically tracked, optionally with a snapshot of the app UI.',
+    )
+  })
+
+  it('skips a TOC bullet list that immediately follows the title', () => {
+    const content = [
+      '# Getting Started',
+      '',
+      '* [Step 1](#step-1)',
+      '* [Step 2](#step-2)',
+      '',
+      'Welcome to the integration guide for measure-sh.',
+    ].join('\n')
+
+    expect(extractDescription(content)).toBe(
+      'Welcome to the integration guide for measure-sh.',
+    )
+  })
+
+  it('skips admonitions and headings before finding a paragraph', () => {
+    const content = [
+      '# Feature',
+      '',
+      '> [!NOTE]',
+      '> This is in beta.',
+      '',
+      '## Overview',
+      '',
+      'This feature lets you do things.',
+    ].join('\n')
+
+    expect(extractDescription(content)).toBe('This feature lets you do things.')
+  })
+
+  it('strips markdown links and emphasis', () => {
+    const content = [
+      '# Title',
+      '',
+      'See the [docs](https://example.com) for **details** and `code`.',
+    ].join('\n')
+
+    expect(extractDescription(content)).toBe(
+      'See the docs for details and code.',
+    )
+  })
+
+  it('truncates long paragraphs at a word boundary with an ellipsis', () => {
+    const paragraph =
+      'This is a long paragraph that goes on and on and on, packed with words that will need to be truncated because we only allow a limited number of characters in the description tag, which is a constraint imposed by search engines.'
+    const content = ['# Title', '', paragraph].join('\n')
+
+    const result = extractDescription(content)
+    expect(result.length).toBeLessThan(paragraph.length)
+    expect(result.length).toBeLessThanOrEqual(161)
+    expect(result.endsWith('…')).toBe(true)
+    expect(result.slice(0, -1)).not.toMatch(/\s$/)
+    expect(paragraph).toContain(result.slice(0, -1))
+  })
+
+  it('returns empty string when no plain paragraph is present', () => {
+    const content = [
+      '# Title',
+      '',
+      '* only a list',
+      '* of bullet items',
+    ].join('\n')
+
+    expect(extractDescription(content)).toBe('')
+  })
+
+  it('returns empty string for content with only a title', () => {
+    expect(extractDescription('# Just a title')).toBe('')
+  })
+})
+
+describe('parseFrontmatter', () => {
+  it('returns empty frontmatter when content has none', () => {
+    expect(parseFrontmatter('# Title\n\nbody')).toEqual({
+      frontmatter: {},
+      body: '# Title\n\nbody',
+    })
+  })
+
+  it('parses a single description field', () => {
+    const out = parseFrontmatter(
+      '---\ndescription: A short summary.\n---\n\n# Title',
+    )
+    expect(out.frontmatter).toEqual({ description: 'A short summary.' })
+    expect(out.body).toBe('# Title')
+  })
+
+  it('strips surrounding double quotes from values', () => {
+    const out = parseFrontmatter(
+      '---\ndescription: "Quoted summary with : a colon"\n---\n\n# Title',
+    )
+    expect(out.frontmatter.description).toBe('Quoted summary with : a colon')
+  })
+
+  it('strips surrounding single quotes from values', () => {
+    const out = parseFrontmatter(
+      "---\ntitle: 'Single quoted'\n---\n\n# X",
+    )
+    expect(out.frontmatter.title).toBe('Single quoted')
+  })
+
+  it('parses multiple fields', () => {
+    const out = parseFrontmatter(
+      '---\ntitle: T\ndescription: D\n---\n\n# X',
+    )
+    expect(out.frontmatter).toEqual({ title: 'T', description: 'D' })
+  })
+
+  it('returns original content if frontmatter has no closing delimiter', () => {
+    const input = '---\ndescription: no closing\n# Title'
+    expect(parseFrontmatter(input)).toEqual({
+      frontmatter: {},
+      body: input,
+    })
+  })
+
+  it('ignores frontmatter that does not start the file', () => {
+    const input = 'lead text\n---\ndescription: nope\n---\n# Title'
+    expect(parseFrontmatter(input)).toEqual({
+      frontmatter: {},
+      body: input,
+    })
+  })
+
+  it('preserves the body verbatim after the closing delimiter', () => {
+    const out = parseFrontmatter(
+      '---\ndescription: x\n---\n\n# Title\n\nFirst paragraph.\n',
+    )
+    expect(out.body).toBe('# Title\n\nFirst paragraph.\n')
+  })
+
+  it('handles CRLF line endings', () => {
+    const out = parseFrontmatter(
+      '---\r\ndescription: D\r\n---\r\n\r\n# X',
+    )
+    expect(out.frontmatter).toEqual({ description: 'D' })
+    expect(out.body).toBe('# X')
+  })
+
+  it('skips lines that are not key: value pairs', () => {
+    const out = parseFrontmatter(
+      '---\n# a comment\ndescription: D\n---\n# X',
+    )
+    expect(out.frontmatter).toEqual({ description: 'D' })
   })
 })
