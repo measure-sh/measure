@@ -1,3 +1,8 @@
+---
+title: "Mobile Crash Reporting (Android, iOS, Flutter)"
+description: "Track crashes in Android, iOS, and Flutter apps. Crash-free rate, perceived crash rate, UI snapshots, crash grouping, and symbolicated stack traces."
+---
+
 # Crash Reporting
 
 Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.

@@ -15,6 +15,39 @@ export interface DocPage {
   slug: string[];
   content: string;
   title: string;
+  description: string;
+  isIndex: boolean;
+}
+
+/**
+ * Parse YAML frontmatter at the start of a markdown file. Only supports flat
+ * `key: value` lines (with optional surrounding "single" or "double" quotes) —
+ * enough for `title` and `description` fields, no nested structures.
+ */
+export function parseFrontmatter(content: string): {
+  frontmatter: Record<string, string>;
+  body: string;
+} {
+  const match = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+  if (!match) {
+    return { frontmatter: {}, body: content };
+  }
+  const frontmatter: Record<string, string> = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const kv = line.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!kv) {
+      continue;
+    }
+    let value = kv[2].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'");
+    }
+    frontmatter[kv[1]] = value;
+  }
+  return { frontmatter, body: content.slice(match[0].length) };
 }
 
 /**
@@ -56,6 +89,57 @@ export function extractTitle(content: string): string {
   return match ? match[1].trim() : "Documentation";
 }
 
+/**
+ * Extract the first plain paragraph from markdown content, skipping
+ * the title, TOC lists, admonitions, headings, tables, and code blocks.
+ * Returns an empty string when no suitable paragraph is found.
+ */
+export function extractDescription(content: string): string {
+  const afterTitle = content.replace(/^#\s+.+$/m, "");
+  const blocks = afterTitle.split(/\n\s*\n/);
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const firstChar = trimmed[0];
+    if (
+      firstChar === "#" ||
+      firstChar === "*" ||
+      firstChar === "-" ||
+      firstChar === "+" ||
+      firstChar === ">" ||
+      firstChar === "|" ||
+      firstChar === "<" ||
+      trimmed.startsWith("```")
+    ) {
+      continue;
+    }
+
+    const plain = trimmed
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[*_`~]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!plain) {
+      continue;
+    }
+
+    if (plain.length > 160) {
+      const truncated = plain.slice(0, 157);
+      const lastSpace = truncated.lastIndexOf(" ");
+      const cut = lastSpace > 100 ? truncated.slice(0, lastSpace) : truncated;
+      return `${cut}…`;
+    }
+    return plain;
+  }
+
+  return "";
+}
+
 export function getDocBySlug(slug: string[]): DocPage | null {
   const docsDir = getDocsDirectory();
   const filePath = slugToFilePath(docsDir, slug);
@@ -64,13 +148,16 @@ export function getDocBySlug(slug: string[]): DocPage | null {
     return null;
   }
 
-  const content = fs.readFileSync(filePath, "utf-8");
-  const cleaned = cleanContent(content);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const cleaned = cleanContent(body);
 
   return {
     slug,
     content: cleaned,
-    title: extractTitle(cleaned),
+    title: frontmatter.title || extractTitle(cleaned),
+    description: frontmatter.description || extractDescription(cleaned),
+    isIndex: filePath.endsWith(`${path.sep}README.md`),
   };
 }
 
@@ -82,13 +169,16 @@ export function getDocIndex(): DocPage | null {
     return null;
   }
 
-  const content = fs.readFileSync(filePath, "utf-8");
-  const cleaned = cleanContent(content);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const cleaned = cleanContent(body);
 
   return {
     slug: [],
     content: cleaned,
-    title: extractTitle(cleaned),
+    title: frontmatter.title || extractTitle(cleaned),
+    description: frontmatter.description || extractDescription(cleaned),
+    isIndex: true,
   };
 }
 
@@ -188,9 +278,10 @@ export function generateSearchIndex(): SearchIndexEntry[] {
   const entries: SearchIndexEntry[] = [];
 
   function processFile(filePath: string, slug: string[]) {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const { frontmatter, body: content } = parseFrontmatter(raw);
 
-    const title = extractTitle(content);
+    const title = frontmatter.title || extractTitle(content);
     const headings: string[] = [];
     const headingRegex = /^#{2,3}\s+(.+)$/gm;
     let match;

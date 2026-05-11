@@ -1,3 +1,8 @@
+---
+title: "Gesture Tracking with Layout Snapshots"
+description: "Automatically capture user gestures like taps, scrolls and long-presses alongside layout snapshots showing the UI that was acted on."
+---
+
 # Gesture Tracking
 
 * [**Overview**](#overview)
@@ -254,8 +259,6 @@ TLDR;
 
 - On average, it takes **4 ms** to identify the clicked view in a view hierarchy with a depth of **1,500**.
 - For more common scenarios, a view hierarchy with a depth of **20** takes approximately **0.2 ms**.
-- You can find the benchmark tests
-  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests//GestureTargetFinderTests.swift).
 
 ### Flutter
 

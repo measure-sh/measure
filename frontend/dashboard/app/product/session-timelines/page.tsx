@@ -8,15 +8,13 @@ import LandingHeader from "../../components/landing_header";
 import SessionTimelineDemo from "./session_timeline_demo";
 
 export const metadata: Metadata = {
-  title: "Mobile Session Timelines",
-  description:
-    "No more guessing what the user was doing - see every click, navigation, network call, log, error and CPU/memory signal stitched into a single timeline to diagnose issues faster.",
+  title: "Mobile Session Timelines & Replay",
+  description: "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
   alternates: { canonical: "/product/session-timelines" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Mobile Session Timelines",
-    description:
-      "No more guessing what the user was doing - see every click, navigation, network call, log, error and CPU/memory signal stitched into a single timeline to diagnose issues faster.",
+    title: "Mobile Session Timelines & Replay | Measure",
+    description: "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
     url: "/product/session-timelines",
   },
 };

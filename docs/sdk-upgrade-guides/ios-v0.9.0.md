@@ -1,3 +1,8 @@
+---
+title: "Upgrade Measure iOS SDK to v0.9.0"
+description: "Upgrade the Measure iOS SDK to v0.9.0. MeasureConfig moved to the dashboard, stricter span validation, and configurable session timelines."
+---
+
 # Upgrading to iOS SDK v0.9.0
 
 ## Breaking Changes

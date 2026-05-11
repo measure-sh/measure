@@ -1,3 +1,7 @@
+---
+description: "Measure's REST APIs for SDK ingestion and the Dashboard, designed around standard REST principles."
+---
+
 # Measure REST API Documentation <!-- omit in toc -->
 
 Measure APIs are built following sound REST API design principles. At the moment, Measure offers APIs for the following channels.

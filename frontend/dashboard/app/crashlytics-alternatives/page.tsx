@@ -15,17 +15,13 @@ import LandingHeader from "../components/landing_header";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
-  title: {
-    absolute: "Measure vs Firebase Crashlytics",
-  },
-  description:
-    "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines into a single platform so you can stop stitching context and get to the root cause faster.",
+  title: "Open Source Firebase Crashlytics Alternative",
+  description: "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
   alternates: { canonical: "/crashlytics-alternatives" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Measure vs Firebase Crashlytics",
-    description:
-      "Measure is an open-source Firebase Crashlytics alternative built for mobile teams. Measure unifies Crashes, ANRs, Performance, Network and full Session Timelines into a single platform so you can stop stitching context and get to the root cause faster.",
+    title: "Open Source Firebase Crashlytics Alternative | Measure",
+    description: "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
     url: "/crashlytics-alternatives",
   },
 };

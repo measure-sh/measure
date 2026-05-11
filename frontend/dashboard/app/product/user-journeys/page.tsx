@@ -9,14 +9,12 @@ import UserJourneysDemo from "./user_journeys_demo";
 
 export const metadata: Metadata = {
   title: "User Journey Tracking for Mobile Apps",
-  description:
-    "Understand how users actually move through your mobile app. Track popular paths, find friction, and prioritize the flows that matter most.",
+  description: "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
   alternates: { canonical: "/product/user-journeys" },
   openGraph: {
     ...sharedOpenGraph,
     title: "User Journey Tracking for Mobile Apps",
-    description:
-      "Understand how users actually move through your mobile app. Track popular paths, find friction, and prioritize the flows that matter most.",
+    description: "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
     url: "/product/user-journeys",
   },
 };

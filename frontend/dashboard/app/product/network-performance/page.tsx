@@ -9,14 +9,12 @@ import NetworkDemo from "./network_demo";
 
 export const metadata: Metadata = {
   title: "Mobile Network Performance Monitoring",
-  description:
-    "Monitor the API call latency that your users actually feel. Investigate HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
+  description: "Monitor mobile API call latency, HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
   alternates: { canonical: "/product/network-performance" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile Network Performance Monitoring",
-    description:
-      "Monitor the API call latency that your users actually feel. Investigate HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
+    description: "Monitor mobile API call latency, HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
     url: "/product/network-performance",
   },
 };

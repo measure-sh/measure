@@ -1,3 +1,8 @@
+---
+title: "Self-Hosted Measure v0.4.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.4.x. Optional drop of old data and required data backfills."
+---
+
 # Migration Guide for `v0.4.x`
 
 Use this guide only when you are on less than `v0.4.0` and upgrading to `v0.4.x`.

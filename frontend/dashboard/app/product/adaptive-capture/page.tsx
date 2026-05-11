@@ -9,14 +9,12 @@ import LandingHeader from "../../components/landing_header";
 
 export const metadata: Metadata = {
   title: "Adaptive Capture — Control Mobile Monitoring Costs",
-  description:
-    "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you will never read.",
+  description: "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
   alternates: { canonical: "/product/adaptive-capture" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Adaptive Capture — Control Mobile Monitoring Costs",
-    description:
-      "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you will never read.",
+    description: "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
     url: "/product/adaptive-capture",
   },
 };

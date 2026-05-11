@@ -1,3 +1,8 @@
+---
+title: "Measure SDK and project Versioning"
+description: "How Measure versions its SDKs, backend, and dashboard with semver and platform-prefixed git tags."
+---
+
 # Versioning
 
 We use git tags and [semver](https://semver.org/) for versioning. 

@@ -1,3 +1,8 @@
+---
+title: "Network Connectivity Change Tracking"
+description: "Track when your app gains or loses network connectivity, switches between WiFi and cellular, or changes carrier."
+---
+
 # Network Connectivity Changes
 
 * [**Android**](#android)
@@ -42,5 +47,5 @@ same methods as described above for Android and iOS.
 
 ## Data collected
 
-Checkout the data collected by Measure for each network change in the [Network Event](../../api/sdk/README.md#networkchange) section.
+Checkout the data collected by Measure for each network change in the [Network Event](../api/sdk/README.md#network_change) section.
 

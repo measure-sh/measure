@@ -1,3 +1,8 @@
+---
+title: "MCP Server for Mobile App Monitoring"
+description: "Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows."
+---
+
 # MCP Server
 
 Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets AI-powered coding tools query your app's crash and error data directly.
@@ -27,8 +32,6 @@ Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP
   * [`get_alerts`](#get_alerts)
   * [`get_journey`](#get_journey)
   * [`update_bug_report_status`](#update_bug_report_status)
-* [**Authentication**](#authentication)
-* [**Self Hosted Setup**](#self-hosted-setup)
 
 ## What is MCP?
 

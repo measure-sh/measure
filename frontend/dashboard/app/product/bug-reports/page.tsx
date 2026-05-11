@@ -9,14 +9,12 @@ import BugReportDemo from "./bug_report_demo";
 
 export const metadata: Metadata = {
   title: "In-App Bug Reporting for Mobile Apps",
-  description:
-    "Capture bug reports with a device shake or SDK call. Get the full session context, device state, and network info so you can get to the root cause.",
+  description: "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
   alternates: { canonical: "/product/bug-reports" },
   openGraph: {
     ...sharedOpenGraph,
     title: "In-App Bug Reporting for Mobile Apps",
-    description:
-      "Capture bug reports with a device shake or SDK call. Get the full session context, device state, and network info so you can get to the root cause.",
+    description: "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
     url: "/product/bug-reports",
   },
 };

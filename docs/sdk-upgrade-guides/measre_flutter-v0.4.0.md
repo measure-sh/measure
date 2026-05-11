@@ -1,3 +1,8 @@
+---
+title: "Upgrade Measure Flutter SDK to v0.4.0"
+description: "Upgrade the Measure Flutter SDK to v0.4.0. Adds Layout Snapshots, requires manual native SDK init, and moves MeasureConfig options to the dashboard."
+---
+
 # Upgrading to Measure Flutter SDK v0.4.0
 
 ## Breaking Changes

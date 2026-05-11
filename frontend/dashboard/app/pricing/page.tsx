@@ -17,15 +17,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 import PricingCalculator from "./pricing_calculator";
 
 export const metadata: Metadata = {
-  title: "Plans and Pricing",
-  description:
-    "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits, no feature restrictions. 100% Open Source.",
+  title: "Pricing & Plans",
+  description: "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. 100% open source.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Plans and Pricing",
-    description:
-      "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits, no feature restrictions. 100% Open Source.",
+    title: "Pricing & Plans | Measure",
+    description: "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. 100% open source.",
     url: "/pricing",
   },
 };

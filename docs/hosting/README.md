@@ -1,3 +1,8 @@
+---
+title: "Self-Hosting Guide"
+description: "Self-host Measure to monitor crashes, ANRs, and performance for your mobile apps. Deploy on a Linux VM and configure OAuth, SMTP, and Slack."
+---
+
 # Self Hosting Guide <!-- omit in toc -->
 
 measure.sh is designed from the ground up for easy self-hosting. Follow along to run measure.sh on your own infrastructure.

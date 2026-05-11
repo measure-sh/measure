@@ -1,3 +1,8 @@
+---
+title: "App Size Monitoring (APK, AAB, IPA)"
+description: "Track your Android APK/AAB and iOS IPA size for every release to spot regressions before they ship."
+---
+
 # App Size Monitoring
 
 * [**Android**](#android)
@@ -27,7 +32,7 @@ Read more about AAB format [here](https://developer.android.com/guide/app-bundle
 
 ## iOS
 
-Measure automatically tracks size of the IPA file for each version when you upload dSYMs via the [upload_dsyms.sh](../../ios/Scripts/upload_dsyms.sh) script.
+Measure automatically tracks size of the IPA file for each version when you upload dSYMs using the [upload_dsym_xcarchive.sh](../../ios/Scripts/upload_dsym_xcarchive.sh) or [upload_dsym_manual.sh](../../ios/Scripts/upload_dsym_manual.sh) script.
 
 > [!NOTE]
 > This represents the size of the generated .ipa, not the actual App Store download size.

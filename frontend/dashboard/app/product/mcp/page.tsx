@@ -8,15 +8,13 @@ import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 
 export const metadata: Metadata = {
-  title: "MCP Server",
-  description:
-    "Connect Measure to Claude, Codex, Cursor and other coding agents. Query crashes, traces and sessions to fix issues faster than ever with AI.",
+  title: "MCP Server — Connect AI Agents to Measure",
+  description: "Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
   alternates: { canonical: "/product/mcp" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Measure MCP Server",
-    description:
-      "Connect Measure to Claude, Codex, Cursor and other coding agents. Query crashes, traces and sessions to fix issues faster than ever with AI.",
+    title: "MCP Server — Connect AI Agents to Measure | Measure",
+    description: "Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
     url: "/product/mcp",
   },
 };

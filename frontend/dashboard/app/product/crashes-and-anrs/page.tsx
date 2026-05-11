@@ -9,14 +9,12 @@ import ExceptionsDemo from "./exceptions_demo";
 
 export const metadata: Metadata = {
   title: "Mobile Crash Reporting & ANR Tracking",
-  description:
-    "Mobile Crash Reporting and ANR Tracking - Open Source Firebase Crashlytics alternative. Get full stack traces, likely reproduction steps and complete session context to fix crashes faster.",
+  description: "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
   alternates: { canonical: "/product/crashes-and-anrs" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile Crash Reporting & ANR Tracking",
-    description:
-      "Mobile Crash Reporting and ANR Tracking - Open Source Firebase Crashlytics alternative. Get full stack traces, likely reproduction steps and complete session context to fix crashes faster.",
+    description: "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
     url: "/product/crashes-and-anrs",
   },
 };

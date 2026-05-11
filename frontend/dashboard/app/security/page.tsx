@@ -8,15 +8,13 @@ import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
-  title: "Security",
-  description:
-    "Measure is committed to security and protection of your app's data. Completely open source so you can audit it yourself.",
+  title: "Security & Data Protection",
+  description: "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
   alternates: { canonical: "/security" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Security at Measure",
-    description:
-      "Measure is committed to security and protection of your app's data. Completely open source so you can audit it yourself.",
+    title: "Security & Data Protection | Measure",
+    description: "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
     url: "/security",
   },
 };

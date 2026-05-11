@@ -1,3 +1,8 @@
+---
+title: "Self-Hosted Measure v0.8.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.8.x. Required data backfills for crashes and ANRs."
+---
+
 # Migration Guide for `v0.8.x`
 
 Use this guide only when you are on less than `v0.8.0` and upgrading to `v0.8.x`.

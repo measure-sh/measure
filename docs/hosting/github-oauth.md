@@ -1,3 +1,8 @@
+---
+title: "Set Up GitHub OAuth for Self-Hosted Measure"
+description: "Set up a GitHub OAuth application for your self-hosted Measure instance. Register, configure credentials, and connect to Measure."
+---
+
 # Setup a GitHub OAuth Application
 
 1. Visit your GitHub organization's settings page, located at https://github.com/organizations/YOUR-ORGANIZATION/settings/profile. Replace `YOUR-ORGANIZATION` with the name of your organization.

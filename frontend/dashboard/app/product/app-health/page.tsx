@@ -8,15 +8,13 @@ import LandingHeader from "../../components/landing_header";
 import OverviewDemo from "./overview_demo";
 
 export const metadata: Metadata = {
-  title: "Mobile App Health",
-  description:
-    "Stay on top of your mobile app's health by tracking the metrics that matter: crash-free sessions, app launch times, release adoption and more.",
+  title: "Mobile App Health Metrics & Dashboards",
+  description: "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
   alternates: { canonical: "/product/app-health" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Mobile App Health",
-    description:
-      "Stay on top of your mobile app's health by tracking the metrics that matter: crash-free sessions, app launch times, release adoption and more.",
+    title: "Mobile App Health Metrics & Dashboards | Measure",
+    description: "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
     url: "/product/app-health",
   },
 };

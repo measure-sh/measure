@@ -1,3 +1,8 @@
+---
+title: "Data Retention Settings"
+description: "Configure how long Measure retains mobile app monitoring data per app."
+---
+
 # Data retention
 
 To control the amount of data stored on the server, measure-sh provides options to limit the time for which data is
