@@ -10,13 +10,14 @@ import Foundation
 enum ConfigFileConstants {
     static let fileName = "dynamic_config.json"
     static let folderName = "measure"
-    static let directory: FileManager.SearchPathDirectory = .cachesDirectory
+    static let directory: FileManager.SearchPathDirectory = .applicationSupportDirectory
     static let sdkDebugLogsFolderName = "sdk_debug_logs"
 }
 
 /// A protocol that defines file system related operations.
 protocol SystemFileManager {
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String?
+    func getAttachmentDirectoryPath() -> String?
     func getCrashFilePath() -> URL?
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL?
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
@@ -31,12 +32,12 @@ protocol SystemFileManager {
 final class BaseSystemFileManager: SystemFileManager {
     private let logger: Logger
     private let fileManager: FileManager
-    private var cacheDirectory: URL? {
-        guard let cacheDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access cache directory", error: nil, data: nil)
+    private var measureDirectory: URL? {
+        guard let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access application support directory", error: nil, data: nil)
             return nil
         }
-        return cacheDirectory.appendingPathComponent(cacheDirectoryName)
+        return appSupportDirectory.appendingPathComponent(ConfigFileConstants.folderName)
     }
     init(logger: Logger) {
         self.logger = logger
@@ -44,16 +45,24 @@ final class BaseSystemFileManager: SystemFileManager {
     }
 
     func getCrashFilePath() -> URL? {
-        guard let crashReportDirectory = cacheDirectory else { return nil }
+        guard let measureDir = measureDirectory else { return nil }
         do {
-            if !fileManager.fileExists(atPath: crashReportDirectory.path) {
-                try fileManager.createDirectory(at: crashReportDirectory, withIntermediateDirectories: true, attributes: nil)
+            if !fileManager.fileExists(atPath: measureDir.path) {
+                try fileManager.createDirectory(at: measureDir, withIntermediateDirectories: true, attributes: nil)
             }
         } catch {
             logger.internalLog(level: .error, message: "SystemFileManager: Failed to create crash report directory.", error: error, data: nil)
             return nil
         }
-        return crashReportDirectory.appendingPathComponent(crashDataFileName)
+        let newCrashPath = measureDir.appendingPathComponent(crashDataFileName)
+        if !fileManager.fileExists(atPath: newCrashPath.path),
+           let oldCrashPath = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?
+               .appendingPathComponent(cacheDirectoryName)
+               .appendingPathComponent(crashDataFileName),
+           fileManager.fileExists(atPath: oldCrashPath.path) {
+            try? fileManager.moveItem(at: oldCrashPath, to: newCrashPath)
+        }
+        return newCrashPath
     }
 
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL? {
@@ -121,6 +130,10 @@ final class BaseSystemFileManager: SystemFileManager {
         return directoryURL.path
     }
 
+    func getAttachmentDirectoryPath() -> String? {
+        return measureDirectory?.path
+    }
+
     func getDynamicConfigPath() -> String? {
         guard let directoryURL = fileManager.urls(for: ConfigFileConstants.directory, in: .userDomainMask).first else {
             logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(ConfigFileConstants.directory)", error: nil, data: nil)
@@ -176,12 +189,9 @@ final class BaseSystemFileManager: SystemFileManager {
     }
 
     func getSdkDebugLogsDirectory() -> URL? {
-        guard let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access application support directory", error: nil, data: nil)
-            return nil
-        }
+        guard let measureDir = measureDirectory else { return nil }
 
-        let debugLogsDirectory = appSupportDirectory.appendingPathComponent(ConfigFileConstants.sdkDebugLogsFolderName)
+        let debugLogsDirectory = measureDir.appendingPathComponent(ConfigFileConstants.sdkDebugLogsFolderName)
 
         if !fileManager.fileExists(atPath: debugLogsDirectory.path) {
             do {

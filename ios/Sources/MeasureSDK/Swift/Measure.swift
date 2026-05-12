@@ -296,7 +296,7 @@ import UIKit
 
     func internalGetAttachmentDirectory() -> String? {
         guard let measureInternal = self.measureInternal else { return nil }
-        return measureInternal.getDocumentDirectoryPath()
+        return measureInternal.getAttachmentDirectoryPath()
     }
 
     func internalEncodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {

@@ -432,8 +432,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
-    func getDocumentDirectoryPath() -> String? {
-        return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
+    func getAttachmentDirectoryPath() -> String? {
+        return systemFileManager.getAttachmentDirectoryPath()
     }
 
     func encodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
