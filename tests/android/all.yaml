@@ -1,0 +1,8 @@
+appId: sh.frankenstein.android
+---
+- runFlow: crash.yaml
+- runFlow: anr.yaml
+- runFlow: bug_report.yaml
+- runFlow: http.yaml
+
+- stopApp

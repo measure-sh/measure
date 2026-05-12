@@ -1,0 +1,16 @@
+appId: sh.frankenstein.android
+---
+- runFlow: session.yaml
+
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Launch Bug Report"
+- tapOn: "Launch Bug Report"
+- tapOn: "Briefly describe the issue you are facing"
+- inputText: "e2e test bug report"
+- tapOn: "Send"
+
+# Relaunch (no clearState) so the SDK uploads the bug report
+- launchApp
+- assertVisible: "Native Android"

@@ -1,0 +1,13 @@
+appId: sh.frankenstein.android
+---
+- runFlow: session.yaml
+
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Infinite Loop"
+- tapOn: "Infinite Loop"
+
+# Relaunch (no clearState) so the SDK uploads the ANR
+- launchApp
+- assertVisible: "Native Android"

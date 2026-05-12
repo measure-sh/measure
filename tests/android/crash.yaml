@@ -1,0 +1,13 @@
+appId: sh.frankenstein.android
+---
+- runFlow: session.yaml
+
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Single Exception"
+- tapOn: "Single Exception"
+
+# Relaunch (no clearState) so the SDK uploads the crash
+- launchApp
+- assertVisible: "Native Android"

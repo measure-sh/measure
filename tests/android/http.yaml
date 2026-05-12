@@ -1,0 +1,30 @@
+appId: sh.frankenstein.android
+env:
+  HTTP_COUNT: 10
+---
+- runFlow: session.yaml
+
+# Relaunch twice (no clearState) so remote config is fetched and
+# then applied before any HTTP calls are made
+- launchApp
+- assertVisible: "Native Android"
+- launchApp
+- assertVisible: "Native Android"
+
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "HTTP Client"
+- tapOn: "HTTP Client"
+- tapOn: "POST"
+- tapOn: "Include JSON body"
+- repeat:
+    times: ${HTTP_COUNT}
+    commands:
+      - tapOn: "Random path"
+      - tapOn: "Send"
+- back
+
+# Relaunch (no clearState) so the SDK uploads persisted HTTP events
+- launchApp
+- assertVisible: "Native Android"

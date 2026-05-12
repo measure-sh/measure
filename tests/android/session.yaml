@@ -1,0 +1,73 @@
+appId: sh.frankenstein.android
+---
+- launchApp
+- assertVisible: "Native Android"
+- tapOn: "Native Android"
+
+# Navigation — Compose Navigation, two route changes
+- scrollUntilVisible:
+    element:
+      text: "Compose Navigation"
+- tapOn: "Compose Navigation"
+- tapOn: "Checkout"
+- back
+- back
+
+# HTTP — POST with JSON body
+- scrollUntilVisible:
+    element:
+      text: "HTTP Client"
+- tapOn: "HTTP Client"
+- evalScript: "${output.method = Math.random() < 0.5 ? 'GET' : 'POST'}"
+- tapOn: ${output.method}
+- runFlow:
+    when:
+      true: ${output.method == 'POST'}
+    commands:
+      - tapOn: "Include JSON body"
+- tapOn: "Random path"
+- tapOn: "Send"
+- back
+
+# HTTP — send while offline
+- scrollUntilVisible:
+    element:
+      text: "HTTP Client"
+- tapOn: "HTTP Client"
+- setAirplaneMode: enabled
+- tapOn: "Send"
+- setAirplaneMode: disabled
+- back
+
+# Span
+- scrollUntilVisible:
+    element:
+      text: "Create Span"
+- tapOn: "Create Span"
+
+# Custom event
+- scrollUntilVisible:
+    element:
+      text: "Track Custom Event"
+- tapOn: "Track Custom Event"
+
+# Handled exception
+- scrollUntilVisible:
+    element:
+      text: "Track Handled Exception"
+- tapOn: "Track Handled Exception"
+
+# User ID
+- scrollUntilVisible:
+    element:
+      text: "Set User ID"
+- tapOn: "Set User ID"
+
+# Background then foreground to trigger a hot launch
+- pressKey: Home
+- launchApp:
+    stopApp: false
+
+# Relaunch (no clearState) so the SDK uploads persisted events
+- launchApp
+- assertVisible: "Native Android"
