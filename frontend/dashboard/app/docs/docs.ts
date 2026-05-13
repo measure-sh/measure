@@ -82,16 +82,37 @@ export function cleanContent(content: string): string {
 }
 
 /**
+ * Strip HTML tags iteratively until the string stops changing. A single
+ * regex pass is incomplete because a nested input like `<scr<script>ipt>`
+ * leaves a partial tag behind after one replace — iterating to a fixed
+ * point removes any residue. The regex always consumes ≥3 chars per
+ * match, so the loop is guaranteed to terminate.
+ */
+function stripHtmlTags(input: string): string {
+  let out = input;
+  for (let i = 0; i < 50; i++) {
+    const next = out.replace(/<[^>]+>/g, "");
+    if (next === out) {
+      return next;
+    }
+    out = next;
+  }
+  return out;
+}
+
+/**
  * Reduce a markdown body to plain text suitable for full-text search.
  * Strips fences, headings, raw HTML, images/links, emphasis markers,
  * list/blockquote prefixes, table pipes, and GFM callout markers
  * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
  */
 export function stripSearchContent(content: string): string {
-  return cleanContent(content)
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^#{1,6}\s+.+$/gm, "")
-    .replace(/<[^>]+>/g, "")
+  const withoutTags = stripHtmlTags(
+    cleanContent(content)
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/^#{1,6}\s+.+$/gm, ""),
+  );
+  return withoutTags
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, "")

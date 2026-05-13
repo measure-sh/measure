@@ -721,6 +721,23 @@ describe('stripSearchContent', () => {
     expect(stripSearchContent('Line 1<br />Line 2')).toBe('Line 1Line 2')
   })
 
+  it('strips nested HTML tags fully (no <script> residue)', () => {
+    // A single-pass replace would leave a partial `<script>` behind here.
+    // The iterative strip must drain the residue so no executable tag survives.
+    const out = stripSearchContent('<scr<script>ipt>foo</scr</script>ipt>')
+    expect(out.toLowerCase()).not.toContain('<script')
+    expect(out.toLowerCase()).not.toContain('</script')
+    expect(out).not.toContain('<')
+    expect(out).toContain('foo')
+  })
+
+  it('removes all < characters even from deeply nested tag soup', () => {
+    // Only `<` matters for tag-injection risk; stray `>` is harmless text.
+    const out = stripSearchContent('<<a><<b>c<<d>e>f>')
+    expect(out).not.toContain('<')
+    expect(out).toContain('f')
+  })
+
   it('strips image syntax (alt text and src)', () => {
     expect(stripSearchContent('See ![Cool diagram](img.png) below')).toBe(
       'See below',
