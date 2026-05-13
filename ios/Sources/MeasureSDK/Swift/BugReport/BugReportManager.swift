@@ -95,10 +95,12 @@ final class BaseBugReportManager: BugReportManager {
         }
     }
 
-    private func clearState() {
-        self.localAttachments.forEach { attachment in
-            if let path = attachment.path {
-                systemFileManager.deleteFile(atPath: path)
+    private func clearState(_ shouldClearAttachments: Bool = true) {
+        if shouldClearAttachments {
+            self.localAttachments.forEach { attachment in
+                if let path = attachment.path {
+                    systemFileManager.deleteFile(atPath: path)
+                }
             }
         }
         self.localAttachments.removeAll()
@@ -111,17 +113,20 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
     func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
-        if let description = description, let attachments = attachments, let bugReportCollector = bugReportCollector {
-            bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: nil)
+        guard let description, let attachments, let bugReportCollector else {
+            clearState()
+            return
         }
-        clearState()
+
+        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: nil)
+        clearState(false)
     }
 
     func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [MsrAttachment]) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         DispatchQueue.main.async { [weak self] in
-            guard let self = self, let floatingButtonViewController = self.floatingButtonViewController else { return }
+            guard let self = self else { return }
             self.localAttachments = attachments
             self.description = description
 
@@ -130,11 +135,11 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
                                                                              attachments: self.localAttachments,
                                                                              configProvider: configProvider,
                                                                              systemFileManager: systemFileManager)
-            floatingButtonViewController.delegate = self
+            self.floatingButtonViewController?.delegate = self
 
-            if let window = UIWindow.keyWindow() {
-                floatingButtonViewController.view.frame = window.bounds
-                window.addSubview(floatingButtonViewController.view)
+            if let window = UIWindow.keyWindow(), let view = self.floatingButtonViewController?.view {
+                self.floatingButtonViewController?.view.frame = window.bounds
+                window.addSubview(view)
             }
         }
     }

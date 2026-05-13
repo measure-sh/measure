@@ -12,6 +12,9 @@ enum ConfigFileConstants {
     static let folderName = "measure"
     static let directory: FileManager.SearchPathDirectory = .applicationSupportDirectory
     static let sdkDebugLogsFolderName = "sdk_debug_logs"
+    static let crashDataFolderName = "crash_data"
+    static let dynamicConfigFolderName = "dynamic_config"
+    static let attachmentsFolderName = "attachments"
 }
 
 /// A protocol that defines file system related operations.
@@ -46,15 +49,16 @@ final class BaseSystemFileManager: SystemFileManager {
 
     func getCrashFilePath() -> URL? {
         guard let measureDir = measureDirectory else { return nil }
+        let crashDir = measureDir.appendingPathComponent(ConfigFileConstants.crashDataFolderName)
         do {
-            if !fileManager.fileExists(atPath: measureDir.path) {
-                try fileManager.createDirectory(at: measureDir, withIntermediateDirectories: true, attributes: nil)
+            if !fileManager.fileExists(atPath: crashDir.path) {
+                try fileManager.createDirectory(at: crashDir, withIntermediateDirectories: true, attributes: nil)
             }
         } catch {
             logger.internalLog(level: .error, message: "SystemFileManager: Failed to create crash report directory.", error: error, data: nil)
             return nil
         }
-        let newCrashPath = measureDir.appendingPathComponent(crashDataFileName)
+        let newCrashPath = crashDir.appendingPathComponent(crashDataFileName)
         if !fileManager.fileExists(atPath: newCrashPath.path),
            let oldCrashPath = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?
                .appendingPathComponent(cacheDirectoryName)
@@ -131,19 +135,23 @@ final class BaseSystemFileManager: SystemFileManager {
     }
 
     func getAttachmentDirectoryPath() -> String? {
-        return measureDirectory?.path
+        guard let attachmentsDir = measureDirectory?.appendingPathComponent(ConfigFileConstants.attachmentsFolderName) else { return nil }
+        if !fileManager.fileExists(atPath: attachmentsDir.path) {
+            do {
+                try fileManager.createDirectory(at: attachmentsDir, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                logger.internalLog(level: .error, message: "SystemFileManager: Failed to create attachments directory", error: error, data: nil)
+                return nil
+            }
+        }
+        return attachmentsDir.path
     }
 
     func getDynamicConfigPath() -> String? {
-        guard let directoryURL = fileManager.urls(for: ConfigFileConstants.directory, in: .userDomainMask).first else {
-            logger.internalLog(level: .error, message: "SystemFileManager: Unable to access directory \(ConfigFileConstants.directory)", error: nil, data: nil)
-            return nil
-        }
-
-        let folderURL = directoryURL.appendingPathComponent(ConfigFileConstants.folderName)
-        let fileURL = folderURL.appendingPathComponent(ConfigFileConstants.fileName)
-
-        return fileURL.path
+        return measureDirectory?
+            .appendingPathComponent(ConfigFileConstants.dynamicConfigFolderName)
+            .appendingPathComponent(ConfigFileConstants.fileName)
+            .path
     }
     
     func retrieveFile(atPath path: String) -> Data? {
