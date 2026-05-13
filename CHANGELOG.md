@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Iterate HTML tag strip to drain nested-tag residue by @anupcowkur in #3617
 - (**frontend**): Pin pricing calculator locale and widen slider ranges by @anupcowkur in #3596
 - (**frontend**): Restore social preview image on landing pages by @anupcowkur in #3594
 - (**frontend**): Block framing to prevent clickjacking by @anupcowkur in #3499
@@ -62,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Improve docs by @anupcowkur
 - (**frontend**): Update titles & descriptions for docs + website pages by @anupcowkur in #3616
 - (**frontend**): Update crashlytics alternative page description by @anupcowkur in #3608
 - (**frontend**): Drop "cloud" in pages by @anupcowkur in #3607
