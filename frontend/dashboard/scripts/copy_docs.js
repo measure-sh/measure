@@ -58,6 +58,28 @@ function extractTitle(content) {
   return match ? stripHtmlComments(match[1]).trim() : "Documentation";
 }
 
+/**
+ * Reduce a markdown body to plain text suitable for full-text search.
+ * Strips fences, headings, raw HTML, images/links, emphasis markers,
+ * list/blockquote prefixes, table pipes, and GFM callout markers
+ * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
+ */
+function stripSearchContent(body) {
+  return stripHtmlComments(body)
+    .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+    .replace(/^#{1,6}\s+.+$/gm, "") // headings (indexed separately)
+    .replace(/<[^>]+>/g, "") // raw HTML tags (<details>, <summary>, <br>, …)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // markdown links → text
+    .replace(/\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, "") // GFM callouts
+    .replace(/[*_`~]/g, "") // emphasis/code markers
+    .replace(/^\s*[-*+]\s+/gm, "") // list bullets
+    .replace(/^\s*>\s?/gm, "") // blockquote markers
+    .replace(/\|/g, " ") // table pipes
+    .replace(/\s+/g, " ") // normalize whitespace
+    .trim();
+}
+
 function generateSearchIndex(docsDir) {
   const entries = [];
 
@@ -81,12 +103,7 @@ function generateSearchIndex(docsDir) {
           headings.push(stripHtmlComments(match[1]).trim());
         }
 
-        const plainContent = stripHtmlComments(body)
-          .replace(/^#{1,6}\s+.+$/gm, "")
-          .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-          .replace(/[*_`~]/g, "")
-          .replace(/\n{2,}/g, "\n")
-          .trim();
+        const plainContent = stripSearchContent(body);
 
         let slug;
         if (entry.name === "README.md") {
@@ -401,6 +418,7 @@ function generateDocsNav(docsDir) {
 module.exports = {
   stripHtmlComments,
   stripFrontmatter,
+  stripSearchContent,
   extractTitle,
   mdPathToSlug,
   getTitleFromFile,

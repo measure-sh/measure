@@ -13,6 +13,7 @@ const {
   parseDirectoryNav,
   generateDocsNav,
   generateSearchIndex,
+  stripSearchContent,
 } = require('@/scripts/copy_docs')
 
 describe('stripHtmlComments', () => {
@@ -674,5 +675,144 @@ describe('generateSearchIndex', () => {
     const index = generateSearchIndex('/docs')
 
     expect(index[0].content).toContain('This is bold and italic and code')
+  })
+})
+
+describe('stripSearchContent', () => {
+  it('returns empty string for empty input', () => {
+    expect(stripSearchContent('')).toBe('')
+  })
+
+  it('strips fenced code blocks entirely', () => {
+    const md = 'Before\n\n```kotlin\nMeasure.init()\n```\n\nAfter'
+    expect(stripSearchContent(md)).toBe('Before After')
+  })
+
+  it('strips multi-line fenced code blocks with language tags', () => {
+    const md = [
+      'Intro',
+      '',
+      '```dart',
+      'void main() {',
+      '  runApp(MyApp());',
+      '}',
+      '```',
+      '',
+      'Outro',
+    ].join('\n')
+    expect(stripSearchContent(md)).toBe('Intro Outro')
+  })
+
+  it('strips headings of all levels', () => {
+    const md = '# H1\n\n## H2\n\n### H3\n\nbody\n\n#### H4\n\nmore body'
+    expect(stripSearchContent(md)).toBe('body more body')
+  })
+
+  it('strips raw HTML tags but keeps inner text', () => {
+    const md = '<details><summary>Self-host Compatibility</summary>Body</details>'
+    const out = stripSearchContent(md)
+    expect(out).not.toContain('<')
+    expect(out).not.toContain('>')
+    expect(out).toContain('Self-host Compatibility')
+    expect(out).toContain('Body')
+  })
+
+  it('strips <br> and other void HTML tags', () => {
+    expect(stripSearchContent('Line 1<br />Line 2')).toBe('Line 1Line 2')
+  })
+
+  it('strips image syntax (alt text and src)', () => {
+    expect(stripSearchContent('See ![Cool diagram](img.png) below')).toBe(
+      'See below',
+    )
+  })
+
+  it('unwraps markdown links to keep only the visible text', () => {
+    expect(
+      stripSearchContent('Read [the docs](https://example.com) for more.'),
+    ).toBe('Read the docs for more.')
+  })
+
+  it('strips GFM callout markers but keeps the body text', () => {
+    const md = '> [!NOTE]\n> Some note text'
+    expect(stripSearchContent(md)).toBe('Some note text')
+  })
+
+  it('strips all five GFM callout types', () => {
+    for (const kind of ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION']) {
+      const md = `> [!${kind}]\n> Body for ${kind}`
+      const out = stripSearchContent(md)
+      expect(out).not.toContain(`[!${kind}]`)
+      expect(out).toContain(`Body for ${kind}`)
+    }
+  })
+
+  it('strips callout markers regardless of case', () => {
+    expect(stripSearchContent('[!note] x')).not.toContain('[!')
+    expect(stripSearchContent('[!Tip] x')).not.toContain('[!')
+  })
+
+  it('strips emphasis, strong, code, and strikethrough markers', () => {
+    expect(stripSearchContent('**bold** *italic* `code` ~strike~')).toBe(
+      'bold italic code strike',
+    )
+  })
+
+  it('strips list bullets (-, *, +)', () => {
+    const md = '- one\n* two\n+ three'
+    expect(stripSearchContent(md)).toBe('one two three')
+  })
+
+  it('strips blockquote markers', () => {
+    expect(stripSearchContent('> quoted text')).toBe('quoted text')
+  })
+
+  it('replaces table pipes with spaces', () => {
+    const md = '| Col A | Col B |\n| --- | --- |\n| Val 1 | Val 2 |'
+    const out = stripSearchContent(md)
+    expect(out).not.toContain('|')
+    expect(out).toContain('Col A')
+    expect(out).toContain('Col B')
+    expect(out).toContain('Val 1')
+  })
+
+  it('strips HTML comments', () => {
+    expect(stripSearchContent('Before <!-- hidden --> after')).toBe(
+      'Before after',
+    )
+  })
+
+  it('collapses multiple whitespace into a single space', () => {
+    expect(stripSearchContent('a    b\n\n\nc')).toBe('a b c')
+  })
+
+  it('handles a realistic mixed-syntax markdown block end-to-end', () => {
+    const md = [
+      '# Bug Reports — Android',
+      '',
+      '* [Session Timeline](#session-timeline)',
+      '* [Built-in Experience](#built-in-experience)',
+      '',
+      '> [!NOTE]',
+      '> Use **Measure.launchBugReportActivity** to start the flow.',
+      '',
+      '```kotlin',
+      'Measure.launchBugReportActivity(activity)',
+      '```',
+      '',
+      '| Mode | Dark | Light |',
+      '| --- | --- | --- |',
+      '| Default | ![](dark.png) | ![](light.png) |',
+      '',
+      '<details><summary>More</summary>Extra info</details>',
+    ].join('\n')
+    const out = stripSearchContent(md)
+    expect(out).not.toMatch(/```|<|>|\||\[!|!\[/)
+    expect(out).not.toContain('Bug Reports — Android') // heading stripped
+    expect(out).toContain('Session Timeline')
+    expect(out).toContain('Use Measure.launchBugReportActivity to start the flow.')
+    expect(out).toContain('Mode')
+    expect(out).toContain('Default')
+    expect(out).toContain('Extra info')
   })
 })
